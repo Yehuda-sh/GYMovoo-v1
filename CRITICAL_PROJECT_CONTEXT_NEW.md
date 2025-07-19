@@ -132,7 +132,6 @@ GYMovoo/
 ├── docs/ # תיעוד פנימי
 └── README.md # תיעוד פרויקט ראשי
 
-
 ---
 
 ### 🏁 יצירת תיקיות וקבצי placeholder - פקודת Bash (תריץ פעם אחת בספריית הפרויקט):
@@ -142,7 +141,7 @@ GYMovoo/
 <details>
 <summary>הצג פקודת Bash מלאה (אפשר להעתיק כקובץ <code>init_structure.sh</code> ולהריץ ב־Git Bash / Mac / Linux):</summary>
 
-```bash
+````bash
 #!/bin/bash
 mkdir -p app
 touch app/_layout.tsx
@@ -241,11 +240,11 @@ echo "✅ כל התיקיות והקבצים נוצרו עם placeholder!"
 
 ## 📝 שיטת עבודה עם GPT (חשוב!)
 
-**1. כל קובץ שמתקבל - מלא (לא לבקש השלמות ידניות).**  
-**2. שינויים קטנים - פירוט מדויק (קובץ + שורה).**  
-**3. בכל שלב - שלח בעיות/שגיאות, GPT מתקן נקודתית.**  
-**4. אם GPT צריך קובץ שלא אצלך - יבקש ממך לשלוח אותו.**  
-**5. הקפדה על תיעוד מהיר, לא סחבת.**  
+**1. כל קובץ שמתקבל - מלא (לא לבקש השלמות ידניות).**
+**2. שינויים קטנים - פירוט מדויק (קובץ + שורה).**
+**3. בכל שלב - שלח בעיות/שגיאות, GPT מתקן נקודתית.**
+**4. אם GPT צריך קובץ שלא אצלך - יבקש ממך לשלוח אותו.**
+**5. הקפדה על תיעוד מהיר, לא סחבת.**
 **6. כל שלב: קודם שהכל ירוץ, רק אז מתקדמים.**
 
 ---
@@ -334,4 +333,87 @@ GPT יתקן/ישלח תיקון מדויק (או יבקש קובץ רלוונט
 הקובץ הזה הוא ה-SINGLE SOURCE OF TRUTH
 לניהול, סיכום, שיטת עבודה ובחירת טכנולוגיות/סדר עבודה לפרויקט GYMovoo.
 כל שאלה, תיקון, או שלב — יתנהל על פי מה שמופיע כאן!
+````
+
+---
+
+### 2. **הנחיה בהנחיות פיתוח (💻 הנחיות פיתוח)**
+
+הוסף:
+
+- "**כל מסך חדש (screen/component): צבע רקע, טקסט, גבולות — _רק_ מה־theme (לא hex ישיר!). אם יש חריגה — לעדכן theme.ts בלבד.**"
+
+---
+
+### 3. **הערה גם ב־Next Steps (בסוף הקובץ):**
+
+- "הקפד על שימוש ב־theme.ts לכל עיצוב — כל מסך חדש ירוץ עם הרקע הכהה של המערכת."
+
+---
+
+## 🟦 תוספת מוכנה להדבקה (סיכום):
+
+### 🎨 Design System (theme.ts דוגמה)
+
+````markdown
+- כל מסך/קומפוננטה חייבים להשתמש ב־theme מרכזי ל־colors/radius/spacing (לא hex-ים ידניים!).
+- רקע ברירת מחדל: כהה, כמו Welcome (background: "#181E41"), מתוך theme.
+- עדכון צבעים רק דרך theme.ts.
+
+```typescript
+// src/styles/theme.ts
+
+export const theme = {
+  colors: {
+    background: "#181E41", // Dark background (default)
+    backgroundAlt: "#1F2C4C", // Alt gradient
+    card: "#242a47", // Card/box
+    primary: "#007AFF",
+    secondary: "#5856D6",
+    accent: "#4e9eff",
+    text: "#fff",
+    textSecondary: "#8CA8FF",
+    border: "#6bb5ff",
+    divider: "#4b5a7a",
+    google: "#fff",
+    googleText: "#fff",
+  },
+  borderRadius: {
+    md: 16,
+    lg: 24,
+  },
+  spacing: {
+    sm: 8,
+    md: 16,
+    lg: 24,
+  },
+};
 ```
+````
+
+שימוש בכל מסך:
+import { theme } from "../../styles/theme";
+
+const styles = StyleSheet.create({
+container: {
+backgroundColor: theme.colors.background,
+// ...
+},
+});
+או:
+<LinearGradient
+colors={[theme.colors.background, theme.colors.backgroundAlt]}
+style={{ flex: 1 }}
+
+> {/_ ... _/}
+> </LinearGradient>
+
+---
+
+### 💻 הנחיות פיתוח — עדכן להוסיף:
+
+> כל מסך/קומפוננטה: עיצוב (צבע, טקסט, גבולות) אך ורק מתוך theme.ts המרכזי.
+
+---
+
+**זה יבטיח שהכול יישאר עקבי, מודרני, וקל להחלפה לכל המסכים!**
