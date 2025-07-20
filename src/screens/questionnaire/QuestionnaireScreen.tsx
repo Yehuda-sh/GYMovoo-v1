@@ -1,178 +1,665 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// שאלות מורחבות ומשופרות // Enhanced questions
 const QUESTIONS = [
   {
     id: 0,
-    question: "בן כמה אתה?",
-    options: ["מתחת ל-16", "16 ומעלה"], // אפשר גם טקסט חופשי/Picker
+    question: "מה הגיל שלך?",
+    icon: "calendar",
+    type: "single",
+    options: ["מתחת ל-16", "16-25", "26-35", "36-45", "46-55", "56+"],
   },
   {
     id: 1,
-    question: "מה מטרת האימון שלך?",
-    options: ["חיטוב", "עליה במסת שריר", "שיפור כוח", "שיפור כושר כללי"],
+    question: "מה המין שלך?",
+    icon: "gender-male-female",
+    type: "single",
+    options: ["זכר", "נקבה", "אחר/מעדיף לא לענות"],
   },
   {
     id: 2,
-    question: "מה רמת הניסיון שלך?",
-    options: ["מתחיל", "בינוני", "מתקדם"],
+    question: "מה מטרת האימון העיקרית שלך?",
+    icon: "target",
+    type: "single",
+    options: [
+      "ירידה במשקל",
+      "עליה במסת שריר",
+      "שיפור כוח",
+      "שיפור סיבולת",
+      "בריאות כללית",
+      "שיקום מפציעה",
+    ],
   },
   {
     id: 3,
-    question: "כמה פעמים בשבוע תרצה להתאמן?",
-    options: ["2", "3", "4", "5 ומעלה"],
+    question: "מה רמת הניסיון שלך באימונים?",
+    icon: "arm-flex",
+    type: "single",
+    options: [
+      "מתחיל (0-6 חודשים)",
+      "בינוני (6-24 חודשים)",
+      "מתקדם (2+ שנים)",
+      "מקצועי",
+    ],
+  },
+  {
+    id: 4,
+    question: "כמה פעמים בשבוע אתה יכול להתאמן?",
+    icon: "calendar-week",
+    type: "single",
+    options: ["1-2", "3-4", "5-6", "כל יום"],
+  },
+  {
+    id: 5,
+    question: "כמה זמן יש לך לכל אימון?",
+    icon: "clock-outline",
+    type: "single",
+    options: ["30 דקות או פחות", "30-45 דקות", "45-60 דקות", "60+ דקות"],
+  },
+  {
+    id: 6,
+    question: "איפה אתה מתכנן להתאמן?",
+    icon: "dumbbell",
+    type: "multiple",
+    options: ["חדר כושר", "בית", "פארק/חוץ", "סטודיו"],
+  },
+  {
+    id: 7,
+    question: "אילו פציעות או מגבלות יש לך?",
+    icon: "medical-bag",
+    type: "text",
+    placeholder: "לדוגמה: כאבי גב, ברכיים רגישות... (לא חובה)",
+  },
+  {
+    id: 8,
+    question: "מה הציוד הזמין לך?",
+    icon: "weight",
+    type: "multiple",
+    options: [
+      "משקולות חופשיות",
+      "מכונות",
+      "גומיות התנגדות",
+      "מוט מתח",
+      "כדור פיזיו",
+      "ללא ציוד",
+    ],
   },
 ];
 
 export default function QuestionnaireScreen({ navigation }: any) {
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<{ [key: number]: any }>({});
   const [error, setError] = useState<string | null>(null);
+  const [textInput, setTextInput] = useState("");
+
+  // אנימציות // Animations
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const errorShake = useRef(new Animated.Value(0)).current;
 
   const setQuestionnaire = useUserStore((s) => s.setQuestionnaire);
 
-  const handleOption = (option: string) => {
-    setAnswers((prev) => ({ ...prev, [QUESTIONS[current].id]: option }));
-    setError(null); // איפוס שגיאה כשמשנים תשובה
+  useEffect(() => {
+    // אנימציית progress bar // Progress bar animation
+    Animated.timing(progressAnim, {
+      toValue: (currentIndex + 1) / QUESTIONS.length,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentIndex]);
+
+  // אנימציית שגיאה // Error animation
+  const showError = (message: string) => {
+    setError(message);
+    Animated.sequence([
+      Animated.timing(errorShake, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(errorShake, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(errorShake, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(errorShake, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
+  // בחירת אפשרות בודדת // Single option selection
+  const handleSingleOption = (option: string) => {
+    setAnswers((prev) => ({ ...prev, [currentIndex]: option }));
+    setError(null);
+  };
+
+  // בחירת אפשרויות מרובות // Multiple options selection
+  const handleMultipleOption = (option: string) => {
+    const current = answers[currentIndex] || [];
+    const updated = current.includes(option)
+      ? current.filter((o: string) => o !== option)
+      : [...current, option];
+    setAnswers((prev) => ({ ...prev, [currentIndex]: updated }));
+    setError(null);
+  };
+
+  // מעבר לשאלה הבאה // Move to next question
   const handleNext = () => {
-    if (current === 0 && answers[0] === "מתחת ל-16") {
-      setError("ההרשמה מותרת רק מגיל 16 ומעלה");
+    const question = QUESTIONS[currentIndex];
+
+    // בדיקות תקינות // Validation
+    if (currentIndex === 0 && answers[0] === "מתחת ל-16") {
+      showError("ההרשמה מותרת רק מגיל 16 ומעלה");
       return;
     }
-    if (current < QUESTIONS.length - 1) {
-      setCurrent(current + 1);
-    } else {
-      setQuestionnaire(answers);
-      navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+
+    if (question.type === "text") {
+      // שאלת טקסט לא חובה // Text question is optional
+      if (textInput.trim()) {
+        setAnswers((prev) => ({ ...prev, [currentIndex]: textInput.trim() }));
+      }
+    } else if (
+      question.type === "multiple" &&
+      (!answers[currentIndex] || answers[currentIndex].length === 0)
+    ) {
+      showError("נא לבחור לפחות אפשרות אחת");
+      return;
+    } else if (question.type === "single" && !answers[currentIndex]) {
+      showError("נא לבחור אפשרות");
+      return;
+    }
+
+    // אנימציית מעבר // Transition animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: -50,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      if (currentIndex < QUESTIONS.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setTextInput("");
+        setError(null);
+
+        // איפוס ואנימציית כניסה // Reset and entry animation
+        slideAnim.setValue(50);
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      } else {
+        // סיום השאלון // Questionnaire completion
+        console.log("📝 Questionnaire completed:", answers);
+        setQuestionnaire(answers);
+        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+      }
+    });
+  };
+
+  // חזרה לשאלה הקודמת // Go back to previous question
+  const handleBack = () => {
+    if (currentIndex > 0) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 50,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCurrentIndex(currentIndex - 1);
+        setError(null);
+        slideAnim.setValue(-50);
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
     }
   };
 
-  const question = QUESTIONS[current];
+  const question = QUESTIONS[currentIndex];
+  const isLastQuestion = currentIndex === QUESTIONS.length - 1;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.progress}>{`${current + 1}/${
-        QUESTIONS.length
-      }`}</Text>
-      <Text style={styles.title}>{question.question}</Text>
-      <View style={styles.optionsWrapper}>
-        {question.options.map((option) => (
-          <TouchableOpacity
-            key={option}
-            style={[
-              styles.option,
-              answers[question.id] === option && styles.selectedOption,
-            ]}
-            onPress={() => handleOption(option)}
-            activeOpacity={0.82}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                answers[question.id] === option && styles.selectedOptionText,
-              ]}
-            >
-              {option}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* הצגת הודעת שגיאה אם קיימת */}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <TouchableOpacity
-        style={[styles.nextButton, !answers[question.id] && { opacity: 0.5 }]}
-        onPress={handleNext}
-        disabled={!answers[question.id]}
-        activeOpacity={0.85}
+    <LinearGradient
+      colors={[theme.colors.background, theme.colors.backgroundAlt]}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        <Text style={styles.nextButtonText}>
-          {current < QUESTIONS.length - 1 ? "הבא" : "סיום"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header with progress */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={handleBack}
+              style={[
+                styles.backButton,
+                currentIndex === 0 && { opacity: 0.3 },
+              ]}
+              disabled={currentIndex === 0}
+            >
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={32}
+                color={theme.colors.text}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>
+                {currentIndex + 1} מתוך {QUESTIONS.length}
+              </Text>
+              <View style={styles.progressBar}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ["0%", "100%"],
+                      }),
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.closeButton}
+            >
+              <MaterialCommunityIcons
+                name="close"
+                size={28}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Question content */}
+          <Animated.View
+            style={[
+              styles.questionContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateX: slideAnim },
+                  { translateX: errorShake },
+                ],
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={question.icon as any}
+              size={64}
+              color={theme.colors.accent}
+              style={styles.questionIcon}
+            />
+
+            <Text style={styles.questionText}>{question.question}</Text>
+
+            {/* Options */}
+            {question.type === "single" && (
+              <View style={styles.optionsContainer}>
+                {question.options?.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionButton,
+                      answers[currentIndex] === option && styles.selectedOption,
+                    ]}
+                    onPress={() => handleSingleOption(option)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        answers[currentIndex] === option &&
+                          styles.selectedOptionText,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                    {answers[currentIndex] === option && (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={24}
+                        color={theme.colors.text}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {question.type === "multiple" && (
+              <View style={styles.optionsContainer}>
+                {question.options?.map((option) => {
+                  const isSelected = answers[currentIndex]?.includes(option);
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.optionButton,
+                        isSelected && styles.selectedOption,
+                      ]}
+                      onPress={() => handleMultipleOption(option)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.optionText,
+                          isSelected && styles.selectedOptionText,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                      <MaterialCommunityIcons
+                        name={
+                          isSelected
+                            ? "checkbox-marked"
+                            : "checkbox-blank-outline"
+                        }
+                        size={24}
+                        color={
+                          isSelected
+                            ? theme.colors.text
+                            : theme.colors.textSecondary
+                        }
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+                <Text style={styles.multipleHint}>
+                  ניתן לבחור יותר מאפשרות אחת
+                </Text>
+              </View>
+            )}
+
+            {question.type === "text" && (
+              <View style={styles.textInputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={textInput}
+                  onChangeText={setTextInput}
+                  placeholder={question.placeholder}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  multiline
+                  maxLength={200}
+                  textAlign="right"
+                />
+                <Text style={styles.textCounter}>{textInput.length}/200</Text>
+              </View>
+            )}
+
+            {/* Error message */}
+            {error && <Text style={styles.errorText}>{error}</Text>}
+          </Animated.View>
+
+          {/* Bottom buttons */}
+          <View style={styles.bottomContainer}>
+            <TouchableOpacity
+              style={[
+                styles.nextButton,
+                !answers[currentIndex] &&
+                  question.type !== "text" &&
+                  styles.disabledButton,
+              ]}
+              onPress={handleNext}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={
+                  !answers[currentIndex] && question.type !== "text"
+                    ? [theme.colors.divider, theme.colors.divider]
+                    : [
+                        theme.colors.primaryGradientStart,
+                        theme.colors.primaryGradientEnd,
+                      ]
+                }
+                style={styles.nextButtonGradient}
+              >
+                <Text style={styles.nextButtonText}>
+                  {isLastQuestion ? "סיים שאלון" : "המשך"}
+                </Text>
+                <MaterialCommunityIcons
+                  name={isLastQuestion ? "check" : "chevron-left"}
+                  size={24}
+                  color={theme.colors.text}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {question.type === "text" && (
+              <TouchableOpacity
+                onPress={() => {
+                  setTextInput("");
+                  handleNext();
+                }}
+                style={styles.skipButton}
+              >
+                <Text style={styles.skipText}>דלג</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.lg,
+    justifyContent: "space-between",
+    paddingTop: 50,
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
   },
-  progress: {
-    fontSize: 15,
-    color: theme.colors.accent,
-    alignSelf: "flex-end",
-    marginBottom: 8,
-    writingDirection: "rtl",
+  backButton: {
+    padding: theme.spacing.sm,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "600",
+  closeButton: {
+    padding: theme.spacing.sm,
+  },
+  progressContainer: {
+    flex: 1,
+    marginHorizontal: theme.spacing.md,
+  },
+  progressText: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: theme.colors.divider,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: theme.colors.accent,
+  },
+  questionContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+  },
+  questionIcon: {
+    marginBottom: theme.spacing.lg,
+  },
+  questionText: {
+    fontSize: 24,
+    fontWeight: "bold",
     color: theme.colors.text,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: theme.spacing.xl,
     writingDirection: "rtl",
   },
-  optionsWrapper: {
-    marginTop: 18,
+  optionsContainer: {
     width: "100%",
+    maxWidth: 400,
   },
-  option: {
-    backgroundColor: theme.colors.card,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: 12,
-    borderColor: theme.colors.divider,
-    borderWidth: 1,
+  optionButton: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.sm,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
   selectedOption: {
-    backgroundColor: theme.colors.accent + "22",
     borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.cardBorder,
   },
   optionText: {
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.textSecondary,
-    writingDirection: "rtl",
+    flex: 1,
+    textAlign: "right",
   },
   selectedOptionText: {
-    color: theme.colors.primary,
-    fontWeight: "bold",
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  multipleHint: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
+  },
+  textInputContainer: {
+    width: "100%",
+    maxWidth: 400,
+  },
+  textInput: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    color: theme.colors.text,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: "top",
+    writingDirection: "rtl",
+  },
+  textCounter: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    textAlign: "left",
+    marginTop: theme.spacing.xs,
   },
   errorText: {
-    color: "#ff4757",
-    fontSize: 16,
+    color: theme.colors.error,
+    fontSize: 14,
+    marginTop: theme.spacing.md,
     textAlign: "center",
-    marginTop: 12,
-    marginBottom: 2,
-    fontWeight: "600",
+  },
+  bottomContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: "auto",
+    paddingTop: theme.spacing.xl,
   },
   nextButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    borderRadius: theme.borderRadius.md,
-    marginTop: 30,
+    width: "100%",
+    maxWidth: 400,
     alignSelf: "center",
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  nextButtonGradient: {
+    flexDirection: "row-reverse",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
   },
   nextButtonText: {
-    color: "#fff",
-    fontWeight: "600",
+    color: theme.colors.text,
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  skipButton: {
+    alignSelf: "center",
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.sm,
+  },
+  skipText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    textDecorationLine: "underline",
   },
 });
