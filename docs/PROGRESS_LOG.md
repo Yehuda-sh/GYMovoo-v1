@@ -457,3 +457,98 @@ git commit -m "feat: Complete ultimate workout screen with AI recommendations, l
 git push
 
 הערה לשיחה הבאה: להתחיל עם יצירת תיקיית src/screens/workout/components/ ופיצול הקוד לקבצים קטנים ומאורגנים יותר.
+🔖 Checkpoint #006 - תשתית מסך אימון מתקדמת
+תאריך: 2025-01-20
+סטטוס: ✅ תשתית מלאה למסך אימון עם קומפוננטות מודולריות
+
+✅ מה הושלם בשלב זה:
+
+1. תשתית בסיסית:
+
+✅ Types - כל הטייפים למערכת אימון (workout.types.ts)
+✅ Constants - קבועים והגדרות (workoutConstants.ts)
+✅ Custom Hooks:
+
+useWorkoutTimer - ניהול זמן אימון כללי
+useRestTimer - טיימר מנוחה עם רטט
+
+✅ AutoSaveService - שמירה אוטומטית ושחזור טיוטות
+
+2. קומפוננטות ראשיות:
+
+✅ WorkoutHeader - הדר עם תפריט, טיימר ועריכת שם
+✅ WorkoutDashboard - דשבורד סטטיסטיקות עם אנימציות
+✅ RestTimer - טיימר מנוחה ויזואלי עם כפתורי +/- 15 שניות
+
+3. קומפוננטת ExerciseCard מלאה:
+
+✅ ExerciseCard - כרטיס תרגיל ראשי
+
+הרחבה/כיווץ עם אנימציה
+פס התקדמות דינמי
+מודל מידע על התרגיל
+
+✅ SetRow - שורת סט מתקדמת
+
+המלצות AI למשקל
+זיהוי שיאים אוטומטי
+דירוג RPE
+תמיכה בסוגי סט (חימום, dropset, כישלון)
+
+✅ ExerciseMenu - תפריט אפשרויות
+
+סידור תרגילים
+שכפול ומחיקה
+אנימציות slide-up
+
+📁 מבנה הקבצים שנוצר:
+src/screens/workout/
+├── types/
+│ └── workout.types.ts ✅
+├── utils/
+│ └── workoutConstants.ts ✅
+├── hooks/
+│ ├── useWorkoutTimer.ts ✅
+│ └── useRestTimer.ts ✅
+├── services/
+│ └── autoSaveService.ts ✅
+└── components/
+├── WorkoutHeader.tsx ✅
+├── WorkoutDashboard.tsx ✅
+├── RestTimer.tsx ✅
+└── ExerciseCard/
+├── index.tsx ✅
+├── SetRow.tsx ✅
+└── ExerciseMenu.tsx ✅
+
+🎨 פיצ'רים מיוחדים שהוספנו:
+
+🧠 המלצות AI למשקל בהתבסס על ביצועים קודמים
+🏆 זיהוי שיאים אוטומטי עם אנימציות
+💾 שמירה אוטומטית כל 30 שניות
+📊 דשבורד חי עם נפח, קצב ושיאים
+⏱️ טיימר מנוחה חכם עם התאמות של 15 שניות
+🎯 דירוג RPE לכל סט
+📱 רטט בסיום מנוחה (3 שניות אחרונות)
+
+🟢 הכל עובד ללא שגיאות!
+
+🎯 המשימה הבאה - יצירת QuickWorkoutScreen.tsx החדש
+צריך ליצור את המסך הראשי שמשלב את כל הקומפוננטות:
+typescript// QuickWorkoutScreen.tsx - כ-300 שורות בלבד!
+
+- ייבוא כל הקומפוננטות
+- ניהול state של התרגילים
+- שילוב AutoSaveService
+- הוספת תרגילים חדשים
+- מסך סיכום בסיום
+
+📝 מה לשמור לשיחה הבאה:
+
+כל הקבצים שיצרנו - התשתית מוכנה
+רשימת הקומפוננטות שנותרו:
+
+QuickWorkoutScreen הראשי
+ExercisePickerModal
+WorkoutSummary
+NextExerciseBar (אופציונלי)
