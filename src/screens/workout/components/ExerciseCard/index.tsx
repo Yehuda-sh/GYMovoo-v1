@@ -21,9 +21,9 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
-import DraggableFlatList, {
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
+// import DraggableFlatList, {
+//   ScaleDecorator,
+// } from "react-native-draggable-flatlist";
 import { theme } from "../../../../styles/theme";
 import { Exercise, Set } from "../../types/workout.types";
 import SetRow from "./SetRow";
@@ -240,13 +240,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
       {/* רשימת סטים */}
       {/* Sets list */}
-      <DraggableFlatList
+      {/* <DraggableFlatList
         data={exercise.sets}
         keyExtractor={(item) => item.id}
         onDragEnd={reorderSets}
         renderItem={({ item, drag, isActive, getIndex }) => (
-          <ScaleDecorator>
-            <SetRow
+          <ScaleDecorator> */}
+      {/* <SetRow
               set={item}
               setNumber={(getIndex?.() || 0) + 1}
               onUpdate={(updates) => onUpdateSet(item.id, updates)}
@@ -263,7 +263,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             />
           </ScaleDecorator>
         )}
-      />
+      /> */}
 
       {/* כפתור הוספת סט */}
       {/* Add set button */}

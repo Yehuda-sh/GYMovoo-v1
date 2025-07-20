@@ -44,34 +44,50 @@ import { Exercise, WorkoutData, Set } from "./types/workout.types";
 const initialExercises: Exercise[] = [
   {
     id: "1",
-    name: "לחיצת חזה עם מוט",
-    category: "chest",
+    name: "לחיצת חזה במוט",
+    category: "חזה",
     primaryMuscles: ["חזה"],
-    secondaryMuscles: ["כתפיים", "טריספס"],
+    secondaryMuscles: ["כתפיים", "שרירי היד האחוריים"],
     equipment: "מוט",
     sets: [
-      { id: "1-1", reps: 12, weight: 60, completed: false, type: "warmup" },
-      { id: "1-2", reps: 10, weight: 80, completed: false, type: "working" },
-      { id: "1-3", reps: 8, weight: 90, completed: false, type: "working" },
-      { id: "1-4", reps: 6, weight: 100, completed: false, type: "working" },
+      {
+        id: "1-1",
+        type: "warmup",
+        targetReps: 15,
+        targetWeight: 40,
+        completed: false,
+      },
+      {
+        id: "1-2",
+        type: "working",
+        targetReps: 12,
+        targetWeight: 60,
+        previousWeight: 55,
+        previousReps: 10,
+        completed: false,
+      },
     ],
   },
   {
     id: "2",
     name: "סקוואט עם מוט",
-    category: "legs",
-    primaryMuscles: ["ארבע ראשי"],
-    secondaryMuscles: ["ישבן", "המסטרינג"],
+    category: "רגליים",
+    primaryMuscles: ["ארבע ראשי", "עכוז"],
+    secondaryMuscles: ["שרירי הירך האחוריים", "סובך"],
     equipment: "מוט",
     sets: [
-      { id: "2-1", reps: 15, weight: 40, completed: false, type: "warmup" },
-      { id: "2-2", reps: 12, weight: 60, completed: false, type: "working" },
-      { id: "2-3", reps: 10, weight: 70, completed: false, type: "working" },
+      {
+        id: "2-1",
+        type: "working",
+        targetReps: 10,
+        targetWeight: 80,
+        completed: false,
+      },
     ],
   },
 ];
 
-export const QuickWorkoutScreen: React.FC = () => {
+export const QuickWorkoutScreen = () => {
   const navigation = useNavigation();
 
   // State
@@ -117,7 +133,7 @@ export const QuickWorkoutScreen: React.FC = () => {
         exercises,
         duration,
       };
-      autoSaveService.saveDraft(workoutData);
+      autoSaveService.saveWorkoutState(workoutData);
     }
   }, [exercises, workoutName, duration, isRunning]);
 
@@ -207,7 +223,7 @@ export const QuickWorkoutScreen: React.FC = () => {
         if (ex.id === exerciseId) {
           const lastSet = ex.sets[ex.sets.length - 1];
           const newSet: Set = {
-            id: `${exerciseId}-${Date.now()}`,
+            id: `${Date.now()}-${ex.sets.length + 1}`,
             reps: lastSet?.reps || 12,
             weight: lastSet?.weight || 0,
             completed: false,
@@ -239,10 +255,17 @@ export const QuickWorkoutScreen: React.FC = () => {
     );
   };
 
+  // סימון סט כהושלם
+  // Mark set as completed
+  const handleSetComplete = (exerciseId: string, setId: string) => {
+    handleUpdateSet(exerciseId, setId, { completed: true });
+    startRest();
+  };
+
   // מחיקת תרגיל
   // Delete exercise
   const handleDeleteExercise = (exerciseId: string) => {
-    Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק את התרגיל?", [
+    Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק תרגיל זה?", [
       { text: "ביטול", style: "cancel" },
       {
         text: "מחק",
@@ -333,8 +356,14 @@ export const QuickWorkoutScreen: React.FC = () => {
           duration,
           exercises,
         }}
-        onFinish={() => {
-          autoSaveService.clearDraft();
+        onClose={() => {
+          autoSaveService.deleteDraft(Date.now().toString());
+          navigation.goBack();
+        }}
+        onSave={() => {
+          // שמירת אימון
+          console.log("שומר אימון...");
+          autoSaveService.deleteDraft(Date.now().toString());
           navigation.goBack();
         }}
       />
@@ -349,33 +378,26 @@ export const QuickWorkoutScreen: React.FC = () => {
       {/* Header */}
       <WorkoutHeader
         workoutName={workoutName}
-        onEditName={setWorkoutName}
-        duration={duration}
-        isRunning={isRunning}
-        onPauseResume={isRunning ? pauseTimer : startTimer}
+        onWorkoutNameChange={setWorkoutName}
+        elapsedTime={`${Math.floor(duration / 60)}:${(duration % 60)
+          .toString()
+          .padStart(2, "0")}`}
         onFinish={handleFinishWorkout}
+        onPause={isRunning ? pauseTimer : startTimer}
+        isPaused={!isRunning}
       />
 
       {/* Dashboard */}
       <WorkoutDashboard
-        duration={duration}
+        totalVolume={totalVolume}
         completedSets={completedSets}
         totalSets={totalSets}
-        volume={totalVolume}
+        pace={completedSets / Math.max(duration / 60, 1)}
         personalRecords={personalRecords}
       />
 
       {/* Rest Timer */}
-      {isResting && (
-        <RestTimer
-          restTime={restTime}
-          totalRestTime={totalRestTime}
-          isPaused={!isResting}
-          onPause={pauseRest}
-          onReset={resetRest}
-          onAdjustTime={adjustRestTime}
-        />
-      )}
+      {isResting && <RestTimer />}
 
       {/* Exercises List */}
       <ScrollView
@@ -408,8 +430,7 @@ export const QuickWorkoutScreen: React.FC = () => {
           />
         ))}
 
-        {/* כפתור הוספת תרגיל */}
-        {/* Add exercise button */}
+        {/* Add Exercise Button */}
         <TouchableOpacity
           style={styles.addExerciseButton}
           onPress={() => setShowExercisePicker(true)}
@@ -424,12 +445,14 @@ export const QuickWorkoutScreen: React.FC = () => {
       </ScrollView>
 
       {/* Next Exercise Bar */}
-      <NextExerciseBar
-        nextExercise={getNextExercise()}
-        onSkipToNext={handleSkipToNext}
-      />
+      {getNextExercise() && (
+        <NextExerciseBar
+          nextExercise={getNextExercise()}
+          onSkipToNext={handleSkipToNext}
+        />
+      )}
 
-      {/* Modals */}
+      {/* Exercise Picker Modal */}
       <ExercisePickerModal
         visible={showExercisePicker}
         onClose={() => setShowExercisePicker(false)}
@@ -437,16 +460,18 @@ export const QuickWorkoutScreen: React.FC = () => {
         currentExercises={exercises}
       />
 
+      {/* Plate Calculator Modal */}
       <PlateCalculatorModal
         visible={showPlateCalculator}
         onClose={() => setShowPlateCalculator(false)}
-        initialWeight={plateCalculatorWeight}
+        currentWeight={plateCalculatorWeight}
       />
 
+      {/* Exercise Tips Modal */}
       <ExerciseTipsModal
         visible={showExerciseTips}
         onClose={() => setShowExerciseTips(false)}
-        exercise={selectedExercise}
+        exerciseName={selectedExercise?.name || ""}
       />
     </KeyboardAvoidingView>
   );
@@ -464,22 +489,24 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   addExerciseButton: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderColor: theme.colors.border,
     borderStyle: "dashed",
   },
   addExerciseText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.primary,
-    marginLeft: 8,
+    marginRight: theme.spacing.sm,
   },
 });
+
+export default QuickWorkoutScreen;

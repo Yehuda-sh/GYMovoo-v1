@@ -16,6 +16,7 @@
     "axios": "^1.10.0",
     "expo": "~53.0.20",
     "expo-av": "~15.1.7",
+    "expo-blur": "~14.1.5",
     "expo-linear-gradient": "~14.1.5",
     "expo-status-bar": "~2.2.3",
     "lottie-react-native": "^7.2.4",
@@ -23,15 +24,14 @@
     "react-native": "0.79.5",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-elements": "^3.4.3",
-    "react-native-gesture-handler": "^2.27.1",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-haptic-feedback": "^2.3.3",
-    "react-native-reanimated": "^3.18.0",
+    "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.13.1",
     "react-native-sound": "^0.12.0",
     "react-native-vector-icons": "^10.2.0",
-    "zustand": "^5.0.6",
-    "expo-blur": "~14.1.5"
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
