@@ -39,7 +39,18 @@ export default function MainScreen() {
         />
         <Text style={styles.buttonText}>התחל אימון</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity
+        style={styles.secondaryButton}
+        onPress={() => navigation.navigate("ExerciseList")}
+      >
+        <Ionicons
+          name="fitness-outline"
+          size={18}
+          color={theme.colors.primary}
+          style={{ marginLeft: 4 }}
+        />
+        <Text style={styles.secondaryButtonText}>עיין בתרגילים</Text>
+      </TouchableOpacity>
       {/* כפתור מעבר לפרופיל */}
       <TouchableOpacity
         style={styles.secondaryButton}
