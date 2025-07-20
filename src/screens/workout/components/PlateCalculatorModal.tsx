@@ -1,7 +1,7 @@
 /**
  * @file src/screens/workout/components/PlateCalculatorModal.tsx
- * @description מחשבון פלטות ויזואלי - חישוב וייצוג גרפי של הפלטות הנדרשות
- * English: Visual plate calculator - calculate and visualize required plates
+ * @description מודל מחשבון פלטות
+ * English: Plate calculator modal
  */
 
 import React, { useState, useMemo } from "react";
@@ -9,340 +9,192 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   ScrollView,
   TextInput,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 
 interface PlateCalculatorModalProps {
   visible: boolean;
   onClose: () => void;
-  initialWeight?: number;
-  onApplyWeight?: (weight: number) => void;
-}
-
-interface PlateConfig {
-  weight: number;
-  count: number;
-  color: string;
+  currentWeight?: number;
 }
 
 // משקלי פלטות סטנדרטיים
-// Standard plate weights
-const STANDARD_PLATES = [
-  { weight: 20, color: "#FF0000" },
-  { weight: 15, color: "#FFD700" },
-  { weight: 10, color: "#00FF00" },
-  { weight: 5, color: "#0000FF" },
-  { weight: 2.5, color: "#FF1493" },
-  { weight: 1.25, color: "#C0C0C0" },
-];
-
-const BARBELL_WEIGHT = 20; // משקל מוט אולימפי
-const EMPTY_BARBELL_WEIGHT = 20;
+const PLATE_WEIGHTS = [20, 15, 10, 5, 2.5, 1.25, 0.5];
+const BAR_WEIGHT = 20;
 
 export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   visible,
   onClose,
-  initialWeight = 60,
-  onApplyWeight,
+  currentWeight = 60,
 }) => {
-  const [targetWeight, setTargetWeight] = useState(initialWeight.toString());
-  const [barbellWeight, setBarbellWeight] = useState(BARBELL_WEIGHT.toString());
-  const [showCustomBarbell, setShowCustomBarbell] = useState(false);
+  const [targetWeight, setTargetWeight] = useState(currentWeight.toString());
 
-  // חישוב הפלטות הנדרשות
-  // Calculate required plates
-  const plateConfiguration = useMemo(() => {
+  // חישוב פלטות נדרשות
+  const plateCalculation = useMemo(() => {
     const weight = parseFloat(targetWeight) || 0;
-    const barWeight = parseFloat(barbellWeight) || EMPTY_BARBELL_WEIGHT;
+    if (weight <= BAR_WEIGHT) return { plates: [], totalWeight: BAR_WEIGHT };
 
-    if (weight <= barWeight) {
-      return [];
-    }
+    const weightPerSide = (weight - BAR_WEIGHT) / 2;
+    const plates: number[] = [];
+    let remaining = weightPerSide;
 
-    const plateWeight = (weight - barWeight) / 2; // משקל לכל צד
-    const plates: PlateConfig[] = [];
-    let remainingWeight = plateWeight;
-
-    // אלגוריתם חמדן למציאת הפלטות
-    // Greedy algorithm to find plates
-    for (const plate of STANDARD_PLATES) {
-      const count = Math.floor(remainingWeight / plate.weight);
-      if (count > 0) {
-        plates.push({
-          weight: plate.weight,
-          count,
-          color: plate.color,
-        });
-        remainingWeight -= count * plate.weight;
+    for (const plate of PLATE_WEIGHTS) {
+      while (remaining >= plate) {
+        plates.push(plate);
+        remaining -= plate;
       }
     }
 
-    // בדיקה אם נשאר משקל שלא ניתן להשיג
-    if (remainingWeight > 0.1) {
-      plates.push({
-        weight: remainingWeight,
-        count: 1,
-        color: "#808080",
-      });
-    }
+    return {
+      plates,
+      totalWeight: BAR_WEIGHT + plates.reduce((a, b) => a + b, 0) * 2,
+      remaining: remaining > 0 ? remaining * 2 : 0,
+    };
+  }, [targetWeight]);
 
-    return plates;
-  }, [targetWeight, barbellWeight]);
-
-  // חישוב משקל בפועל
-  // Calculate actual weight
-  const actualWeight = useMemo(() => {
-    const barWeight = parseFloat(barbellWeight) || EMPTY_BARBELL_WEIGHT;
-    const platesWeight = plateConfiguration.reduce(
-      (sum, plate) => sum + plate.weight * plate.count * 2, // כפול 2 לשני הצדדים
-      0
-    );
-    return barWeight + platesWeight;
-  }, [barbellWeight, plateConfiguration]);
-
-  const handleQuickAdd = (amount: number) => {
-    const current = parseFloat(targetWeight) || 0;
-    setTargetWeight((current + amount).toString());
+  // צבע לפי משקל הפלטה
+  const getPlateColor = (weight: number): string => {
+    const colors: { [key: number]: string } = {
+      20: "#FF3B30",
+      15: "#FFD60A",
+      10: "#34C759",
+      5: "#007AFF",
+      2.5: "#FF9500",
+      1.25: "#AF52DE",
+      0.5: "#5856D6",
+    };
+    return colors[weight] || theme.colors.primary;
   };
-
-  const renderPlate = (plate: PlateConfig, index: number) => (
-    <View key={index} style={styles.plateRow}>
-      <View style={styles.plateInfo}>
-        <View style={[styles.plateColor, { backgroundColor: plate.color }]} />
-        <Text style={styles.plateWeight}>{plate.weight} ק"ג</Text>
-      </View>
-      <View style={styles.plateCount}>
-        <Text style={styles.countText}>x{plate.count}</Text>
-        <Text style={styles.sideText}>לכל צד</Text>
-      </View>
-    </View>
-  );
-
-  const renderBarbellVisualization = () => (
-    <View style={styles.barbellContainer}>
-      {/* צד שמאל */}
-      {/* Left side */}
-      <View style={styles.platesVisualization}>
-        {plateConfiguration.map((plate, index) => (
-          <View key={`left-${index}`} style={styles.plateVisualGroup}>
-            {Array.from({ length: plate.count }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.plateVisual,
-                  {
-                    backgroundColor: plate.color,
-                    height: 40 + plate.weight * 2,
-                    marginRight: 2,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ))}
-      </View>
-
-      {/* המוט */}
-      {/* The bar */}
-      <View style={styles.barbell}>
-        <Text style={styles.barbellText}>{barbellWeight} ק"ג</Text>
-      </View>
-
-      {/* צד ימין */}
-      {/* Right side */}
-      <View style={[styles.platesVisualization, styles.rightSide]}>
-        {plateConfiguration.map((plate, index) => (
-          <View key={`right-${index}`} style={styles.plateVisualGroup}>
-            {Array.from({ length: plate.count }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.plateVisual,
-                  {
-                    backgroundColor: plate.color,
-                    height: 40 + plate.weight * 2,
-                    marginLeft: 2,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent
+      transparent={true}
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* כותרת */}
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>מחשבון פלטות</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={theme.colors.text}
-              />
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
+            <Text style={styles.title}>מחשבון פלטות</Text>
+            <View style={{ width: 24 }} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* קלט משקל */}
-            {/* Weight input */}
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>משקל יעד</Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.weightInput}
-                  value={targetWeight}
-                  onChangeText={setTargetWeight}
-                  keyboardType="numeric"
-                  selectTextOnFocus
-                />
-                <Text style={styles.unitText}>ק"ג</Text>
-              </View>
-
-              {/* כפתורי הוספה מהירה */}
-              {/* Quick add buttons */}
-              <View style={styles.quickButtons}>
-                {[2.5, 5, 10, 20].map((weight) => (
-                  <TouchableOpacity
-                    key={weight}
-                    style={styles.quickButton}
-                    onPress={() => handleQuickAdd(weight)}
-                  >
-                    <Text style={styles.quickButtonText}>+{weight}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          {/* משקל יעד */}
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>משקל יעד (ק"ג)</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={targetWeight}
+                onChangeText={setTargetWeight}
+                keyboardType="numeric"
+                placeholder="60"
+                placeholderTextColor={theme.colors.textSecondary}
+              />
+              <Text style={styles.kgLabel}>ק"ג</Text>
             </View>
+          </View>
 
-            {/* משקל מוט */}
-            {/* Barbell weight */}
-            <TouchableOpacity
-              style={styles.barbellSection}
-              onPress={() => setShowCustomBarbell(!showCustomBarbell)}
-            >
-              <Text style={styles.barbellLabel}>משקל מוט</Text>
-              <View style={styles.barbellValue}>
-                <Text style={styles.barbellWeightText}>
-                  {barbellWeight} ק"ג
-                </Text>
-                <MaterialCommunityIcons
-                  name={showCustomBarbell ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {showCustomBarbell && (
-              <View style={styles.customBarbellInput}>
-                <TextInput
-                  style={styles.barbellInput}
-                  value={barbellWeight}
-                  onChangeText={setBarbellWeight}
-                  keyboardType="numeric"
-                  placeholder="משקל מוט"
-                  placeholderTextColor={theme.colors.textSecondary}
-                />
-                <View style={styles.barbellPresets}>
-                  {[15, 20].map((weight) => (
-                    <TouchableOpacity
-                      key={weight}
-                      style={styles.presetButton}
-                      onPress={() => setBarbellWeight(weight.toString())}
-                    >
-                      <Text style={styles.presetText}>{weight} ק"ג</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* ויזואליזציה של המוט */}
-            {/* Barbell visualization */}
-            {renderBarbellVisualization()}
-
-            {/* רשימת פלטות */}
-            {/* Plates list */}
-            <View style={styles.platesSection}>
-              <Text style={styles.sectionTitle}>פלטות נדרשות</Text>
-              {plateConfiguration.length > 0 ? (
-                plateConfiguration.map((plate, index) =>
-                  renderPlate(plate, index)
-                )
-              ) : (
-                <Text style={styles.emptyText}>משקל המוט בלבד</Text>
-              )}
-            </View>
-
-            {/* סיכום */}
-            {/* Summary */}
-            <View style={styles.summarySection}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>משקל בפועל:</Text>
-                <Text style={styles.summaryValue}>
-                  {actualWeight.toFixed(1)} ק"ג
-                </Text>
-              </View>
-              {Math.abs(actualWeight - parseFloat(targetWeight)) > 0.1 && (
-                <View style={styles.differenceRow}>
-                  <MaterialCommunityIcons
-                    name="alert-circle-outline"
-                    size={16}
-                    color={theme.colors.warning}
-                  />
-                  <Text style={styles.differenceText}>
-                    הפרש של{" "}
-                    {Math.abs(actualWeight - parseFloat(targetWeight)).toFixed(
-                      1
-                    )}{" "}
-                    ק"ג מהיעד
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* כפתור החלה */}
-            {/* Apply button */}
-            {onApplyWeight && (
-              <TouchableOpacity
-                onPress={() => {
-                  onApplyWeight(actualWeight);
-                  onClose();
-                }}
+          {/* תצוגה ויזואלית של המוט */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.barVisualization}
+          >
+            {/* פלטות צד ימין */}
+            {plateCalculation.plates.map((weight, index) => (
+              <View
+                key={`right-${index}`}
+                style={[
+                  styles.plate,
+                  {
+                    backgroundColor: getPlateColor(weight),
+                    height: 60 + weight * 2,
+                  },
+                ]}
               >
-                <LinearGradient
-                  colors={[
-                    theme.colors.primaryGradientStart,
-                    theme.colors.primaryGradientEnd,
-                  ]}
-                  style={styles.applyButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.applyButtonText}>
-                    החל משקל ({actualWeight.toFixed(1)} ק"ג)
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+                <Text style={styles.plateText}>{weight}</Text>
+              </View>
+            ))}
+
+            {/* המוט */}
+            <View style={styles.bar}>
+              <Text style={styles.barText}>20 ק"ג</Text>
+            </View>
+
+            {/* פלטות צד שמאל */}
+            {[...plateCalculation.plates].reverse().map((weight, index) => (
+              <View
+                key={`left-${index}`}
+                style={[
+                  styles.plate,
+                  {
+                    backgroundColor: getPlateColor(weight),
+                    height: 60 + weight * 2,
+                  },
+                ]}
+              >
+                <Text style={styles.plateText}>{weight}</Text>
+              </View>
+            ))}
           </ScrollView>
+
+          {/* סיכום */}
+          <View style={styles.summary}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>משקל מוט:</Text>
+              <Text style={styles.summaryValue}>{BAR_WEIGHT} ק"ג</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>פלטות לכל צד:</Text>
+              <Text style={styles.summaryValue}>
+                {plateCalculation.plates.length > 0
+                  ? plateCalculation.plates.join(" + ")
+                  : "ללא"}
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.totalLabel}>סה"כ משקל:</Text>
+              <Text style={styles.totalValue}>
+                {plateCalculation.totalWeight} ק"ג
+              </Text>
+            </View>
+            {plateCalculation.remaining && plateCalculation.remaining > 0 && (
+              <Text style={styles.warningText}>
+                * חסרים {plateCalculation.remaining.toFixed(1)} ק"ג להשלמת המשקל
+                המבוקש
+              </Text>
+            )}
+          </View>
+
+          {/* רשימת פלטות לפי צבע */}
+          <View style={styles.plateLegend}>
+            <Text style={styles.legendTitle}>מקרא צבעים:</Text>
+            <View style={styles.legendGrid}>
+              {PLATE_WEIGHTS.map((weight) => (
+                <View key={weight} style={styles.legendItem}>
+                  <View
+                    style={[
+                      styles.legendColor,
+                      { backgroundColor: getPlateColor(weight) },
+                    ]}
+                  />
+                  <Text style={styles.legendText}>{weight} ק"ג</Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
     </Modal>
@@ -353,258 +205,154 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "90%",
-    paddingBottom: 30,
+    borderRadius: theme.borderRadius.xl,
+    width: "90%",
+    maxHeight: "85%",
+    padding: theme.spacing.lg,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.cardBorder,
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.xl,
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.text,
   },
-  closeButton: {
-    padding: 8,
-  },
   inputSection: {
-    padding: 16,
+    marginBottom: theme.spacing.xl,
   },
   inputLabel: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  weightInput: {
-    flex: 1,
-    fontSize: 32,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    backgroundColor: theme.colors.card,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    textAlign: "center",
-  },
-  unitText: {
-    fontSize: 20,
-    color: theme.colors.textSecondary,
-    marginLeft: 12,
-  },
-  quickButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 12,
-  },
-  quickButton: {
-    backgroundColor: theme.colors.card,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  quickButtonText: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: "600",
-  },
-  barbellSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.card,
-    marginHorizontal: 16,
-    borderRadius: 12,
-  },
-  barbellLabel: {
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  barbellValue: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  barbellWeightText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginRight: 8,
-  },
-  customBarbellInput: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  barbellInput: {
-    fontSize: 16,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.card,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  barbellPresets: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  presetButton: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  presetText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  barbellContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  platesVisualization: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rightSide: {
+  inputContainer: {
     flexDirection: "row-reverse",
-  },
-  plateVisualGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  plateVisual: {
-    width: 8,
-    borderRadius: 2,
-  },
-  barbell: {
-    height: 20,
-    width: 100,
-    backgroundColor: theme.colors.textSecondary,
-    borderRadius: 10,
-    marginHorizontal: 4,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  barbellText: {
-    fontSize: 10,
-    color: theme.colors.background,
-    fontWeight: "bold",
-  },
-  platesSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: 12,
-  },
-  plateRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
   },
-  plateInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  plateColor: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  plateWeight: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  plateCount: {
-    alignItems: "flex-end",
-  },
-  countText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.text,
-  },
-  sideText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-  summarySection: {
-    backgroundColor: theme.colors.card,
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  summaryLabel: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-  },
-  summaryValue: {
+  input: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
+    textAlign: "center",
   },
-  differenceRow: {
+  kgLabel: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.sm,
+  },
+  barVisualization: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
   },
-  differenceText: {
-    fontSize: 14,
-    color: theme.colors.warning,
-    marginLeft: 4,
-  },
-  applyButton: {
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
+  plate: {
+    width: 12,
+    borderRadius: 2,
+    marginHorizontal: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
-  applyButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
+  plateText: {
+    fontSize: 10,
     color: theme.colors.text,
+    fontWeight: "bold",
+    transform: [{ rotate: "-90deg" }],
+  },
+  bar: {
+    width: 150,
+    height: 20,
+    backgroundColor: theme.colors.divider,
+    borderRadius: 10,
+    marginHorizontal: theme.spacing.sm,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  barText: {
+    fontSize: 12,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  summary: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.sm,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.divider,
+    marginVertical: theme.spacing.sm,
+  },
+  totalLabel: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "bold",
+  },
+  totalValue: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: "bold",
+  },
+  warningText: {
+    fontSize: 12,
+    color: theme.colors.warning,
+    fontStyle: "italic",
+    marginTop: theme.spacing.sm,
+  },
+  plateLegend: {
+    marginTop: theme.spacing.md,
+  },
+  legendTitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
+  },
+  legendGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  legendItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
+  legendColor: {
+    width: 16,
+    height: 16,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });

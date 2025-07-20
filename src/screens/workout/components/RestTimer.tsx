@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { theme } from "../../../styles/theme";
 import { useRestTimer } from "../hooks/useRestTimer";
 
@@ -122,9 +123,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         },
       ]}
     >
-      <View style={styles.blurContainer}>
+      <BlurView intensity={95} style={styles.blurContainer}>
         <LinearGradient
-          colors={["rgba(0, 122, 255, 0.95)", "rgba(0, 100, 220, 0.95)"]}
+          colors={["rgba(0, 122, 255, 0.15)", "rgba(0, 122, 255, 0.05)"]}
           style={styles.gradientBackground}
         >
           {/* כותרת */}
@@ -224,7 +225,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             </Text>
           </View>
         </LinearGradient>
-      </View>
+      </BlurView>
     </Animated.View>
   );
 };
@@ -242,9 +243,6 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     borderRadius: 20,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
   },
   gradientBackground: {
     padding: 20,
@@ -265,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(0, 122, 255, 0.2)",
     borderRadius: 16,
   },
   skipText: {
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: "700",
     color: theme.colors.text,
-    fontVariant: ["tabular-nums" as const],
+    fontVariant: ["tabular-nums"],
   },
   timerTextUrgent: {
     color: theme.colors.error,
