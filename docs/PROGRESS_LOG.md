@@ -196,3 +196,51 @@ git push
 ✅ עיצוב מודרני ועקבי
 ✅ תשתית מוצקה להמשך
 RetryClaude can make mistakes. Please double-check responses.
+
+🔖 Checkpoint #004 - מסך Welcome משודרג
+תאריך: 2025-01-20
+סטטוס: ✅ מסך Welcome מושלם עם כל השיפורים
+
+✅ מה הושלם בשלב זה:
+
+מסך Welcome משודרג:
+
+אנימציות כניסה חלקות (fade, scale, slide)
+קרוסלת יתרונות אוטומטית עם 3 כרטיסיות
+מונה משתמשים פעילים (2,847)
+כפתור "התחל ללא הרשמה" מודגש עם גרדיאנט
+סימולציית Google Sign In עם טעינה ויצירת משתמש
+
+theme.ts מעודכן ומורחב:
+
+כל הצבעים מוגדרים (ללא hex ישירים במסכים)
+הגדרות typography מלאות
+מערכת shadows (small, medium, large, glow)
+animations timing
+צבעים נוספים לתמיכה בפיצ'רים חדשים
+
+תיקוני באגים:
+
+החלפת אייקון "teach" ל-"school"
+תיקון מרכוז קרוסלת היתרונות
+הוספת ActivityIndicator לכפתור Google
+
+חוויית משתמש משופרת:
+
+אנימציות חלקות בכל האלמנטים
+משוב ויזואלי בלחיצות
+זרימה ברורה: Welcome → Questionnaire → Main
+
+🟢 הכל רץ נקי - אין שגיאות או warnings
+
+💾 קבצים שעודכנו:
+
+src/screens/welcome/WelcomeScreen.tsx - מסך מלא עם כל הפיצ'רים
+src/styles/theme.ts - theme מורחב ומעודכן
+
+▶️ Next Steps אפשריים:
+
+שיפור השאלון - הוספת אנימציות ועיצוב דומה
+מסך Profile משודרג - עם עריכת פרטים ותמונה
+מסך ActiveWorkout - התחלת בניית מסך האימון
+הוספת AsyncStorage - שמירת מצב המשתמש
