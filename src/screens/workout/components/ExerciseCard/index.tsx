@@ -25,62 +25,62 @@ import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import { theme } from "../../../../styles/theme";
-import { WorkoutExercise, WorkoutSet } from "../../types/workout.types";
+import { Exercise, Set } from "../../types/workout.types";
 import SetRow from "./SetRow";
 import ExerciseMenu from "./ExerciseMenu";
 
 interface ExerciseCardProps {
-  exercise: WorkoutExercise;
-  onUpdateExercise: (exercise: WorkoutExercise) => void;
-  onDeleteExercise: (exerciseId: string) => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
+  exercise: Exercise;
+  exerciseNumber: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onUpdateSet: (setId: string, updates: Partial<Set>) => void;
+  onAddSet: () => void;
+  onDeleteSet: (setId: string) => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
   onStartRest: (duration: number) => void;
-  isFirst?: boolean;
-  isLast?: boolean;
+  onShowPlateCalculator: (weight: number) => void;
+  onShowTips: () => void;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise,
-  onUpdateExercise,
-  onDeleteExercise,
-  onMoveUp,
-  onMoveDown,
+  exerciseNumber,
+  isExpanded,
+  onToggleExpand,
+  onUpdateSet,
+  onAddSet,
+  onDeleteSet,
+  onDelete,
+  onDuplicate,
   onStartRest,
-  isFirst,
-  isLast,
+  onShowPlateCalculator,
+  onShowTips,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
-  const expandAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const expandAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
+  const rotateAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   // חישוב התקדמות
   // Calculate progress
-  const completedSets = exercise.sets.filter((set) => set.completed).length;
+  const completedSets = exercise.sets.filter(
+    (set: Set) => set.completed
+  ).length;
   const totalSets = exercise.sets.length;
   const progressPercentage =
     totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   // חישוב נפח נוכחי
   // Calculate current volume
-  useEffect(() => {
-    let volume = 0;
-    exercise.sets.forEach((set) => {
-      if (set.completed && set.weight && set.reps) {
-        volume += parseFloat(set.weight) * parseInt(set.reps);
-      }
-    });
-
-    if (volume !== exercise.currentVolume) {
-      onUpdateExercise({
-        ...exercise,
-        currentVolume: volume,
-      });
+  const currentVolume = exercise.sets.reduce((total: number, set: Set) => {
+    if (set.completed && set.weight && set.reps) {
+      return total + set.weight * set.reps;
     }
-  }, [exercise.sets]);
+    return total;
+  }, 0);
 
   // אנימציית התקדמות
   // Progress animation
@@ -94,9 +94,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   // אנימציית הרחבה/כיווץ
   // Expand/collapse animation
-  const toggleExpand = () => {
-    const toValue = isExpanded ? 0 : 1;
-
+  useEffect(() => {
+    const toValue = isExpanded ? 1 : 0;
     Animated.parallel([
       Animated.timing(expandAnim, {
         toValue,
@@ -104,151 +103,114 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         useNativeDriver: false,
       }),
       Animated.timing(rotateAnim, {
-        toValue: isExpanded ? 1 : 0,
+        toValue,
         duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
-
-    setIsExpanded(!isExpanded);
-  };
-
-  // עדכון סט
-  // Update set
-  const updateSet = (setId: string, updates: Partial<WorkoutSet>) => {
-    const updatedSets = exercise.sets.map((set) =>
-      set.id === setId ? { ...set, ...updates } : set
-    );
-
-    onUpdateExercise({
-      ...exercise,
-      sets: updatedSets,
-    });
-  };
-
-  // מחיקת סט
-  // Delete set
-  const deleteSet = (setId: string) => {
-    Alert.alert("מחיקת סט", "האם אתה בטוח שברצונך למחוק את הסט?", [
-      { text: "ביטול", style: "cancel" },
-      {
-        text: "מחק",
-        style: "destructive",
-        onPress: () => {
-          const updatedSets = exercise.sets.filter((set) => set.id !== setId);
-          onUpdateExercise({
-            ...exercise,
-            sets: updatedSets,
-          });
-        },
-      },
-    ]);
-  };
-
-  // הוספת סט
-  // Add set
-  const addSet = () => {
-    const lastSet = exercise.sets[exercise.sets.length - 1];
-    const newSet: WorkoutSet = {
-      id: `${exercise.id}_set_${Date.now()}`,
-      weight: lastSet?.weight || "",
-      reps: lastSet?.reps || "",
-      completed: false,
-      type: "normal",
-      previousWeight: lastSet?.weight,
-      previousReps: lastSet?.reps,
-    };
-
-    onUpdateExercise({
-      ...exercise,
-      sets: [...exercise.sets, newSet],
-    });
-  };
+  }, [isExpanded]);
 
   // סידור מחדש של סטים
   // Reorder sets
-  const reorderSets = ({ data }: { data: WorkoutSet[] }) => {
-    onUpdateExercise({
-      ...exercise,
-      sets: data,
-    });
+  const reorderSets = ({ data }: { data: Set[] }) => {
+    // TODO: Implement reordering logic
   };
+
+  // בדיקה האם יש שיא אישי
+  // Check for personal records
+  const hasPersonalRecord = exercise.sets.some(
+    (set: Set) => set.isPersonalRecord
+  );
 
   // כותרת התרגיל
   // Exercise header
   const ExerciseHeader = () => (
-    <TouchableOpacity onPress={toggleExpand} activeOpacity={0.7}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Animated.View
-            style={{
-              transform: [
-                {
-                  rotate: rotateAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0deg", "180deg"],
-                  }),
-                },
-              ],
-            }}
-          >
-            <Ionicons name="chevron-down" size={24} color={theme.colors.text} />
-          </Animated.View>
-
-          <TouchableOpacity
-            onPress={() => setShowExerciseInfo(true)}
-            style={styles.exerciseNameButton}
-          >
-            <Text style={styles.exerciseName}>{exercise.name}</Text>
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+    <TouchableOpacity
+      style={[styles.header, hasPersonalRecord && styles.prHeader]}
+      onPress={onToggleExpand}
+      activeOpacity={0.7}
+    >
+      <View style={styles.headerLeft}>
+        <View style={styles.exerciseNumber}>
+          <Text style={styles.exerciseNumberText}>{exerciseNumber}</Text>
         </View>
-
-        <View style={styles.headerRight}>
-          <View style={styles.statsContainer}>
-            <Text style={styles.statText}>
-              {completedSets}/{totalSets}
+        <View style={styles.exerciseDetails}>
+          <Text style={styles.exerciseName}>{exercise.name}</Text>
+          {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
+            <Text style={styles.muscleText}>
+              {exercise.primaryMuscles.join(", ")}
             </Text>
-            <Text style={styles.statLabel}>סטים</Text>
-          </View>
-
-          <TouchableOpacity onPress={() => setShowMenu(true)}>
-            <Ionicons
-              name="ellipsis-vertical"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* פס התקדמות */}
-      {/* Progress bar */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <Animated.View
-            style={[
-              styles.progressFill,
+      <View style={styles.headerRight}>
+        <View style={styles.statsContainer}>
+          <Text style={styles.statText}>
+            {completedSets}/{totalSets}
+          </Text>
+          <Text style={styles.statLabel}>סטים</Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            setShowMenu(true);
+          }}
+          style={styles.menuButton}
+        >
+          <Ionicons
+            name="ellipsis-vertical"
+            size={20}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        <Animated.View
+          style={{
+            transform: [
               {
-                width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ["0%", "100%"],
+                rotate: rotateAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0deg", "180deg"],
                 }),
               },
-            ]}
+            ],
+          }}
+        >
+          <Ionicons
+            name="chevron-down"
+            size={24}
+            color={theme.colors.textSecondary}
           />
-        </View>
-        {exercise.currentVolume > 0 && (
-          <Text style={styles.volumeText}>
-            {exercise.currentVolume.toLocaleString()} ק"ג נפח
-          </Text>
-        )}
+        </Animated.View>
       </View>
     </TouchableOpacity>
+  );
+
+  // פס התקדמות
+  // Progress bar
+  const ProgressBar = () => (
+    <View style={styles.progressContainer}>
+      <View style={styles.progressBar}>
+        <Animated.View
+          style={[
+            styles.progressFill,
+            {
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ["0%", "100%"],
+              }),
+            },
+          ]}
+        />
+      </View>
+      {currentVolume > 0 && (
+        <Text style={styles.volumeText}>
+          {currentVolume.toLocaleString()} ק"ג נפח
+        </Text>
+      )}
+    </View>
   );
 
   // תוכן התרגיל
@@ -286,13 +248,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <ScaleDecorator>
             <SetRow
               set={item}
-              setNumber={(getIndex() || 0) + 1}
-              onUpdate={(updates) => updateSet(item.id, updates)}
-              onDelete={() => deleteSet(item.id)}
+              setNumber={(getIndex?.() || 0) + 1}
+              onUpdate={(updates) => onUpdateSet(item.id, updates)}
+              onDelete={() => onDeleteSet(item.id)}
               onComplete={() => {
-                updateSet(item.id, { completed: !item.completed });
-                if (!item.completed) {
-                  onStartRest(exercise.restTime);
+                onUpdateSet(item.id, { completed: !item.completed });
+                if (!item.completed && exercise.restTimeBetweenSets) {
+                  onStartRest(exercise.restTimeBetweenSets);
                 }
               }}
               onLongPress={drag}
@@ -305,7 +267,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
       {/* כפתור הוספת סט */}
       {/* Add set button */}
-      <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
+      <TouchableOpacity onPress={onAddSet} style={styles.addSetButton}>
         <Ionicons
           name="add-circle-outline"
           size={24}
@@ -317,23 +279,37 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, hasPersonalRecord && styles.prContainer]}>
+      {hasPersonalRecord && (
+        <View style={styles.prBadge}>
+          <MaterialCommunityIcons
+            name="trophy"
+            size={16}
+            color={theme.colors.warning}
+          />
+          <Text style={styles.prBadgeText}>שיא אישי!</Text>
+        </View>
+      )}
+
       <ExerciseHeader />
-      <ExerciseContent />
+      <ProgressBar />
+      {isExpanded && <ExerciseContent />}
 
       {/* תפריט אפשרויות */}
       {/* Options menu */}
       <ExerciseMenu
         visible={showMenu}
         onClose={() => setShowMenu(false)}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-        onDelete={() => onDeleteExercise(exercise.id)}
-        onDuplicate={() => {
-          /* TODO: implement duplicate */
+        onMoveUp={() => {
+          /* TODO: implement move up */
         }}
-        canMoveUp={!isFirst}
-        canMoveDown={!isLast}
+        onMoveDown={() => {
+          /* TODO: implement move down */
+        }}
+        onDelete={onDelete}
+        onDuplicate={onDuplicate}
+        canMoveUp={exerciseNumber > 1}
+        canMoveDown={true}
       />
 
       {/* מודל מידע על התרגיל */}
@@ -354,28 +330,38 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </View>
 
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.infoLabel}>שריר ראשי:</Text>
-              <Text style={styles.infoText}>{exercise.muscle}</Text>
+              {exercise.primaryMuscles &&
+                exercise.primaryMuscles.length > 0 && (
+                  <>
+                    <Text style={styles.infoLabel}>שרירים ראשיים</Text>
+                    <Text style={styles.infoText}>
+                      {exercise.primaryMuscles.join(", ")}
+                    </Text>
+                  </>
+                )}
 
-              {exercise.technique && (
+              {exercise.secondaryMuscles &&
+                exercise.secondaryMuscles.length > 0 && (
+                  <>
+                    <Text style={styles.infoLabel}>שרירים משניים</Text>
+                    <Text style={styles.infoText}>
+                      {exercise.secondaryMuscles.join(", ")}
+                    </Text>
+                  </>
+                )}
+
+              {exercise.equipment && (
                 <>
-                  <Text style={styles.infoLabel}>טכניקה:</Text>
-                  <Text style={styles.infoText}>{exercise.technique}</Text>
+                  <Text style={styles.infoLabel}>ציוד</Text>
+                  <Text style={styles.infoText}>{exercise.equipment}</Text>
                 </>
               )}
 
-              {exercise.personalRecord && (
-                <View style={styles.prContainer}>
-                  <FontAwesome5
-                    name="trophy"
-                    size={20}
-                    color={theme.colors.warning}
-                  />
-                  <Text style={styles.prText}>
-                    שיא אישי: {exercise.personalRecord.weight}ק"ג ×{" "}
-                    {exercise.personalRecord.reps}
-                  </Text>
-                </View>
+              {exercise.notes && (
+                <>
+                  <Text style={styles.infoLabel}>הערות</Text>
+                  <Text style={styles.infoText}>{exercise.notes}</Text>
+                </>
               )}
             </ScrollView>
           </View>
@@ -389,11 +375,33 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.card,
     borderRadius: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginBottom: 16,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    ...theme.shadows.medium,
+  },
+  prContainer: {
+    borderColor: theme.colors.warning,
+    borderWidth: 2,
+  },
+  prBadge: {
+    position: "absolute",
+    top: -1,
+    right: 16,
+    backgroundColor: theme.colors.warning,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    zIndex: 10,
+  },
+  prBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
   header: {
     flexDirection: "row",
@@ -401,26 +409,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
   },
+  prHeader: {
+    paddingTop: 24,
+  },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  exerciseNameButton: {
-    flexDirection: "row",
+  exerciseNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
-    marginLeft: 12,
-    gap: 6,
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  exerciseNumberText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  exerciseDetails: {
+    flex: 1,
   },
   exerciseName: {
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
+    marginBottom: 2,
+  },
+  muscleText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   statsContainer: {
     alignItems: "center",
@@ -431,8 +458,11 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textSecondary,
+  },
+  menuButton: {
+    padding: 4,
   },
   progressContainer: {
     paddingHorizontal: 16,
@@ -524,19 +554,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     lineHeight: 22,
-  },
-  prContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 149, 0, 0.1)",
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-  },
-  prText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.warning,
   },
 });

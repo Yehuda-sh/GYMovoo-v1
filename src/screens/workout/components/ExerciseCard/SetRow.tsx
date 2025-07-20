@@ -16,18 +16,18 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
-import { WorkoutSet, WorkoutExercise } from "../../types/workout.types";
+import { Set, Exercise } from "../../types/workout.types";
 import { RPE_SCALE } from "../../utils/workoutConstants";
 
 interface SetRowProps {
-  set: WorkoutSet;
+  set: Set;
   setNumber: number;
-  onUpdate: (updates: Partial<WorkoutSet>) => void;
+  onUpdate: (updates: Partial<Set>) => void;
   onDelete: () => void;
   onComplete: () => void;
   onLongPress: () => void;
   isActive?: boolean;
-  exercise: WorkoutExercise;
+  exercise: Exercise;
 }
 
 const SetRow: React.FC<SetRowProps> = ({
@@ -49,8 +49,8 @@ const SetRow: React.FC<SetRowProps> = ({
   // Check for personal record
   useEffect(() => {
     if (set.completed && set.weight && set.reps) {
-      const weight = parseFloat(set.weight);
-      const reps = parseInt(set.reps);
+      const weight = set.weight;
+      const reps = set.reps;
 
       if (exercise.personalRecord) {
         const prWeight = exercise.personalRecord.weight;
@@ -94,38 +94,32 @@ const SetRow: React.FC<SetRowProps> = ({
   useEffect(() => {
     Animated.spring(scaleAnim, {
       toValue: isActive ? 0.95 : 1,
-      tension: 50,
-      friction: 7,
+      friction: 3,
+      tension: 40,
       useNativeDriver: true,
     }).start();
   }, [isActive]);
 
-  // המלצת AI למשקל
+  // המלצת משקל AI
   // AI weight recommendation
   const getWeightRecommendation = () => {
-    if (!set.previousWeight || !set.previousReps) return null;
-
-    const prevWeight = parseFloat(set.previousWeight);
-    const prevReps = parseInt(set.previousReps);
-
-    // לוגיקה פשוטה להמלצה
-    if (prevReps >= 12) {
-      return `💡 המלצה: ${(prevWeight + 2.5).toFixed(1)}ק"ג`;
-    } else if (prevReps <= 6) {
-      return `💡 המלצה: ${Math.max(prevWeight - 2.5, 0).toFixed(1)}ק"ג`;
+    if (set.previousWeight && set.previousReps) {
+      // לוגיקה פשוטה להמלצה
+      if (set.previousReps >= 12) {
+        return `המלצה: ${(set.previousWeight * 1.05).toFixed(1)} ק"ג`;
+      }
     }
-
     return null;
   };
 
-  // סוג הסט
-  // Set type
+  // צבע לפי סוג סט
+  // Color by set type
   const getSetTypeColor = () => {
     switch (set.type) {
       case "warmup":
         return theme.colors.warning;
       case "dropset":
-        return "#AF52DE"; // סט ירידה
+        return theme.colors.secondary;
       case "failure":
         return theme.colors.error;
       default:
@@ -133,13 +127,32 @@ const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
+  // תווית סוג סט
+  // Set type label
+  const getSetTypeLabel = () => {
+    switch (set.type) {
+      case "warmup":
+        return "חימום";
+      case "dropset":
+        return "דרופ";
+      case "failure":
+        return "כישלון";
+      default:
+        return "";
+    }
+  };
+
   return (
-    <TouchableOpacity onLongPress={onLongPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      activeOpacity={1}
+      disabled={isActive}
+    >
       <Animated.View
         style={[
           styles.container,
-          set.completed && styles.completedContainer,
           { transform: [{ scale: scaleAnim }] },
+          set.completed && styles.completedContainer,
         ]}
       >
         {/* מספר סט */}
@@ -148,16 +161,8 @@ const SetRow: React.FC<SetRowProps> = ({
           style={[styles.setNumber, { backgroundColor: getSetTypeColor() }]}
         >
           <Text style={styles.setNumberText}>{setNumber}</Text>
-          {set.type !== "normal" && (
-            <Text style={styles.setTypeText}>
-              {set.type === "warmup"
-                ? "חימום"
-                : set.type === "dropset"
-                ? "ירידה"
-                : set.type === "failure"
-                ? "כישלון"
-                : set.type}
-            </Text>
+          {set.type !== "working" && (
+            <Text style={styles.setTypeText}>{getSetTypeLabel()}</Text>
           )}
         </View>
 
@@ -173,33 +178,31 @@ const SetRow: React.FC<SetRowProps> = ({
           )}
         </View>
 
-        {/* משקל */}
-        {/* Weight */}
+        {/* קלט משקל */}
+        {/* Weight input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, set.completed && styles.completedInput]}
-            value={set.weight}
-            onChangeText={(text) => onUpdate({ weight: text })}
+            value={set.weight?.toString() || ""}
+            onChangeText={(text) => onUpdate({ weight: parseFloat(text) || 0 })}
+            keyboardType="numeric"
             placeholder="0"
             placeholderTextColor={theme.colors.textSecondary}
-            keyboardType="numeric"
-            editable={!set.completed}
             selectTextOnFocus
           />
           <Text style={styles.unit}>ק"ג</Text>
         </View>
 
-        {/* חזרות */}
-        {/* Reps */}
+        {/* קלט חזרות */}
+        {/* Reps input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, set.completed && styles.completedInput]}
-            value={set.reps}
-            onChangeText={(text) => onUpdate({ reps: text })}
+            value={set.reps?.toString() || ""}
+            onChangeText={(text) => onUpdate({ reps: parseInt(text) || 0 })}
+            keyboardType="numeric"
             placeholder="0"
             placeholderTextColor={theme.colors.textSecondary}
-            keyboardType="numeric"
-            editable={!set.completed}
             selectTextOnFocus
           />
         </View>
@@ -208,10 +211,17 @@ const SetRow: React.FC<SetRowProps> = ({
         {/* Actions */}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onComplete} style={styles.checkButton}>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={28}
+              color={theme.colors.textSecondary}
+              style={styles.emptyCheck}
+            />
             <Animated.View
               style={{
-                transform: [{ scale: checkAnim }],
                 opacity: checkAnim,
+                transform: [{ scale: checkAnim }],
+                position: "absolute",
               }}
             >
               <Ionicons
@@ -220,32 +230,19 @@ const SetRow: React.FC<SetRowProps> = ({
                 color={theme.colors.success}
               />
             </Animated.View>
-            {!set.completed && (
-              <View style={styles.emptyCheck}>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={28}
-                  color={theme.colors.textSecondary}
-                />
-              </View>
-            )}
           </TouchableOpacity>
 
-          {set.completed && (
-            <TouchableOpacity onPress={() => setShowRPE(true)}>
-              <MaterialCommunityIcons
-                name="speedometer"
-                size={24}
-                color={
-                  set.rpe ? theme.colors.primary : theme.colors.textSecondary
-                }
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={onDelete}>
+            <Ionicons
+              name="trash-outline"
+              size={24}
+              color={theme.colors.error}
+            />
+          </TouchableOpacity>
         </View>
 
-        {/* אינדיקציית שיא */}
-        {/* PR indicator */}
+        {/* תג שיא אישי */}
+        {/* Personal record badge */}
         {set.isPR && (
           <Animated.View
             style={[
@@ -262,13 +259,13 @@ const SetRow: React.FC<SetRowProps> = ({
               },
             ]}
           >
-            <Text style={styles.prText}>🏆 שיא!</Text>
+            <Text style={styles.prText}>שיא!</Text>
           </Animated.View>
         )}
 
         {/* המלצת AI */}
         {/* AI recommendation */}
-        {!set.completed && getWeightRecommendation() && (
+        {getWeightRecommendation() && !set.completed && (
           <View style={styles.recommendationContainer}>
             <Text style={styles.recommendationText}>
               {getWeightRecommendation()}
@@ -277,11 +274,11 @@ const SetRow: React.FC<SetRowProps> = ({
         )}
       </Animated.View>
 
-      {/* מודל RPE */}
-      {/* RPE modal */}
-      {showRPE && (
+      {/* בחירת RPE */}
+      {/* RPE selection */}
+      {showRPE && set.completed && (
         <View style={styles.rpeContainer}>
-          <Text style={styles.rpeTitle}>דרג את המאמץ:</Text>
+          <Text style={styles.rpeTitle}>דרג את הקושי (RPE)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {RPE_SCALE.map((rpe) => (
               <TouchableOpacity
