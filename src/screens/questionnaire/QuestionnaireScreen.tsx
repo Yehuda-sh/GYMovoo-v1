@@ -1,13 +1,14 @@
-/**
- * @file src/screens/questionnaire/QuestionnaireScreen.tsx
- * @description מסך שאלון - דמו בסיסי עם שאלה אחת, כפתור המשך, RTL מלא
- */
-
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { theme } from "../../styles/theme";
+import { useUserStore } from "../../stores/userStore";
 
-// שאלות דמו — אפשר להרחיב בקלות
 const QUESTIONS = [
+  {
+    id: 0,
+    question: "בן כמה אתה?",
+    options: ["מתחת ל-16", "16 ומעלה"], // אפשר גם טקסט חופשי/Picker
+  },
   {
     id: 1,
     question: "מה מטרת האימון שלך?",
@@ -28,17 +29,25 @@ const QUESTIONS = [
 export default function QuestionnaireScreen({ navigation }: any) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const setQuestionnaire = useUserStore((s) => s.setQuestionnaire);
 
   const handleOption = (option: string) => {
-    setAnswers((prev) => ({ ...prev, [current]: option }));
+    setAnswers((prev) => ({ ...prev, [QUESTIONS[current].id]: option }));
+    setError(null); // איפוס שגיאה כשמשנים תשובה
   };
 
   const handleNext = () => {
+    if (current === 0 && answers[0] === "מתחת ל-16") {
+      setError("ההרשמה מותרת רק מגיל 16 ומעלה");
+      return;
+    }
     if (current < QUESTIONS.length - 1) {
       setCurrent(current + 1);
     } else {
-      // פה תוכל לשמור תשובות ב-AsyncStorage / Zustand, ולהעביר למסך הבא
-      navigation.navigate("Summary"); // תוכל להגדיר מסך סיכום בעתיד
+      setQuestionnaire(answers);
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] });
     }
   };
 
@@ -50,20 +59,21 @@ export default function QuestionnaireScreen({ navigation }: any) {
         QUESTIONS.length
       }`}</Text>
       <Text style={styles.title}>{question.question}</Text>
-      <View style={{ marginTop: 18, width: "100%" }}>
+      <View style={styles.optionsWrapper}>
         {question.options.map((option) => (
           <TouchableOpacity
             key={option}
             style={[
               styles.option,
-              answers[current] === option && styles.selectedOption,
+              answers[question.id] === option && styles.selectedOption,
             ]}
             onPress={() => handleOption(option)}
+            activeOpacity={0.82}
           >
             <Text
               style={[
                 styles.optionText,
-                answers[current] === option && styles.selectedOptionText,
+                answers[question.id] === option && styles.selectedOptionText,
               ]}
             >
               {option}
@@ -72,13 +82,17 @@ export default function QuestionnaireScreen({ navigation }: any) {
         ))}
       </View>
 
+      {/* הצגת הודעת שגיאה אם קיימת */}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
       <TouchableOpacity
-        style={[styles.nextButton, !answers[current] && { opacity: 0.5 }]}
+        style={[styles.nextButton, !answers[question.id] && { opacity: 0.5 }]}
         onPress={handleNext}
-        disabled={!answers[current]}
+        disabled={!answers[question.id]}
+        activeOpacity={0.85}
       >
         <Text style={styles.nextButtonText}>
-          {current < QUESTIONS.length - 1 ? "הבא" : "סיים"}
+          {current < QUESTIONS.length - 1 ? "הבא" : "סיום"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -88,14 +102,14 @@ export default function QuestionnaireScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    padding: theme.spacing.lg,
   },
   progress: {
     fontSize: 15,
-    color: "#5856D6",
+    color: theme.colors.accent,
     alignSelf: "flex-end",
     marginBottom: 8,
     writingDirection: "rtl",
@@ -103,42 +117,54 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "600",
-    color: "#007AFF",
+    color: theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
     writingDirection: "rtl",
   },
+  optionsWrapper: {
+    marginTop: 18,
+    width: "100%",
+  },
   option: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.card,
     paddingVertical: 13,
     paddingHorizontal: 20,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.md,
     marginBottom: 12,
-    borderColor: "#ddd",
+    borderColor: theme.colors.divider,
     borderWidth: 1,
     alignItems: "center",
   },
   selectedOption: {
-    backgroundColor: "#007AFF22",
-    borderColor: "#007AFF",
+    backgroundColor: theme.colors.accent + "22",
+    borderColor: theme.colors.accent,
   },
   optionText: {
     fontSize: 18,
-    color: "#333",
+    color: theme.colors.textSecondary,
     writingDirection: "rtl",
   },
   selectedOptionText: {
-    color: "#007AFF",
+    color: theme.colors.primary,
     fontWeight: "bold",
   },
+  errorText: {
+    color: "#ff4757",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 12,
+    marginBottom: 2,
+    fontWeight: "600",
+  },
   nextButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 48,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.md,
     marginTop: 30,
     alignSelf: "center",
-    shadowColor: "#007AFF",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
