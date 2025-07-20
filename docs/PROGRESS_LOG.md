@@ -109,3 +109,90 @@ BackButton, DefaultAvatar.
 🟦 מוכן להתקדם למסכי ליבה (ActiveWorkoutScreen), או פיצ’ר/דף נוסף.
 ▶️ Next Step:
 פיתוח מסך ActiveWorkoutScreen (מסך אימון חי) עם דאטה מדומה ועיצוב עשיר — או כל פיצ’ר אחר שתבחר.
+
+🔖 Checkpoint #003 - מסך תרגילים מלא עם wger API
+תאריך: 2025-01-20
+סטטוס: ✅ מסך תרגילים עובד מלא עם API אמיתי
+
+✅ מה הושלם בשלב זה:
+
+1. אינטגרציית wger API:
+
+חיבור מלא ל-wger API לקבלת תרגילים ושרירים
+טיפול נכון במבנה ה-API המורכב (תרגילים + תרגומים)
+מיפוי שרירים לתרגילים
+fallback למידע מקומי במקרה של כשלון
+
+2. מסך רשימת תרגילים (ExerciseListScreen):
+
+תצוגת רשימת תרגילים עם תמונות
+סרגל סינון לפי שרירים (MuscleBar)
+מצב טעינה עם ActivityIndicator
+טיפול בשגיאות עם אפשרות retry
+מונה תרגילים מסוננים
+
+3. מודל פרטי תרגיל (ExerciseDetailsModal):
+
+תצוגת שם, תיאור ותמונת התרגיל
+רשימת שרירים ראשיים ומשניים
+ניקוי HTML מהתיאורים
+עיצוב modal עם רקע שקוף
+
+4. קומפוננטות חדשות:
+
+ExerciseListScreen.tsx - מסך ראשי
+ExerciseDetailsModal.tsx - מודל פרטים
+MuscleBar.tsx - סרגל סינון שרירים
+exerciseService.ts - שירות API מלא
+
+5. שיפורי UX:
+
+placeholder לתרגילים ללא תמונה
+הודעות ברורות למשתמש
+סינון חלק לפי שרירים
+עיצוב RTL תואם לשאר האפליקציה
+
+📁 קבצים שנוספו/עודכנו:
+src/
+├── services/
+│ └── exerciseService.ts (חדש - מלא)
+├── screens/
+│ ├── exercise/
+│ │ ├── ExerciseListScreen.tsx (מלא)
+│ │ ├── ExerciseDetailsModal.tsx (מלא)
+│ │ └── MuscleBar.tsx (מלא)
+│ └── main/
+│ └── MainScreen.tsx (עודכן - נוסף כפתור)
+└── navigation/
+└── AppNavigator.tsx (עודכן - נוסף route)
+
+🔧 אתגרים שנפתרו:
+
+מבנה API מורכב - התרגילים והתרגומים נמצאים ב-endpoints נפרדים
+404 errors - חלק מה-endpoints לא עבדו, מצאנו דרכים חלופיות
+ביצועים - אופטימיזציה של קריאות API מרובות
+תמיכה ב-RTL - התאמת הכיוונים והטקסטים
+
+🚀 מוכן להמשך פיתוח:
+
+✅ תשתית API עובדת
+✅ מסך תרגילים מלא
+✅ ניווט פעיל בין מסכים
+✅ State management עם Zustand
+✅ עיצוב עקבי
+
+💡 השלב הבא המומלץ:
+בניית מסך תוכניות אימון (Workout Plans) או מסך אימון פעיל (ActiveWorkoutScreen)
+
+📝 פקודת Git:
+bashgit add .
+git commit -m "feat: Add complete exercise list screen with wger API integration"
+git push
+
+🎯 האפליקציה מתקדמת יפה! יש לנו כבר:
+
+✅ זרימת משתמש מלאה (Welcome → Auth → Questionnaire → Main)
+✅ מסך תרגילים עם API אמיתי
+✅ עיצוב מודרני ועקבי
+✅ תשתית מוצקה להמשך
+RetryClaude can make mistakes. Please double-check responses.

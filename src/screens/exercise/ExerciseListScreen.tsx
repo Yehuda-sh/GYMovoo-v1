@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { theme } from "../../styles/theme";
 import {
-  fetchRandomExercises,
+  fetchExercisesSimple,
   fetchMuscles,
   Exercise,
   Muscle,
@@ -27,46 +27,89 @@ export default function ExerciseListScreen() {
   const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [muscles, data] = await Promise.all([
-          fetchMuscles(),
-          fetchRandomExercises(120),
-        ]);
-        console.log("[SCREEN] Muscles:", muscles.length, muscles[0]);
-        console.log("[SCREEN] Exercises:", data.length, data[0]);
-        setAllMuscles(muscles);
-        setExercises(data);
-      } catch (e) {
-        console.log("[SCREEN] ERROR:", e);
-        setError("Can't load exercises. Check your internet connection.");
-      }
-      setLoading(false);
-    })();
+    loadData();
   }, []);
 
-  // סינון תרגילים לפי שריר נבחר
-  const filteredExercises =
-    selectedMuscle === "all"
-      ? exercises
-      : exercises.filter(
-          (ex) =>
-            ex.muscles.some((m) => m.id === selectedMuscle) ||
-            ex.muscles_secondary.some((m) => m.id === selectedMuscle)
-        );
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
 
-  function getMuscleName(muscles?: Muscle[]): string {
+    try {
+      // Load muscles first
+      console.log("[SCREEN] Fetching muscles...");
+      const muscles = await fetchMuscles();
+      console.log("[SCREEN] Muscles loaded:", muscles.length);
+      setAllMuscles(muscles);
+
+      // Then load exercises
+      console.log("[SCREEN] Fetching exercises...");
+      const data = await fetchExercisesSimple(30); // Start with 30 for faster loading
+      console.log("[SCREEN] Exercises loaded:", data.length);
+
+      if (data.length === 0) {
+        setError("No exercises found. Please check your internet connection.");
+      } else {
+        setExercises(data);
+      }
+    } catch (e) {
+      console.error("[SCREEN] ERROR:", e);
+      setError(
+        "Failed to load exercises. Please check your internet connection and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // סינון תרגילים לפי שריר נבחר
+  const filteredExercises = React.useMemo(() => {
+    if (selectedMuscle === "all") {
+      return exercises;
+    }
+
+    return exercises.filter(
+      (ex) =>
+        ex.muscles.some((m) => m.id === selectedMuscle) ||
+        ex.muscles_secondary.some((m) => m.id === selectedMuscle)
+    );
+  }, [exercises, selectedMuscle]);
+
+  const getMuscleName = (muscles?: Muscle[]): string => {
     if (!muscles || !muscles.length) return "N/A";
     return muscles.map((m) => m.name).join(", ");
-  }
+  };
 
-  console.log(
-    "[SCREEN] Filtered exercises:",
-    filteredExercises.length,
-    "SelectedMuscle:",
-    selectedMuscle
+  const renderExerciseItem = ({ item }: { item: Exercise }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => setSelected(item)}
+      activeOpacity={0.85}
+    >
+      {item.image ? (
+        <Image
+          source={{ uri: item.image }}
+          style={styles.img}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.img, styles.placeholderImg]}>
+          <Text style={styles.placeholderText}>No Image</Text>
+        </View>
+      )}
+      <View style={styles.itemContent}>
+        <Text style={styles.name} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={styles.muscle} numberOfLines={1}>
+          Primary: {getMuscleName(item.muscles)}
+        </Text>
+        {item.muscles_secondary.length > 0 && (
+          <Text style={styles.muscleSecondary} numberOfLines={1}>
+            Secondary: {getMuscleName(item.muscles_secondary)}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -74,6 +117,7 @@ export default function ExerciseListScreen() {
       <View style={styles.centered}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
         <Text style={styles.loadingText}>Loading exercises...</Text>
+        <Text style={styles.loadingSubtext}>This may take a moment</Text>
       </View>
     );
   }
@@ -82,56 +126,44 @@ export default function ExerciseListScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <Text style={styles.header}>Exercise Library</Text>
+
       {/* בר בחירת שריר */}
-      <MuscleBar
-        muscles={allMuscles}
-        selected={selectedMuscle}
-        onSelect={setSelectedMuscle}
-      />
+      {allMuscles.length > 0 && (
+        <MuscleBar
+          muscles={allMuscles}
+          selected={selectedMuscle}
+          onSelect={setSelectedMuscle}
+        />
+      )}
+
+      {/* Exercise count */}
+      <Text style={styles.countText}>
+        {filteredExercises.length} exercises found
+      </Text>
+
       <FlatList
         data={filteredExercises}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => setSelected(item)}
-            activeOpacity={0.85}
-          >
-            <Image
-              source={
-                item.image
-                  ? { uri: item.image }
-                  : require("../../../assets/exercise-default.png")
-              }
-              style={styles.img}
-              resizeMode="cover"
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.muscle}>
-                Main: {getMuscleName(item.muscles)}
-              </Text>
-              {!!item.muscles_secondary.length && (
-                <Text style={[styles.muscle, { fontSize: 13, color: "#63f" }]}>
-                  Secondary: {getMuscleName(item.muscles_secondary)}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        renderItem={renderExerciseItem}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <Text style={styles.errorText}>
-            No exercises found for this muscle.
+          <Text style={styles.emptyText}>
+            No exercises found for this muscle group.
           </Text>
         }
       />
+
       {selected && (
         <ExerciseDetailsModal
           exercise={selected}
@@ -147,60 +179,114 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    padding: theme.spacing.lg,
+    paddingTop: 50, // For status bar
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: theme.colors.background,
+    padding: 20,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginBottom: 16,
   },
   loadingText: {
     color: theme.colors.textSecondary,
     marginTop: 12,
     fontSize: 16,
   },
+  loadingSubtext: {
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    fontSize: 14,
+    opacity: 0.7,
+  },
   errorText: {
     color: "#ff4747",
-    fontSize: 17,
-    fontWeight: "bold",
+    fontSize: 16,
     textAlign: "center",
-    padding: 16,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  countText: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  listContent: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 24,
+  },
+  emptyText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    textAlign: "center",
+    padding: 40,
   },
   item: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     backgroundColor: theme.colors.card,
     borderRadius: 15,
-    padding: 13,
-    marginBottom: 13,
+    padding: 12,
+    marginBottom: 12,
     alignItems: "center",
     elevation: 2,
-    shadowColor: "#0004",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.13,
-    shadowRadius: 8,
-    gap: 13,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   img: {
-    width: 74,
-    height: 74,
+    width: 70,
+    height: 70,
     borderRadius: 12,
-    backgroundColor: "#e5e8f1",
-    marginLeft: 9,
+    backgroundColor: theme.colors.backgroundAlt,
+    marginRight: 12,
+  },
+  placeholderImg: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    opacity: 0.5,
+  },
+  itemContent: {
+    flex: 1,
   },
   name: {
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 5,
-    writingDirection: "ltr",
-    textAlign: "left",
+    marginBottom: 4,
   },
   muscle: {
     color: theme.colors.accent,
-    fontSize: 15,
-    fontWeight: "600",
-    writingDirection: "ltr",
-    textAlign: "left",
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  muscleSecondary: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "400",
   },
 });
