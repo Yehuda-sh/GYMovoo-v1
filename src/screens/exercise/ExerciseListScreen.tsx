@@ -33,32 +33,41 @@ export default function ExerciseListScreen() {
       try {
         const [muscles, data] = await Promise.all([
           fetchMuscles(),
-          fetchRandomExercises(20),
+          fetchRandomExercises(120),
         ]);
+        console.log("[SCREEN] Muscles:", muscles.length, muscles[0]);
+        console.log("[SCREEN] Exercises:", data.length, data[0]);
         setAllMuscles(muscles);
         setExercises(data);
-      } catch {
+      } catch (e) {
+        console.log("[SCREEN] ERROR:", e);
         setError("Can't load exercises. Check your internet connection.");
       }
       setLoading(false);
     })();
   }, []);
 
-  function getMuscleName(muscles?: Muscle[]): string {
-    if (!muscles || !muscles.length) return "N/A";
-    return muscles.map((m) => m.name).join(", ");
-  }
-
-  // פילטר לפי השריר שנבחר
+  // סינון תרגילים לפי שריר נבחר
   const filteredExercises =
     selectedMuscle === "all"
       ? exercises
       : exercises.filter(
           (ex) =>
-            (ex.muscles && ex.muscles.some((m) => m.id === selectedMuscle)) ||
-            (ex.muscles_secondary &&
-              ex.muscles_secondary.some((m) => m.id === selectedMuscle))
+            ex.muscles.some((m) => m.id === selectedMuscle) ||
+            ex.muscles_secondary.some((m) => m.id === selectedMuscle)
         );
+
+  function getMuscleName(muscles?: Muscle[]): string {
+    if (!muscles || !muscles.length) return "N/A";
+    return muscles.map((m) => m.name).join(", ");
+  }
+
+  console.log(
+    "[SCREEN] Filtered exercises:",
+    filteredExercises.length,
+    "SelectedMuscle:",
+    selectedMuscle
+  );
 
   if (loading) {
     return (
@@ -79,7 +88,7 @@ export default function ExerciseListScreen() {
 
   return (
     <View style={styles.container}>
-      {/* שורת השרירים לסינון */}
+      {/* בר בחירת שריר */}
       <MuscleBar
         muscles={allMuscles}
         selected={selectedMuscle}
@@ -106,12 +115,22 @@ export default function ExerciseListScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.muscle}>
-                Muscle: {getMuscleName(item.muscles)}
+                Main: {getMuscleName(item.muscles)}
               </Text>
+              {!!item.muscles_secondary.length && (
+                <Text style={[styles.muscle, { fontSize: 13, color: "#63f" }]}>
+                  Secondary: {getMuscleName(item.muscles_secondary)}
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         )}
         contentContainerStyle={{ paddingBottom: 24 }}
+        ListEmptyComponent={
+          <Text style={styles.errorText}>
+            No exercises found for this muscle.
+          </Text>
+        }
       />
       {selected && (
         <ExerciseDetailsModal

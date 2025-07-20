@@ -1,4 +1,3 @@
-// src/services/exerciseService.ts
 import axios from "axios";
 
 const BASE_URL = "https://wger.de/api/v2";
@@ -13,71 +12,98 @@ export interface Exercise {
   id: number;
   name: string;
   description: string;
-  muscles: Muscle[];
-  muscles_secondary: Muscle[];
+  muscles: number[];
+  muscles_secondary: number[];
   image?: string;
 }
 
+// שליפת שרירים (שם, id וכו')
 export async function fetchMuscles(): Promise<Muscle[]> {
   const res = await axios.get(`${BASE_URL}/muscle/`, {
     params: { language: 2 },
   });
+  console.log(
+    "[EXERCISE SERVICE] Muscles fetched:",
+    res.data.results.length,
+    res.data.results[0]
+  );
   return res.data.results;
 }
 
-export async function fetchRandomExercises(count = 20): Promise<Exercise[]> {
-  // שלב 1: הבא הרבה תרגילים באנגלית כולל תרגום ושמות שרירים
+export async function fetchRandomExercises(count = 50): Promise<Exercise[]> {
   const res = await axios.get(`${BASE_URL}/exercise/`, {
     params: {
-      language: 2,
+      language: 2, // חשוב כי זה מאפשר לשלוף את ה-translations באנגלית!
       status: 2,
-      limit: 100,
+      limit: 300,
     },
   });
 
-  let raw = res.data.results;
-  // רק כאלה עם שם ותיאור
-  let exercises = raw
-    .filter(
-      (ex: any) => typeof ex.name === "string" && ex.name && ex.description
-    )
-    .map((ex: any) => ({
-      id: ex.id,
-      name: ex.name,
-      description: ex.description,
-      muscles: ex.muscles || [],
-      muscles_secondary: ex.muscles_secondary || [],
-    }));
+  console.log(
+    "[EXERCISE SERVICE] RAW EXERCISES",
+    res.data.results.length,
+    res.data.results[0]
+  );
 
+  const raw = res.data.results;
+
+  // **שלב 1: הוצא תרגום באנגלית (מתוך translations)**
+  let exercises: Exercise[] = raw
+    .map((ex: any) => {
+      const en = Array.isArray(ex.translations)
+        ? ex.translations.find((t: any) => t.language === 2)
+        : null;
+      if (!en) return null;
+      return {
+        id: ex.id,
+        name: en.name,
+        description: en.description,
+        muscles: ex.muscles || [],
+        muscles_secondary: ex.muscles_secondary || [],
+      };
+    })
+    .filter(
+      (ex): ex is Exercise =>
+        !!ex &&
+        !!ex.name &&
+        !!ex.description &&
+        Array.isArray(ex.muscles) &&
+        ex.muscles.length > 0
+    );
+
+  console.log(
+    "[EXERCISE SERVICE] AFTER MAP+FILTER",
+    exercises.length,
+    exercises[0]
+  );
+
+  // ערבוב ובחירה
   exercises = shuffleArray(exercises).slice(0, count);
 
-  // שלב 2: טען תמונה ושרירים עיקריים/משניים כ-objects (לא ids)
-  const [allMuscles] = await Promise.all([fetchMuscles()]);
-  const musclesDict = Object.fromEntries(allMuscles.map((m) => [m.id, m]));
-
-  // enrich muscle objects
+  // **הוסף תמונה לכל תרגיל**
   exercises = await Promise.all(
-    exercises.map(async (ex: any) => {
+    exercises.map(async (ex) => {
       try {
-        // תמונה
         const imgRes = await axios.get(`${BASE_URL}/exerciseimage/`, {
           params: { exercise: ex.id },
         });
         ex.image = imgRes.data.results?.[0]?.image || undefined;
-      } catch {}
-      // שרירים עיקריים
-      ex.muscles = (ex.muscles || [])
-        .map((id: number) => musclesDict[id])
-        .filter(Boolean);
-      ex.muscles_secondary = (ex.muscles_secondary || [])
-        .map((id: number) => musclesDict[id])
-        .filter(Boolean);
+      } catch {
+        ex.image = undefined;
+      }
       return ex;
     })
+  );
+
+  console.log(
+    "[EXERCISE SERVICE] FINAL EXERCISES",
+    exercises.length,
+    exercises[0]
   );
   return exercises;
 }
 
+// ערבוב מערך
 function shuffleArray<T>(array: T[]): T[] {
   return [...array].sort(() => Math.random() - 0.5);
 }
