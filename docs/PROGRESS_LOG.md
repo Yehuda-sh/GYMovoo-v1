@@ -380,3 +380,80 @@ Push Notifications - התראות
 ✅ עיצוב מרשים
 ✅ לוגים מפורטים
 ✅ חוויית משתמש חלקה
+
+🔖 Checkpoint #005 - מסך האימון האולטימטיבי
+תאריך: 2025-01-20
+סטטוס: ✅ מסך אימון מתקדם עם כל הפיצ'רים
+✅ מה הושלם בשלב זה:
+
+QuickWorkoutScreen.tsx - מסך אימון מלא עם:
+
+📊 דשבורד חי: זמן, נפח, קצב, שיאים
+🧠 המלצות AI למשקל וחזרות
+⏱️ טיימר מנוחה חכם עם כפתורי +/- 15 שניות
+🏆 זיהוי שיאים אוטומטי עם אנימציות
+📈 Progress Bar לכל תרגיל
+🧮 מחשבון פלטות ויזואלי
+💡 טיפים לביצוע נכון
+📝 מערכת RPE לדירוג מאמץ
+🎯 תצוגת "הבא בתור"
+
+ProfileScreen.tsx משופר עם:
+
+סטטיסטיקות אימונים
+הגדרות והעדפות
+אנימציות כניסה
+
+עדכוני ניווט:
+
+MainScreen → QuickWorkout
+הוספת המסך ל-AppNavigator
+
+📁 קבצים עיקריים לשמירה:
+src/screens/workout/QuickWorkoutScreen.tsx - 1,200+ שורות!
+src/screens/profile/ProfileScreen.tsx
+src/navigation/AppNavigator.tsx
+🎯 המשימה לשיחה הבאה:
+פיצול QuickWorkoutScreen.tsx לקומפוננטות
+המסך גדול מדי (1,200+ שורות) וצריך פיצול ל:
+
+קומפוננטות UI:
+
+WorkoutHeader.tsx - הדר + דשבורד
+RestTimer.tsx - טיימר מנוחה
+ExerciseCard.tsx - כרטיס תרגיל
+SetRow.tsx - שורת סט בודדת
+NextExerciseBar.tsx - הבא בתור
+
+Modals נפרדים:
+
+ExercisePicker.tsx
+PlateCalculator.tsx
+ExerciseTips.tsx
+RPEModal.tsx
+
+Custom Hooks:
+
+useWorkoutTimer.ts
+useRestTimer.ts
+useWorkoutCalculations.ts
+usePersonalRecords.ts
+
+Utils:
+
+workoutHelpers.ts - חישובים
+plateCalculations.ts
+constants.ts - קבועים
+
+💾 מה לשמור לשיחה הבאה:
+
+את QuickWorkoutScreen.tsx המלא
+את רשימת הקומפוננטות לפיצול
+התיעוד הזה
+
+🚀 פקודת Git:
+bashgit add .
+git commit -m "feat: Complete ultimate workout screen with AI recommendations, live stats, and smart features"
+git push
+
+הערה לשיחה הבאה: להתחיל עם יצירת תיקיית src/screens/workout/components/ ופיצול הקוד לקבצים קטנים ומאורגנים יותר.

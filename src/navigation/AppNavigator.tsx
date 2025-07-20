@@ -17,7 +17,7 @@ import TermsScreen from "../screens/auth/TermsScreen";
 import MainScreen from "../screens/main/MainScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen"; // חדש: מסך תרגילים
-
+import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
@@ -37,6 +37,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ExerciseList" component={ExerciseListScreen} />
+        <Stack.Screen name="QuickWorkout" component={QuickWorkoutScreen} />
         {/* הוסף מסכים נוספים כאן בהמשך */}
       </Stack.Navigator>
     </NavigationContainer>

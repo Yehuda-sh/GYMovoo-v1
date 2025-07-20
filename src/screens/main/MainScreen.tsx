@@ -118,8 +118,7 @@ export default function MainScreen() {
 
   const handleQuickStart = () => {
     console.log("🏠 MainScreen - Quick start button clicked");
-    // TODO: Navigate to quick workout
-    alert("התחלה מהירה - בקרוב!");
+    navigation.navigate("QuickWorkout");
   };
 
   const renderStatCard = (
