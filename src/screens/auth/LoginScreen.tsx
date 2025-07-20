@@ -1,10 +1,10 @@
 /**
  * @file src/screens/auth/LoginScreen.tsx
- * @description מסך התחברות - אימייל/סיסמה, התחברות עם Google, תמיכה ב־RTL ועיצוב Theme
- * English: Login screen with email/password, Google sign-in, RTL and theme support.
+ * @description מסך התחברות משודרג - אימות מתקדם, אנימציות, זכור אותי, שחזור סיסמה
+ * English: Enhanced login screen with advanced validation, animations, remember me, password recovery
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -14,65 +14,294 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Animated,
+  Switch,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleSignIn } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 
+// אנימציות // Animations
+const createShakeAnimation = (value: Animated.Value) => {
+  return Animated.sequence([
+    Animated.timing(value, {
+      toValue: 10,
+      duration: 50,
+      useNativeDriver: true,
+    }),
+    Animated.timing(value, {
+      toValue: -10,
+      duration: 50,
+      useNativeDriver: true,
+    }),
+    Animated.timing(value, {
+      toValue: 10,
+      duration: 50,
+      useNativeDriver: true,
+    }),
+    Animated.timing(value, { toValue: 0, duration: 50, useNativeDriver: true }),
+  ]);
+};
+
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+
+  console.log("🔐 LoginScreen - Component mounted");
+
+  // States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
 
-  // הפעלת Google אוטומטי אם הגיע עם google: true
+  // אנימציות // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
+    // טעינת פרטים שמורים // Load saved credentials
+    console.log("🔐 LoginScreen - useEffect triggered");
+    loadSavedCredentials();
+
+    // אנימציית כניסה // Entry animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start(() => {
+      console.log("🔐 LoginScreen - Entry animation completed");
+    });
+
+    // הפעלת Google אוטומטי אם הגיע עם google: true
     if (route?.params?.google) {
+      console.log(
+        "🔐 LoginScreen - Auto Google login triggered from route params"
+      );
       handleGoogleAuth();
     }
   }, [route?.params?.google]);
 
+  const loadSavedCredentials = async () => {
+    try {
+      console.log("🔐 LoginScreen - Loading saved credentials...");
+      const savedEmail = await AsyncStorage.getItem("savedEmail");
+      if (savedEmail) {
+        console.log("🔐 LoginScreen - Found saved email:", savedEmail);
+        setEmail(savedEmail);
+        setRememberMe(true);
+      } else {
+        console.log("🔐 LoginScreen - No saved credentials found");
+      }
+    } catch (error) {
+      console.error("🔐 LoginScreen - Failed to load saved email:", error);
+    }
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string): boolean => {
+    return password.length >= 6;
+  };
+
+  const validateForm = (): boolean => {
+    console.log("🔐 LoginScreen - Validating form...");
+    const errors: typeof fieldErrors = {};
+
+    if (!email) {
+      errors.email = "אנא הזן כתובת אימייל";
+    } else if (!validateEmail(email)) {
+      errors.email = "כתובת אימייל לא תקינה";
+    }
+
+    if (!password) {
+      errors.password = "אנא הזן סיסמה";
+    } else if (!validatePassword(password)) {
+      errors.password = "הסיסמה חייבת להכיל לפחות 6 תווים";
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      console.log("🔐 LoginScreen - Validation failed:", errors);
+      createShakeAnimation(shakeAnim).start();
+      return false;
+    }
+
+    console.log("🔐 LoginScreen - Validation passed ✅");
+    return true;
+  };
+
   const handleLogin = async () => {
+    console.log("🔐 LoginScreen - Login attempt started");
+    console.log("🔐 LoginScreen - Email:", email);
+    console.log("🔐 LoginScreen - Password length:", password.length);
+    console.log("🔐 LoginScreen - Remember me:", rememberMe);
+
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    setTimeout(() => {
-      setLoading(false);
-      if (email === "test@example.com" && password === "123456") {
-        // צריך לבדוק אם ענה על שאלון
-        const user = { email, name: "משתמש לדוג'" }; // תוכל למשוך מ־DB אמיתי
-        useUserStore.getState().setUser(user);
-        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+    setFieldErrors({});
+
+    // אנימציית לחיצה // Press animation
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    try {
+      // שמירת אימייל אם נבחר "זכור אותי" // Save email if remember me
+      if (rememberMe) {
+        console.log("🔐 LoginScreen - Saving email to AsyncStorage");
+        await AsyncStorage.setItem("savedEmail", email);
       } else {
-        setError("פרטי התחברות שגויים");
+        console.log("🔐 LoginScreen - Removing saved email from AsyncStorage");
+        await AsyncStorage.removeItem("savedEmail");
       }
-    }, 900);
+
+      // סימולציית התחברות // Login simulation
+      setTimeout(async () => {
+        setLoading(false);
+        if (email === "test@example.com" && password === "123456") {
+          console.log("🔐 LoginScreen - Login successful! ✅");
+          const user = {
+            email,
+            name: "משתמש לדוגמה",
+            id: "user123",
+            avatar: undefined,
+          };
+
+          // שמירה ב-Zustand // Save to Zustand
+          console.log("🔐 LoginScreen - Saving user to Zustand store");
+          useUserStore.getState().setUser(user);
+
+          // בדיקה אם יש שאלון // Check if questionnaire exists
+          const hasQuestionnaire = useUserStore.getState().user?.questionnaire;
+          console.log(
+            "🔐 LoginScreen - Has questionnaire?",
+            !!hasQuestionnaire
+          );
+
+          if (!hasQuestionnaire) {
+            console.log("🔐 LoginScreen - Navigating to Questionnaire");
+            navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+          } else {
+            console.log("🔐 LoginScreen - Navigating to Main");
+            navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+          }
+        } else {
+          console.log("🔐 LoginScreen - Login failed - invalid credentials ❌");
+          setError("כתובת האימייל או הסיסמה שגויים");
+          createShakeAnimation(shakeAnim).start();
+        }
+      }, 1200);
+    } catch (e) {
+      console.error("🔐 LoginScreen - Login error:", e);
+      setLoading(false);
+      setError("אירעה שגיאה בהתחברות");
+    }
   };
 
   const handleGoogleAuth = async () => {
+    console.log("🔐 LoginScreen - Google auth started");
     setLoading(true);
+    setError(null);
+
     try {
+      console.log("🔐 LoginScreen - Calling fakeGoogleSignIn...");
       const googleUser = await fakeGoogleSignIn();
+      console.log("🔐 LoginScreen - Google user received:", googleUser);
+
       useUserStore.getState().setUser(googleUser);
-      // אם אין גיל/שאלון → שאלון; אם יש → Main
+
+      // בדיקה אם יש גיל תקין ושאלון // Check age and questionnaire
+      console.log(
+        "🔐 LoginScreen - Checking questionnaire:",
+        googleUser.questionnaire
+      );
       if (
         !googleUser.questionnaire ||
         !googleUser.questionnaire[0] ||
         googleUser.questionnaire[0] === "מתחת ל-16"
       ) {
+        console.log(
+          "🔐 LoginScreen - Google user needs questionnaire, navigating..."
+        );
         navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       } else {
+        console.log(
+          "🔐 LoginScreen - Google user has questionnaire, navigating to Main"
+        );
         navigation.reset({ index: 0, routes: [{ name: "Main" }] });
       }
     } catch (e) {
-      setError("התחברות עם גוגל נכשלה");
+      console.error("🔐 LoginScreen - Google auth failed:", e);
+      setError("ההתחברות עם Google נכשלה");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    console.log("🔐 LoginScreen - Forgot password clicked");
+    Alert.alert(
+      "שחזור סיסמה",
+      "נשלח לך קישור לאיפוס הסיסמה לכתובת האימייל שלך",
+      [
+        {
+          text: "ביטול",
+          style: "cancel",
+          onPress: () =>
+            console.log("🔐 LoginScreen - Password reset cancelled"),
+        },
+        {
+          text: "שלח",
+          onPress: () => {
+            console.log(
+              "🔐 LoginScreen - Password reset requested for:",
+              email
+            );
+            if (!email) {
+              setFieldErrors({ email: "אנא הזן כתובת אימייל לשחזור" });
+              return;
+            }
+            if (!validateEmail(email)) {
+              setFieldErrors({ email: "כתובת אימייל לא תקינה" });
+              return;
+            }
+            console.log("🔐 LoginScreen - Password reset email sent! ✅");
+            Alert.alert("נשלח!", "קישור לאיפוס סיסמה נשלח לאימייל שלך");
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -81,73 +310,188 @@ export default function LoginScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
     >
       <BackButton />
-      <View style={styles.formBox}>
-        <Text style={styles.title}>התחברות</Text>
-        <View style={styles.inputWrapper}>
-          <MaterialIcons
-            name="email"
-            size={22}
-            color={theme.colors.accent}
-            style={{ marginLeft: 6 }}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="אימייל"
-            placeholderTextColor={theme.colors.textSecondary}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={email}
-            onChangeText={setEmail}
-            textAlign="right"
-          />
+
+      <Animated.View
+        style={[
+          styles.formBox,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateX: shakeAnim }],
+          },
+        ]}
+      >
+        {/* כותרת עם גרדיאנט // Title with gradient */}
+        <LinearGradient
+          colors={[
+            theme.colors.primaryGradientStart,
+            theme.colors.primaryGradientEnd,
+          ]}
+          style={styles.titleGradient}
+        >
+          <Text style={styles.title}>ברוך הבא חזרה!</Text>
+        </LinearGradient>
+
+        <Text style={styles.subtitle}>התחבר כדי להמשיך באימונים שלך</Text>
+
+        {/* שדה אימייל // Email field */}
+        <View style={styles.inputContainer}>
+          <View
+            style={[
+              styles.inputWrapper,
+              fieldErrors.email && styles.inputError,
+            ]}
+          >
+            <MaterialIcons
+              name="email"
+              size={22}
+              color={
+                fieldErrors.email ? theme.colors.error : theme.colors.accent
+              }
+              style={{ marginLeft: 6 }}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="כתובת אימייל"
+              placeholderTextColor={theme.colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                setFieldErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              textAlign="right"
+              editable={!loading}
+            />
+          </View>
+          {fieldErrors.email && (
+            <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+          )}
         </View>
-        <View style={styles.inputWrapper}>
-          <Ionicons
-            name="lock-closed"
-            size={22}
-            color={theme.colors.accent}
-            style={{ marginLeft: 6 }}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="סיסמה"
-            placeholderTextColor={theme.colors.textSecondary}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={password}
-            onChangeText={setPassword}
-            textAlign="right"
-          />
+
+        {/* שדה סיסמה // Password field */}
+        <View style={styles.inputContainer}>
+          <View
+            style={[
+              styles.inputWrapper,
+              fieldErrors.password && styles.inputError,
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              disabled={loading}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color={
+                  fieldErrors.password
+                    ? theme.colors.error
+                    : theme.colors.accent
+                }
+                style={{ marginLeft: 6 }}
+              />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="סיסמה"
+              placeholderTextColor={theme.colors.textSecondary}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setFieldErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              textAlign="right"
+              editable={!loading}
+            />
+          </View>
+          {fieldErrors.password && (
+            <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+          )}
         </View>
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
+        <View style={styles.optionsRow}>
+          <View style={styles.rememberMe}>
+            <Text style={styles.rememberMeText}>זכור אותי</Text>
+            <Switch
+              value={rememberMe}
+              onValueChange={setRememberMe}
+              trackColor={{
+                false: theme.colors.divider,
+                true: theme.colors.primaryGradientStart,
+              }}
+              thumbColor={rememberMe ? theme.colors.primary : "#f4f3f4"}
+              disabled={loading}
+            />
+          </View>
+          <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
+            <Text style={styles.forgotPassword}>שכחתי סיסמה</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* הודעת שגיאה כללית // General error message */}
+        {error && (
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Text style={styles.errorText}>{error}</Text>
+          </Animated.View>
+        )}
+
+        {/* כפתור התחברות // Login button */}
         <TouchableOpacity
-          style={styles.loginButton}
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={loading}
+          activeOpacity={0.8}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginButtonText}>התחבר</Text>
-          )}
+          <LinearGradient
+            colors={[
+              theme.colors.primaryGradientStart,
+              theme.colors.primaryGradientEnd,
+            ]}
+            style={styles.gradientButton}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>התחבר</Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
+
+        {/* או // OR */}
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>או</Text>
+          <View style={styles.divider} />
+        </View>
+
+        {/* כפתור Google // Google button */}
         <TouchableOpacity
-          style={styles.googleButton}
+          style={[styles.googleButton, loading && styles.googleButtonDisabled]}
           onPress={handleGoogleAuth}
           disabled={loading}
+          activeOpacity={0.8}
         >
           <Ionicons name="logo-google" size={22} color="#fff" />
           <Text style={styles.googleButtonText}>התחבר עם Google</Text>
         </TouchableOpacity>
+
+        {/* קישור להרשמה // Registration link */}
         <View style={styles.linkRow}>
-          <Text style={styles.linkText}>אין לך חשבון?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-            <Text style={styles.registerLink}>הרשמה</Text>
+          <Text style={styles.linkText}>אין לך חשבון עדיין?</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Register")}
+            disabled={loading}
+          >
+            <Text style={styles.registerLink}>הרשם עכשיו</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -164,84 +508,140 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.xl,
+    ...theme.shadows.large,
+  },
+  titleGradient: {
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   title: {
     color: theme.colors.text,
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 18,
     textAlign: "center",
     writingDirection: "rtl",
+  },
+  subtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: theme.spacing.lg,
+  },
+  inputContainer: {
+    marginBottom: theme.spacing.md,
   },
   inputWrapper: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
     borderRadius: theme.borderRadius.md,
-    marginBottom: 14,
     paddingHorizontal: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: "transparent",
+    height: 50,
+  },
+  inputError: {
+    borderColor: theme.colors.error,
   },
   input: {
     flex: 1,
-    height: 46,
     color: theme.colors.text,
-    fontSize: 17,
+    fontSize: 16,
     textAlign: "right",
     paddingVertical: 0,
-    backgroundColor: "transparent",
+  },
+  fieldError: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: "right",
+  },
+  optionsRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+  },
+  rememberMe: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+  },
+  rememberMeText: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  forgotPassword: {
+    color: theme.colors.accent,
+    fontSize: 14,
+    textDecorationLine: "underline",
   },
   errorText: {
-    color: "#ff4757",
+    color: theme.colors.error,
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: theme.spacing.sm,
     fontSize: 15,
     fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: theme.colors.primary,
+    marginBottom: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-    paddingVertical: 14,
-    marginBottom: 12,
-    marginTop: 6,
+    overflow: "hidden",
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  gradientButton: {
+    paddingVertical: 16,
     alignItems: "center",
   },
   loginButtonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: 1,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.divider,
+  },
+  dividerText: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    marginHorizontal: theme.spacing.sm,
   },
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: "#ea4335",
     borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
+    paddingVertical: 14,
     justifyContent: "center",
-    marginBottom: 14,
-    gap: 8,
+    marginBottom: theme.spacing.lg,
+    gap: 10,
+  },
+  googleButtonDisabled: {
+    opacity: 0.7,
   },
   googleButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
-    marginRight: 8,
+    fontWeight: "bold",
   },
   linkRow: {
     flexDirection: "row-reverse",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
-    gap: 5,
+    gap: 6,
   },
   linkText: {
     color: theme.colors.textSecondary,
@@ -249,9 +649,8 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     color: theme.colors.accent,
-    fontWeight: "700",
+    fontWeight: "bold",
     fontSize: 15,
-    marginRight: 6,
     textDecorationLine: "underline",
   },
 });

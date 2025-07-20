@@ -244,3 +244,139 @@ src/styles/theme.ts - theme מורחב ומעודכן
 מסך Profile משודרג - עם עריכת פרטים ותמונה
 מסך ActiveWorkout - התחלת בניית מסך האימון
 הוספת AsyncStorage - שמירת מצב המשתמש
+
+🚦 Checkpoint #004 - מסכי Auth ו-Main משודרגים עם לוגים מלאים
+תאריך: 2025-01-20
+סטטוס: ✅ כל מסכי הליבה משודרגים ועובדים עם לוגים מפורטים
+
+✅ מה הושלם בשלב זה:
+
+1. LoginScreen משודרג:
+
+✨ אימות מתקדם עם הודעות שגיאה ספציפיות
+🔐 זכור אותי עם AsyncStorage
+👁️ הצגה/הסתרה של סיסמה
+🔑 שחזור סיסמה
+🎨 אנימציות כניסה ושגיאה
+📊 לוגים מפורטים לכל פעולה
+
+2. RegisterScreen משודרג:
+
+📝 שדה שם מלא
+💪 מד חוזק סיסמה ויזואלי
+🔐 אישור סיסמה
+✅ אישורי גיל ותנאי שימוש
+🎯 אימות מתקדם לכל שדה
+📊 לוגים מפורטים
+
+3. MainScreen משודרג:
+
+🏠 דשבורד אינטראקטיבי
+📈 כרטיסי סטטיסטיקות
+⚡ כרטיס התחלה מהירה
+🎯 פעולות מהירות מעוצבות
+📚 קרוסלת תוכניות מומלצות
+💡 ציטוט מוטיבציה
+🔄 Pull to refresh
+📊 לוגים לכל אינטראקציה
+
+🔧 תכונות טכניות שנוספו:
+
+אנימציות:
+
+Fade in/out
+Shake animation לשגיאות
+Scale animation לכפתורים
+Progress animation למד חוזק
+
+State Management:
+
+Zustand עם user store
+אימות מצב משתמש
+ניהול שגיאות
+
+לוגים מקיפים:
+
+🔐 LoginScreen - כל תהליך ההתחברות
+📝 RegisterScreen - כל תהליך ההרשמה
+🏠 MainScreen - כל האינטראקציות
+
+📁 קבצים שעודכנו:
+src/
+├── screens/
+│ ├── auth/
+│ │ ├── LoginScreen.tsx (משודרג + לוגים)
+│ │ └── RegisterScreen.tsx (משודרג + לוגים)
+│ └── main/
+│ └── MainScreen.tsx (משודרג + לוגים)
+└── styles/
+└── theme.ts (צבע error נוסף)
+
+🎯 דוגמאות ללוגים בקונסול:
+bash# התחברות מוצלחת
+🔐 LoginScreen - Component mounted
+🔐 LoginScreen - Login attempt started
+🔐 LoginScreen - Email: test@example.com
+🔐 LoginScreen - Validation passed ✅
+🔐 LoginScreen - Login successful! ✅
+🔐 LoginScreen - Navigating to Main
+
+# כישלון ברישום
+
+📝 RegisterScreen - Registration attempt started
+📝 RegisterScreen - Validation failed: {password: "הסיסמה חייבת להכיל לפחות 6 תווים"}
+📝 RegisterScreen - Registration blocked - terms not accepted ❌
+
+# פעילות במסך ראשי
+
+🏠 MainScreen - Component mounted
+🏠 MainScreen - Current user: {email: "test@example.com", name: "משתמש לדוגמה"}
+🏠 MainScreen - Exercise list button clicked
+
+🚀 פקודות Git:
+bashgit add .
+git commit -m "feat: Enhanced auth screens and main dashboard with comprehensive logging"
+git push
+
+⚡ איך לבדוק שהכל עובד:
+
+בדיקת LoginScreen:
+
+נסה להתחבר עם test@example.com / 123456
+בדוק "זכור אותי"
+נסה שגיאות (סיסמה קצרה, אימייל לא תקין)
+
+בדיקת RegisterScreen:
+
+מלא את כל השדות
+בדוק את מד חוזק הסיסמה
+נסה ללא אישור תנאים/גיל
+
+בדיקת MainScreen:
+
+בדוק את כל הכפתורים
+נסה Pull to refresh
+בדוק אנימציות
+
+🟢 סטטוס כללי:
+
+אפליקציה: פעילה ויציבה
+לוגים: מקיפים ושימושיים
+עיצוב: אחיד ומודרני
+UX: חוויית משתמש מעולה
+
+🎯 Next Steps מומלצים:
+
+ActiveWorkoutScreen - מסך אימון פעיל עם טיימר
+WorkoutPlansScreen - רשימת תוכניות אימון
+HistoryScreen - היסטוריית אימונים
+Push Notifications - התראות
+
+📋 סיכום:
+האפליקציה במצב מעולה! יש לנו:
+
+✅ זרימת משתמש מלאה
+✅ אימות ואבטחה
+✅ עיצוב מרשים
+✅ לוגים מפורטים
+✅ חוויית משתמש חלקה

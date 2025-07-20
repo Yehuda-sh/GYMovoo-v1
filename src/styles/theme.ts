@@ -19,6 +19,8 @@ export const theme = {
     secondary: "#5856D6", // סגול
     accent: "#4e9eff", // כחול בהיר
     success: "#34C759", // ירוק הצלחה
+    error: "#FF3B30", // אדום שגיאה
+    warning: "#FF9500", // כתום אזהרה
 
     // טקסט // Text
     text: "#fff", // טקסט ראשי
