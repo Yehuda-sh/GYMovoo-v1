@@ -2,6 +2,9 @@
  * @file src/screens/auth/LoginScreen.tsx
  * @description מסך התחברות משודרג - אימות מתקדם, אנימציות, זכור אותי, שחזור סיסמה
  * English: Enhanced login screen with advanced validation, animations, remember me, password recovery
+ * @dependencies BackButton, theme, authService, userStore
+ * @notes כולל אנימציות shake, fade ו-scale, טיפול ב-route params לאוטומציה
+ * @recurring_errors וודא שה-navigation ו-route types תואמים
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -27,7 +30,11 @@ import BackButton from "../../components/common/BackButton";
 import { fakeGoogleSignIn } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 
-// אנימציות // Animations
+// פונקציות עזר לאנימציות // Animation helper functions
+/**
+ * יוצר אנימציית רעידה לאלמנט
+ * Creates shake animation for element
+ */
 const createShakeAnimation = (value: Animated.Value) => {
   return Animated.sequence([
     Animated.timing(value, {
@@ -95,6 +102,10 @@ export default function LoginScreen() {
     }
   }, [route?.params?.google]);
 
+  /**
+   * טוען פרטי התחברות שמורים מ-AsyncStorage
+   * Loads saved credentials from AsyncStorage
+   */
   const loadSavedCredentials = async () => {
     try {
       console.log("🔐 LoginScreen - Loading saved credentials...");
@@ -111,15 +122,27 @@ export default function LoginScreen() {
     }
   };
 
+  /**
+   * בודק תקינות כתובת אימייל
+   * Validates email format
+   */
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  /**
+   * בודק תקינות סיסמה
+   * Validates password requirements
+   */
   const validatePassword = (password: string): boolean => {
     return password.length >= 6;
   };
 
+  /**
+   * בודק תקינות כל הטופס
+   * Validates entire form
+   */
   const validateForm = (): boolean => {
     console.log("🔐 LoginScreen - Validating form...");
     const errors: typeof fieldErrors = {};
@@ -148,6 +171,10 @@ export default function LoginScreen() {
     return true;
   };
 
+  /**
+   * מטפל בתהליך ההתחברות
+   * Handles login process
+   */
   const handleLogin = async () => {
     console.log("🔐 LoginScreen - Login attempt started");
     console.log("🔐 LoginScreen - Email:", email);
@@ -229,6 +256,10 @@ export default function LoginScreen() {
     }
   };
 
+  /**
+   * מטפל בהתחברות עם Google
+   * Handles Google authentication
+   */
   const handleGoogleAuth = async () => {
     console.log("🔐 LoginScreen - Google auth started");
     setLoading(true);
@@ -269,6 +300,10 @@ export default function LoginScreen() {
     }
   };
 
+  /**
+   * מטפל בשחזור סיסמה
+   * Handles password recovery
+   */
   const handleForgotPassword = () => {
     console.log("🔐 LoginScreen - Forgot password clicked");
     Alert.alert(
@@ -502,46 +537,47 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     justifyContent: "center",
     alignItems: "center",
-    padding: theme.spacing.md,
+    padding: 16,
   },
   formBox: {
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
-    ...theme.shadows.large,
+    borderRadius: 16,
+    padding: 24,
+    ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   titleGradient: {
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
   },
   title: {
-    color: theme.colors.text,
-    fontSize: 28,
+    color: "#fff",
+    fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-    writingDirection: "rtl",
   },
   subtitle: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
   inputContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   inputWrapper: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "transparent",
-    height: 50,
+    borderColor: theme.colors.divider,
+    height: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -563,51 +599,51 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: 20,
   },
   rememberMe: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   rememberMeText: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
   },
   forgotPassword: {
     color: theme.colors.accent,
-    fontSize: 14,
+    fontSize: 13,
     textDecorationLine: "underline",
   },
   errorText: {
     color: theme.colors.error,
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
-    fontSize: 15,
+    marginBottom: 12,
+    fontSize: 14,
     fontWeight: "500",
   },
   loginButton: {
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    marginBottom: 16,
+    borderRadius: 12,
     overflow: "hidden",
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: "center",
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   divider: {
     flex: 1,
@@ -616,41 +652,42 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
-    marginHorizontal: theme.spacing.sm,
+    fontSize: 13,
+    marginHorizontal: 12,
   },
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#ea4335",
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
     paddingVertical: 14,
     justifyContent: "center",
-    marginBottom: theme.spacing.lg,
-    gap: 10,
+    marginBottom: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#ea4335",
   },
   googleButtonDisabled: {
     opacity: 0.7,
   },
   googleButtonText: {
-    color: "#fff",
+    color: "#ea4335",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   linkRow: {
     flexDirection: "row-reverse",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   linkText: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
   },
   registerLink: {
     color: theme.colors.accent,
-    fontWeight: "bold",
-    fontSize: 15,
-    textDecorationLine: "underline",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });

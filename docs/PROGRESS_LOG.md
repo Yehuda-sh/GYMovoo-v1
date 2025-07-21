@@ -19,7 +19,7 @@
 
 - **שגיאה:** [תיאור השגיאה, למשל: "VirtualizedLists nested inside ScrollView"]
 - **פתרון:** [תיאור הפתרון, למשל: "החלפת ה-ScrollView הראשי ב-FlatList"]
-- **לקח للمستقبل (Lesson for the future):** [מה למדנו, למשל: "יש להימנע מקינון רשימות וירטואליות. יש להשתמש ב-ListHeaderComponent."]
+- **לקח (Lesson for the future):** [מה למדנו, למשל: "יש להימנע מקינון רשימות וירטואליות. יש להשתמש ב-ListHeaderComponent."]
 
 ### 📂 **קבצים עיקריים שעודכנו:**
 
@@ -104,7 +104,69 @@ git push
 
 
 
+🔖 Checkpoint #011 - התאמת עיצוב מסכי Auth ו-Exercise לסגנון Workout
+🗓️ תאריך: 2025-01-21
+🎯 סטטוס: ✅ הושלם
 
+✅ מה הושלם:
+
+עדכון מסכי Auth: LoginScreen ו-RegisterScreen עודכנו לעיצוב מודרני תואם מסכי Workout
+שדרוג TermsScreen: מעבר מטקסט רגיל לכרטיסים מעוצבים עם אייקונים וגרדיאנטים
+עדכון ExerciseDetailsModal: התאמה מלאה לעיצוב כולל RTL, אנימציות ותיקון שגיאות TypeScript
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: חוסר עקביות בעיצוב בין מסכים שונים באפליקציה
+פתרון: יצירת שפת עיצוב אחידה - borderRadius: 16, shadows.medium, כרטיסים עם מסגרות
+לקח לעתיד: חשוב לשמור על עקביות עיצובית בכל האפליקציה לחוויית משתמש מיטבית
+שגיאה: שימוש בשדה equipment שלא קיים ב-Exercise type
+פתרון: הסרת השדה והחלפתו בהצגת קטגוריה
+לקח לעתיד: תמיד לבדוק את ה-type definitions לפני הוספת שדות חדשים
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/auth/LoginScreen.tsx
+src/screens/auth/RegisterScreen.tsx
+src/screens/auth/TermsScreen.tsx
+src/screens/exercise/ExerciseDetailsModal.tsx
+
+🚀 השלב הבא:
+
+בדיקת מסכים נוספים שצריכים התאמה עיצובית
+יצירת קומפוננטות UI משותפות (כמו Card, Button) לעקביות מוחלטת
+הוספת אנימציות נוספות לשיפור חווית המשתמש
+
+💻 פקודות Git:
+powershellgit add .
+git commit -m "style: Unify Auth and Exercise screens design with Workout screens theme"
+git push
+📊 סיכום השינויים העיצוביים:
+
+עיצוב מודרני ואחיד:
+
+borderRadius: 16 לכרטיסים ראשיים, 12 לאלמנטים פנימיים
+צללים מסוג shadows.medium במקום large
+מסגרות עם cardBorder לכל הכרטיסים
+
+
+טיפוגרפיה מעודכנת:
+
+גדלי פונט מותאמים (24 לכותרות, 16 לטקסט ראשי, 13-14 למשני)
+fontWeight: "600" במקום "bold" ברוב המקומות
+צבע לבן בכותרות גרדיאנט
+
+
+כפתורי Google מעודכנים:
+
+עיצוב outline עם מסגרת אדומה במקום רקע מלא
+התאמה לסגנון המודרני של האפליקציה
+
+
+שיפורי UX:
+
+אנימציות כניסה ויציאה במודלים
+activeOpacity בכל הכפתורים
+placeholder מעוצב כשאין תמונה
 
 
 

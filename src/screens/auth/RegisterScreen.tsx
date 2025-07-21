@@ -2,6 +2,9 @@
  * @file src/screens/auth/RegisterScreen.tsx
  * @description מסך הרשמה משודרג - אימות מתקדם, אנימציות, חוזק סיסמה, תנאי שימוש
  * English: Enhanced registration screen with advanced validation, animations, password strength, terms
+ * @dependencies BackButton, theme, authService, userStore
+ * @notes כולל מד חוזק סיסמה, אישור גיל 16+, קישור לתנאי שימוש
+ * @recurring_errors שים לב לסנכרון בין סיסמה לאישור סיסמה, וודא בדיקת גיל ותנאים
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -26,7 +29,10 @@ import BackButton from "../../components/common/BackButton";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 
-// פונקציה לבדיקת חוזק סיסמה // Password strength function
+/**
+ * מחשב את חוזק הסיסמה ומחזיר נתונים לתצוגה
+ * Calculates password strength and returns display data
+ */
 const getPasswordStrength = (
   password: string
 ): {
@@ -37,11 +43,12 @@ const getPasswordStrength = (
 } => {
   let score = 0;
 
+  // קריטריונים לחישוב ציון // Criteria for score calculation
   if (password.length >= 6) score++;
   if (password.length >= 8) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (/[A-Z]/.test(password)) score++; // אות גדולה // Capital letter
+  if (/[0-9]/.test(password)) score++; // ספרה // Number
+  if (/[^A-Za-z0-9]/.test(password)) score++; // תו מיוחד // Special character
 
   if (score <= 2) {
     return { strength: "weak", color: theme.colors.error, text: "חלשה", score };
@@ -85,7 +92,7 @@ export default function RegisterScreen() {
     confirmPassword?: string;
   }>({});
 
-  // Password strength
+  // חישוב חוזק סיסמה // Password strength calculation
   const passwordStrength = getPasswordStrength(password);
 
   // אנימציות // Animations
@@ -119,11 +126,48 @@ export default function RegisterScreen() {
     }).start();
   }, [passwordStrength.score]);
 
+  /**
+   * בודק תקינות כתובת אימייל
+   * Validates email format
+   */
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  /**
+   * יוצר אנימציית רעידה לשגיאות
+   * Creates shake animation for errors
+   */
+  const createShakeAnimation = () => {
+    return Animated.sequence([
+      Animated.timing(shakeAnim, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]);
+  };
+
+  /**
+   * בודק תקינות כל הטופס
+   * Validates entire form
+   */
   const validateForm = (): boolean => {
     console.log("📝 RegisterScreen - Validating form...");
     console.log("📝 RegisterScreen - Full name:", fullName);
@@ -162,28 +206,7 @@ export default function RegisterScreen() {
 
     if (Object.keys(errors).length > 0) {
       console.log("📝 RegisterScreen - Validation failed:", errors);
-      Animated.sequence([
-        Animated.timing(shakeAnim, {
-          toValue: 10,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: -10,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 10,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 0,
-          duration: 50,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      createShakeAnimation().start();
       return false;
     }
 
@@ -191,6 +214,10 @@ export default function RegisterScreen() {
     return true;
   };
 
+  /**
+   * מטפל בתהליך ההרשמה
+   * Handles registration process
+   */
   const handleRegister = async () => {
     console.log("📝 RegisterScreen - Registration attempt started");
     console.log("📝 RegisterScreen - Is 16+:", is16Plus);
@@ -239,6 +266,10 @@ export default function RegisterScreen() {
     }, 1200);
   };
 
+  /**
+   * מטפל בהרשמה עם Google
+   * Handles Google registration
+   */
   const handleGoogleRegister = async () => {
     console.log("📝 RegisterScreen - Google registration started");
     console.log("📝 RegisterScreen - Is 16+:", is16Plus);
@@ -622,47 +653,48 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: theme.spacing.md,
+    padding: 16,
     paddingBottom: 40,
   },
   formBox: {
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
-    ...theme.shadows.large,
+    borderRadius: 16,
+    padding: 24,
+    ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   titleGradient: {
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
   },
   title: {
-    color: theme.colors.text,
-    fontSize: 28,
+    color: "#fff",
+    fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-    writingDirection: "rtl",
   },
   subtitle: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
   inputContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   inputWrapper: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "transparent",
-    height: 50,
+    borderColor: theme.colors.divider,
+    height: 48,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -676,7 +708,7 @@ const styles = StyleSheet.create({
   },
   fieldError: {
     color: theme.colors.error,
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 4,
     textAlign: "right",
   },
@@ -694,19 +726,19 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   strengthText: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
     textAlign: "right",
   },
   switchRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: 12,
     gap: 8,
   },
   switchLabel: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
   },
   termsTextContainer: {
     flexDirection: "row-reverse",
@@ -715,38 +747,38 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     color: theme.colors.accent,
-    fontSize: 14,
+    fontSize: 13,
     textDecorationLine: "underline",
   },
   errorText: {
     color: theme.colors.error,
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
-    fontSize: 15,
+    marginBottom: 12,
+    fontSize: 14,
     fontWeight: "500",
   },
   registerButton: {
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    marginBottom: 16,
+    borderRadius: 12,
     overflow: "hidden",
   },
   registerButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: "center",
   },
   registerButtonText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   divider: {
     flex: 1,
@@ -755,41 +787,42 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
-    marginHorizontal: theme.spacing.sm,
+    fontSize: 13,
+    marginHorizontal: 12,
   },
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#ea4335",
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
     paddingVertical: 14,
     justifyContent: "center",
-    marginBottom: theme.spacing.lg,
-    gap: 10,
+    marginBottom: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#ea4335",
   },
   googleButtonDisabled: {
     opacity: 0.7,
   },
   googleButtonText: {
-    color: "#fff",
+    color: "#ea4335",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   linkRow: {
     flexDirection: "row-reverse",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   linkText: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
   },
   loginLink: {
     color: theme.colors.accent,
-    fontWeight: "bold",
-    fontSize: 15,
-    textDecorationLine: "underline",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });
