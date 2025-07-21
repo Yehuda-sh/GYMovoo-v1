@@ -144,4 +144,143 @@ export const theme = {
     normal: 300,
     slow: 500,
   },
+
+  // סגנונות רכיבים // Component styles
+  components: {
+    // כרטיסים // Cards
+    card: {
+      backgroundColor: "#242a47",
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      // צל בינוני כברירת מחדל
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+
+    // כרטיס תרגיל // Exercise card
+    exerciseCard: {
+      flexDirection: "row-reverse" as const,
+      backgroundColor: "#242a47",
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      alignItems: "center" as const,
+      borderWidth: 1,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+
+    // כפתורים ראשיים // Primary buttons
+    primaryButton: {
+      backgroundColor: "#007AFF",
+      paddingHorizontal: 32,
+      paddingVertical: 12,
+      borderRadius: 16,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+
+    // כפתורים משניים // Secondary buttons
+    secondaryButton: {
+      backgroundColor: "transparent",
+      borderWidth: 2,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      paddingHorizontal: 24,
+      paddingVertical: 10,
+      borderRadius: 16,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+
+    // כפתורי פעולה קטנים // Small action buttons
+    actionButton: {
+      flexDirection: "row-reverse" as const,
+      alignItems: "center" as const,
+      backgroundColor: "#242a47",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      gap: 6,
+    },
+
+    // תגיות // Badges
+    badge: {
+      backgroundColor: "rgba(78, 158, 255, 0.2)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+
+    // שדות קלט // Input fields
+    input: {
+      backgroundColor: "#242a47",
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      color: "#fff",
+      fontSize: 16,
+      textAlign: "right" as const,
+    },
+
+    // מכלי מודלים // Modal containers
+    modalContainer: {
+      backgroundColor: "#242a47",
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: "rgba(107, 181, 255, 0.2)",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+
+    // כותרות מסך // Screen headers
+    screenHeader: {
+      paddingHorizontal: 16,
+      paddingTop: 50,
+      paddingBottom: 16,
+      flexDirection: "row-reverse" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+    },
+
+    // רשימות // Lists
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 24,
+    },
+
+    // מצבים ריקים // Empty states
+    emptyState: {
+      flex: 1,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      padding: 40,
+    },
+
+    // טקסט בעברית - תמיד מיושר לימין // Hebrew text - always right aligned
+    rtlText: {
+      textAlign: "right" as const,
+      writingDirection: "rtl" as const,
+    },
+  },
 };

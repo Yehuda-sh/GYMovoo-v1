@@ -1,4 +1,11 @@
-// src/screens/exercise/MuscleBar.tsx
+/**
+ * @file src/screens/exercise/MuscleBar.tsx
+ * @brief בר בחירת שרירים לסינון תרגילים
+ * @dependencies exerciseService (Muscle type)
+ * @notes רכיב זה מציג רשימה אופקית של כפתורי שרירים לסינון
+ * @recurring_errors שכחה להעביר את כל ה-props הנדרשים (muscles, selected, onSelect)
+ */
+
 import React from "react";
 import {
   View,
@@ -7,10 +14,12 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Muscle } from "../../services/exerciseService";
 import { theme } from "../../styles/theme";
 
 // טיפוסי props
+// Props types
 type MuscleBarProps = {
   muscles: Muscle[];
   selected: number | "all";
@@ -22,38 +31,50 @@ const MuscleBar: React.FC<MuscleBarProps> = ({
   selected,
   onSelect,
 }) => {
-  // הוספת "All" ככפתור ראשון
-  const buttons = [{ id: "all", name: "All" } as any, ...muscles];
+  // הוספת "הכל" ככפתור ראשון
+  // Add "All" as first button
+  const buttons = [
+    { id: "all", name: "הכל", icon: "view-grid" } as any,
+    ...muscles.map((m) => ({ ...m, icon: "arm-flex" })),
+  ];
 
   return (
-    <View style={styles.barContainer}>
+    <View style={styles.container}>
       <FlatList
         horizontal
+        inverted // RTL: היפוך כיוון הגלילה
         showsHorizontalScrollIndicator={false}
         data={buttons}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ alignItems: "center", paddingHorizontal: 6 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.muscleBtn,
-              selected === item.id && styles.muscleBtnActive,
-            ]}
-            onPress={() => onSelect(item.id)}
-            activeOpacity={0.7}
-          >
-            <Text
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => {
+          const isActive = selected === item.id;
+          return (
+            <TouchableOpacity
               style={[
-                styles.muscleBtnText,
-                selected === item.id && styles.muscleBtnTextActive,
+                styles.muscleButton,
+                isActive && styles.muscleButtonActive,
               ]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
+              onPress={() => onSelect(item.id)}
+              activeOpacity={0.7}
             >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        )}
+              <MaterialCommunityIcons
+                name={item.icon}
+                size={18}
+                color={isActive ? theme.colors.white : theme.colors.accent}
+              />
+              <Text
+                style={[
+                  styles.muscleButtonText,
+                  isActive && styles.muscleButtonTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.name === "All" ? "הכל" : item.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -61,35 +82,42 @@ const MuscleBar: React.FC<MuscleBarProps> = ({
 
 export default MuscleBar;
 
-// --- סטיילינג ---
+// --- סגנונות ---
+// --- styles ---
 const styles = StyleSheet.create({
-  barContainer: {
-    paddingVertical: 10,
+  container: {
     backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.divider,
   },
-  muscleBtn: {
-    minWidth: 72,
-    height: 48,
+  listContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  muscleButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#87b7ff",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: theme.colors.cardBorder,
+    gap: 6,
     marginHorizontal: 4,
-    paddingHorizontal: 16,
-    backgroundColor: "transparent",
   },
-  muscleBtnActive: {
-    backgroundColor: "#0080ff",
-    borderColor: "#4fc3ff",
+  muscleButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+    ...theme.shadows.small,
   },
-  muscleBtnText: {
-    color: "#aaddff",
+  muscleButtonText: {
+    fontSize: 14,
     fontWeight: "600",
-    fontSize: 15,
+    color: theme.colors.textSecondary,
   },
-  muscleBtnTextActive: {
-    color: "#fff",
-    fontWeight: "bold",
+  muscleButtonTextActive: {
+    color: theme.colors.white,
   },
 });

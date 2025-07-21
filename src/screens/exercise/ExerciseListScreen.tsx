@@ -1,3 +1,11 @@
+/**
+ * @file src/screens/exercise/ExerciseListScreen.tsx
+ * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים
+ * @dependencies MuscleBar, ExerciseDetailsModal, exerciseService
+ * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי
+ * @recurring_errors שכחה להעביר את ה-prop muscles ל-MuscleBar
+ */
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -8,6 +16,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import {
   fetchExercisesSimple,
@@ -35,26 +44,28 @@ export default function ExerciseListScreen() {
     setError(null);
 
     try {
+      // טעינת שרירים תחילה
       // Load muscles first
       console.log("[SCREEN] Fetching muscles...");
       const muscles = await fetchMuscles();
       console.log("[SCREEN] Muscles loaded:", muscles.length);
       setAllMuscles(muscles);
 
+      // לאחר מכן טעינת תרגילים
       // Then load exercises
       console.log("[SCREEN] Fetching exercises...");
-      const data = await fetchExercisesSimple(30); // Start with 30 for faster loading
+      const data = await fetchExercisesSimple(30);
       console.log("[SCREEN] Exercises loaded:", data.length);
 
       if (data.length === 0) {
-        setError("No exercises found. Please check your internet connection.");
+        setError("לא נמצאו תרגילים. אנא בדוק את חיבור האינטרנט שלך.");
       } else {
         setExercises(data);
       }
     } catch (e) {
       console.error("[SCREEN] ERROR:", e);
       setError(
-        "Failed to load exercises. Please check your internet connection and try again."
+        "נכשלה טעינת התרגילים. אנא בדוק את חיבור האינטרנט שלך ונסה שנית."
       );
     } finally {
       setLoading(false);
@@ -62,6 +73,7 @@ export default function ExerciseListScreen() {
   };
 
   // סינון תרגילים לפי שריר נבחר
+  // Filter exercises by selected muscle
   const filteredExercises = React.useMemo(() => {
     if (selectedMuscle === "all") {
       return exercises;
@@ -75,40 +87,75 @@ export default function ExerciseListScreen() {
   }, [exercises, selectedMuscle]);
 
   const getMuscleName = (muscles?: Muscle[]): string => {
-    if (!muscles || !muscles.length) return "N/A";
+    if (!muscles || !muscles.length) return "לא זמין";
     return muscles.map((m) => m.name).join(", ");
   };
 
   const renderExerciseItem = ({ item }: { item: Exercise }) => (
     <TouchableOpacity
-      style={styles.item}
+      style={styles.exerciseCard}
       onPress={() => setSelected(item)}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
     >
+      <View style={styles.exerciseContent}>
+        <View style={styles.exerciseHeader}>
+          <Text style={styles.exerciseName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          {item.muscles && item.muscles.length > 0 && (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{item.muscles[0].name}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.muscleInfo}>
+          <View style={styles.muscleRow}>
+            <MaterialCommunityIcons
+              name="arm-flex"
+              size={16}
+              color={theme.colors.accent}
+            />
+            <Text style={styles.muscleText}>{getMuscleName(item.muscles)}</Text>
+          </View>
+
+          {item.muscles_secondary.length > 0 && (
+            <View style={styles.muscleRow}>
+              <MaterialCommunityIcons
+                name="arm-flex-outline"
+                size={16}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={styles.muscleSecondaryText}>
+                {getMuscleName(item.muscles_secondary)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
       {item.image ? (
         <Image
           source={{ uri: item.image }}
-          style={styles.img}
+          style={styles.exerciseImage}
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.img, styles.placeholderImg]}>
-          <Text style={styles.placeholderText}>No Image</Text>
+        <View style={[styles.exerciseImage, styles.placeholderImage]}>
+          <MaterialCommunityIcons
+            name="dumbbell"
+            size={24}
+            color={theme.colors.textSecondary}
+          />
         </View>
       )}
-      <View style={styles.itemContent}>
-        <Text style={styles.name} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.muscle} numberOfLines={1}>
-          Primary: {getMuscleName(item.muscles)}
-        </Text>
-        {item.muscles_secondary.length > 0 && (
-          <Text style={styles.muscleSecondary} numberOfLines={1}>
-            Secondary: {getMuscleName(item.muscles_secondary)}
-          </Text>
-        )}
-      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-left"
+        size={24}
+        color={theme.colors.textSecondary}
+        style={styles.chevron}
+      />
     </TouchableOpacity>
   );
 
@@ -116,8 +163,8 @@ export default function ExerciseListScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={styles.loadingText}>Loading exercises...</Text>
-        <Text style={styles.loadingSubtext}>This may take a moment</Text>
+        <Text style={styles.loadingText}>טוען תרגילים...</Text>
+        <Text style={styles.loadingSubtext}>זה עשוי לקחת רגע</Text>
       </View>
     );
   }
@@ -125,9 +172,15 @@ export default function ExerciseListScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
+        <MaterialCommunityIcons
+          name="alert-circle"
+          size={48}
+          color={theme.colors.error}
+          style={{ marginBottom: 16 }}
+        />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>נסה שנית</Text>
         </TouchableOpacity>
       </View>
     );
@@ -135,10 +188,17 @@ export default function ExerciseListScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <Text style={styles.header}>Exercise Library</Text>
+      {/* כותרת
+      Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>ספריית תרגילים</Text>
+        <Text style={styles.exerciseCount}>
+          {filteredExercises.length} תרגילים
+        </Text>
+      </View>
 
-      {/* בר בחירת שריר */}
+      {/* בר בחירת שריר
+      Muscle selection bar */}
       {allMuscles.length > 0 && (
         <MuscleBar
           muscles={allMuscles}
@@ -147,20 +207,23 @@ export default function ExerciseListScreen() {
         />
       )}
 
-      {/* Exercise count */}
-      <Text style={styles.countText}>
-        {filteredExercises.length} exercises found
-      </Text>
-
       <FlatList
         data={filteredExercises}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderExerciseItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No exercises found for this muscle group.
-          </Text>
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+              name="magnify-close"
+              size={48}
+              color={theme.colors.textSecondary}
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.emptyText}>
+              לא נמצאו תרגילים לקבוצת השרירים הזו
+            </Text>
+          </View>
         }
       />
 
@@ -174,12 +237,12 @@ export default function ExerciseListScreen() {
   );
 }
 
+// --- סגנונות ---
 // --- styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingTop: 50, // For status bar
   },
   centered: {
     flex: 1,
@@ -189,104 +252,141 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center",
-    marginBottom: 16,
+  },
+  exerciseCount: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   loadingText: {
     color: theme.colors.textSecondary,
     marginTop: 12,
     fontSize: 16,
+    textAlign: "center",
   },
   loadingSubtext: {
     color: theme.colors.textSecondary,
     marginTop: 4,
     fontSize: 14,
     opacity: 0.7,
+    textAlign: "center",
   },
   errorText: {
-    color: "#ff4747",
+    color: theme.colors.error,
     fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
+    paddingHorizontal: 32,
   },
   retryButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
+    ...theme.shadows.medium,
   },
   retryButtonText: {
-    color: theme.colors.text,
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
-  },
-  countText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
     textAlign: "center",
-    marginBottom: 12,
-    marginTop: 8,
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+  emptyState: {
+    paddingTop: 60,
+    alignItems: "center",
   },
   emptyText: {
     color: theme.colors.textSecondary,
     fontSize: 16,
     textAlign: "center",
-    padding: 40,
   },
-  item: {
-    flexDirection: "row",
+  exerciseCard: {
+    flexDirection: "row-reverse",
     backgroundColor: theme.colors.card,
-    borderRadius: 15,
-    padding: 12,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.medium,
   },
-  img: {
-    width: 70,
-    height: 70,
+  exerciseContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  exerciseHeader: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    flex: 1,
+    textAlign: "right",
+    marginLeft: 8,
+  },
+  categoryBadge: {
+    backgroundColor: theme.colors.primaryGradientStart + "20",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: theme.colors.accent,
+    fontWeight: "500",
+  },
+  muscleInfo: {
+    gap: 4,
+  },
+  muscleRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  muscleText: {
+    fontSize: 14,
+    color: theme.colors.accent,
+    textAlign: "right",
+  },
+  muscleSecondaryText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: "right",
+  },
+  exerciseImage: {
+    width: 60,
+    height: 60,
     borderRadius: 12,
     backgroundColor: theme.colors.backgroundAlt,
-    marginRight: 12,
   },
-  placeholderImg: {
+  placeholderImage: {
     justifyContent: "center",
     alignItems: "center",
   },
-  placeholderText: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
-    opacity: 0.5,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  name: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  muscle: {
-    color: theme.colors.accent,
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 2,
-  },
-  muscleSecondary: {
-    color: theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "400",
+  chevron: {
+    marginRight: 8,
   },
 });
