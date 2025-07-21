@@ -2,15 +2,16 @@
  * @file src/screens/workout/ActiveWorkoutScreen.tsx
  * @description מסך אימון פעיל - Active Workout screen UI & mock data
  * @author GYMovoo
- * עברית: מסך דמו ראשוני לאימון פעיל עם תצוגת סטים, היסטוריה, וניווט בסיסי.
+ * עברית: מסך דמו לאימון פעיל עם תצוגת סטים, היסטוריה, וניווט בסיסי.
  * English: Demo screen for active workout, includes sets, last performance, and basic navigation.
  */
+// cspell:ignore סקוואט
 
 import React from "react";
 import { View, Text, Button, FlatList, StyleSheet } from "react-native";
+import { theme } from "../../styles/theme"; // שימוש ב-theme לאחידות
 
-// אם יצרת theme.ts ו-rtl.ts תייבא אותם, אחרת תוכל להעתיק קוד סטיילינג בהמשך
-
+// נתוני דמו
 const MOCK_EXERCISE = {
   name: "סקוואט",
   sets: [
@@ -22,6 +23,16 @@ const MOCK_EXERCISE = {
 };
 
 export default function ActiveWorkoutScreen() {
+  // כאן תוכל להוסיף בעתיד לוגיקה לניווט בין תרגילים
+  // למשל, באמצעות useState ו-useContext
+  const handleNext = () => {
+    console.log("מעבר לתרגיל הבא");
+  };
+
+  const handlePrev = () => {
+    console.log("חזרה לתרגיל הקודם");
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>אימון A - רגליים</Text>
@@ -36,17 +47,26 @@ export default function ActiveWorkoutScreen() {
           renderItem={({ item }) => (
             <View style={styles.setRow}>
               <Text style={styles.setText}>{`סט ${item.number}`}</Text>
-              <Text style={styles.number}>{`${item.weight} ק"ג`}</Text>
-              <Text style={styles.number}>{`${item.reps} חזרות`}</Text>
+              <Text style={styles.numberText}>{`${item.weight} ק"ג`}</Text>
+              <Text style={styles.numberText}>{`${item.reps} חזרות`}</Text>
             </View>
           )}
         />
         <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarFill} />
+          {/* רוחב הפס יחושב דינמית לפי ההתקדמות באימון */}
+          <View style={[styles.progressBarFill, { width: "33%" }]} />
         </View>
         <View style={styles.navButtons}>
-          <Button title="הקודם" onPress={() => {}} />
-          <Button title="הבא" onPress={() => {}} />
+          <Button
+            title="הקודם"
+            onPress={handlePrev}
+            color={theme.colors.primary}
+          />
+          <Button
+            title="הבא"
+            onPress={handleNext}
+            color={theme.colors.primary}
+          />
         </View>
       </View>
     </View>
@@ -56,34 +76,35 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.background, // שימוש בצבע מה-theme
     padding: 16,
   },
   header: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: theme.colors.primary, // שימוש בצבע מה-theme
     marginBottom: 24,
     textAlign: "right",
     writingDirection: "rtl",
   },
   exerciseCard: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: theme.colors.card, // שימוש בצבע מה-theme
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
+    ...theme.shadows.medium, // הוספת צל מה-theme
   },
   exerciseName: {
     fontSize: 22,
     fontWeight: "600",
-    color: "#000000",
+    color: theme.colors.text, // שימוש בצבע מה-theme
     marginBottom: 8,
     textAlign: "right",
     writingDirection: "rtl",
   },
   lastPerf: {
     fontSize: 13,
-    color: "#5856D6",
+    color: theme.colors.accent, // שימוש בצבע מה-theme
     marginBottom: 16,
     textAlign: "right",
     writingDirection: "rtl",
@@ -93,33 +114,34 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
-    padding: 6,
-    backgroundColor: "#fff",
-    borderRadius: 6,
+    padding: 12,
+    backgroundColor: theme.colors.background, // שימוש בצבע מה-theme
+    borderRadius: 8,
   },
   setText: {
     textAlign: "right",
     writingDirection: "rtl",
     fontSize: 16,
     fontWeight: "500",
+    color: theme.colors.text,
   },
-  number: {
+  numberText: {
     textAlign: "left",
     writingDirection: "ltr",
     fontSize: 16,
     fontWeight: "500",
+    color: theme.colors.textSecondary,
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: "#eee",
+    backgroundColor: theme.colors.divider, // שימוש בצבע מה-theme
     borderRadius: 6,
     marginVertical: 16,
     overflow: "hidden",
   },
   progressBarFill: {
-    width: "33%",
     height: "100%",
-    backgroundColor: "#007AFF",
+    backgroundColor: theme.colors.primary, // שימוש בצבע מה-theme
   },
   navButtons: {
     flexDirection: "row-reverse",

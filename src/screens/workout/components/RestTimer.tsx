@@ -1,81 +1,71 @@
 /**
  * @file src/screens/workout/components/RestTimer.tsx
- * @description קומפוננטת טיימר מנוחה עם אנימציות ופעולות
- * English: Rest timer component with animations and actions
+ * @description קומפוננטת טיימר מנוחה עם עיצוב משופר
+ * English: Rest timer component with a redesigned UI
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
+import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
-import { useRestTimer } from "../hooks/useRestTimer";
-
-const { width: screenWidth } = Dimensions.get("window");
+import { Exercise } from "../types/workout.types";
 
 interface RestTimerProps {
-  defaultTime?: number;
-  onComplete?: () => void;
-  nextExercise?: {
-    name: string;
-    targetWeight: number;
-    targetReps: number;
-  };
+  timeLeft: number;
+  progress: number; // A value between 0 and 1
+  isPaused: boolean; // New prop to show play/pause icon
+  nextExercise?: Exercise | null;
+  onPause: () => void;
+  onSkip: () => void;
+  onAddTime: (seconds: number) => void;
+  onSubtractTime: (seconds: number) => void;
 }
 
 export const RestTimer: React.FC<RestTimerProps> = ({
-  defaultTime = 180,
-  onComplete,
+  timeLeft,
+  progress,
+  isPaused,
   nextExercise,
+  onPause,
+  onSkip,
+  onAddTime,
+  onSubtractTime,
 }) => {
-  const {
-    timeLeft,
-    isActive,
-    progress,
-    startRest,
-    pauseRest,
-    skipRest,
-    addTime,
-    subtractTime,
-  } = useRestTimer({ defaultTime, onComplete });
-
   const slideAnim = useRef(new Animated.Value(-200)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // אנימציית כניסה/יציאה
-  // Entry/exit animation
+  // אנימציית כניסה
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: isActive ? 0 : -200,
-        tension: 40,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: isActive ? 1 : 0.8,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isActive]);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
-  // אנימציית פעימה ב-3 שניות אחרונות
-  // Pulse animation for last 3 seconds
+  // אנימציית התקדמות
   useEffect(() => {
-    if (timeLeft <= 3 && timeLeft > 0) {
-      Animated.loop(
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 1000, // Match the timer interval
+      useNativeDriver: false, // width animation not supported by native driver
+    }).start();
+  }, [progress]);
+
+  // אנימציית פעימה עם פונקציית ניקוי
+  useEffect(() => {
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
+    if (timeLeft > 0 && timeLeft <= 5 && !isPaused) {
+      pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.05,
@@ -88,144 +78,118 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             useNativeDriver: true,
           }),
         ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
+      );
+      pulseAnimation.start();
     }
-  }, [timeLeft]);
+    return () => {
+      pulseAnimation?.stop();
+      pulseAnim.setValue(1);
+    };
+  }, [timeLeft, isPaused]);
 
-  // אנימציית progress bar
-  // Progress bar animation
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progress,
-      duration: 1000,
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
-
-  // פורמט זמן
-  // Format time
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (!isActive) return null;
+  const nextSetInfo = useMemo(() => {
+    if (!nextExercise) return null;
+    const nextSet = nextExercise.sets.find((s) => !s.completed);
+    if (!nextSet) return null;
+    return `${nextExercise.name} - ${
+      nextSet.targetWeight || nextSet.previousWeight || 0
+    }ק"ג × ${nextSet.targetReps || nextSet.previousReps || 0}`;
+  }, [nextExercise]);
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-        },
-      ]}
+      style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
     >
-      <BlurView intensity={95} style={styles.blurContainer}>
-        <LinearGradient
-          colors={["rgba(0, 122, 255, 0.15)", "rgba(0, 122, 255, 0.05)"]}
-          style={styles.gradientBackground}
-        >
-          {/* כותרת */}
-          {/* Title */}
-          <View style={styles.header}>
-            <Text style={styles.title}>⏱️ זמן מנוחה</Text>
-            <TouchableOpacity onPress={skipRest} style={styles.skipButton}>
-              <Text style={styles.skipText}>דלג</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={theme.colors.primary}
-              />
-            </TouchableOpacity>
-          </View>
+      <LinearGradient
+        colors={[`${theme.colors.card}F2`, `${theme.colors.background}F2`]}
+        style={styles.gradientBackground}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>⏱️ זמן מנוחה</Text>
+          <TouchableOpacity onPress={onSkip} style={styles.skipButton}>
+            <Text style={styles.skipText}>דלג</Text>
+            <Ionicons
+              name="play-skip-forward"
+              size={18}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
 
-          {/* טיימר ראשי */}
-          {/* Main timer */}
+        <View style={styles.mainContent}>
+          <TouchableOpacity
+            onPress={() => onSubtractTime(15)}
+            style={styles.timeButton}
+          >
+            <Ionicons name="remove" size={24} color={theme.colors.text} />
+            <Text style={styles.timeButtonText}>-15</Text>
+          </TouchableOpacity>
+
           <Animated.View
             style={[
               styles.timerContainer,
               { transform: [{ scale: pulseAnim }] },
             ]}
           >
-            <Text
-              style={[
-                styles.timerText,
-                timeLeft <= 3 && styles.timerTextUrgent,
-              ]}
-            >
-              {formatTime(timeLeft)}
-            </Text>
+            <TouchableOpacity onPress={onPause}>
+              <Text
+                style={[
+                  styles.timerText,
+                  timeLeft <= 5 && styles.timerTextUrgent,
+                ]}
+              >
+                {formatTime(timeLeft)}
+              </Text>
+              {isPaused && (
+                <View style={styles.pauseIconContainer}>
+                  <Ionicons
+                    name={"play"}
+                    size={24}
+                    color={`${theme.colors.white}99`}
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
           </Animated.View>
 
-          {/* פס התקדמות מעגלי */}
-          {/* Circular progress */}
-          <View style={styles.circularProgress}>
-            <Animated.View
-              style={[
-                styles.progressCircle,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0%", "100%"],
-                  }),
-                },
-              ]}
-            />
-          </View>
+          <TouchableOpacity
+            onPress={() => onAddTime(15)}
+            style={styles.timeButton}
+          >
+            <Ionicons name="add" size={24} color={theme.colors.text} />
+            <Text style={styles.timeButtonText}>+15</Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* מידע על הסט הבא */}
-          {/* Next set info */}
-          {nextExercise && (
-            <View style={styles.nextSetInfo}>
-              <Text style={styles.nextSetLabel}>הסט הבא:</Text>
-              <Text style={styles.nextSetDetails}>
-                {nextExercise.name} - {nextExercise.targetWeight}ק"ג ×{" "}
-                {nextExercise.targetReps}
-              </Text>
-            </View>
-          )}
-
-          {/* כפתורי פעולה */}
-          {/* Action buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              onPress={() => subtractTime(15)}
-              style={styles.timeButton}
-            >
-              <Ionicons name="remove" size={20} color={theme.colors.text} />
-              <Text style={styles.timeButtonText}>15 שניות</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={pauseRest} style={styles.pauseButton}>
-              <Ionicons name="pause" size={32} color={theme.colors.text} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => addTime(15)}
-              style={styles.timeButton}
-            >
-              <Ionicons name="add" size={20} color={theme.colors.text} />
-              <Text style={styles.timeButtonText}>15 שניות</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* טיפ מוטיבציוני */}
-          {/* Motivational tip */}
-          <View style={styles.tipContainer}>
-            <MaterialCommunityIcons
-              name="lightbulb"
-              size={16}
-              color={theme.colors.warning}
-            />
-            <Text style={styles.tipText}>
-              נשום עמוק ותכנן את הסט הבא. מנוחה איכותית = ביצוע טוב יותר! 💪
+        {nextSetInfo && (
+          <View style={styles.nextSetInfo}>
+            <Text style={styles.nextSetLabel}>הסט הבא:</Text>
+            <Text style={styles.nextSetDetails} numberOfLines={1}>
+              {nextSetInfo}
             </Text>
           </View>
-        </LinearGradient>
-      </BlurView>
+        )}
+
+        <View style={styles.progressBar}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
+          />
+        </View>
+      </LinearGradient>
     </Animated.View>
   );
 };
@@ -233,28 +197,28 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 0,
+    top: 60,
     left: 16,
     right: 16,
     zIndex: 1000,
     borderRadius: 20,
-    overflow: "hidden",
     ...theme.shadows.large,
-  },
-  blurContainer: {
-    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: `${theme.colors.primary}40`,
   },
   gradientBackground: {
-    padding: 20,
+    borderRadius: 20,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
   },
@@ -263,45 +227,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "rgba(0, 122, 255, 0.2)",
+    backgroundColor: `${theme.colors.primary}20`,
     borderRadius: 16,
+    gap: 4,
   },
   skipText: {
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: "500",
-    marginRight: 4,
+  },
+  mainContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   timerContainer: {
     alignItems: "center",
-    marginBottom: 20,
   },
   timerText: {
-    fontSize: 72,
-    fontWeight: "700",
+    fontSize: 64,
+    fontWeight: "bold",
     color: theme.colors.text,
     fontVariant: ["tabular-nums"],
   },
   timerTextUrgent: {
     color: theme.colors.error,
   },
-  circularProgress: {
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 2,
-    marginBottom: 20,
-    overflow: "hidden",
+  pauseIconContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#00000080", // תיקון: שימוש בצבע שחור חצי-שקוף
   },
-  progressCircle: {
-    height: "100%",
-    backgroundColor: theme.colors.primary,
-    borderRadius: 2,
+  timeButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: `${theme.colors.primary}20`,
+  },
+  timeButtonText: {
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: "bold",
   },
   nextSetInfo: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 20,
+    backgroundColor: `${theme.colors.primary}15`,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   nextSetLabel: {
     fontSize: 12,
@@ -309,49 +291,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   nextSetDetails: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text,
   },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginBottom: 20,
+  progressBar: {
+    height: 6,
+    backgroundColor: `${theme.colors.primary}20`,
+    overflow: "hidden",
   },
-  timeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-  },
-  timeButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
-  },
-  pauseButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tipContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 149, 0, 0.1)",
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.text,
-    lineHeight: 18,
+  progressFill: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
   },
 });

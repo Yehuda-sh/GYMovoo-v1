@@ -4,18 +4,22 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
 type Props = {
+  // הסרנו את ערך ברירת המחדל כדי שנוכל לבדוק אם השם באמת סופק
   name?: string;
   size?: number;
 };
 
-export default function DefaultAvatar({ name = "משתמש", size = 74 }: Props) {
-  // פונקציה לחילוץ ראשי תיבות (אפשר להרחיב לשמות באנגלית)
-  const getInitials = (name: string) => {
-    if (!name) return "GM";
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  };
+// 1. הוצאת הפונקציה מחוץ לקומפוננטה
+// 2. שיפור הלוגיקה לטיפול ברווחים מיותרים
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/).filter(Boolean); // טיפול ברווחים כפולים
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(); // לוקח מהראשון והאחרון
+};
+
+function DefaultAvatar({ name, size = 74 }: Props) {
+  const initials = name ? getInitials(name) : "";
 
   return (
     <View
@@ -29,12 +33,18 @@ export default function DefaultAvatar({ name = "משתמש", size = 74 }: Props)
         },
       ]}
     >
-      {name ? (
+      {/* 3. לוגיקה מתוקנת: אם יש שם וראשי תיבות, הצג אותם. אחרת, הצג אייקון */}
+      {name && initials ? (
         <Text style={[styles.initials, { fontSize: size * 0.4 }]}>
-          {getInitials(name)}
+          {initials}
         </Text>
       ) : (
-        <MaterialIcons name="person" size={size * 0.7} color="#fff" />
+        <MaterialIcons
+          name="person"
+          size={size * 0.7}
+          // 4. שימוש בצבע מה-theme
+          color={theme.colors.white}
+        />
       )}
     </View>
   );
@@ -49,7 +59,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   initials: {
-    color: "#fff",
+    // 4. שימוש בצבע מה-theme
+    color: theme.colors.white,
     fontWeight: "700",
   },
 });
+
+// 5. עטיפה ב-React.memo לשיפור ביצועים
+export default React.memo(DefaultAvatar);
+
+// בקובץ ה-theme שלכם, ודאו שקיים צבע לבן:
+// export const theme = {
+//   colors: {
+//     accent: '...',
+//     backgroundAlt: '...',
+//     white: '#FFFFFF',
+//   },
+// };

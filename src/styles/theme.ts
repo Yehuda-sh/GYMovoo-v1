@@ -22,6 +22,7 @@ export const theme = {
     error: "#FF3B30", // אדום שגיאה
     warning: "#FF9500", // כתום אזהרה
 
+    white: "#FFFFFF",
     // טקסט // Text
     text: "#fff", // טקסט ראשי
     textSecondary: "#8CA8FF", // טקסט משני

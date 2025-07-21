@@ -1,7 +1,6 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx
  * @description תפריט אפשרויות לתרגיל - מחיקה, שכפול, סידור
- * English: Exercise options menu - delete, duplicate, reorder
  */
 
 import React, { useRef, useEffect } from "react";
@@ -13,141 +12,50 @@ import {
   Modal,
   Animated,
   Alert,
+  findNodeHandle,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 
-interface ExerciseMenuProps {
-  visible: boolean;
-  onClose: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  canMoveUp?: boolean;
-  canMoveDown?: boolean;
-}
+// --- שיפור #1: הוצאת MenuItem מחוץ לקומפוננטה הראשית ---
+type MenuItemProps = {
+  icon:
+    | React.ComponentProps<typeof Ionicons>["name"]
+    | React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  iconFamily?: "ionicons" | "material";
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+};
 
-const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
-  visible,
-  onClose,
-  onMoveUp,
-  onMoveDown,
-  onDelete,
-  onDuplicate,
-  canMoveUp = true,
-  canMoveDown = true,
+const MenuItem: React.FC<MenuItemProps> = ({
+  icon,
+  iconFamily = "ionicons",
+  label,
+  onPress,
+  disabled = false,
+  danger = false,
 }) => {
-  const slideAnim = useRef(new Animated.Value(300)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const IconComponent =
+    iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
+  const iconColor = danger
+    ? theme.colors.error
+    : disabled
+    ? theme.colors.textSecondary
+    : theme.colors.text;
 
-  // אנימציית פתיחה/סגירה
-  // Open/close animation
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 300,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  // אישור מחיקה
-  // Confirm delete
-  const confirmDelete = () => {
-    Alert.alert(
-      "🗑️ מחיקת תרגיל",
-      "האם אתה בטוח שברצונך למחוק את התרגיל? פעולה זו לא ניתנת לביטול.",
-      [
-        {
-          text: "ביטול",
-          style: "cancel",
-        },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            onClose();
-            onDelete();
-          },
-        },
-      ]
-    );
-  };
-
-  // פריט תפריט
-  // Menu item
-  const MenuItem = ({
-    icon,
-    iconFamily = "ionicons",
-    label,
-    onPress,
-    disabled = false,
-    danger = false,
-  }: {
-    icon: string;
-    iconFamily?: "ionicons" | "material";
-    label: string;
-    onPress: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-  }) => (
+  return (
     <TouchableOpacity
       style={[styles.menuItem, disabled && styles.menuItemDisabled]}
-      onPress={() => {
-        if (!disabled) {
-          onPress();
-          if (!danger) onClose(); // אל תסגור אם זו פעולה מסוכנת
-        }
-      }}
+      onPress={onPress}
       disabled={disabled}
+      // --- שיפור #4: הוספת תווית נגישות ---
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
     >
-      {iconFamily === "ionicons" ? (
-        <Ionicons
-          name={icon as any}
-          size={24}
-          color={
-            danger
-              ? theme.colors.error
-              : disabled
-              ? theme.colors.textSecondary
-              : theme.colors.text
-          }
-        />
-      ) : (
-        <MaterialCommunityIcons
-          name={icon as any}
-          size={24}
-          color={
-            danger
-              ? theme.colors.error
-              : disabled
-              ? theme.colors.textSecondary
-              : theme.colors.text
-          }
-        />
-      )}
+      <IconComponent name={icon as any} size={24} color={iconColor} />
       <Text
         style={[
           styles.menuItemText,
@@ -159,6 +67,71 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
       </Text>
     </TouchableOpacity>
   );
+};
+
+// --- קומפוננטה ראשית ---
+interface ExerciseMenuProps {
+  visible: boolean;
+  onClose: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onReplace?: () => void; // Prop for the replace action
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+}
+
+const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
+  visible,
+  onClose,
+  onMoveUp,
+  onMoveDown,
+  onDelete,
+  onDuplicate,
+  onReplace,
+  canMoveUp = true,
+  canMoveDown = true,
+}) => {
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // --- שיפור #3: צמצום חזרתיות בקוד האנימציה ---
+    const toValue = visible ? 0 : 300;
+    const fadeToValue = visible ? 1 : 0;
+    const animationConfig = { duration: 300, useNativeDriver: true };
+
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue, ...animationConfig }),
+      Animated.timing(fadeAnim, { toValue: fadeToValue, ...animationConfig }),
+    ]).start();
+  }, [visible]);
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "🗑️ מחיקת תרגיל",
+      "האם אתה בטוח שברצונך למחוק את התרגיל? פעולה זו לא ניתנת לביטול.",
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: () => {
+            onDelete();
+            onClose(); // סוגר את המודאל לאחר המחיקה
+          },
+        },
+      ]
+    );
+  };
+
+  const createAndCloseHandler = (action?: () => void) => () => {
+    if (action) {
+      action();
+    }
+    onClose();
+  };
 
   return (
     <Modal
@@ -171,75 +144,67 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
+        accessibilityLabel="סגור תפריט"
+        accessibilityRole="button"
       >
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <View style={styles.overlayBackground} />
-        </Animated.View>
+        <Animated.View
+          style={[styles.overlayBackground, { opacity: fadeAnim }]}
+        />
 
         <Animated.View
           style={[
             styles.menuContainer,
             { transform: [{ translateY: slideAnim }] },
           ]}
+          // מונע מהלחיצה על המודאל עצמו לסגור אותו
+          onStartShouldSetResponder={() => true}
         >
-          {/* ידית גרירה */}
-          {/* Drag handle */}
           <View style={styles.dragHandle} />
-
-          {/* כותרת */}
-          {/* Title */}
           <View style={styles.header}>
             <Text style={styles.title}>אפשרויות תרגיל</Text>
           </View>
 
-          {/* פעולות סידור */}
-          {/* Reorder actions */}
           <View style={styles.section}>
+            {/* --- שיפור #2: שימוש בקריאות בטוחות --- */}
             <MenuItem
-              icon="arrow-up"
+              icon="arrow-up-circle-outline"
               label="הזז למעלה"
-              onPress={onMoveUp!}
+              onPress={createAndCloseHandler(onMoveUp)}
               disabled={!canMoveUp}
             />
             <MenuItem
-              icon="arrow-down"
+              icon="arrow-down-circle-outline"
               label="הזז למטה"
-              onPress={onMoveDown!}
+              onPress={createAndCloseHandler(onMoveDown)}
               disabled={!canMoveDown}
             />
           </View>
 
-          {/* פעולות עריכה */}
-          {/* Edit actions */}
           <View style={styles.section}>
             <MenuItem
               icon="content-duplicate"
               iconFamily="material"
               label="שכפל תרגיל"
-              onPress={onDuplicate}
+              onPress={createAndCloseHandler(onDuplicate)}
             />
             <MenuItem
               icon="swap-horizontal"
+              iconFamily="material"
               label="החלף תרגיל"
-              onPress={() => {
-                /* TODO: implement */
-              }}
+              onPress={createAndCloseHandler(onReplace)}
+              disabled={!onReplace} // Disable if no handler is provided
             />
           </View>
 
-          {/* פעולות מסוכנות */}
-          {/* Dangerous actions */}
           <View style={styles.section}>
             <MenuItem
-              icon="trash"
+              icon="trash-outline"
               label="מחק תרגיל"
-              onPress={confirmDelete}
+              onPress={confirmDelete} // אינו סוגר מיד, ממתין לאישור המשתמש
               danger
             />
           </View>
 
-          {/* כפתור ביטול */}
-          {/* Cancel button */}
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
             <Text style={styles.cancelText}>ביטול</Text>
           </TouchableOpacity>
@@ -249,6 +214,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   );
 };
 
+// הסגנונות נשארים זהים ברובם...
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,

@@ -1,10 +1,11 @@
 /**
  * @file src/screens/workout/components/PlateCalculatorModal.tsx
- * @description מודל מחשבון פלטות
- * English: Plate calculator modal
+ * @description מודל מחשבון פלטות משופר
+ * English: Improved plate calculator modal
  */
+// cspell:ignore פלטות
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -13,8 +14,10 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Animated,
+  Platform,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 
 interface PlateCalculatorModalProps {
@@ -23,180 +26,201 @@ interface PlateCalculatorModalProps {
   currentWeight?: number;
 }
 
-// משקלי פלטות סטנדרטיים
-const PLATE_WEIGHTS = [20, 15, 10, 5, 2.5, 1.25, 0.5];
+// הגדרות המחשבון
+const PLATE_WEIGHTS = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BAR_WEIGHT = 20;
+const WEIGHT_INCREMENT = 2.5;
+
+// פונקציית עזר לקבלת צבע הפלטה
+const getPlateColor = (weight: number): string => {
+  const colors: { [key: number]: string } = {
+    25: "#D92D20", // אדום
+    20: "#0A70D6", // כחול
+    15: "#FDB022", // צהוב
+    10: "#12B76A", // ירוק
+    5: theme.colors.text, // לבן/שחור
+    2.5: "#53389E", // סגול
+    1.25: "#667085", // אפור
+  };
+  return colors[weight] || theme.colors.primary;
+};
 
 export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   visible,
   onClose,
   currentWeight = 60,
 }) => {
-  const [targetWeight, setTargetWeight] = useState(currentWeight.toString());
+  const [targetWeight, setTargetWeight] = useState(currentWeight);
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
-  // חישוב פלטות נדרשות
+  useEffect(() => {
+    if (visible) {
+      setTargetWeight(currentWeight);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, currentWeight]);
+
   const plateCalculation = useMemo(() => {
-    const weight = parseFloat(targetWeight) || 0;
-    if (weight <= BAR_WEIGHT) return { plates: [], totalWeight: BAR_WEIGHT };
+    const weight = targetWeight || 0;
+    if (weight < BAR_WEIGHT)
+      return {
+        plates: [],
+        totalWeight: BAR_WEIGHT,
+        remaining: weight - BAR_WEIGHT,
+      };
 
     const weightPerSide = (weight - BAR_WEIGHT) / 2;
     const plates: number[] = [];
     let remaining = weightPerSide;
 
     for (const plate of PLATE_WEIGHTS) {
-      while (remaining >= plate) {
+      const count = Math.floor(remaining / plate);
+      for (let i = 0; i < count; i++) {
         plates.push(plate);
-        remaining -= plate;
       }
+      remaining %= plate;
     }
-
+    const calculatedWeight = BAR_WEIGHT + plates.reduce((a, b) => a + b, 0) * 2;
     return {
       plates,
-      totalWeight: BAR_WEIGHT + plates.reduce((a, b) => a + b, 0) * 2,
-      remaining: remaining > 0 ? remaining * 2 : 0,
+      totalWeight: calculatedWeight,
+      remaining: weight - calculatedWeight,
     };
   }, [targetWeight]);
 
-  // צבע לפי משקל הפלטה
-  const getPlateColor = (weight: number): string => {
-    const colors: { [key: number]: string } = {
-      20: "#FF3B30",
-      15: "#FFD60A",
-      10: "#34C759",
-      5: "#007AFF",
-      2.5: "#FF9500",
-      1.25: "#AF52DE",
-      0.5: "#5856D6",
-    };
-    return colors[weight] || theme.colors.primary;
+  const handleWeightChange = (increment: number) => {
+    setTargetWeight((prev) => Math.max(0, prev + increment));
   };
 
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.title}>מחשבון פלטות</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          {/* משקל יעד */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>משקל יעד (ק"ג)</Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                value={targetWeight}
-                onChangeText={setTargetWeight}
-                keyboardType="numeric"
-                placeholder="60"
-                placeholderTextColor={theme.colors.textSecondary}
-              />
-              <Text style={styles.kgLabel}>ק"ג</Text>
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        onPress={onClose}
+        activeOpacity={1}
+      >
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <TouchableOpacity activeOpacity={1}>
+            <View style={styles.header}>
+              <View style={{ width: 28 }} />
+              <Text style={styles.title}>מחשבון פלטות</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons
+                  name="close-circle"
+                  size={28}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* תצוגה ויזואלית של המוט */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.barVisualization}
-          >
-            {/* פלטות צד ימין */}
-            {plateCalculation.plates.map((weight, index) => (
-              <View
-                key={`right-${index}`}
-                style={[
-                  styles.plate,
-                  {
-                    backgroundColor: getPlateColor(weight),
-                    height: 60 + weight * 2,
-                  },
-                ]}
-              >
-                <Text style={styles.plateText}>{weight}</Text>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <Text style={styles.inputLabel}>משקל יעד</Text>
+              <View style={styles.inputContainer}>
+                <TouchableOpacity
+                  style={styles.incrementButton}
+                  onPress={() => handleWeightChange(-WEIGHT_INCREMENT)}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  value={targetWeight.toString()}
+                  onChangeText={(text) =>
+                    setTargetWeight(parseFloat(text) || 0)
+                  }
+                  keyboardType="numeric"
+                  selectTextOnFocus
+                />
+                <Text style={styles.kgLabel}>ק"ג</Text>
+                <TouchableOpacity
+                  style={styles.incrementButton}
+                  onPress={() => handleWeightChange(WEIGHT_INCREMENT)}
+                >
+                  <Ionicons name="add" size={24} color={theme.colors.primary} />
+                </TouchableOpacity>
               </View>
-            ))}
 
-            {/* המוט */}
-            <View style={styles.bar}>
-              <Text style={styles.barText}>20 ק"ג</Text>
-            </View>
-
-            {/* פלטות צד שמאל */}
-            {[...plateCalculation.plates].reverse().map((weight, index) => (
-              <View
-                key={`left-${index}`}
-                style={[
-                  styles.plate,
-                  {
-                    backgroundColor: getPlateColor(weight),
-                    height: 60 + weight * 2,
-                  },
-                ]}
-              >
-                <Text style={styles.plateText}>{weight}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* סיכום */}
-          <View style={styles.summary}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>משקל מוט:</Text>
-              <Text style={styles.summaryValue}>{BAR_WEIGHT} ק"ג</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>פלטות לכל צד:</Text>
-              <Text style={styles.summaryValue}>
-                {plateCalculation.plates.length > 0
-                  ? plateCalculation.plates.join(" + ")
-                  : "ללא"}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>סה"כ משקל:</Text>
-              <Text style={styles.totalValue}>
-                {plateCalculation.totalWeight} ק"ג
-              </Text>
-            </View>
-            {plateCalculation.remaining && plateCalculation.remaining > 0 && (
-              <Text style={styles.warningText}>
-                * חסרים {plateCalculation.remaining.toFixed(1)} ק"ג להשלמת המשקל
-                המבוקש
-              </Text>
-            )}
-          </View>
-
-          {/* רשימת פלטות לפי צבע */}
-          <View style={styles.plateLegend}>
-            <Text style={styles.legendTitle}>מקרא צבעים:</Text>
-            <View style={styles.legendGrid}>
-              {PLATE_WEIGHTS.map((weight) => (
-                <View key={weight} style={styles.legendItem}>
+              <View style={styles.barVisualization}>
+                <View style={styles.barEnd} />
+                {plateCalculation.plates.map((p, i) => (
                   <View
+                    key={`l-${i}`}
                     style={[
-                      styles.legendColor,
-                      { backgroundColor: getPlateColor(weight) },
+                      styles.plate,
+                      {
+                        backgroundColor: getPlateColor(p),
+                        height: 40 + p * 2.5,
+                        borderWidth: p === 5 ? 1 : 0,
+                      },
                     ]}
                   />
-                  <Text style={styles.legendText}>{weight} ק"ג</Text>
+                ))}
+                <View style={styles.bar} />
+                {[...plateCalculation.plates].reverse().map((p, i) => (
+                  <View
+                    key={`r-${i}`}
+                    style={[
+                      styles.plate,
+                      {
+                        backgroundColor: getPlateColor(p),
+                        height: 40 + p * 2.5,
+                        borderWidth: p === 5 ? 1 : 0,
+                      },
+                    ]}
+                  />
+                ))}
+                <View style={styles.barEnd} />
+              </View>
+
+              <View style={styles.summary}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>פלטות לכל צד:</Text>
+                  <Text style={styles.summaryValue}>
+                    {plateCalculation.plates.join(", ") || "ללא"}
+                  </Text>
                 </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
+                <View style={styles.divider} />
+                <View style={styles.summaryRow}>
+                  <Text style={styles.totalLabel}>סה"כ משקל מחושב:</Text>
+                  <Text style={styles.totalValue}>
+                    {plateCalculation.totalWeight.toFixed(2)} ק"ג
+                  </Text>
+                </View>
+                {plateCalculation.remaining !== 0 && (
+                  <Text style={styles.warningText}>
+                    {plateCalculation.remaining > 0 ? `* חסר: ` : `* עודף: `}
+                    {Math.abs(plateCalculation.remaining).toFixed(2)} ק"ג
+                  </Text>
+                )}
+              </View>
+            </ScrollView>
+          </TouchableOpacity>
+        </Animated.View>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -204,99 +228,103 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "flex-end",
   },
-  modalContent: {
+  modalContainer: {
     backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    width: "90%",
-    maxHeight: "85%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+    ...theme.shadows.large,
+  },
+  scrollContent: {
     padding: theme.spacing.lg,
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: theme.spacing.xl,
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.divider,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: theme.colors.text,
   },
-  inputSection: {
-    marginBottom: theme.spacing.xl,
-  },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: "center",
     marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
   },
   inputContainer: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.sm,
+  },
+  incrementButton: {
+    padding: theme.spacing.md,
   },
   input: {
     flex: 1,
-    paddingVertical: theme.spacing.md,
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: theme.colors.primary,
     textAlign: "center",
+    minWidth: 100,
   },
   kgLabel: {
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   barVisualization: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
+    minHeight: 150,
+  },
+  bar: {
+    height: 12,
+    width: 120,
+    backgroundColor: theme.colors.divider,
+    zIndex: 1,
+  },
+  barEnd: {
+    height: 22,
+    width: 8,
+    backgroundColor: theme.colors.divider,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#B8B8B8",
   },
   plate: {
     width: 12,
-    borderRadius: 2,
+    borderRadius: 4,
     marginHorizontal: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  plateText: {
-    fontSize: 10,
-    color: theme.colors.text,
-    fontWeight: "bold",
-    transform: [{ rotate: "-90deg" }],
-  },
-  bar: {
-    width: 150,
-    height: 20,
-    backgroundColor: theme.colors.divider,
-    borderRadius: 10,
-    marginHorizontal: theme.spacing.sm,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  barText: {
-    fontSize: 12,
-    color: theme.colors.text,
-    fontWeight: "500",
+    borderColor: "#B8B8B8",
+    ...theme.shadows.small,
   },
   summary: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   summaryRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    marginBottom: theme.spacing.sm,
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
   },
   summaryLabel: {
     fontSize: 14,
@@ -310,7 +338,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: theme.colors.divider,
-    marginVertical: theme.spacing.sm,
+    marginVertical: theme.spacing.xs,
   },
   totalLabel: {
     fontSize: 16,
@@ -325,34 +353,7 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 12,
     color: theme.colors.warning,
-    fontStyle: "italic",
+    textAlign: "center",
     marginTop: theme.spacing.sm,
-  },
-  plateLegend: {
-    marginTop: theme.spacing.md,
-  },
-  legendTitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-  },
-  legendGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: theme.spacing.xs,
-  },
-  legendColor: {
-    width: 16,
-    height: 16,
-    borderRadius: 2,
-  },
-  legendText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
   },
 });

@@ -1,25 +1,31 @@
 /**
  * @file src/screens/workout/QuickWorkoutScreen.tsx
- * @description מסך אימון מהיר - המסך הראשי שמשלב את כל קומפוננטות האימון
- * English: Quick workout screen - main screen integrating all workout components
+ * @description מסך אימון מהיר עם עיצוב משופר וקומפקטי
  */
+// cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
-  ScrollView,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Text,
   TouchableOpacity,
+  Text,
+  FlatList,
+  Animated, // הוספת Animated
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
-// קומפוננטות
 // Components
 import { WorkoutHeader } from "./components/WorkoutHeader";
 import { WorkoutDashboard } from "./components/WorkoutDashboard";
@@ -39,8 +45,6 @@ import autoSaveService from "./services/autoSaveService";
 // Types
 import { Exercise, WorkoutData, Set } from "./types/workout.types";
 
-// דוגמת תרגילים ראשונית
-// Initial exercises example
 const initialExercises: Exercise[] = [
   {
     id: "1",
@@ -56,6 +60,7 @@ const initialExercises: Exercise[] = [
         targetReps: 15,
         targetWeight: 40,
         completed: false,
+        isPR: false,
       },
       {
         id: "1-2",
@@ -65,6 +70,7 @@ const initialExercises: Exercise[] = [
         previousWeight: 55,
         previousReps: 10,
         completed: false,
+        isPR: false,
       },
     ],
   },
@@ -82,210 +88,80 @@ const initialExercises: Exercise[] = [
         targetReps: 10,
         targetWeight: 80,
         completed: false,
+        isPR: false,
       },
     ],
   },
 ];
 
-export const QuickWorkoutScreen = () => {
-  const navigation = useNavigation();
-
-  // State
+// ... (ה-Hook useWorkoutManager נשאר זהה)
+const useWorkoutManager = (initialData: Exercise[]) => {
   const [workoutName, setWorkoutName] = useState("אימון מהיר");
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(
-    null
+  const [exercises, setExercises] = useState<Exercise[]>(initialData);
+  const handleUpdateSet = useCallback(
+    (exerciseId: string, setId: string, updates: Partial<Set>) => {
+      setExercises((prev) =>
+        prev.map((ex) =>
+          ex.id === exerciseId
+            ? {
+                ...ex,
+                sets: ex.sets.map((s) =>
+                  s.id === setId ? { ...s, ...updates } : s
+                ),
+              }
+            : ex
+        )
+      );
+    },
+    []
   );
-  const [showExercisePicker, setShowExercisePicker] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [showPlateCalculator, setShowPlateCalculator] = useState(false);
-  const [showExerciseTips, setShowExerciseTips] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
-    null
-  );
-  const [plateCalculatorWeight, setPlateCalculatorWeight] = useState(60);
-
-  // Hooks
-  const {
-    elapsedTime: duration,
-    isRunning,
-    startTimer,
-    pauseTimer,
-    resetTimer,
-  } = useWorkoutTimer();
-  const {
-    timeLeft: restTime,
-    isActive: isResting,
-    startRest,
-    pauseRest,
-    resetRest,
-    addTime: adjustRestTime,
-  } = useRestTimer({});
-
-  // שמירה אוטומטית
-  // Auto save
-  useEffect(() => {
-    if (exercises.length > 0 && isRunning) {
-      const workoutData: WorkoutData = {
-        id: Date.now().toString(),
-        name: workoutName,
-        startTime: new Date().toISOString(),
-        exercises,
-        duration,
-      };
-      autoSaveService.saveWorkoutState(workoutData);
-    }
-  }, [exercises, workoutName, duration, isRunning]);
-
-  // התחלת טיימר עם האימון
-  // Start timer with workout
-  useEffect(() => {
-    if (!isRunning && exercises.length > 0) {
-      startTimer();
-    }
-  }, []);
-
-  // חישוב סטטיסטיקות
-  // Calculate statistics
-  const calculateStats = useCallback(() => {
-    const completedSets = exercises.reduce(
-      (total, ex) => total + ex.sets.filter((s) => s.completed).length,
-      0
-    );
-    const totalSets = exercises.reduce(
-      (total, ex) => total + ex.sets.length,
-      0
-    );
-    const totalVolume = exercises.reduce(
-      (total, ex) =>
-        total +
-        ex.sets.reduce(
-          (sum, set) =>
-            sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0),
-          0
-        ),
-      0
-    );
-    const personalRecords = exercises
-      .flatMap((ex) => ex.sets)
-      .filter((set) => set.isPersonalRecord).length;
-
-    return { completedSets, totalSets, totalVolume, personalRecords };
-  }, [exercises]);
-
-  // הוספת תרגיל
-  // Add exercise
-  const handleAddExercise = (exerciseOption: any) => {
-    const newExercise: Exercise = {
-      ...exerciseOption,
-      id: Date.now().toString(),
-      sets: [
-        {
-          id: `${Date.now()}-1`,
-          reps: 12,
-          weight: 0,
-          completed: false,
+  const handleAddSet = useCallback((exerciseId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id !== exerciseId) return ex;
+        const lastSet = ex.sets[ex.sets.length - 1] || {};
+        const newSet: Set = {
+          id: `${Date.now()}`,
           type: "working",
-        },
-      ],
-    };
-    setExercises([...exercises, newExercise]);
-    setExpandedExerciseId(newExercise.id);
-  };
-
-  // עדכון סט
-  // Update set
-  const handleUpdateSet = (
-    exerciseId: string,
-    setId: string,
-    updates: Partial<Set>
-  ) => {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id === exerciseId) {
-          return {
-            ...ex,
-            sets: ex.sets.map((set) =>
-              set.id === setId ? { ...set, ...updates } : set
-            ),
-          };
-        }
-        return ex;
+          completed: false,
+          reps: lastSet.targetReps || 12,
+          weight: lastSet.targetWeight || 0,
+          previousReps: lastSet.reps,
+          previousWeight: lastSet.weight,
+          isPR: false,
+        };
+        return { ...ex, sets: [...ex.sets, newSet] };
       })
     );
-  };
-
-  // הוספת סט
-  // Add set
-  const handleAddSet = (exerciseId: string) => {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id === exerciseId) {
-          const lastSet = ex.sets[ex.sets.length - 1];
-          const newSet: Set = {
-            id: `${Date.now()}-${ex.sets.length + 1}`,
-            reps: lastSet?.reps || 12,
-            weight: lastSet?.weight || 0,
-            completed: false,
-            type: "working",
-          };
-          return {
-            ...ex,
-            sets: [...ex.sets, newSet],
-          };
-        }
-        return ex;
-      })
+  }, []);
+  const handleDeleteSet = useCallback((exerciseId: string, setId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? { ...ex, sets: ex.sets.filter((s) => s.id !== setId) }
+          : ex
+      )
     );
-  };
-
-  // מחיקת סט
-  // Delete set
-  const handleDeleteSet = (exerciseId: string, setId: string) => {
-    setExercises(
-      exercises.map((ex) => {
-        if (ex.id === exerciseId) {
-          return {
-            ...ex,
-            sets: ex.sets.filter((set) => set.id !== setId),
-          };
-        }
-        return ex;
-      })
-    );
-  };
-
-  // סימון סט כהושלם
-  // Mark set as completed
-  const handleSetComplete = (exerciseId: string, setId: string) => {
-    handleUpdateSet(exerciseId, setId, { completed: true });
-    startRest();
-  };
-
-  // מחיקת תרגיל
-  // Delete exercise
-  const handleDeleteExercise = (exerciseId: string) => {
+  }, []);
+  const handleDeleteExercise = useCallback((exerciseId: string) => {
     Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק תרגיל זה?", [
       { text: "ביטול", style: "cancel" },
       {
         text: "מחק",
         style: "destructive",
-        onPress: () => {
-          setExercises(exercises.filter((ex) => ex.id !== exerciseId));
-        },
+        onPress: () =>
+          setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId)),
       },
     ]);
-  };
-
-  // שכפול תרגיל
-  // Duplicate exercise
-  const handleDuplicateExercise = (exerciseId: string) => {
-    const exercise = exercises.find((ex) => ex.id === exerciseId);
-    if (exercise) {
-      const duplicated: Exercise = {
-        ...exercise,
-        id: Date.now().toString(),
-        sets: exercise.sets.map((set) => ({
+  }, []);
+  const handleDuplicateExercise = useCallback(
+    (exerciseId: string) => {
+      const exerciseToDuplicate = exercises.find((ex) => ex.id === exerciseId);
+      if (!exerciseToDuplicate) return;
+      const duplicatedExercise: Exercise = {
+        ...exerciseToDuplicate,
+        id: `${Date.now()}`,
+        sets: exerciseToDuplicate.sets.map((set) => ({
           ...set,
           id: `${Date.now()}-${set.id}`,
           completed: false,
@@ -293,79 +169,176 @@ export const QuickWorkoutScreen = () => {
       };
       const index = exercises.findIndex((ex) => ex.id === exerciseId);
       const newExercises = [...exercises];
-      newExercises.splice(index + 1, 0, duplicated);
+      newExercises.splice(index + 1, 0, duplicatedExercise);
       setExercises(newExercises);
+    },
+    [exercises]
+  );
+  const handleAddExercise = useCallback((exerciseOption: any) => {
+    const newExercise: Exercise = {
+      ...exerciseOption,
+      id: `${Date.now()}`,
+      sets: [
+        {
+          id: `${Date.now()}-1`,
+          type: "working",
+          completed: false,
+          targetReps: 12,
+          isPR: false,
+        },
+      ],
+    };
+    setExercises((prev) => [...prev, newExercise]);
+    return newExercise.id;
+  }, []);
+  const handleReorderSets = useCallback(
+    (exerciseId: string, reorderedSets: Set[]) => {
+      setExercises((prev) =>
+        prev.map((ex) =>
+          ex.id === exerciseId ? { ...ex, sets: reorderedSets } : ex
+        )
+      );
+    },
+    []
+  );
+  return {
+    workoutName,
+    setWorkoutName,
+    exercises,
+    handlers: {
+      handleUpdateSet,
+      handleAddSet,
+      handleDeleteSet,
+      handleDeleteExercise,
+      handleDuplicateExercise,
+      handleAddExercise,
+      handleReorderSets,
+    },
+  };
+};
+
+// --- קומפוננטה ראשית ---
+export const QuickWorkoutScreen = () => {
+  const navigation = useNavigation();
+  const flatListRef = useRef<FlatList>(null);
+
+  // States
+  const { workoutName, setWorkoutName, exercises, handlers } =
+    useWorkoutManager(initialExercises);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(
+    initialExercises[0]?.id || null
+  );
+  const [showSummary, setShowSummary] = useState(false);
+  const [isDashboardVisible, setDashboardVisible] = useState(false);
+  const dashboardAnim = useRef(new Animated.Value(-200)).current;
+
+  // Modal States
+  const [modals, setModals] = useState({
+    exercisePicker: false,
+    plateCalculator: false,
+    exerciseTips: false,
+  });
+  const [modalData, setModalData] = useState({
+    plateCalculatorWeight: 60,
+    selectedExercise: null as Exercise | null,
+  });
+
+  // Hooks
+  const { elapsedTime, isRunning, startTimer, pauseTimer } = useWorkoutTimer();
+  const {
+    timeLeft,
+    progress,
+    isActive: isResting,
+    isPaused,
+    startRest,
+    pauseRest,
+    skipRest,
+    addTime,
+    subtractTime,
+  } = useRestTimer({
+    defaultTime: 90,
+    onComplete: () => console.log("Rest timer completed!"),
+  });
+
+  // אנימציית הדשבורד
+  useEffect(() => {
+    Animated.spring(dashboardAnim, {
+      toValue: isDashboardVisible ? 0 : -250, // ערך שלילי גדול יותר כדי להסתיר לגמרי
+      useNativeDriver: true,
+    }).start();
+  }, [isDashboardVisible]);
+
+  // Auto-save logic & timer start
+  useEffect(() => {
+    startTimer();
+  }, []);
+  useEffect(() => {
+    if (exercises.length > 0 && isRunning) {
+      const workoutData: WorkoutData = {
+        id: "draft",
+        name: workoutName,
+        startTime: new Date().toISOString(),
+        exercises,
+        duration: elapsedTime,
+      };
+      autoSaveService.saveWorkoutState(workoutData);
     }
-  };
+  }, [exercises, workoutName, elapsedTime, isRunning]);
 
-  // סיום אימון
-  // Finish workout
-  const handleFinishWorkout = () => {
-    pauseTimer();
-    setShowSummary(true);
-  };
+  // Memoized calculations
+  const stats = useMemo(() => {
+    let completedSets = 0,
+      totalSets = 0,
+      totalVolume = 0,
+      personalRecords = 0;
+    for (const ex of exercises) {
+      totalSets += ex.sets.length;
+      for (const set of ex.sets) {
+        if (set.completed) {
+          completedSets++;
+          totalVolume += (set.weight || 0) * (set.reps || 0);
+          if (set.isPR) personalRecords++;
+        }
+      }
+    }
+    return { completedSets, totalSets, totalVolume, personalRecords };
+  }, [exercises]);
 
-  // מציאת התרגיל הבא
-  // Find next exercise
-  const getNextExercise = () => {
-    const currentIndex = exercises.findIndex((ex) =>
-      ex.sets.some((set) => !set.completed)
+  const nextExercise = useMemo(() => {
+    const currentIdx = exercises.findIndex(
+      (ex) => ex.id === expandedExerciseId
     );
-    if (currentIndex < exercises.length - 1) {
-      return exercises[currentIndex + 1];
-    }
-    return null;
-  };
+    return (
+      exercises.find(
+        (ex, idx) => idx > currentIdx && ex.sets.some((s) => !s.completed)
+      ) || null
+    );
+  }, [exercises, expandedExerciseId]);
 
-  // דילוג לתרגיל הבא
-  // Skip to next exercise
-  const handleSkipToNext = () => {
-    const nextExercise = getNextExercise();
-    if (nextExercise) {
-      setExpandedExerciseId(nextExercise.id);
-      // גלילה אוטומטית לתרגיל הבא
-      // Auto scroll to next exercise
-    }
-  };
+  const formattedElapsedTime = useMemo(() => {
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = elapsedTime % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, [elapsedTime]);
 
-  // פתיחת מחשבון פלטות
-  // Open plate calculator
-  const handleOpenPlateCalculator = (weight: number) => {
-    setPlateCalculatorWeight(weight);
-    setShowPlateCalculator(true);
+  const handleToggleExpand = (exerciseId: string) => {
+    setExpandedExerciseId((prevId) =>
+      prevId === exerciseId ? null : exerciseId
+    );
   };
-
-  // פתיחת טיפים
-  // Open tips
-  const handleShowTips = (exercise: Exercise) => {
-    setSelectedExercise(exercise);
-    setShowExerciseTips(true);
-  };
-
-  const { completedSets, totalSets, totalVolume, personalRecords } =
-    calculateStats();
 
   if (showSummary) {
     return (
       <WorkoutSummary
         workout={{
-          id: Date.now().toString(),
+          id: "final",
           name: workoutName,
-          startTime: new Date().toISOString(),
-          endTime: new Date().toISOString(),
-          duration,
+          startTime: "",
           exercises,
+          duration: elapsedTime,
         }}
-        onClose={() => {
-          autoSaveService.deleteDraft(Date.now().toString());
-          navigation.goBack();
-        }}
-        onSave={() => {
-          // שמירת אימון
-          console.log("שומר אימון...");
-          autoSaveService.deleteDraft(Date.now().toString());
-          navigation.goBack();
-        }}
+        onClose={() => navigation.goBack()}
+        onSave={() => navigation.goBack()}
       />
     );
   }
@@ -375,103 +348,135 @@ export const QuickWorkoutScreen = () => {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Header */}
       <WorkoutHeader
         workoutName={workoutName}
-        onWorkoutNameChange={setWorkoutName}
-        elapsedTime={`${Math.floor(duration / 60)}:${(duration % 60)
-          .toString()
-          .padStart(2, "0")}`}
-        onFinish={handleFinishWorkout}
-        onPause={isRunning ? pauseTimer : startTimer}
-        isPaused={!isRunning}
+        elapsedTime={formattedElapsedTime}
+        onTimerPress={() => setDashboardVisible((prev) => !prev)}
+        onNamePress={() => {
+          /* TODO: Implement name editing modal */
+        }}
       />
 
-      {/* Dashboard */}
-      <WorkoutDashboard
-        totalVolume={totalVolume}
-        completedSets={completedSets}
-        totalSets={totalSets}
-        pace={completedSets / Math.max(duration / 60, 1)}
-        personalRecords={personalRecords}
-      />
-
-      {/* Rest Timer */}
-      {isResting && <RestTimer />}
-
-      {/* Exercises List */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {exercises.map((exercise, index) => (
-          <ExerciseCard
-            key={exercise.id}
-            exercise={exercise}
-            exerciseNumber={index + 1}
-            isExpanded={expandedExerciseId === exercise.id}
-            onToggleExpand={() =>
-              setExpandedExerciseId(
-                expandedExerciseId === exercise.id ? null : exercise.id
-              )
-            }
-            onUpdateSet={(setId, updates) =>
-              handleUpdateSet(exercise.id, setId, updates)
-            }
-            onAddSet={() => handleAddSet(exercise.id)}
-            onDeleteSet={(setId) => handleDeleteSet(exercise.id, setId)}
-            onDelete={() => handleDeleteExercise(exercise.id)}
-            onDuplicate={() => handleDuplicateExercise(exercise.id)}
-            onStartRest={startRest}
-            onShowPlateCalculator={handleOpenPlateCalculator}
-            onShowTips={() => handleShowTips(exercise)}
-          />
-        ))}
-
-        {/* Add Exercise Button */}
-        <TouchableOpacity
-          style={styles.addExerciseButton}
-          onPress={() => setShowExercisePicker(true)}
-        >
-          <MaterialCommunityIcons
-            name="plus-circle"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.addExerciseText}>הוסף תרגיל</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Next Exercise Bar */}
-      {getNextExercise() && (
-        <NextExerciseBar
-          nextExercise={getNextExercise()}
-          onSkipToNext={handleSkipToNext}
+      {isResting && (
+        <RestTimer
+          timeLeft={timeLeft}
+          progress={progress}
+          isPaused={isPaused}
+          nextExercise={nextExercise}
+          onPause={pauseRest}
+          onSkip={skipRest}
+          onAddTime={addTime}
+          onSubtractTime={subtractTime}
         />
       )}
 
-      {/* Exercise Picker Modal */}
+      <FlatList
+        ref={flatListRef}
+        data={exercises}
+        keyExtractor={(item) => item.id}
+        style={styles.listStyle}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item: exercise, index }) => (
+          <ExerciseCard
+            exercise={exercise}
+            exerciseNumber={index + 1}
+            isExpanded={expandedExerciseId === exercise.id}
+            onToggleExpand={() => handleToggleExpand(exercise.id)}
+            onUpdateSet={(setId, updates) =>
+              handlers.handleUpdateSet(exercise.id, setId, updates)
+            }
+            onAddSet={() => handlers.handleAddSet(exercise.id)}
+            onDeleteSet={(setId) =>
+              handlers.handleDeleteSet(exercise.id, setId)
+            }
+            onDelete={() => handlers.handleDeleteExercise(exercise.id)}
+            onDuplicate={() => handlers.handleDuplicateExercise(exercise.id)}
+            onStartRest={startRest}
+            onShowPlateCalculator={(weight) => {
+              setModalData((p) => ({ ...p, plateCalculatorWeight: weight }));
+              setModals((p) => ({ ...p, plateCalculator: true }));
+            }}
+            onShowTips={() => {
+              setModalData((p) => ({ ...p, selectedExercise: exercise }));
+              setModals((p) => ({ ...p, exerciseTips: true }));
+            }}
+            onReorderSets={(reorderedSets) =>
+              handlers.handleReorderSets(exercise.id, reorderedSets)
+            }
+          />
+        )}
+        ListFooterComponent={
+          <>
+            <TouchableOpacity
+              style={styles.addExerciseButton}
+              onPress={() =>
+                setModals((prev) => ({ ...prev, exercisePicker: true }))
+              }
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={22}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.addExerciseText}>הוסף תרגיל</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.finishButton}
+              onPress={() => {
+                pauseTimer();
+                setShowSummary(true);
+              }}
+            >
+              <Text style={styles.finishButtonText}>סיים אימון</Text>
+            </TouchableOpacity>
+          </>
+        }
+      />
+
+      <Animated.View
+        style={[
+          styles.dashboardContainer,
+          { transform: [{ translateY: dashboardAnim }] },
+        ]}
+      >
+        <WorkoutDashboard
+          totalVolume={stats.totalVolume}
+          completedSets={stats.completedSets}
+          totalSets={stats.totalSets}
+          pace={stats.completedSets / (elapsedTime / 60 || 1)}
+          personalRecords={stats.personalRecords}
+        />
+      </Animated.View>
+
+      <NextExerciseBar
+        nextExercise={nextExercise}
+        onSkipToNext={() => nextExercise && handleToggleExpand(nextExercise.id)}
+      />
+
       <ExercisePickerModal
-        visible={showExercisePicker}
-        onClose={() => setShowExercisePicker(false)}
-        onSelectExercise={handleAddExercise}
+        visible={modals.exercisePicker}
+        onClose={() =>
+          setModals((prev) => ({ ...prev, exercisePicker: false }))
+        }
+        onSelectExercise={(ex) => {
+          const newId = handlers.handleAddExercise(ex);
+          setModals((p) => ({ ...p, exercisePicker: false }));
+          setExpandedExerciseId(newId);
+        }}
         currentExercises={exercises}
       />
-
-      {/* Plate Calculator Modal */}
       <PlateCalculatorModal
-        visible={showPlateCalculator}
-        onClose={() => setShowPlateCalculator(false)}
-        currentWeight={plateCalculatorWeight}
+        visible={modals.plateCalculator}
+        onClose={() =>
+          setModals((prev) => ({ ...prev, plateCalculator: false }))
+        }
+        currentWeight={modalData.plateCalculatorWeight}
       />
-
-      {/* Exercise Tips Modal */}
       <ExerciseTipsModal
-        visible={showExerciseTips}
-        onClose={() => setShowExerciseTips(false)}
-        exerciseName={selectedExercise?.name || ""}
+        visible={modals.exerciseTips}
+        onClose={() => setModals((prev) => ({ ...prev, exerciseTips: false }))}
+        exerciseName={modalData.selectedExercise?.name || ""}
       />
     </KeyboardAvoidingView>
   );
@@ -482,30 +487,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  scrollView: {
+  listStyle: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 100,
+  listContent: {
+    paddingTop: 16,
+    paddingBottom: 150,
   },
   addExerciseButton: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    gap: 8,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderWidth: 2,
+    borderColor: theme.colors.cardBorder,
     borderStyle: "dashed",
+    borderRadius: 16,
   },
+  // תיקון: הוספת הגדרת הסגנון החסרה
   addExerciseText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.primary,
-    marginRight: theme.spacing.sm,
+  },
+  finishButton: {
+    backgroundColor: theme.colors.success,
+    padding: 16,
+    borderRadius: 16,
+    margin: 16,
+    alignItems: "center",
+    ...theme.shadows.medium,
+  },
+  finishButtonText: {
+    color: theme.colors.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  dashboardContainer: {
+    position: "absolute",
+    top: 100, // מיקום מתחת להדר
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
 });
 
