@@ -1,9 +1,8 @@
 /**
  * @file src/screens/exercise/ExerciseListScreen.tsx
- * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים
+ * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים ומצב בחירה
  * @dependencies MuscleBar, ExerciseDetailsModal, exerciseService
- * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי
- * @recurring_errors שכחה להעביר את ה-prop muscles ל-MuscleBar
+ * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי ומצב בחירה לאימון
  */
 
 import React, { useEffect, useState } from "react";
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -26,14 +26,30 @@ import {
 } from "../../services/exerciseService";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import MuscleBar from "./MuscleBar";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 export default function ExerciseListScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  // בדיקה אם אנחנו במצב בחירה
+  // Check if we're in selection mode
+  const params = route.params as any;
+  const isSelectionMode = params?.mode === "selection";
+  const onSelectExercise = params?.onSelectExercise;
+
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [allMuscles, setAllMuscles] = useState<Muscle[]>([]);
   const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
+
+  // רשימת תרגילים שנבחרו
+  // List of selected exercises
+  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     loadData();
@@ -91,10 +107,66 @@ export default function ExerciseListScreen() {
     return muscles.map((m) => m.name).join(", ");
   };
 
+  // הצגת Toast
+  // Show toast
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const handleExercisePress = (item: Exercise) => {
+    console.log("[ExerciseList] Exercise pressed:", item.name);
+    console.log("[ExerciseList] Selection mode:", isSelectionMode);
+    console.log("[ExerciseList] onSelectExercise exists:", !!onSelectExercise);
+
+    if (isSelectionMode && onSelectExercise) {
+      // במצב בחירה - מוסיפים/מסירים מהרשימה
+      // In selection mode - add/remove from list
+      const exerciseId = item.id.toString();
+
+      if (selectedExercises.includes(exerciseId)) {
+        // אם כבר נבחר - מסירים
+        console.log("[ExerciseList] Removing exercise:", exerciseId);
+        setSelectedExercises((prev) => prev.filter((id) => id !== exerciseId));
+        showToastMessage(`${item.name} הוסר מהרשימה`);
+      } else {
+        // אם לא נבחר - מוסיפים
+        console.log("[ExerciseList] Adding exercise:", exerciseId);
+        setSelectedExercises((prev) => [...prev, exerciseId]);
+        showToastMessage(`${item.name} נוסף לאימון! 💪`);
+
+        // מוסיפים ישר לאימון
+        const exerciseForWorkout = {
+          id: exerciseId,
+          name: item.name,
+          category: item.category,
+          image: item.image,
+          primaryMuscles: item.muscles.map((m) => m.name),
+          secondaryMuscles: item.muscles_secondary.map((m) => m.name),
+          equipment: undefined,
+        };
+        onSelectExercise(exerciseForWorkout);
+      }
+    } else {
+      // במצב רגיל - פותחים את המודל
+      // In normal mode - open the modal
+      setSelected(item);
+    }
+  };
+
+  const handleFinishSelection = () => {
+    if (selectedExercises.length === 0) {
+      Alert.alert("לא נבחרו תרגילים", "בחר לפחות תרגיל אחד להוספה לאימון");
+      return;
+    }
+    navigation.goBack();
+  };
+
   const renderExerciseItem = ({ item }: { item: Exercise }) => (
     <TouchableOpacity
       style={styles.exerciseCard}
-      onPress={() => setSelected(item)}
+      onPress={() => handleExercisePress(item)}
       activeOpacity={0.7}
     >
       <View style={styles.exerciseContent}>
@@ -151,9 +223,24 @@ export default function ExerciseListScreen() {
       )}
 
       <MaterialCommunityIcons
-        name="chevron-left"
+        name={(() => {
+          if (isSelectionMode) {
+            const isSelected = selectedExercises.includes(item.id.toString());
+            console.log(
+              `[Icon] Exercise ${item.name} - Selected: ${isSelected}`
+            );
+            return isSelected ? "check-circle" : "plus-circle";
+          }
+          return "chevron-left";
+        })()}
         size={24}
-        color={theme.colors.textSecondary}
+        color={
+          isSelectionMode
+            ? selectedExercises.includes(item.id.toString())
+              ? theme.colors.success
+              : theme.colors.primary
+            : theme.colors.textSecondary
+        }
         style={styles.chevron}
       />
     </TouchableOpacity>
@@ -191,10 +278,32 @@ export default function ExerciseListScreen() {
       {/* כותרת
       Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>ספריית תרגילים</Text>
-        <Text style={styles.exerciseCount}>
-          {filteredExercises.length} תרגילים
+        {isSelectionMode && (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={24}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>
+          {isSelectionMode ? "בחר תרגילים להוספה" : "ספריית תרגילים"}
         </Text>
+        {isSelectionMode ? (
+          <View style={styles.selectedBadge}>
+            <Text style={styles.selectedText}>
+              {selectedExercises.length} נבחרו
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.exerciseCount}>
+            {filteredExercises.length} תרגילים
+          </Text>
+        )}
       </View>
 
       {/* בר בחירת שריר
@@ -225,9 +334,12 @@ export default function ExerciseListScreen() {
             </Text>
           </View>
         }
+        // הוספת padding למטה כדי שהכפתור לא יסתיר תרגילים
+        // Add bottom padding so button doesn't hide exercises
+        contentInset={{ bottom: isSelectionMode ? 100 : 0 }}
       />
 
-      {selected && (
+      {!isSelectionMode && selected && (
         <ExerciseDetailsModal
           exercise={selected}
           onClose={() => setSelected(null)}
@@ -258,6 +370,10 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   headerTitle: {
     fontSize: 28,
@@ -388,5 +504,49 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginRight: 8,
+  },
+  selectedBadge: {
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  selectedText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  finishButton: {
+    position: "absolute",
+    bottom: 30,
+    left: 16,
+    right: 16,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    ...theme.shadows.large,
+  },
+  finishButtonText: {
+    color: theme.colors.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  toast: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.medium,
+  },
+  toastText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

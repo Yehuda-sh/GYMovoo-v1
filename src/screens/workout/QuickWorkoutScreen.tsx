@@ -32,7 +32,8 @@ import { WorkoutDashboard } from "./components/WorkoutDashboard";
 import { RestTimer } from "./components/RestTimer";
 import { ExerciseCard } from "./components/ExerciseCard";
 import { NextExerciseBar } from "./components/NextExerciseBar";
-import { ExercisePickerModal } from "./components/ExercisePickerModal";
+import { SimpleExercisePicker } from "./components/SimpleExercisePicker";
+
 import { WorkoutSummary } from "./components/WorkoutSummary";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ExerciseTipsModal } from "./components/ExerciseTipsModal";
@@ -410,9 +411,15 @@ export const QuickWorkoutScreen = () => {
           <>
             <TouchableOpacity
               style={styles.addExerciseButton}
-              onPress={() =>
-                setModals((prev) => ({ ...prev, exercisePicker: true }))
-              }
+              onPress={() => {
+                (navigation as any).navigate("ExerciseList", {
+                  mode: "selection",
+                  onSelectExercise: (exercise: any) => {
+                    const newId = handlers.handleAddExercise(exercise);
+                    setExpandedExerciseId(newId);
+                  },
+                });
+              }}
             >
               <MaterialCommunityIcons
                 name="plus"
@@ -454,18 +461,6 @@ export const QuickWorkoutScreen = () => {
         onSkipToNext={() => nextExercise && handleToggleExpand(nextExercise.id)}
       />
 
-      <ExercisePickerModal
-        visible={modals.exercisePicker}
-        onClose={() =>
-          setModals((prev) => ({ ...prev, exercisePicker: false }))
-        }
-        onSelectExercise={(ex) => {
-          const newId = handlers.handleAddExercise(ex);
-          setModals((p) => ({ ...p, exercisePicker: false }));
-          setExpandedExerciseId(newId);
-        }}
-        currentExercises={exercises}
-      />
       <PlateCalculatorModal
         visible={modals.plateCalculator}
         onClose={() =>
