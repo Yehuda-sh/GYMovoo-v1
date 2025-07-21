@@ -1,6 +1,7 @@
 /**
  * @file src/screens/workout/ActiveWorkoutScreen.tsx
- * @description מסך אימון פעיל - Active Workout screen UI & mock data
+ * @brief מסך אימון פעיל - Active Workout screen UI & mock data
+ * @dependencies react-native, @react-navigation/native, theme
  * @author GYMovoo
  * עברית: מסך דמו לאימון פעיל עם תצוגת סטים, היסטוריה, וניווט בסיסי.
  * English: Demo screen for active workout, includes sets, last performance, and basic navigation.
@@ -8,10 +9,18 @@
 // cspell:ignore סקוואט
 
 import React from "react";
-import { View, Text, Button, FlatList, StyleSheet } from "react-native";
-import { theme } from "../../styles/theme"; // שימוש ב-theme לאחידות
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { theme } from "../../styles/theme";
 
 // נתוני דמו
+// Mock data
 const MOCK_EXERCISE = {
   name: "סקוואט",
   sets: [
@@ -23,50 +32,66 @@ const MOCK_EXERCISE = {
 };
 
 export default function ActiveWorkoutScreen() {
-  // כאן תוכל להוסיף בעתיד לוגיקה לניווט בין תרגילים
-  // למשל, באמצעות useState ו-useContext
+  const navigation = useNavigation();
+
+  // מעבר לתרגיל הבא
+  // Navigate to next exercise
   const handleNext = () => {
     console.log("מעבר לתרגיל הבא");
+    // TODO: לוגיקת מעבר לתרגיל הבא
+    // TODO: Logic for next exercise
   };
 
+  // חזרה לתרגיל הקודם
+  // Navigate to previous exercise
   const handlePrev = () => {
     console.log("חזרה לתרגיל הקודם");
+    // TODO: לוגיקת חזרה לתרגיל הקודם
+    // TODO: Logic for previous exercise
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>אימון A - רגליים</Text>
+
       <View style={styles.exerciseCard}>
         <Text style={styles.exerciseName}>{MOCK_EXERCISE.name}</Text>
         <Text style={styles.lastPerf}>
           תוצאה אחרונה: {MOCK_EXERCISE.lastPerformance}
         </Text>
+
         <FlatList
           data={MOCK_EXERCISE.sets}
-          keyExtractor={(item) => `${item.number}`}
+          keyExtractor={(item) => `set-${item.number}`}
           renderItem={({ item }) => (
             <View style={styles.setRow}>
-              <Text style={styles.setText}>{`סט ${item.number}`}</Text>
-              <Text style={styles.numberText}>{`${item.weight} ק"ג`}</Text>
-              <Text style={styles.numberText}>{`${item.reps} חזרות`}</Text>
+              <Text style={styles.setText}>סט {item.number}</Text>
+              <View style={styles.setData}>
+                <Text style={styles.numberText}>{item.weight} ק"ג</Text>
+                <Text style={styles.separator}>×</Text>
+                <Text style={styles.numberText}>{item.reps} חזרות</Text>
+              </View>
             </View>
           )}
         />
+
         <View style={styles.progressBarContainer}>
           {/* רוחב הפס יחושב דינמית לפי ההתקדמות באימון */}
+          {/* Progress bar width will be calculated dynamically */}
           <View style={[styles.progressBarFill, { width: "33%" }]} />
         </View>
+
         <View style={styles.navButtons}>
-          <Button
-            title="הקודם"
+          <TouchableOpacity style={styles.navButton} onPress={handleNext}>
+            <Text style={styles.navButtonText}>הבא</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, styles.prevButton]}
             onPress={handlePrev}
-            color={theme.colors.primary}
-          />
-          <Button
-            title="הבא"
-            onPress={handleNext}
-            color={theme.colors.primary}
-          />
+          >
+            <Text style={styles.navButtonText}>הקודם</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -76,76 +101,100 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background, // שימוש בצבע מה-theme
-    padding: 16,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
   },
   header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: theme.colors.primary, // שימוש בצבע מה-theme
-    marginBottom: 24,
+    fontSize: theme.typography.h1.fontSize,
+    fontWeight: theme.typography.h1.fontWeight,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.lg,
     textAlign: "right",
-    writingDirection: "rtl",
   },
   exerciseCard: {
-    backgroundColor: theme.colors.card, // שימוש בצבע מה-theme
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...theme.shadows.medium, // הוספת צל מה-theme
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.medium,
   },
   exerciseName: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: theme.colors.text, // שימוש בצבע מה-theme
-    marginBottom: 8,
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
     textAlign: "right",
-    writingDirection: "rtl",
   },
   lastPerf: {
-    fontSize: 13,
-    color: theme.colors.accent, // שימוש בצבע מה-theme
-    marginBottom: 16,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.accent,
+    marginBottom: theme.spacing.md,
     textAlign: "right",
-    writingDirection: "rtl",
   },
   setRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-    padding: 12,
-    backgroundColor: theme.colors.background, // שימוש בצבע מה-theme
-    borderRadius: 8,
+    marginBottom: theme.spacing.sm,
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
   },
   setText: {
-    textAlign: "right",
-    writingDirection: "rtl",
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "500",
     color: theme.colors.text,
+    flex: 1,
+    textAlign: "right",
+  },
+  setData: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    flex: 2,
+    justifyContent: "flex-start",
   },
   numberText: {
-    textAlign: "left",
-    writingDirection: "ltr",
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "500",
     color: theme.colors.textSecondary,
+    marginHorizontal: theme.spacing.xs,
+  },
+  separator: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    marginHorizontal: theme.spacing.xs,
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: theme.colors.divider, // שימוש בצבע מה-theme
-    borderRadius: 6,
-    marginVertical: 16,
+    backgroundColor: theme.colors.divider,
+    borderRadius: theme.borderRadius.sm,
+    marginVertical: theme.spacing.md,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: theme.colors.primary, // שימוש בצבע מה-theme
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.sm,
   },
   navButtons: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: theme.spacing.md,
+  },
+  navButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  prevButton: {
+    backgroundColor: theme.colors.secondary,
+  },
+  navButtonText: {
+    color: theme.colors.card,
+    fontSize: theme.typography.button.fontSize,
+    fontWeight: theme.typography.button.fontWeight,
   },
 });
