@@ -1,28 +1,49 @@
-// src\components\common\BackButton.tsx
+/**
+ * @file src/components/common/BackButton.tsx
+ * @brief כפתור חזרה אוניברסלי עם תמיכה מלאה ב-RTL
+ * @dependencies React Navigation, Ionicons, theme
+ * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה
+ * @recurring_errors שימוש באייקון לא נכון, מיקום לא נכון ב-RTL
+ */
+
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
+interface BackButtonProps {
+  absolute?: boolean;
+  onPress?: () => void; // אפשרות לפונקציה מותאמת אישית
+}
+
 export default function BackButton({
   absolute = true,
-}: {
-  absolute?: boolean;
-}) {
+  onPress,
+}: BackButtonProps) {
   const navigation = useNavigation<any>();
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      navigation.goBack();
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => navigation.goBack()}
+      onPress={handlePress}
       style={[styles.button, absolute && styles.absolute]}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       accessibilityLabel="חזור"
+      accessibilityRole="button"
+      accessibilityHint="לחץ כדי לחזור למסך הקודם"
     >
       <Ionicons
-        name="arrow-back"
+        name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
         size={24}
         color={theme.colors.text}
-        style={{ transform: [{ scaleX: -1 }] }} // RTL
       />
     </TouchableOpacity>
   );
@@ -30,22 +51,18 @@ export default function BackButton({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#232a46bb", // כהה, חצי שקוף
+    backgroundColor: theme.colors.card + "CC", // שימוש בצבע מה-theme עם שקיפות
     borderRadius: 24,
     width: 42,
     height: 42,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    ...theme.shadows.medium,
     zIndex: 99,
   },
   absolute: {
     position: "absolute",
-    top: 40, // קצת מתחת לסטטוס בר
-    right: 16,
+    top: Platform.OS === "ios" ? 50 : 40, // התאמה לפלטפורמה
+    left: theme.spacing.md, // RTL: מיקום בצד שמאל במקום ימין
   },
 });

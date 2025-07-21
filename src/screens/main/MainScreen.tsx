@@ -1,7 +1,9 @@
 /**
  * @file src/screens/main/MainScreen.tsx
- * @description מסך ראשי משודרג - דשבורד אינטראקטיבי, סטטיסטיקות, התחלה מהירה
- * English: Enhanced main screen - interactive dashboard, statistics, quick start
+ * @brief מסך ראשי - דשבורד אינטראקטיבי עם סטטיסטיקות ופעולות מהירות
+ * @dependencies userStore (Zustand), DefaultAvatar, React Navigation
+ * @notes כולל אנימציות מורכבות, pull-to-refresh, וקרוסלת תוכניות
+ * @recurring_errors בעיות RTL בסידור אלמנטים, כיווניות לא נכונה ב-flexDirection
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -152,7 +154,26 @@ export default function MainScreen() {
       >
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+          <View style={styles.headerRight}>
+            <Text style={styles.greetingText}>{greeting},</Text>
+            <Text style={styles.nameText}>{displayName}!</Text>
+          </View>
           <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={() => {
+                console.log("🏠 MainScreen - Notifications button clicked");
+                alert("התראות - בקרוב!");
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={24}
+                color={theme.colors.text}
+              />
+              <View style={styles.notificationBadge} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.profileBtn}
               onPress={() => {
@@ -163,24 +184,6 @@ export default function MainScreen() {
             >
               <DefaultAvatar size={40} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.notificationBtn}
-              onPress={() => {
-                console.log("🏠 MainScreen - Notifications button clicked");
-                alert("התראות - בקרוב!");
-              }}
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={24}
-                color={theme.colors.text}
-              />
-              <View style={styles.notificationBadge} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.greetingText}>{greeting},</Text>
-            <Text style={styles.nameText}>{displayName}!</Text>
           </View>
         </Animated.View>
 
@@ -204,7 +207,7 @@ export default function MainScreen() {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.quickStartContent}>
-              <View>
+              <View style={styles.quickStartTextContainer}>
                 <Text style={styles.quickStartTitle}>מוכן לאימון?</Text>
                 <Text style={styles.quickStartSubtitle}>
                   התחל אימון מהיר עכשיו!
@@ -376,22 +379,22 @@ export default function MainScreen() {
                   <Text style={styles.planName}>{plan.name}</Text>
                   <View style={styles.planInfo}>
                     <View style={styles.planDetail}>
+                      <Text style={styles.planDetailText}>{plan.duration}</Text>
                       <Ionicons
                         name="time-outline"
                         size={16}
                         color={theme.colors.textSecondary}
                       />
-                      <Text style={styles.planDetailText}>{plan.duration}</Text>
                     </View>
                     <View style={styles.planDetail}>
+                      <Text style={styles.planDetailText}>
+                        {plan.difficulty}
+                      </Text>
                       <MaterialCommunityIcons
                         name="gauge"
                         size={16}
                         color={theme.colors.textSecondary}
                       />
-                      <Text style={styles.planDetailText}>
-                        {plan.difficulty}
-                      </Text>
                     </View>
                   </View>
                 </LinearGradient>
@@ -402,8 +405,8 @@ export default function MainScreen() {
 
         {/* Motivational Quote */}
         <Animated.View style={[styles.quoteCard, { opacity: fadeAnim }]}>
-          <Ionicons name="bulb" size={24} color={theme.colors.warning} />
           <Text style={styles.quoteText}>"הכאב של היום הוא הכוח של מחר"</Text>
+          <Ionicons name="bulb" size={24} color={theme.colors.warning} />
         </Animated.View>
       </ScrollView>
     </LinearGradient>
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
@@ -427,12 +430,12 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   headerLeft: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     gap: 12,
   },
   headerRight: {
-    alignItems: "flex-end",
+    alignItems: "flex-start", // RTL: יישור לשמאל במקום לימין
   },
   profileBtn: {
     width: 40,
@@ -447,7 +450,7 @@ const styles = StyleSheet.create({
   notificationBadge: {
     position: "absolute",
     top: 8,
-    right: 8,
+    left: 8, // RTL: שינוי מ-right ל-left
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -456,11 +459,13 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
+    textAlign: "right", // RTL: יישור טקסט
   },
   nameText: {
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
+    textAlign: "right", // RTL: יישור טקסט
   },
   quickStartCard: {
     marginHorizontal: theme.spacing.lg,
@@ -473,19 +478,24 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   quickStartContent: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  quickStartTextContainer: {
+    flex: 1,
   },
   quickStartTitle: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 4,
+    textAlign: "right", // RTL: יישור טקסט
   },
   quickStartSubtitle: {
     fontSize: 16,
     color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "right", // RTL: יישור טקסט
   },
   quickStartButton: {
     width: 56,
@@ -508,7 +518,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   statsGrid: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -526,18 +536,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginTop: 8,
+    textAlign: "center",
   },
   statLabel: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 4,
+    textAlign: "center",
   },
   quickActionsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
   },
   buttonsContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -557,16 +569,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: theme.spacing.sm,
+    alignSelf: "center", // מרכוז האייקון
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 4,
+    textAlign: "center",
   },
   actionButtonSubtext: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+    textAlign: "center",
   },
   plansContainer: {
     marginBottom: theme.spacing.lg,
@@ -576,7 +591,7 @@ const styles = StyleSheet.create({
   },
   planCard: {
     width: 200,
-    marginRight: theme.spacing.md,
+    marginLeft: theme.spacing.md, // RTL: שינוי מ-marginRight ל-marginLeft
     borderRadius: theme.borderRadius.md,
     overflow: "hidden",
   },
@@ -591,25 +606,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
+    textAlign: "right", // RTL: יישור טקסט
   },
   planInfo: {
     gap: 8,
   },
   planDetail: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     gap: 4,
   },
   planDetailText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: "right", // RTL: יישור טקסט
   },
   quoteCard: {
     marginHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.lg,
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     gap: 12,
     ...theme.shadows.small,

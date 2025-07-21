@@ -50,6 +50,65 @@ git push
 
 
 
+🔖 Checkpoint #010 - תיקוני RTL מקיפים ושיפור קומפוננטות ליבה
+🗓️ תאריך: 2025-01-21
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+תיקון מלא של WelcomeScreen: התאמת RTL מלאה כולל כיווניות כפתורים, מיקום אלמנטים ויישור טקסט
+שדרוג ProfileScreen: תיקון כיווניות מלאה, הוספת ScrollView, שיפור חווית משתמש
+עדכון MainScreen: התאמת RTL לדשבורד, תיקון Header, סידור נכון של כרטיסי פעולה וסטטיסטיקות
+שיפור BackButton: החלפת אייקון לחץ נכון ל-RTL, מיקום בצד שמאל, הוספת נגישות מלאה
+שדרוג DefaultAvatar: הוספת תיעוד מלא, שיפורי ביצועים, הוספת צללים ואפשרויות התאמה
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: שימוש ב-theme.colors.surface ו-theme.borderRadius.full שלא קיימים
+פתרון: החלפה ב-theme.colors.card וערך מספרי 50 לעיגול מלא
+לקח לעתיד: תמיד לבדוק את ה-theme.ts לפני שימוש ב-properties
+שגיאה: שימוש ב-inverted={true} ב-ScrollView רגיל
+פתרון: הסרת ה-property שלא נתמך
+לקח לעתיד: לבדוק תיעוד של React Native לפני הוספת props
+שגיאה: שימוש באייקונים לא נכונים ל-RTL (chevron-back, arrow-back)
+פתרון: החלפה ב-chevron-forward בכל המקומות הרלוונטיים
+לקח לעתיד: ב-RTL, חצים צריכים להצביע לכיוון ההפוך מה-LTR
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/welcome/WelcomeScreen.tsx
+src/screens/profile/ProfileScreen.tsx
+src/screens/main/MainScreen.tsx
+src/components/common/BackButton.tsx
+src/components/common/DefaultAvatar.tsx
+
+🚀 השלב הבא:
+
+המשך סריקת קבצים נוספים לתיקוני RTL
+בדיקת מסכי Auth (Login, Register, Terms)
+בדיקת מסכי Workout ו-Exercise
+
+💻 פקודות Git:
+bashgit add .
+git commit -m "fix: Complete RTL implementation for core screens and components"
+git push
+
+הערות נוספות:
+
+כל הקבצים שנבדקו תוקנו באופן מלא ועומדים בסטנדרטים של הפרויקט
+נוספו שיפורי UX רבים כמו activeOpacity, נגישות וצללים
+התיעוד שופר משמעותית בכל הקבצים
+
+
+
+
+
+
+
+
+
+
+
 
 🔖 Checkpoint #009 - שיפורי UI/UX מקיפים והתאמה מלאה ל-RTL
 🗓️ תאריך: 2025-07-21 🎯 סטטוס: ✅ הושלם

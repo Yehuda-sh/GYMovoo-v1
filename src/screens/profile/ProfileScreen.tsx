@@ -1,6 +1,9 @@
 /**
  * @file src/screens/profile/ProfileScreen.tsx
- * @description User Profile - הצגת תמונת פרופיל, תשובות מהשאלון, סטטיסטיקות, הגדרות
+ * @brief מסך פרופיל משתמש - הצגת פרטים אישיים, תשובות שאלון, סטטיסטיקות והגדרות
+ * @dependencies userStore (Zustand), DefaultAvatar component
+ * @notes כולל אנימציות fade-in וניהול מצב משתמש
+ * @recurring_errors בעיות RTL בכיווניות אלמנטים, שימוש בחצים לא נכונים
  */
 
 import React, { useRef, useEffect } from "react";
@@ -11,6 +14,7 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  ScrollView,
 } from "react-native";
 import { theme } from "../../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +27,7 @@ export default function ProfileScreen() {
   const user = useUserStore((s) => s.user);
   const answers = user?.questionnaire || {};
 
-  // אנימציות
+  // אנימציות // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,119 +54,143 @@ export default function ProfileScreen() {
     { title: "כמה פעמים בשבוע תרצה להתאמן?", key: 3 },
   ];
 
-  // מידע נוסף על המשתמש
+  // מידע נוסף על המשתמש // Additional user info
   const memberSince = new Date().toLocaleDateString("he-IL");
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={styles.avatarBox}>
-        {user?.avatar ? (
-          <Image
-            source={{ uri: user.avatar }}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
-        ) : (
-          <DefaultAvatar name={user?.name ?? "משתמש"} size={82} />
-        )}
-        <Text style={styles.username}>{user?.name || "לא הוזן"}</Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
-        <Text style={styles.memberSince}>חבר מאז: {memberSince}</Text>
-      </View>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        {/* פרטי משתמש // User details */}
+        <View style={styles.avatarBox}>
+          {user?.avatar ? (
+            <Image
+              source={{ uri: user.avatar }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <DefaultAvatar name={user?.name ?? "משתמש"} size={82} />
+          )}
+          <Text style={styles.username}>{user?.name || "לא הוזן"}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          <Text style={styles.memberSince}>חבר מאז: {memberSince}</Text>
+        </View>
 
-      <Text style={styles.sectionTitle}>התשובות לשאלון:</Text>
-      <View style={styles.answersList}>
-        {questions.map((q) => (
-          <View style={styles.answerCard} key={q.key}>
-            <Text style={styles.cardQuestion}>{q.title}</Text>
-            <Text style={styles.cardAnswer}>{answers[q.key] || "לא נבחר"}</Text>
-          </View>
-        ))}
-      </View>
+        {/* תשובות השאלון // Questionnaire answers */}
+        <Text style={styles.sectionTitle}>התשובות שלך לשאלון:</Text>
+        <View style={styles.answersList}>
+          {questions.map((q) => (
+            <View style={styles.answerCard} key={q.key}>
+              <Text style={styles.cardQuestion}>{q.title}</Text>
+              <Text style={styles.cardAnswer}>
+                {answers[q.key] || "לא נבחר"}
+              </Text>
+            </View>
+          ))}
+        </View>
 
-      {/* סטטיסטיקות אימונים */}
-      <View style={styles.statsSection}>
-        <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Ionicons name="fitness" size={24} color={theme.colors.primary} />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>אימונים</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="time" size={24} color={theme.colors.accent} />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>שעות</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trophy" size={24} color={theme.colors.warning} />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>יעדים</Text>
+        {/* סטטיסטיקות אימונים // Workout statistics */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Ionicons name="fitness" size={24} color={theme.colors.primary} />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>אימונים</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="time" size={24} color={theme.colors.accent} />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>שעות</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="trophy" size={24} color={theme.colors.warning} />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>יעדים</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <TouchableOpacity
-        style={styles.redoBtn}
-        onPress={handleRedoQuestionnaire}
-      >
-        <Ionicons name="repeat" size={20} color="#fff" />
-        <Text style={styles.redoBtnText}>מלא שוב שאלון</Text>
-      </TouchableOpacity>
-
-      {/* העדפות ואפשרויות */}
-      <View style={styles.settingsSection}>
-        <TouchableOpacity style={styles.settingItem}>
-          <View style={styles.settingLeft}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={theme.colors.text}
-            />
-            <Text style={styles.settingText}>התראות</Text>
-          </View>
-          <Ionicons
-            name="chevron-back"
-            size={20}
-            color={theme.colors.textSecondary}
-          />
+        {/* כפתור מילוי שאלון מחדש // Redo questionnaire button */}
+        <TouchableOpacity
+          style={styles.redoBtn}
+          onPress={handleRedoQuestionnaire}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.redoBtnText}>מלא שוב שאלון</Text>
+          <Ionicons name="repeat" size={20} color="#fff" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem}>
-          <View style={styles.settingLeft}>
+        {/* העדפות ואפשרויות // Preferences and options */}
+        <View style={styles.settingsSection}>
+          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
             <Ionicons
-              name="language-outline"
-              size={22}
-              color={theme.colors.text}
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.textSecondary}
             />
-            <Text style={styles.settingText}>שפה</Text>
-          </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingText}>התראות</Text>
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={theme.colors.text}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
+            <View style={styles.settingContent}>
+              <Text style={styles.settingText}>שפה</Text>
+              <Ionicons
+                name="language-outline"
+                size={22}
+                color={theme.colors.text}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* כפתור התנתקות // Logout button */}
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.logoutText}>התנתק</Text>
           <Ionicons
-            name="chevron-back"
-            size={20}
-            color={theme.colors.textSecondary}
+            name="log-out-outline"
+            size={18}
+            color={theme.colors.accent}
           />
         </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Ionicons
-          name="log-out-outline"
-          size={18}
-          color={theme.colors.accent}
-        />
-        <Text style={styles.logoutText}>התנתק</Text>
-      </TouchableOpacity>
-    </Animated.View>
+      </Animated.View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  container: {
+    flex: 1,
     padding: theme.spacing.lg,
     alignItems: "center",
+    paddingBottom: theme.spacing.xl,
   },
   avatarBox: {
     alignItems: "center",
@@ -175,30 +203,33 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.primary,
     marginBottom: 12,
-    backgroundColor: "#fff1",
+    backgroundColor: theme.colors.card,
   },
   username: {
     color: theme.colors.text,
     fontSize: 20,
     fontWeight: "bold",
+    textAlign: "center",
   },
   userEmail: {
     color: theme.colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
+    textAlign: "center",
   },
   memberSince: {
     color: theme.colors.textSecondary,
     fontSize: 12,
     marginTop: 2,
+    textAlign: "center",
   },
   sectionTitle: {
     color: theme.colors.accent,
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 8,
-    alignSelf: "flex-start",
-    writingDirection: "rtl",
+    alignSelf: "flex-end", // RTL: תיקון יישור לימין
+    textAlign: "right",
   },
   answersList: {
     width: "100%",
@@ -216,22 +247,23 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 15,
     marginBottom: 6,
-    writingDirection: "rtl",
+    textAlign: "right",
   },
   cardAnswer: {
     color: theme.colors.primary,
     fontSize: 16,
     fontWeight: "700",
-    writingDirection: "rtl",
+    textAlign: "right",
   },
   statsSection: {
     width: "100%",
     marginBottom: 24,
   },
   statsGrid: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     justifyContent: "space-between",
     marginTop: 12,
+    gap: 8,
   },
   statCard: {
     flex: 1,
@@ -239,7 +271,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     alignItems: "center",
-    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: theme.colors.divider,
   },
@@ -248,14 +279,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 8,
+    textAlign: "center",
   },
   statLabel: {
     color: theme.colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
+    textAlign: "center",
   },
   redoBtn: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
@@ -267,19 +300,21 @@ const styles = StyleSheet.create({
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   redoBtnText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "right",
   },
   settingsSection: {
     width: "100%",
     marginBottom: 24,
   },
   settingItem: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: theme.colors.card,
@@ -289,27 +324,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.divider,
   },
-  settingLeft: {
-    flexDirection: "row-reverse",
+  settingContent: {
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     gap: 12,
   },
   settingText: {
     color: theme.colors.text,
     fontSize: 16,
+    textAlign: "right",
   },
   logoutBtn: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL: תיקון כיווניות
     alignItems: "center",
     marginTop: "auto",
     alignSelf: "center",
     padding: 8,
-    gap: 4,
+    gap: 6,
   },
   logoutText: {
     color: theme.colors.accent,
     fontSize: 16,
     fontWeight: "bold",
-    marginRight: 2,
+    textAlign: "right",
   },
 });
