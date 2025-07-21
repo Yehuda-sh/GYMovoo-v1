@@ -245,8 +245,10 @@ export default function RegisterScreen() {
     setError(null);
     setFieldErrors({});
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // סימולציה של קריאה לשרת // Simulating server call
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
       console.log("📝 RegisterScreen - Registration successful! ✅");
 
       // יצירת משתמש חדש // Create new user
@@ -263,7 +265,12 @@ export default function RegisterScreen() {
 
       console.log("📝 RegisterScreen - Navigating to Questionnaire");
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-    }, 1200);
+    } catch (error) {
+      console.error("📝 RegisterScreen - Registration failed:", error);
+      setError("אירעה שגיאה בהרשמה. אנא נסה שוב");
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -307,6 +314,20 @@ export default function RegisterScreen() {
       setError("ההרשמה עם Google נכשלה");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * מטפל בניווט למסך תנאי השימוש
+   * Handles navigation to Terms screen
+   */
+  const handleNavigateToTerms = () => {
+    try {
+      navigation.navigate("Terms");
+    } catch (error) {
+      console.error("📝 RegisterScreen - Failed to navigate to Terms:", error);
+      // במקרה שהמסך לא קיים, לא נעשה כלום
+      // In case the screen doesn't exist, do nothing
     }
   };
 
@@ -561,7 +582,7 @@ export default function RegisterScreen() {
             <View style={styles.termsTextContainer}>
               <Text style={styles.switchLabel}>אני מסכים/ה ל</Text>
               <TouchableOpacity
-                onPress={() => navigation.navigate("Terms")}
+                onPress={handleNavigateToTerms}
                 disabled={loading}
               >
                 <Text style={styles.termsLink}>תנאי השימוש</Text>
@@ -624,8 +645,8 @@ export default function RegisterScreen() {
             disabled={loading}
             activeOpacity={0.8}
           >
-            <Ionicons name="logo-google" size={22} color="#fff" />
             <Text style={styles.googleButtonText}>הרשמה עם Google</Text>
+            <Ionicons name="logo-google" size={22} color="#ea4335" />
           </TouchableOpacity>
 
           {/* קישור להתחברות // Login link */}
