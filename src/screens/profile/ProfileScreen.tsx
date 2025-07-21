@@ -15,9 +15,11 @@ import {
   Image,
   Animated,
   ScrollView,
+  Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
@@ -29,13 +31,21 @@ export default function ProfileScreen() {
 
   // אנימציות // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const handleLogout = () => {
@@ -49,261 +59,446 @@ export default function ProfileScreen() {
   };
 
   const questions = [
-    { title: "מה מטרת האימון שלך?", key: 1 },
-    { title: "מה רמת הניסיון שלך?", key: 2 },
-    { title: "כמה פעמים בשבוע תרצה להתאמן?", key: 3 },
+    { title: "מה מטרת האימון שלך?", key: 1, icon: "target" },
+    { title: "מה רמת הניסיון שלך?", key: 2, icon: "arm-flex" },
+    { title: "כמה פעמים בשבוע תרצה להתאמן?", key: 3, icon: "calendar-week" },
   ];
 
   // מידע נוסף על המשתמש // Additional user info
   const memberSince = new Date().toLocaleDateString("he-IL");
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
+    <LinearGradient
+      colors={[theme.colors.background, theme.colors.backgroundAlt]}
+      style={styles.gradient}
     >
-      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-        {/* פרטי משתמש // User details */}
-        <View style={styles.avatarBox}>
-          {user?.avatar ? (
-            <Image
-              source={{ uri: user.avatar }}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
-          ) : (
-            <DefaultAvatar name={user?.name ?? "משתמש"} size={82} />
-          )}
-          <Text style={styles.username}>{user?.name || "לא הוזן"}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <Text style={styles.memberSince}>חבר מאז: {memberSince}</Text>
-        </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          style={[
+            styles.container,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={28}
+                color={theme.colors.text}
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>הפרופיל שלי</Text>
+            <View style={{ width: 28 }} />
+          </View>
 
-        {/* תשובות השאלון // Questionnaire answers */}
-        <Text style={styles.sectionTitle}>התשובות שלך לשאלון:</Text>
-        <View style={styles.answersList}>
-          {questions.map((q) => (
-            <View style={styles.answerCard} key={q.key}>
-              <Text style={styles.cardQuestion}>{q.title}</Text>
-              <Text style={styles.cardAnswer}>
-                {answers[q.key] || "לא נבחר"}
-              </Text>
+          {/* פרטי משתמש // User details */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <DefaultAvatar name={user?.name ?? "משתמש"} size={100} />
+              )}
+              <TouchableOpacity
+                style={styles.editAvatarButton}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={20}
+                  color={theme.colors.text}
+                />
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
-
-        {/* סטטיסטיקות אימונים // Workout statistics */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Ionicons name="fitness" size={24} color={theme.colors.primary} />
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>אימונים</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="time" size={24} color={theme.colors.accent} />
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>שעות</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="trophy" size={24} color={theme.colors.warning} />
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>יעדים</Text>
+            <Text style={styles.username}>{user?.name || "לא הוזן"}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.memberBadge}>
+              <MaterialCommunityIcons
+                name="calendar-account"
+                size={16}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.memberSince}>חבר מאז {memberSince}</Text>
             </View>
           </View>
-        </View>
 
-        {/* כפתור מילוי שאלון מחדש // Redo questionnaire button */}
-        <TouchableOpacity
-          style={styles.redoBtn}
-          onPress={handleRedoQuestionnaire}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.redoBtnText}>מלא שוב שאלון</Text>
-          <Ionicons name="repeat" size={20} color="#fff" />
-        </TouchableOpacity>
-
-        {/* העדפות ואפשרויות // Preferences and options */}
-        <View style={styles.settingsSection}>
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-            <View style={styles.settingContent}>
-              <Text style={styles.settingText}>התראות</Text>
-              <Ionicons
-                name="notifications-outline"
-                size={22}
-                color={theme.colors.text}
-              />
+          {/* תשובות השאלון // Questionnaire answers */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>התשובות שלך לשאלון</Text>
+            <View style={styles.answersList}>
+              {questions.map((q) => (
+                <View style={styles.answerCard} key={q.key}>
+                  <View style={styles.answerCardContent}>
+                    <MaterialCommunityIcons
+                      name={q.icon as any}
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                    <View style={styles.answerTextContainer}>
+                      <Text style={styles.cardQuestion}>{q.title}</Text>
+                      <Text style={styles.cardAnswer}>
+                        {answers[q.key] || "לא נבחר"}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
+          </View>
+
+          {/* סטטיסטיקות אימונים // Workout statistics */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <LinearGradient
+                  colors={[
+                    theme.colors.primary + "20",
+                    theme.colors.primary + "10",
+                  ]}
+                  style={styles.statGradient}
+                >
+                  <MaterialCommunityIcons
+                    name="dumbbell"
+                    size={28}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.statValue}>0</Text>
+                  <Text style={styles.statLabel}>אימונים</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCard}>
+                <LinearGradient
+                  colors={[
+                    theme.colors.accent + "20",
+                    theme.colors.accent + "10",
+                  ]}
+                  style={styles.statGradient}
+                >
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={28}
+                    color={theme.colors.accent}
+                  />
+                  <Text style={styles.statValue}>0</Text>
+                  <Text style={styles.statLabel}>שעות</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCard}>
+                <LinearGradient
+                  colors={[
+                    theme.colors.warning + "20",
+                    theme.colors.warning + "10",
+                  ]}
+                  style={styles.statGradient}
+                >
+                  <MaterialCommunityIcons
+                    name="trophy"
+                    size={28}
+                    color={theme.colors.warning}
+                  />
+                  <Text style={styles.statValue}>0</Text>
+                  <Text style={styles.statLabel}>יעדים</Text>
+                </LinearGradient>
+              </View>
+            </View>
+          </View>
+
+          {/* כפתור מילוי שאלון מחדש // Redo questionnaire button */}
+          <TouchableOpacity
+            style={styles.redoBtn}
+            onPress={handleRedoQuestionnaire}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
+              ]}
+              style={styles.redoBtnGradient}
+            >
+              <Text style={styles.redoBtnText}>מלא שוב שאלון</Text>
+              <MaterialCommunityIcons name="refresh" size={22} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-            <View style={styles.settingContent}>
-              <Text style={styles.settingText}>שפה</Text>
+          {/* העדפות ואפשרויות // Preferences and options */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>הגדרות</Text>
+            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+              <View style={styles.settingContent}>
+                <MaterialCommunityIcons
+                  name="bell-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>התראות</Text>
+              </View>
               <Ionicons
-                name="language-outline"
-                size={22}
-                color={theme.colors.text}
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
               />
-            </View>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
 
-        {/* כפתור התנתקות // Logout button */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={handleLogout}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.logoutText}>התנתק</Text>
-          <Ionicons
-            name="log-out-outline"
-            size={18}
-            color={theme.colors.accent}
-          />
-        </TouchableOpacity>
-      </Animated.View>
-    </ScrollView>
+            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+              <View style={styles.settingContent}>
+                <MaterialCommunityIcons
+                  name="translate"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>שפה</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+              <View style={styles.settingContent}>
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>פרטיות</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* כפתור התנתקות // Logout button */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutText}>התנתק</Text>
+            <MaterialCommunityIcons
+              name="logout"
+              size={20}
+              color={theme.colors.error}
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
   },
   container: {
     flex: 1,
-    padding: theme.spacing.lg,
-    alignItems: "center",
     paddingBottom: theme.spacing.xl,
   },
-  avatarBox: {
+  header: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    marginBottom: 24,
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingBottom: theme.spacing.md,
+  },
+  backButton: {
+    padding: theme.spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: theme.colors.text,
+    textAlign: "center",
+  },
+  profileCard: {
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: theme.spacing.md,
   },
   avatar: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-    borderWidth: 2,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
     borderColor: theme.colors.primary,
-    marginBottom: 12,
     backgroundColor: theme.colors.card,
+  },
+  editAvatarButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   username: {
     color: theme.colors.text,
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 26,
+    fontWeight: "600",
     textAlign: "center",
+    marginBottom: 4,
   },
   userEmail: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 16,
     textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  memberBadge: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: theme.colors.primaryGradientStart + "15",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   memberSince: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
-    textAlign: "center",
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  section: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
   },
   sectionTitle: {
-    color: theme.colors.accent,
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 8,
-    alignSelf: "flex-end",
-    ...theme.components.rtlText,
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: theme.spacing.md,
+    textAlign: "right",
   },
   answersList: {
-    width: "100%",
-    marginBottom: 30,
+    gap: 12,
   },
   answerCard: {
-    ...theme.components.card,
-    marginBottom: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.medium,
+  },
+  answerCardContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+  },
+  answerTextContainer: {
+    flex: 1,
   },
   cardQuestion: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
-    marginBottom: 6,
-    ...theme.components.rtlText,
+    fontSize: 14,
+    marginBottom: 4,
+    textAlign: "right",
   },
   cardAnswer: {
-    color: theme.colors.primary,
+    color: theme.colors.text,
     fontSize: 16,
-    fontWeight: "700",
-    ...theme.components.rtlText,
-  },
-  statsSection: {
-    width: "100%",
-    marginBottom: 24,
+    fontWeight: "600",
+    textAlign: "right",
   },
   statsGrid: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    marginTop: 12,
-    gap: 8,
+    gap: 12,
   },
   statCard: {
-    ...theme.components.card,
     flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  statGradient: {
+    padding: theme.spacing.md,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    borderRadius: 16,
   },
   statValue: {
     color: theme.colors.text,
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "600",
     marginTop: 8,
     textAlign: "center",
   },
   statLabel: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 4,
     textAlign: "center",
   },
   redoBtn: {
-    ...theme.components.primaryButton,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  redoBtnGradient: {
     flexDirection: "row-reverse",
-    marginBottom: 24,
-    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
     gap: 8,
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.12,
   },
   redoBtnText: {
     color: theme.colors.white,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    textAlign: "right",
-  },
-  settingsSection: {
-    width: "100%",
-    marginBottom: 24,
   },
   settingItem: {
-    ...theme.components.card,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   settingContent: {
     flexDirection: "row-reverse",
@@ -313,20 +508,25 @@ const styles = StyleSheet.create({
   settingText: {
     color: theme.colors.text,
     fontSize: 16,
-    ...theme.components.rtlText,
+    fontWeight: "500",
+    textAlign: "right",
   },
   logoutBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    marginTop: "auto",
     alignSelf: "center",
-    padding: 8,
-    gap: 6,
+    backgroundColor: theme.colors.card,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.error + "30",
+    marginTop: theme.spacing.md,
   },
   logoutText: {
-    color: theme.colors.accent,
+    color: theme.colors.error,
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "right",
+    fontWeight: "600",
   },
 });

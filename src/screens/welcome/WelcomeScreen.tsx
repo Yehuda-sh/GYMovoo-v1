@@ -17,9 +17,10 @@ import {
   Image,
   ActivityIndicator,
   Animated,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
@@ -36,6 +37,7 @@ export default function WelcomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.9)).current;
   const counterAnimation = useRef(new Animated.Value(0)).current;
+  const buttonSlide = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     // אנימציית fade in // Fade in animation
@@ -57,8 +59,14 @@ export default function WelcomeScreen() {
         delay: 500,
         useNativeDriver: true,
       }),
+      Animated.timing(buttonSlide, {
+        toValue: 0,
+        duration: 800,
+        delay: 300,
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [fadeAnim, logoScale, counterAnimation]);
+  }, [fadeAnim, logoScale, counterAnimation, buttonSlide]);
 
   // סימולציית Google Sign In // Google Sign In simulation
   const handleGoogleSignIn = async () => {
@@ -80,7 +88,6 @@ export default function WelcomeScreen() {
       setUser(googleUser);
 
       // ניווט למסך הבא // Navigate to next screen
-      // אם המשתמש חדש - לשאלון, אם קיים - למסך ראשי
       navigation.navigate("Questionnaire");
 
       setIsGoogleLoading(false);
@@ -106,15 +113,17 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <Image
-            source={require("../../../assets/welcome.png")}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          <View style={styles.logoBackground}>
+            <Image
+              source={require("../../../assets/welcome.png")}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          </View>
         </Animated.View>
 
         {/* כותרות // Titles */}
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
           <Text style={styles.title}>ברוכים הבאים ל־GYMovoo</Text>
           <Text style={styles.subtitle}>
             האפליקציה שתבנה לך תוכנית אימון אישית
@@ -125,22 +134,37 @@ export default function WelcomeScreen() {
         <Animated.View
           style={[styles.usersCounter, { opacity: counterAnimation }]}
         >
-          <View style={styles.counterContent}>
-            <Text style={styles.counterNumber}>
-              {activeUsers.toLocaleString()}
-            </Text>
-            <Ionicons
-              name="people"
-              size={20}
-              color={theme.colors.secondary}
-              style={styles.peopleIcon}
-            />
-          </View>
-          <Text style={styles.counterText}>משתמשים פעילים</Text>
+          <LinearGradient
+            colors={[
+              theme.colors.primaryGradientStart + "20",
+              theme.colors.primaryGradientEnd + "20",
+            ]}
+            style={styles.counterGradient}
+          >
+            <View style={styles.counterContent}>
+              <Text style={styles.counterNumber}>
+                {activeUsers.toLocaleString()}
+              </Text>
+              <MaterialCommunityIcons
+                name="account-group"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </View>
+            <Text style={styles.counterText}>משתמשים פעילים</Text>
+          </LinearGradient>
         </Animated.View>
 
         {/* כפתורים ראשיים // Main buttons */}
-        <Animated.View style={[styles.buttonsContainer, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[
+            styles.buttonsContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: buttonSlide }],
+            },
+          ]}
+        >
           {/* כפתור התחל עכשיו // Start now button */}
           <TouchableOpacity
             style={styles.primaryButton}
@@ -148,26 +172,43 @@ export default function WelcomeScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[theme.colors.primary, theme.colors.secondary]}
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
+              ]}
               style={styles.gradientButton}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
               <Text style={styles.primaryButtonText}>התחל עכשיו</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Ionicons name="arrow-back" size={22} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
 
           {/* הערה על תקופת ניסיון // Trial period note */}
-          <Text style={styles.registrationNote}>
-            🎉 תקופת ניסיון של 7 ימים חינם! ללא צורך בכרטיס אשראי
-          </Text>
+          <View style={styles.trialBadge}>
+            <MaterialCommunityIcons
+              name="gift"
+              size={16}
+              color={theme.colors.warning}
+            />
+            <Text style={styles.trialText}>
+              7 ימי ניסיון חינם • ללא כרטיס אשראי
+            </Text>
+          </View>
+
+          {/* מפריד // Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>או</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
           {/* קבוצת כפתורי אימות משניים // Secondary auth buttons group */}
           <View style={styles.authGroup}>
             {/* כפתור Google // Google button */}
             <TouchableOpacity
-              style={[styles.secondaryButton, styles.googleButton]}
+              style={styles.googleButton}
               onPress={handleGoogleSignIn}
               disabled={isGoogleLoading}
               activeOpacity={0.8}
@@ -176,23 +217,51 @@ export default function WelcomeScreen() {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Ionicons name="logo-google" size={18} color="#fff" />
-                  <Text style={[styles.secondaryButtonText, { color: "#fff" }]}>
-                    Google
-                  </Text>
+                  <Ionicons name="logo-google" size={20} color="#fff" />
+                  <Text style={styles.googleButtonText}>המשך עם Google</Text>
                 </>
               )}
             </TouchableOpacity>
 
             {/* כפתור כניסה // Login button */}
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={styles.loginButton}
               onPress={() => navigation.navigate("Login")}
               activeOpacity={0.8}
             >
-              <Text style={styles.secondaryButtonText}>יש לי חשבון</Text>
-              <Ionicons name="log-in" size={18} color="#6bb5ff" />
+              <Text style={styles.loginButtonText}>כבר יש לי חשבון</Text>
+              <Ionicons name="log-in" size={20} color={theme.colors.primary} />
             </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Footer with features */}
+        <Animated.View
+          style={[styles.featuresContainer, { opacity: fadeAnim }]}
+        >
+          <View style={styles.featureItem}>
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.featureText}>תוכניות מותאמות אישית</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <MaterialCommunityIcons
+              name="chart-line"
+              size={20}
+              color={theme.colors.accent}
+            />
+            <Text style={styles.featureText}>מעקב התקדמות</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <MaterialCommunityIcons
+              name="account-group"
+              size={20}
+              color={theme.colors.success}
+            />
+            <Text style={styles.featureText}>קהילה תומכת</Text>
           </View>
         </Animated.View>
       </ScrollView>
@@ -203,8 +272,8 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 80,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: Platform.OS === "ios" ? 80 : 60,
     paddingBottom: 40,
     alignItems: "center",
   },
@@ -212,109 +281,171 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     alignItems: "center",
   },
+  logoBackground: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 30,
+    padding: theme.spacing.lg,
+    ...theme.shadows.large,
+  },
   image: {
-    width: screenWidth * 0.6,
-    height: screenWidth * 0.6,
-    maxWidth: 250,
-    maxHeight: 250,
+    width: screenWidth * 0.5,
+    height: screenWidth * 0.5,
+    maxWidth: 200,
+    maxHeight: 200,
+  },
+  textContainer: {
+    alignItems: "center",
+    marginBottom: 30,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 36,
+    fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 18,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    marginBottom: 30,
+    lineHeight: 26,
   },
   usersCounter: {
-    backgroundColor: theme.colors.card,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 50, // עיגול מלא
     marginBottom: 40,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  counterGradient: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.cardBorder,
+    borderRadius: 16,
   },
   counterContent: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+    marginBottom: 4,
   },
   counterNumber: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "600",
     color: theme.colors.primary,
-  },
-  peopleIcon: {
-    marginTop: 2,
   },
   counterText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    marginTop: 4,
   },
   buttonsContainer: {
     width: "100%",
     alignItems: "center",
   },
   primaryButton: {
-    width: screenWidth - 40,
-    marginBottom: 12,
+    width: "100%",
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.large,
   },
   gradientButton: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
     paddingVertical: 18,
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.glow,
+    paddingHorizontal: 32,
   },
   primaryButtonText: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "600",
     color: "#fff",
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
-  registrationNote: {
-    fontSize: 13,
+  trialBadge: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: theme.colors.warning + "15",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 24,
+  },
+  trialText: {
+    fontSize: 14,
+    color: theme.colors.warning,
+    fontWeight: "500",
+  },
+  dividerContainer: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.divider,
+  },
+  dividerText: {
     color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    fontSize: 14,
+    paddingHorizontal: 16,
   },
   authGroup: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
-    gap: 12,
     width: "100%",
-    justifyContent: "center",
-  },
-  secondaryButton: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: "#6bb5ff",
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6bb5ff",
-    textAlign: "right", // RTL: יישור טקסט
+    gap: 12,
   },
   googleButton: {
-    backgroundColor: theme.colors.google,
-    borderColor: theme.colors.google,
-    minWidth: 140,
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
     justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#DB4437",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    ...theme.shadows.medium,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  loginButton: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: theme.colors.card,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: theme.colors.text,
+  },
+  featuresContainer: {
+    marginTop: 40,
+    gap: 16,
+  },
+  featureItem: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
 });

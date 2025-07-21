@@ -32,7 +32,7 @@ export const theme = {
     divider: "#4b5a7a", // קו מפריד
 
     // כפתורי כניסה // Auth buttons
-    google: "#4285F4", // כפתור Google
+    google: "#DB4437", // צבע Google הרשמי
     googleText: "#fff", // טקסט Google
 
     // אחרים // Others
@@ -45,9 +45,10 @@ export const theme = {
 
   borderRadius: {
     sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
+    md: 12,
+    lg: 16, // שינוי מ-24 ל-16 לאחידות
+    xl: 20, // שינוי מ-32 ל-20
+    full: 9999, // עבור עיגול מלא
   },
 
   spacing: {
@@ -56,31 +57,33 @@ export const theme = {
     md: 16,
     lg: 24,
     xl: 32,
+    xxl: 40,
   },
 
   typography: {
     // כותרות // Headings
     h1: {
-      fontSize: 32,
-      fontWeight: "bold" as const,
-      lineHeight: 40,
+      fontSize: 36, // הגדלה מ-32
+      fontWeight: "600" as const, // שינוי מ-bold
+      lineHeight: 44,
+      letterSpacing: -0.5,
     },
     h2: {
-      fontSize: 24,
-      fontWeight: "bold" as const,
-      lineHeight: 32,
+      fontSize: 28, // הגדלה מ-24
+      fontWeight: "600" as const,
+      lineHeight: 36,
     },
     h3: {
-      fontSize: 20,
-      fontWeight: "bold" as const,
-      lineHeight: 28,
+      fontSize: 24, // הגדלה מ-20
+      fontWeight: "600" as const,
+      lineHeight: 32,
     },
 
     // טקסט רגיל // Body text
     body: {
       fontSize: 16,
       fontWeight: "normal" as const,
-      lineHeight: 22,
+      lineHeight: 24, // הגדלה מ-22
     },
     bodySmall: {
       fontSize: 14,
@@ -94,6 +97,11 @@ export const theme = {
       fontWeight: "normal" as const,
       lineHeight: 18,
     },
+    captionSmall: {
+      fontSize: 12,
+      fontWeight: "normal" as const,
+      lineHeight: 16,
+    },
 
     // כפתורים // Buttons
     button: {
@@ -103,8 +111,8 @@ export const theme = {
     },
     buttonLarge: {
       fontSize: 18,
-      fontWeight: "bold" as const,
-      letterSpacing: 1,
+      fontWeight: "600" as const, // שינוי מ-bold
+      letterSpacing: 0.5, // הקטנה מ-1
     },
   },
 
@@ -125,16 +133,16 @@ export const theme = {
     },
     large: {
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 6 },
+      shadowOffset: { width: 0, height: 8 }, // הגדלה מ-6
       shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 6,
+      shadowRadius: 16, // הגדלה מ-12
+      elevation: 8, // הגדלה מ-6
     },
     glow: {
       shadowColor: "#4e9eff",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowRadius: 12, // הגדלה מ-8
       elevation: 5,
     },
   },
@@ -143,6 +151,7 @@ export const theme = {
     fast: 200,
     normal: 300,
     slow: 500,
+    verySlow: 800,
   },
 
   // סגנונות רכיבים // Component styles
@@ -151,7 +160,7 @@ export const theme = {
     card: {
       backgroundColor: "#242a47",
       borderRadius: 16,
-      padding: 16,
+      padding: 20, // הגדלה מ-16
       borderWidth: 1,
       borderColor: "rgba(107, 181, 255, 0.2)",
       // צל בינוני כברירת מחדל
@@ -167,7 +176,7 @@ export const theme = {
       flexDirection: "row-reverse" as const,
       backgroundColor: "#242a47",
       borderRadius: 16,
-      padding: 16,
+      padding: 20, // הגדלה מ-16
       marginBottom: 12,
       alignItems: "center" as const,
       borderWidth: 1,
@@ -183,7 +192,7 @@ export const theme = {
     primaryButton: {
       backgroundColor: "#007AFF",
       paddingHorizontal: 32,
-      paddingVertical: 12,
+      paddingVertical: 16, // הגדלה מ-12
       borderRadius: 16,
       alignItems: "center" as const,
       justifyContent: "center" as const,
@@ -197,10 +206,10 @@ export const theme = {
     // כפתורים משניים // Secondary buttons
     secondaryButton: {
       backgroundColor: "transparent",
-      borderWidth: 2,
+      borderWidth: 1, // הקטנה מ-2
       borderColor: "rgba(107, 181, 255, 0.2)",
       paddingHorizontal: 24,
-      paddingVertical: 10,
+      paddingVertical: 14, // הגדלה מ-10
       borderRadius: 16,
       alignItems: "center" as const,
       justifyContent: "center" as const,
@@ -212,51 +221,58 @@ export const theme = {
       alignItems: "center" as const,
       backgroundColor: "#242a47",
       paddingHorizontal: 16,
-      paddingVertical: 10,
+      paddingVertical: 12, // הגדלה מ-10
       borderRadius: 16,
       borderWidth: 1,
       borderColor: "rgba(107, 181, 255, 0.2)",
-      gap: 6,
+      gap: 8, // הגדלה מ-6
     },
 
     // תגיות // Badges
     badge: {
       backgroundColor: "rgba(78, 158, 255, 0.2)",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
+      paddingHorizontal: 12, // הגדלה מ-8
+      paddingVertical: 6, // הגדלה מ-4
+      borderRadius: 12, // הגדלה מ-8
     },
 
     // שדות קלט // Input fields
     input: {
-      backgroundColor: "#242a47",
+      backgroundColor: "#1F2C4C", // שינוי לרקע כהה יותר
       borderRadius: 16,
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       borderWidth: 1,
       borderColor: "rgba(107, 181, 255, 0.2)",
       color: "#fff",
       fontSize: 16,
       textAlign: "right" as const,
+      height: 56, // הוספת גובה קבוע
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
     },
 
     // מכלי מודלים // Modal containers
     modalContainer: {
       backgroundColor: "#242a47",
-      borderRadius: 24,
+      borderRadius: 20, // הקטנה מ-24
       padding: 24,
       borderWidth: 1,
       borderColor: "rgba(107, 181, 255, 0.2)",
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 6 },
+      shadowOffset: { width: 0, height: 8 }, // הגדלה מ-6
       shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 6,
+      shadowRadius: 16, // הגדלה מ-12
+      elevation: 8, // הגדלה מ-6
     },
 
     // כותרות מסך // Screen headers
     screenHeader: {
-      paddingHorizontal: 16,
-      paddingTop: 50,
+      paddingHorizontal: 24, // הגדלה מ-16
+      paddingTop: 60, // הגדלה מ-50
       paddingBottom: 16,
       flexDirection: "row-reverse" as const,
       justifyContent: "space-between" as const,
@@ -265,8 +281,8 @@ export const theme = {
 
     // רשימות // Lists
     listContent: {
-      paddingHorizontal: 16,
-      paddingBottom: 24,
+      paddingHorizontal: 24, // הגדלה מ-16
+      paddingBottom: 32, // הגדלה מ-24
     },
 
     // מצבים ריקים // Empty states
@@ -281,6 +297,17 @@ export const theme = {
     rtlText: {
       textAlign: "right" as const,
       writingDirection: "rtl" as const,
+    },
+
+    // גרדיאנט לכפתורים // Gradient for buttons
+    gradientButton: {
+      paddingHorizontal: 32,
+      paddingVertical: 16,
+      borderRadius: 16,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      flexDirection: "row-reverse" as const,
+      gap: 10,
     },
   },
 };

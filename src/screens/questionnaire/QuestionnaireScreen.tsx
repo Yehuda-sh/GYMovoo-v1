@@ -1,3 +1,11 @@
+/**
+ * @file src/screens/questionnaire/QuestionnaireScreen.tsx
+ * @brief מסך שאלון התאמה אישית לאיסוף מידע על המשתמש
+ * @dependencies userStore (Zustand), React Navigation
+ * @notes כולל אנימציות מעבר בין שאלות ותמיכה בסוגי שאלות שונים
+ * @recurring_errors בעיות RTL באייקוני חצים וכיווניות
+ */
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -299,7 +307,7 @@ export default function QuestionnaireScreen({ navigation }: any) {
               disabled={currentIndex === 0}
             >
               <MaterialCommunityIcons
-                name="chevron-right"
+                name="chevron-left"
                 size={32}
                 color={theme.colors.text}
               />
@@ -351,8 +359,8 @@ export default function QuestionnaireScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons
               name={question.icon as any}
-              size={64}
-              color={theme.colors.accent}
+              size={80} // הגדלת האייקון
+              color={theme.colors.primary} // שינוי לצבע ראשי
               style={styles.questionIcon}
             />
 
@@ -483,7 +491,7 @@ export default function QuestionnaireScreen({ navigation }: any) {
                   {isLastQuestion ? "סיים שאלון" : "המשך"}
                 </Text>
                 <MaterialCommunityIcons
-                  name={isLastQuestion ? "check" : "chevron-left"}
+                  name={isLastQuestion ? "check" : "chevron-right"}
                   size={24}
                   color={theme.colors.text}
                 />
@@ -517,12 +525,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    paddingTop: Platform.OS === "ios" ? 60 : 50,
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
+    backgroundColor: theme.colors.background + "F0", // רקע חצי שקוף
   },
   backButton: {
     padding: theme.spacing.sm,
@@ -541,14 +550,16 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   progressBar: {
-    height: 4,
+    height: 6, // גובה מוגדל
     backgroundColor: theme.colors.divider,
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: "hidden",
+    ...theme.shadows.small, // הוספת צל עדין
   },
   progressFill: {
     height: "100%",
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.primary, // שינוי לצבע ראשי
+    borderRadius: 3,
   },
   questionContainer: {
     paddingHorizontal: theme.spacing.lg,
@@ -558,37 +569,40 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   questionText: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 26, // הגדלת הפונט
+    fontWeight: "600", // משקל פונט מודרני
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.xl,
     writingDirection: "rtl",
+    lineHeight: 36,
   },
   optionsContainer: {
     width: "100%",
     maxWidth: 400,
   },
   optionButton: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    borderRadius: 16, // עיצוב מודרני
     marginBottom: theme.spacing.sm,
-    borderWidth: 2,
-    borderColor: "transparent",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.medium, // הוספת צללים
   },
   selectedOption: {
-    borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.cardBorder,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryGradientStart + "15", // רקע עדין לבחירה
+    borderWidth: 2,
   },
   optionText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
     flex: 1,
-    textAlign: "right",
+    textAlign: "right", // RTL
   },
   selectedOptionText: {
     color: theme.colors.text,
@@ -606,18 +620,21 @@ const styles = StyleSheet.create({
   },
   textInput: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderRadius: 16, // עיצוב מודרני
+    padding: theme.spacing.lg,
     color: theme.colors.text,
     fontSize: 16,
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: "top",
     writingDirection: "rtl",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small, // הוספת צללים עדינים
   },
   textCounter: {
     color: theme.colors.textSecondary,
     fontSize: 12,
-    textAlign: "left",
+    textAlign: "left", // נשאר left כי זה מונה באנגלית
     marginTop: theme.spacing.xs,
   },
   errorText: {
@@ -640,12 +657,14 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   nextButtonGradient: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16, // עיצוב מודרני
     gap: theme.spacing.sm,
+    ...theme.shadows.medium, // הוספת צללים
   },
   nextButtonText: {
     color: theme.colors.text,
@@ -655,11 +674,15 @@ const styles = StyleSheet.create({
   skipButton: {
     alignSelf: "center",
     marginTop: theme.spacing.md,
-    padding: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: 8,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   skipText: {
     color: theme.colors.textSecondary,
     fontSize: 16,
-    textDecorationLine: "underline",
+    fontWeight: "500",
   },
 });

@@ -20,9 +20,10 @@ import {
   Animated,
   Switch,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
@@ -78,6 +79,7 @@ export default function LoginScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     // טעינת פרטים שמורים // Load saved credentials
@@ -85,11 +87,18 @@ export default function LoginScreen() {
     loadSavedCredentials();
 
     // אנימציית כניסה // Entry animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       console.log("🔐 LoginScreen - Entry animation completed");
     });
 
@@ -340,247 +349,301 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
+    <LinearGradient
+      colors={[theme.colors.background, theme.colors.backgroundAlt]}
+      style={{ flex: 1 }}
     >
-      <BackButton />
-
-      <Animated.View
-        style={[
-          styles.formBox,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateX: shakeAnim }],
-          },
-        ]}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
       >
-        {/* כותרת עם גרדיאנט // Title with gradient */}
-        <LinearGradient
-          colors={[
-            theme.colors.primaryGradientStart,
-            theme.colors.primaryGradientEnd,
-          ]}
-          style={styles.titleGradient}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>ברוך הבא חזרה!</Text>
-        </LinearGradient>
+          <BackButton />
 
-        <Text style={styles.subtitle}>התחבר כדי להמשיך באימונים שלך</Text>
-
-        {/* שדה אימייל // Email field */}
-        <View style={styles.inputContainer}>
-          <View
+          <Animated.View
             style={[
-              styles.inputWrapper,
-              fieldErrors.email && styles.inputError,
+              styles.formBox,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateX: shakeAnim },
+                  { translateY: slideAnim },
+                ],
+              },
             ]}
           >
-            <MaterialIcons
-              name="email"
-              size={22}
-              color={
-                fieldErrors.email ? theme.colors.error : theme.colors.accent
-              }
-              style={{ marginLeft: 6 }}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="כתובת אימייל"
-              placeholderTextColor={theme.colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setFieldErrors((prev) => ({ ...prev, email: undefined }));
-              }}
-              textAlign="right"
-              editable={!loading}
-            />
-          </View>
-          {fieldErrors.email && (
-            <Text style={styles.fieldError}>{fieldErrors.email}</Text>
-          )}
-        </View>
+            {/* לוגו // Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoBackground}>
+                <MaterialCommunityIcons
+                  name="dumbbell"
+                  size={48}
+                  color={theme.colors.primary}
+                />
+              </View>
+            </View>
 
-        {/* שדה סיסמה // Password field */}
-        <View style={styles.inputContainer}>
-          <View
-            style={[
-              styles.inputWrapper,
-              fieldErrors.password && styles.inputError,
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              disabled={loading}
-            >
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={22}
-                color={
-                  fieldErrors.password
-                    ? theme.colors.error
-                    : theme.colors.accent
-                }
-                style={{ marginLeft: 6 }}
-              />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              placeholder="סיסמה"
-              placeholderTextColor={theme.colors.textSecondary}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setFieldErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              textAlign="right"
-              editable={!loading}
-            />
-          </View>
-          {fieldErrors.password && (
-            <Text style={styles.fieldError}>{fieldErrors.password}</Text>
-          )}
-        </View>
+            {/* כותרות // Titles */}
+            <Text style={styles.title}>ברוך הבא חזרה!</Text>
+            <Text style={styles.subtitle}>התחבר כדי להמשיך באימונים שלך</Text>
 
-        {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
-        <View style={styles.optionsRow}>
-          <View style={styles.rememberMe}>
-            <Text style={styles.rememberMeText}>זכור אותי</Text>
-            <Switch
-              value={rememberMe}
-              onValueChange={setRememberMe}
-              trackColor={{
-                false: theme.colors.divider,
-                true: theme.colors.primaryGradientStart,
-              }}
-              thumbColor={rememberMe ? theme.colors.primary : "#f4f3f4"}
-              disabled={loading}
-            />
-          </View>
-          <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
-            <Text style={styles.forgotPassword}>שכחתי סיסמה</Text>
-          </TouchableOpacity>
-        </View>
+            {/* שדה אימייל // Email field */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.email && styles.inputError,
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="email-outline"
+                  size={24}
+                  color={
+                    fieldErrors.email
+                      ? theme.colors.error
+                      : theme.colors.textSecondary
+                  }
+                  style={{ marginLeft: 8 }}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="כתובת אימייל"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                />
+              </View>
+              {fieldErrors.email && (
+                <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+              )}
+            </View>
 
-        {/* הודעת שגיאה כללית // General error message */}
-        {error && (
-          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <Text style={styles.errorText}>{error}</Text>
-          </Animated.View>
-        )}
+            {/* שדה סיסמה // Password field */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.password && styles.inputError,
+                ]}
+              >
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  style={styles.passwordToggle}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={24}
+                    color={
+                      fieldErrors.password
+                        ? theme.colors.error
+                        : theme.colors.textSecondary
+                    }
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="סיסמה"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      password: undefined,
+                    }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                />
+              </View>
+              {fieldErrors.password && (
+                <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+              )}
+            </View>
 
-        {/* כפתור התחברות // Login button */}
-        <TouchableOpacity
-          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart,
-              theme.colors.primaryGradientEnd,
-            ]}
-            style={styles.gradientButton}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>התחבר</Text>
+            {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
+            <View style={styles.optionsRow}>
+              <View style={styles.rememberMe}>
+                <Text style={styles.rememberMeText}>זכור אותי</Text>
+                <Switch
+                  value={rememberMe}
+                  onValueChange={setRememberMe}
+                  trackColor={{
+                    false: theme.colors.divider,
+                    true: theme.colors.primary + "50",
+                  }}
+                  thumbColor={
+                    rememberMe ? theme.colors.primary : theme.colors.card
+                  }
+                  disabled={loading}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={handleForgotPassword}
+                disabled={loading}
+              >
+                <Text style={styles.forgotPassword}>שכחתי סיסמה</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* הודעת שגיאה כללית // General error message */}
+            {error && (
+              <Animated.View
+                style={[
+                  styles.errorContainer,
+                  { transform: [{ scale: scaleAnim }] },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={18}
+                  color={theme.colors.error}
+                />
+                <Text style={styles.errorText}>{error}</Text>
+              </Animated.View>
             )}
-          </LinearGradient>
-        </TouchableOpacity>
 
-        {/* או // OR */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>או</Text>
-          <View style={styles.divider} />
-        </View>
+            {/* כפתור התחברות // Login button */}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                loading && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.primaryGradientStart,
+                  theme.colors.primaryGradientEnd,
+                ]}
+                style={styles.gradientButton}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>התחבר</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-        {/* כפתור Google // Google button */}
-        <TouchableOpacity
-          style={[styles.googleButton, loading && styles.googleButtonDisabled]}
-          onPress={handleGoogleAuth}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="logo-google" size={22} color="#fff" />
-          <Text style={styles.googleButtonText}>התחבר עם Google</Text>
-        </TouchableOpacity>
+            {/* או // OR */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>או</Text>
+              <View style={styles.divider} />
+            </View>
 
-        {/* קישור להרשמה // Registration link */}
-        <View style={styles.linkRow}>
-          <Text style={styles.linkText}>אין לך חשבון עדיין?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Register")}
-            disabled={loading}
-          >
-            <Text style={styles.registerLink}>הרשם עכשיו</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </KeyboardAvoidingView>
+            {/* כפתור Google // Google button */}
+            <TouchableOpacity
+              style={[
+                styles.googleButton,
+                loading && styles.googleButtonDisabled,
+              ]}
+              onPress={handleGoogleAuth}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-google" size={20} color="#DB4437" />
+              <Text style={styles.googleButtonText}>התחבר עם Google</Text>
+            </TouchableOpacity>
+
+            {/* קישור להרשמה // Registration link */}
+            <View style={styles.linkRow}>
+              <Text style={styles.linkText}>אין לך חשבון עדיין?</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Register")}
+                disabled={loading}
+              >
+                <Text style={styles.registerLink}>הרשם עכשיו</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    padding: theme.spacing.lg,
+    paddingTop: Platform.OS === "ios" ? 80 : 60,
   },
   formBox: {
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
     borderRadius: 16,
-    padding: 24,
+    padding: 32,
     ...theme.shadows.medium,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
   },
-  titleGradient: {
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  logoBackground: {
+    backgroundColor: theme.colors.primaryGradientStart + "15",
+    borderRadius: 24,
+    padding: 20,
+    ...theme.shadows.small,
   },
   title: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+    color: theme.colors.text,
+    fontSize: 28,
+    fontWeight: "600",
     textAlign: "center",
+    marginBottom: 8,
   },
   subtitle: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 16,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 32,
+    lineHeight: 22,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputWrapper: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
-    height: 48,
+    borderColor: theme.colors.cardBorder,
+    height: 56,
+    ...theme.shadows.small,
   },
   inputError: {
     borderColor: theme.colors.error,
+    borderWidth: 2,
   },
   input: {
     flex: 1,
@@ -588,62 +651,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "right",
     paddingVertical: 0,
+    marginRight: 8,
+  },
+  passwordToggle: {
+    padding: 4,
   },
   fieldError: {
     color: theme.colors.error,
     fontSize: 13,
-    marginTop: 4,
+    marginTop: 6,
     textAlign: "right",
+    marginRight: 4,
   },
   optionsRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
   rememberMe: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   rememberMeText: {
     color: theme.colors.textSecondary,
-    fontSize: 13,
-  },
-  forgotPassword: {
-    color: theme.colors.accent,
-    fontSize: 13,
-    textDecorationLine: "underline",
-  },
-  errorText: {
-    color: theme.colors.error,
-    textAlign: "center",
-    marginBottom: 12,
     fontSize: 14,
     fontWeight: "500",
   },
-  loginButton: {
-    marginBottom: 16,
+  forgotPassword: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  errorContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: theme.colors.error + "15",
     borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+    textAlign: "right",
+  },
+  loginButton: {
+    marginBottom: 20,
+    borderRadius: 16,
     overflow: "hidden",
+    ...theme.shadows.medium,
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     letterSpacing: 0.5,
   },
   dividerContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   divider: {
     flex: 1,
@@ -652,26 +731,27 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: theme.colors.textSecondary,
-    fontSize: 13,
-    marginHorizontal: 12,
+    fontSize: 14,
+    marginHorizontal: 16,
   },
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 16,
+    paddingVertical: 16,
     justifyContent: "center",
-    marginBottom: 20,
-    gap: 8,
+    marginBottom: 24,
+    gap: 10,
     borderWidth: 1,
-    borderColor: "#ea4335",
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   googleButtonDisabled: {
     opacity: 0.7,
   },
   googleButtonText: {
-    color: "#ea4335",
+    color: theme.colors.text,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -679,15 +759,15 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     justifyContent: "center",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   linkText: {
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
   },
   registerLink: {
-    color: theme.colors.accent,
+    color: theme.colors.primary,
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 15,
   },
 });

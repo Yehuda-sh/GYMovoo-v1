@@ -44,6 +44,57 @@ git push
 
 
 
+
+
+
+
+
+🔖 Checkpoint #013 - עדכון עיצוב מקיף למסכים נוספים ושדרוג theme.ts
+🗓️ תאריך: 2025-07-21
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+עדכון MainScreen: תיקון בעיות RTL (headerRight מיושר לימין, הסרת inverted מ-ScrollView)
+עיצוב מחדש של QuestionnaireScreen: התאמה מלאה לסגנון מודרני עם borderRadius: 16, צללים, וכפתורים מעוצבים
+שדרוג ProfileScreen: עיצוב מחדש עם LinearGradient, כרטיס פרופיל משופר, סטטיסטיקות עם גרדיאנט, והגדרות מעוצבות
+עדכון WelcomeScreen: לוגו עם רקע, מונה משתמשים מעוצב, כפתורי Google ו-Login מודרניים, הוספת תכונות עם אייקונים
+שיפור LoginScreen: רקע גרדיאנט, לוגו מעוצב, שדות קלט גבוהים (56px), הודעות שגיאה מעוצבות
+עדכון theme.ts: התאמת כל הערכים לעיצוב החדש, fontWeight: "600", גדלי פונט מוגדלים, רכיבים מעודכנים
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: שימוש ב-inverted={true} ב-ScrollView רגיל
+פתרון: הסרת ה-property שלא נתמך ב-ScrollView
+לקח לעתיד: תמיד לבדוק את התיעוד של React Native לפני הוספת props
+שגיאה: חוסר עקביות בגדלי borderRadius וריפוד בין מסכים
+פתרון: עדכון theme.ts עם ערכים אחידים והחלה על כל המסכים
+לקח לעתיד: שימוש עקבי ב-theme במקום ערכים קשיחים
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/main/MainScreen.tsx
+src/screens/questionnaire/QuestionnaireScreen.tsx
+src/screens/profile/ProfileScreen.tsx
+src/screens/welcome/WelcomeScreen.tsx
+src/screens/auth/LoginScreen.tsx
+src/styles/theme.ts
+
+🚀 השלב הבא:
+
+בדיקת RegisterScreen ו-TermsScreen לעיצוב מודרני
+יצירת קומפוננטות UI משותפות (Card, Button, Input) המבוססות על theme.components
+בדיקת עקביות עיצובית בכל מסכי Exercise
+
+💻 פקודות Git:
+bashgit add .
+git commit -m "feat: Comprehensive UI redesign for core screens and theme update"
+git push
+
+
+
+
+
 🔖 Checkpoint #012 - עיצוב מחדש למסכי Exercise ויצירת Design System מתקדם
 🗓️ תאריך: 2025-07-21
 🎯 סטטוס: ✅ הושלם

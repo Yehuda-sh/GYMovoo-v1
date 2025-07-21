@@ -359,10 +359,13 @@ export default function MainScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.plansScroll}
           >
-            {recommendedPlans.map((plan) => (
+            {recommendedPlans.map((plan, index) => (
               <TouchableOpacity
                 key={plan.id}
-                style={styles.planCard}
+                style={[
+                  styles.planCard,
+                  index === 0 && styles.firstPlanCard, // RTL: מרווח לכרטיס הראשון
+                ]}
                 activeOpacity={0.8}
                 onPress={() => {
                   console.log("🏠 MainScreen - Plan clicked:", plan.name);
@@ -405,8 +408,8 @@ export default function MainScreen() {
 
         {/* Motivational Quote */}
         <Animated.View style={[styles.quoteCard, { opacity: fadeAnim }]}>
-          <Text style={styles.quoteText}>"הכאב של היום הוא הכוח של מחר"</Text>
           <Ionicons name="bulb" size={24} color={theme.colors.warning} />
+          <Text style={styles.quoteText}>"הכאב של היום הוא הכוח של מחר"</Text>
         </Animated.View>
       </ScrollView>
     </LinearGradient>
@@ -422,7 +425,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   header: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
@@ -430,12 +433,12 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   headerLeft: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     gap: 12,
   },
   headerRight: {
-    alignItems: "flex-start", // RTL: יישור לשמאל במקום לימין
+    alignItems: "flex-end", // RTL: יישור לימין
   },
   profileBtn: {
     width: 40,
@@ -450,7 +453,7 @@ const styles = StyleSheet.create({
   notificationBadge: {
     position: "absolute",
     top: 8,
-    left: 8, // RTL: שינוי מ-right ל-left
+    left: 8, // RTL: נשאר ב-left כי זה מיקום אבסולוטי
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -459,13 +462,13 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   nameText: {
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   quickStartCard: {
     marginHorizontal: theme.spacing.lg,
@@ -478,7 +481,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   quickStartContent: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -490,12 +493,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 4,
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   quickStartSubtitle: {
     fontSize: 16,
     color: "rgba(255, 255, 255, 0.9)",
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   quickStartButton: {
     width: 56,
@@ -515,10 +518,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "right",
+    textAlign: "right", // RTL
   },
   statsGrid: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -549,7 +552,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   buttonsContainer: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -569,7 +572,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: theme.spacing.sm,
-    alignSelf: "center", // מרכוז האייקון
+    alignSelf: "center",
   },
   actionButtonText: {
     fontSize: 16,
@@ -591,9 +594,13 @@ const styles = StyleSheet.create({
   },
   planCard: {
     width: 200,
-    marginLeft: theme.spacing.md, // RTL: שינוי מ-marginRight ל-marginLeft
+    marginLeft: theme.spacing.md, // RTL: נשאר כך עבור כל הכרטיסים מלבד הראשון
     borderRadius: theme.borderRadius.md,
     overflow: "hidden",
+  },
+  firstPlanCard: {
+    marginRight: theme.spacing.md, // RTL: מרווח לכרטיס הראשון מימין
+    marginLeft: 0,
   },
   planGradient: {
     padding: theme.spacing.md,
@@ -606,27 +613,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   planInfo: {
     gap: 8,
   },
   planDetail: {
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     gap: 4,
   },
   planDetailText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    textAlign: "right", // RTL: יישור טקסט
+    textAlign: "right", // RTL
   },
   quoteCard: {
     marginHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.lg,
-    flexDirection: "row-reverse", // RTL: תיקון כיווניות
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     gap: 12,
     ...theme.shadows.small,
