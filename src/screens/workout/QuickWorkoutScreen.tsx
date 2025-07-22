@@ -27,11 +27,11 @@ import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
-// Components
+// Components - תיקון הייבוא
 import { WorkoutHeader } from "./components/WorkoutHeader";
 import { WorkoutDashboard } from "./components/WorkoutDashboard";
 import { RestTimer } from "./components/RestTimer";
-import { ExerciseCard } from "./components/ExerciseCard";
+import ExerciseCard from "./components/ExerciseCard"; // שינוי לייבוא default
 import { NextExerciseBar } from "./components/NextExerciseBar";
 import { WorkoutSummary } from "./components/WorkoutSummary";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
@@ -412,35 +412,46 @@ export const QuickWorkoutScreen = () => {
           renderItem={({ item: exercise, index }) => (
             <ExerciseCard
               exercise={exercise}
-              exerciseNumber={index + 1}
-              isExpanded={expandedExerciseId === exercise.id}
-              onToggleExpand={() => handleToggleExpand(exercise.id)}
-              onUpdateSet={(setId, updates) =>
+              sets={exercise.sets}
+              onUpdateSet={(setId: string, updates: Partial<Set>) =>
                 handlers.handleUpdateSet(exercise.id, setId, updates)
               }
               onAddSet={() => handlers.handleAddSet(exercise.id)}
-              onDeleteSet={(setId) =>
+              onDeleteSet={(setId: string) =>
                 handlers.handleDeleteSet(exercise.id, setId)
               }
-              onDelete={() => handlers.handleDeleteExercise(exercise.id)}
-              onDuplicate={() => handlers.handleDuplicateExercise(exercise.id)}
-              onStartRest={startRest}
-              onShowPlateCalculator={(weight) => {
-                setModalData((p) => ({ ...p, plateCalculatorWeight: weight }));
-                setModals((p) => ({ ...p, plateCalculator: true }));
+              onCompleteSet={(setId: string) => {
+                const set = exercise.sets.find((s: Set) => s.id === setId);
+                if (set && !set.completed) {
+                  handlers.handleUpdateSet(exercise.id, setId, {
+                    completed: true,
+                  });
+                  startRest(90); // Default rest time
+                }
               }}
-              onShowTips={() => {
-                console.log("🎯 onShowTips called for:", exercise.name);
-                setModalData((p) => ({ ...p, selectedExercise: exercise }));
-                setModals((p) => ({ ...p, exerciseTips: true }));
-                console.log("📊 Modal state after update:", {
-                  exerciseTips: true,
-                  selectedExercise: exercise,
-                });
-              }}
-              onReorderSets={(reorderedSets) =>
-                handlers.handleReorderSets(exercise.id, reorderedSets)
+              onRemoveExercise={() =>
+                handlers.handleDeleteExercise(exercise.id)
               }
+              onStartRest={startRest}
+              onMoveUp={
+                index > 0
+                  ? () => {
+                      // TODO: implement move up
+                    }
+                  : undefined
+              }
+              onMoveDown={
+                index < exercises.length - 1
+                  ? () => {
+                      // TODO: implement move down
+                    }
+                  : undefined
+              }
+              isFirst={index === 0}
+              isLast={index === exercises.length - 1}
+              isPaused={isPaused}
+              showHistory={true}
+              showNotes={true}
             />
           )}
           ListFooterComponent={

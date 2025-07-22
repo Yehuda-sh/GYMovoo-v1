@@ -41,6 +41,82 @@ git push
 
 
 
+🔖 Checkpoint #015 - תיקון שגיאות TypeScript בקומפוננטות ExerciseCard ו-QuickWorkoutScreen
+🗓️ תאריך: 2025-01-22
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+תיקון מקיף של ExerciseCard:
+
+תיקון נתיבי ייבוא (theme, types)
+שינוי מ-isCompleted ל-completed בכל המקומות
+הוספת prop חסר visible ל-ExerciseMenu
+הסרת props לא נתמכים מ-SetRow
+הוספת export default בסוף הקובץ
+
+
+תיקון QuickWorkoutScreen:
+
+שינוי ייבוא ExerciseCard מ-named export ל-default import
+הוספת טיפוסים מפורשים לכל הפרמטרים של callbacks
+התאמת props של ExerciseCard ל-interface המקורי
+תיקון שגיאות TypeScript בפונקציות
+
+
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: אי-התאמה בין props שמועברים לקומפוננטות לבין ה-interfaces שלהן
+פתרון: בדיקה מדוקדקת של כל interface והתאמת ה-props בהתאם
+לקח לעתיד: חשוב לבדוק את ה-type definitions לפני שימוש בקומפוננטות
+שגיאה: בלבול בין named exports ל-default exports
+פתרון: שימוש עקבי ב-default exports לקומפוננטות ראשיות
+לקח לעתיד: לשמור על עקביות בשיטת הייצוא של קומפוננטות
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/workout/components/ExerciseCard/index.tsx
+src/screens/workout/QuickWorkoutScreen.tsx
+
+🚀 השלב הבא:
+
+בדיקת האינטגרציה של כל הקומפוננטות במסך האימון
+הוספת הפונקציונליות החסרה (מחשבון פלטות, טיפים, וכו')
+המשך פיתוח פיצ'רים מתקדמים
+
+💻 פקודות Git:
+powershell# הוספת הקבצים המעודכנים
+git add src/screens/workout/components/ExerciseCard/index.tsx
+git add src/screens/workout/QuickWorkoutScreen.tsx
+
+# יצירת commit
+git commit -m "fix: Resolve TypeScript errors in ExerciseCard and QuickWorkoutScreen
+
+- Fix import paths and export statements
+- Update property names (isCompleted -> completed)
+- Add missing props and type annotations
+- Adapt component props to match interfaces
+- Ensure consistent RTL implementation"
+
+# דחיפה לענף
+git push origin main
+
+📊 סטטוס כללי של הפרויקט:
+
+✅ תשתית בסיסית מוכנה
+✅ מסכי אימון עם עיצוב מודרני
+✅ התאמה מלאה ל-RTL
+✅ תיקון שגיאות TypeScript
+🔄 נדרש: המשך פיתוח פיצ'רים ובדיקות
+
+
+
+
+
+
+
+
 🔖 Checkpoint #014
 🗓️ תאריך: 2025-01-22
 🎯 סטטוס: ✅ הושלם

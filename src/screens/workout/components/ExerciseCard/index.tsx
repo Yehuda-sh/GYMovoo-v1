@@ -1,1144 +1,691 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/index.tsx
- * @description כרטיס תרגיל מלא עם סטים, התקדמות ופעולות (במבנה משופר)
- * English: Complete exercise card with sets, progress and actions (improved structure)
+ * @brief כרטיס תרגיל המציג סטים ופעולות
+ * @dependencies SetRow, ExerciseMenu, useWorkoutStore, theme
+ * @notes מכיל לוגיקת אנימציה לפתיחה וסגירה של כרטיס
+ * @recurring_errors שכחה להעביר את ה-prop isPaused ל-RestTimer
  */
-// cspell:ignore flatlist, קומפוננטות, קומפוננטה, dropset, restpause, דרופ, סופרסט, לקומפוננטות
 
-// DEBUG FLAG - הסר בסוף הפרויקט
-const DEBUG = true;
-const log = (message: string, data?: any) => {
-  if (DEBUG) {
-    console.log(`🎯 [ExerciseCard] ${message}`, data || "");
-  }
-};
-
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
+  StyleSheet,
   Animated,
-  GestureResponderEvent,
-  TextInput,
-  Modal,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Vibration,
+  Alert,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import DraggableFlatList, {
-  ScaleDecorator,
-  RenderItemParams,
-} from "react-native-draggable-flatlist";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { theme } from "../../../../styles/theme";
-import { Exercise, Set, SetType } from "../../types/workout.types";
+// קומפוננטות פנימיות
+// Internal components
 import SetRow from "./SetRow";
 import ExerciseMenu from "./ExerciseMenu";
 
-// --- הוספת טיפוסים חדשים ---
-// הסרנו את ההגדרה המקומית של SetType ומשתמשים במה שמיובא מ-workout.types.ts
+// ייבוא ה-theme
+// Import theme
+import { theme } from "../../../../styles/theme";
 
-interface EnhancedSet extends Set {
-  dropFromWeight?: number;
+// ייבוא ה-types
+// Import types
+import { Exercise, WorkoutSet, SetType } from "../../types/workout.types";
+
+// אפשור LayoutAnimation באנדרואיד
+// Enable LayoutAnimation on Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-interface EnhancedExercise extends Exercise {
-  sets: EnhancedSet[];
-  notes?: string;
-  techniqueNotes?: string;
-}
+// Debug mode
+const DEBUG = true;
+const log = (message: string, data?: any) => {
+  if (DEBUG) {
+    console.log(`🏋️ ExerciseCard: ${message}`, data || "");
+  }
+};
 
-interface PerformanceMetrics {
-  volumeChange: number;
-  intensityChange: number;
-  expectedRPE: number;
-  actualRPE?: number;
-}
-
-// --- הגדרות Props לקומפוננטות משנה ---
-interface HeaderProps {
-  exercise: EnhancedExercise;
-  exerciseNumber: number;
-  completedSets: number;
-  totalSets: number;
-  onToggleExpand: () => void;
-  onShowMenu: (event: GestureResponderEvent) => void;
-  onShowTips: () => void;
-  rotateAnim: Animated.Value;
-  hasPR: boolean;
-  isSuperset?: boolean;
-  supersetPartner?: Exercise;
-  restTimeLeft?: number;
-  isResting?: boolean;
-}
-
-interface ProgressBarProps {
-  progressAnim: Animated.AnimatedInterpolation<string | number>;
-  currentVolume: number;
-  performanceMetrics?: PerformanceMetrics;
-}
-
-interface ContentProps {
-  exercise: EnhancedExercise;
-  onUpdateSet: (setId: string, updates: Partial<EnhancedSet>) => void;
-  onDeleteSet: (setId: string) => void;
-  onStartRest: (duration?: number) => void;
-  onReorderSets: (reorderedSets: EnhancedSet[]) => void;
+interface ExerciseCardProps {
+  exercise: Exercise;
+  sets: WorkoutSet[];
+  onUpdateSet: (setId: string, updates: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
-  onShowPlateCalculator: (weight: number) => void;
-  onUpdateNotes?: (notes: string) => void;
-  onUpdateTechniqueNotes?: (notes: string) => void;
+  onDeleteSet?: (setId: string) => void;
+  onCompleteSet: (setId: string) => void;
+  onRemoveExercise: () => void;
+  onStartRest?: (duration: number) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+  isPaused?: boolean;
+  showHistory?: boolean;
+  showNotes?: boolean;
+  personalRecord?: { weight: number; reps: number };
+  lastWorkout?: {
+    date: string;
+    sets: Array<{ weight: number; reps: number }>;
+  };
 }
 
-// --- קומפוננטות חדשות ---
+const ExerciseCard: React.FC<ExerciseCardProps> = ({
+  exercise,
+  sets,
+  onUpdateSet,
+  onAddSet,
+  onDeleteSet,
+  onCompleteSet,
+  onRemoveExercise,
+  onStartRest,
+  onMoveUp,
+  onMoveDown,
+  isFirst = false,
+  isLast = false,
+  isPaused = false,
+  showHistory = true,
+  showNotes = true,
+  personalRecord,
+  lastWorkout,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const animatedHeight = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(1)).current;
 
-// קומפוננטת הערות
-const ExerciseNotes: React.FC<{
-  notes?: string;
-  techniqueNotes?: string;
-  onUpdateNotes: (notes: string) => void;
-  onUpdateTechniqueNotes: (notes: string) => void;
-}> = ({ notes, techniqueNotes, onUpdateNotes, onUpdateTechniqueNotes }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [tempNotes, setTempNotes] = useState(notes || "");
-  const [tempTechniqueNotes, setTempTechniqueNotes] = useState(
-    techniqueNotes || ""
+  // חישוב האם כל הסטים הושלמו
+  // Calculate if all sets are completed
+  const allSetsCompleted = useMemo(() => {
+    return sets.length > 0 && sets.every((set) => set.completed);
+  }, [sets]);
+
+  // חישוב סטטיסטיקות
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const completedSets = sets.filter((set) => set.completed);
+    const totalVolume = completedSets.reduce(
+      (sum, set) => sum + (set.weight || 0) * (set.reps || 0),
+      0
+    );
+    const avgWeight =
+      completedSets.length > 0
+        ? completedSets.reduce((sum, set) => sum + (set.weight || 0), 0) /
+          completedSets.length
+        : 0;
+
+    return {
+      completedSets: completedSets.length,
+      totalSets: sets.length,
+      totalVolume,
+      avgWeight,
+    };
+  }, [sets]);
+
+  // טיפול בלחיצה על כרטיס
+  // Handle card press
+  const handleCardPress = useCallback(() => {
+    log("Card pressed", { isExpanded });
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+
+    // אנימציה לחץ ההרחבה
+    // Animate expand arrow
+    Animated.timing(rotateAnim, {
+      toValue: isExpanded ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isExpanded, rotateAnim]);
+
+  // טיפול בלחיצה על סט
+  // Handle set press
+  const handleSetPress = useCallback(
+    (setId: string) => {
+      if (isSelectionMode) {
+        log("Toggle set selection", { setId });
+        setSelectedSets((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(setId)) {
+            newSet.delete(setId);
+          } else {
+            newSet.add(setId);
+          }
+          return newSet;
+        });
+        Vibration.vibrate(10);
+      }
+    },
+    [isSelectionMode]
   );
 
-  const handleSave = () => {
-    log("💾 Notes modal - Save clicked", {
-      notesLength: tempNotes.length,
-      techniqueNotesLength: tempTechniqueNotes.length,
-    });
-    onUpdateNotes(tempNotes);
-    onUpdateTechniqueNotes(tempTechniqueNotes);
-    setShowModal(false);
+  // טיפול בלחיצה ארוכה על סט
+  // Handle set long press
+  const handleSetLongPress = useCallback((setId: string) => {
+    log("Set long press - entering selection mode", { setId });
+    setIsSelectionMode(true);
+    setSelectedSets(new Set([setId]));
+    Vibration.vibrate(50);
+  }, []);
+
+  // יציאה ממצב בחירה
+  // Exit selection mode
+  const exitSelectionMode = useCallback(() => {
+    log("Exiting selection mode");
+    setIsSelectionMode(false);
+    setSelectedSets(new Set());
+  }, []);
+
+  // מחיקת סטים נבחרים
+  // Delete selected sets
+  const deleteSelectedSets = useCallback(() => {
+    Alert.alert(
+      `מחיקת ${selectedSets.size} סטים`,
+      `האם אתה בטוח שברצונך למחוק ${selectedSets.size} סטים?`,
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: () => {
+            log("Deleting selected sets", { count: selectedSets.size });
+            selectedSets.forEach((setId) => {
+              onDeleteSet?.(setId);
+            });
+            exitSelectionMode();
+          },
+        },
+      ]
+    );
+  }, [selectedSets, onDeleteSet, exitSelectionMode]);
+
+  // טיפול במחיקת תרגיל
+  // Handle exercise deletion
+  const handleDeleteExercise = useCallback(() => {
+    Alert.alert(
+      "מחיקת תרגיל",
+      `האם אתה בטוח שברצונך למחוק את ${exercise.name}?`,
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: () => {
+            log("Deleting exercise", { exerciseId: exercise.id });
+            onRemoveExercise();
+          },
+        },
+      ]
+    );
+  }, [exercise, onRemoveExercise]);
+
+  // טיפול בהוספת סט
+  // Handle add set
+  const handleAddSet = useCallback(() => {
+    log("Adding new set");
+    onAddSet();
+    Vibration.vibrate(10);
+  }, [onAddSet]);
+
+  // טיפול בהשלמת סט
+  // Handle complete set
+  const handleCompleteSet = useCallback(
+    (setId: string) => {
+      log("Completing set", { setId });
+      onCompleteSet(setId);
+
+      // מציאת הסט להבין את זמן המנוחה
+      // Find the set to understand rest time
+      const set = sets.find((s) => s.id === setId);
+      if (set && !set.completed) {
+        // חישוב זמן מנוחה מומלץ בהתבסס על המשקל
+        // Calculate recommended rest time based on weight
+        const weight = set.weight || 0;
+        let restTime = 60; // ברירת מחדל
+
+        if (weight > 100) {
+          restTime = 180; // 3 דקות למשקלים כבדים
+        } else if (weight > 60) {
+          restTime = 120; // 2 דקות למשקלים בינוניים
+        } else {
+          restTime = 90; // 1.5 דקות למשקלים קלים
+        }
+
+        if (onStartRest) {
+          log("Starting rest timer", { duration: restTime });
+          onStartRest(restTime);
+        }
+
+        Vibration.vibrate(50);
+      }
+    },
+    [sets, onCompleteSet, onStartRest]
+  );
+
+  // טיפול בתפריט
+  // Handle menu
+  const handleMenuPress = useCallback(() => {
+    log("Toggle menu", { showMenu: !showMenu });
+    setShowMenu(!showMenu);
+  }, [showMenu]);
+
+  // רנדר סרגל בחירה
+  // Render selection bar
+  const renderSelectionBar = () => {
+    if (!isSelectionMode) return null;
+
+    return (
+      <Animated.View style={[styles.selectionBar]}>
+        <TouchableOpacity
+          onPress={exitSelectionMode}
+          style={styles.selectionButton}
+        >
+          <MaterialCommunityIcons
+            name="close"
+            size={24}
+            color={theme.colors.text}
+          />
+        </TouchableOpacity>
+
+        <Text style={styles.selectionText}>{selectedSets.size} נבחרו</Text>
+
+        <TouchableOpacity
+          onPress={deleteSelectedSets}
+          style={[
+            styles.selectionButton,
+            { opacity: selectedSets.size > 0 ? 1 : 0.5 },
+          ]}
+          disabled={selectedSets.size === 0}
+        >
+          <MaterialCommunityIcons
+            name="delete"
+            size={24}
+            color={theme.colors.error}
+          />
+        </TouchableOpacity>
+      </Animated.View>
+    );
   };
 
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "-90deg"],
+  });
+
   return (
-    <>
+    <View style={styles.container}>
+      {/* סרגל בחירה */}
+      {/* Selection bar */}
+      {renderSelectionBar()}
+
+      {/* ראש הכרטיס */}
+      {/* Card header */}
       <TouchableOpacity
-        style={styles.notesButton}
-        onPress={() => {
-          log("📝 Notes button clicked", {
-            hasNotes: !!(notes || techniqueNotes),
-          });
-          setShowModal(true);
-        }}
+        style={[styles.header, allSetsCompleted && styles.headerCompleted]}
+        onPress={handleCardPress}
+        activeOpacity={0.7}
       >
-        <Ionicons
-          name="document-text-outline"
-          size={20}
-          color={
-            notes || techniqueNotes
-              ? theme.colors.primary
-              : theme.colors.textSecondary
-          }
-        />
-        <Text style={styles.notesButtonText}>
-          {notes || techniqueNotes ? "הערות" : "הוסף הערות"}
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.headerContent}>
+          {/* מידע על התרגיל */}
+          {/* Exercise info */}
+          <View style={styles.exerciseInfo}>
+            <View style={styles.titleRow}>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Animated.View style={{ transform: [{ rotate }] }}>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+              </Animated.View>
+            </View>
 
-      <Modal visible={showModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.notesModal}>
-            <Text style={styles.modalTitle}>הערות לתרגיל</Text>
-
-            <Text style={styles.inputLabel}>הערות כלליות</Text>
-            <TextInput
-              style={styles.notesInput}
-              value={tempNotes}
-              onChangeText={setTempNotes}
-              placeholder="הוסף הערות כלליות..."
-              multiline
-              textAlign="right"
-            />
-
-            <Text style={styles.inputLabel}>הערות טכניקה</Text>
-            <TextInput
-              style={styles.notesInput}
-              value={tempTechniqueNotes}
-              onChangeText={setTempTechniqueNotes}
-              placeholder="הוסף הערות על טכניקה..."
-              multiline
-              textAlign="right"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => {
-                  log("❌ Notes modal - Cancel clicked");
-                  setShowModal(false);
-                }}
-              >
-                <Text style={styles.modalButtonText}>ביטול</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonPrimary]}
-                onPress={handleSave}
-              >
-                <Text
-                  style={[
-                    styles.modalButtonText,
-                    styles.modalButtonTextPrimary,
-                  ]}
-                >
-                  שמור
+            {/* סטטיסטיקות */}
+            {/* Statistics */}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <MaterialCommunityIcons
+                  name="checkbox-marked-circle"
+                  size={16}
+                  color={theme.colors.success}
+                />
+                <Text style={styles.statText}>
+                  {stats.completedSets}/{stats.totalSets}
                 </Text>
-              </TouchableOpacity>
+              </View>
+
+              {stats.totalVolume > 0 && (
+                <View style={styles.stat}>
+                  <MaterialCommunityIcons
+                    name="weight-kilogram"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.statText}>
+                    {stats.totalVolume.toFixed(0)} ק"ג
+                  </Text>
+                </View>
+              )}
+
+              {personalRecord && (
+                <View style={styles.stat}>
+                  <MaterialCommunityIcons
+                    name="trophy"
+                    size={16}
+                    color={theme.colors.warning}
+                  />
+                  <Text style={styles.statText}>
+                    {personalRecord.weight}×{personalRecord.reps}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
-        </View>
-      </Modal>
-    </>
-  );
-};
 
-// אינדיקטור סוג סט
-const SetTypeIndicator: React.FC<{ type?: SetType }> = ({
-  type = "normal",
-}) => {
-  if (type === "normal") return null;
-
-  const config: Record<
-    Exclude<SetType, "normal">,
-    { icon: any; color: string; label: string }
-  > = {
-    warmup: {
-      icon: "flame-outline",
-      color: theme.colors.warning,
-      label: "חימום",
-    },
-    working: {
-      icon: "barbell-outline",
-      color: theme.colors.primary,
-      label: "עבודה",
-    },
-    dropset: {
-      icon: "trending-down",
-      color: theme.colors.error,
-      label: "דרופ סט",
-    },
-    restpause: {
-      icon: "pause-circle",
-      color: theme.colors.info,
-      label: "מנוחה-פאוזה",
-    },
-    "rest-pause": {
-      icon: "pause-circle",
-      color: theme.colors.info,
-      label: "מנוחה-פאוזה",
-    },
-    failure: {
-      icon: "alert-circle",
-      color: theme.colors.error,
-      label: "כישלון",
-    },
-  };
-
-  const { icon, color, label } = config[type];
-
-  return (
-    <View style={[styles.setTypeIndicator, { backgroundColor: color + "20" }]}>
-      <Ionicons name={icon} size={14} color={color} />
-      <Text style={[styles.setTypeText, { color }]}>{label}</Text>
-    </View>
-  );
-};
-
-// מיני טיימר
-const MiniTimer: React.FC<{
-  timeLeft: number;
-  onExtend: () => void;
-}> = ({ timeLeft, onExtend }) => {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  if (timeLeft <= 0) return null;
-
-  return (
-    <View style={styles.miniTimer}>
-      <Ionicons name="timer-outline" size={16} color={theme.colors.primary} />
-      <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-      <TouchableOpacity
-        onPress={() => {
-          log("⏰ Timer extend clicked", { currentTime: timeLeft });
-          onExtend();
-        }}
-      >
-        <Ionicons
-          name="add-circle-outline"
-          size={18}
-          color={theme.colors.primary}
-        />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// אינדיקטור ביצועים
-const PerformanceIndicator: React.FC<{ metrics: PerformanceMetrics }> = ({
-  metrics,
-}) => (
-  <View style={styles.performanceContainer}>
-    <View style={styles.metricItem}>
-      <Text style={styles.metricLabel}>נפח</Text>
-      <Text
-        style={[
-          styles.metricValue,
-          metrics.volumeChange > 0
-            ? styles.positive
-            : metrics.volumeChange < 0
-            ? styles.negative
-            : null,
-        ]}
-      >
-        {metrics.volumeChange > 0 ? "+" : ""}
-        {metrics.volumeChange}%
-      </Text>
-    </View>
-    <View style={styles.metricItem}>
-      <Text style={styles.metricLabel}>עצימות</Text>
-      <Text
-        style={[
-          styles.metricValue,
-          metrics.intensityChange > 0
-            ? styles.positive
-            : metrics.intensityChange < 0
-            ? styles.negative
-            : null,
-        ]}
-      >
-        {metrics.intensityChange > 0 ? "+" : ""}
-        {metrics.intensityChange}%
-      </Text>
-    </View>
-    {metrics.actualRPE && (
-      <View style={styles.metricItem}>
-        <Text style={styles.metricLabel}>RPE</Text>
-        <Text style={styles.metricValue}>{metrics.actualRPE}/10</Text>
-      </View>
-    )}
-  </View>
-);
-
-// --- קומפוננטות משנה מעודכנות ---
-
-const ExerciseCardHeader = React.memo<HeaderProps>(
-  ({
-    exercise,
-    exerciseNumber,
-    completedSets,
-    totalSets,
-    onToggleExpand,
-    onShowMenu,
-    onShowTips,
-    rotateAnim,
-    hasPR,
-    isSuperset,
-    supersetPartner,
-    restTimeLeft = 0,
-    isResting = false,
-  }) => (
-    <TouchableOpacity
-      style={[styles.header, hasPR && styles.prHeader]}
-      onPress={() => {
-        log("🔽 Exercise header clicked - toggle expand", {
-          exerciseName: exercise.name,
-          exerciseNumber,
-          // הערה: isExpanded לא זמין כאן, נעביר לפונקציה החיצונית
-        });
-        onToggleExpand();
-      }}
-      activeOpacity={0.8}
-    >
-      <View style={styles.headerLeft}>
-        <View
-          style={[
-            styles.exerciseNumber,
-            hasPR && { backgroundColor: theme.colors.warning },
-          ]}
-        >
-          <Text style={styles.exerciseNumberText}>{exerciseNumber}</Text>
-        </View>
-        <View style={styles.exerciseDetails}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.exerciseName} numberOfLines={1}>
-              {exercise.name}
-            </Text>
-            {isSuperset && (
-              <View style={styles.supersetBadge}>
-                <MaterialCommunityIcons
-                  name="link-variant"
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              </View>
-            )}
+          {/* כפתורי פעולה */}
+          {/* Action buttons */}
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                log("🔍 Exercise tips button clicked", {
-                  exerciseName: exercise.name,
-                });
-                onShowTips();
-              }}
-              style={styles.infoButton}
+              style={styles.menuButton}
+              onPress={handleMenuPress}
               activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons
-                name="information-circle-outline"
-                size={22}
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={24}
                 color={theme.colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
-          {exercise.primaryMuscles && (
-            <Text style={styles.muscleText} numberOfLines={1}>
-              {exercise.primaryMuscles.join(", ")}
-            </Text>
-          )}
-          {isSuperset && supersetPartner && (
-            <Text style={styles.supersetText}>
-              סופרסט עם: {supersetPartner.name}
-            </Text>
-          )}
         </View>
-      </View>
-      <View style={styles.headerRight}>
-        {isResting && restTimeLeft > 0 && (
-          <MiniTimer
-            timeLeft={restTimeLeft}
-            onExtend={() => {
-              log("⏰ Timer extend clicked", { currentTime: restTimeLeft });
-            }}
-          />
-        )}
-        <View style={styles.statsContainer}>
-          <Text style={styles.statText}>
-            {completedSets}/{totalSets}
-          </Text>
-          <Text style={styles.statLabel}>סטים</Text>
-        </View>
-        <TouchableOpacity
-          onPress={(e) => {
-            log("⋮ Menu button clicked", { exerciseName: exercise.name });
-            onShowMenu(e);
-          }}
-          style={styles.menuButton}
-        >
-          <Ionicons
-            name="ellipsis-vertical"
-            size={20}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
-        <Animated.View
-          style={{
-            transform: [
-              {
-                rotate: rotateAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0deg", "180deg"],
-                }),
-              },
-            ],
-          }}
-        >
-          <Ionicons
-            name="chevron-down"
-            size={24}
-            color={theme.colors.textSecondary}
-          />
-        </Animated.View>
-      </View>
-    </TouchableOpacity>
-  )
-);
 
-const ExerciseProgressBar = React.memo<ProgressBarProps>(
-  ({ progressAnim, currentVolume, performanceMetrics }) => (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressBar}>
-        <Animated.View style={[styles.progressFill, { width: progressAnim }]} />
-      </View>
-      <View style={styles.progressInfo}>
-        {currentVolume > 0 && (
-          <Text style={styles.volumeText}>
-            {currentVolume.toLocaleString()} ק"ג נפח
-          </Text>
+        {/* פס התקדמות */}
+        {/* Progress bar */}
+        {stats.totalSets > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBackground}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${(stats.completedSets / stats.totalSets) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
         )}
-        {performanceMetrics && (
-          <PerformanceIndicator metrics={performanceMetrics} />
-        )}
-      </View>
-    </View>
-  )
-);
+      </TouchableOpacity>
 
-const ExerciseCardContent = React.memo<ContentProps>(
-  ({
-    exercise,
-    onUpdateSet,
-    onDeleteSet,
-    onStartRest,
-    onReorderSets,
-    onAddSet,
-    onShowPlateCalculator,
-    onUpdateNotes = () => {},
-    onUpdateTechniqueNotes = () => {},
-  }) => (
-    <View style={styles.content}>
-      {(exercise.notes || exercise.techniqueNotes || true) && (
-        <ExerciseNotes
-          notes={exercise.notes}
-          techniqueNotes={exercise.techniqueNotes}
-          onUpdateNotes={onUpdateNotes}
-          onUpdateTechniqueNotes={onUpdateTechniqueNotes}
+      {/* תפריט */}
+      {/* Menu */}
+      {showMenu && (
+        <ExerciseMenu
+          visible={showMenu}
+          onClose={() => setShowMenu(false)}
+          onDelete={handleDeleteExercise}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+          onDuplicate={() => {
+            log("Duplicate exercise");
+            // TODO: implement duplicate
+          }}
+          onReplace={() => {
+            log("Replace exercise");
+            // TODO: implement replace
+          }}
+          canMoveUp={!isFirst}
+          canMoveDown={!isLast}
         />
       )}
 
-      <View style={styles.columnHeaders}>
-        <Text style={styles.columnHeader}>סט</Text>
-        <Text style={styles.columnHeader}>קודם</Text>
-        <Text style={styles.columnHeader}>משקל</Text>
-        <Text style={styles.columnHeader}>חזרות</Text>
-        <View style={styles.columnHeaderEmpty} />
-      </View>
+      {/* תוכן מורחב */}
+      {/* Expanded content */}
+      {isExpanded && (
+        <Animated.View style={[styles.content, { opacity: animatedHeight }]}>
+          {/* הערות והיסטוריה */}
+          {/* Notes and history */}
+          {(showNotes || showHistory) && (
+            <View style={styles.infoSection}>
+              {showNotes && exercise.notes && (
+                <View style={styles.notesContainer}>
+                  <MaterialCommunityIcons
+                    name="note-text"
+                    size={16}
+                    color={theme.colors.textSecondary}
+                  />
+                  <Text style={styles.notesText}>{exercise.notes}</Text>
+                </View>
+              )}
 
-      <DraggableFlatList
-        data={exercise.sets}
-        keyExtractor={(item) => item.id}
-        onDragEnd={({ data }) => onReorderSets(data)}
-        removeClippedSubviews={false}
-        nestedScrollEnabled={true}
-        renderItem={({
-          item,
-          drag,
-          isActive,
-          getIndex,
-        }: RenderItemParams<EnhancedSet>) => (
-          <ScaleDecorator>
-            <View>
+              {showHistory && lastWorkout && (
+                <View style={styles.historyContainer}>
+                  <MaterialCommunityIcons
+                    name="history"
+                    size={16}
+                    color={theme.colors.textSecondary}
+                  />
+                  <Text style={styles.historyText}>
+                    אימון אחרון: {lastWorkout.date} -{" "}
+                    {lastWorkout.sets
+                      .map((s) => `${s.weight}×${s.reps}`)
+                      .join(", ")}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* רשימת סטים */}
+          {/* Sets list */}
+          <View style={styles.setsList}>
+            {sets.map((set, index) => (
               <SetRow
-                set={item}
-                setNumber={(getIndex?.() ?? 0) + 1}
-                onUpdate={(updates) => onUpdateSet(item.id, updates)}
-                onDelete={() => onDeleteSet(item.id)}
-                onComplete={() => {
-                  const newCompletedState = !item.completed;
-                  onUpdateSet(item.id, { completed: newCompletedState });
-                  if (newCompletedState) {
-                    onStartRest(exercise.restTimeBetweenSets);
-                  }
-                }}
-                onLongPress={drag}
-                isActive={isActive}
+                key={set.id}
+                set={set}
+                setNumber={index + 1}
+                onUpdate={(updates) => onUpdateSet(set.id, updates)}
+                onComplete={() => handleCompleteSet(set.id)}
+                onDelete={() => onDeleteSet?.(set.id)}
+                onLongPress={() => handleSetLongPress(set.id)}
                 exercise={exercise}
               />
-            </View>
-          </ScaleDecorator>
-        )}
-      />
+            ))}
+          </View>
 
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          onPress={() => {
-            log("➕ Add set button clicked", {
-              exerciseName: exercise.name,
-              currentSetsCount: exercise.sets.length,
-            });
-            onAddSet();
-          }}
-          style={styles.actionButton}
-        >
-          <Ionicons
-            name="add-circle-outline"
-            size={22}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.actionButtonText}>הוסף סט</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            const lastSet = exercise.sets[exercise.sets.length - 1];
-            const weight = lastSet?.weight || lastSet?.targetWeight || 60;
-            log("🧮 Calculator button clicked", {
-              exerciseName: exercise.name,
-              weight,
-            });
-            onShowPlateCalculator(weight);
-          }}
-          style={styles.actionButton}
-        >
-          <MaterialCommunityIcons
-            name="calculator-variant-outline"
-            size={22}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.actionButtonText}>מחשבון</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-);
-
-// --- קומפוננטה ראשית ---
-interface ExerciseCardProps {
-  exercise: EnhancedExercise;
-  exerciseNumber: number;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onUpdateSet: (setId: string, updates: Partial<EnhancedSet>) => void;
-  onAddSet: () => void;
-  onDeleteSet: (setId: string) => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onReorderSets: (reorderedSets: EnhancedSet[]) => void;
-  onStartRest: (duration?: number) => void;
-  onShowPlateCalculator: (weight: number) => void;
-  onShowTips: () => void;
-  onUpdateNotes?: (exerciseId: string, notes: string) => void;
-  onUpdateTechniqueNotes?: (exerciseId: string, notes: string) => void;
-  // Props חדשים
-  isSuperset?: boolean;
-  supersetPartner?: Exercise;
-  onLinkSuperset?: () => void;
-  performanceMetrics?: PerformanceMetrics;
-  restTimeLeft?: number;
-  isResting?: boolean;
-}
-
-export const ExerciseCard: React.FC<ExerciseCardProps> = ({
-  exercise,
-  exerciseNumber,
-  isExpanded,
-  onToggleExpand,
-  onUpdateSet,
-  onAddSet,
-  onDeleteSet,
-  onDelete,
-  onDuplicate,
-  onReorderSets,
-  onStartRest,
-  onShowPlateCalculator,
-  onShowTips,
-  onUpdateNotes,
-  onUpdateTechniqueNotes,
-  isSuperset = false,
-  supersetPartner,
-  onLinkSuperset,
-  performanceMetrics,
-  restTimeLeft = 0,
-  isResting = false,
-}) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const expandAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
-  const rotateAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
-  const deleteAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  const { completedSets, totalSets, currentVolume, hasPR, progressPercentage } =
-    useMemo(() => {
-      const completed = exercise.sets.filter((set) => set.completed).length;
-      const total = exercise.sets.length;
-      const volume = exercise.sets.reduce((acc, set) => {
-        if (set.completed && set.weight && set.reps)
-          return acc + set.weight * set.reps;
-        return acc;
-      }, 0);
-      const pr = exercise.sets.some((set) => set.isPR);
-      const progress = total > 0 ? (completed / total) * 100 : 0;
-      return {
-        completedSets: completed,
-        totalSets: total,
-        currentVolume: volume,
-        hasPR: pr,
-        progressPercentage: progress,
-      };
-    }, [exercise.sets]);
-
-  const progressAnim = useRef(new Animated.Value(progressPercentage)).current;
-
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progressPercentage,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [progressPercentage]);
-
-  useEffect(() => {
-    const toValue = isExpanded ? 1 : 0;
-    Animated.parallel([
-      Animated.timing(expandAnim, {
-        toValue,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isExpanded]);
-
-  const animatedContentStyle = {
-    maxHeight: expandAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1500],
-    }),
-    opacity: expandAnim,
-  };
-
-  // אנימציית מחיקה
-  const animateDelete = (callback: () => void) => {
-    log("🗑️ Delete animation started", { exerciseName: exercise.name });
-    Animated.parallel([
-      Animated.timing(deleteAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      log("✅ Delete animation completed", { exerciseName: exercise.name });
-      callback();
-    });
-  };
-
-  const handleDelete = () => {
-    log("🗑️ Delete confirmed", {
-      exerciseName: exercise.name,
-      exerciseId: exercise.id,
-    });
-    animateDelete(() => {
-      onDelete();
-    });
-  };
-
-  return (
-    <Animated.View
-      style={[
-        styles.container,
-        hasPR && styles.prContainer,
-        isSuperset && styles.supersetContainer,
-        {
-          opacity: deleteAnim,
-          transform: [{ translateX: slideAnim }],
-        },
-      ]}
-    >
-      {hasPR && (
-        <View style={styles.prBadge}>
-          <MaterialCommunityIcons
-            name="trophy-award"
-            size={14}
-            color={theme.colors.white || "#FFFFFF"}
-          />
-          <Text style={styles.prBadgeText}>שיא אישי!</Text>
-        </View>
-      )}
-
-      {isSuperset && (
-        <View style={styles.supersetIndicator}>
-          <MaterialCommunityIcons
-            name="link-variant"
-            size={20}
-            color={theme.colors.primary}
-          />
-        </View>
-      )}
-
-      <ExerciseCardHeader
-        exercise={exercise}
-        exerciseNumber={exerciseNumber}
-        completedSets={completedSets}
-        totalSets={totalSets}
-        onToggleExpand={onToggleExpand}
-        onShowMenu={(e: GestureResponderEvent) => {
-          e.stopPropagation();
-          setShowMenu(true);
-        }}
-        onShowTips={onShowTips}
-        rotateAnim={rotateAnim}
-        hasPR={hasPR}
-        isSuperset={isSuperset}
-        supersetPartner={supersetPartner}
-        restTimeLeft={restTimeLeft}
-        isResting={isResting}
-      />
-
-      <ExerciseProgressBar
-        progressAnim={progressAnim.interpolate({
-          inputRange: [0, 100],
-          outputRange: ["0%", "100%"],
-        })}
-        currentVolume={currentVolume}
-        performanceMetrics={performanceMetrics}
-      />
-
-      {isExpanded && (
-        <Animated.View style={[styles.contentWrapper, animatedContentStyle]}>
-          <ExerciseCardContent
-            exercise={exercise}
-            onUpdateSet={onUpdateSet}
-            onDeleteSet={onDeleteSet}
-            onStartRest={onStartRest}
-            onReorderSets={onReorderSets}
-            onAddSet={onAddSet}
-            onShowPlateCalculator={onShowPlateCalculator}
-            onUpdateNotes={(notes) => onUpdateNotes?.(exercise.id, notes)}
-            onUpdateTechniqueNotes={(notes) =>
-              onUpdateTechniqueNotes?.(exercise.id, notes)
-            }
-          />
+          {/* כפתור הוספת סט */}
+          {/* Add set button */}
+          <TouchableOpacity
+            style={styles.addSetButton}
+            onPress={handleAddSet}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.primary + "20",
+                theme.colors.primaryGradientEnd + "20",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.addSetGradient}
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.addSetText}>הוסף סט</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </Animated.View>
       )}
-
-      <ExerciseMenu
-        visible={showMenu}
-        onClose={() => setShowMenu(false)}
-        onDelete={handleDelete}
-        onDuplicate={onDuplicate}
-        onReplace={onLinkSuperset}
-        onMoveUp={() => console.log("Move Up")}
-        onMoveDown={() => console.log("Move Down")}
-        canMoveUp={exerciseNumber > 1}
-        canMoveDown={true}
-      />
-    </Animated.View>
+    </View>
   );
 };
 
-// --- סגנונות ---
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    ...theme.shadows.small,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     overflow: "visible",
-  },
-  prContainer: {
-    borderColor: theme.colors.warning,
-    borderWidth: 1.5,
-  },
-  supersetContainer: {
-    borderColor: theme.colors.primary,
-    borderWidth: 1.5,
-  },
-  prBadge: {
-    position: "absolute",
-    top: 0,
-    right: 16,
-    backgroundColor: theme.colors.warning,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 4,
-    zIndex: 5,
-  },
-  prBadgeText: {
-    color: theme.colors.white || "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  supersetIndicator: {
-    position: "absolute",
-    top: 8,
-    left: 16,
-    zIndex: 5,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    marginBottom: theme.spacing.md,
   },
   header: {
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
+  },
+  headerCompleted: {
+    backgroundColor: theme.colors.success + "10",
+  },
+  headerContent: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
+    alignItems: "flex-start",
   },
-  prHeader: {
-    paddingTop: 28,
+  exerciseInfo: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
   },
-  headerLeft: {
+  titleRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    flex: 1,
-    marginLeft: 8,
-  },
-  exerciseNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 12,
-  },
-  exerciseNumberText: {
-    color: theme.colors.white || "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  exerciseDetails: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  titleContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-  },
-  supersetBadge: {
-    backgroundColor: theme.colors.primary + "20",
-    padding: 4,
-    borderRadius: 8,
-  },
-  infoButton: {
-    padding: 8,
-    zIndex: 10,
-    hitSlop: { top: 10, bottom: 10, left: 10, right: 10 },
+    marginBottom: theme.spacing.xs,
   },
   exerciseName: {
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
+    marginLeft: theme.spacing.sm,
     textAlign: "right",
   },
-  muscleText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-    textAlign: "right",
-  },
-  supersetText: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    marginTop: 2,
-    textAlign: "right",
-    fontStyle: "italic",
-  },
-  headerRight: {
+  statsRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 8,
+    gap: theme.spacing.md,
   },
-  statsContainer: {
+  stat: {
+    flexDirection: "row-reverse",
     alignItems: "center",
+    gap: 4,
   },
   statText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  statLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: theme.colors.textSecondary,
+  },
+  headerActions: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: theme.spacing.xs,
   },
   menuButton: {
     padding: 4,
   },
   progressContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    marginTop: theme.spacing.sm,
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: theme.colors.divider,
-    borderRadius: 3,
+  progressBackground: {
+    height: 4,
+    backgroundColor: theme.colors.cardBorder,
+    borderRadius: 2,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: theme.colors.primary,
-  },
-  progressInfo: {
-    marginTop: 4,
-  },
-  volumeText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-  },
-  contentWrapper: {
-    overflow: "visible",
+    borderRadius: 2,
   },
   content: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.divider,
+    padding: theme.spacing.md,
+    paddingTop: 0,
   },
-  columnHeaders: {
+  infoSection: {
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  notesContainer: {
     flexDirection: "row-reverse",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: `${theme.colors.primary}10`,
-  },
-  columnHeader: {
-    flex: 1,
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  columnHeaderEmpty: {
-    width: 80,
-  },
-  actionsContainer: {
-    flexDirection: "row-reverse",
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.divider,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    gap: 6,
-  },
-  actionButtonText: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  // סגנונות חדשים
-  miniTimer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: theme.colors.primary + "20",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  timerText: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    fontWeight: "600",
-  },
-  notesButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  notesButtonText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  notesModal: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 20,
-    width: "90%",
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: theme.colors.text,
-    marginBottom: 8,
-    textAlign: "right",
-  },
-  notesInput: {
+    alignItems: "flex-start",
+    gap: theme.spacing.xs,
+    padding: theme.spacing.sm,
     backgroundColor: theme.colors.background,
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: theme.colors.text,
-    minHeight: 80,
-    marginBottom: 16,
-    textAlignVertical: "top",
+    marginBottom: theme.spacing.xs,
   },
-  modalActions: {
-    flexDirection: "row-reverse",
-    gap: 12,
-  },
-  modalButton: {
+  notesText: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  modalButtonPrimary: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  modalButtonTextPrimary: {
-    color: theme.colors.white || "#FFFFFF",
-  },
-  setTypeIndicator: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginBottom: 4,
-    gap: 4,
-    alignSelf: "flex-start",
-  },
-  setTypeText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  performanceContainer: {
-    flexDirection: "row-reverse",
-    justifyContent: "center",
-    gap: 20,
-    marginTop: 4,
-  },
-  metricItem: {
-    alignItems: "center",
-  },
-  metricLabel: {
-    fontSize: 10,
+    fontSize: 13,
     color: theme.colors.textSecondary,
+    textAlign: "right",
   },
-  metricValue: {
+  historyContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+  },
+  historyText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: "right",
+  },
+  setsList: {
+    gap: theme.spacing.sm,
+  },
+  addSetButton: {
+    marginTop: theme.spacing.md,
+  },
+  addSetGradient: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.sm,
+    borderRadius: 12,
+    gap: theme.spacing.xs,
+  },
+  addSetText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  selectionBar: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.primary + "20",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  selectionButton: {
+    padding: theme.spacing.xs,
+  },
+  selectionText: {
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
-  },
-  positive: {
-    color: theme.colors.success || "#34C759",
-  },
-  negative: {
-    color: theme.colors.error || "#FF3B30",
   },
 });
+
+export default ExerciseCard;
