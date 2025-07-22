@@ -346,25 +346,6 @@ export const QuickWorkoutScreen = () => {
 
   return (
     <>
-      {/* PlateCalculatorModal ראשון */}
-      <PlateCalculatorModal
-        visible={modals.plateCalculator}
-        onClose={() =>
-          setModals((prev) => ({ ...prev, plateCalculator: false }))
-        }
-        currentWeight={modalData.plateCalculatorWeight}
-      />
-
-      {/* ExerciseTipsModal אחרון - בעדיפות הגבוהה ביותר */}
-      <ExerciseTipsModal
-        visible={modals.exerciseTips}
-        onClose={() => {
-          console.log("🚫 ExerciseTipsModal onClose called");
-          setModals((prev) => ({ ...prev, exerciseTips: false }));
-        }}
-        exerciseName={modalData.selectedExercise?.name || ""}
-      />
-
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -488,6 +469,24 @@ export const QuickWorkoutScreen = () => {
           }
         />
       </KeyboardAvoidingView>
+
+      {/* המודלים מחוץ ל-KeyboardAvoidingView */}
+      <PlateCalculatorModal
+        visible={modals.plateCalculator}
+        onClose={() =>
+          setModals((prev) => ({ ...prev, plateCalculator: false }))
+        }
+        currentWeight={modalData.plateCalculatorWeight}
+      />
+
+      <ExerciseTipsModal
+        visible={modals.exerciseTips}
+        onClose={() => {
+          console.log("🚫 ExerciseTipsModal onClose called");
+          setModals((prev) => ({ ...prev, exerciseTips: false }));
+        }}
+        exerciseName={modalData.selectedExercise?.name || ""}
+      />
     </>
   );
 };
