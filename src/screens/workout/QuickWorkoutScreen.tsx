@@ -345,122 +345,8 @@ export const QuickWorkoutScreen = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <WorkoutHeader
-        workoutName={workoutName}
-        elapsedTime={formattedElapsedTime}
-        onTimerPress={() => setDashboardVisible((prev) => !prev)}
-        onNamePress={() => {
-          /* TODO: Implement name editing modal */
-        }}
-      />
-
-      {isResting && (
-        <RestTimer
-          timeLeft={timeLeft}
-          progress={progress}
-          isPaused={isPaused}
-          nextExercise={nextExercise}
-          onPause={pauseRest}
-          onSkip={skipRest}
-          onAddTime={addTime}
-          onSubtractTime={subtractTime}
-        />
-      )}
-
-      <FlatList
-        ref={flatListRef}
-        data={exercises}
-        keyExtractor={(item) => item.id}
-        style={styles.listStyle}
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item: exercise, index }) => (
-          <ExerciseCard
-            exercise={exercise}
-            exerciseNumber={index + 1}
-            isExpanded={expandedExerciseId === exercise.id}
-            onToggleExpand={() => handleToggleExpand(exercise.id)}
-            onUpdateSet={(setId, updates) =>
-              handlers.handleUpdateSet(exercise.id, setId, updates)
-            }
-            onAddSet={() => handlers.handleAddSet(exercise.id)}
-            onDeleteSet={(setId) =>
-              handlers.handleDeleteSet(exercise.id, setId)
-            }
-            onDelete={() => handlers.handleDeleteExercise(exercise.id)}
-            onDuplicate={() => handlers.handleDuplicateExercise(exercise.id)}
-            onStartRest={startRest}
-            onShowPlateCalculator={(weight) => {
-              setModalData((p) => ({ ...p, plateCalculatorWeight: weight }));
-              setModals((p) => ({ ...p, plateCalculator: true }));
-            }}
-            onShowTips={() => {
-              setModalData((p) => ({ ...p, selectedExercise: exercise }));
-              setModals((p) => ({ ...p, exerciseTips: true }));
-            }}
-            onReorderSets={(reorderedSets) =>
-              handlers.handleReorderSets(exercise.id, reorderedSets)
-            }
-          />
-        )}
-        ListFooterComponent={
-          <>
-            <TouchableOpacity
-              style={styles.addExerciseButton}
-              onPress={() => {
-                (navigation as any).navigate("ExerciseList", {
-                  mode: "selection",
-                  onSelectExercise: (exercise: any) => {
-                    const newId = handlers.handleAddExercise(exercise);
-                    setExpandedExerciseId(newId);
-                  },
-                });
-              }}
-            >
-              <MaterialCommunityIcons
-                name="plus"
-                size={22}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.addExerciseText}>הוסף תרגיל</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.finishButton}
-              onPress={() => {
-                pauseTimer();
-                setShowSummary(true);
-              }}
-            >
-              <Text style={styles.finishButtonText}>סיים אימון</Text>
-            </TouchableOpacity>
-          </>
-        }
-      />
-
-      <Animated.View
-        style={[
-          styles.dashboardContainer,
-          { transform: [{ translateY: dashboardAnim }] },
-        ]}
-      >
-        <WorkoutDashboard
-          totalVolume={stats.totalVolume}
-          completedSets={stats.completedSets}
-          totalSets={stats.totalSets}
-          pace={stats.completedSets / (elapsedTime / 60 || 1)}
-          personalRecords={stats.personalRecords}
-        />
-      </Animated.View>
-
-      <NextExerciseBar
-        nextExercise={nextExercise}
-        onSkipToNext={() => nextExercise && handleToggleExpand(nextExercise.id)}
-      />
-
+    <>
+      {/* PlateCalculatorModal ראשון */}
       <PlateCalculatorModal
         visible={modals.plateCalculator}
         onClose={() =>
@@ -468,12 +354,141 @@ export const QuickWorkoutScreen = () => {
         }
         currentWeight={modalData.plateCalculatorWeight}
       />
+
+      {/* ExerciseTipsModal אחרון - בעדיפות הגבוהה ביותר */}
       <ExerciseTipsModal
         visible={modals.exerciseTips}
-        onClose={() => setModals((prev) => ({ ...prev, exerciseTips: false }))}
+        onClose={() => {
+          console.log("🚫 ExerciseTipsModal onClose called");
+          setModals((prev) => ({ ...prev, exerciseTips: false }));
+        }}
         exerciseName={modalData.selectedExercise?.name || ""}
       />
-    </KeyboardAvoidingView>
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <WorkoutHeader
+          workoutName={workoutName}
+          elapsedTime={formattedElapsedTime}
+          onTimerPress={() => setDashboardVisible((prev) => !prev)}
+          onNamePress={() => {
+            /* TODO: Implement name editing modal */
+          }}
+        />
+
+        {isResting && (
+          <RestTimer
+            timeLeft={timeLeft}
+            progress={progress}
+            isPaused={isPaused}
+            nextExercise={nextExercise}
+            onPause={pauseRest}
+            onSkip={skipRest}
+            onAddTime={addTime}
+            onSubtractTime={subtractTime}
+          />
+        )}
+
+        <FlatList
+          ref={flatListRef}
+          data={exercises}
+          keyExtractor={(item) => item.id}
+          style={styles.listStyle}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item: exercise, index }) => (
+            <ExerciseCard
+              exercise={exercise}
+              exerciseNumber={index + 1}
+              isExpanded={expandedExerciseId === exercise.id}
+              onToggleExpand={() => handleToggleExpand(exercise.id)}
+              onUpdateSet={(setId, updates) =>
+                handlers.handleUpdateSet(exercise.id, setId, updates)
+              }
+              onAddSet={() => handlers.handleAddSet(exercise.id)}
+              onDeleteSet={(setId) =>
+                handlers.handleDeleteSet(exercise.id, setId)
+              }
+              onDelete={() => handlers.handleDeleteExercise(exercise.id)}
+              onDuplicate={() => handlers.handleDuplicateExercise(exercise.id)}
+              onStartRest={startRest}
+              onShowPlateCalculator={(weight) => {
+                setModalData((p) => ({ ...p, plateCalculatorWeight: weight }));
+                setModals((p) => ({ ...p, plateCalculator: true }));
+              }}
+              onShowTips={() => {
+                console.log("🎯 onShowTips called for:", exercise.name);
+                setModalData((p) => ({ ...p, selectedExercise: exercise }));
+                setModals((p) => ({ ...p, exerciseTips: true }));
+                console.log("📊 Modal state after update:", {
+                  exerciseTips: true,
+                  selectedExercise: exercise,
+                });
+              }}
+              onReorderSets={(reorderedSets) =>
+                handlers.handleReorderSets(exercise.id, reorderedSets)
+              }
+            />
+          )}
+          ListFooterComponent={
+            <>
+              <TouchableOpacity
+                style={styles.addExerciseButton}
+                onPress={() => {
+                  (navigation as any).navigate("ExerciseList", {
+                    mode: "selection",
+                    onSelectExercise: (exercise: any) => {
+                      const newId = handlers.handleAddExercise(exercise);
+                      setExpandedExerciseId(newId);
+                    },
+                  });
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={22}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.addExerciseText}>הוסף תרגיל</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.finishButton}
+                onPress={() => {
+                  pauseTimer();
+                  setShowSummary(true);
+                }}
+              >
+                <Text style={styles.finishButtonText}>סיים אימון</Text>
+              </TouchableOpacity>
+            </>
+          }
+        />
+
+        <Animated.View
+          style={[
+            styles.dashboardContainer,
+            { transform: [{ translateY: dashboardAnim }] },
+          ]}
+        >
+          <WorkoutDashboard
+            totalVolume={stats.totalVolume}
+            completedSets={stats.completedSets}
+            totalSets={stats.totalSets}
+            pace={stats.completedSets / (elapsedTime / 60 || 1)}
+            personalRecords={stats.personalRecords}
+          />
+        </Animated.View>
+
+        <NextExerciseBar
+          nextExercise={nextExercise}
+          onSkipToNext={() =>
+            nextExercise && handleToggleExpand(nextExercise.id)
+          }
+        />
+      </KeyboardAvoidingView>
+    </>
   );
 };
 
