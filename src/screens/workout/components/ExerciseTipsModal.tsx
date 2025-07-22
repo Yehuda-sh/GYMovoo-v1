@@ -1,7 +1,7 @@
 /**
  * @file src/screens/workout/components/ExerciseTipsModal.tsx
- * @description מודל טיפים לביצוע תרגיל עם אנימציות ועיצוב משופר
- * English: Exercise tips modal with animations and improved design
+ * @description מודל טיפים לביצוע תרגיל עם עיצוב נקי ומקצועי
+ * English: Exercise tips modal with clean and professional design
  */
 // cspell:ignore באיטיות, טרייספס, סקוואט, דדליפט, אקסטנשן
 
@@ -15,11 +15,13 @@ import {
   ScrollView,
   Animated,
   Share,
-  Platform,
+  Dimensions,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 interface ExerciseTipsModalProps {
   visible: boolean;
@@ -27,8 +29,7 @@ interface ExerciseTipsModalProps {
   exerciseName: string;
 }
 
-// טיפים לפי תרגיל - מורחב
-// Exercise tips - expanded
+// טיפים לפי תרגיל
 const EXERCISE_TIPS: {
   [key: string]: {
     tips: string[];
@@ -88,7 +89,6 @@ const EXERCISE_TIPS: {
     muscleGroups: ["גב תחתון", "ישבן", "רגליים אחוריות"],
     difficulty: "קשה מאוד",
   },
-  // ברירת מחדל
   default: {
     tips: [
       "התחמם היטב לפני התרגיל",
@@ -114,19 +114,25 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
   const tips = EXERCISE_TIPS[exerciseName] || EXERCISE_TIPS.default;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
-          tension: 65,
-          friction: 10,
+          tension: 75,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
@@ -146,8 +152,6 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
     }
   }, [visible]);
 
-  // פונקציה לשיתוף טיפים
-  // Share tips function
   const shareTips = async () => {
     try {
       const message = `טיפים לביצוע ${exerciseName}:\n\n${tips.tips.join(
@@ -162,6 +166,21 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
     }
   };
 
+  const getDifficultyColor = (difficulty?: string) => {
+    switch (difficulty) {
+      case "קל":
+        return theme.colors.success;
+      case "בינוני":
+        return theme.colors.warning;
+      case "קשה":
+        return theme.colors.error;
+      case "קשה מאוד":
+        return theme.colors.error;
+      default:
+        return theme.colors.primary;
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -173,126 +192,128 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
         <Animated.View
           style={[
             styles.modalContent,
-            { transform: [{ translateY: slideAnim }] },
+            {
+              transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+            },
           ]}
         >
-          {/* Header עם גרדיאנט */}
-          {/* Header with gradient */}
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
-            style={styles.headerGradient}
-          >
-            <View style={styles.header}>
-              <TouchableOpacity
-                onPress={onClose}
-                accessibilityLabel="סגור מודל טיפים"
-                accessibilityRole="button"
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={32}
-                  color={theme.colors.white}
-                />
-              </TouchableOpacity>
-              <View style={styles.headerCenter}>
-                <Text style={styles.title}>{exerciseName}</Text>
-                <Text style={styles.subtitle}>מדריך ביצוע מקצועי</Text>
-              </View>
-              <View style={{ width: 32 }} />
+          {/* Header נקי */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="close"
+                size={24}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.headerContent}>
+              <Text style={styles.title}>{exerciseName}</Text>
+              <Text style={styles.subtitle}>מדריך ביצוע</Text>
             </View>
-          </LinearGradient>
+
+            <TouchableOpacity
+              onPress={shareTips}
+              style={styles.shareButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="share-social-outline"
+                size={22}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* מידע על התרגיל */}
+          {(tips.muscleGroups || tips.difficulty) && (
+            <View style={styles.infoSection}>
+              {tips.muscleGroups && (
+                <View style={styles.infoChip}>
+                  <MaterialCommunityIcons
+                    name="arm-flex"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.infoText}>
+                    {tips.muscleGroups.join(" • ")}
+                  </Text>
+                </View>
+              )}
+
+              {tips.difficulty && (
+                <View
+                  style={[
+                    styles.infoChip,
+                    {
+                      backgroundColor:
+                        getDifficultyColor(tips.difficulty) + "15",
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="speedometer"
+                    size={16}
+                    color={getDifficultyColor(tips.difficulty)}
+                  />
+                  <Text
+                    style={[
+                      styles.infoText,
+                      { color: getDifficultyColor(tips.difficulty) },
+                    ]}
+                  >
+                    {tips.difficulty}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* מידע על התרגיל */}
-            {/* Exercise info */}
-            {(tips.muscleGroups || tips.difficulty) && (
-              <View style={styles.infoSection}>
-                {tips.muscleGroups && (
-                  <View style={styles.infoItem}>
-                    <MaterialCommunityIcons
-                      name="arm-flex"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.infoText}>
-                      שרירים: {tips.muscleGroups.join(", ")}
-                    </Text>
-                  </View>
-                )}
-                {tips.difficulty && (
-                  <View style={styles.infoItem}>
-                    <MaterialCommunityIcons
-                      name="speedometer"
-                      size={20}
-                      color={theme.colors.warning}
-                    />
-                    <Text style={styles.infoText}>
-                      רמת קושי: {tips.difficulty}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
             {/* טיפים לביצוע */}
-            {/* Execution tips */}
-            <View style={[styles.section, styles.tipsSection]}>
+            <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <MaterialCommunityIcons
                   name="check-circle"
-                  size={28}
+                  size={24}
                   color={theme.colors.success}
                 />
                 <Text style={styles.sectionTitle}>טיפים לביצוע נכון</Text>
               </View>
+
               {tips.tips.map((tip, index) => (
-                <Animated.View
-                  key={index}
-                  style={[
-                    styles.tipItem,
-                    {
-                      opacity: fadeAnim,
-                      transform: [
-                        {
-                          translateX: fadeAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [50, 0],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <View style={styles.tipBullet}>
-                    <Text style={styles.tipNumber}>{index + 1}</Text>
+                <View key={index} style={styles.tipItem}>
+                  <View style={styles.tipNumber}>
+                    <Text style={styles.tipNumberText}>{index + 1}</Text>
                   </View>
                   <Text style={styles.tipText}>{tip}</Text>
-                </Animated.View>
+                </View>
               ))}
             </View>
 
             {/* טעויות נפוצות */}
-            {/* Common mistakes */}
-            <View style={[styles.section, styles.mistakesSection]}>
+            <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <MaterialCommunityIcons
                   name="alert-circle"
-                  size={28}
+                  size={24}
                   color={theme.colors.error}
                 />
-                <Text style={styles.sectionTitle}>
-                  טעויות נפוצות להימנע מהן
-                </Text>
+                <Text style={styles.sectionTitle}>טעויות נפוצות</Text>
               </View>
+
               {tips.commonMistakes.map((mistake, index) => (
                 <View key={index} style={styles.mistakeItem}>
                   <Ionicons
                     name="close-circle"
-                    size={22}
+                    size={20}
                     color={theme.colors.error}
                   />
                   <Text style={styles.mistakeText}>{mistake}</Text>
@@ -300,61 +321,22 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
               ))}
             </View>
 
-            {/* טיפ בונוס עם אייקון מונפש */}
-            {/* Bonus tip with animated icon */}
-            <TouchableOpacity style={styles.bonusTip} activeOpacity={0.8}>
-              <Animated.View
-                style={{
-                  transform: [
-                    {
-                      rotate: fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0deg", "360deg"],
-                      }),
-                    },
-                  ],
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="lightbulb-on"
-                  size={24}
-                  color={theme.colors.warning}
-                />
-              </Animated.View>
-              <Text style={styles.bonusTipText}>
-                💡 טיפ מקצועי: צלם את עצמך מהצד כדי לבדוק את הטכניקה שלך!
-              </Text>
-            </TouchableOpacity>
+            {/* רווח לכפתור */}
+            <View style={{ height: 20 }} />
           </ScrollView>
 
-          {/* כפתורי פעולה */}
-          {/* Action buttons */}
-          <View style={styles.actions}>
+          {/* כפתור סגירה */}
+          <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.shareButton}
-              onPress={shareTips}
-              accessibilityLabel="שתף טיפים"
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="share-social"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.shareButtonText}>שתף</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.closeButton}
+              style={styles.startButton}
               onPress={onClose}
-              accessibilityLabel="הבנתי"
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
-                style={styles.closeButtonGradient}
+                style={styles.startButtonGradient}
               >
-                <Text style={styles.closeButtonText}>הבנתי, בואו נתחיל!</Text>
+                <Text style={styles.startButtonText}>הבנתי</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -367,195 +349,158 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999,
-    elevation: 999,
   },
   modalContent: {
     backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    width: "92%",
-    maxHeight: "85%",
+    borderRadius: 24,
+    width: screenWidth * 0.92,
+    maxHeight: "80%",
     ...theme.shadows.large,
-    zIndex: 10000,
-    elevation: 1000,
-  },
-  headerGradient: {
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
-    paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
   },
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
   },
-  headerCenter: {
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    justifyContent: "center",
     alignItems: "center",
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerContent: {
     flex: 1,
+    alignItems: "center",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.white,
-    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  scrollContent: {
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.sm,
+    color: theme.colors.textSecondary,
   },
   infoSection: {
     flexDirection: "row-reverse",
     justifyContent: "center",
-    gap: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  infoItem: {
+  infoChip: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.xs,
+    gap: 6,
+    backgroundColor: theme.colors.primary + "15",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   infoText: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  scrollContent: {
+    padding: 20,
   },
   section: {
-    marginBottom: theme.spacing.xl,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
-  },
-  tipsSection: {
-    backgroundColor: "rgba(52, 199, 89, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(52, 199, 89, 0.2)",
-  },
-  mistakesSection: {
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 59, 48, 0.2)",
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
+    gap: 8,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "right",
   },
   tipItem: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
-    marginBottom: theme.spacing.md,
-    paddingLeft: theme.spacing.md,
+    marginBottom: 12,
+    backgroundColor: theme.colors.card,
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
   },
-  tipBullet: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  tipNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: theme.spacing.sm,
-    ...theme.shadows.small,
   },
-  tipNumber: {
-    fontSize: 14,
-    fontWeight: "bold",
+  tipNumberText: {
+    fontSize: 12,
+    fontWeight: "700",
     color: theme.colors.white,
   },
   tipText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.text,
-    lineHeight: 24,
+    lineHeight: 22,
     textAlign: "right",
   },
   mistakeItem: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
-    marginBottom: theme.spacing.md,
-    paddingLeft: theme.spacing.md,
-    gap: theme.spacing.sm,
+    marginBottom: 12,
+    backgroundColor: theme.colors.error + "10",
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.error + "20",
   },
   mistakeText: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.colors.text,
-    lineHeight: 24,
-    textAlign: "right",
-  },
-  bonusTip: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.warning,
-    ...theme.shadows.medium,
-  },
-  bonusTipText: {
     flex: 1,
     fontSize: 15,
     color: theme.colors.text,
     lineHeight: 22,
-    fontWeight: "500",
     textAlign: "right",
   },
-  actions: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.lg,
-    gap: theme.spacing.md,
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
   },
-  shareButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    gap: theme.spacing.xs,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  },
-  shareButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  closeButton: {
-    flex: 1,
-    borderRadius: theme.borderRadius.md,
+  startButton: {
+    borderRadius: 16,
     overflow: "hidden",
+    ...theme.shadows.medium,
   },
-  closeButtonGradient: {
-    paddingVertical: theme.spacing.md,
+  startButtonGradient: {
+    paddingVertical: 16,
     alignItems: "center",
   },
-  closeButtonText: {
-    fontSize: 18,
+  startButtonText: {
+    fontSize: 17,
     fontWeight: "600",
     color: theme.colors.white,
   },

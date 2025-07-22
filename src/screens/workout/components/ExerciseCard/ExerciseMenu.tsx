@@ -1,18 +1,10 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx
- * @description תפריט אפשרויות לתרגיל - מחיקה, שכפול, סידור
- * English: Exercise options menu - delete, duplicate, reorder
+ * @description תפריט אפשרויות לתרגיל עם עיצוב נקי ומקצועי
+ * English: Exercise options menu with clean and professional design
  */
 
-// DEBUG FLAG - הסר בסוף הפרויקט
-const DEBUG = true;
-const log = (message: string, data?: any) => {
-  if (DEBUG) {
-    console.log(`🔧 [ExerciseMenu] ${message}`, data || "");
-  }
-};
-
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -21,9 +13,7 @@ import {
   Modal,
   Animated,
   Alert,
-  ActivityIndicator,
-  useColorScheme,
-  ScrollView,
+  Dimensions,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
@@ -33,118 +23,9 @@ import {
 } from "react-native-gesture-handler";
 import { theme } from "../../../../styles/theme";
 
+const { height: screenHeight } = Dimensions.get("window");
+
 // --- Types ---
-interface Action {
-  undo: () => void;
-  timestamp: number;
-  description: string;
-}
-
-interface BatchAction {
-  label: string;
-  icon: string;
-  iconFamily?: "ionicons" | "material";
-  action: () => void | Promise<void>;
-  requiresConfirmation?: boolean;
-  danger?: boolean;
-}
-
-type MenuItemProps = {
-  icon: string;
-  iconFamily?: "ionicons" | "material";
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-  isLoading?: boolean;
-  index?: number;
-  isPreview?: boolean;
-};
-
-// --- MenuItem Component ---
-const MenuItem: React.FC<MenuItemProps> = ({
-  icon,
-  iconFamily = "ionicons",
-  label,
-  onPress,
-  disabled = false,
-  danger = false,
-  isLoading = false,
-  index = 0,
-  isPreview = false,
-}) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      delay: index * 50,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  const IconComponent =
-    iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
-  const iconColor = danger
-    ? theme.colors.error
-    : disabled
-    ? theme.colors.textSecondary
-    : isPreview
-    ? theme.colors.primary
-    : isDark
-    ? theme.colors.darkText
-    : theme.colors.text;
-
-  const handlePress = () => {
-    log(`📌 MenuItem clicked: ${label}`, {
-      disabled,
-      isLoading,
-      danger,
-      isPreview,
-    });
-    if (!disabled && !isLoading) {
-      onPress();
-    }
-  };
-
-  return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        style={[
-          styles.menuItem,
-          disabled && styles.menuItemDisabled,
-          isPreview && styles.menuItemPreview,
-        ]}
-        onPress={handlePress}
-        disabled={disabled || isLoading}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        accessibilityState={{ disabled }}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={iconColor} />
-        ) : (
-          <IconComponent name={icon as any} size={24} color={iconColor} />
-        )}
-        <Text
-          style={[
-            styles.menuItemText,
-            disabled && styles.menuItemTextDisabled,
-            danger && styles.menuItemTextDanger,
-            isPreview && styles.menuItemTextPreview,
-            isDark && styles.menuItemTextDark,
-          ]}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
-// --- Main Component ---
 interface ExerciseMenuProps {
   visible: boolean;
   onClose: () => void;
@@ -155,17 +36,76 @@ interface ExerciseMenuProps {
   onReplace?: () => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
-  isLoading?: boolean;
-  loadingAction?: string;
-  // Props for batch mode
+  // Batch mode props
   isBatchMode?: boolean;
   selectedExercises?: string[];
   onBatchDelete?: () => void;
   onBatchMove?: (direction: "up" | "down") => void;
-  // Props for undo
-  showUndo?: (action: Action) => void;
 }
 
+interface MenuItemProps {
+  icon: string;
+  iconFamily?: "ionicons" | "material";
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}
+
+// --- MenuItem Component ---
+const MenuItem: React.FC<MenuItemProps> = ({
+  icon,
+  iconFamily = "ionicons",
+  label,
+  onPress,
+  disabled = false,
+  danger = false,
+}) => {
+  const IconComponent =
+    iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
+
+  const iconColor = danger
+    ? theme.colors.error
+    : disabled
+    ? theme.colors.textSecondary + "60"
+    : theme.colors.text;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.menuItem,
+        disabled && styles.menuItemDisabled,
+        danger && styles.menuItemDanger,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
+    >
+      <View style={styles.menuItemContent}>
+        <IconComponent name={icon as any} size={22} color={iconColor} />
+        <Text
+          style={[
+            styles.menuItemText,
+            disabled && styles.menuItemTextDisabled,
+            danger && styles.menuItemTextDanger,
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+      {!disabled && (
+        <Ionicons
+          name="chevron-back"
+          size={20}
+          color={theme.colors.textSecondary}
+          style={styles.chevron}
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
+
+// --- Main Component ---
 const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   visible,
   onClose,
@@ -176,63 +116,48 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   onReplace,
   canMoveUp = true,
   canMoveDown = true,
-  isLoading = false,
-  loadingAction = "",
   isBatchMode = false,
   selectedExercises = [],
   onBatchDelete,
   onBatchMove,
-  showUndo,
 }) => {
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
-  const [currentAction, setCurrentAction] = useState<string>("");
-  const [previewMode, setPreviewMode] = useState<string | null>(null);
-  const [actionHistory, setActionHistory] = useState<Action[]>([]);
-
-  // הוספת state למעקב אחר ה-visible הקודם
-  // Adding state to track previous visible value
-  const [wasVisible, setWasVisible] = useState(visible);
-
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  // דיבוג חכם - הדפסה רק בשינוי ה-visibility
-  // Smart debug - print only on visibility change
-  useEffect(() => {
-    if (visible !== wasVisible) {
-      log(`Visibility changed: ${wasVisible} → ${visible}`, {
-        isBatchMode,
-        selectedExercisesCount: selectedExercises.length,
-        canMoveUp,
-        canMoveDown,
-      });
-      setWasVisible(visible);
-    }
-  }, [
-    visible,
-    wasVisible,
-    isBatchMode,
-    selectedExercises.length,
-    canMoveUp,
-    canMoveDown,
-  ]);
-
   // Animation effect
   useEffect(() => {
-    const toValue = visible ? 0 : 300;
-    const fadeToValue = visible ? 1 : 0;
-    const animationConfig = { duration: 300, useNativeDriver: true };
-
-    Animated.parallel([
-      Animated.timing(slideAnim, { toValue, ...animationConfig }),
-      Animated.timing(fadeAnim, { toValue: fadeToValue, ...animationConfig }),
-    ]).start();
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 85,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: screenHeight,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   }, [visible]);
 
-  // Swipe gesture handler
+  // Swipe gesture handlers
   const handleGestureEvent = Animated.event(
     [{ nativeEvent: { translationY: translateY } }],
     { useNativeDriver: true }
@@ -241,7 +166,6 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   const handleStateChange = ({ nativeEvent }: any) => {
     if (nativeEvent.state === State.END) {
       if (nativeEvent.translationY > 100) {
-        log("📱 Swipe down detected - closing menu");
         onClose();
       } else {
         Animated.spring(translateY, {
@@ -252,149 +176,43 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
     }
   };
 
-  // Execute with undo support
-  const executeWithUndo = async (
-    action: () => void | Promise<void>,
-    undoAction: () => void,
-    description: string
-  ) => {
-    log(`🔄 Executing action with undo: ${description}`);
-    try {
-      await action();
-      const newAction: Action = {
-        undo: undoAction,
-        timestamp: Date.now(),
-        description,
-      };
-      setActionHistory((prev) => [...prev, newAction]);
-
-      if (showUndo) {
-        showUndo(newAction);
-      }
-    } catch (error) {
-      console.error(`❌ Error executing action ${description}:`, error);
-    }
-  };
-
-  // Create handler with loading state
-  const createAndCloseHandler =
-    (
-      action: (() => void | Promise<void>) | undefined,
-      actionName: string,
-      undoAction?: () => void
-    ) =>
-    async () => {
-      log(`🚀 Action triggered: ${actionName}`);
-      if (action) {
-        setCurrentAction(actionName);
-        try {
-          if (undoAction) {
-            await executeWithUndo(action, undoAction, actionName);
-          } else {
-            await action();
-          }
-        } catch (error) {
-          console.error(`❌ Error in action ${actionName}:`, error);
-        } finally {
-          setCurrentAction("");
-          onClose();
-        }
-      }
-    };
-
-  // Preview handlers
-  const handlePreview = (mode: string) => {
-    log(`👁️ Preview mode activated: ${mode}`);
-    setPreviewMode(mode);
-  };
-
-  const confirmPreview = () => {
-    log(`✅ Preview confirmed: ${previewMode}`);
-    if (previewMode === "moveUp" && onMoveUp) {
-      createAndCloseHandler(onMoveUp, "moveUp")();
-    } else if (previewMode === "moveDown" && onMoveDown) {
-      createAndCloseHandler(onMoveDown, "moveDown")();
-    }
-    setPreviewMode(null);
-  };
-
-  const cancelPreview = () => {
-    log(`❌ Preview cancelled: ${previewMode}`);
-    setPreviewMode(null);
-  };
-
   // Delete confirmation
   const confirmDelete = () => {
+    const title = isBatchMode ? "מחיקת תרגילים" : "מחיקת תרגיל";
     const message = isBatchMode
-      ? `האם אתה בטוח שברצונך למחוק ${selectedExercises.length} תרגילים?`
-      : "האם אתה בטוח שברצונך למחוק את התרגיל?";
+      ? `למחוק ${selectedExercises.length} תרגילים?`
+      : "למחוק את התרגיל?";
 
-    log(`🗑️ Delete confirmation dialog shown`, {
-      isBatchMode,
-      selectedCount: selectedExercises.length,
-    });
-
-    Alert.alert("🗑️ מחיקת תרגיל", message, [
-      {
-        text: "ביטול",
-        style: "cancel",
-        onPress: () => log("❌ Delete cancelled"),
-      },
-      {
-        text: "מחק",
-        style: "destructive",
-        onPress: () => {
-          log("✅ Delete confirmed");
-          if (isBatchMode && onBatchDelete) {
-            createAndCloseHandler(onBatchDelete, "batchDelete")();
-          } else {
-            createAndCloseHandler(onDelete, "delete")();
-          }
+    Alert.alert(
+      title,
+      message,
+      [
+        {
+          text: "ביטול",
+          style: "cancel",
         },
-      },
-    ]);
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: () => {
+            if (isBatchMode && onBatchDelete) {
+              onBatchDelete();
+            } else {
+              onDelete();
+            }
+            onClose();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
-  // Batch actions
-  const batchActions: BatchAction[] = [
-    {
-      label: `מחק ${selectedExercises.length} תרגילים`,
-      icon: "trash-outline",
-      action: confirmDelete,
-      danger: true,
-    },
-    {
-      label: "הזז למעלה",
-      icon: "arrow-up-circle-outline",
-      action: () => onBatchMove?.("up"),
-      requiresConfirmation: false,
-    },
-    {
-      label: "הזז למטה",
-      icon: "arrow-down-circle-outline",
-      action: () => onBatchMove?.("down"),
-      requiresConfirmation: false,
-    },
-  ];
-
-  // Dynamic styles
-  const dynamicStyles = {
-    menuContainer: {
-      backgroundColor: isDark ? theme.colors.darkCard : theme.colors.card,
-    },
-    title: {
-      color: isDark ? theme.colors.darkText : theme.colors.text,
-    },
-  };
-
-  const handleOverlayPress = () => {
-    log("🎭 Overlay pressed - closing menu");
-    onClose();
-  };
-
-  const handleCancelPress = () => {
-    log("🚫 Cancel button pressed");
-    onClose();
+  const handleAction = (action?: () => void) => {
+    if (action) {
+      action();
+      onClose();
+    }
   };
 
   return (
@@ -404,162 +222,140 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
-      <GestureHandlerRootView style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={handleOverlayPress}
-          accessibilityLabel="סגור תפריט"
-          accessibilityRole="button"
+      <GestureHandlerRootView style={styles.modalContainer}>
+        <Animated.View
+          style={[
+            styles.backdrop,
+            {
+              opacity: fadeAnim,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={onClose}
+          />
+        </Animated.View>
+
+        <PanGestureHandler
+          onGestureEvent={handleGestureEvent}
+          onHandlerStateChange={handleStateChange}
         >
           <Animated.View
-            style={[styles.overlayBackground, { opacity: fadeAnim }]}
-          />
-
-          <PanGestureHandler
-            onGestureEvent={handleGestureEvent}
-            onHandlerStateChange={handleStateChange}
+            style={[
+              styles.menuSheet,
+              {
+                transform: [
+                  {
+                    translateY: Animated.add(
+                      slideAnim,
+                      translateY.interpolate({
+                        inputRange: [0, 1000],
+                        outputRange: [0, 1000],
+                        extrapolate: "clamp",
+                      })
+                    ),
+                  },
+                ],
+              },
+            ]}
           >
-            <Animated.View
-              style={[
-                styles.menuContainer,
-                dynamicStyles.menuContainer,
-                {
-                  transform: [
-                    { translateY: Animated.add(slideAnim, translateY) },
-                  ],
-                },
-              ]}
-              onStartShouldSetResponder={() => true}
-            >
-              <View style={styles.dragHandle} />
-              <View style={styles.header}>
-                <Text style={[styles.title, dynamicStyles.title]}>
-                  {isBatchMode
-                    ? `${selectedExercises.length} תרגילים נבחרו`
-                    : previewMode
-                    ? "תצוגה מקדימה"
-                    : "אפשרויות תרגיל"}
-                </Text>
-              </View>
+            {/* Handle */}
+            <View style={styles.handle} />
 
-              <ScrollView style={styles.scrollContainer}>
-                {previewMode ? (
-                  // Preview mode UI
-                  <View style={styles.previewContainer}>
-                    <Text style={styles.previewText}>
-                      {previewMode === "moveUp"
-                        ? "התרגיל יוזז מעלה"
-                        : "התרגיל יוזז מטה"}
-                    </Text>
-                    <View style={styles.previewActions}>
-                      <TouchableOpacity
-                        style={styles.previewButton}
-                        onPress={cancelPreview}
-                      >
-                        <Text style={styles.previewButtonText}>ביטול</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.previewButton,
-                          styles.previewButtonConfirm,
-                        ]}
-                        onPress={confirmPreview}
-                      >
-                        <Text style={styles.previewButtonTextConfirm}>אשר</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : isBatchMode ? (
-                  // Batch mode actions
+            {/* Title */}
+            <View style={styles.header}>
+              <Text style={styles.title}>
+                {isBatchMode
+                  ? `${selectedExercises.length} תרגילים נבחרו`
+                  : "אפשרויות תרגיל"}
+              </Text>
+            </View>
+
+            {/* Menu Items */}
+            <View style={styles.menuContent}>
+              {isBatchMode ? (
+                // Batch mode actions
+                <>
+                  <MenuItem
+                    icon="arrow-up"
+                    label="הזז למעלה"
+                    onPress={() => handleAction(() => onBatchMove?.("up"))}
+                  />
+                  <MenuItem
+                    icon="arrow-down"
+                    label="הזז למטה"
+                    onPress={() => handleAction(() => onBatchMove?.("down"))}
+                  />
+                  <View style={styles.separator} />
+                  <MenuItem
+                    icon="trash"
+                    label={`מחק ${selectedExercises.length} תרגילים`}
+                    onPress={confirmDelete}
+                    danger
+                  />
+                </>
+              ) : (
+                // Regular mode actions
+                <>
                   <View style={styles.section}>
-                    {batchActions.map((action, index) => (
-                      <MenuItem
-                        key={action.label}
-                        icon={action.icon as any}
-                        iconFamily={action.iconFamily}
-                        label={action.label}
-                        onPress={() =>
-                          createAndCloseHandler(action.action, action.label)()
-                        }
-                        danger={action.danger}
-                        isLoading={currentAction === action.label}
-                        index={index}
-                      />
-                    ))}
+                    <MenuItem
+                      icon="arrow-up"
+                      label="הזז למעלה"
+                      onPress={() => handleAction(onMoveUp)}
+                      disabled={!canMoveUp}
+                    />
+                    <MenuItem
+                      icon="arrow-down"
+                      label="הזז למטה"
+                      onPress={() => handleAction(onMoveDown)}
+                      disabled={!canMoveDown}
+                    />
                   </View>
-                ) : (
-                  // Regular mode actions
-                  <>
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="arrow-up-circle-outline"
-                        label="הזז למעלה"
-                        onPress={() => handlePreview("moveUp")}
-                        disabled={!canMoveUp}
-                        isLoading={currentAction === "moveUp"}
-                        index={0}
-                      />
-                      <MenuItem
-                        icon="arrow-down-circle-outline"
-                        label="הזז למטה"
-                        onPress={() => handlePreview("moveDown")}
-                        disabled={!canMoveDown}
-                        isLoading={currentAction === "moveDown"}
-                        index={1}
-                      />
-                    </View>
 
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="content-duplicate"
-                        iconFamily="material"
-                        label="שכפל תרגיל"
-                        onPress={createAndCloseHandler(
-                          onDuplicate,
-                          "duplicate"
-                        )}
-                        isLoading={currentAction === "duplicate"}
-                        index={2}
-                      />
-                      <MenuItem
-                        icon="swap-horizontal"
-                        iconFamily="material"
-                        label="החלף תרגיל"
-                        onPress={createAndCloseHandler(onReplace, "replace")}
-                        disabled={!onReplace}
-                        isLoading={currentAction === "replace"}
-                        index={3}
-                      />
-                    </View>
+                  <View style={styles.separator} />
 
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="trash-outline"
-                        label="מחק תרגיל"
-                        onPress={confirmDelete}
-                        danger
-                        isLoading={currentAction === "delete"}
-                        index={4}
-                      />
-                    </View>
-                  </>
-                )}
-              </ScrollView>
+                  <View style={styles.section}>
+                    <MenuItem
+                      icon="content-copy"
+                      iconFamily="material"
+                      label="שכפל תרגיל"
+                      onPress={() => handleAction(onDuplicate)}
+                    />
+                    <MenuItem
+                      icon="swap-horizontal"
+                      iconFamily="material"
+                      label="החלף תרגיל"
+                      onPress={() => handleAction(onReplace)}
+                      disabled={!onReplace}
+                    />
+                  </View>
 
-              <TouchableOpacity
-                style={[styles.cancelButton, isDark && styles.cancelButtonDark]}
-                onPress={handleCancelPress}
-              >
-                <Text
-                  style={[styles.cancelText, isDark && styles.cancelTextDark]}
-                >
-                  ביטול
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </PanGestureHandler>
-        </TouchableOpacity>
+                  <View style={styles.separator} />
+
+                  <View style={styles.section}>
+                    <MenuItem
+                      icon="trash"
+                      label="מחק תרגיל"
+                      onPress={confirmDelete}
+                      danger
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelText}>ביטול</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </PanGestureHandler>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -567,38 +363,39 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
 // --- Styles ---
 const styles = StyleSheet.create({
-  overlay: {
+  modalContainer: {
     flex: 1,
-    justifyContent: "flex-end",
   },
-  overlayBackground: {
+  backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  menuContainer: {
-    backgroundColor: theme.colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
+  menuSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+    maxHeight: screenHeight * 0.75,
     ...theme.shadows.large,
   },
-  scrollContainer: {
-    flexGrow: 0,
-  },
-  dragHandle: {
-    width: 40,
+  handle: {
+    width: 36,
     height: 4,
-    backgroundColor: theme.colors.divider,
+    backgroundColor: theme.colors.textSecondary + "40",
     borderRadius: 2,
     alignSelf: "center",
     marginTop: 12,
     marginBottom: 8,
   },
   header: {
-    paddingHorizontal: 20,
     paddingVertical: 12,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    borderBottomColor: theme.colors.cardBorder,
   },
   title: {
     fontSize: 18,
@@ -606,96 +403,67 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
   },
-  section: {
+  menuContent: {
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+  },
+  section: {
+    paddingVertical: 4,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: theme.colors.cardBorder,
+    marginVertical: 8,
+    marginHorizontal: 24,
   },
   menuItem: {
-    flexDirection: "row-reverse", // RTL fix!
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: "row-reverse",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    justifyContent: "space-between",
+  },
+  menuItemContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    flex: 1,
     gap: 16,
   },
   menuItemDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
-  menuItemPreview: {
-    backgroundColor: theme.colors.primaryLight + "20",
+  menuItemDanger: {
+    // לא צריך רקע - נשאיר נקי
   },
   menuItemText: {
     fontSize: 16,
     color: theme.colors.text,
+    textAlign: "right",
     flex: 1,
-    textAlign: "right", // RTL fix!
   },
   menuItemTextDisabled: {
     color: theme.colors.textSecondary,
   },
   menuItemTextDanger: {
     color: theme.colors.error,
-  },
-  menuItemTextPreview: {
-    color: theme.colors.primary,
     fontWeight: "500",
   },
-  menuItemTextDark: {
-    color: theme.colors.darkText,
+  chevron: {
+    opacity: 0.5,
   },
   cancelButton: {
-    marginTop: 16,
-    marginHorizontal: 20,
-    marginBottom: 30,
+    marginTop: 12,
+    marginHorizontal: 24,
     paddingVertical: 16,
-    backgroundColor: theme.colors.background,
-    borderRadius: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
     alignItems: "center",
-  },
-  cancelButtonDark: {
-    backgroundColor: theme.colors.darkBackground,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   cancelText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-  },
-  cancelTextDark: {
-    color: theme.colors.darkText,
-  },
-  // Preview styles
-  previewContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  previewText: {
-    fontSize: 18,
-    color: theme.colors.text,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  previewActions: {
-    flexDirection: "row-reverse", // RTL fix!
-    gap: 12,
-  },
-  previewButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  previewButtonConfirm: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  previewButtonText: {
-    fontSize: 16,
-    color: theme.colors.text,
-    textAlign: "center",
-  },
-  previewButtonTextConfirm: {
-    color: "#FFFFFF",
   },
 });
 

@@ -40,6 +40,40 @@ git push
 ---
 
 
+🔖 Checkpoint #016 - עיצוב מחדש של קומפוננטות RestTimer ו-ExerciseTipsModal
+🗓️ תאריך: 2025-01-22
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+RestTimer - גרסה ראשונה מפוארת: עיצוב עם אנימציות מתקדמות, blur effects, גרדיאנטים מרובים ואפקטים ויזואליים עשירים
+RestTimer - גרסה משופרת: לאחר משוב על עומס ויזואלי, פשטתי לעיצוב נקי ומקצועי יותר
+ExerciseTipsModal - גרסה ראשונה: עיצוב עמוס עם טאבים, אנימציות staggered ואפקטים מרובים
+ExerciseTipsModal - גרסה סופית: עיצוב נקי ומינימליסטי לפי דרישת המשתמש
+ExerciseMenu - שכתוב מלא: פישוט קיצוני של הקוד, הסרת debug logs ו-features מיותרים
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: גישה של "יותר זה יותר" - ניסיון להרשים עם אפקטים מוגזמים
+פתרון: חזרה לעקרונות עיצוב נקי ומקצועי - "פחות זה יותר"
+לקח לעתיד: להתחיל עם עיצוב פשוט ולהוסיף complexity רק אם המשתמש מבקש
+שגיאה: קוד מורכב מדי ב-ExerciseMenu עם features מיותרים
+פתרון: שכתוב מאפס עם פוקוס על פונקציונליות הליבה בלבד
+לקח לעתיד: YAGNI (You Aren't Gonna Need It) - לא להוסיף features שלא נדרשו
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/workout/components/RestTimer.tsx (עיצוב מחדש)
+src/screens/workout/components/ExerciseTipsModal.tsx (פישוט משמעותי)
+src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx (שכתוב מלא)
+
+🚀 השלב הבא:
+
+בדיקת האינטגרציה של הקומפוננטות המעודכנות
+המשך שיפור קומפוננטות נוספות לפי הצורך
+יישום הגישה המינימליסטית בקומפוננטות חדשות
+
+
 
 🔖 Checkpoint #015 - תיקון שגיאות TypeScript בקומפוננטות ExerciseCard ו-QuickWorkoutScreen
 🗓️ תאריך: 2025-01-22
