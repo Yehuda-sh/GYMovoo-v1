@@ -42,7 +42,7 @@ interface BatchAction {
 }
 
 type MenuItemProps = {
-  icon: string; // שינוי לסוג כללי
+  icon: string;
   iconFamily?: "ionicons" | "material";
   label: string;
   onPress: () => void;
@@ -172,8 +172,29 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   const [previewMode, setPreviewMode] = useState<string | null>(null);
   const [actionHistory, setActionHistory] = useState<Action[]>([]);
 
+  // הוספת state למעקב אחר ה-visible הקודם
+  // Adding state to track previous visible value
+  const [wasVisible, setWasVisible] = useState(visible);
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  // דיבוג חכם - הדפסה רק בשינוי ה-visibility
+  // Smart debug - print only on visibility change
+  useEffect(() => {
+    if (visible !== wasVisible) {
+      console.log(
+        `🔷 ExerciseMenu visibility changed: ${wasVisible} → ${visible}`,
+        {
+          isBatchMode,
+          selectedExercisesCount: selectedExercises.length,
+          canMoveUp,
+          canMoveDown,
+        }
+      );
+      setWasVisible(visible);
+    }
+  }, [visible, wasVisible]);
 
   // Animation effect
   useEffect(() => {
@@ -196,6 +217,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   const handleStateChange = ({ nativeEvent }: any) => {
     if (nativeEvent.state === State.END) {
       if (nativeEvent.translationY > 100) {
+        console.log("📱 Swipe down detected - closing menu");
         onClose();
       } else {
         Animated.spring(translateY, {
@@ -212,6 +234,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
     undoAction: () => void,
     description: string
   ) => {
+    console.log(`🔄 Executing action with undo: ${description}`);
     try {
       await action();
       const newAction: Action = {
@@ -225,7 +248,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
         showUndo(newAction);
       }
     } catch (error) {
-      console.error("Error executing action:", error);
+      console.error(`❌ Error executing action ${description}:`, error);
     }
   };
 
@@ -237,6 +260,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
       undoAction?: () => void
     ) =>
     async () => {
+      console.log(`🚀 Action triggered: ${actionName}`);
       if (action) {
         setCurrentAction(actionName);
         try {
@@ -245,6 +269,8 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
           } else {
             await action();
           }
+        } catch (error) {
+          console.error(`❌ Error in action ${actionName}:`, error);
         } finally {
           setCurrentAction("");
           onClose();
@@ -254,10 +280,12 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
   // Preview handlers
   const handlePreview = (mode: string) => {
+    console.log(`👁️ Preview mode: ${mode}`);
     setPreviewMode(mode);
   };
 
   const confirmPreview = () => {
+    console.log(`✅ Preview confirmed: ${previewMode}`);
     if (previewMode === "moveUp" && onMoveUp) {
       createAndCloseHandler(onMoveUp, "moveUp")();
     } else if (previewMode === "moveDown" && onMoveDown) {
@@ -272,26 +300,29 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
   // Delete confirmation
   const confirmDelete = () => {
-    Alert.alert(
-      "🗑️ מחיקת תרגיל",
-      isBatchMode
-        ? `האם אתה בטוח שברצונך למחוק ${selectedExercises.length} תרגילים?`
-        : "האם אתה בטוח שברצונך למחוק את התרגיל?",
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            if (isBatchMode && onBatchDelete) {
-              createAndCloseHandler(onBatchDelete, "batchDelete")();
-            } else {
-              createAndCloseHandler(onDelete, "delete")();
-            }
-          },
+    const message = isBatchMode
+      ? `האם אתה בטוח שברצונך למחוק ${selectedExercises.length} תרגילים?`
+      : "האם אתה בטוח שברצונך למחוק את התרגיל?";
+
+    console.log(`🗑️ Delete confirmation - batch: ${isBatchMode}`);
+
+    Alert.alert("🗑️ מחיקת תרגיל", message, [
+      {
+        text: "ביטול",
+        style: "cancel",
+      },
+      {
+        text: "מחק",
+        style: "destructive",
+        onPress: () => {
+          if (isBatchMode && onBatchDelete) {
+            createAndCloseHandler(onBatchDelete, "batchDelete")();
+          } else {
+            createAndCloseHandler(onDelete, "delete")();
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Batch actions

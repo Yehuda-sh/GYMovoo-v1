@@ -7,10 +7,12 @@
 // סוגי סטים
 // Set types
 export type SetType =
+  | "normal"
   | "warmup"
   | "working"
   | "dropset"
   | "failure"
+  | "restpause"
   | "rest-pause";
 
 // סט בודד
@@ -20,7 +22,7 @@ export interface Set {
   reps?: number;
   weight?: number;
   completed: boolean;
-  type?: "normal" | "warmup" | "dropset" | "restpause" | "failure";
+  type?: SetType; // שימוש ב-SetType במקום רשימה נפרדת
   rpe?: number; // Rate of Perceived Exertion (1-10)
   rir?: number; // Reps in Reserve
   notes?: string;
