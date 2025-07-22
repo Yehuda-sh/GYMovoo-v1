@@ -1,7 +1,9 @@
 /**
  * @file src/screens/workout/components/NextExerciseBar.tsx
  * @description רכיב קומפקטי המציג את התרגיל הבא
+ * English: Compact component displaying the next exercise
  */
+
 import React, { useEffect, useRef } from "react";
 import {
   View,
@@ -50,13 +52,17 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
           </Text>
         </View>
         {onSkipToNext && (
-          <TouchableOpacity style={styles.skipButton} onPress={onSkipToNext}>
-            <Text style={styles.skipText}>דלג</Text>
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={onSkipToNext}
+            activeOpacity={0.7}
+          >
             <MaterialCommunityIcons
               name="play-speed"
               size={20}
               color={theme.colors.primary}
             />
+            <Text style={styles.skipText}>דלג</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -77,7 +83,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Safe area for home indicator
   },
   content: {
-    flexDirection: "row-reverse", // שינוי RTL: הפך את כיוון הפריסה
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
@@ -88,7 +94,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-    marginRight: 8, // הוספת מרווח מהכפתור
+    marginLeft: 8, // שינוי ל-marginLeft במקום marginRight
   },
   label: {
     fontSize: 14,

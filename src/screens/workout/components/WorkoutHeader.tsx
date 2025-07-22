@@ -1,7 +1,9 @@
 /**
  * @file src/screens/workout/components/WorkoutHeader.tsx
  * @description הדר אימון קומפקטי ומשופר
+ * English: Compact and improved workout header
  */
+
 import React from "react";
 import {
   View,
@@ -32,15 +34,28 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* כפתור תפריט - בצד ימין */}
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={() => {
+          /* TODO: Open Menu */
+        }}
         style={styles.iconButton}
+        activeOpacity={0.7}
       >
-        <Ionicons name={backIconName} size={32} color={theme.colors.text} />
+        <Ionicons
+          name="ellipsis-horizontal"
+          size={28}
+          color={theme.colors.text}
+        />
       </TouchableOpacity>
 
+      {/* תוכן מרכזי */}
       <View style={styles.centerContainer}>
-        <TouchableOpacity onPress={onNamePress} style={styles.nameContainer}>
+        <TouchableOpacity
+          onPress={onNamePress}
+          style={styles.nameContainer}
+          activeOpacity={0.7}
+        >
           <Text style={styles.workoutName} numberOfLines={1}>
             {workoutName}
           </Text>
@@ -50,27 +65,28 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
             color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onTimerPress} style={styles.timerContainer}>
+
+        <TouchableOpacity
+          onPress={onTimerPress}
+          style={styles.timerContainer}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.timerText}>{elapsedTime}</Text>
           <Ionicons
             name="timer-outline"
             size={18}
             color={theme.colors.primary}
           />
-          <Text style={styles.timerText}>{elapsedTime}</Text>
         </TouchableOpacity>
       </View>
 
+      {/* כפתור חזרה - בצד שמאל */}
       <TouchableOpacity
-        onPress={() => {
-          /* TODO: Open Menu */
-        }}
+        onPress={() => navigation.goBack()}
         style={styles.iconButton}
+        activeOpacity={0.7}
       >
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={28}
-          color={theme.colors.text}
-        />
+        <Ionicons name={backIconName} size={32} color={theme.colors.text} />
       </TouchableOpacity>
     </View>
   );
@@ -78,7 +94,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop: 50,
@@ -106,9 +122,10 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 20,
     fontWeight: "bold",
+    textAlign: "right", // הוספת יישור לימין
   },
   timerContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     alignItems: "center",
     backgroundColor: theme.colors.card,
     paddingHorizontal: 12,

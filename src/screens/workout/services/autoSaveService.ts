@@ -5,7 +5,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert } from "react-native";
+import { Alert, I18nManager } from "react-native";
 import { Workout, WorkoutDraft } from "../types/workout.types";
 import { AUTO_SAVE } from "../utils/workoutConstants";
 
@@ -65,7 +65,10 @@ class AutoSaveService {
         JSON.stringify(draft)
       );
 
-      console.log("💾 אימון נשמר אוטומטית:", new Date().toLocaleTimeString());
+      console.log(
+        "💾 אימון נשמר אוטומטית:",
+        new Date().toLocaleTimeString("he-IL")
+      );
     } catch (error) {
       console.error("Error saving workout:", error);
     }
@@ -129,31 +132,62 @@ class AutoSaveService {
     return new Promise((resolve) => {
       const latestDraft = drafts[0];
       const savedDate = new Date(latestDraft.lastSaved);
-      const formattedDate = savedDate.toLocaleString("he-IL");
+      const formattedDate = savedDate.toLocaleString("he-IL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // סדר כפתורים מותאם ל-RTL
+      // Button order adapted for RTL
+      const buttons = I18nManager.isRTL
+        ? [
+            {
+              text: "שחזר",
+              style: "default" as const,
+              onPress: () => resolve(latestDraft),
+            },
+            {
+              text: "התחל חדש",
+              style: "cancel" as const,
+              onPress: () => resolve(null),
+            },
+            {
+              text: "מחק",
+              style: "destructive" as const,
+              onPress: async () => {
+                await this.deleteDraft(latestDraft.workout.id);
+                resolve(null);
+              },
+            },
+          ]
+        : [
+            {
+              text: "מחק",
+              style: "destructive" as const,
+              onPress: async () => {
+                await this.deleteDraft(latestDraft.workout.id);
+                resolve(null);
+              },
+            },
+            {
+              text: "התחל חדש",
+              style: "cancel" as const,
+              onPress: () => resolve(null),
+            },
+            {
+              text: "שחזר",
+              style: "default" as const,
+              onPress: () => resolve(latestDraft),
+            },
+          ];
 
       Alert.alert(
         "🔄 נמצאה טיוטת אימון",
         `נמצא אימון לא גמור מ-${formattedDate}\n"${latestDraft.workout.name}"\n\nהאם לשחזר?`,
-        [
-          {
-            text: "מחק",
-            style: "destructive",
-            onPress: async () => {
-              await this.deleteDraft(latestDraft.workout.id);
-              resolve(null);
-            },
-          },
-          {
-            text: "התחל חדש",
-            style: "cancel",
-            onPress: () => resolve(null),
-          },
-          {
-            text: "שחזר",
-            style: "default",
-            onPress: () => resolve(latestDraft),
-          },
-        ],
+        buttons,
         { cancelable: false }
       );
     });

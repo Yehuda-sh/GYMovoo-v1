@@ -381,13 +381,15 @@ const ExerciseCardHeader = React.memo<HeaderProps>(
               </View>
             )}
             <TouchableOpacity
-              onPress={() => {
+              onPress={(e) => {
+                e.stopPropagation();
                 log("🔍 Exercise tips button clicked", {
                   exerciseName: exercise.name,
                 });
                 onShowTips();
               }}
               style={styles.infoButton}
+              activeOpacity={0.7}
             >
               <Ionicons
                 name="information-circle-outline"
@@ -513,6 +515,8 @@ const ExerciseCardContent = React.memo<ContentProps>(
         data={exercise.sets}
         keyExtractor={(item) => item.id}
         onDragEnd={({ data }) => onReorderSets(data)}
+        removeClippedSubviews={false}
+        nestedScrollEnabled={true}
         renderItem={({
           item,
           drag,
@@ -827,6 +831,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    overflow: "visible",
   },
   prContainer: {
     borderColor: theme.colors.warning,
@@ -848,7 +853,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    zIndex: 10,
+    zIndex: 5,
   },
   prBadgeText: {
     color: theme.colors.white || "#FFFFFF",
@@ -859,7 +864,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 16,
-    zIndex: 10,
+    zIndex: 5,
   },
   header: {
     flexDirection: "row-reverse",
@@ -905,7 +910,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   infoButton: {
-    padding: 2,
+    padding: 8,
+    zIndex: 10,
+    hitSlop: { top: 10, bottom: 10, left: 10, right: 10 },
   },
   exerciseName: {
     fontSize: 18,
@@ -969,7 +976,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   contentWrapper: {
-    overflow: "hidden",
+    overflow: "visible",
   },
   content: {
     borderTopWidth: 1,

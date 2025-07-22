@@ -3,6 +3,7 @@
  * @description מודל טיפים לביצוע תרגיל עם אנימציות ועיצוב משופר
  * English: Exercise tips modal with animations and improved design
  */
+// cspell:ignore באיטיות, טרייספס, סקוואט, דדליפט, אקסטנשן
 
 import React, { useEffect, useRef } from "react";
 import {
@@ -182,15 +183,11 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
             style={styles.headerGradient}
           >
             <View style={styles.header}>
-              <View style={{ width: 32 }} />
-              <View style={styles.headerCenter}>
-                <Text style={styles.title}>{exerciseName}</Text>
-                <Text style={styles.subtitle}>מדריך ביצוע מקצועי</Text>
-              </View>
               <TouchableOpacity
                 onPress={onClose}
                 accessibilityLabel="סגור מודל טיפים"
                 accessibilityRole="button"
+                activeOpacity={0.7}
               >
                 <Ionicons
                   name="close-circle"
@@ -198,6 +195,11 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
                   color={theme.colors.white}
                 />
               </TouchableOpacity>
+              <View style={styles.headerCenter}>
+                <Text style={styles.title}>{exerciseName}</Text>
+                <Text style={styles.subtitle}>מדריך ביצוע מקצועי</Text>
+              </View>
+              <View style={{ width: 32 }} />
             </View>
           </LinearGradient>
 
@@ -332,6 +334,7 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
               style={styles.shareButton}
               onPress={shareTips}
               accessibilityLabel="שתף טיפים"
+              activeOpacity={0.7}
             >
               <Ionicons
                 name="share-social"
@@ -345,6 +348,7 @@ export const ExerciseTipsModal: React.FC<ExerciseTipsModalProps> = ({
               style={styles.closeButton}
               onPress={onClose}
               accessibilityLabel="הבנתי"
+              activeOpacity={0.7}
             >
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
@@ -366,6 +370,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 9999,
+    elevation: 999,
   },
   modalContent: {
     backgroundColor: theme.colors.background,
@@ -373,6 +379,8 @@ const styles = StyleSheet.create({
     width: "92%",
     maxHeight: "85%",
     ...theme.shadows.large,
+    zIndex: 10000,
+    elevation: 1000,
   },
   headerGradient: {
     borderTopLeftRadius: theme.borderRadius.xl,
@@ -400,6 +408,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
     marginTop: 4,
+    textAlign: "center",
   },
   scrollContent: {
     padding: theme.spacing.lg,
@@ -449,6 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: theme.colors.text,
+    textAlign: "right",
   },
   tipItem: {
     flexDirection: "row-reverse",
@@ -476,6 +486,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     lineHeight: 24,
+    textAlign: "right",
   },
   mistakeItem: {
     flexDirection: "row-reverse",
@@ -489,6 +500,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     lineHeight: 24,
+    textAlign: "right",
   },
   bonusTip: {
     flexDirection: "row-reverse",
@@ -508,6 +520,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 22,
     fontWeight: "500",
+    textAlign: "right",
   },
   actions: {
     flexDirection: "row-reverse",

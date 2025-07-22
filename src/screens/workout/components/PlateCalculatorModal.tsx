@@ -27,11 +27,13 @@ interface PlateCalculatorModalProps {
 }
 
 // הגדרות המחשבון
+// Calculator settings
 const PLATE_WEIGHTS = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BAR_WEIGHT = 20;
 const WEIGHT_INCREMENT = 2.5;
 
 // פונקציית עזר לקבלת צבע הפלטה
+// Helper function to get plate color
 const getPlateColor = (weight: number): string => {
   const colors: { [key: number]: string } = {
     25: "#D92D20", // אדום
@@ -122,30 +124,31 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
         >
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.header}>
-              <View style={{ width: 28 }} />
-              <Text style={styles.title}>מחשבון פלטות</Text>
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
                 <Ionicons
                   name="close-circle"
                   size={28}
                   color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
+              <Text style={styles.title}>מחשבון פלטות</Text>
+              <View style={{ width: 28 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.inputLabel}>משקל יעד</Text>
               <View style={styles.inputContainer}>
                 <TouchableOpacity
                   style={styles.incrementButton}
-                  onPress={() => handleWeightChange(-WEIGHT_INCREMENT)}
+                  onPress={() => handleWeightChange(WEIGHT_INCREMENT)}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons
-                    name="remove"
-                    size={24}
-                    color={theme.colors.primary}
-                  />
+                  <Ionicons name="add" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
+                <Text style={styles.kgLabel}>ק"ג</Text>
                 <TextInput
                   style={styles.input}
                   value={targetWeight.toString()}
@@ -155,12 +158,16 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   keyboardType="numeric"
                   selectTextOnFocus
                 />
-                <Text style={styles.kgLabel}>ק"ג</Text>
                 <TouchableOpacity
                   style={styles.incrementButton}
-                  onPress={() => handleWeightChange(WEIGHT_INCREMENT)}
+                  onPress={() => handleWeightChange(-WEIGHT_INCREMENT)}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name="remove"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -254,6 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: theme.colors.text,
+    textAlign: "center", // הוספת יישור למרכז
   },
   inputLabel: {
     fontSize: 14,
@@ -263,7 +271,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.lg,
   },
   inputContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
@@ -284,7 +292,7 @@ const styles = StyleSheet.create({
   kgLabel: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-    marginRight: theme.spacing.sm,
+    marginHorizontal: theme.spacing.sm, // שינוי ל-marginHorizontal
   },
   barVisualization: {
     flexDirection: "row",
@@ -329,11 +337,13 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: "right", // הוספת יישור לימין
   },
   summaryValue: {
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
+    textAlign: "left", // הוספת יישור לשמאל
   },
   divider: {
     height: 1,
@@ -344,11 +354,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     fontWeight: "bold",
+    textAlign: "right", // הוספת יישור לימין
   },
   totalValue: {
     fontSize: 16,
     color: theme.colors.primary,
     fontWeight: "bold",
+    textAlign: "left", // הוספת יישור לשמאל
   },
   warningText: {
     fontSize: 12,

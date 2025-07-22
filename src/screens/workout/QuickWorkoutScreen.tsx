@@ -1,6 +1,7 @@
 /**
  * @file src/screens/workout/QuickWorkoutScreen.tsx
  * @description מסך אימון מהיר עם עיצוב משופר וקומפקטי
+ * English: Quick workout screen with improved and compact design
  */
 // cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד
 
@@ -20,7 +21,7 @@ import {
   TouchableOpacity,
   Text,
   FlatList,
-  Animated, // הוספת Animated
+  Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -32,8 +33,6 @@ import { WorkoutDashboard } from "./components/WorkoutDashboard";
 import { RestTimer } from "./components/RestTimer";
 import { ExerciseCard } from "./components/ExerciseCard";
 import { NextExerciseBar } from "./components/NextExerciseBar";
-import { SimpleExercisePicker } from "./components/SimpleExercisePicker";
-
 import { WorkoutSummary } from "./components/WorkoutSummary";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ExerciseTipsModal } from "./components/ExerciseTipsModal";
@@ -95,10 +94,12 @@ const initialExercises: Exercise[] = [
   },
 ];
 
-// ... (ה-Hook useWorkoutManager נשאר זהה)
+// Hook לניהול האימון
+// Workout management hook
 const useWorkoutManager = (initialData: Exercise[]) => {
   const [workoutName, setWorkoutName] = useState("אימון מהיר");
   const [exercises, setExercises] = useState<Exercise[]>(initialData);
+
   const handleUpdateSet = useCallback(
     (exerciseId: string, setId: string, updates: Partial<Set>) => {
       setExercises((prev) =>
@@ -116,6 +117,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
     },
     []
   );
+
   const handleAddSet = useCallback((exerciseId: string) => {
     setExercises((prev) =>
       prev.map((ex) => {
@@ -135,6 +137,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
       })
     );
   }, []);
+
   const handleDeleteSet = useCallback((exerciseId: string, setId: string) => {
     setExercises((prev) =>
       prev.map((ex) =>
@@ -144,6 +147,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
       )
     );
   }, []);
+
   const handleDeleteExercise = useCallback((exerciseId: string) => {
     Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק תרגיל זה?", [
       { text: "ביטול", style: "cancel" },
@@ -155,6 +159,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
       },
     ]);
   }, []);
+
   const handleDuplicateExercise = useCallback(
     (exerciseId: string) => {
       const exerciseToDuplicate = exercises.find((ex) => ex.id === exerciseId);
@@ -175,6 +180,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
     },
     [exercises]
   );
+
   const handleAddExercise = useCallback((exerciseOption: any) => {
     const newExercise: Exercise = {
       ...exerciseOption,
@@ -192,6 +198,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
     setExercises((prev) => [...prev, newExercise]);
     return newExercise.id;
   }, []);
+
   const handleReorderSets = useCallback(
     (exerciseId: string, reorderedSets: Set[]) => {
       setExercises((prev) =>
@@ -202,6 +209,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
     },
     []
   );
+
   return {
     workoutName,
     setWorkoutName,
@@ -218,7 +226,8 @@ const useWorkoutManager = (initialData: Exercise[]) => {
   };
 };
 
-// --- קומפוננטה ראשית ---
+// קומפוננטה ראשית
+// Main component
 export const QuickWorkoutScreen = () => {
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList>(null);
@@ -262,9 +271,10 @@ export const QuickWorkoutScreen = () => {
   });
 
   // אנימציית הדשבורד
+  // Dashboard animation
   useEffect(() => {
     Animated.spring(dashboardAnim, {
-      toValue: isDashboardVisible ? 0 : -250, // ערך שלילי גדול יותר כדי להסתיר לגמרי
+      toValue: isDashboardVisible ? 0 : -250,
       useNativeDriver: true,
     }).start();
   }, [isDashboardVisible]);
@@ -273,6 +283,7 @@ export const QuickWorkoutScreen = () => {
   useEffect(() => {
     startTimer();
   }, []);
+
   useEffect(() => {
     if (exercises.length > 0 && isRunning) {
       const workoutData: WorkoutData = {
@@ -328,6 +339,26 @@ export const QuickWorkoutScreen = () => {
     );
   };
 
+  const handleEditWorkoutName = () => {
+    Alert.prompt(
+      "שם האימון",
+      "הכנס שם חדש לאימון",
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "אישור",
+          onPress: (newName) => {
+            if (newName && newName.trim()) {
+              setWorkoutName(newName.trim());
+            }
+          },
+        },
+      ],
+      "plain-text",
+      workoutName
+    );
+  };
+
   if (showSummary) {
     return (
       <WorkoutSummary
@@ -354,9 +385,7 @@ export const QuickWorkoutScreen = () => {
           workoutName={workoutName}
           elapsedTime={formattedElapsedTime}
           onTimerPress={() => setDashboardVisible((prev) => !prev)}
-          onNamePress={() => {
-            /* TODO: Implement name editing modal */
-          }}
+          onNamePress={handleEditWorkoutName}
         />
 
         {isResting && (
@@ -379,6 +408,7 @@ export const QuickWorkoutScreen = () => {
           style={styles.listStyle}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={false}
           renderItem={({ item: exercise, index }) => (
             <ExerciseCard
               exercise={exercise}
@@ -426,6 +456,7 @@ export const QuickWorkoutScreen = () => {
                     },
                   });
                 }}
+                activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="plus"
@@ -440,6 +471,7 @@ export const QuickWorkoutScreen = () => {
                   pauseTimer();
                   setShowSummary(true);
                 }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.finishButtonText}>סיים אימון</Text>
               </TouchableOpacity>
@@ -470,27 +502,30 @@ export const QuickWorkoutScreen = () => {
         />
       </KeyboardAvoidingView>
 
-      {/* המודלים מחוץ ל-KeyboardAvoidingView */}
-      <PlateCalculatorModal
-        visible={modals.plateCalculator}
-        onClose={() =>
-          setModals((prev) => ({ ...prev, plateCalculator: false }))
-        }
-        currentWeight={modalData.plateCalculatorWeight}
-      />
+      {/* Modals wrapper עם z-index גבוה */}
+      <View style={styles.modalsWrapper} pointerEvents="box-none">
+        <PlateCalculatorModal
+          visible={modals.plateCalculator}
+          onClose={() =>
+            setModals((prev) => ({ ...prev, plateCalculator: false }))
+          }
+          currentWeight={modalData.plateCalculatorWeight}
+        />
 
-      <ExerciseTipsModal
-        visible={modals.exerciseTips}
-        onClose={() => {
-          console.log("🚫 ExerciseTipsModal onClose called");
-          setModals((prev) => ({ ...prev, exerciseTips: false }));
-        }}
-        exerciseName={modalData.selectedExercise?.name || ""}
-      />
+        <ExerciseTipsModal
+          visible={modals.exerciseTips}
+          onClose={() => {
+            console.log("🚫 ExerciseTipsModal onClose called");
+            setModals((prev) => ({ ...prev, exerciseTips: false }));
+          }}
+          exerciseName={modalData.selectedExercise?.name || ""}
+        />
+      </View>
     </>
   );
 };
 
+// הוסף את הסגנונות החדשים:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -504,7 +539,7 @@ const styles = StyleSheet.create({
     paddingBottom: 150,
   },
   addExerciseButton: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -516,11 +551,11 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderRadius: 16,
   },
-  // תיקון: הוספת הגדרת הסגנון החסרה
   addExerciseText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.primary,
+    textAlign: "right",
   },
   finishButton: {
     backgroundColor: theme.colors.success,
@@ -531,17 +566,26 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   finishButtonText: {
-    color: theme.colors.white,
+    color: theme.colors.white || "#FFFFFF",
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
   },
   dashboardContainer: {
     position: "absolute",
-    top: 100, // מיקום מתחת להדר
+    top: 100,
     left: 0,
     right: 0,
     zIndex: 10,
   },
+  // הסגנון החדש למודלים
+  modalsWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    elevation: 999, // עבור Android
+  },
 });
-
-export default QuickWorkoutScreen;

@@ -43,6 +43,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   // אנימציית כניסה
+  // Entry animation
   useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: 0,
@@ -53,6 +54,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   }, []);
 
   // אנימציית התקדמות
+  // Progress animation
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progress,
@@ -62,6 +64,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   }, [progress]);
 
   // אנימציית פעימה עם פונקציית ניקוי
+  // Pulse animation with cleanup
   useEffect(() => {
     let pulseAnimation: Animated.CompositeAnimation | null = null;
     if (timeLeft > 0 && timeLeft <= 5 && !isPaused) {
@@ -112,23 +115,28 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       >
         <View style={styles.header}>
           <Text style={styles.title}>⏱️ זמן מנוחה</Text>
-          <TouchableOpacity onPress={onSkip} style={styles.skipButton}>
-            <Text style={styles.skipText}>דלג</Text>
+          <TouchableOpacity
+            onPress={onSkip}
+            style={styles.skipButton}
+            activeOpacity={0.7}
+          >
             <Ionicons
               name="play-skip-forward"
               size={18}
               color={theme.colors.primary}
             />
+            <Text style={styles.skipText}>דלג</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.mainContent}>
           <TouchableOpacity
-            onPress={() => onSubtractTime(15)}
+            onPress={() => onAddTime(15)}
             style={styles.timeButton}
+            activeOpacity={0.7}
           >
-            <Ionicons name="remove" size={24} color={theme.colors.text} />
-            <Text style={styles.timeButtonText}>-15</Text>
+            <Ionicons name="add" size={24} color={theme.colors.text} />
+            <Text style={styles.timeButtonText}>+15</Text>
           </TouchableOpacity>
 
           <Animated.View
@@ -137,7 +145,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               { transform: [{ scale: pulseAnim }] },
             ]}
           >
-            <TouchableOpacity onPress={onPause}>
+            <TouchableOpacity onPress={onPause} activeOpacity={0.7}>
               <Text
                 style={[
                   styles.timerText,
@@ -151,7 +159,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                   <Ionicons
                     name={"play"}
                     size={24}
-                    color={`${theme.colors.white}99`}
+                    color={theme.colors.white}
                   />
                 </View>
               )}
@@ -159,11 +167,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           </Animated.View>
 
           <TouchableOpacity
-            onPress={() => onAddTime(15)}
+            onPress={() => onSubtractTime(15)}
             style={styles.timeButton}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={24} color={theme.colors.text} />
-            <Text style={styles.timeButtonText}>+15</Text>
+            <Ionicons name="remove" size={24} color={theme.colors.text} />
+            <Text style={styles.timeButtonText}>-15</Text>
           </TouchableOpacity>
         </View>
 
@@ -211,7 +220,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   header: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -221,9 +230,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
+    textAlign: "right", // הוספת יישור לימין
   },
   skipButton: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -237,7 +247,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   mainContent: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // תיקון RTL
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -263,7 +273,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#00000080", // תיקון: שימוש בצבע שחור חצי-שקוף
+    backgroundColor: `${theme.colors.background}CC`, // שימוש בצבע מה-theme
   },
   timeButton: {
     alignItems: "center",
@@ -289,11 +299,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginBottom: 4,
+    textAlign: "right", // הוספת יישור לימין
   },
   nextSetDetails: {
     fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text,
+    textAlign: "right", // הוספת יישור לימין
   },
   progressBar: {
     height: 6,

@@ -7,7 +7,8 @@
 const DEBUG = true;
 const log = (message: string, data?: any) => {
   if (DEBUG) {
-    console.log(`💪 [SetRow] ${message}`, data || "");
+    const timestamp = new Date().toLocaleTimeString("he-IL");
+    console.log(`💪 [SetRow ${timestamp}] ${message}`, data || "");
   }
 };
 
