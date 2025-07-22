@@ -122,15 +122,13 @@ const useWorkoutManager = (initialData: Exercise[]) => {
     setExercises((prev) =>
       prev.map((ex) => {
         if (ex.id !== exerciseId) return ex;
-        const lastSet = ex.sets[ex.sets.length - 1] || {};
+        const lastSet = ex.sets[ex.sets.length - 1];
         const newSet: Set = {
-          id: `${Date.now()}`,
+          id: `${exerciseId}-${Date.now()}`,
           type: "working",
+          targetReps: lastSet?.targetReps || 10,
+          targetWeight: lastSet?.targetWeight || 0,
           completed: false,
-          reps: lastSet.targetReps || 12,
-          weight: lastSet.targetWeight || 0,
-          previousReps: lastSet.reps,
-          previousWeight: lastSet.weight,
           isPR: false,
         };
         return { ...ex, sets: [...ex.sets, newSet] };
@@ -149,48 +147,44 @@ const useWorkoutManager = (initialData: Exercise[]) => {
   }, []);
 
   const handleDeleteExercise = useCallback((exerciseId: string) => {
-    Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק תרגיל זה?", [
-      { text: "ביטול", style: "cancel" },
-      {
-        text: "מחק",
-        style: "destructive",
-        onPress: () =>
-          setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId)),
-      },
-    ]);
+    setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
   }, []);
 
-  const handleDuplicateExercise = useCallback(
-    (exerciseId: string) => {
-      const exerciseToDuplicate = exercises.find((ex) => ex.id === exerciseId);
-      if (!exerciseToDuplicate) return;
-      const duplicatedExercise: Exercise = {
-        ...exerciseToDuplicate,
-        id: `${Date.now()}`,
-        sets: exerciseToDuplicate.sets.map((set) => ({
+  const handleDuplicateExercise = useCallback((exerciseId: string) => {
+    setExercises((prev) => {
+      const index = prev.findIndex((ex) => ex.id === exerciseId);
+      if (index === -1) return prev;
+      const original = prev[index];
+      const duplicate: Exercise = {
+        ...original,
+        id: `${exerciseId}-copy-${Date.now()}`,
+        sets: original.sets.map((set) => ({
           ...set,
-          id: `${Date.now()}-${set.id}`,
+          id: `${set.id}-copy-${Date.now()}`,
           completed: false,
         })),
       };
-      const index = exercises.findIndex((ex) => ex.id === exerciseId);
-      const newExercises = [...exercises];
-      newExercises.splice(index + 1, 0, duplicatedExercise);
-      setExercises(newExercises);
-    },
-    [exercises]
-  );
+      const newExercises = [...prev];
+      newExercises.splice(index + 1, 0, duplicate);
+      return newExercises;
+    });
+  }, []);
 
-  const handleAddExercise = useCallback((exerciseOption: any) => {
+  const handleAddExercise = useCallback((exercise: any) => {
     const newExercise: Exercise = {
-      ...exerciseOption,
-      id: `${Date.now()}`,
+      id: `exercise-${Date.now()}`,
+      name: exercise.name,
+      category: exercise.category || "אחר",
+      primaryMuscles: exercise.primaryMuscles || [],
+      secondaryMuscles: exercise.secondaryMuscles || [],
+      equipment: exercise.equipment || "ללא",
       sets: [
         {
-          id: `${Date.now()}-1`,
+          id: `set-${Date.now()}`,
           type: "working",
+          targetReps: 10,
+          targetWeight: 0,
           completed: false,
-          targetReps: 12,
           isPR: false,
         },
       ],
@@ -200,11 +194,21 @@ const useWorkoutManager = (initialData: Exercise[]) => {
   }, []);
 
   const handleReorderSets = useCallback(
-    (exerciseId: string, reorderedSets: Set[]) => {
+    (exerciseId: string, setId: string, direction: "up" | "down") => {
       setExercises((prev) =>
-        prev.map((ex) =>
-          ex.id === exerciseId ? { ...ex, sets: reorderedSets } : ex
-        )
+        prev.map((ex) => {
+          if (ex.id !== exerciseId) return ex;
+          const setIndex = ex.sets.findIndex((s) => s.id === setId);
+          if (setIndex === -1) return ex;
+          const newIndex = direction === "up" ? setIndex - 1 : setIndex + 1;
+          if (newIndex < 0 || newIndex >= ex.sets.length) return ex;
+          const reorderedSets = [...ex.sets];
+          [reorderedSets[setIndex], reorderedSets[newIndex]] = [
+            reorderedSets[newIndex],
+            reorderedSets[setIndex],
+          ];
+          return { ...ex, sets: reorderedSets };
+        })
       );
     },
     []
@@ -490,31 +494,55 @@ export const QuickWorkoutScreen = () => {
           }
         />
 
-        <Animated.View
-          style={[
-            styles.dashboardContainer,
-            { transform: [{ translateY: dashboardAnim }] },
-          ]}
-        >
-          <WorkoutDashboard
-            totalVolume={stats.totalVolume}
-            completedSets={stats.completedSets}
-            totalSets={stats.totalSets}
-            pace={stats.completedSets / (elapsedTime / 60 || 1)}
-            personalRecords={stats.personalRecords}
-          />
-        </Animated.View>
-
         <NextExerciseBar
           nextExercise={nextExercise}
-          onSkipToNext={() =>
-            nextExercise && handleToggleExpand(nextExercise.id)
-          }
+          onSkipToNext={() => {
+            if (nextExercise) {
+              setExpandedExerciseId(nextExercise.id);
+              const index = exercises.findIndex(
+                (ex) => ex.id === nextExercise.id
+              );
+              if (index !== -1) {
+                flatListRef.current?.scrollToIndex({
+                  index,
+                  animated: true,
+                });
+              }
+            }
+          }}
         />
       </KeyboardAvoidingView>
 
-      {/* Modals wrapper עם z-index גבוה */}
-      <View style={styles.modalsWrapper} pointerEvents="box-none">
+      {/* Dashboard Drawer */}
+      <Animated.View
+        style={[
+          styles.dashboardDrawer,
+          {
+            transform: [{ translateY: dashboardAnim }],
+          },
+        ]}
+      >
+        <WorkoutDashboard
+          completedSets={stats.completedSets}
+          totalSets={stats.totalSets}
+          totalVolume={stats.totalVolume}
+          personalRecords={stats.personalRecords}
+          pace={0} // TODO: calculate actual pace
+        />
+        <TouchableOpacity
+          style={styles.closeDashboard}
+          onPress={() => setDashboardVisible(false)}
+        >
+          <MaterialCommunityIcons
+            name="chevron-up"
+            size={24}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* Modals */}
+      {modals.plateCalculator && (
         <PlateCalculatorModal
           visible={modals.plateCalculator}
           onClose={() =>
@@ -522,21 +550,20 @@ export const QuickWorkoutScreen = () => {
           }
           currentWeight={modalData.plateCalculatorWeight}
         />
-
+      )}
+      {modals.exerciseTips && modalData.selectedExercise && (
         <ExerciseTipsModal
           visible={modals.exerciseTips}
-          onClose={() => {
-            console.log("🚫 ExerciseTipsModal onClose called");
-            setModals((prev) => ({ ...prev, exerciseTips: false }));
-          }}
-          exerciseName={modalData.selectedExercise?.name || ""}
+          onClose={() =>
+            setModals((prev) => ({ ...prev, exerciseTips: false }))
+          }
+          exerciseName={modalData.selectedExercise.name}
         />
-      </View>
+      )}
     </>
   );
 };
 
-// הוסף את הסגנונות החדשים:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -546,57 +573,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingTop: 16,
-    paddingBottom: 150,
+    paddingTop: 10,
+    paddingBottom: 60,
   },
   addExerciseButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderWidth: 2,
-    borderColor: theme.colors.cardBorder,
+    backgroundColor: theme.colors.card,
+    marginHorizontal: theme.spacing.md,
+    marginVertical: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
     borderStyle: "dashed",
-    borderRadius: 16,
   },
   addExerciseText: {
+    marginRight: theme.spacing.sm,
+    color: theme.colors.primary,
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.primary,
-    textAlign: "right",
   },
   finishButton: {
     backgroundColor: theme.colors.success,
-    padding: 16,
-    borderRadius: 16,
-    margin: 16,
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
     alignItems: "center",
     ...theme.shadows.medium,
   },
   finishButtonText: {
-    color: theme.colors.white || "#FFFFFF",
+    color: "white",
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: "center",
   },
-  dashboardContainer: {
+  dashboardDrawer: {
     position: "absolute",
-    top: 100,
+    top: 60,
     left: 0,
     right: 0,
-    zIndex: 10,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    ...theme.shadows.large,
   },
-  // הסגנון החדש למודלים
-  modalsWrapper: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 9999,
-    elevation: 999, // עבור Android
+  closeDashboard: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
 });
+
+// הוספת export default בסוף הקובץ
+export default QuickWorkoutScreen;
