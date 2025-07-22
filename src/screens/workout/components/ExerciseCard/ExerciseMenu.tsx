@@ -4,6 +4,14 @@
  * English: Exercise options menu - delete, duplicate, reorder
  */
 
+// DEBUG FLAG - הסר בסוף הפרויקט
+const DEBUG = true;
+const log = (message: string, data?: any) => {
+  if (DEBUG) {
+    console.log(`🔧 [ExerciseMenu] ${message}`, data || "");
+  }
+};
+
 import React, { useRef, useEffect, useState } from "react";
 import {
   View,
@@ -89,6 +97,18 @@ const MenuItem: React.FC<MenuItemProps> = ({
     ? theme.colors.darkText
     : theme.colors.text;
 
+  const handlePress = () => {
+    log(`📌 MenuItem clicked: ${label}`, {
+      disabled,
+      isLoading,
+      danger,
+      isPreview,
+    });
+    if (!disabled && !isLoading) {
+      onPress();
+    }
+  };
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
@@ -97,7 +117,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
           disabled && styles.menuItemDisabled,
           isPreview && styles.menuItemPreview,
         ]}
-        onPress={onPress}
+        onPress={handlePress}
         disabled={disabled || isLoading}
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -183,18 +203,22 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   // Smart debug - print only on visibility change
   useEffect(() => {
     if (visible !== wasVisible) {
-      console.log(
-        `🔷 ExerciseMenu visibility changed: ${wasVisible} → ${visible}`,
-        {
-          isBatchMode,
-          selectedExercisesCount: selectedExercises.length,
-          canMoveUp,
-          canMoveDown,
-        }
-      );
+      log(`Visibility changed: ${wasVisible} → ${visible}`, {
+        isBatchMode,
+        selectedExercisesCount: selectedExercises.length,
+        canMoveUp,
+        canMoveDown,
+      });
       setWasVisible(visible);
     }
-  }, [visible, wasVisible]);
+  }, [
+    visible,
+    wasVisible,
+    isBatchMode,
+    selectedExercises.length,
+    canMoveUp,
+    canMoveDown,
+  ]);
 
   // Animation effect
   useEffect(() => {
@@ -217,7 +241,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   const handleStateChange = ({ nativeEvent }: any) => {
     if (nativeEvent.state === State.END) {
       if (nativeEvent.translationY > 100) {
-        console.log("📱 Swipe down detected - closing menu");
+        log("📱 Swipe down detected - closing menu");
         onClose();
       } else {
         Animated.spring(translateY, {
@@ -234,7 +258,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
     undoAction: () => void,
     description: string
   ) => {
-    console.log(`🔄 Executing action with undo: ${description}`);
+    log(`🔄 Executing action with undo: ${description}`);
     try {
       await action();
       const newAction: Action = {
@@ -260,7 +284,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
       undoAction?: () => void
     ) =>
     async () => {
-      console.log(`🚀 Action triggered: ${actionName}`);
+      log(`🚀 Action triggered: ${actionName}`);
       if (action) {
         setCurrentAction(actionName);
         try {
@@ -280,12 +304,12 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
   // Preview handlers
   const handlePreview = (mode: string) => {
-    console.log(`👁️ Preview mode: ${mode}`);
+    log(`👁️ Preview mode activated: ${mode}`);
     setPreviewMode(mode);
   };
 
   const confirmPreview = () => {
-    console.log(`✅ Preview confirmed: ${previewMode}`);
+    log(`✅ Preview confirmed: ${previewMode}`);
     if (previewMode === "moveUp" && onMoveUp) {
       createAndCloseHandler(onMoveUp, "moveUp")();
     } else if (previewMode === "moveDown" && onMoveDown) {
@@ -295,6 +319,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   };
 
   const cancelPreview = () => {
+    log(`❌ Preview cancelled: ${previewMode}`);
     setPreviewMode(null);
   };
 
@@ -304,17 +329,22 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
       ? `האם אתה בטוח שברצונך למחוק ${selectedExercises.length} תרגילים?`
       : "האם אתה בטוח שברצונך למחוק את התרגיל?";
 
-    console.log(`🗑️ Delete confirmation - batch: ${isBatchMode}`);
+    log(`🗑️ Delete confirmation dialog shown`, {
+      isBatchMode,
+      selectedCount: selectedExercises.length,
+    });
 
     Alert.alert("🗑️ מחיקת תרגיל", message, [
       {
         text: "ביטול",
         style: "cancel",
+        onPress: () => log("❌ Delete cancelled"),
       },
       {
         text: "מחק",
         style: "destructive",
         onPress: () => {
+          log("✅ Delete confirmed");
           if (isBatchMode && onBatchDelete) {
             createAndCloseHandler(onBatchDelete, "batchDelete")();
           } else {
@@ -357,6 +387,16 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
     },
   };
 
+  const handleOverlayPress = () => {
+    log("🎭 Overlay pressed - closing menu");
+    onClose();
+  };
+
+  const handleCancelPress = () => {
+    log("🚫 Cancel button pressed");
+    onClose();
+  };
+
   return (
     <Modal
       visible={visible}
@@ -368,7 +408,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
-          onPress={onClose}
+          onPress={handleOverlayPress}
           accessibilityLabel="סגור תפריט"
           accessibilityRole="button"
         >
@@ -509,7 +549,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
               <TouchableOpacity
                 style={[styles.cancelButton, isDark && styles.cancelButtonDark]}
-                onPress={onClose}
+                onPress={handleCancelPress}
               >
                 <Text
                   style={[styles.cancelText, isDark && styles.cancelTextDark]}

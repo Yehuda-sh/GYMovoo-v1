@@ -3,7 +3,7 @@
  * @description כרטיס תרגיל מלא עם סטים, התקדמות ופעולות (במבנה משופר)
  * English: Complete exercise card with sets, progress and actions (improved structure)
  */
-// cspell:ignore flatlist, קומפוננטות, קומפוננטה
+// cspell:ignore flatlist, קומפוננטות, קומפוננטה, dropset, restpause, דרופ, סופרסט, לקומפוננטות
 
 // DEBUG FLAG - הסר בסוף הפרויקט
 const DEBUG = true;
@@ -31,15 +31,14 @@ import DraggableFlatList, {
 } from "react-native-draggable-flatlist";
 
 import { theme } from "../../../../styles/theme";
-import { Exercise, Set } from "../../types/workout.types";
+import { Exercise, Set, SetType } from "../../types/workout.types";
 import SetRow from "./SetRow";
 import ExerciseMenu from "./ExerciseMenu";
 
 // --- הוספת טיפוסים חדשים ---
-type SetType = "normal" | "warmup" | "dropset" | "restpause" | "failure";
+// הסרנו את ההגדרה המקומית של SetType ומשתמשים במה שמיובא מ-workout.types.ts
 
 interface EnhancedSet extends Set {
-  type?: SetType;
   dropFromWeight?: number;
 }
 
@@ -107,7 +106,10 @@ const ExerciseNotes: React.FC<{
   );
 
   const handleSave = () => {
-    log("Saving notes", { tempNotes, tempTechniqueNotes });
+    log("💾 Notes modal - Save clicked", {
+      notesLength: tempNotes.length,
+      techniqueNotesLength: tempTechniqueNotes.length,
+    });
     onUpdateNotes(tempNotes);
     onUpdateTechniqueNotes(tempTechniqueNotes);
     setShowModal(false);
@@ -117,7 +119,12 @@ const ExerciseNotes: React.FC<{
     <>
       <TouchableOpacity
         style={styles.notesButton}
-        onPress={() => setShowModal(true)}
+        onPress={() => {
+          log("📝 Notes button clicked", {
+            hasNotes: !!(notes || techniqueNotes),
+          });
+          setShowModal(true);
+        }}
       >
         <Ionicons
           name="document-text-outline"
@@ -161,7 +168,10 @@ const ExerciseNotes: React.FC<{
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalButton}
-                onPress={() => setShowModal(false)}
+                onPress={() => {
+                  log("❌ Notes modal - Cancel clicked");
+                  setShowModal(false);
+                }}
               >
                 <Text style={styles.modalButtonText}>ביטול</Text>
               </TouchableOpacity>
@@ -201,12 +211,22 @@ const SetTypeIndicator: React.FC<{ type?: SetType }> = ({
       color: theme.colors.warning,
       label: "חימום",
     },
+    working: {
+      icon: "barbell-outline",
+      color: theme.colors.primary,
+      label: "עבודה",
+    },
     dropset: {
       icon: "trending-down",
       color: theme.colors.error,
       label: "דרופ סט",
     },
     restpause: {
+      icon: "pause-circle",
+      color: theme.colors.info,
+      label: "מנוחה-פאוזה",
+    },
+    "rest-pause": {
       icon: "pause-circle",
       color: theme.colors.info,
       label: "מנוחה-פאוזה",
@@ -245,7 +265,12 @@ const MiniTimer: React.FC<{
     <View style={styles.miniTimer}>
       <Ionicons name="timer-outline" size={16} color={theme.colors.primary} />
       <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-      <TouchableOpacity onPress={onExtend}>
+      <TouchableOpacity
+        onPress={() => {
+          log("⏰ Timer extend clicked", { currentTime: timeLeft });
+          onExtend();
+        }}
+      >
         <Ionicons
           name="add-circle-outline"
           size={18}
@@ -322,7 +347,14 @@ const ExerciseCardHeader = React.memo<HeaderProps>(
   }) => (
     <TouchableOpacity
       style={[styles.header, hasPR && styles.prHeader]}
-      onPress={onToggleExpand}
+      onPress={() => {
+        log("🔽 Exercise header clicked - toggle expand", {
+          exerciseName: exercise.name,
+          exerciseNumber,
+          // הערה: isExpanded לא זמין כאן, נעביר לפונקציה החיצונית
+        });
+        onToggleExpand();
+      }}
       activeOpacity={0.8}
     >
       <View style={styles.headerLeft}>
@@ -348,7 +380,15 @@ const ExerciseCardHeader = React.memo<HeaderProps>(
                 />
               </View>
             )}
-            <TouchableOpacity onPress={onShowTips} style={styles.infoButton}>
+            <TouchableOpacity
+              onPress={() => {
+                log("🔍 Exercise tips button clicked", {
+                  exerciseName: exercise.name,
+                });
+                onShowTips();
+              }}
+              style={styles.infoButton}
+            >
               <Ionicons
                 name="information-circle-outline"
                 size={22}
@@ -370,7 +410,12 @@ const ExerciseCardHeader = React.memo<HeaderProps>(
       </View>
       <View style={styles.headerRight}>
         {isResting && restTimeLeft > 0 && (
-          <MiniTimer timeLeft={restTimeLeft} onExtend={() => {}} />
+          <MiniTimer
+            timeLeft={restTimeLeft}
+            onExtend={() => {
+              log("⏰ Timer extend clicked", { currentTime: restTimeLeft });
+            }}
+          />
         )}
         <View style={styles.statsContainer}>
           <Text style={styles.statText}>
@@ -378,7 +423,13 @@ const ExerciseCardHeader = React.memo<HeaderProps>(
           </Text>
           <Text style={styles.statLabel}>סטים</Text>
         </View>
-        <TouchableOpacity onPress={onShowMenu} style={styles.menuButton}>
+        <TouchableOpacity
+          onPress={(e) => {
+            log("⋮ Menu button clicked", { exerciseName: exercise.name });
+            onShowMenu(e);
+          }}
+          style={styles.menuButton}
+        >
           <Ionicons
             name="ellipsis-vertical"
             size={20}
@@ -492,7 +543,16 @@ const ExerciseCardContent = React.memo<ContentProps>(
       />
 
       <View style={styles.actionsContainer}>
-        <TouchableOpacity onPress={onAddSet} style={styles.actionButton}>
+        <TouchableOpacity
+          onPress={() => {
+            log("➕ Add set button clicked", {
+              exerciseName: exercise.name,
+              currentSetsCount: exercise.sets.length,
+            });
+            onAddSet();
+          }}
+          style={styles.actionButton}
+        >
           <Ionicons
             name="add-circle-outline"
             size={22}
@@ -504,6 +564,10 @@ const ExerciseCardContent = React.memo<ContentProps>(
           onPress={() => {
             const lastSet = exercise.sets[exercise.sets.length - 1];
             const weight = lastSet?.weight || lastSet?.targetWeight || 60;
+            log("🧮 Calculator button clicked", {
+              exerciseName: exercise.name,
+              weight,
+            });
             onShowPlateCalculator(weight);
           }}
           style={styles.actionButton}
@@ -569,12 +633,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   restTimeLeft = 0,
   isResting = false,
 }) => {
-  log("Component mounted/updated", {
-    exerciseId: exercise.id,
-    exerciseName: exercise.name,
-    setsCount: exercise.sets.length,
-    isExpanded,
-  });
   const [showMenu, setShowMenu] = useState(false);
   const expandAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
   const rotateAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
@@ -637,7 +695,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   // אנימציית מחיקה
   const animateDelete = (callback: () => void) => {
-    log("Delete animation started");
+    log("🗑️ Delete animation started", { exerciseName: exercise.name });
     Animated.parallel([
       Animated.timing(deleteAnim, {
         toValue: 0,
@@ -650,12 +708,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         useNativeDriver: true,
       }),
     ]).start(() => {
-      log("Delete animation completed");
+      log("✅ Delete animation completed", { exerciseName: exercise.name });
       callback();
     });
   };
 
   const handleDelete = () => {
+    log("🗑️ Delete confirmed", {
+      exerciseName: exercise.name,
+      exerciseId: exercise.id,
+    });
     animateDelete(() => {
       onDelete();
     });
