@@ -63,6 +63,7 @@ interface ExerciseCardProps {
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onShowTips?: () => void; // הוספת callback לטיפים
   isFirst?: boolean;
   isLast?: boolean;
   isPaused?: boolean;
@@ -71,8 +72,10 @@ interface ExerciseCardProps {
   personalRecord?: { weight: number; reps: number };
   lastWorkout?: {
     date: string;
-    sets: Array<{ weight: number; reps: number }>;
+    bestSet: { weight: number; reps: number };
   };
+  onDuplicate?: () => void;
+  onReplace?: () => void;
 }
 
 const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -86,6 +89,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onStartRest,
   onMoveUp,
   onMoveDown,
+  onShowTips, // קבלת ה-callback
   isFirst = false,
   isLast = false,
   isPaused = false,
@@ -93,223 +97,179 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   showNotes = true,
   personalRecord,
   lastWorkout,
+  onDuplicate,
+  onReplace,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [showMenu, setShowMenu] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const animatedHeight = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(1)).current;
 
-  // חישוב האם כל הסטים הושלמו
-  // Calculate if all sets are completed
-  const allSetsCompleted = useMemo(() => {
-    return sets.length > 0 && sets.every((set) => set.completed);
-  }, [sets]);
+  const rotateAnim = useRef(new Animated.Value(1)).current;
+  const heightAnim = useRef(new Animated.Value(1)).current;
+  const selectionAnim = useRef(new Animated.Value(0)).current;
 
   // חישוב סטטיסטיקות
   // Calculate statistics
   const stats = useMemo(() => {
-    const completedSets = sets.filter((set) => set.completed);
-    const totalVolume = completedSets.reduce(
-      (sum, set) => sum + (set.weight || 0) * (set.reps || 0),
-      0
-    );
-    const avgWeight =
-      completedSets.length > 0
-        ? completedSets.reduce((sum, set) => sum + (set.weight || 0), 0) /
-          completedSets.length
-        : 0;
+    const completedSets = sets.filter((s) => s.completed).length;
+    const totalVolume = sets.reduce((sum, set) => {
+      if (set.completed && set.weight && set.reps) {
+        return sum + set.weight * set.reps;
+      }
+      return sum;
+    }, 0);
 
     return {
-      completedSets: completedSets.length,
+      completedSets,
       totalSets: sets.length,
       totalVolume,
-      avgWeight,
     };
   }, [sets]);
 
-  // טיפול בלחיצה על כרטיס
+  const allSetsCompleted = stats.completedSets === stats.totalSets;
+  const progress =
+    stats.totalSets > 0 ? stats.completedSets / stats.totalSets : 0;
+
+  // טיפול בלחיצה על הכרטיס
   // Handle card press
   const handleCardPress = useCallback(() => {
-    log("Card pressed", { isExpanded });
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpanded(!isExpanded);
 
-    // אנימציה לחץ ההרחבה
-    // Animate expand arrow
     Animated.timing(rotateAnim, {
       toValue: isExpanded ? 0 : 1,
-      duration: 300,
+      duration: 200,
       useNativeDriver: true,
     }).start();
-  }, [isExpanded, rotateAnim]);
-
-  // טיפול בלחיצה על סט
-  // Handle set press
-  const handleSetPress = useCallback(
-    (setId: string) => {
-      if (isSelectionMode) {
-        log("Toggle set selection", { setId });
-        setSelectedSets((prev) => {
-          const newSet = new Set(prev);
-          if (newSet.has(setId)) {
-            newSet.delete(setId);
-          } else {
-            newSet.add(setId);
-          }
-          return newSet;
-        });
-        Vibration.vibrate(10);
-      }
-    },
-    [isSelectionMode]
-  );
-
-  // טיפול בלחיצה ארוכה על סט
-  // Handle set long press
-  const handleSetLongPress = useCallback((setId: string) => {
-    log("Set long press - entering selection mode", { setId });
-    setIsSelectionMode(true);
-    setSelectedSets(new Set([setId]));
-    Vibration.vibrate(50);
-  }, []);
-
-  // יציאה ממצב בחירה
-  // Exit selection mode
-  const exitSelectionMode = useCallback(() => {
-    log("Exiting selection mode");
-    setIsSelectionMode(false);
-    setSelectedSets(new Set());
-  }, []);
-
-  // מחיקת סטים נבחרים
-  // Delete selected sets
-  const deleteSelectedSets = useCallback(() => {
-    Alert.alert(
-      `מחיקת ${selectedSets.size} סטים`,
-      `האם אתה בטוח שברצונך למחוק ${selectedSets.size} סטים?`,
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            log("Deleting selected sets", { count: selectedSets.size });
-            selectedSets.forEach((setId) => {
-              onDeleteSet?.(setId);
-            });
-            exitSelectionMode();
-          },
-        },
-      ]
-    );
-  }, [selectedSets, onDeleteSet, exitSelectionMode]);
-
-  // טיפול במחיקת תרגיל
-  // Handle exercise deletion
-  const handleDeleteExercise = useCallback(() => {
-    Alert.alert(
-      "מחיקת תרגיל",
-      `האם אתה בטוח שברצונך למחוק את ${exercise.name}?`,
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            log("Deleting exercise", { exerciseId: exercise.id });
-            onRemoveExercise();
-          },
-        },
-      ]
-    );
-  }, [exercise, onRemoveExercise]);
-
-  // טיפול בהוספת סט
-  // Handle add set
-  const handleAddSet = useCallback(() => {
-    log("Adding new set");
-    onAddSet();
-    Vibration.vibrate(10);
-  }, [onAddSet]);
-
-  // טיפול בהשלמת סט
-  // Handle complete set
-  const handleCompleteSet = useCallback(
-    (setId: string) => {
-      log("Completing set", { setId });
-      onCompleteSet(setId);
-
-      // מציאת הסט להבין את זמן המנוחה
-      // Find the set to understand rest time
-      const set = sets.find((s) => s.id === setId);
-      if (set && !set.completed) {
-        // חישוב זמן מנוחה מומלץ בהתבסס על המשקל
-        // Calculate recommended rest time based on weight
-        const weight = set.weight || 0;
-        let restTime = 60; // ברירת מחדל
-
-        if (weight > 100) {
-          restTime = 180; // 3 דקות למשקלים כבדים
-        } else if (weight > 60) {
-          restTime = 120; // 2 דקות למשקלים בינוניים
-        } else {
-          restTime = 90; // 1.5 דקות למשקלים קלים
-        }
-
-        if (onStartRest) {
-          log("Starting rest timer", { duration: restTime });
-          onStartRest(restTime);
-        }
-
-        Vibration.vibrate(50);
-      }
-    },
-    [sets, onCompleteSet, onStartRest]
-  );
+  }, [isExpanded]);
 
   // טיפול בתפריט
   // Handle menu
   const handleMenuPress = useCallback(() => {
-    log("Toggle menu", { showMenu: !showMenu });
-    setShowMenu(!showMenu);
-  }, [showMenu]);
+    setMenuVisible(true);
+    Vibration.vibrate(10);
+  }, []);
 
-  // רנדר סרגל בחירה
+  // מצב בחירה
+  // Selection mode
+  const handleSetLongPress = useCallback(
+    (setId: string) => {
+      if (!isSelectionMode) {
+        setIsSelectionMode(true);
+        Animated.spring(selectionAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+        }).start();
+      }
+      setSelectedSets((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(setId)) {
+          newSet.delete(setId);
+        } else {
+          newSet.add(setId);
+        }
+        return newSet;
+      });
+      Vibration.vibrate(10);
+    },
+    [isSelectionMode]
+  );
+
+  const handleDeleteSelected = useCallback(() => {
+    Alert.alert("מחיקת סטים", `האם למחוק ${selectedSets.size} סטים?`, [
+      { text: "ביטול", style: "cancel" },
+      {
+        text: "מחק",
+        style: "destructive",
+        onPress: () => {
+          selectedSets.forEach((setId) => {
+            onDeleteSet?.(setId);
+          });
+          setSelectedSets(new Set());
+          setIsSelectionMode(false);
+        },
+      },
+    ]);
+  }, [selectedSets, onDeleteSet]);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedSets.size === sets.length) {
+      setSelectedSets(new Set());
+    } else {
+      setSelectedSets(new Set(sets.map((s) => s.id)));
+    }
+  }, [sets, selectedSets]);
+
+  const handleCancelSelection = useCallback(() => {
+    setIsSelectionMode(false);
+    setSelectedSets(new Set());
+    Animated.timing(selectionAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  // הוספת סט
+  // Add set
+  const handleAddSet = useCallback(() => {
+    onAddSet();
+    Vibration.vibrate(10);
+  }, [onAddSet]);
+
+  // עיבוד סרגל בחירה
   // Render selection bar
   const renderSelectionBar = () => {
     if (!isSelectionMode) return null;
 
     return (
-      <Animated.View style={[styles.selectionBar]}>
+      <Animated.View
+        style={[
+          styles.selectionBar,
+          {
+            opacity: selectionAnim,
+            transform: [
+              {
+                translateY: selectionAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <TouchableOpacity
-          onPress={exitSelectionMode}
+          onPress={handleSelectAll}
           style={styles.selectionButton}
         >
-          <MaterialCommunityIcons
-            name="close"
-            size={24}
-            color={theme.colors.text}
-          />
+          <Text style={styles.selectionText}>
+            {selectedSets.size === sets.length ? "בטל הכל" : "בחר הכל"} (
+            {selectedSets.size})
+          </Text>
         </TouchableOpacity>
 
-        <Text style={styles.selectionText}>{selectedSets.size} נבחרו</Text>
-
-        <TouchableOpacity
-          onPress={deleteSelectedSets}
-          style={[
-            styles.selectionButton,
-            { opacity: selectedSets.size > 0 ? 1 : 0.5 },
-          ]}
-          disabled={selectedSets.size === 0}
-        >
-          <MaterialCommunityIcons
-            name="delete"
-            size={24}
-            color={theme.colors.error}
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row-reverse", gap: 8 }}>
+          <TouchableOpacity onPress={handleCancelSelection}>
+            <MaterialCommunityIcons
+              name="close"
+              size={24}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDeleteSelected}
+            style={{ opacity: selectedSets.size === 0 ? 0.5 : 1 }}
+            disabled={selectedSets.size === 0}
+          >
+            <MaterialCommunityIcons
+              name="delete"
+              size={24}
+              color={theme.colors.error}
+            />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     );
   };
@@ -392,6 +352,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* כפתורי פעולה */}
           {/* Action buttons */}
           <View style={styles.headerActions}>
+            {/* כפתור טיפים */}
+            {onShowTips && (
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={onShowTips}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons
+                  name="lightbulb-outline"
+                  size={24}
+                  color={theme.colors.warning}
+                />
+              </TouchableOpacity>
+            )}
+
+            {/* כפתור תפריט */}
             <TouchableOpacity
               style={styles.menuButton}
               onPress={handleMenuPress}
@@ -407,55 +384,25 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </View>
         </View>
 
-        {/* פס התקדמות */}
         {/* Progress bar */}
-        {stats.totalSets > 0 && (
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBackground}>
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${(stats.completedSets / stats.totalSets) * 100}%`,
-                  },
-                ]}
-              />
-            </View>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBackground}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            />
           </View>
-        )}
+        </View>
       </TouchableOpacity>
 
-      {/* תפריט */}
-      {/* Menu */}
-      {showMenu && (
-        <ExerciseMenu
-          visible={showMenu}
-          onClose={() => setShowMenu(false)}
-          onDelete={handleDeleteExercise}
-          onMoveUp={onMoveUp}
-          onMoveDown={onMoveDown}
-          onDuplicate={() => {
-            log("Duplicate exercise");
-            // TODO: implement duplicate
-          }}
-          onReplace={() => {
-            log("Replace exercise");
-            // TODO: implement replace
-          }}
-          canMoveUp={!isFirst}
-          canMoveDown={!isLast}
-        />
-      )}
-
-      {/* תוכן מורחב */}
-      {/* Expanded content */}
+      {/* תוכן התרגיל */}
+      {/* Exercise content */}
       {isExpanded && (
-        <Animated.View style={[styles.content, { opacity: animatedHeight }]}>
-          {/* הערות והיסטוריה */}
-          {/* Notes and history */}
+        <Animated.View style={[styles.content, { opacity: heightAnim }]}>
+          {/* מידע נוסף */}
+          {/* Additional info */}
           {(showNotes || showHistory) && (
             <View style={styles.infoSection}>
               {showNotes && exercise.notes && (
@@ -477,10 +424,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     color={theme.colors.textSecondary}
                   />
                   <Text style={styles.historyText}>
-                    אימון אחרון: {lastWorkout.date} -{" "}
-                    {lastWorkout.sets
-                      .map((s) => `${s.weight}×${s.reps}`)
-                      .join(", ")}
+                    פעם קודמת: {lastWorkout.bestSet.weight}ק"ג ×{" "}
+                    {lastWorkout.bestSet.reps} חזרות
                   </Text>
                 </View>
               )}
@@ -496,7 +441,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 set={set}
                 setNumber={index + 1}
                 onUpdate={(updates) => onUpdateSet(set.id, updates)}
-                onComplete={() => handleCompleteSet(set.id)}
+                onComplete={() => onCompleteSet(set.id)}
                 onDelete={() => onDeleteSet?.(set.id)}
                 onLongPress={() => handleSetLongPress(set.id)}
                 exercise={exercise}
@@ -530,6 +475,20 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </TouchableOpacity>
         </Animated.View>
       )}
+
+      {/* תפריט אפשרויות */}
+      {/* Options menu */}
+      <ExerciseMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onDelete={onRemoveExercise}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        onDuplicate={onDuplicate || (() => {})}
+        onReplace={onReplace || (() => {})}
+        canMoveUp={!isFirst}
+        canMoveDown={!isLast}
+      />
     </View>
   );
 };
