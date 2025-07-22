@@ -5,6 +5,11 @@ export const theme = {
     // רקעים ראשיים // Main backgrounds
     background: "#181E41", // רקע כהה ראשי
     backgroundAlt: "#1F2C4C", // רקע משני לגרדיאנטים
+    darkCard: "#1E1E1E",
+    darkText: "#FFFFFF",
+    darkBackground: "#121212",
+    primaryLight: "#4A90E2",
+    info: "#2196F3",
 
     // כרטיסים ומשטחים // Cards and surfaces
     card: "#242a47", // רקע כרטיסים

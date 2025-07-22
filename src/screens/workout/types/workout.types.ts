@@ -20,7 +20,7 @@ export interface Set {
   reps?: number;
   weight?: number;
   completed: boolean;
-  type: SetType;
+  type?: "normal" | "warmup" | "dropset" | "restpause" | "failure";
   rpe?: number; // Rate of Perceived Exertion (1-10)
   rir?: number; // Reps in Reserve
   notes?: string;
@@ -31,6 +31,7 @@ export interface Set {
   previousWeight?: number;
   previousReps?: number;
   isPR?: boolean;
+  dropFromWeight?: number;
 }
 
 // Alias למען תאימות אחורה
