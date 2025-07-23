@@ -402,23 +402,23 @@ export default function MainScreen() {
                 </Text>
                 <View style={styles.quickStartStats}>
                   <View style={styles.quickStartStatItem}>
+                    <Text style={styles.quickStartStatText}>
+                      {mockStats.currentStreak} ימי רצף
+                    </Text>
                     <MaterialCommunityIcons
                       name="fire"
                       size={16}
                       color="rgba(255,255,255,0.8)"
                     />
-                    <Text style={styles.quickStartStatText}>
-                      {mockStats.currentStreak} ימי רצף
-                    </Text>
                   </View>
                   <View style={styles.quickStartStatDivider} />
                   <View style={styles.quickStartStatItem}>
+                    <Text style={styles.quickStartStatText}>20-30 דק׳</Text>
                     <MaterialCommunityIcons
                       name="clock-outline"
                       size={16}
                       color="rgba(255,255,255,0.8)"
                     />
-                    <Text style={styles.quickStartStatText}>20-30 דק׳</Text>
                   </View>
                 </View>
               </View>
@@ -431,12 +431,12 @@ export default function MainScreen() {
                   colors={["#fff", "#f0f0f0"]}
                   style={styles.quickStartButtonGradient}
                 >
+                  <Text style={styles.quickStartButtonText}>התחל</Text>
                   <FontAwesome5
                     name="play"
                     size={18}
                     color={theme.colors.primary}
                   />
-                  <Text style={styles.quickStartButtonText}>התחל</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -461,12 +461,12 @@ export default function MainScreen() {
               style={styles.goalGradient}
             >
               <View style={styles.goalHeader}>
+                <Text style={styles.goalTitle}>מטרה שבועית</Text>
                 <MaterialCommunityIcons
                   name="target"
                   size={24}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.goalTitle}>מטרה שבועית</Text>
               </View>
               <View style={styles.goalProgress}>
                 <Text style={styles.goalNumbers}>
@@ -576,38 +576,38 @@ export default function MainScreen() {
             onPress={() => console.log("Achievements pressed")}
           >
             <View style={styles.achievementsHeader}>
-              <MaterialCommunityIcons
-                name="trophy"
-                size={24}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.achievementsTitle}>הישגים אחרונים</Text>
               <Ionicons
                 name="chevron-back"
                 size={20}
                 color={theme.colors.textSecondary}
               />
+              <Text style={styles.achievementsTitle}>הישגים אחרונים</Text>
+              <MaterialCommunityIcons
+                name="trophy"
+                size={24}
+                color={theme.colors.warning}
+              />
             </View>
             <View style={styles.achievementsList}>
               <View style={styles.achievementItem}>
+                <Text style={styles.achievementText}>
+                  {mockStats.personalRecords} שיאים אישיים
+                </Text>
                 <MaterialCommunityIcons
                   name="medal"
                   size={16}
                   color={theme.colors.warning}
                 />
-                <Text style={styles.achievementText}>
-                  {mockStats.personalRecords} שיאים אישיים
-                </Text>
               </View>
               <View style={styles.achievementItem}>
+                <Text style={styles.achievementText}>
+                  {mockStats.totalWorkouts} אימונים הושלמו
+                </Text>
                 <MaterialCommunityIcons
                   name="calendar-check"
                   size={16}
                   color={theme.colors.success}
                 />
-                <Text style={styles.achievementText}>
-                  {mockStats.totalWorkouts} אימונים הושלמו
-                </Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -731,22 +731,22 @@ export default function MainScreen() {
                   <Text style={styles.planName}>{plan.name}</Text>
                   <View style={styles.planInfo}>
                     <View style={styles.planDetail}>
-                      <Text style={styles.planDetailText}>{plan.duration}</Text>
                       <Ionicons
                         name="time-outline"
                         size={16}
                         color={theme.colors.textSecondary}
                       />
+                      <Text style={styles.planDetailText}>{plan.duration}</Text>
                     </View>
                     <View style={styles.planDetail}>
-                      <Text style={styles.planDetailText}>
-                        {plan.difficulty}
-                      </Text>
                       <MaterialCommunityIcons
                         name="gauge"
                         size={16}
                         color={theme.colors.textSecondary}
                       />
+                      <Text style={styles.planDetailText}>
+                        {plan.difficulty}
+                      </Text>
                     </View>
                   </View>
                 </LinearGradient>
@@ -757,8 +757,8 @@ export default function MainScreen() {
 
         {/* Motivational Quote */}
         <Animated.View style={[styles.quoteCard, { opacity: fadeAnim }]}>
-          <Ionicons name="bulb" size={24} color={theme.colors.warning} />
           <Text style={styles.quoteText}>"הכאב של היום הוא הכוח של מחר"</Text>
+          <Ionicons name="bulb" size={24} color={theme.colors.warning} />
         </Animated.View>
       </ScrollView>
     </LinearGradient>
@@ -1050,6 +1050,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginRight: 8,
+    textAlign: "right",
   },
   achievementsList: {
     gap: 12,
@@ -1062,6 +1063,7 @@ const styles = StyleSheet.create({
   achievementText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: "right",
   },
 
   sectionTitle: {
@@ -1123,8 +1125,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   firstPlanCard: {
-    marginRight: theme.spacing.md,
-    marginLeft: 0,
+    marginRight: 0,
+    marginLeft: theme.spacing.md,
   },
   planGradient: {
     padding: theme.spacing.md,

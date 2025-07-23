@@ -250,7 +250,7 @@ export default function LoginScreen() {
             navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
           } else {
             console.log("🔐 LoginScreen - Navigating to Main");
-            navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+            navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
           }
         } else {
           console.log("🔐 LoginScreen - Login failed - invalid credentials ❌");
@@ -299,7 +299,7 @@ export default function LoginScreen() {
         console.log(
           "🔐 LoginScreen - Google user has questionnaire, navigating to Main"
         );
-        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+        navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       }
     } catch (e) {
       console.error("🔐 LoginScreen - Google auth failed:", e);
@@ -771,3 +771,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
+

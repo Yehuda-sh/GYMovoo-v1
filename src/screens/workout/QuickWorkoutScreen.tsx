@@ -36,6 +36,7 @@ import { NextExerciseBar } from "./components/NextExerciseBar";
 import { WorkoutSummary } from "./components/WorkoutSummary";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ExerciseTipsModal } from "./components/ExerciseTipsModal";
+import FloatingActionButton from "../../components/workout/FloatingActionButton";
 
 // Hooks & Services
 import { useWorkoutTimer } from "./hooks/useWorkoutTimer";
@@ -254,7 +255,7 @@ const useWorkoutManager = (initialData: Exercise[]) => {
 // קומפוננטה ראשית
 // Main component
 export const QuickWorkoutScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const flatListRef = useRef<FlatList>(null);
 
   // States
@@ -266,6 +267,10 @@ export const QuickWorkoutScreen = () => {
   const [showSummary, setShowSummary] = useState(false);
   const [isDashboardVisible, setDashboardVisible] = useState(false);
   const dashboardAnim = useRef(new Animated.Value(-200)).current;
+
+  // FAB States
+  const [showFab, setShowFab] = useState(true);
+  const [showFabLabel, setShowFabLabel] = useState(true);
 
   // Modal States
   const [modals, setModals] = useState({
@@ -306,12 +311,17 @@ export const QuickWorkoutScreen = () => {
     }).start();
   }, [isDashboardVisible]);
 
-  // התחלת הטיימר בכניסה למסך
-  // Start timer on screen enter
+  // התחלת הטיימר בכניסה למסך והסתרת תווית FAB
+  // Start timer on screen enter and hide FAB label
   useEffect(() => {
     if (!isRunning) {
       startTimer();
     }
+
+    // הסתר את תווית ה-FAB אחרי 3 שניות
+    const labelTimer = setTimeout(() => {
+      setShowFabLabel(false);
+    }, 3000);
 
     // שמירה אוטומטית כל דקה
     // Auto-save every minute
@@ -328,6 +338,7 @@ export const QuickWorkoutScreen = () => {
     }, 60000);
 
     return () => {
+      clearTimeout(labelTimer);
       clearInterval(saveInterval);
       pauseTimer();
     };
@@ -471,6 +482,20 @@ export const QuickWorkoutScreen = () => {
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           removeClippedSubviews={false}
+          onScroll={(event) => {
+            // הסתר/הצג FAB בזמן גלילה
+            const offsetY = event.nativeEvent.contentOffset.y;
+            const velocity = event.nativeEvent.velocity?.y || 0;
+
+            if (velocity > 0.5) {
+              // גלילה מהירה למטה - הסתר
+              setShowFab(false);
+            } else if (velocity < -0.5 || offsetY < 50) {
+              // גלילה למעלה או קרוב לראש - הצג
+              setShowFab(true);
+            }
+          }}
+          scrollEventThrottle={16}
           renderItem={({ item: exercise, index }) => (
             <ExerciseCard
               exercise={exercise}
@@ -526,21 +551,7 @@ export const QuickWorkoutScreen = () => {
           )}
           ListFooterComponent={
             <>
-              <TouchableOpacity
-                style={styles.addExerciseButton}
-                onPress={() =>
-                  setModals((prev) => ({ ...prev, exercisePicker: true }))
-                }
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="plus-circle"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.addExerciseText}>הוסף תרגיל</Text>
-              </TouchableOpacity>
-
+              {/* הוסרנו את כפתור הוסף תרגיל מכאן - הוא יהיה ב-FAB */}
               <TouchableOpacity
                 style={styles.finishButton}
                 onPress={handleFinishWorkout}
@@ -550,6 +561,20 @@ export const QuickWorkoutScreen = () => {
               </TouchableOpacity>
             </>
           }
+        />
+
+        {/* Floating Action Button */}
+        <FloatingActionButton
+          icon="add"
+          size="small"
+          label={showFabLabel ? "הוסף תרגיל" : undefined}
+          onPress={() => {
+            console.log("FAB pressed - opening exercise list");
+            navigation.navigate("ExerciseList", { fromScreen: "QuickWorkout" });
+          }}
+          visible={showFab && !modals.exercisePicker && !isResting}
+          bottom={100} // מעל ה-NextExerciseBar
+          color={theme.colors.primary}
         />
 
         <NextExerciseBar
@@ -656,28 +681,10 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 60,
   },
-  addExerciseButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.card,
-    marginHorizontal: theme.spacing.md,
-    marginVertical: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderStyle: "dashed",
-  },
-  addExerciseText: {
-    marginRight: theme.spacing.sm,
-    color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
   finishButton: {
     backgroundColor: theme.colors.success,
     marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,

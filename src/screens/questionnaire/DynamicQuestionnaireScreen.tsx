@@ -284,7 +284,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     // Save additional metadata if needed
     // await AsyncStorage.setItem('questionnaire_metadata', JSON.stringify(metadata));
 
-    navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+    navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
   };
 
   // חזרה לשאלה הקודמת
@@ -884,3 +884,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+

@@ -40,6 +40,51 @@ git push
 ---
 
 
+🔖 Checkpoint #017 - הטמעת Bottom Navigation ו-FAB במסך האימון
+🗓️ תאריך: 2025-01-23
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+יצירת Bottom Navigation עם 5 טאבים: בית, תוכניות, אימון, היסטוריה, פרופיל
+יצירת FloatingActionButton Component - כפתור צף קומפקטי עם אנימציות
+עדכון AppNavigator - שילוב Bottom Tabs עם Stack Navigation
+יצירת מסכי Placeholder - WorkoutPlansScreen ו-HistoryScreen
+עדכון כל הניווטים - מ-"Main" ל-"MainApp" בכל הקבצים הרלוונטיים
+הטמעת FAB במסך האימון - עם לוגיקת הסתרה בגלילה ותווית זמנית
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: ניסיון להשתמש ב-ExerciseDetailsModal כמסך רגיל ב-Navigator
+פתרון: הסרת המסך מה-Navigator כי הוא כבר עובד כ-Modal בתוך מסכים אחרים
+לקח לעתיד: להבדיל בין Components שהם מסכים מלאים לבין Modals
+שגיאה: חוסר עקביות בניווט - חלק מהמסכים ניווטו ל-"Main" וחלק ל-"MainApp"
+פתרון: עדכון אוטומטי של כל הקבצים עם PowerShell script
+לקח לעתיד: בעת שינוי מבנה ניווט, לעדכן את כל הקבצים הרלוונטיים
+
+📂 קבצים עיקריים שעודכנו:
+
+src/navigation/BottomNavigation.tsx - ניווט תחתון חדש
+src/components/workout/FloatingActionButton.tsx - כפתור פעולה צף
+src/navigation/AppNavigator.tsx - עדכון לשילוב Bottom Tabs
+src/screens/workout/QuickWorkoutScreen.tsx - הוספת FAB
+src/screens/plans/WorkoutPlansScreen.tsx - מסך תוכניות חדש
+src/screens/history/HistoryScreen.tsx - מסך היסטוריה חדש
+
+🚀 השלב הבא:
+
+עדכון MainScreen להסרת כפתורי "פעולות מהירות" והוספת תוכן חדש
+יצירת תוכן אמיתי למסכי תוכניות והיסטוריה
+שיפור אנימציות המעבר בין הטאבים
+
+
+
+
+
+
+
+
+
 🔖 Checkpoint #014 - שאלון דינמי וחכם עם רכיבים אינטראקטיביים
 🗓️ תאריך: 2025-01-23
 🎯 סטטוס: ✅ הושלם

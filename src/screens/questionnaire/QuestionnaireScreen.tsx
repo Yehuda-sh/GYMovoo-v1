@@ -240,7 +240,7 @@ export default function QuestionnaireScreen({ navigation }: any) {
         // סיום השאלון // Questionnaire completion
         console.log("📝 Questionnaire completed:", answers);
         setQuestionnaire(answers);
-        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+        navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       }
     });
   };
@@ -686,3 +686,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+
