@@ -192,20 +192,48 @@ const styles = StyleSheet.create({
 5. ✅ עיצוב תואם למסכי Workout
 6. ✅ שימוש ב-theme.components היכן שרלוונטי
 
-## 🌐 Appendix: English Version
+## 📁 8. עקרונות ארגון קוד ונתונים
 
-This document is the Single Source of Truth for the GYMovoo project.
+### מבנה קבצים מודולרי
 
-**Rule #1:** Full RTL Compliance is Mandatory. Layouts (`flexDirection: 'row-reverse'`), text (`textAlign: 'right'`), and element positioning (actions left, content right) must be adapted for Hebrew.
+- **הפרד נתונים מלוגיקה:** צור קבצי data נפרדים (כמו `questionnaireData.ts`) במקום לשלב נתונים בתוך קומפוננטות
+- **ריכוז נתונים:** כל השאלות, אופציות, וקונפיגורציות במקום אחד לתחזוקה קלה
+- **ייצוא פונקציות עזר:** כמו `getRelevantQuestions()`, `getEquipmentImage()` בקובץ הנתונים
 
-**Rule #2:** Workflow Protocol. I send code → You return full, copy-paste ready code → I test and send errors → You fix. You must ask for related files if needed to solve an error.
+### רכיבים אינטראקטיביים מותאמים
 
-**Rule #3:** Use the Design System Exclusively. No hardcoded values. Use variables from theme.ts only. New: Use `theme.components` for base styles.
+- **העדף רכיבים ויזואליים על פני קלט טקסט:** סרגלי גרירה לגובה/משקל במקום input fields
+- **התאמת כיוון לנתון:** סרגל אנכי לגובה (אינטואיטיבי), סרגל אופקי למשקל (כמו ציר)
+- **משוב מיידי:** הצגת BMI בזמן בחירת משקל, הצגת "ממוצע/גבוה/נמוך" בבחירת גובה
 
-**Rule #4:** Git Commands Post-Checkpoint. At the end of each checkpoint, a code block with Git commands will be provided, tailored for the PowerShell terminal in VS Code on Windows 11.
+### גישת פיתוח מדורגת
 
-**File Headers:** Every component/hook/service file must start with the standardized documentation block.
+- **תמונות זמניות:** השתמש ב-URLs חיצוניים `{ uri: "https://..." }` בשלב הפיתוח
+- **החלפה קלה:** מבנה שמאפשר מעבר פשוט לתמונות מקומיות `require("../../assets/...")`
+- **בדיקת פונקציונליות לפני עיצוב:** "קודם לראות שזה עובד, אחר כך להחליף לתמונות מקצועיות"
 
-**Design Guidelines:** Follow the modern Workout screens style with rounded cards, medium shadows, and consistent spacing.
+## 🎯 9. עקרונות UX וחווית משתמש
 
-**New in v5.1:** `theme.components` provides pre-built style objects for common UI elements to ensure consistency across the app.
+### שאלות דינמיות וחכמות
+
+- **התאמה לקונטקסט:** שאלות משתנות לפי תשובות קודמות (ציוד שונה לבית/חדר כושר)
+- **מניעת שאלות לא רלוונטיות:** אם בחר "ירידה במשקל" - שאל כמה ק"ג, לא שאלות על בניית שריר
+- **זרימה לוגית:** סדר שאלות שמוביל מכללי לספציפי
+
+### נגישות ללא גלילה
+
+- **חוק ברזל:** כל מסך (מלבד מסך אימון) חייב להיות נגיש במלואו ללא גלילה
+- **התאמת גדלים:** רכיבים כמו סרגלים מוגבלים ל-35% מגובה המסך
+- **כפתורי פעולה תמיד נגישים:** כפתור "המשך" תמיד נראה בתחתית המסך
+
+### ברירות מחדל חכמות והדגשות
+
+- **ברירות מחדל לפי הגיון:** "ללא ציוד" בבית, "משקולות חופשיות" בחדר כושר
+- **הדגשת ציוד מומלץ:** תגיות "פרימיום" עם המלצות לשיפור התוצאות
+- **מסרים מעודדים:** "💡 שקול רכישת ציוד נוסף לאימונים מגוונים"
+
+### בדיקת imports ונתיבים
+
+- **תמיד וודא מיקום קבצים:** לפני כתיבת imports, בדוק היכן נמצאים הקבצים
+- **העדף imports יחסיים:** `./ComponentName` כשהקבצים באותה תיקייה
+- **שגיאות נפוצות:** שים לב במיוחד לקבצים בתיקיות questionnaire vs components
