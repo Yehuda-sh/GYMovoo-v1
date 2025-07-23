@@ -18,6 +18,7 @@ import MainScreen from "../screens/main/MainScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen"; // חדש: מסך תרגילים
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
+import DynamicQuestionnaireScreen from "../screens/questionnaire/DynamicQuestionnaireScreen";
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
@@ -33,7 +34,10 @@ export default function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
-        <Stack.Screen name="Questionnaire" component={QuestionnaireScreen} />
+        <Stack.Screen
+          name="Questionnaire"
+          component={DynamicQuestionnaireScreen}
+        />
         <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ExerciseList" component={ExerciseListScreen} />
