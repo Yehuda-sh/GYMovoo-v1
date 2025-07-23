@@ -1,12 +1,15 @@
 /**
  * @file src/data/questionnaireData.ts
  * @brief מאגר כל השאלות, התשובות, התמונות והלוגיקה של השאלון
+ * @brief Repository of all questions, answers, images and questionnaire logic
  * @description כל הנתונים של השאלון במקום אחד לתחזוקה קלה
+ * @description All questionnaire data in one place for easy maintenance
  */
 
 import { ImageSourcePropType } from "react-native";
 
 // סוגי שאלות
+// Question types
 export type QuestionType =
   | "single"
   | "multiple"
@@ -17,6 +20,7 @@ export type QuestionType =
   | "weight";
 
 // ממשק אפשרות עם תמונה
+// Option with image interface
 export interface OptionWithImage {
   id: string;
   label: string;
@@ -27,6 +31,7 @@ export interface OptionWithImage {
 }
 
 // ממשק שאלה
+// Question interface
 export interface Question {
   id: string;
   question: string;
@@ -47,6 +52,7 @@ export interface Question {
 }
 
 // ציוד לבית
+// Home equipment
 export const HOME_EQUIPMENT: OptionWithImage[] = [
   {
     id: "none",
@@ -58,7 +64,9 @@ export const HOME_EQUIPMENT: OptionWithImage[] = [
   {
     id: "dumbbells",
     label: "משקולות יד",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3043/3043130.png" }, // dumbbells
+    image: {
+      uri: "https://storage.googleapis.com/gemini-prod/images/a6c7104b-9e96-410a-85d7-f47285199b0c",
+    }, // dumbbells
     description: "זוג משקולות מתכווננות",
     isPremium: true,
   },
@@ -110,11 +118,12 @@ export const HOME_EQUIPMENT: OptionWithImage[] = [
 ];
 
 // ציוד לחדר כושר
+// Gym equipment
 export const GYM_EQUIPMENT: OptionWithImage[] = [
   {
     id: "free_weights",
     label: "משקולות חופשיות",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3043/3043130.png" }, // dumbbells
+    image: require("../../assets/adjustable_dumbbells.png"), // dumbbells
     description: "משקולות יד ומוטות",
     isDefault: true,
   },
@@ -188,6 +197,7 @@ export const GYM_EQUIPMENT: OptionWithImage[] = [
 ];
 
 // אפשרויות תזונה עם תמונות
+// Diet options with images
 export const DIET_OPTIONS: OptionWithImage[] = [
   {
     id: "none",
@@ -234,6 +244,7 @@ export const DIET_OPTIONS: OptionWithImage[] = [
 ];
 
 // שאלות בסיסיות
+// Base questions
 export const BASE_QUESTIONS: Question[] = [
   {
     id: "age",
@@ -259,6 +270,7 @@ export const BASE_QUESTIONS: Question[] = [
     min: 140,
     max: 220,
     required: true,
+    helpText: "גרור את הסרגל כדי לבחור את הגובה שלך",
   },
   {
     id: "weight",
@@ -268,6 +280,7 @@ export const BASE_QUESTIONS: Question[] = [
     min: 40,
     max: 150,
     required: true,
+    helpText: "גרור את הסרגל כדי לבחור את המשקל שלך",
   },
   {
     id: "goal",
@@ -326,21 +339,24 @@ export const BASE_QUESTIONS: Question[] = [
     question: "איפה אתה מתכנן להתאמן?",
     icon: "map-marker",
     type: "single",
-    options: ["חדר כושר", "בית"],
+    options: ["חדר כושר", "בית", "גם וגם"],
     required: true,
   },
 ];
 
 // שאלות דינמיות
+// Dynamic questions
 export const DYNAMIC_QUESTIONS: Question[] = [
   // שאלת ציוד לבית
+  // Home equipment question
   {
     id: "home_equipment",
     question: "איזה ציוד יש לך בבית?",
     subtitle: "💡 שקול רכישת ציוד נוסף לאימונים מגוונים ותוצאות טובות יותר",
     icon: "home-variant",
     type: "multiple",
-    condition: (answers) => answers.location === "בית",
+    condition: (answers) =>
+      answers.location === "בית" || answers.location === "גם וגם",
     dynamicOptions: () => HOME_EQUIPMENT,
     helpText: "ללא ציוד הוא ברירת המחדל - בחר ציוד נוסף אם יש",
     required: true,
@@ -348,23 +364,26 @@ export const DYNAMIC_QUESTIONS: Question[] = [
   },
 
   // שאלת ציוד לחדר כושר
+  // Gym equipment question
   {
     id: "gym_equipment",
     question: "איזה ציוד זמין לך בחדר הכושר?",
     subtitle: "רוב חדרי הכושר כוללים משקולות חופשיות ומוטות",
     icon: "dumbbell",
     type: "multiple",
-    condition: (answers) => answers.location === "חדר כושר",
+    condition: (answers) =>
+      answers.location === "חדר כושר" || answers.location === "גם וגם",
     dynamicOptions: () => GYM_EQUIPMENT,
     helpText: "בחר את כל הציוד הזמין בחדר הכושר שלך",
     required: true,
     defaultValue: ["free_weights", "barbell"],
   },
 
-  // שאלות נוספות לפי מטרה
+  // שאלות נוספות לפי מטרה - ניסוחים משופרים
+  // Additional questions by goal - improved phrasing
   {
     id: "weight_loss_goal",
-    question: "כמה קילוגרמים אתה רוצה לרדת?",
+    question: "מה יעד הירידה במשקל שלך?",
     icon: "arrow-down-bold",
     type: "number",
     placeholder: "לדוגמה: 10",
@@ -373,11 +392,12 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     max: 50,
     condition: (answers) => answers.goal === "ירידה במשקל",
     required: true,
+    helpText: "הגדר יעד ריאלי - ירידה של 0.5-1 ק״ג בשבוע היא בריאה ובת קיימא",
   },
 
   {
     id: "muscle_gain_goal",
-    question: "כמה מסת שריר אתה רוצה להעלות?",
+    question: "מה יעד העלייה במסת השריר שלך?",
     icon: "arrow-up-bold",
     type: "number",
     placeholder: "לדוגמה: 5",
@@ -386,6 +406,7 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     max: 20,
     condition: (answers) => answers.goal === "עליה במסת שריר",
     required: true,
+    helpText: "עלייה של 0.25-0.5 ק״ג שריר בחודש היא יעד ריאלי למתאמנים טבעיים",
   },
 
   {
@@ -407,6 +428,7 @@ export const DYNAMIC_QUESTIONS: Question[] = [
   },
 
   // שאלות בריאות
+  // Health questions
   {
     id: "health_conditions",
     question: "האם יש לך מצבים רפואיים שצריך לקחת בחשבון?",
@@ -422,9 +444,11 @@ export const DYNAMIC_QUESTIONS: Question[] = [
       "אין מצבים רפואיים",
     ],
     required: true,
+    helpText: "חשוב שנדע כדי להתאים את האימונים למצבך הבריאותי",
   },
 
   // שאלות תזונה
+  // Nutrition questions
   {
     id: "diet_type",
     question: "האם אתה עוקב אחרי תזונה מסוימת?",
@@ -441,6 +465,7 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     type: "single",
     options: ["פחות מ-5 שעות", "5-6 שעות", "6-7 שעות", "7-8 שעות", "8+ שעות"],
     required: true,
+    helpText: "שינה איכותית חיונית להתאוששות ולתוצאות אימון טובות",
   },
 
   {
@@ -450,9 +475,11 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     type: "single",
     options: ["נמוכה מאוד", "נמוכה", "בינונית", "גבוהה", "גבוהה מאוד"],
     required: true,
+    helpText: "רמת לחץ גבוהה יכולה להשפיע על התאוששות ותוצאות",
   },
 
   // שאלות העדפות אימון
+  // Training preferences questions
   {
     id: "workout_preference",
     question: "איזה סוג אימונים אתה מעדיף?",
@@ -468,9 +495,11 @@ export const DYNAMIC_QUESTIONS: Question[] = [
       "אימוני משקל גוף",
     ],
     required: true,
+    helpText: "נתאים את התוכנית להעדפות שלך",
   },
 
   // שאלה אחרונה - הערות נוספות
+  // Last question - additional notes
   {
     id: "additional_notes",
     question: "יש משהו נוסף שחשוב שנדע?",
@@ -478,14 +507,17 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     type: "text",
     placeholder: "לדוגמה: מגבלות זמן, העדפות מיוחדות, היסטוריה רפואית...",
     required: false,
+    helpText: "כל מידע נוסף יעזור לנו להתאים לך תוכנית אימונים מושלמת",
   },
 ];
 
 // פונקציה לקבלת כל השאלות הרלוונטיות
+// Function to get all relevant questions
 export function getRelevantQuestions(answers: any): Question[] {
   const allQuestions = [...BASE_QUESTIONS];
 
   // הוסף שאלות דינמיות לפי תנאים
+  // Add dynamic questions based on conditions
   DYNAMIC_QUESTIONS.forEach((q) => {
     if (!q.condition || q.condition(answers)) {
       allQuestions.push(q);
@@ -496,6 +528,7 @@ export function getRelevantQuestions(answers: any): Question[] {
 }
 
 // פונקציה לקבלת תמונה של ציוד
+// Function to get equipment image
 export function getEquipmentImage(
   equipmentId: string
 ): ImageSourcePropType | undefined {
@@ -505,6 +538,7 @@ export function getEquipmentImage(
 }
 
 // פונקציה לבדיקה אם ציוד הוא פרימיום
+// Function to check if equipment is premium
 export function isEquipmentPremium(equipmentId: string): boolean {
   const allEquipment = [...HOME_EQUIPMENT, ...GYM_EQUIPMENT];
   const equipment = allEquipment.find((e) => e.id === equipmentId);

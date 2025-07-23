@@ -1,9 +1,12 @@
 /**
  * @file src/screens/questionnaire/DynamicQuestionnaireScreen.tsx
  * @brief מסך שאלון דינמי וחכם - מתאים שאלות לפי תשובות קודמות
+ * @brief Dynamic smart questionnaire screen - adapts questions based on previous answers
  * @dependencies userStore (Zustand), React Navigation
  * @notes שאלות מותאמות אישית, לוגיקה דינמית, אנימציות חלקות
+ * @notes Personalized questions, dynamic logic, smooth animations
  * @recurring_errors וודא RTL מלא וזרימת נתונים נכונה
+ * @recurring_errors Ensure full RTL and correct data flow
  */
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
@@ -43,7 +46,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
   const [textInput, setTextInput] = useState("");
   const [numberInput, setNumberInput] = useState("");
 
-  // אנימציות // Animations
+  // אנימציות
+  // Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -51,17 +55,20 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
 
   const setQuestionnaire = useUserStore((s) => s.setQuestionnaire);
 
-  // חישוב השאלות הרלוונטיות // Calculate relevant questions
+  // חישוב השאלות הרלוונטיות
+  // Calculate relevant questions
   const relevantQuestions = useMemo(() => {
     return getRelevantQuestions(answers);
   }, [answers]);
 
-  // השאלה הנוכחית // Current question
+  // השאלה הנוכחית
+  // Current question
   const currentQuestion = relevantQuestions[currentQuestionIndex];
   const totalQuestions = relevantQuestions.length;
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
 
-  // עדכון progress bar // Update progress bar
+  // עדכון progress bar
+  // Update progress bar
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: (currentQuestionIndex + 1) / totalQuestions,
@@ -70,7 +77,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     }).start();
   }, [currentQuestionIndex, totalQuestions]);
 
-  // אנימציית שגיאה // Error animation
+  // אנימציית שגיאה
+  // Error animation
   const showError = (message: string) => {
     setError(message);
     Animated.sequence([
@@ -97,13 +105,15 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     ]).start();
   };
 
-  // בחירת אפשרות בודדת // Single option selection
+  // בחירת אפשרות בודדת
+  // Single option selection
   const handleSingleOption = (option: string) => {
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: option }));
     setError(null);
   };
 
-  // בחירת אפשרויות מרובות // Multiple options selection
+  // בחירת אפשרויות מרובות
+  // Multiple options selection
   const handleMultipleOption = (option: string) => {
     const current = answers[currentQuestion.id] || [];
     const updated = current.includes(option)
@@ -113,7 +123,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     setError(null);
   };
 
-  // טיפול בקלט מספרי // Handle number input
+  // טיפול בקלט מספרי
+  // Handle number input
   const handleNumberInput = (value: string) => {
     const num = parseInt(value);
     if (!isNaN(num)) {
@@ -122,9 +133,11 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     }
   };
 
-  // מעבר לשאלה הבאה // Move to next question
+  // מעבר לשאלה הבאה
+  // Move to next question
   const handleNext = () => {
     // בדיקת גיל בתחילה
+    // Check age at the beginning
     if (currentQuestion.id === "age" && answers.age === "מתחת ל-16") {
       Alert.alert("הגבלת גיל", "ההרשמה מותרת רק מגיל 16 ומעלה", [
         { text: "הבנתי", onPress: () => navigation.goBack() },
@@ -132,7 +145,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
       return;
     }
 
-    // בדיקות תקינות // Validation
+    // בדיקות תקינות
+    // Validation checks
     if (currentQuestion.required) {
       if (currentQuestion.type === "text" && !textInput.trim()) {
         showError("נא למלא את השדה");
@@ -169,6 +183,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     }
 
     // שמירת תשובות טקסט/מספר
+    // Save text/number answers
     if (currentQuestion.type === "text" && textInput.trim()) {
       setAnswers((prev) => ({
         ...prev,
@@ -187,7 +202,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: num }));
     }
 
-    // אנימציית מעבר // Transition animation
+    // אנימציית מעבר
+    // Transition animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -207,6 +223,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         setError(null);
 
         // איפוס ואנימציית כניסה
+        // Reset and entry animation
         slideAnim.setValue(50);
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -222,20 +239,24 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         ]).start();
       } else {
         // סיום השאלון
+        // Finish questionnaire
         finishQuestionnaire();
       }
     });
   };
 
-  // סיום השאלון // Finish questionnaire
+  // סיום השאלון
+  // Finish questionnaire
   const finishQuestionnaire = () => {
     console.log("📝 Questionnaire completed:", answers);
 
     // המרת התשובות לפורמט הישן לתאימות
+    // Convert answers to old format for compatibility
     const formattedAnswers: { [key: number]: any } = {};
     let index = 0;
 
     // מיפוי התשובות החדשות לפורמט הישן
+    // Map new answers to old format
     if (answers.age) formattedAnswers[index++] = answers.age;
     if (answers.gender) formattedAnswers[index++] = answers.gender;
     if (answers.goal) formattedAnswers[index++] = answers.goal;
@@ -248,6 +269,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     if (answers.equipment) formattedAnswers[index++] = answers.equipment;
 
     // שמירת כל הנתונים המורחבים גם ב-metadata
+    // Save all extended data in metadata
     const metadata = {
       ...answers,
       completedAt: new Date().toISOString(),
@@ -255,15 +277,18 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     };
 
     // שמירה ב-store
+    // Save in store
     setQuestionnaire(formattedAnswers);
 
     // שמירת metadata נוסף אם יש צורך
+    // Save additional metadata if needed
     // await AsyncStorage.setItem('questionnaire_metadata', JSON.stringify(metadata));
 
     navigation.reset({ index: 0, routes: [{ name: "Main" }] });
   };
 
-  // חזרה לשאלה הקודמת // Go back to previous question
+  // חזרה לשאלה הקודמת
+  // Go back to previous question
   const handleBack = () => {
     if (currentQuestionIndex > 0) {
       Animated.parallel([
@@ -282,6 +307,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         setError(null);
 
         // שחזור ערכים קודמים
+        // Restore previous values
         const prevQuestion = relevantQuestions[currentQuestionIndex - 1];
         if (prevQuestion.type === "text") {
           setTextInput(answers[prevQuestion.id] || "");
@@ -306,7 +332,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     }
   };
 
-  // קבלת אפשרויות דינמיות // Get dynamic options
+  // קבלת אפשרויות דינמיות
+  // Get dynamic options
   const getOptions = () => {
     if (currentQuestion.dynamicOptions) {
       return currentQuestion.dynamicOptions(answers);
@@ -315,6 +342,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
   };
 
   // בדיקה אם השאלה הנוכחית היא עם רכיב מיוחד
+  // Check if current question has special component
   const isEquipmentQuestion =
     currentQuestion.id === "home_equipment" ||
     currentQuestion.id === "gym_equipment";
@@ -465,6 +493,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
             {currentQuestion.type === "multiple" && (
               <>
                 {/* בדוק אם יש אופציות עם תמונות */}
+                {/* Check if there are options with images */}
                 {currentQuestion.dynamicOptions &&
                 typeof getOptions()[0] === "object" ? (
                   <EquipmentSelector
@@ -544,6 +573,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
                   multiline
                   maxLength={500}
                   textAlign="right"
+                  textAlignVertical="top"
                 />
                 <Text style={styles.textCounter}>{textInput.length}/500</Text>
               </View>
@@ -786,7 +816,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: theme.spacing.lg,
-    gap: theme.spacing.md,
   },
   numberInput: {
     backgroundColor: theme.colors.card,
@@ -798,6 +827,7 @@ const styles = StyleSheet.create({
     minWidth: 120,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    marginLeft: theme.spacing.md, // תיקון מ-gap
     ...theme.shadows.small,
   },
   unitText: {
@@ -831,13 +861,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 16,
-    gap: theme.spacing.sm,
     ...theme.shadows.medium,
   },
   nextButtonText: {
     color: theme.colors.text,
     fontSize: 18,
     fontWeight: "bold",
+    marginLeft: theme.spacing.sm, // תיקון מ-gap
   },
   skipButton: {
     alignSelf: "center",
