@@ -39,6 +39,7 @@ import {
   OptionWithImage,
   QuestionType,
 } from "../../data/questionnaireData";
+import { questionnaireService } from "../../services/questionnaireService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -100,6 +101,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
   const tipOpacity = useRef(new Animated.Value(0)).current;
 
   const setQuestionnaire = useUserStore((s) => s.setQuestionnaire);
+  const startTime = useRef(Date.now()).current;
 
   // חישוב השאלות הרלוונטיות
   // Calculate relevant questions
@@ -337,11 +339,12 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     return recommendations;
   };
 
-  // הצגת שגיאה עם אנימציה
-  // Show error with animation
+  // אנימציית שגיאה
+  // Error animation
   const showError = (message: string) => {
     setError(message);
-    Vibration.vibrate(200);
+    Vibration.vibrate(100);
+
     Animated.sequence([
       Animated.timing(errorShake, {
         toValue: 10,
@@ -364,152 +367,117 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         useNativeDriver: true,
       }),
     ]).start();
+
+    setTimeout(() => setError(null), 3000);
   };
 
-  // טיפול באפשרות בודדת
-  // Handle single option
-  const handleSingleOption = (option: string) => {
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: option }));
-    setError(null);
+  // אנימציית מעבר בין שאלות
+  // Transition animation between questions
+  const animateTransition = (callback: () => void) => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: -50,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      callback();
+      slideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  // טיפול בתשובות
+  // Handle answers
+  const handleAnswer = (value: any) => {
+    if (!currentQuestion) return;
+
     Vibration.vibrate(50);
-  };
-
-  // טיפול באפשרויות מרובות
-  // Handle multiple options
-  const handleMultipleOption = (option: string) => {
-    const current = answers[currentQuestion.id] || [];
-    const updated = current.includes(option)
-      ? current.filter((o: string) => o !== option)
-      : [...current, option];
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: updated }));
+    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
     setError(null);
-    Vibration.vibrate(50);
-  };
 
-  // טיפול בקלט טקסט
-  // Handle text input
-  const handleTextInput = (text: string) => {
-    setTextInput(text);
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: text }));
-    setError(null);
-  };
-
-  // טיפול בקלט מספרי
-  // Handle number input
-  const handleNumberInput = (value: string) => {
-    const num = parseInt(value);
-    if (!isNaN(num)) {
-      setNumberInput(value);
-      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: num }));
-      setError(null);
-    }
+    // שמירה אוטומטית
+    // Auto-save
+    saveProgress();
   };
 
   // מעבר לשאלה הבאה
   // Move to next question
   const handleNext = () => {
-    // בדיקת גיל בתחילה
-    // Check age at the beginning
-    if (currentQuestion.id === "age" && answers.age === "מתחת ל-16") {
-      Alert.alert("הגבלת גיל", "ההרשמה מותרת רק מגיל 16 ומעלה", [
-        { text: "הבנתי", onPress: () => navigation.goBack() },
-      ]);
+    if (!currentQuestion) return;
+
+    const currentAnswer = answers[currentQuestion.id];
+
+    // בדיקת תשובה חובה
+    // Check required answer
+    if (currentQuestion.required && !currentAnswer) {
+      showError("יש לענות על שאלה זו");
       return;
     }
 
-    // בדיקות תקינות
-    // Validation checks
-    if (currentQuestion.required) {
-      if (currentQuestion.type === "text" && !textInput.trim()) {
-        showError("נא למלא את השדה");
-        return;
-      } else if (currentQuestion.type === "number" && !numberInput) {
-        showError("נא להזין מספר");
-        return;
-      } else if (
-        currentQuestion.type === "multiple" &&
-        (!answers[currentQuestion.id] ||
-          answers[currentQuestion.id].length === 0)
-      ) {
-        showError("נא לבחור לפחות אפשרות אחת");
-        return;
-      } else if (
-        currentQuestion.type === "single" &&
-        !answers[currentQuestion.id]
-      ) {
-        showError("נא לבחור אפשרות");
-        return;
-      } else if (
-        currentQuestion.type === "height" &&
-        !answers[currentQuestion.id]
-      ) {
-        showError("נא לבחור גובה");
-        return;
-      } else if (
-        currentQuestion.type === "weight" &&
-        !answers[currentQuestion.id]
-      ) {
-        showError("נא לבחור משקל");
+    // בדיקת תשובת טקסט
+    // Check text answer
+    if (currentQuestion.type === "text" && currentAnswer === "") {
+      if (currentQuestion.required) {
+        showError("יש להזין תשובה");
         return;
       }
     }
 
-    // שמירת התקדמות
-    // Save progress
-    saveProgress();
-
-    // אנימציית מעבר
-    // Transition animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: -50,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      if (!isLastQuestion) {
+    if (isLastQuestion) {
+      handleComplete();
+    } else {
+      animateTransition(() => {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setTextInput("");
         setNumberInput("");
-        setError(null);
-
-        // איפוס ואנימציית כניסה
-        // Reset and entry animation
-        slideAnim.setValue(50);
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      } else {
-        finishQuestionnaire();
-      }
-    });
+      });
+    }
   };
 
   // סיום השאלון
-  // Finish questionnaire
-  const finishQuestionnaire = async () => {
-    console.log("📝 Questionnaire completed:", answers);
+  // Complete questionnaire
+  const handleComplete = async () => {
+    // בדיקה שכל השאלות החובה נענו
+    // Check all required questions answered
+    const unansweredRequired = relevantQuestions
+      .filter((q) => q.required)
+      .find((q) => !answers[q.id] || answers[q.id] === "");
 
-    // אצ'יבמנט סיום
-    // Completion achievement
-    Vibration.vibrate([100, 100, 100]);
+    if (unansweredRequired) {
+      showError("יש לענות על כל השאלות החובה");
+      return;
+    }
+
+    // שמירת אנליטיקס סופית
+    // Save final analytics
+    setAnalytics((prev) => ({
+      ...prev,
+      totalTime: Date.now() - startTime,
+      completionRate: 100,
+    }));
+
+    // הצגת טוסט הצלחה
+    // Show success toast
     Toast.show({
       type: "success",
-      text1: "כל הכבוד! 🎉",
+      text1: "🎉",
       text2: "סיימת את השאלון בהצלחה",
       position: "top",
       visibilityTime: 3000,
@@ -533,8 +501,8 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
       formattedAnswers[index++] = answers.health_conditions.join(", ");
     if (answers.equipment) formattedAnswers[index++] = answers.equipment;
 
-    // שמירת כל הנתונים המורחבים גם ב-metadata
-    // Save all extended data in metadata
+    // שמירת כל הנתונים המורחבים
+    // Save all extended data
     const metadata = {
       ...answers,
       completedAt: new Date().toISOString(),
@@ -542,16 +510,19 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
       analytics,
     };
 
-    // שמירה ב-store
-    // Save in store
+    // שמירה ב-store - פורמט ישן וחדש
+    // Save in store - both old and new format
     setQuestionnaire(formattedAnswers);
+    useUserStore.getState().setQuestionnaireData({
+      answers: formattedAnswers,
+      metadata: answers,
+      completedAt: new Date().toISOString(),
+      version: "2.0",
+    });
 
-    // שמירת metadata נוסף
-    // Save additional metadata
-    await AsyncStorage.setItem(
-      "questionnaire_metadata",
-      JSON.stringify(metadata)
-    );
+    // שמירה ב-service המרכזי
+    // Save in central service
+    await questionnaireService.saveQuestionnaireData(metadata);
 
     // מחיקת הטיוטה
     // Remove draft
@@ -607,12 +578,12 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
-            duration: 200,
+            duration: 150,
             useNativeDriver: true,
           }),
           Animated.timing(slideAnim, {
             toValue: 0,
-            duration: 200,
+            duration: 150,
             useNativeDriver: true,
           }),
         ]).start();
@@ -620,352 +591,335 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     }
   };
 
-  // קבלת אפשרויות דינמיות
-  // Get dynamic options
-  const getOptions = () => {
-    if (currentQuestion.dynamicOptions) {
-      return currentQuestion.dynamicOptions(answers);
-    }
-    return currentQuestion.options || [];
+  // יציאה מהשאלון
+  // Exit questionnaire
+  const handleExit = () => {
+    Alert.alert(
+      "לצאת מהשאלון?",
+      "ההתקדמות שלך תישמר ותוכל להמשיך מאיפה שהפסקת",
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "יציאה",
+          style: "destructive",
+          onPress: () => {
+            saveProgress();
+            navigation.goBack();
+          },
+        },
+      ]
+    );
   };
 
-  // בדיקה אם השאלה הנוכחית היא עם רכיב מיוחד
-  // Check if current question has special component
-  const isEquipmentQuestion =
-    currentQuestion.id === "home_equipment" ||
-    currentQuestion.id === "gym_equipment";
+  // רנדור השאלה הנוכחית
+  // Render current question
+  const renderQuestion = () => {
+    if (!currentQuestion) return null;
 
-  if (!currentQuestion) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.questionText}>טוען...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={styles.container}
-    >
-      <Toast />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
+      <Animated.View
+        style={[
+          styles.questionContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { translateX: errorShake },
+            ],
+          },
+        ]}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={handleBack}
-              disabled={currentQuestionIndex === 0}
-              style={[
-                styles.backButton,
-                currentQuestionIndex === 0 && styles.backButtonDisabled,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={24}
-                color={
-                  currentQuestionIndex === 0
-                    ? theme.colors.textSecondary
-                    : theme.colors.text
-                }
-              />
-            </TouchableOpacity>
+        {/* אייקון שאלה // Question icon */}
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons
+            name={currentQuestion.icon as any}
+            size={60}
+            color={theme.colors.primary}
+          />
+        </View>
 
-            {/* Progress Stepper */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressSteps}>
-                {Array.from({ length: Math.min(totalQuestions, 10) }).map(
-                  (_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.progressStep,
-                        i <= currentQuestionIndex && styles.progressStepActive,
-                        i === currentQuestionIndex &&
-                          styles.progressStepCurrent,
-                      ]}
-                    />
-                  )
-                )}
-              </View>
-              <Text style={styles.progressText}>
-                {currentQuestionIndex + 1} / {totalQuestions}
-              </Text>
-            </View>
+        {/* כותרת שאלה // Question title */}
+        <Text style={styles.questionText}>{currentQuestion.question}</Text>
+        {currentQuestion.subtitle && (
+          <Text style={styles.subtitleText}>{currentQuestion.subtitle}</Text>
+        )}
 
-            <TouchableOpacity
-              onPress={() => {
-                Alert.alert("לצאת מהשאלון?", "ההתקדמות שלך תישמר", [
-                  { text: "ביטול", style: "cancel" },
-                  {
-                    text: "יציאה",
-                    onPress: () => {
-                      saveProgress();
-                      navigation.goBack();
-                    },
-                  },
-                ]);
-              }}
-              style={styles.closeButton}
-            >
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
-          </View>
+        {/* תוכן השאלה // Question content */}
+        <View style={styles.answerContainer}>
+          {renderQuestionContent()}
+        </View>
 
-          {/* Coach Tip */}
-          {showCoachTip && COACH_TIPS[currentQuestion.id] && (
-            <Animated.View
-              style={[styles.coachTipContainer, { opacity: tipOpacity }]}
-            >
-              <MaterialCommunityIcons
-                name="lightbulb-outline"
-                size={20}
-                color={theme.colors.primary}
-                style={styles.coachTipIcon}
+        {/* טקסט עזרה // Help text */}
+        {currentQuestion.helpText && (
+          <Text style={styles.helpText}>{currentQuestion.helpText}</Text>
+        )}
+
+        {/* טיפ למאמן // Coach tip */}
+        {showCoachTip && COACH_TIPS[currentQuestion.id] && (
+          <Animated.View style={[styles.coachTip, { opacity: tipOpacity }]}>
+            <View style={styles.coachTipHeader}>
+              <FontAwesome5
+                name="lightbulb"
+                size={16}
+                color={theme.colors.warning}
               />
-              <Text style={styles.coachTipText}>
-                {COACH_TIPS[currentQuestion.id]}
-              </Text>
+              <Text style={styles.coachTipTitle}>טיפ</Text>
               <TouchableOpacity
                 onPress={() => {
+                  setShowCoachTip(false);
                   Animated.timing(tipOpacity, {
                     toValue: 0,
                     duration: 300,
                     useNativeDriver: true,
-                  }).start(() => setShowCoachTip(false));
+                  }).start();
                 }}
               >
                 <MaterialCommunityIcons
-                  name="close-circle"
+                  name="close"
                   size={18}
                   color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
-            </Animated.View>
-          )}
-
-          {/* Question Content */}
-          <Animated.View
-            style={[
-              styles.content,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <View style={styles.questionHeader}>
-              <MaterialCommunityIcons
-                name={currentQuestion.icon as any}
-                size={48}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.questionText}>
-                {currentQuestion.question}
-              </Text>
-              {currentQuestion.subtitle && (
-                <Text style={styles.questionSubtitle}>
-                  {currentQuestion.subtitle}
-                </Text>
-              )}
             </View>
-
-            {/* Question Type Components */}
-            {currentQuestion.type === "single" && (
-              <View style={styles.optionsContainer}>
-                {getOptions().map((option) => {
-                  const optionLabel =
-                    typeof option === "string" ? option : option.label;
-                  const optionKey =
-                    typeof option === "string" ? option : option.id;
-
-                  return (
-                    <TouchableOpacity
-                      key={optionKey}
-                      style={[
-                        styles.optionButton,
-                        answers[currentQuestion.id] === optionKey &&
-                          styles.selectedOption,
-                      ]}
-                      onPress={() => handleSingleOption(optionKey)}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          answers[currentQuestion.id] === optionKey &&
-                            styles.selectedOptionText,
-                        ]}
-                      >
-                        {optionLabel}
-                      </Text>
-                      {answers[currentQuestion.id] === optionKey && (
-                        <MaterialCommunityIcons
-                          name="check-circle"
-                          size={24}
-                          color={theme.colors.text}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            {currentQuestion.type === "multiple" && (
-              <>
-                {/* בדוק אם יש אופציות עם תמונות */}
-                {/* Check if there are options with images */}
-                {currentQuestion.dynamicOptions &&
-                typeof getOptions()[0] === "object" ? (
-                  <EquipmentSelector
-                    options={getOptions() as OptionWithImage[]}
-                    selectedItems={answers[currentQuestion.id] || []}
-                    onChange={(items) => {
-                      setAnswers((prev) => ({
-                        ...prev,
-                        [currentQuestion.id]: items,
-                      }));
-                      setError(null);
-                    }}
-                    defaultItems={currentQuestion.defaultValue}
-                    helpText={currentQuestion.helpText}
-                    subtitle={currentQuestion.subtitle}
-                  />
-                ) : (
-                  <View style={styles.optionsContainer}>
-                    {getOptions().map((option) => {
-                      const optionLabel =
-                        typeof option === "string" ? option : option.label;
-                      const optionKey =
-                        typeof option === "string" ? option : option.id;
-                      const isSelected =
-                        answers[currentQuestion.id]?.includes(optionKey);
-
-                      return (
-                        <TouchableOpacity
-                          key={optionKey}
-                          style={[
-                            styles.optionButton,
-                            isSelected && styles.selectedOption,
-                          ]}
-                          onPress={() => handleMultipleOption(optionKey)}
-                          activeOpacity={0.8}
-                        >
-                          <Text
-                            style={[
-                              styles.optionText,
-                              isSelected && styles.selectedOptionText,
-                            ]}
-                          >
-                            {optionLabel}
-                          </Text>
-                          <MaterialCommunityIcons
-                            name={
-                              isSelected
-                                ? "checkbox-marked"
-                                : "checkbox-blank-outline"
-                            }
-                            size={24}
-                            color={
-                              isSelected
-                                ? theme.colors.text
-                                : theme.colors.textSecondary
-                            }
-                          />
-                        </TouchableOpacity>
-                      );
-                    })}
-                    <Text style={styles.multipleHint}>
-                      ניתן לבחור יותר מאפשרות אחת
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-
-            {currentQuestion.type === "text" && (
-              <View style={styles.textInputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={textInput}
-                  onChangeText={handleTextInput}
-                  placeholder={currentQuestion.placeholder}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  multiline
-                  maxLength={500}
-                  textAlign="right"
-                  textAlignVertical="top"
-                />
-                <Text style={styles.textCounter}>{textInput.length}/500</Text>
-              </View>
-            )}
-
-            {currentQuestion.type === "number" && (
-              <View style={styles.numberInputContainer}>
-                <TextInput
-                  style={styles.numberInput}
-                  value={numberInput}
-                  onChangeText={handleNumberInput}
-                  placeholder={currentQuestion.placeholder}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  keyboardType="numeric"
-                  maxLength={3}
-                  textAlign="center"
-                />
-                {currentQuestion.unit && (
-                  <Text style={styles.unitText}>{currentQuestion.unit}</Text>
-                )}
-              </View>
-            )}
-
-            {currentQuestion.type === "height" && (
-              <HeightSlider
-                value={answers[currentQuestion.id] || 170}
-                onChange={(value) => {
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [currentQuestion.id]: value,
-                  }));
-                  setError(null);
-                }}
-              />
-            )}
-
-            {currentQuestion.type === "weight" && (
-              <WeightSlider
-                value={answers[currentQuestion.id] || 70}
-                onChange={(value) => {
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [currentQuestion.id]: value,
-                  }));
-                  setError(null);
-                }}
-              />
-            )}
-
-            {/* Help Text */}
-            {currentQuestion.helpText && !isEquipmentQuestion && (
-              <Text style={styles.helpText}>{currentQuestion.helpText}</Text>
-            )}
+            <Text style={styles.coachTipText}>
+              {COACH_TIPS[currentQuestion.id]}
+            </Text>
           </Animated.View>
+        )}
+      </View>
+    );
+  };
 
-          {/* Error Message */}
+  // רנדור תוכן השאלה לפי סוג
+  // Render question content by type
+  const renderQuestionContent = () => {
+    if (!currentQuestion) return null;
+
+    switch (currentQuestion.type) {
+      case "single":
+        return (
+          <View style={styles.optionsContainer}>
+            {currentQuestion.options?.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.optionButton,
+                  answers[currentQuestion.id] === option &&
+                    styles.optionButtonSelected,
+                ]}
+                onPress={() => handleAnswer(option)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    answers[currentQuestion.id] === option &&
+                      styles.optionTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+                {answers[currentQuestion.id] === option && (
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        );
+
+      case "multiple":
+        const selectedMultiple = answers[currentQuestion.id] || [];
+        return (
+          <View style={styles.optionsContainer}>
+            {currentQuestion.options?.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.optionButton,
+                  selectedMultiple.includes(option) &&
+                    styles.optionButtonSelected,
+                ]}
+                onPress={() => {
+                  const current = answers[currentQuestion.id] || [];
+                  const updated = current.includes(option)
+                    ? current.filter((o: string) => o !== option)
+                    : [...current, option];
+                  handleAnswer(updated);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedMultiple.includes(option) &&
+                      styles.optionTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+                <MaterialCommunityIcons
+                  name={
+                    selectedMultiple.includes(option)
+                      ? "checkbox-marked"
+                      : "checkbox-blank-outline"
+                  }
+                  size={24}
+                  color={
+                    selectedMultiple.includes(option)
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        );
+
+      case "text":
+        return (
+          <TextInput
+            style={styles.textInput}
+            value={textInput}
+            onChangeText={(text) => {
+              setTextInput(text);
+              handleAnswer(text);
+            }}
+            placeholder={currentQuestion.placeholder || "הקלד את התשובה שלך..."}
+            placeholderTextColor={theme.colors.textSecondary}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        );
+
+      case "number":
+        return (
+          <View style={styles.numberInputContainer}>
+            <TextInput
+              style={styles.numberInput}
+              value={numberInput}
+              onChangeText={(text) => {
+                const num = text.replace(/[^0-9]/g, "");
+                setNumberInput(num);
+                handleAnswer(num ? parseInt(num) : null);
+              }}
+              placeholder={currentQuestion.placeholder || "0"}
+              placeholderTextColor={theme.colors.textSecondary}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+            {currentQuestion.unit && (
+              <Text style={styles.unitText}>{currentQuestion.unit}</Text>
+            )}
+          </View>
+        );
+
+      case "height":
+        return (
+          <HeightSlider
+            value={answers[currentQuestion.id] || 170}
+            onValueChange={(value) => handleAnswer(value)}
+          />
+        );
+
+      case "weight":
+        return (
+          <WeightSlider
+            value={answers[currentQuestion.id] || 70}
+            onValueChange={(value) => handleAnswer(value)}
+          />
+        );
+
+      case "multiple_with_search":
+        return (
+          <EquipmentSelector
+            selectedEquipment={answers[currentQuestion.id] || []}
+            onSelectionChange={(selected) => handleAnswer(selected)}
+            category={
+              currentQuestion.id === "home_equipment" ? "home" : "gym"
+            }
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.surface]}
+        style={styles.gradient}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
+            <MaterialCommunityIcons
+              name="close"
+              size={28}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0%", "100%"],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {currentQuestionIndex + 1} / {totalQuestions}
+            </Text>
+          </View>
+        </View>
+
+        {/* Progress Stepper */}
+        <View style={styles.stepperContainer}>
+          {Array.from({ length: Math.min(totalQuestions, 10) }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.stepDot,
+                i < currentQuestionIndex && styles.stepDotCompleted,
+                i === currentQuestionIndex && styles.stepDotActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Content */}
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {renderQuestion()}
+
+          {/* Error message */}
           {error && (
             <Animated.View
               style={[
                 styles.errorContainer,
-                { transform: [{ translateX: errorShake }] },
+                {
+                  transform: [{ translateX: errorShake }],
+                },
               ]}
             >
               <MaterialCommunityIcons
@@ -976,47 +930,78 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
               <Text style={styles.errorText}>{error}</Text>
             </Animated.View>
           )}
-
-          {/* Integration Buttons */}
-          {currentQuestion.id === "additional_notes" && (
-            <View style={styles.integrationContainer}>
-              <Text style={styles.integrationTitle}>חבר אפליקציות כושר</Text>
-              <Text style={styles.integrationSubtitle}>
-                (אופציונלי - ניתן לחבר מאוחר יותר)
-              </Text>
-              <View style={styles.integrationButtons}>
-                <TouchableOpacity style={styles.integrationButton}>
-                  <FontAwesome5 name="apple" size={20} color="#fff" />
-                  <Text style={styles.integrationButtonText}>Apple Health</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.integrationButton}>
-                  <FontAwesome5 name="google" size={20} color="#fff" />
-                  <Text style={styles.integrationButtonText}>Google Fit</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Navigation Buttons */}
-          <View style={styles.navigationContainer}>
-            <TouchableOpacity
-              style={[styles.nextButton, styles.primaryButton]}
-              onPress={handleNext}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.nextButtonText}>
-                {isLastQuestion ? "סיים" : "הבא"}
-              </Text>
-              <MaterialCommunityIcons
-                name={isLastQuestion ? "check" : "arrow-left"}
-                size={20}
-                color={theme.colors.background}
-              />
-            </TouchableOpacity>
-          </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+
+        {/* Navigation buttons */}
+        <View style={styles.navigationContainer}>
+          <TouchableOpacity
+            style={[
+              styles.navButton,
+              currentQuestionIndex === 0 && styles.navButtonDisabled,
+            ]}
+            onPress={handleBack}
+            disabled={currentQuestionIndex === 0}
+          >
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={28}
+              color={
+                currentQuestionIndex === 0
+                  ? theme.colors.disabled
+                  : theme.colors.text
+              }
+            />
+            <Text
+              style={[
+                styles.navButtonText,
+                currentQuestionIndex === 0 && styles.navButtonTextDisabled,
+              ]}
+            >
+              הקודם
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, styles.navButtonPrimary]}
+            onPress={handleNext}
+          >
+            <Text style={[styles.navButtonText, styles.navButtonTextPrimary]}>
+              {isLastQuestion ? "סיום" : "הבא"}
+            </Text>
+            <MaterialCommunityIcons
+              name={isLastQuestion ? "check" : "chevron-left"}
+              size={28}
+              color="white"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Integration buttons (UI only for now) */}
+        {isLastQuestion && (
+          <View style={styles.integrationContainer}>
+            <Text style={styles.integrationTitle}>
+              חבר את האפליקציות שלך (בקרוב)
+            </Text>
+            <View style={styles.integrationButtons}>
+              <TouchableOpacity
+                style={[styles.integrationButton, { opacity: 0.5 }]}
+                disabled
+              >
+                <FontAwesome5 name="apple" size={20} color="#000" />
+                <Text style={styles.integrationButtonText}>Apple Health</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.integrationButton, { opacity: 0.5 }]}
+                disabled
+              >
+                <FontAwesome5 name="google" size={20} color="#4285F4" />
+                <Text style={styles.integrationButtonText}>Google Fit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1024,242 +1009,267 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 100,
+  gradient: {
+    flex: 1,
   },
   header: {
     flexDirection: "row-reverse",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: 20,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: Platform.OS === "ios" ? 50 : theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
-  backButton: {
-    padding: 10,
-  },
-  backButtonDisabled: {
-    opacity: 0.3,
-  },
-  closeButton: {
-    padding: 10,
+  exitButton: {
+    padding: theme.spacing.sm,
   },
   progressContainer: {
     flex: 1,
-    alignItems: "center",
+    marginLeft: theme.spacing.lg,
   },
-  progressSteps: {
-    flexDirection: "row-reverse",
-    gap: 6,
-    marginBottom: 8,
+  progressBar: {
+    height: 6,
+    backgroundColor: theme.colors.border,
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  progressStep: {
-    width: 24,
-    height: 4,
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 2,
-  },
-  progressStepActive: {
+  progressFill: {
+    height: "100%",
     backgroundColor: theme.colors.primary,
-  },
-  progressStepCurrent: {
-    backgroundColor: theme.colors.primary,
-    transform: [{ scaleY: 1.5 }],
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    textAlign: "left",
   },
-  coachTipContainer: {
+  stepperContainer: {
     flexDirection: "row-reverse",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.backgroundAlt,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
-  coachTipIcon: {
-    marginLeft: 8,
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: 4,
   },
-  coachTipText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.text,
-    textAlign: "right",
-    lineHeight: 20,
+  stepDotCompleted: {
+    backgroundColor: theme.colors.success,
+  },
+  stepDotActive: {
+    backgroundColor: theme.colors.primary,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
-  questionHeader: {
+  contentContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+  },
+  questionContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    paddingTop: theme.spacing.xl,
+  },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: theme.colors.primaryLight + "20",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
   },
   questionText: {
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
-  questionSubtitle: {
-    fontSize: 14,
+  subtitleText: {
+    fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    marginTop: 4,
-    paddingHorizontal: 20,
+    marginBottom: theme.spacing.xl,
+  },
+  answerContainer: {
+    width: "100%",
+    marginBottom: theme.spacing.lg,
   },
   optionsContainer: {
-    marginTop: 20,
+    width: "100%",
   },
   optionButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: theme.colors.backgroundAlt,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.md,
     borderWidth: 2,
     borderColor: "transparent",
+    ...theme.shadows.small,
   },
-  selectedOption: {
+  optionButtonSelected: {
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "15",
+    backgroundColor: theme.colors.primaryLight + "10",
   },
   optionText: {
     fontSize: 16,
     color: theme.colors.text,
+    flex: 1,
+    textAlign: "right",
   },
-  selectedOptionText: {
-    fontWeight: "bold",
+  optionTextSelected: {
+    fontWeight: "600",
     color: theme.colors.primary,
   },
-  multipleHint: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  textInputContainer: {
-    marginTop: 20,
-  },
   textInput: {
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
     fontSize: 16,
     color: theme.colors.text,
     minHeight: 120,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  textCounter: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "left",
-    marginTop: 8,
+    textAlign: "right",
+    ...theme.shadows.small,
   },
   numberInputContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
   },
   numberInput: {
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 24,
-    color: theme.colors.text,
-    width: 100,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    fontSize: 32,
     fontWeight: "bold",
+    color: theme.colors.text,
+    minWidth: 120,
+    textAlign: "center",
+    ...theme.shadows.small,
   },
   unitText: {
-    fontSize: 20,
-    color: theme.colors.text,
-    marginLeft: 12,
+    fontSize: 24,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.md,
   },
   helpText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    marginTop: 16,
+    marginTop: theme.spacing.sm,
+  },
+  coachTip: {
+    backgroundColor: theme.colors.warning + "10",
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+    width: "100%",
+  },
+  coachTipHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  coachTipTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.warning,
+    marginRight: theme.spacing.sm,
+    flex: 1,
+  },
+  coachTipText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
   },
   errorContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
-    paddingHorizontal: 20,
+    backgroundColor: theme.colors.error + "10",
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginTop: theme.spacing.md,
   },
   errorText: {
     fontSize: 14,
     color: theme.colors.error,
-    marginRight: 8,
+    marginRight: theme.spacing.sm,
+    flex: 1,
+  },
+  navigationContainer: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    backgroundColor: theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    ...theme.shadows.medium,
+  },
+  navButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    minWidth: 100,
+  },
+  navButtonPrimary: {
+    backgroundColor: theme.colors.primary,
+  },
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginHorizontal: theme.spacing.sm,
+  },
+  navButtonTextPrimary: {
+    color: "white",
+  },
+  navButtonTextDisabled: {
+    color: theme.colors.disabled,
   },
   integrationContainer: {
-    marginTop: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
     alignItems: "center",
   },
   integrationTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: 4,
-  },
-  integrationSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   integrationButtons: {
-    flexDirection: "row",
-    gap: 12,
+    flexDirection: "row-reverse",
+    gap: theme.spacing.md,
   },
   integrationButton: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: theme.colors.backgroundAlt,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
+    backgroundColor: theme.colors.surface,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    ...theme.shadows.small,
   },
   integrationButtonText: {
     fontSize: 14,
     color: theme.colors.text,
-  },
-  navigationContainer: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    paddingTop: 20,
-  },
-  nextButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  primaryButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  nextButtonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.background,
+    marginRight: theme.spacing.sm,
   },
 });

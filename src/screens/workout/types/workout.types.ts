@@ -1,109 +1,76 @@
 /**
  * @file src/screens/workout/types/workout.types.ts
- * @description טייפים וממשקים למערכת האימונים
- * English: Types and interfaces for workout system
+ * @description טיפוסים עבור מסך האימון
+ * English: Types for workout screen
  */
-
-// סוגי סטים
-// Set types
-export type SetType =
-  | "normal"
-  | "warmup"
-  | "working"
-  | "dropset"
-  | "failure"
-  | "restpause"
-  | "rest-pause";
 
 // סט בודד
 // Single set
 export interface Set {
   id: string;
-  reps?: number;
-  weight?: number;
+  type: "warmup" | "working" | "dropset" | "failure";
+  targetReps: number;
+  targetWeight: number;
+  actualReps?: number; // הוספת שדה חסר
+  actualWeight?: number; // הוספת שדה חסר
   completed: boolean;
-  type?: SetType; // שימוש ב-SetType במקום רשימה נפרדת
-  rpe?: number; // Rate of Perceived Exertion (1-10)
-  rir?: number; // Reps in Reserve
+  restTime?: number; // זמן מנוחה אחרי הסט
   notes?: string;
-  restTime?: number;
-  isPersonalRecord?: boolean;
-  targetReps?: number;
-  targetWeight?: number;
-  previousWeight?: number;
-  previousReps?: number;
-  isPR?: boolean;
-  dropFromWeight?: number;
+  isPR?: boolean; // האם זה שיא אישי
+  rpe?: number; // Rate of Perceived Exertion (1-10)
 }
-
-// Alias למען תאימות אחורה
-// Alias for backward compatibility
-export type WorkoutSet = Set;
 
 // תרגיל
 // Exercise
 export interface Exercise {
   id: string;
   name: string;
-  category?: string;
-  image?: string;
+  category: string;
   primaryMuscles: string[];
   secondaryMuscles?: string[];
-  equipment?: string;
+  equipment: string;
   sets: Set[];
+  restTime?: number; // זמן מנוחה ברירת מחדל בין סטים
   notes?: string;
-  restTimeBetweenSets?: number;
-  targetVolume?: number;
-  currentVolume?: number;
-  personalRecord?: {
-    weight: number;
-    reps: number;
-    date?: string;
-  };
+  videoUrl?: string;
+  imageUrl?: string;
+  instructions?: string[];
+  tips?: string[];
 }
 
-// Alias למען תאימות אחורה
-// Alias for backward compatibility
-export type WorkoutExercise = Exercise;
-
-// נתוני אימון
-// Workout data
+// נתוני אימון מלאים
+// Complete workout data
 export interface WorkoutData {
   id: string;
   name: string;
   startTime: string;
   endTime?: string;
-  duration?: number;
+  duration: number; // בשניות
   exercises: Exercise[];
-  notes?: string;
-  totalVolume?: number;
+  totalVolume: number;
+  totalSets?: number;
+  completedSets?: number;
   caloriesBurned?: number;
-  mood?: number;
-  energy?: number;
+  notes?: string;
+  rating?: number; // 1-5
+  location?: string;
+  weather?: string;
+  mood?: "great" | "good" | "okay" | "tired" | "bad";
 }
 
-// Alias למען תאימות אחורה
-// Alias for backward compatibility
-export type Workout = WorkoutData;
-
-// טיוטת אימון לשמירה אוטומטית
-// Workout draft for auto-save
-export interface WorkoutDraft {
-  workout: WorkoutData;
-  lastSaved: string;
-  deviceId?: string;
-  version: number;
-}
-
-// שיא אישי
-// Personal record
-export interface PersonalRecord {
-  exerciseName: string;
-  type: "weight" | "reps" | "volume" | "time";
-  value: number;
-  previousValue: number;
-  date: string;
-  improvement?: number;
+// תוכנית אימון
+// Workout plan
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number; // משך משוער בדקות
+  frequency: number; // פעמים בשבוע
+  workouts: WorkoutTemplate[];
+  createdAt: string;
+  updatedAt: string;
+  tags?: string[];
 }
 
 // תבנית אימון
@@ -111,42 +78,62 @@ export interface PersonalRecord {
 export interface WorkoutTemplate {
   id: string;
   name: string;
-  description?: string;
-  exercises: Omit<Exercise, "sets">[];
-  tags?: string[];
-  difficulty?: "beginner" | "intermediate" | "advanced";
-  estimatedDuration?: number;
-  targetMuscles?: string[];
+  exercises: ExerciseTemplate[];
+  estimatedDuration: number;
+  targetMuscles: string[];
+  equipment: string[];
 }
 
-// סטטיסטיקות אימון
-// Workout statistics
-export interface WorkoutStats {
-  totalSets: number;
-  completedSets: number;
-  totalReps: number;
-  totalVolume: number;
-  averageRpe?: number;
-  personalRecords: number;
-  exercisesCompleted: number;
-  restTimeTotal: number;
-}
-
-// היסטוריית סט
-// Set history
-export interface SetHistory {
-  date: string;
-  weight: number;
-  reps: number;
-  rpe?: number;
+// תבנית תרגיל
+// Exercise template
+export interface ExerciseTemplate {
+  exerciseId: string;
+  sets: number;
+  reps: string; // יכול להיות טווח כמו "8-12"
+  restTime: number;
   notes?: string;
 }
 
-// יעד אימון
-// Workout goal
-export interface WorkoutGoal {
-  type: "volume" | "sets" | "time" | "exercises";
-  target: number;
-  current: number;
-  unit?: string;
+// נתוני התקדמות
+// Progress data
+export interface ProgressData {
+  date: string;
+  weight?: number;
+  bodyFat?: number;
+  measurements?: {
+    chest?: number;
+    waist?: number;
+    hips?: number;
+    bicep?: number;
+    thigh?: number;
+  };
+  photos?: string[];
+  notes?: string;
+}
+
+// נתוני ביצועים
+// Performance data
+export interface PerformanceData {
+  exerciseId: string;
+  exerciseName: string;
+  history: PerformanceEntry[];
+}
+
+// רשומת ביצוע
+// Performance entry
+export interface PerformanceEntry {
+  date: string;
+  sets: Set[];
+  totalVolume: number;
+  maxWeight: number;
+  maxReps: number;
+  notes?: string;
+}
+
+// מצב שמירה
+// Save state
+export interface WorkoutDraft {
+  workout: WorkoutData;
+  lastSaved: string;
+  version: number;
 }

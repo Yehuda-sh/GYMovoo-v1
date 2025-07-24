@@ -1,184 +1,149 @@
 /**
  * @file src/screens/workout/hooks/useRestTimer.ts
- * @description הוק לניהול טיימר מנוחה בין סטים - גרסה מעודכנת
- * English: Hook for managing rest timer between sets - updated version
+ * @description הוק לניהול טיימר מנוחה בין סטים
+ * English: Hook for managing rest timer between sets
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Vibration, Platform } from "react-native";
+import { Vibration } from "react-native";
 
-interface UseRestTimerProps {
-  defaultTime?: number;
-  onComplete?: () => void;
-  soundEnabled?: boolean;
-  vibrationEnabled?: boolean;
-  countdownAt?: number;
+export interface UseRestTimerReturn {
+  isRestTimerActive: boolean;
+  restTimeRemaining: number;
+  startRestTimer: (duration: number, exerciseName?: string) => void;
+  pauseRestTimer: () => void;
+  resumeRestTimer: () => void;
+  skipRestTimer: () => void;
+  currentExerciseName?: string;
 }
 
-interface UseRestTimerReturn {
-  currentRestTime: number;
-  totalRestTime: number;
-  isActive: boolean;
-  isPaused: boolean;
-  progress: number;
-  start: (duration?: number) => void;
-  pause: () => void;
-  reset: () => void;
-  skip: () => void;
-  addTime: (seconds: number) => void;
-  subtractTime: (seconds: number) => void;
-  // Aliases for compatibility
-  timeLeft: number;
-  startRest: (duration?: number) => void;
-  pauseRest: () => void;
-  skipRest: () => void;
-  resetRest: () => void;
-}
-
-// הגדרות רטט
-const VIBRATION_PATTERNS = {
-  restComplete: [0, 200, 100, 200] as number[],
-  countdown: [0, 50] as number[],
-};
-
-export const useRestTimer = ({
-  defaultTime = 180,
-  onComplete,
-  soundEnabled = true,
-  vibrationEnabled = true,
-  countdownAt = 3,
-}: UseRestTimerProps = {}): UseRestTimerReturn => {
-  const [currentRestTime, setCurrentRestTime] = useState(0);
-  const [totalRestTime, setTotalRestTime] = useState(defaultTime);
-  const [isActive, setIsActive] = useState(false);
+export const useRestTimer = (): UseRestTimerReturn => {
+  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [restTimeRemaining, setRestTimeRemaining] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [currentExerciseName, setCurrentExerciseName] = useState<string>();
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastCountdownRef = useRef<number>(countdownAt + 1);
+  const endTimeRef = useRef<number>(0);
 
-  // ניהול טיימר
+  // נקה interval בסיום
+  // Clear interval on unmount
   useEffect(() => {
-    if (isActive && !isPaused && currentRestTime > 0) {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  // עדכון טיימר
+  // Update timer
+  useEffect(() => {
+    if (isRestTimerActive && !isPaused) {
       intervalRef.current = setInterval(() => {
-        setCurrentRestTime((prev) => {
-          const newTime = prev - 1;
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
 
-          // רטט בספירה לאחור
-          if (
-            newTime <= countdownAt &&
-            newTime > 0 &&
-            newTime < lastCountdownRef.current
-          ) {
-            lastCountdownRef.current = newTime;
-            if (vibrationEnabled && Platform.OS !== "web") {
-              Vibration.vibrate(VIBRATION_PATTERNS.countdown);
-            }
+        if (remaining <= 0) {
+          // סיום זמן מנוחה
+          // Rest time ended
+          completeRestTimer();
+        } else {
+          setRestTimeRemaining(remaining);
+
+          // רטט בשניות האחרונות
+          // Vibrate in last seconds
+          if (remaining <= 3) {
+            Vibration.vibrate(100);
           }
-
-          // סיום טיימר
-          if (newTime === 0) {
-            handleComplete();
-          }
-
-          return newTime;
-        });
-      }, 1000);
+        }
+      }, 100); // עדכון כל 100ms לדיוק
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        intervalRef.current = null;
       }
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        intervalRef.current = null;
       }
     };
-  }, [isActive, isPaused, currentRestTime, countdownAt, vibrationEnabled]);
+  }, [isRestTimerActive, isPaused]);
 
-  // טיפול בסיום
-  const handleComplete = useCallback(() => {
-    setIsActive(false);
-    setCurrentRestTime(0);
-    lastCountdownRef.current = countdownAt + 1;
-
-    if (vibrationEnabled && Platform.OS !== "web") {
-      Vibration.vibrate(VIBRATION_PATTERNS.restComplete);
-    }
-
-    onComplete?.();
-  }, [countdownAt, vibrationEnabled, onComplete]);
-
-  // התחל מנוחה
-  const start = useCallback(
-    (duration?: number) => {
-      const restDuration = duration || defaultTime;
-      setTotalRestTime(restDuration);
-      setCurrentRestTime(restDuration);
-      setIsActive(true);
+  // התחל טיימר מנוחה
+  // Start rest timer
+  const startRestTimer = useCallback(
+    (duration: number, exerciseName?: string) => {
+      endTimeRef.current = Date.now() + duration * 1000;
+      setRestTimeRemaining(duration);
+      setIsRestTimerActive(true);
       setIsPaused(false);
-      lastCountdownRef.current = countdownAt + 1;
+      setCurrentExerciseName(exerciseName);
+
+      // רטט בהתחלה
+      // Vibrate at start
+      Vibration.vibrate(200);
     },
-    [defaultTime, countdownAt]
+    []
   );
 
-  // השהה מנוחה
-  const pause = useCallback(() => {
-    setIsPaused((prev) => !prev);
-  }, []);
+  // השהה טיימר
+  // Pause timer
+  const pauseRestTimer = useCallback(() => {
+    if (isRestTimerActive && !isPaused) {
+      setIsPaused(true);
+      // שמור את הזמן שנותר
+      // Save remaining time
+      endTimeRef.current = Date.now() + restTimeRemaining * 1000;
+    }
+  }, [isRestTimerActive, isPaused, restTimeRemaining]);
 
-  // דלג על מנוחה
-  const skip = useCallback(() => {
-    setIsActive(false);
-    setCurrentRestTime(0);
+  // המשך טיימר
+  // Resume timer
+  const resumeRestTimer = useCallback(() => {
+    if (isRestTimerActive && isPaused) {
+      setIsPaused(false);
+      // חשב מחדש את זמן הסיום
+      // Recalculate end time
+      endTimeRef.current = Date.now() + restTimeRemaining * 1000;
+    }
+  }, [isRestTimerActive, isPaused, restTimeRemaining]);
+
+  // דלג על טיימר
+  // Skip timer
+  const skipRestTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-  }, []);
-
-  // הוסף זמן
-  const addTime = useCallback((seconds: number) => {
-    setCurrentRestTime((prev) => prev + seconds);
-    setTotalRestTime((prev) => prev + seconds);
-  }, []);
-
-  // הורד זמן
-  const subtractTime = useCallback((seconds: number) => {
-    setCurrentRestTime((prev) => Math.max(0, prev - seconds));
-    setTotalRestTime((prev) => Math.max(0, prev - seconds));
-  }, []);
-
-  // אפס טיימר
-  const reset = useCallback(() => {
-    setIsActive(false);
-    setCurrentRestTime(0);
-    setTotalRestTime(defaultTime);
+    setIsRestTimerActive(false);
+    setRestTimeRemaining(0);
     setIsPaused(false);
-    lastCountdownRef.current = countdownAt + 1;
-  }, [defaultTime, countdownAt]);
+    setCurrentExerciseName(undefined);
+  }, []);
 
-  // חשב התקדמות
-  const progress =
-    totalRestTime > 0 ? (totalRestTime - currentRestTime) / totalRestTime : 0;
+  // סיום טיימר
+  // Complete timer
+  const completeRestTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    setIsRestTimerActive(false);
+    setRestTimeRemaining(0);
+    setIsPaused(false);
+    setCurrentExerciseName(undefined);
+
+    // רטט ארוך בסיום
+    // Long vibration at end
+    Vibration.vibrate([0, 300, 100, 300]);
+  }, []);
 
   return {
-    currentRestTime,
-    totalRestTime,
-    isActive,
-    isPaused,
-    progress,
-    start,
-    pause,
-    reset,
-    skip,
-    addTime,
-    subtractTime,
-    // Aliases for backward compatibility
-    timeLeft: currentRestTime,
-    startRest: start,
-    pauseRest: pause,
-    skipRest: skip,
-    resetRest: reset,
+    isRestTimerActive,
+    restTimeRemaining,
+    startRestTimer,
+    pauseRestTimer,
+    resumeRestTimer,
+    skipRestTimer,
+    currentExerciseName,
   };
 };
