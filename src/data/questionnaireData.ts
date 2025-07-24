@@ -1,18 +1,27 @@
 /**
  * @file src/data/questionnaireData.ts
- * @brief מאגר כל השאלות, התשובות, התמונות והלוגיקה של השאלון
- * @brief Repository of all questions, answers, images and questionnaire logic
+ * @brief מאגר כל השאלות והלוגיקה של השאלון
+ * @brief Repository of all questions and questionnaire logic
  * @description כל הנתונים של השאלון במקום אחד לתחזוקה קלה
  * @description All questionnaire data in one place for easy maintenance
  */
 
 import { ImageSourcePropType } from "react-native";
+import {
+  Equipment,
+  getEquipmentByCategory,
+  getDefaultEquipment,
+  searchEquipment,
+  mergeEquipmentLists,
+} from "./equipmentData";
+import { DIET_OPTIONS } from "./dietData";
 
 // סוגי שאלות
 // Question types
 export type QuestionType =
   | "single"
   | "multiple"
+  | "multiple_with_search" // סוג חדש לתמיכה בחיפוש
   | "text"
   | "number"
   | "slider"
@@ -44,204 +53,15 @@ export interface Question {
   max?: number;
   unit?: string;
   condition?: (answers: any) => boolean;
-  dynamicOptions?: (answers: any) => string[] | OptionWithImage[];
+  dynamicOptions?: (answers: any) => OptionWithImage[];
   followUp?: (answer: any) => Question | null;
   required?: boolean;
   helpText?: string;
   defaultValue?: any;
+  enableSearch?: boolean; // אפשרות חיפוש
+  searchPlaceholder?: string; // טקסט לשדה החיפוש
+  allowCrossCategory?: boolean; // אפשרות לחפש בכל הקטגוריות
 }
-
-// ציוד לבית
-// Home equipment
-export const HOME_EQUIPMENT: OptionWithImage[] = [
-  {
-    id: "none",
-    label: "ללא ציוד",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3048/3048402.png" }, // bodyweight icon
-    description: "אימונים עם משקל גוף בלבד",
-    isDefault: true,
-  },
-  {
-    id: "dumbbells",
-    label: "משקולות יד",
-    image: {
-      uri: "https://storage.googleapis.com/gemini-prod/images/a6c7104b-9e96-410a-85d7-f47285199b0c",
-    }, // dumbbells
-    description: "זוג משקולות מתכווננות",
-    isPremium: true,
-  },
-  {
-    id: "resistance_bands",
-    label: "גומיות התנגדות",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/7491/7491421.png" }, // resistance bands
-    description: "סט גומיות בעוצמות שונות",
-  },
-  {
-    id: "pullup_bar",
-    label: "מוט מתח",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3048/3048425.png" }, // pull up bar
-    description: "להתקנה על משקוף הדלת",
-  },
-  {
-    id: "yoga_mat",
-    label: "מזרן יוגה",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2647/2647625.png" }, // yoga mat
-    description: "מזרן לתרגילי רצפה",
-  },
-  {
-    id: "kettlebell",
-    label: "קטלבל",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3043/3043090.png" }, // kettlebell
-    description: "משקולת כדורית עם ידית",
-    isPremium: true,
-  },
-  {
-    id: "foam_roller",
-    label: "רולר",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/7261/7261885.png" }, // foam roller
-    description: "לשחרור שרירים",
-  },
-  {
-    id: "trx",
-    label: "רצועות TRX",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/7261/7261767.png" }, // suspension trainer
-    description: "רצועות אימון פונקציונלי",
-    isPremium: true,
-  },
-  {
-    id: "bench",
-    label: "ספסל אימונים",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311579.png" }, // workout bench
-    description: "ספסל מתכוונן",
-    isPremium: true,
-  },
-];
-
-// ציוד לחדר כושר
-// Gym equipment
-export const GYM_EQUIPMENT: OptionWithImage[] = [
-  {
-    id: "free_weights",
-    label: "משקולות חופשיות",
-    image: require("../../assets/adjustable_dumbbells.png"), // dumbbells
-    description: "משקולות יד ומוטות",
-    isDefault: true,
-  },
-  {
-    id: "barbell",
-    label: "מוט ישר",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3043/3043120.png" }, // barbell
-    description: "מוט אולימפי עם משקולות",
-    isDefault: true,
-  },
-  {
-    id: "smith_machine",
-    label: "מכונת סמית",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/7261/7261910.png" }, // smith machine
-    description: "מוט מונחה על מסילות",
-  },
-  {
-    id: "cable_machine",
-    label: "מכונת כבלים",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311631.png" }, // cable machine
-    description: "מערכת גלגלות וכבלים",
-  },
-  {
-    id: "leg_press",
-    label: "מכונת לחיצת רגליים",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311598.png" }, // leg press
-    description: "לחיצת רגליים בזווית",
-  },
-  {
-    id: "chest_press",
-    label: "מכונת לחיצת חזה",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311587.png" }, // chest press
-    description: "לחיצת חזה במכונה",
-  },
-  {
-    id: "lat_pulldown",
-    label: "מכונת פולי עליון",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311639.png" }, // lat pulldown
-    description: "משיכה לרחב",
-  },
-  {
-    id: "rowing_machine",
-    label: "מכונת חתירה",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3048/3048395.png" }, // rowing machine
-    description: "לאימון קרדיו",
-  },
-  {
-    id: "treadmill",
-    label: "הליכון",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3048/3048381.png" }, // treadmill
-    description: "להליכה וריצה",
-  },
-  {
-    id: "bike",
-    label: "אופני כושר",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3048/3048389.png" }, // exercise bike
-    description: "לאימון קרדיו",
-  },
-  {
-    id: "squat_rack",
-    label: "כלוב סקוואט",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/7261/7261844.png" }, // squat rack
-    description: "לסקוואט ולחיצת כתפיים",
-  },
-  {
-    id: "preacher_curl",
-    label: "ספסל פריצ'ר",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3311/3311615.png" }, // preacher bench
-    description: "לכיפוף מרפקים",
-  },
-];
-
-// אפשרויות תזונה עם תמונות
-// Diet options with images
-export const DIET_OPTIONS: OptionWithImage[] = [
-  {
-    id: "none",
-    label: "אין תזונה מיוחדת",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2515/2515183.png" }, // food variety
-    description: "אוכל מכל סוגי המזון",
-  },
-  {
-    id: "vegan",
-    label: "טבעוני",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2329/2329865.png" }, // vegan symbol
-    description: "ללא מוצרים מן החי",
-  },
-  {
-    id: "vegetarian",
-    label: "צמחוני",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2329/2329860.png" }, // vegetarian symbol
-    description: "ללא בשר ודגים",
-  },
-  {
-    id: "keto",
-    label: "קטוגני",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/3144/3144240.png" }, // avocado (keto symbol)
-    description: "דל פחמימות, עתיר שומן",
-  },
-  {
-    id: "paleo",
-    label: "פליאו",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2729/2729007.png" }, // meat icon
-    description: "תזונת הציידים-לקטים",
-  },
-  {
-    id: "low_carb",
-    label: "דל פחמימות",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2515/2515263.png" }, // no bread
-    description: "הגבלת פחמימות",
-  },
-  {
-    id: "other",
-    label: "אחר",
-    image: { uri: "https://cdn-icons-png.flaticon.com/512/2515/2515275.png" }, // diet plan
-    description: "תזונה מותאמת אישית",
-  },
-];
 
 // שאלות בסיסיות
 // Base questions
@@ -347,40 +167,51 @@ export const BASE_QUESTIONS: Question[] = [
 // שאלות דינמיות
 // Dynamic questions
 export const DYNAMIC_QUESTIONS: Question[] = [
-  // שאלת ציוד לבית
-  // Home equipment question
+  // שאלת ציוד לבית - עם אפשרות חיפוש
+  // Home equipment question - with search
   {
     id: "home_equipment",
     question: "איזה ציוד יש לך בבית?",
     subtitle: "💡 שקול רכישת ציוד נוסף לאימונים מגוונים ותוצאות טובות יותר",
     icon: "home-variant",
-    type: "multiple",
+    type: "multiple_with_search",
     condition: (answers) =>
       answers.location === "בית" || answers.location === "גם וגם",
-    dynamicOptions: () => HOME_EQUIPMENT,
-    helpText: "ללא ציוד הוא ברירת המחדל - בחר ציוד נוסף אם יש",
+    dynamicOptions: (answers) => {
+      // מחזיר ציוד לבית, אבל מאפשר חיפוש בכל הציוד
+      return getEquipmentByCategory("home", "home");
+    },
+    helpText: "לחץ על 🔍 לחיפוש ציוד נוסף. ניתן לחפש גם ציוד של חדר כושר!",
     required: true,
     defaultValue: ["none"],
+    enableSearch: true,
+    searchPlaceholder: "חפש ציוד... (כולל ציוד חדר כושר)",
+    allowCrossCategory: true, // מאפשר חיפוש בכל הקטגוריות
   },
 
-  // שאלת ציוד לחדר כושר
-  // Gym equipment question
+  // שאלת ציוד לחדר כושר - עם אפשרות חיפוש
+  // Gym equipment question - with search
   {
     id: "gym_equipment",
     question: "איזה ציוד זמין לך בחדר הכושר?",
     subtitle: "רוב חדרי הכושר כוללים משקולות חופשיות ומוטות",
     icon: "dumbbell",
-    type: "multiple",
+    type: "multiple_with_search",
     condition: (answers) =>
       answers.location === "חדר כושר" || answers.location === "גם וגם",
-    dynamicOptions: () => GYM_EQUIPMENT,
-    helpText: "בחר את כל הציוד הזמין בחדר הכושר שלך",
+    dynamicOptions: (answers) => {
+      return getEquipmentByCategory("gym", "gym");
+    },
+    helpText: "בחר את כל הציוד הזמין. לחץ על 🔍 לחיפוש",
     required: true,
-    defaultValue: ["free_weights", "barbell"],
+    defaultValue: () => getDefaultEquipment("gym"),
+    enableSearch: true,
+    searchPlaceholder: "חפש ציוד...",
+    allowCrossCategory: false, // רק ציוד חדר כושר
   },
 
-  // שאלות נוספות לפי מטרה - ניסוחים משופרים
-  // Additional questions by goal - improved phrasing
+  // שאלות נוספות לפי מטרה
+  // Additional questions by goal
   {
     id: "weight_loss_goal",
     question: "מה יעד הירידה במשקל שלך?",
@@ -452,12 +283,17 @@ export const DYNAMIC_QUESTIONS: Question[] = [
   {
     id: "diet_type",
     question: "האם אתה עוקב אחרי תזונה מסוימת?",
+    subtitle: "בחר סוג תזונה או השאר רגיל אם אין תזונה מיוחדת.",
     icon: "food-apple",
     type: "single",
-    dynamicOptions: () => DIET_OPTIONS,
+    dynamicOptions: () =>
+      DIET_OPTIONS.map((d) => ({
+        ...d,
+        image: d.image ? { uri: d.image } : undefined,
+      })),
     required: true,
+    helpText: "התפריט שלך יתעדכן בהתאם לבחירת הדיאטה.",
   },
-
   {
     id: "sleep_hours",
     question: "כמה שעות שינה אתה ישן בממוצע?",
@@ -527,20 +363,38 @@ export function getRelevantQuestions(answers: any): Question[] {
   return allQuestions;
 }
 
-// פונקציה לקבלת תמונה של ציוד
-// Function to get equipment image
-export function getEquipmentImage(
-  equipmentId: string
-): ImageSourcePropType | undefined {
-  const allEquipment = [...HOME_EQUIPMENT, ...GYM_EQUIPMENT];
-  const equipment = allEquipment.find((e) => e.id === equipmentId);
-  return equipment?.image;
+// פונקציה לחיפוש ציוד במהלך השאלון
+// Function to search equipment during questionnaire
+export function searchEquipmentForQuestion(
+  questionId: string,
+  searchText: string,
+  answers: any
+): OptionWithImage[] {
+  const question = DYNAMIC_QUESTIONS.find((q) => q.id === questionId);
+
+  if (!question || !question.enableSearch) {
+    return [];
+  }
+
+  // חפש בכל הציוד
+  const results = searchEquipment(searchText);
+
+  // אם לא מאפשרים חיפוש בין קטגוריות, סנן לפי הקטגוריה
+  if (!question.allowCrossCategory) {
+    const category = questionId === "home_equipment" ? "home" : "gym";
+    return results.filter(
+      (eq) => eq.category === category || eq.category === "both"
+    );
+  }
+
+  return results;
 }
 
-// פונקציה לבדיקה אם ציוד הוא פרימיום
-// Function to check if equipment is premium
-export function isEquipmentPremium(equipmentId: string): boolean {
-  const allEquipment = [...HOME_EQUIPMENT, ...GYM_EQUIPMENT];
-  const equipment = allEquipment.find((e) => e.id === equipmentId);
-  return equipment?.isPremium || false;
+// פונקציה למיזוג ציוד מבית וחדר כושר
+// Function to merge home and gym equipment
+export function getUserEquipment(answers: any): string[] {
+  const homeEquipment = answers.home_equipment || [];
+  const gymEquipment = answers.gym_equipment || [];
+
+  return mergeEquipmentLists(homeEquipment, gymEquipment);
 }
