@@ -9,10 +9,14 @@
 
 import { questionnaireService } from "./questionnaireService";
 import { Exercise, Set } from "../screens/workout/types/workout.types";
+import {
+  EXTENDED_EXERCISE_DATABASE,
+  getExercisesByEquipment,
+} from "../data/exerciseDatabase";
 
 // טיפוסים
 // Types
-interface ExerciseTemplate {
+export interface ExerciseTemplate {
   id: string;
   name: string;
   category: string;
@@ -250,9 +254,7 @@ export class QuickWorkoutGenerator {
   ): ExerciseTemplate[] {
     // סינון תרגילים לפי ציוד זמין
     // Filter exercises by available equipment
-    let availableExercises = EXERCISE_DATABASE.filter(
-      (ex) => equipment.includes(ex.equipment) || ex.equipment === "bodyweight"
-    );
+    let availableExercises = getExercisesByEquipment(equipment);
 
     // סינון לפי רמת קושי
     // Filter by difficulty level

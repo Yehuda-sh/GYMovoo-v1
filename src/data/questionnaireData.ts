@@ -286,11 +286,7 @@ export const DYNAMIC_QUESTIONS: Question[] = [
     subtitle: "בחר סוג תזונה או השאר רגיל אם אין תזונה מיוחדת.",
     icon: "food-apple",
     type: "single",
-    dynamicOptions: () =>
-      DIET_OPTIONS.map((d) => ({
-        ...d,
-        image: d.image ? { uri: d.image } : undefined,
-      })),
+    options: DIET_OPTIONS.map((d) => d.label), // פשוט מחרוזות במקום אובייקטים
     required: true,
     helpText: "התפריט שלך יתעדכן בהתאם לבחירת הדיאטה.",
   },

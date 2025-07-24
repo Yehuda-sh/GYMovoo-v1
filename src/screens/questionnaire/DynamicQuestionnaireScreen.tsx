@@ -422,7 +422,7 @@ export default function DynamicQuestionnaireScreen({ navigation, route }: any) {
         [
           {
             text: "בוא נתחיל",
-            onPress: () => navigation.navigate("Main"),
+            onPress: () => navigation.navigate("MainApp"),
           },
         ]
       );

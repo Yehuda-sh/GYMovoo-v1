@@ -89,10 +89,23 @@ class QuestionnaireService {
    */
   async getUserPreferences(): Promise<QuestionnaireMetadata | null> {
     try {
+      // נסה לקרוא מהפורמט החדש
       const metadata = await AsyncStorage.getItem(
         STORAGE_KEYS.QUESTIONNAIRE_METADATA
       );
-      return metadata ? JSON.parse(metadata) : null;
+      if (metadata) {
+        return JSON.parse(metadata);
+      }
+
+      // אם אין, בדוק אם יש נתונים ב-userStore
+      const user = useUserStore.getState().user;
+      if (user?.questionnaireData?.metadata) {
+        // שמור את הנתונים בפורמט החדש
+        await this.saveQuestionnaireData(user.questionnaireData.metadata);
+        return user.questionnaireData.metadata;
+      }
+
+      return null;
     } catch (error) {
       console.error("Error getting user preferences:", error);
       return null;
