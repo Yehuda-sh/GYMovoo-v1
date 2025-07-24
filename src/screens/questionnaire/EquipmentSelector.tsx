@@ -76,6 +76,8 @@ export default function EquipmentSelector({
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
+        nestedScrollEnabled={true}
       >
         <View style={styles.grid}>
           {options.map((item) => {
@@ -193,7 +195,7 @@ export default function EquipmentSelector({
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    maxHeight: SCREEN_HEIGHT * 0.5,
+    flex: 1,
   },
   subtitleContainer: {
     backgroundColor: theme.colors.primaryGradientStart + "10",

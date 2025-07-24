@@ -50,6 +50,7 @@ export const theme = {
 
   borderRadius: {
     sm: 8,
+
     md: 12,
     lg: 16, // שינוי מ-24 ל-16 לאחידות
     xl: 20, // שינוי מ-32 ל-20
@@ -59,6 +60,7 @@ export const theme = {
   spacing: {
     xs: 4,
     sm: 8,
+
     md: 16,
     lg: 24,
     xl: 32,
@@ -71,6 +73,7 @@ export const theme = {
       fontSize: 36, // הגדלה מ-32
       fontWeight: "600" as const, // שינוי מ-bold
       lineHeight: 44,
+
       letterSpacing: -0.5,
     },
     h2: {

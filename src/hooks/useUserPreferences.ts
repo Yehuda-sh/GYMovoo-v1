@@ -84,12 +84,12 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       // טען נתונים מ-AsyncStorage
       // Load data from AsyncStorage
-      const preferences = await questionnaireService.getUserPreferences();
-      setPreferences(preferences);
+      const preferencesData = await questionnaireService.getUserPreferences();
+      setPreferences(preferencesData);
 
       // אם אין נתונים ב-AsyncStorage, נסה מה-store
       // If no data in AsyncStorage, try from store
-      if (!preferences && user?.questionnaire) {
+      if (!preferencesData && user?.questionnaire) {
         // המר מפורמט ישן לחדש
         // Convert from old to new format
         const convertedPreferences: QuestionnaireMetadata = {
@@ -126,9 +126,12 @@ export function useUserPreferences(): UseUserPreferencesReturn {
             : typeof user.questionnaire[7] === "string"
             ? [user.questionnaire[7]]
             : [],
-          equipment: Array.isArray(user.questionnaire[8])
+          // תיקון: שימוש בשם המאפיין הנכון לפי המיקום של הנתונים
+          // Fix: Use correct property name based on location data
+          home_equipment: Array.isArray(user.questionnaire[8])
             ? user.questionnaire[8]
             : [],
+          gym_equipment: [], // לא זמין בפורמט הישן / Not available in old format
         };
         setPreferences(convertedPreferences);
       }
@@ -163,31 +166,29 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       }
     } catch (err) {
       console.error("Error loading user preferences:", err);
-      setError(err instanceof Error ? err.message : "שגיאה בטעינת העדפות");
+      setError(
+        err instanceof Error ? err.message : "Failed to load preferences"
+      );
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
   /**
-   * רענון העדפות
-   * Refresh preferences
+   * רענון העדפות משתמש
+   * Refresh user preferences
    */
   const refreshPreferences = useCallback(async () => {
     await loadPreferences();
   }, [loadPreferences]);
 
   /**
-   * מחיקת העדפות
-   * Clear preferences
+   * ניקוי העדפות משתמש
+   * Clear user preferences
    */
   const clearPreferences = useCallback(async () => {
     try {
-      setIsLoading(true);
       await questionnaireService.clearQuestionnaireData();
-
-      // איפוס כל המצב
-      // Reset all state
       setPreferences(null);
       setUserGoal("בריאות כללית");
       setUserExperience("מתחיל");
@@ -198,17 +199,25 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       setQuickWorkout(null);
     } catch (err) {
       console.error("Error clearing preferences:", err);
-      setError(err instanceof Error ? err.message : "שגיאה במחיקת העדפות");
-    } finally {
-      setIsLoading(false);
+      setError(
+        err instanceof Error ? err.message : "Failed to clear preferences"
+      );
     }
   }, []);
 
-  // טען נתונים בהפעלה
-  // Load data on mount
+  // טען העדפות בטעינה ראשונית
+  // Load preferences on initial mount
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
+
+  // עדכן העדפות כשהמשתמש משתנה
+  // Update preferences when user changes
+  useEffect(() => {
+    if (user) {
+      loadPreferences();
+    }
+  }, [user, loadPreferences]);
 
   return {
     // נתונים

@@ -78,19 +78,31 @@ interface QuestionnaireAnalytics {
   completionRate: number;
 }
 
-export default function DynamicQuestionnaireScreen({ navigation }: any) {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+export default function DynamicQuestionnaireScreen({ navigation, route }: any) {
+  const { setQuestionnaire } = useUserStore();
+
+  // ניהול מצב
+  // State management
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
-  const [error, setError] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedMultiple, setSelectedMultiple] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
   const [numberInput, setNumberInput] = useState("");
-  const [showCoachTip, setShowCoachTip] = useState(true);
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [error, setError] = useState("");
   const [analytics, setAnalytics] = useState<QuestionnaireAnalytics>({
     timePerQuestion: {},
     totalTime: 0,
     completionRate: 0,
   });
+  const [currentQuestionStartTime, setCurrentQuestionStartTime] = useState(
+    Date.now()
+  );
+
+  // קבלת שאלות רלוונטיות
+  // Get relevant questions
+  const questions = useMemo(() => getRelevantQuestions(answers), [answers]);
+  const totalQuestions = questions.length;
+  const currentQuestion = questions[currentQuestionIndex];
 
   // אנימציות
   // Animations
@@ -98,282 +110,11 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const errorShake = useRef(new Animated.Value(0)).current;
-  const tipOpacity = useRef(new Animated.Value(0)).current;
+  const achievementScale = useRef(new Animated.Value(0)).current;
 
-  const setQuestionnaire = useUserStore((s) => s.setQuestionnaire);
-  const startTime = useRef(Date.now()).current;
-
-  // חישוב השאלות הרלוונטיות
-  // Calculate relevant questions
-  const relevantQuestions = useMemo(() => {
-    const questions = getRelevantQuestions(answers);
-
-    // הוספת שאלות הערכת כושר אם בחר ציוד ביתי
-    // Add fitness assessment questions if home equipment selected
-    if (
-      (answers.location === "בית" || answers.location === "גם וגם") &&
-      currentQuestionIndex > 7 &&
-      !questions.find((q) => q.id === "fitness_assessment")
-    ) {
-      const fitnessQuestions: Question[] = [
-        {
-          id: "fitness_assessment",
-          question: "בואו נעשה הערכת כושר קצרה",
-          subtitle: "זה יעזור לנו להתאים את התוכנית בצורה מדויקת יותר",
-          icon: "run-fast",
-          type: "single",
-          options: ["בטח! בוא נתחיל", "אולי אחר כך"],
-          required: false,
-        },
-        {
-          id: "pushups_count",
-          question: "כמה שכיבות סמיכה אתה יכול לעשות ברצף?",
-          icon: "arm-flex",
-          type: "single",
-          options: ["0-5", "6-15", "16-30", "31-50", "50+"],
-          condition: (ans) => ans.fitness_assessment === "בטח! בוא נתחיל",
-          required: false,
-          helpText: "ללא הפסקה, בטכניקה נכונה",
-        },
-        {
-          id: "plank_duration",
-          question: "כמה זמן אתה יכול להחזיק פלאנק?",
-          icon: "timer",
-          type: "single",
-          options: [
-            "פחות מ-30 שניות",
-            "30-60 שניות",
-            "1-2 דקות",
-            "2-3 דקות",
-            "3+ דקות",
-          ],
-          condition: (ans) => ans.fitness_assessment === "בטח! בוא נתחיל",
-          required: false,
-          helpText: "במנח פלאנק סטנדרטי על המרפקים",
-        },
-        {
-          id: "pullups_count",
-          question: "כמה מתח אתה יכול לעשות?",
-          icon: "weight-lifter",
-          type: "single",
-          options: ["0 (עדיין לא)", "1-3", "4-8", "9-15", "15+"],
-          condition: (ans) =>
-            ans.fitness_assessment === "בטח! בוא נתחיל" &&
-            (ans.home_equipment?.includes("pull_up_bar") ||
-              ans.gym_equipment?.includes("pull_up_bar")),
-          required: false,
-          helpText: "אחיזה רגילה, טווח תנועה מלא",
-        },
-      ];
-
-      // הוסף את השאלות אחרי השאלה הנוכחית
-      // Add questions after current question
-      const insertIndex = currentQuestionIndex + 1;
-      questions.splice(insertIndex, 0, ...fitnessQuestions);
-    }
-
-    return questions;
-  }, [answers, currentQuestionIndex]);
-
-  // השאלה הנוכחית
-  // Current question
-  const currentQuestion = relevantQuestions[currentQuestionIndex];
-  const totalQuestions = relevantQuestions.length;
-  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
-
-  // טעינת מצב שמור בהתחלה
-  // Load saved state on mount
-  useEffect(() => {
-    loadSavedProgress();
-    return () => {
-      // שמירה אוטומטית ביציאה
-      // Auto-save on exit
-      if (
-        currentQuestionIndex > 0 &&
-        currentQuestionIndex < totalQuestions - 1
-      ) {
-        saveProgress();
-      }
-    };
-  }, []);
-
-  // עדכון progress bar ו-analytics
-  // Update progress bar and analytics
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: currentQuestionIndex / totalQuestions,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-
-    // מדידת זמן לשאלה
-    // Measure time per question
-    if (currentQuestion) {
-      const timeSpent = Date.now() - questionStartTime;
-      setAnalytics((prev) => ({
-        ...prev,
-        timePerQuestion: {
-          ...prev.timePerQuestion,
-          [currentQuestion.id]: timeSpent,
-        },
-        completionRate: (currentQuestionIndex / totalQuestions) * 100,
-      }));
-      setQuestionStartTime(Date.now());
-    }
-
-    // הצגת טיפ למאמן
-    // Show coach tip
-    if (currentQuestion && COACH_TIPS[currentQuestion.id]) {
-      setShowCoachTip(true);
-      Animated.timing(tipOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-    }
-
-    // בדיקת אצ'יבמנטס
-    // Check achievements
-    checkAchievements();
-  }, [currentQuestionIndex]);
-
-  // טעינת התקדמות שמורה
-  // Load saved progress
-  const loadSavedProgress = async () => {
-    try {
-      const savedData = await AsyncStorage.getItem("questionnaire_draft");
-      if (savedData) {
-        const draft = JSON.parse(savedData);
-        const timeSince = Date.now() - draft.timestamp;
-
-        // אם עברו פחות מ-24 שעות
-        // If less than 24 hours passed
-        if (timeSince < 24 * 60 * 60 * 1000) {
-          Alert.alert(
-            "המשך מאיפה שהפסקת?",
-            `נמצאה התקדמות שמורה משאלה ${draft.currentIndex + 1}`,
-            [
-              {
-                text: "התחל מחדש",
-                onPress: () => AsyncStorage.removeItem("questionnaire_draft"),
-                style: "cancel",
-              },
-              {
-                text: "המשך",
-                onPress: () => {
-                  setAnswers(draft.answers);
-                  setCurrentQuestionIndex(draft.currentIndex);
-                },
-              },
-            ]
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error loading saved progress:", error);
-    }
-  };
-
-  // שמירת התקדמות
-  // Save progress
-  const saveProgress = async () => {
-    try {
-      const draft = {
-        answers,
-        currentIndex: currentQuestionIndex,
-        timestamp: Date.now(),
-        analytics,
-      };
-      await AsyncStorage.setItem("questionnaire_draft", JSON.stringify(draft));
-    } catch (error) {
-      console.error("Error saving progress:", error);
-    }
-  };
-
-  // בדיקת אצ'יבמנטס
-  // Check achievements
-  const checkAchievements = () => {
-    const achievement = ACHIEVEMENT_MESSAGES.find(
-      (a) => a.at === currentQuestionIndex
-    );
-    if (achievement) {
-      Vibration.vibrate(100);
-      Toast.show({
-        type: "success",
-        text1: achievement.message,
-        position: "top",
-        visibilityTime: 2000,
-      });
-    }
-  };
-
-  // קבלת המלצות חכמות
-  // Get smart recommendations
-  const getSmartRecommendations = () => {
-    const recommendations: string[] = [];
-
-    if (
-      answers.goal === "ירידה במשקל" &&
-      answers.health_conditions?.includes("כאבי ברכיים")
-    ) {
-      recommendations.push("⚠️ מומלץ להתמקד באימונים עם עומס נמוך על הברכיים");
-      recommendations.push("💡 שחייה ואופניים יכולים להיות אופציות מצוינות");
-    }
-
-    if (
-      answers.experience === "מתחיל (0-6 חודשים)" &&
-      answers.frequency === "כל יום"
-    ) {
-      recommendations.push("⚠️ למתחילים מומלץ להתחיל עם 3-4 אימונים בשבוע");
-      recommendations.push("💡 ימי מנוחה חשובים להתאוששות ומניעת פציעות");
-    }
-
-    if (
-      answers.sleep_hours === "פחות מ-5 שעות" &&
-      answers.goal === "עליה במסת שריר"
-    ) {
-      recommendations.push("⚠️ שינה מספקת (7-9 שעות) קריטית לבניית שריר");
-      recommendations.push("💡 שקול לשפר את איכות השינה לתוצאות טובות יותר");
-    }
-
-    return recommendations;
-  };
-
-  // אנימציית שגיאה
-  // Error animation
-  const showError = (message: string) => {
-    setError(message);
-    Vibration.vibrate(100);
-
-    Animated.sequence([
-      Animated.timing(errorShake, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(errorShake, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(errorShake, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(errorShake, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    setTimeout(() => setError(null), 3000);
-  };
-
-  // אנימציית מעבר בין שאלות
-  // Transition animation between questions
-  const animateTransition = (callback: () => void) => {
+  // אנימציה של מעבר
+  // Transition animation
+  const animateTransition = (isForward: boolean, callback: () => void) => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -381,13 +122,13 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
-        toValue: -50,
+        toValue: isForward ? -50 : 50,
         duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
       callback();
-      slideAnim.setValue(50);
+      slideAnim.setValue(isForward ? 50 : -50);
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -403,78 +144,222 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     });
   };
 
-  // טיפול בתשובות
-  // Handle answers
-  const handleAnswer = (value: any) => {
-    if (!currentQuestion) return;
+  // עדכון התקדמות
+  // Update progress
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: (currentQuestionIndex + 1) / totalQuestions,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
 
-    Vibration.vibrate(50);
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
-    setError(null);
+    // בדיקת הודעת הישג
+    // Check achievement message
+    const achievement = ACHIEVEMENT_MESSAGES.find(
+      (msg) => msg.at === currentQuestionIndex + 1
+    );
+    if (achievement) {
+      showAchievement(achievement.message);
+    }
+  }, [currentQuestionIndex, totalQuestions]);
 
-    // שמירה אוטומטית
-    // Auto-save
-    saveProgress();
+  // הצגת הודעת הישג
+  // Show achievement message
+  const showAchievement = (message: string) => {
+    Toast.show({
+      type: "success",
+      text1: message,
+      position: "top",
+      visibilityTime: 2000,
+    });
+    Animated.sequence([
+      Animated.spring(achievementScale, {
+        toValue: 1.2,
+        useNativeDriver: true,
+      }),
+      Animated.spring(achievementScale, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    if (Platform.OS === "ios") {
+      Vibration.vibrate([0, 50, 50, 50]);
+    }
+  };
+
+  // שמירת טיוטה
+  // Save draft
+  const saveDraft = async () => {
+    try {
+      await AsyncStorage.setItem(
+        "questionnaire_draft",
+        JSON.stringify({
+          answers,
+          currentIndex: currentQuestionIndex,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (e) {
+      console.error("Error saving draft:", e);
+    }
+  };
+
+  // טעינת טיוטה
+  // Load draft
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const draft = await AsyncStorage.getItem("questionnaire_draft");
+        if (draft) {
+          const { answers: savedAnswers, currentIndex } = JSON.parse(draft);
+          Alert.alert(
+            "המשך מהמקום שהפסקת?",
+            "מצאנו טיוטה שמורה. האם להמשיך ממנה?",
+            [
+              {
+                text: "התחל מחדש",
+                style: "cancel",
+                onPress: () => AsyncStorage.removeItem("questionnaire_draft"),
+              },
+              {
+                text: "המשך",
+                onPress: () => {
+                  setAnswers(savedAnswers);
+                  setCurrentQuestionIndex(currentIndex);
+                },
+              },
+            ]
+          );
+        }
+      } catch (e) {
+        console.error("Error loading draft:", e);
+      }
+    };
+    loadDraft();
+  }, []);
+
+  // שמירה אוטומטית
+  // Auto-save
+  useEffect(() => {
+    const timer = setTimeout(saveDraft, 5000);
+    return () => clearTimeout(timer);
+  }, [answers, currentQuestionIndex]);
+
+  // טיפול בתשובה
+  // Handle answer
+  const handleAnswer = (answer: any) => {
+    const questionId = currentQuestion.id;
+
+    // עדכון אנליטיקס
+    // Update analytics
+    const timeSpent = Date.now() - currentQuestionStartTime;
+    setAnalytics((prev) => ({
+      ...prev,
+      timePerQuestion: {
+        ...prev.timePerQuestion,
+        [questionId]: timeSpent,
+      },
+    }));
+
+    // עדכון תשובות
+    // Update answers
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: answer,
+    }));
+
+    // ניקוי שגיאה
+    // Clear error
+    setError("");
   };
 
   // מעבר לשאלה הבאה
-  // Move to next question
+  // Go to next question
   const handleNext = () => {
-    if (!currentQuestion) return;
-
-    const currentAnswer = answers[currentQuestion.id];
-
-    // בדיקת תשובה חובה
-    // Check required answer
-    if (currentQuestion.required && !currentAnswer) {
-      showError("יש לענות על שאלה זו");
+    // וידוא תשובה
+    // Validate answer
+    if (!answers[currentQuestion.id] && currentQuestion.required !== false) {
+      setError("נא לענות על השאלה לפני המעבר הלאה");
+      Animated.sequence([
+        Animated.timing(errorShake, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(errorShake, {
+          toValue: -10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(errorShake, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
       return;
     }
 
-    // בדיקת תשובת טקסט
-    // Check text answer
-    if (currentQuestion.type === "text" && currentAnswer === "") {
-      if (currentQuestion.required) {
-        showError("יש להזין תשובה");
-        return;
-      }
-    }
-
-    if (isLastQuestion) {
-      handleComplete();
-    } else {
-      animateTransition(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+    if (currentQuestionIndex < questions.length - 1) {
+      animateTransition(true, () => {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setCurrentQuestionStartTime(Date.now());
+        // איפוס ערכי קלט
+        // Reset input values
         setTextInput("");
         setNumberInput("");
+        setSelectedMultiple([]);
+      });
+    } else {
+      handleComplete();
+    }
+  };
+
+  // חזרה לשאלה הקודמת
+  // Go to previous question
+  const handleBack = () => {
+    if (currentQuestionIndex > 0) {
+      animateTransition(false, () => {
+        setCurrentQuestionIndex((prev) => prev - 1);
+        setCurrentQuestionStartTime(Date.now());
       });
     }
   };
 
-  // סיום השאלון
+  // יציאה
+  // Exit
+  const handleExit = () => {
+    Alert.alert("לצאת מהשאלון?", "הנתונים שלך יישמרו כטיוטה", [
+      { text: "ביטול", style: "cancel" },
+      {
+        text: "יציאה",
+        style: "destructive",
+        onPress: () => {
+          saveDraft();
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
+
+  // השלמת השאלון
   // Complete questionnaire
   const handleComplete = async () => {
-    // בדיקה שכל השאלות החובה נענו
-    // Check all required questions answered
-    const unansweredRequired = relevantQuestions
-      .filter((q) => q.required)
-      .find((q) => !answers[q.id] || answers[q.id] === "");
+    // חישוב אנליטיקס סופית
+    // Calculate final analytics
+    const totalTime = Object.values(analytics.timePerQuestion).reduce(
+      (sum, time) => sum + time,
+      0
+    );
+    const finalAnalytics = {
+      ...analytics,
+      totalTime,
+      completionRate: 1,
+      completedAt: new Date().toISOString(),
+    };
 
-    if (unansweredRequired) {
-      showError("יש לענות על כל השאלות החובה");
-      return;
-    }
-
-    // שמירת אנליטיקס סופית
-    // Save final analytics
-    setAnalytics((prev) => ({
-      ...prev,
-      totalTime: Date.now() - startTime,
-      completionRate: 100,
-    }));
-
-    // הצגת טוסט הצלחה
-    // Show success toast
+    // הצגת הודעה
+    // Show toast
     Toast.show({
       type: "success",
       text1: "🎉",
@@ -529,90 +414,23 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
     await AsyncStorage.removeItem("questionnaire_draft");
 
     // הצגת המלצות חכמות אם יש
-    // Show smart recommendations if any
-    const recommendations = getSmartRecommendations();
-    if (recommendations.length > 0) {
-      setTimeout(() => {
-        Alert.alert("המלצות מותאמות אישית", recommendations.join("\n\n"), [
+    // Show smart recommendations if available
+    setTimeout(() => {
+      Alert.alert(
+        "השאלון הושלם! 🎯",
+        "כעת נבנה עבורך תוכנית אימון מותאמת אישית",
+        [
           {
-            text: "הבנתי",
-            onPress: () =>
-              navigation.reset({ index: 0, routes: [{ name: "MainApp" }] }),
+            text: "בוא נתחיל",
+            onPress: () => navigation.navigate("Main"),
           },
-        ]);
-      }, 500);
-    } else {
-      navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
-    }
+        ]
+      );
+    }, 1000);
   };
 
-  // חזרה לשאלה הקודמת
-  // Go back to previous question
-  const handleBack = () => {
-    if (currentQuestionIndex > 0) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 50,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setCurrentQuestionIndex(currentQuestionIndex - 1);
-        setError(null);
-
-        // שחזור ערכים קודמים
-        // Restore previous values
-        const prevQuestion = relevantQuestions[currentQuestionIndex - 1];
-        if (prevQuestion.type === "text") {
-          setTextInput(answers[prevQuestion.id] || "");
-        } else if (prevQuestion.type === "number") {
-          setNumberInput(answers[prevQuestion.id]?.toString() || "");
-        }
-
-        slideAnim.setValue(-50);
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      });
-    }
-  };
-
-  // יציאה מהשאלון
-  // Exit questionnaire
-  const handleExit = () => {
-    Alert.alert(
-      "לצאת מהשאלון?",
-      "ההתקדמות שלך תישמר ותוכל להמשיך מאיפה שהפסקת",
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "יציאה",
-          style: "destructive",
-          onPress: () => {
-            saveProgress();
-            navigation.goBack();
-          },
-        },
-      ]
-    );
-  };
-
-  // רנדור השאלה הנוכחית
-  // Render current question
+  // רנדור שאלה
+  // Render question
   const renderQuestion = () => {
     if (!currentQuestion) return null;
 
@@ -622,160 +440,150 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
           styles.questionContainer,
           {
             opacity: fadeAnim,
-            transform: [
-              { translateY: slideAnim },
-              { translateX: errorShake },
-            ],
+            transform: [{ translateX: slideAnim }],
           },
         ]}
       >
-        {/* אייקון שאלה // Question icon */}
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons
-            name={currentQuestion.icon as any}
-            size={60}
-            color={theme.colors.primary}
-          />
-        </View>
-
-        {/* כותרת שאלה // Question title */}
+        {/* כותרת שאלה */}
+        {/* Question title */}
         <Text style={styles.questionText}>{currentQuestion.question}</Text>
+
+        {/* תת כותרת אם יש */}
+        {/* Subtitle if exists */}
         {currentQuestion.subtitle && (
           <Text style={styles.subtitleText}>{currentQuestion.subtitle}</Text>
         )}
 
-        {/* תוכן השאלה // Question content */}
-        <View style={styles.answerContainer}>
-          {renderQuestionContent()}
-        </View>
+        {/* רנדור תשובות לפי סוג */}
+        {/* Render answers by type */}
+        <View style={styles.answerContainer}>{renderAnswerInput()}</View>
 
-        {/* טקסט עזרה // Help text */}
-        {currentQuestion.helpText && (
-          <Text style={styles.helpText}>{currentQuestion.helpText}</Text>
-        )}
-
-        {/* טיפ למאמן // Coach tip */}
-        {showCoachTip && COACH_TIPS[currentQuestion.id] && (
-          <Animated.View style={[styles.coachTip, { opacity: tipOpacity }]}>
+        {/* טיפ אם יש */}
+        {/* Tip if exists */}
+        {COACH_TIPS[currentQuestion.id] && (
+          <View style={styles.coachTip}>
             <View style={styles.coachTipHeader}>
-              <FontAwesome5
+              <MaterialCommunityIcons
                 name="lightbulb"
                 size={16}
                 color={theme.colors.warning}
               />
-              <Text style={styles.coachTipTitle}>טיפ</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowCoachTip(false);
-                  Animated.timing(tipOpacity, {
-                    toValue: 0,
-                    duration: 300,
-                    useNativeDriver: true,
-                  }).start();
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
+              <Text style={styles.coachTipTitle}>טיפ:</Text>
             </View>
             <Text style={styles.coachTipText}>
               {COACH_TIPS[currentQuestion.id]}
             </Text>
-          </Animated.View>
+          </View>
         )}
-      </View>
+      </Animated.View>
     );
   };
 
-  // רנדור תוכן השאלה לפי סוג
-  // Render question content by type
-  const renderQuestionContent = () => {
+  // רנדור קלט תשובה
+  // Render answer input
+  const renderAnswerInput = () => {
     if (!currentQuestion) return null;
 
     switch (currentQuestion.type) {
       case "single":
         return (
           <View style={styles.optionsContainer}>
-            {currentQuestion.options?.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.optionButton,
-                  answers[currentQuestion.id] === option &&
-                    styles.optionButtonSelected,
-                ]}
-                onPress={() => handleAnswer(option)}
-                activeOpacity={0.7}
-              >
-                <Text
+            {(currentQuestion.options || []).map((option) => {
+              const optionValue =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).id;
+              const optionText =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).label;
+              const isSelected = answers[currentQuestion.id] === optionValue;
+
+              return (
+                <TouchableOpacity
+                  key={optionValue}
                   style={[
-                    styles.optionText,
-                    answers[currentQuestion.id] === option &&
-                      styles.optionTextSelected,
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
                   ]}
+                  onPress={() => handleAnswer(optionValue)}
+                  activeOpacity={0.7}
                 >
-                  {option}
-                </Text>
-                {answers[currentQuestion.id] === option && (
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {optionText}
+                  </Text>
                   <MaterialCommunityIcons
-                    name="check-circle"
+                    name={isSelected ? "radiobox-marked" : "radiobox-blank"}
                     size={24}
-                    color={theme.colors.primary}
+                    color={
+                      isSelected
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
                   />
-                )}
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         );
 
       case "multiple":
-        const selectedMultiple = answers[currentQuestion.id] || [];
         return (
           <View style={styles.optionsContainer}>
-            {currentQuestion.options?.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.optionButton,
-                  selectedMultiple.includes(option) &&
-                    styles.optionButtonSelected,
-                ]}
-                onPress={() => {
-                  const current = answers[currentQuestion.id] || [];
-                  const updated = current.includes(option)
-                    ? current.filter((o: string) => o !== option)
-                    : [...current, option];
-                  handleAnswer(updated);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
+            {(currentQuestion.options || []).map((option) => {
+              const optionValue =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).id;
+              const optionText =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).label;
+              const isSelected = selectedMultiple.includes(optionValue);
+
+              return (
+                <TouchableOpacity
+                  key={optionValue}
                   style={[
-                    styles.optionText,
-                    selectedMultiple.includes(option) &&
-                      styles.optionTextSelected,
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
                   ]}
+                  onPress={() => {
+                    const newSelection = isSelected
+                      ? selectedMultiple.filter((item) => item !== optionValue)
+                      : [...selectedMultiple, optionValue];
+                    setSelectedMultiple(newSelection);
+                    handleAnswer(newSelection);
+                  }}
+                  activeOpacity={0.7}
                 >
-                  {option}
-                </Text>
-                <MaterialCommunityIcons
-                  name={
-                    selectedMultiple.includes(option)
-                      ? "checkbox-marked"
-                      : "checkbox-blank-outline"
-                  }
-                  size={24}
-                  color={
-                    selectedMultiple.includes(option)
-                      ? theme.colors.primary
-                      : theme.colors.textSecondary
-                  }
-                />
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {optionText}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={
+                      isSelected ? "checkbox-marked" : "checkbox-blank-outline"
+                    }
+                    size={24}
+                    color={
+                      isSelected
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
+                  />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         );
 
@@ -822,7 +630,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         return (
           <HeightSlider
             value={answers[currentQuestion.id] || 170}
-            onValueChange={(value) => handleAnswer(value)}
+            onChange={(value: number) => handleAnswer(value)}
           />
         );
 
@@ -830,18 +638,22 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
         return (
           <WeightSlider
             value={answers[currentQuestion.id] || 70}
-            onValueChange={(value) => handleAnswer(value)}
+            onChange={(value: number) => handleAnswer(value)}
           />
         );
 
       case "multiple_with_search":
+        const options = currentQuestion.dynamicOptions
+          ? currentQuestion.dynamicOptions(answers)
+          : (currentQuestion.options as OptionWithImage[]) || [];
+
         return (
           <EquipmentSelector
-            selectedEquipment={answers[currentQuestion.id] || []}
-            onSelectionChange={(selected) => handleAnswer(selected)}
-            category={
-              currentQuestion.id === "home_equipment" ? "home" : "gym"
-            }
+            options={options}
+            selectedItems={answers[currentQuestion.id] || []}
+            onChange={(items: string[]) => handleAnswer(items)}
+            helpText={currentQuestion.helpText}
+            subtitle={currentQuestion.subtitle}
           />
         );
 
@@ -856,7 +668,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <LinearGradient
-        colors={[theme.colors.background, theme.colors.surface]}
+        colors={[theme.colors.background, theme.colors.card]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -909,6 +721,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
         >
           {renderQuestion()}
 
@@ -947,7 +760,7 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
               size={28}
               color={
                 currentQuestionIndex === 0
-                  ? theme.colors.disabled
+                  ? theme.colors.textSecondary + "50"
                   : theme.colors.text
               }
             />
@@ -957,49 +770,29 @@ export default function DynamicQuestionnaireScreen({ navigation }: any) {
                 currentQuestionIndex === 0 && styles.navButtonTextDisabled,
               ]}
             >
-              הקודם
+              חזור
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.navButton, styles.navButtonPrimary]}
             onPress={handleNext}
+            activeOpacity={0.8}
           >
             <Text style={[styles.navButtonText, styles.navButtonTextPrimary]}>
-              {isLastQuestion ? "סיום" : "הבא"}
+              {currentQuestionIndex === questions.length - 1 ? "סיום" : "הבא"}
             </Text>
             <MaterialCommunityIcons
-              name={isLastQuestion ? "check" : "chevron-left"}
+              name={
+                currentQuestionIndex === questions.length - 1
+                  ? "check"
+                  : "chevron-left"
+              }
               size={28}
               color="white"
             />
           </TouchableOpacity>
         </View>
-
-        {/* Integration buttons (UI only for now) */}
-        {isLastQuestion && (
-          <View style={styles.integrationContainer}>
-            <Text style={styles.integrationTitle}>
-              חבר את האפליקציות שלך (בקרוב)
-            </Text>
-            <View style={styles.integrationButtons}>
-              <TouchableOpacity
-                style={[styles.integrationButton, { opacity: 0.5 }]}
-                disabled
-              >
-                <FontAwesome5 name="apple" size={20} color="#000" />
-                <Text style={styles.integrationButtonText}>Apple Health</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.integrationButton, { opacity: 0.5 }]}
-                disabled
-              >
-                <FontAwesome5 name="google" size={20} color="#4285F4" />
-                <Text style={styles.integrationButtonText}>Google Fit</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </LinearGradient>
     </KeyboardAvoidingView>
   );
@@ -1013,58 +806,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: Platform.OS === "ios" ? 50 : theme.spacing.lg,
     paddingBottom: theme.spacing.md,
   },
   exitButton: {
+    alignSelf: "flex-end",
     padding: theme.spacing.sm,
   },
   progressContainer: {
-    flex: 1,
-    marginLeft: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   progressBar: {
     height: 6,
-    backgroundColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
     borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
     backgroundColor: theme.colors.primary,
-    borderRadius: 3,
   },
   progressText: {
-    fontSize: 12,
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
-    textAlign: "left",
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
   },
   stepperContainer: {
     flexDirection: "row-reverse",
     justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.sm,
   },
   stepDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.border,
-    marginHorizontal: 4,
+    backgroundColor: theme.colors.card,
   },
   stepDotCompleted: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
   },
   stepDotActive: {
-    backgroundColor: theme.colors.primary,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    backgroundColor: theme.colors.accent,
+    transform: [{ scale: 1.5 }],
   },
   content: {
     flex: 1,
@@ -1072,19 +859,10 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,
+    flexGrow: 1,
   },
   questionContainer: {
     alignItems: "center",
-    paddingTop: theme.spacing.xl,
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.primaryLight + "20",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: theme.spacing.xl,
   },
   questionText: {
     fontSize: 24,
@@ -1110,7 +888,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,
     marginBottom: theme.spacing.md,
@@ -1133,7 +911,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   textInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     fontSize: 16,
@@ -1148,7 +926,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   numberInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     fontSize: 32,
@@ -1241,7 +1019,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   navButtonTextDisabled: {
-    color: theme.colors.disabled,
+    color: theme.colors.textSecondary + "50",
   },
   integrationContainer: {
     paddingHorizontal: theme.spacing.lg,
@@ -1261,7 +1039,7 @@ const styles = StyleSheet.create({
   integrationButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.card,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     borderRadius: theme.borderRadius.md,
