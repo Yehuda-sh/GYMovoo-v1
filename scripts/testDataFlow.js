@@ -1,10 +1,21 @@
 /**
  * @file scripts/testDataFlow.js
- * @brief סקריפט לבדיקת זרימת נתונים - הרץ עם: node scripts/testDataFlow.js
- * @description בודק את כל זרימת הנתונים באפליקציה ומדפיס דוח מפורט
+ * @brief סקריפט לבדיקת זרימת נתונים ב-GYMovoo
+ * @description בודק את כל השלבים: הרשמה, שאלון, יצירת אימון ושמירה
  */
 
-// Mock AsyncStorage for testing
+// צבעים לקונסול
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
+// Mock של AsyncStorage
 const mockStorage = {};
 
 const AsyncStorage = {
@@ -22,47 +33,63 @@ const AsyncStorage = {
   getAllKeys: async () => {
     return Promise.resolve(Object.keys(mockStorage));
   },
-  multiGet: async (keys) => {
-    return Promise.resolve(keys.map((key) => [key, mockStorage[key]]));
-  },
   multiRemove: async (keys) => {
     keys.forEach((key) => delete mockStorage[key]);
     return Promise.resolve();
   },
 };
 
-// Mock Zustand store
-const mockUserStore = {
-  user: null,
-  setUser: function (user) {
-    this.user = user;
-    console.log("✅ User saved to store:", user?.email);
-  },
-  setQuestionnaire: function (answers) {
-    if (!this.user) this.user = {};
-    this.user.questionnaire = answers;
-    console.log(
-      "✅ Questionnaire saved:",
-      Object.keys(answers).length,
-      "answers"
-    );
-  },
-  logout: function () {
-    this.user = null;
-    console.log("✅ User logged out");
-  },
-};
+// Mock של userStore
+class MockUserStore {
+  constructor() {
+    this.state = {
+      user: null,
+    };
+  }
 
-// צבעים לטרמינל
-const colors = {
-  reset: "\x1b[0m",
-  bright: "\x1b[1m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  cyan: "\x1b[36m",
-};
+  setUser(user) {
+    this.state.user = user;
+    // שמירה אוטומטית ב-AsyncStorage כמו ב-persist
+    AsyncStorage.setItem("user-storage", JSON.stringify({ user }));
+  }
+
+  updateUser(updates) {
+    if (this.state.user) {
+      this.state.user = { ...this.state.user, ...updates };
+      AsyncStorage.setItem(
+        "user-storage",
+        JSON.stringify({ user: this.state.user })
+      );
+    }
+  }
+
+  setQuestionnaire(answers) {
+    if (this.state.user) {
+      this.state.user.questionnaire = answers;
+      this.state.user.questionnaireData = {
+        answers,
+        completedAt: new Date().toISOString(),
+        version: "1.0",
+      };
+      AsyncStorage.setItem(
+        "user-storage",
+        JSON.stringify({ user: this.state.user })
+      );
+      AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers));
+    }
+  }
+
+  logout() {
+    this.state.user = null;
+    AsyncStorage.multiRemove(["user-storage", "questionnaire_answers"]);
+  }
+
+  getState() {
+    return this.state;
+  }
+}
+
+const mockUserStore = new MockUserStore();
 
 // פונקציות עזר
 function log(message, color = "reset") {
@@ -75,138 +102,144 @@ function logSection(title) {
   console.log("=".repeat(50));
 }
 
-function logTest(name, passed, details) {
-  const status = passed ? `${colors.green}✅ PASSED` : `${colors.red}❌ FAILED`;
-  console.log(`\n${status}${colors.reset} - ${name}`);
+function logTest(name, passed, details = "") {
+  const status = passed ? `${colors.green}✓ PASS` : `${colors.red}✗ FAIL`;
+  console.log(`${status}${colors.reset} - ${name}`);
   if (details) {
-    console.log(`   ${colors.cyan}Details:${colors.reset} ${details}`);
+    console.log(`  ${colors.cyan}→ ${details}${colors.reset}`);
   }
 }
 
 // בדיקות
 async function testUserRegistration() {
-  logSection("🔐 Testing User Registration");
+  logSection("👤 Test 1: User Registration");
 
-  const testUser = {
-    name: "משתמש בדיקה",
+  const newUser = {
     email: "test@gymovoo.com",
-    id: `test_${Date.now()}`,
-    avatar: undefined,
+    name: "משתמש בדיקה",
+    id: `user_${Date.now()}`,
   };
 
-  mockUserStore.setUser(testUser);
+  // הרשמה
+  mockUserStore.setUser(newUser);
 
-  const passed = mockUserStore.user?.email === testUser.email;
+  // בדיקה
+  const savedData = await AsyncStorage.getItem("user-storage");
+  const parsed = savedData ? JSON.parse(savedData) : null;
+  const passed = parsed?.user?.email === newUser.email;
+
   logTest(
     "User Registration",
     passed,
-    `User ${passed ? "successfully saved" : "failed to save"} in store`
+    `User ${passed ? "saved" : "not saved"} with email: ${newUser.email}`
   );
 
   return passed;
 }
 
 async function testQuestionnaire() {
-  logSection("📋 Testing Questionnaire");
+  logSection("📋 Test 2: Questionnaire Flow");
 
-  const mockAnswers = {
-    0: "26-35", // גיל
+  const questionnaireAnswers = {
+    0: "16-25", // גיל
     1: "זכר", // מין
-    2: "עליה במסת שריר", // מטרה
-    3: "בינוני (6-24 חודשים)", // ניסיון
-    4: "3-4", // תדירות
-    5: "45-60 דקות", // משך
-    6: ["חדר כושר", "בית"], // מיקום
-    7: "", // פציעות
-    8: ["משקולות חופשיות", "מכונות"], // ציוד
+    2: ["ירידה במשקל", "חיטוב"], // מטרות
+    3: "3-4", // ימי אימון
+    4: "30-45 דקות", // משך אימון
+    5: "בית", // מיקום
+    6: ["משקולות", "גומיות"], // ציוד
+    7: "מתחיל", // רמה
+    8: "לא", // כאבים
+    9: "כן", // ניסיון
   };
 
-  mockUserStore.setQuestionnaire(mockAnswers);
+  // שמירת שאלון
+  mockUserStore.setQuestionnaire(questionnaireAnswers);
 
-  const saved = mockUserStore.user?.questionnaire;
-  const passed = saved && Object.keys(saved).length === 9;
-
-  logTest(
-    "Questionnaire Storage",
-    passed,
-    `${Object.keys(saved || {}).length}/9 answers saved`
+  // בדיקות
+  const userStorage = await AsyncStorage.getItem("user-storage");
+  const questionnaireStorage = await AsyncStorage.getItem(
+    "questionnaire_answers"
   );
 
-  if (saved) {
-    console.log(`   ${colors.cyan}Answers:${colors.reset}`);
-    console.log(`   - Age: ${saved[0]}`);
-    console.log(`   - Gender: ${saved[1]}`);
-    console.log(`   - Goal: ${saved[2]}`);
-    console.log(`   - Experience: ${saved[3]}`);
-  }
+  const userParsed = userStorage ? JSON.parse(userStorage) : null;
+  const questionnaireParsed = questionnaireStorage
+    ? JSON.parse(questionnaireStorage)
+    : null;
+
+  const passed =
+    userParsed?.user?.questionnaire?.[0] === "16-25" &&
+    questionnaireParsed?.[0] === "16-25";
+
+  logTest(
+    "Questionnaire Save",
+    passed,
+    `Saved ${Object.keys(questionnaireAnswers).length} answers`
+  );
 
   return passed;
 }
 
 async function testAsyncStorage() {
-  logSection("💾 Testing AsyncStorage");
+  logSection("💾 Test 3: AsyncStorage Persistence");
 
-  // Test 1: User Preferences
-  const preferences = {
-    theme: "dark",
-    notifications: true,
-    language: "he",
-  };
-
-  await AsyncStorage.setItem("userPreferences", JSON.stringify(preferences));
-  const savedPrefs = await AsyncStorage.getItem("userPreferences");
-  const prefsTest = savedPrefs && JSON.parse(savedPrefs).theme === "dark";
+  // בדיקת מפתחות
+  const keys = await AsyncStorage.getAllKeys();
+  const hasUserStorage = keys.includes("user-storage");
+  const hasQuestionnaire = keys.includes("questionnaire_answers");
 
   logTest(
-    "User Preferences Storage",
-    prefsTest,
-    "Preferences saved and retrieved correctly"
+    "Storage Keys",
+    hasUserStorage && hasQuestionnaire,
+    `Found ${keys.length} keys`
   );
 
-  // Test 2: Remember Email
-  const email = "remember@gymovoo.com";
-  await AsyncStorage.setItem("savedEmail", email);
-  const savedEmail = await AsyncStorage.getItem("savedEmail");
-  const emailTest = savedEmail === email;
+  // בדיקת נתונים
+  const userData = await AsyncStorage.getItem("user-storage");
+  const userParsed = userData ? JSON.parse(userData) : null;
+
+  const hasValidUser = userParsed?.user?.email === "test@gymovoo.com";
+  const hasValidQuestionnaire =
+    userParsed?.user?.questionnaire?.[0] === "16-25";
 
   logTest(
-    "Remember Email Feature",
-    emailTest,
-    `Email ${emailTest ? "saved" : "not saved"} correctly`
+    "Data Integrity",
+    hasValidUser && hasValidQuestionnaire,
+    `User: ${hasValidUser ? "Valid" : "Invalid"}, Questionnaire: ${
+      hasValidQuestionnaire ? "Valid" : "Invalid"
+    }`
   );
 
-  return prefsTest && emailTest;
+  return (
+    hasUserStorage && hasQuestionnaire && hasValidUser && hasValidQuestionnaire
+  );
 }
 
 async function testWorkoutDraft() {
-  logSection("🏋️ Testing Workout Draft");
+  logSection("🏋️ Test 4: Workout Draft Save");
 
-  const mockWorkout = {
+  const workoutDraft = {
     workout: {
-      id: `workout_test_${Date.now()}`,
       name: "אימון בדיקה",
-      startTime: new Date().toISOString(),
-      duration: 1800,
       exercises: [
         {
           id: "ex1",
           name: "לחיצת חזה",
           sets: [
-            { id: "s1", reps: 10, weight: 50, completed: true },
-            { id: "s2", reps: 8, weight: 50, completed: true },
-            { id: "s3", reps: 6, weight: 50, completed: false },
+            { weight: 20, reps: 10, completed: true },
+            { weight: 25, reps: 8, completed: false },
           ],
         },
       ],
-      totalVolume: 900,
     },
-    lastSaved: new Date().toISOString(),
-    version: 1,
+    startTime: Date.now(),
   };
 
-  const draftKey = `workout_draft_${mockWorkout.workout.id}`;
-  await AsyncStorage.setItem(draftKey, JSON.stringify(mockWorkout));
+  // שמירת טיוטה
+  const draftKey = `workout_draft_${Date.now()}`;
+  await AsyncStorage.setItem(draftKey, JSON.stringify(workoutDraft));
 
+  // קריאה ובדיקה
   const savedDraft = await AsyncStorage.getItem(draftKey);
   const parsed = savedDraft ? JSON.parse(savedDraft) : null;
   const passed = parsed && parsed.workout.name === "אימון בדיקה";

@@ -42,6 +42,64 @@ git push
 
 
 
+🔖 Checkpoint #022 - יצירת משתמשי Google רנדומליים עם אימיילים באנגלית
+🗓️ תאריך: 2025-07-25
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+גנרטור משתמשים רנדומלי משופר: יצירת פונקציה generateRandomUser שמייצרת משתמשים עם אימיילים באנגלית בלבד
+רשימות נתונים דו-לשוניות: 24 שמות פרטיים ו-16 שמות משפחה באנגלית לאימיילים
+תיקון שגיאות TypeScript: החלפת כל השימושים ב-theme.fontSizes ל-theme.typography ב-WelcomeScreen
+אווטארים צבעוניים: כל משתמש מקבל צבע רנדומלי מתוך 6 צבעי Google
+עדכון fakeGoogleSignIn: כעת תמיד מחזיר משתמש רנדומלי חדש ללא שאלון
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: אימיילים נוצרו עם תווים בעברית שלא תואמים לפורמט אימייל תקני
+פתרון: יצירת מערכים נפרדים עם שמות באנגלית לאימיילים
+לקח לעתיד: תמיד לוודא שאימיילים מכילים רק תווי ASCII תקניים
+שגיאה: theme.fontSizes לא קיים ב-TypeScript
+פתרון: שימוש ב-theme.typography.fontSize במקום
+לקח לעתיד: לבדוק את מבנה ה-theme לפני שימוש בו
+
+📂 קבצים שעודכנו:
+
+src/services/authService.ts - הוספת מערכי שמות באנגלית וגנרטור רנדומלי
+src/screens/welcome/WelcomeScreen.tsx - תיקון TypeScript ושימוש ב-fakeGoogleSignIn
+
+🚀 השלב הבא:
+
+בדיקת הפונקציונליות החדשה באפליקציה
+אפשר להוסיף תמיכה בשמות בעברית לתצוגה (בנוסף לאימייל באנגלית)
+אפשר להוסיף עוד וריאציות של שמות ודומיינים
+
+🎯 דוגמאות למשתמשים שייווצרו:
+
+yossi.cohen847@gmail.com
+michal.levi2341@yahoo.com
+danny.mizrachi5678@outlook.com
+shira.peretz1234@walla.co.il
+
+💻 פקודות Git:
+bashgit add src/services/authService.ts src/screens/welcome/WelcomeScreen.tsx
+git commit -m "feat: Random Google users with English emails + TypeScript fixes
+
+- Create generateRandomUser with English email addresses
+- Fix all theme.fontSizes TypeScript errors
+- Add Hebrew-to-English name mapping for valid emails
+- Each Google sign-in creates unique random user
+- Colorful avatars with 6 Google brand colors"
+git push
+
+📝 הערות טכניות:
+
+אימיילים: כעת נוצרים רק באנגלית (ASCII תקני)
+שמות: נשארים באנגלית גם בתצוגה (אפשר לשנות בעתיד)
+TypeScript: כל השגיאות תוקנו - שימוש ב-typography במקום fontSizes
+ייחודיות: כל משתמש מקבל ID ייחודי עם timestamp
+
+
 🔖 Checkpoint #021: מסך תוכנית אימון מותאמת אישית
 🗓️ תאריך: 2025-01-25
 🎯 סטטוס: ✅ הושלם

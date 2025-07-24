@@ -2,7 +2,7 @@
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @brief מסך פתיחה ראשי של האפליקציה עם אפשרויות הרשמה והתחברות
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient
- * @notes כולל אנימציות fade-in, Google Sign-in מדומה, ומונה משתמשים פעילים
+ * @notes כולל אנימציות fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
  * @recurring_errors חסר RTL במספר מקומות, flexDirection צריך להיות row-reverse
  */
 
@@ -24,6 +24,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import { fakeGoogleSignIn } from "../../services/authService";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -68,30 +69,30 @@ export default function WelcomeScreen() {
     ]).start();
   }, [fadeAnim, logoScale, counterAnimation, buttonSlide]);
 
-  // סימולציית Google Sign In // Google Sign In simulation
+  // התחברות עם Google - משתמש רנדומלי בכל פעם
+  // Google Sign In - random user each time
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
 
-    // סימולציה של תהליך אימות // Simulating auth process
-    setTimeout(() => {
-      // יצירת משתמש פיקטיבי מ-Google // Creating fake Google user
-      const googleUser = {
-        id: "google_" + Date.now(),
-        email: "user@gmail.com",
-        name: "משתמש Google",
-        provider: "google",
-        avatar:
-          "https://ui-avatars.com/api/?name=Google+User&background=4285F4&color=fff",
-      };
+    try {
+      // קריאה לפונקציה החדשה שמחזירה משתמש רנדומלי
+      // Call the new function that returns random user
+      const googleUser = await fakeGoogleSignIn();
 
-      // שמירה ב-store // Save to store
+      console.log("🎲 Random Google user signed in:", googleUser.email);
+
+      // שמירה ב-store
+      // Save to store
       setUser(googleUser);
 
-      // ניווט למסך הבא // Navigate to next screen
+      // ניווט למסך השאלון (כי המשתמש החדש תמיד ללא שאלון)
+      // Navigate to questionnaire (new user always without questionnaire)
       navigation.navigate("Questionnaire");
-
+    } catch (error) {
+      console.error("❌ Google sign in failed:", error);
+    } finally {
       setIsGoogleLoading(false);
-    }, 1500); // השהייה של 1.5 שניות לסימולציה
+    }
   };
 
   return (
@@ -113,49 +114,93 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <View style={styles.logoBackground}>
-            <Image
-              source={require("../../../assets/welcome.png")}
-              style={styles.image}
-              resizeMode="contain"
+          <View style={styles.logoWrapper}>
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={80}
+              color={theme.colors.primary}
             />
           </View>
-        </Animated.View>
-
-        {/* כותרות // Titles */}
-        <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
-          <Text style={styles.title}>ברוכים הבאים ל־GYMovoo</Text>
-          <Text style={styles.subtitle}>
-            האפליקציה שתבנה לך תוכנית אימון אישית
-          </Text>
+          <Text style={styles.appName}>GYMovoo</Text>
+          <Text style={styles.tagline}>האימון המושלם שלך מתחיל כאן</Text>
         </Animated.View>
 
         {/* מונה משתמשים פעילים // Active users counter */}
         <Animated.View
-          style={[styles.usersCounter, { opacity: counterAnimation }]}
+          style={[
+            styles.activeUsersContainer,
+            {
+              opacity: counterAnimation,
+              transform: [
+                {
+                  scale: counterAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart + "20",
-              theme.colors.primaryGradientEnd + "20",
-            ]}
-            style={styles.counterGradient}
-          >
-            <View style={styles.counterContent}>
-              <Text style={styles.counterNumber}>
-                {activeUsers.toLocaleString()}
-              </Text>
-              <MaterialCommunityIcons
-                name="account-group"
-                size={24}
-                color={theme.colors.primary}
-              />
+          <View style={styles.activeUsersBadge}>
+            <View style={styles.liveIndicator}>
+              <View style={styles.liveDot} />
+              <View style={styles.livePulse} />
             </View>
-            <Text style={styles.counterText}>משתמשים פעילים</Text>
-          </LinearGradient>
+            <Text style={styles.activeUsersText}>
+              {activeUsers.toLocaleString()} משתמשים פעילים כרגע
+            </Text>
+          </View>
         </Animated.View>
 
-        {/* כפתורים ראשיים // Main buttons */}
+        {/* תכונות עיקריות // Main features */}
+        <Animated.View
+          style={[
+            styles.featuresContainer,
+            {
+              opacity: fadeAnim,
+            },
+          ]}
+        >
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons
+                name="target"
+                size={28}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.featureText}>תוכניות מותאמות אישית</Text>
+            </View>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons
+                name="chart-line"
+                size={28}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.featureText}>מעקב התקדמות</Text>
+            </View>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={28}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.featureText}>אימונים מהירים</Text>
+            </View>
+            <View style={styles.feature}>
+              <MaterialCommunityIcons
+                name="account-group"
+                size={28}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.featureText}>קהילה תומכת</Text>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* כפתורי פעולה // Action buttons */}
         <Animated.View
           style={[
             styles.buttonsContainer,
@@ -214,56 +259,45 @@ export default function WelcomeScreen() {
               activeOpacity={0.8}
             >
               {isGoogleLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#4285F4" />
               ) : (
                 <>
-                  <Ionicons name="logo-google" size={20} color="#fff" />
+                  <Image
+                    source={{
+                      uri: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png",
+                    }}
+                    style={styles.googleLogo}
+                    resizeMode="contain"
+                  />
                   <Text style={styles.googleButtonText}>המשך עם Google</Text>
                 </>
               )}
             </TouchableOpacity>
 
-            {/* כפתור כניסה // Login button */}
+            {/* כפתור כניסה למשתמשים קיימים // Login button for existing users */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={styles.secondaryButton}
               onPress={() => navigation.navigate("Login")}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <Text style={styles.loginButtonText}>כבר יש לי חשבון</Text>
-              <Ionicons name="log-in" size={20} color={theme.colors.primary} />
+              <MaterialCommunityIcons
+                name="login"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.secondaryButtonText}>כבר יש לי חשבון</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        {/* Footer with features */}
-        <Animated.View
-          style={[styles.featuresContainer, { opacity: fadeAnim }]}
-        >
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons
-              name="dumbbell"
-              size={20}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.featureText}>תוכניות מותאמות אישית</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons
-              name="chart-line"
-              size={20}
-              color={theme.colors.accent}
-            />
-            <Text style={styles.featureText}>מעקב התקדמות</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <MaterialCommunityIcons
-              name="account-group"
-              size={20}
-              color={theme.colors.success}
-            />
-            <Text style={styles.featureText}>קהילה תומכת</Text>
-          </View>
-        </Animated.View>
+        {/* פוטר עם מדיניות // Footer with policies */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            בהמשך אתה מסכים ל<Text style={styles.footerLink}> תנאי השימוש</Text>
+            {" ו"}
+            <Text style={styles.footerLink}>מדיניות הפרטיות</Text>
+          </Text>
+        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -273,72 +307,94 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: Platform.OS === "ios" ? 80 : 60,
-    paddingBottom: 40,
+    paddingVertical: theme.spacing.xl,
     alignItems: "center",
   },
   logoContainer: {
-    marginBottom: 40,
     alignItems: "center",
-  },
-  logoBackground: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 30,
-    padding: theme.spacing.lg,
-    ...theme.shadows.large,
-  },
-  image: {
-    width: screenWidth * 0.5,
-    height: screenWidth * 0.5,
-    maxWidth: 200,
-    maxHeight: 200,
-  },
-  textContainer: {
-    alignItems: "center",
+    marginTop: 40,
     marginBottom: 30,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: "600",
+  logoWrapper: {
+    width: 120,
+    height: 120,
+    backgroundColor: theme.colors.card,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  appName: {
+    fontSize: 48,
+    fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center",
-    marginBottom: 12,
-    letterSpacing: -0.5,
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 18,
+  tagline: {
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 26,
   },
-  usersCounter: {
-    marginBottom: 40,
-    borderRadius: 16,
-    overflow: "hidden",
-    ...theme.shadows.medium,
+  activeUsersContainer: {
+    marginBottom: 30,
   },
-  counterGradient: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+  activeUsersBadge: {
+    flexDirection: "row-reverse",
     alignItems: "center",
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    borderRadius: 16,
+    borderColor: theme.colors.border,
   },
-  counterContent: {
-    flexDirection: "row-reverse", // RTL
+  liveIndicator: {
+    marginLeft: 8,
+    position: "relative",
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.success,
+  },
+  livePulse: {
+    position: "absolute",
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: theme.colors.success,
+    opacity: 0.3,
+  },
+  activeUsersText: {
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.text,
+  },
+  featuresContainer: {
+    width: "100%",
+    marginBottom: 40,
+  },
+  featureRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  feature: {
     alignItems: "center",
-    gap: 10,
-    marginBottom: 4,
+    flex: 1,
   },
-  counterNumber: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  counterText: {
-    fontSize: 14,
+  featureText: {
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textSecondary,
+    marginTop: 8,
     textAlign: "center",
   },
   buttonsContainer: {
@@ -347,105 +403,112 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    marginBottom: 16,
-    borderRadius: 16,
+    marginBottom: 12,
+    borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
-    ...theme.shadows.large,
   },
   gradientButton: {
-    flexDirection: "row-reverse", // RTL
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
   },
   primaryButtonText: {
-    fontSize: 20,
+    fontSize: theme.typography.buttonLarge.fontSize,
     fontWeight: "600",
     color: "#fff",
-    textAlign: "right", // RTL
+    marginLeft: 8,
   },
   trialBadge: {
-    flexDirection: "row-reverse", // RTL
+    flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: theme.colors.warning + "15",
+    backgroundColor: `${theme.colors.warning}20`,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 24,
+    borderRadius: theme.borderRadius.full,
+    marginBottom: 20,
   },
   trialText: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.warning,
-    fontWeight: "500",
+    marginRight: 6,
   },
   dividerContainer: {
-    flexDirection: "row-reverse", // RTL
+    flexDirection: "row-reverse",
     alignItems: "center",
     width: "100%",
-    marginBottom: 24,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.divider,
+    backgroundColor: theme.colors.border,
   },
   dividerText: {
+    marginHorizontal: 16,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textSecondary,
-    fontSize: 14,
-    paddingHorizontal: 16,
   },
   authGroup: {
     width: "100%",
     gap: 12,
   },
   googleButton: {
-    flexDirection: "row-reverse", // RTL
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#DB4437",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    ...theme.shadows.medium,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  googleLogo: {
+    width: 60,
+    height: 20,
+    marginLeft: 8,
   },
   googleButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
+    fontSize: theme.typography.button.fontSize,
+    color: "#3c4043",
+    fontWeight: "500",
   },
-  loginButton: {
-    flexDirection: "row-reverse", // RTL
+  secondaryButton: {
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
     backgroundColor: theme.colors.card,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
   },
-  loginButtonText: {
-    fontSize: 16,
+  secondaryButtonText: {
+    fontSize: theme.typography.button.fontSize,
+    color: theme.colors.primary,
     fontWeight: "500",
-    color: theme.colors.text,
+    marginRight: 8,
   },
-  featuresContainer: {
+  footer: {
     marginTop: 40,
-    gap: 16,
+    paddingHorizontal: 20,
   },
-  featureItem: {
-    flexDirection: "row-reverse", // RTL
-    alignItems: "center",
-    gap: 8,
-  },
-  featureText: {
-    fontSize: 14,
+  footerText: {
+    fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  footerLink: {
+    color: theme.colors.primary,
+    textDecorationLine: "underline",
   },
 });
