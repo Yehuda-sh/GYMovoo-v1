@@ -3,7 +3,7 @@
  * @brief מסך פתיחה ראשי של האפליקציה עם אפשרויות הרשמה והתחברות
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient
  * @notes כולל אנימציות fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
- * @recurring_errors חסר RTL במספר מקומות, flexDirection צריך להיות row-reverse
+ * @enhancements אנימציית פעימה לנקודה ירוקה, Ripple effects, מיקרו-אינטראקציות, נגישות משופרת, Skeleton loading
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -18,6 +18,8 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
+  TouchableNativeFeedback,
+  Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,6 +29,89 @@ import { useUserStore } from "../../stores/userStore";
 import { fakeGoogleSignIn } from "../../services/authService";
 
 const { width: screenWidth } = Dimensions.get("window");
+
+// Skeleton component for Google button loading
+// קומפוננטת Skeleton לטעינת כפתור Google
+const GoogleButtonSkeleton = () => (
+  <View style={styles.googleButton}>
+    <View style={[styles.googleLogo, { backgroundColor: "#f0f0f0" }]} />
+    <View
+      style={{
+        width: 100,
+        height: 16,
+        backgroundColor: "#f0f0f0",
+        borderRadius: 8,
+      }}
+    />
+  </View>
+);
+
+// Touchable wrapper with platform-specific feedback
+// עטיפת Touchable עם feedback ספציפי לפלטפורמה
+const TouchableButton = ({
+  children,
+  onPress,
+  style,
+  disabled,
+  accessibilityLabel,
+  accessibilityHint,
+}: any) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  if (Platform.OS === "android") {
+    return (
+      <TouchableNativeFeedback
+        onPress={onPress}
+        disabled={disabled}
+        background={TouchableNativeFeedback.Ripple(
+          theme.colors.primary + "20",
+          false
+        )}
+        accessible={true}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityRole="button"
+      >
+        <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+          {children}
+        </Animated.View>
+      </TouchableNativeFeedback>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      accessible={true}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityRole="button"
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<any>();
@@ -39,6 +124,7 @@ export default function WelcomeScreen() {
   const logoScale = useRef(new Animated.Value(0.9)).current;
   const counterAnimation = useRef(new Animated.Value(0)).current;
   const buttonSlide = useRef(new Animated.Value(50)).current;
+  const pulseAnimation = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     // אנימציית fade in // Fade in animation
@@ -67,7 +153,23 @@ export default function WelcomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, logoScale, counterAnimation, buttonSlide]);
+
+    // אנימציית פעימה לנקודה ירוקה // Pulse animation for live dot
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnimation, {
+          toValue: 0.6,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnimation, {
+          toValue: 0.3,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [fadeAnim, logoScale, counterAnimation, buttonSlide, pulseAnimation]);
 
   // התחברות עם Google - משתמש רנדומלי בכל פעם
   // Google Sign In - random user each time
@@ -116,7 +218,7 @@ export default function WelcomeScreen() {
         >
           <View style={styles.logoWrapper}>
             <MaterialCommunityIcons
-              name="dumbbell"
+              name="weight-lifter"
               size={80}
               color={theme.colors.primary}
             />
@@ -145,7 +247,9 @@ export default function WelcomeScreen() {
           <View style={styles.activeUsersBadge}>
             <View style={styles.liveIndicator}>
               <View style={styles.liveDot} />
-              <View style={styles.livePulse} />
+              <Animated.View
+                style={[styles.livePulse, { opacity: pulseAnimation }]}
+              />
             </View>
             <Text style={styles.activeUsersText}>
               {activeUsers.toLocaleString()} משתמשים פעילים כרגע
@@ -165,7 +269,7 @@ export default function WelcomeScreen() {
           <View style={styles.featureRow}>
             <View style={styles.feature}>
               <MaterialCommunityIcons
-                name="target"
+                name="bullseye-arrow"
                 size={28}
                 color={theme.colors.primary}
               />
@@ -173,7 +277,7 @@ export default function WelcomeScreen() {
             </View>
             <View style={styles.feature}>
               <MaterialCommunityIcons
-                name="chart-line"
+                name="trending-up"
                 size={28}
                 color={theme.colors.primary}
               />
@@ -211,10 +315,11 @@ export default function WelcomeScreen() {
           ]}
         >
           {/* כפתור התחל עכשיו // Start now button */}
-          <TouchableOpacity
+          <TouchableButton
             style={styles.primaryButton}
             onPress={() => navigation.navigate("Register")}
-            activeOpacity={0.8}
+            accessibilityLabel="התחל את המסע שלך לכושר מושלם"
+            accessibilityHint="לחץ כדי להתחיל בתהליך ההרשמה"
           >
             <LinearGradient
               colors={[
@@ -226,9 +331,9 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 1 }}
             >
               <Text style={styles.primaryButtonText}>התחל עכשיו</Text>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <Ionicons name="arrow-forward" size={22} color="#fff" />
             </LinearGradient>
-          </TouchableOpacity>
+          </TouchableButton>
 
           {/* הערה על תקופת ניסיון // Trial period note */}
           <View style={styles.trialBadge}>
@@ -252,33 +357,33 @@ export default function WelcomeScreen() {
           {/* קבוצת כפתורי אימות משניים // Secondary auth buttons group */}
           <View style={styles.authGroup}>
             {/* כפתור Google // Google button */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-              activeOpacity={0.8}
-            >
-              {isGoogleLoading ? (
-                <ActivityIndicator size="small" color="#4285F4" />
-              ) : (
-                <>
-                  <Image
-                    source={{
-                      uri: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png",
-                    }}
-                    style={styles.googleLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.googleButtonText}>המשך עם Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {isGoogleLoading ? (
+              <GoogleButtonSkeleton />
+            ) : (
+              <TouchableButton
+                style={styles.googleButton}
+                onPress={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+                accessibilityLabel="התחבר עם חשבון Google"
+                accessibilityHint="לחץ כדי להתחבר באמצעות חשבון Google שלך"
+              >
+                <Image
+                  source={{
+                    uri: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png",
+                  }}
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.googleButtonText}>המשך עם Google</Text>
+              </TouchableButton>
+            )}
 
             {/* כפתור כניסה למשתמשים קיימים // Login button for existing users */}
-            <TouchableOpacity
+            <TouchableButton
               style={styles.secondaryButton}
               onPress={() => navigation.navigate("Login")}
-              activeOpacity={0.7}
+              accessibilityLabel="כניסה למשתמשים קיימים"
+              accessibilityHint="לחץ אם כבר יש לך חשבון"
             >
               <MaterialCommunityIcons
                 name="login"
@@ -286,7 +391,7 @@ export default function WelcomeScreen() {
                 color={theme.colors.primary}
               />
               <Text style={styles.secondaryButtonText}>כבר יש לי חשבון</Text>
-            </TouchableOpacity>
+            </TouchableButton>
           </View>
         </Animated.View>
 
@@ -307,13 +412,14 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.xl,
+    paddingTop: 60,
+    paddingBottom: 20,
     alignItems: "center",
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 40,
-    marginBottom: 30,
+    marginTop: 20,
+    marginBottom: 20,
   },
   logoWrapper: {
     width: 120,
@@ -341,7 +447,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   activeUsersContainer: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   activeUsersBadge: {
     flexDirection: "row-reverse",
@@ -354,7 +460,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   liveIndicator: {
-    marginLeft: 8,
+    marginRight: 8,
     position: "relative",
   },
   liveDot: {
@@ -372,7 +478,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: theme.colors.success,
-    opacity: 0.3,
   },
   activeUsersText: {
     fontSize: theme.typography.bodySmall.fontSize,
@@ -380,7 +485,7 @@ const styles = StyleSheet.create({
   },
   featuresContainer: {
     width: "100%",
-    marginBottom: 40,
+    marginBottom: 20,
   },
   featureRow: {
     flexDirection: "row-reverse",
@@ -403,7 +508,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    marginBottom: 12,
+    marginBottom: 10,
     borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
   },
@@ -427,7 +532,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   trialText: {
     fontSize: theme.typography.bodySmall.fontSize,
@@ -455,7 +560,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   googleButton: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
@@ -498,7 +603,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   footer: {
-    marginTop: 40,
+    marginTop: 20,
     paddingHorizontal: 20,
   },
   footerText: {
