@@ -22,6 +22,17 @@
       },
       "edgeToEdgeEnabled": true
     },
+
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "האפליקציה צריכה גישה לתמונות שלך כדי לאפשר בחירת תמונת פרופיל",
+          "cameraPermission": "האפליקציה צריכה גישה למצלמה כדי לצלם תמונת פרופיל"
+        }
+      ]
+    ],
+
     "web": {
       "favicon": "./assets/favicon.png"
     }

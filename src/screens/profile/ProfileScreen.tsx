@@ -1,12 +1,11 @@
 /**
  * @file src/screens/profile/ProfileScreen.tsx
- * @brief מסך פרופיל משתמש - הצגת פרטים אישיים, תשובות שאלון, סטטיסטיקות והגדרות
- * @dependencies userStore (Zustand), DefaultAvatar component
- * @notes כולל אנימציות fade-in וניהול מצב משתמש
- * @recurring_errors בעיות RTL בכיווניות אלמנטים, שימוש בחצים לא נכונים
+ * @brief מסך פרופיל משתמש משודרג - כולל בחירת אווטאר, הישגים, התקדמות ועוד
+ * @dependencies userStore (Zustand), DefaultAvatar, ImagePicker
+ * @notes כולל אנימציות, מודלים ותכונות מתקדמות
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +15,9 @@ import {
   Animated,
   ScrollView,
   Platform,
+  Modal,
+  FlatList,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
@@ -23,17 +25,67 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
+import * as ImagePicker from "expo-image-picker";
+
+// אווטארים מוכנים לבחירה
+const PRESET_AVATARS = [
+  "💪",
+  "🏃‍♂️",
+  "🏋️‍♀️",
+  "🤸‍♂️",
+  "🏃‍♀️",
+  "🧘‍♂️",
+  "🧘‍♀️",
+  "🚴‍♂️",
+  "🚴‍♀️",
+  "⛹️‍♂️",
+  "⛹️‍♀️",
+  "🏊‍♂️",
+  "🏊‍♀️",
+  "🥊",
+  "🤺",
+  "🏄‍♂️",
+];
+
+// הישגים לדוגמה
+const ACHIEVEMENTS = [
+  {
+    id: 1,
+    title: "מתחיל נלהב",
+    icon: "star",
+    color: "#FFD700",
+    unlocked: true,
+  },
+  { id: 2, title: "7 ימי רצף", icon: "fire", color: "#FF6347", unlocked: true },
+  {
+    id: 3,
+    title: "30 אימונים",
+    icon: "medal",
+    color: "#C0C0C0",
+    unlocked: false,
+  },
+  {
+    id: 4,
+    title: "גיבור כושר",
+    icon: "trophy",
+    color: "#FFD700",
+    unlocked: false,
+  },
+];
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const user = useUserStore((s) => s.user);
-  const answers = user?.questionnaire || {};
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
 
-  // אנימציות // Animations
+  // אנימציות
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // אנימציית כניסה
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -46,26 +98,82 @@ export default function ProfileScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // אנימציית פעימה לכפתור העלאת תמונה
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const handleLogout = () => {
-    useUserStore.getState().logout();
-    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+    Alert.alert("התנתקות", "האם אתה בטוח שברצונך להתנתק?", [
+      { text: "ביטול", style: "cancel" },
+      {
+        text: "התנתק",
+        style: "destructive",
+        onPress: () => {
+          useUserStore.getState().logout();
+          navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+        },
+      },
+    ]);
   };
 
-  const handleRedoQuestionnaire = () => {
-    useUserStore.getState().resetQuestionnaire();
-    navigation.navigate("Questionnaire");
+  const pickImageFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      // שמירת התמונה
+      console.log("תמונה נבחרה:", result.assets[0].uri);
+      setShowAvatarModal(false);
+    }
   };
 
-  const questions = [
-    { title: "מה מטרת האימון שלך?", key: 1, icon: "target" },
-    { title: "מה רמת הניסיון שלך?", key: 2, icon: "arm-flex" },
-    { title: "כמה פעמים בשבוע תרצה להתאמן?", key: 3, icon: "calendar-week" },
-  ];
+  const takePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
 
-  // מידע נוסף על המשתמש // Additional user info
-  const memberSince = new Date().toLocaleDateString("he-IL");
+    if (!result.canceled) {
+      // שמירת התמונה
+      console.log("תמונה צולמה:", result.assets[0].uri);
+      setShowAvatarModal(false);
+    }
+  };
+
+  const selectPresetAvatar = (avatar: string) => {
+    setSelectedAvatar(avatar);
+    // שמירה ב-store
+    setShowAvatarModal(false);
+  };
+
+  // סטטיסטיקות משתמש
+  const stats = {
+    workouts: 48,
+    streak: 12,
+    totalTime: "36h",
+    level: 5,
+    xp: 2450,
+    nextLevelXp: 3000,
+  };
 
   return (
     <LinearGradient
@@ -100,197 +208,253 @@ export default function ProfileScreen() {
               />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>הפרופיל שלי</Text>
-            <View style={{ width: 28 }} />
-          </View>
-
-          {/* פרטי משתמש // User details */}
-          <View style={styles.profileCard}>
-            <View style={styles.avatarContainer}>
-              {user?.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-              ) : (
-                <DefaultAvatar name={user?.name ?? "משתמש"} size={100} />
-              )}
-              <TouchableOpacity
-                style={styles.editAvatarButton}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="camera"
-                  size={20}
-                  color={theme.colors.text}
-                />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.username}>{user?.name || "לא הוזן"}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
-            <View style={styles.memberBadge}>
-              <MaterialCommunityIcons
-                name="calendar-account"
-                size={16}
-                color={theme.colors.primary}
+            <TouchableOpacity
+              style={styles.settingsButton}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate("Settings")}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={24}
+                color={theme.colors.text}
               />
-              <Text style={styles.memberSince}>חבר מאז {memberSince}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
-          {/* תשובות השאלון // Questionnaire answers */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>התשובות שלך לשאלון</Text>
-            <View style={styles.answersList}>
-              {questions.map((q) => (
-                <View style={styles.answerCard} key={q.key}>
-                  <View style={styles.answerCardContent}>
-                    <MaterialCommunityIcons
-                      name={q.icon as any}
-                      size={24}
-                      color={theme.colors.primary}
-                    />
-                    <View style={styles.answerTextContainer}>
-                      <Text style={styles.cardQuestion}>{q.title}</Text>
-                      <Text style={styles.cardAnswer}>
-                        {answers[q.key] || "לא נבחר"}
-                      </Text>
-                    </View>
+          {/* כרטיס פרופיל משודרג */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarSection}>
+              <TouchableOpacity
+                onPress={() => setShowAvatarModal(true)}
+                style={styles.avatarContainer}
+              >
+                {typeof selectedAvatar === "string" &&
+                selectedAvatar.length <= 2 ? (
+                  <View style={styles.emojiAvatar}>
+                    <Text style={styles.emojiText}>{selectedAvatar}</Text>
                   </View>
+                ) : user?.avatar ? (
+                  <Image
+                    source={{ uri: user.avatar }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <DefaultAvatar name={user?.name ?? "משתמש"} size={100} />
+                )}
+                <Animated.View
+                  style={[
+                    styles.editAvatarButton,
+                    { transform: [{ scale: pulseAnim }] },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="camera"
+                    size={20}
+                    color={theme.colors.text}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+
+              {/* רמה ו-XP */}
+              <View style={styles.levelContainer}>
+                <Text style={styles.levelText}>רמה {stats.level}</Text>
+                <View style={styles.xpBar}>
+                  <View
+                    style={[
+                      styles.xpProgress,
+                      { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
+                    ]}
+                  />
                 </View>
-              ))}
+                <Text style={styles.xpText}>
+                  {stats.xp}/{stats.nextLevelXp} XP
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.username}>{user?.name || "אלוף הכושר"}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+
+            {/* תגי סטטוס */}
+            <View style={styles.badgesContainer}>
+              <View style={styles.badge}>
+                <MaterialCommunityIcons
+                  name="crown"
+                  size={16}
+                  color="#FFD700"
+                />
+                <Text style={styles.badgeText}>פרימיום</Text>
+              </View>
+              <View style={styles.badge}>
+                <MaterialCommunityIcons name="fire" size={16} color="#FF6347" />
+                <Text style={styles.badgeText}>{stats.streak} ימי רצף</Text>
+              </View>
             </View>
           </View>
 
-          {/* סטטיסטיקות אימונים // Workout statistics */}
-          <View style={styles.section}>
+          {/* סטטיסטיקות מורחבות */}
+          <View style={styles.statsSection}>
             <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
             <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
+              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
                 <LinearGradient
                   colors={[
-                    theme.colors.primary + "20",
-                    theme.colors.primary + "10",
+                    theme.colors.primaryGradientStart,
+                    theme.colors.primaryGradientEnd,
                   ]}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
                     name="dumbbell"
                     size={28}
-                    color={theme.colors.primary}
+                    color="#fff"
                   />
-                  <Text style={styles.statValue}>0</Text>
+                  <Text style={styles.statValue}>{stats.workouts}</Text>
                   <Text style={styles.statLabel}>אימונים</Text>
                 </LinearGradient>
-              </View>
-              <View style={styles.statCard}>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
                 <LinearGradient
-                  colors={[
-                    theme.colors.accent + "20",
-                    theme.colors.accent + "10",
-                  ]}
+                  colors={["#FF6B6B", "#FFA500"]}
+                  style={styles.statGradient}
+                >
+                  <MaterialCommunityIcons name="fire" size={28} color="#fff" />
+                  <Text style={styles.statValue}>{stats.streak}</Text>
+                  <Text style={styles.statLabel}>ימי רצף</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+                <LinearGradient
+                  colors={["#4ECDC4", "#44A08D"]}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
-                    name="clock-outline"
+                    name="timer-outline"
                     size={28}
-                    color={theme.colors.accent}
+                    color="#fff"
                   />
-                  <Text style={styles.statValue}>0</Text>
-                  <Text style={styles.statLabel}>שעות</Text>
+                  <Text style={styles.statValue}>{stats.totalTime}</Text>
+                  <Text style={styles.statLabel}>זמן כולל</Text>
                 </LinearGradient>
-              </View>
-              <View style={styles.statCard}>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
                 <LinearGradient
-                  colors={[
-                    theme.colors.warning + "20",
-                    theme.colors.warning + "10",
-                  ]}
+                  colors={["#667eea", "#764ba2"]}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
-                    name="trophy"
+                    name="chart-line"
                     size={28}
-                    color={theme.colors.warning}
+                    color="#fff"
                   />
-                  <Text style={styles.statValue}>0</Text>
-                  <Text style={styles.statLabel}>יעדים</Text>
+                  <Text style={styles.statValue}>15%</Text>
+                  <Text style={styles.statLabel}>שיפור</Text>
                 </LinearGradient>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* כפתור מילוי שאלון מחדש // Redo questionnaire button */}
-          <TouchableOpacity
-            style={styles.redoBtn}
-            onPress={handleRedoQuestionnaire}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.primaryGradientStart,
-                theme.colors.primaryGradientEnd,
-              ]}
-              style={styles.redoBtnGradient}
+          {/* הישגים */}
+          <View style={styles.achievementsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>ההישגים שלך</Text>
+              <TouchableOpacity activeOpacity={0.7}>
+                <Text style={styles.seeAllText}>ראה הכל</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.achievementsList}
             >
-              <Text style={styles.redoBtnText}>מלא שוב שאלון</Text>
-              <MaterialCommunityIcons name="refresh" size={22} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* העדפות ואפשרויות // Preferences and options */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>הגדרות</Text>
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-              <View style={styles.settingContent}>
-                <MaterialCommunityIcons
-                  name="bell-outline"
-                  size={24}
-                  color={theme.colors.text}
-                />
-                <Text style={styles.settingText}>התראות</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-              <View style={styles.settingContent}>
-                <MaterialCommunityIcons
-                  name="translate"
-                  size={24}
-                  color={theme.colors.text}
-                />
-                <Text style={styles.settingText}>שפה</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-              <View style={styles.settingContent}>
-                <MaterialCommunityIcons
-                  name="shield-check-outline"
-                  size={24}
-                  color={theme.colors.text}
-                />
-                <Text style={styles.settingText}>פרטיות</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
+              {ACHIEVEMENTS.map((achievement) => (
+                <View
+                  key={achievement.id}
+                  style={[
+                    styles.achievementCard,
+                    !achievement.unlocked && styles.achievementLocked,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={achievement.icon as any}
+                    size={32}
+                    color={achievement.unlocked ? achievement.color : "#666"}
+                  />
+                  <Text style={styles.achievementTitle}>
+                    {achievement.title}
+                  </Text>
+                  {!achievement.unlocked && (
+                    <MaterialCommunityIcons
+                      name="lock"
+                      size={16}
+                      color="#666"
+                      style={styles.lockIcon}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           </View>
 
-          {/* כפתור התנתקות // Logout button */}
+          {/* פעולות מהירות */}
+          <View style={styles.quickActionsSection}>
+            <Text style={styles.sectionTitle}>פעולות מהירות</Text>
+            <View style={styles.quickActionsGrid}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="history"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.quickActionText}>היסטוריה</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="target"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.quickActionText}>יעדים</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="account-group"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.quickActionText}>חברים</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="share-variant"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.quickActionText}>שתף</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* כפתור התנתקות */}
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={handleLogout}
@@ -305,6 +469,79 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
+
+      {/* מודל בחירת אווטאר */}
+      <Modal
+        visible={showAvatarModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAvatarModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => setShowAvatarModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>בחר תמונת פרופיל</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            {/* אפשרויות העלאה */}
+            <View style={styles.uploadOptions}>
+              <TouchableOpacity
+                style={styles.uploadOption}
+                onPress={takePhoto}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={32}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.uploadOptionText}>צלם תמונה</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.uploadOption}
+                onPress={pickImageFromGallery}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="image"
+                  size={32}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.uploadOptionText}>בחר מגלריה</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* אווטארים מוכנים */}
+            <Text style={styles.presetsTitle}>או בחר אווטאר מוכן:</Text>
+            <FlatList
+              data={PRESET_AVATARS}
+              numColumns={4}
+              keyExtractor={(item, index) => index.toString()}
+              contentContainerStyle={styles.avatarGrid}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.presetAvatar,
+                    selectedAvatar === item && styles.selectedPreset,
+                  ]}
+                  onPress={() => selectPresetAvatar(item)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.presetAvatarText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -334,6 +571,9 @@ const styles = StyleSheet.create({
   backButton: {
     padding: theme.spacing.sm,
   },
+  settingsButton: {
+    padding: theme.spacing.sm,
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: "600",
@@ -342,8 +582,19 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     alignItems: "center",
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.card,
+    marginHorizontal: theme.spacing.lg,
+    borderRadius: 20,
+    padding: theme.spacing.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.medium,
+  },
+  avatarSection: {
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
   },
   avatarContainer: {
     position: "relative",
@@ -357,16 +608,54 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.card,
   },
+  emojiAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: theme.colors.primaryGradientStart + "20",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+  },
+  emojiText: {
+    fontSize: 50,
+  },
   editAvatarButton: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.primary,
     borderRadius: 20,
     padding: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
+    borderWidth: 2,
+    borderColor: theme.colors.card,
+  },
+  levelContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  levelText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  xpBar: {
+    width: 200,
+    height: 8,
+    backgroundColor: theme.colors.divider,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 4,
+  },
+  xpProgress: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
+  },
+  xpText: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
   },
   username: {
     color: theme.colors.text,
@@ -379,23 +668,27 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 16,
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
   },
-  memberBadge: {
+  badgesContainer: {
+    flexDirection: "row-reverse",
+    gap: 12,
+  },
+  badge: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: theme.colors.primaryGradientStart + "15",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  memberSince: {
+  badgeText: {
     color: theme.colors.primary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
-  section: {
+  statsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
@@ -406,110 +699,103 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     textAlign: "right",
   },
-  answersList: {
-    gap: 12,
-  },
-  answerCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.medium,
-  },
-  answerCardContent: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 12,
-  },
-  answerTextContainer: {
-    flex: 1,
-  },
-  cardQuestion: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 4,
-    textAlign: "right",
-  },
-  cardAnswer: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "right",
-  },
   statsGrid: {
     flexDirection: "row-reverse",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 12,
   },
   statCard: {
-    flex: 1,
+    width: "48%",
     borderRadius: 16,
     overflow: "hidden",
     ...theme.shadows.medium,
   },
   statGradient: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
     borderRadius: 16,
   },
   statValue: {
-    color: theme.colors.text,
-    fontSize: 24,
-    fontWeight: "600",
+    color: "#fff",
+    fontSize: 28,
+    fontWeight: "700",
     marginTop: 8,
-    textAlign: "center",
   },
   statLabel: {
-    color: theme.colors.textSecondary,
+    color: "#fff",
     fontSize: 13,
     marginTop: 4,
-    textAlign: "center",
+    opacity: 0.9,
   },
-  redoBtn: {
-    marginHorizontal: theme.spacing.lg,
+  achievementsSection: {
     marginBottom: theme.spacing.xl,
-    borderRadius: 16,
-    overflow: "hidden",
-    ...theme.shadows.medium,
   },
-  redoBtnGradient: {
-    flexDirection: "row-reverse",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  redoBtnText: {
-    color: theme.colors.white,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  settingItem: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: theme.spacing.lg,
+  sectionHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  seeAllText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  achievementsList: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: 12,
+  },
+  achievementCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
+    alignItems: "center",
+    minWidth: 100,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     ...theme.shadows.small,
   },
-  settingContent: {
+  achievementLocked: {
+    opacity: 0.5,
+  },
+  achievementTitle: {
+    color: theme.colors.text,
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  lockIcon: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  quickActionsSection: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+  },
+  quickActionsGrid: {
     flexDirection: "row-reverse",
-    alignItems: "center",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 12,
   },
-  settingText: {
+  quickActionCard: {
+    width: "48%",
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
+  },
+  quickActionText: {
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: 14,
+    marginTop: 8,
     fontWeight: "500",
-    textAlign: "right",
   },
   logoutBtn: {
     flexDirection: "row-reverse",
@@ -528,5 +814,81 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // סגנונות מודל
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl + 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  uploadOptions: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-around",
+    marginBottom: theme.spacing.xl,
+  },
+  uploadOption: {
+    alignItems: "center",
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.backgroundAlt,
+    borderRadius: 16,
+    width: "45%",
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+  },
+  uploadOptionText: {
+    color: theme.colors.text,
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  presetsTitle: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: theme.spacing.md,
+    textAlign: "right",
+  },
+  avatarGrid: {
+    alignItems: "center",
+  },
+  presetAvatar: {
+    width: 70,
+    height: 70,
+    margin: 8,
+    borderRadius: 35,
+    backgroundColor: theme.colors.backgroundAlt,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  selectedPreset: {
+    borderColor: theme.colors.primary,
+  },
+  presetAvatarText: {
+    fontSize: 35,
   },
 });
