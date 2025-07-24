@@ -18,6 +18,7 @@ import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
 import DynamicQuestionnaireScreen from "../screens/questionnaire/DynamicQuestionnaireScreen";
+import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 
 // מסכים נוספים שלא ב-Bottom Tabs // Additional screens not in Bottom Tabs
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
@@ -83,7 +84,11 @@ export default function AppNavigator() {
             gestureEnabled: false,
           }}
         />
-
+        <Stack.Screen
+          name="WorkoutPlan"
+          component={WorkoutPlanScreen}
+          options={{ headerShown: false }}
+        />
         {/* מסך תרגילים // Exercise list screen */}
         <Stack.Screen
           name="ExerciseList"

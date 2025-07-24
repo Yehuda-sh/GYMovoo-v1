@@ -13,7 +13,7 @@ import { theme } from "../styles/theme";
 
 // מסכים // Screens
 import MainScreen from "../screens/main/MainScreen";
-import WorkoutPlansScreen from "../screens/plans/WorkoutPlansScreen"; // יש ליצור
+import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen"; // יש ליצור
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
 import ProfileScreen from "../screens/profile/ProfileScreen";
