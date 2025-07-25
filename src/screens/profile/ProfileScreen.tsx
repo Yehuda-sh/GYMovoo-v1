@@ -26,6 +26,11 @@ import { useNavigation } from "@react-navigation/native";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import * as ImagePicker from "expo-image-picker";
+// ייבוא הפונקציות החסרות
+import {
+  hasCompletedTrainingStage,
+  hasCompletedProfileStage,
+} from "../../data/twoStageQuestionnaireData";
 
 // אווטארים מוכנים לבחירה
 const PRESET_AVATARS = [
@@ -76,6 +81,7 @@ const ACHIEVEMENTS = [
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const user = useUserStore((s) => s.user);
+  const currentUser = useUserStore((s) => s.currentUser); // הוספת currentUser
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
 
@@ -207,7 +213,9 @@ export default function ProfileScreen() {
                 color={theme.colors.text}
               />
             </TouchableOpacity>
+
             <Text style={styles.headerTitle}>הפרופיל שלי</Text>
+
             <TouchableOpacity
               style={styles.settingsButton}
               activeOpacity={0.7}
@@ -292,6 +300,47 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          {/* כפתור השלמת/עריכת שאלון */}
+          <TouchableOpacity
+            style={styles.questionnaireButton}
+            onPress={() => {
+              const stage = hasCompletedTrainingStage(
+                currentUser?.questionnaire
+              )
+                ? "profile"
+                : "training";
+              navigation.navigate("Questionnaire", {
+                stage,
+                fromSettings: true,
+              });
+            }}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
+              ]}
+              style={styles.questionnaireGradient}
+            >
+              <MaterialCommunityIcons
+                name="clipboard-list"
+                size={24}
+                color={theme.colors.text}
+              />
+              <Text style={styles.questionnaireText}>
+                {hasCompletedProfileStage(currentUser?.questionnaire)
+                  ? "ערוך פרופיל אישי"
+                  : "השלם פרופיל אישי"}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={20}
+                color={theme.colors.text}
+              />
+            </LinearGradient>
+          </TouchableOpacity>
 
           {/* סטטיסטיקות מורחבות */}
           <View style={styles.statsSection}>
@@ -688,6 +737,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
+
+  // כפתור השאלון
+  questionnaireButton: {
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  questionnaireGradient: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.md,
+    gap: 8,
+  },
+  questionnaireText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
+  },
+
   statsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,

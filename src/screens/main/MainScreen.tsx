@@ -17,6 +17,7 @@ import {
   Dimensions,
   RefreshControl,
   Platform,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
@@ -28,11 +29,14 @@ import {
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
-import { Alert } from "react-native"; // אם לא קיים
+import {
+  hasCompletedTrainingStage,
+  hasCompletedProfileStage,
+} from "../../data/twoStageQuestionnaireData";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// סטטיסטיקות דמה // Mock statistics
+// סטטיסטיקות דמה
 const mockStats = {
   workoutsThisWeek: 3,
   totalWorkouts: 24,
@@ -44,7 +48,7 @@ const mockStats = {
   personalRecords: 8,
 };
 
-// תוכניות מומלצות // Recommended plans
+// תוכניות מומלצות
 const recommendedPlans = [
   { id: 1, name: "תוכנית למתחילים", duration: "8 שבועות", difficulty: "קל" },
   { id: 2, name: "בניית מסה", duration: "12 שבועות", difficulty: "בינוני" },
@@ -55,7 +59,11 @@ export default function MainScreen() {
   const navigation = useNavigation<any>();
   const { user, logout } = useUserStore();
   const displayName = user?.name || "משתמש";
-  const isFemale = user?.gender === "female"; // נניח שיש לנו מידע על המגדר במשתמש
+  const isFemale = user?.questionnaire?.gender === "נקבה"; // שימוש ב-user במקום currentUser
+
+  // בדיקת השלמת שלבי השאלון
+  const hasTrainingData = hasCompletedTrainingStage(user?.questionnaire);
+  const hasProfileData = hasCompletedProfileStage(user?.questionnaire);
 
   console.log("🏠 MainScreen - Component mounted");
   console.log("🏠 MainScreen - Current user:", user);
@@ -69,7 +77,7 @@ export default function MainScreen() {
   const [workoutPrompt, setWorkoutPrompt] = useState("");
   const [workoutEmoji, setWorkoutEmoji] = useState("");
 
-  // אנימציות // Animations
+  // אנימציות
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -79,7 +87,7 @@ export default function MainScreen() {
   useEffect(() => {
     console.log("🏠 MainScreen - useEffect triggered");
 
-    // קביעת ברכה לפי שעה // Set greeting by time
+    // קביעת ברכה לפי שעה
     const hour = new Date().getHours();
     console.log("🏠 MainScreen - Current hour:", hour);
 
@@ -123,7 +131,7 @@ export default function MainScreen() {
       setGreeting("לילה טוב");
       setTimeOfDay("night");
       const nightQuotes = [
-        "אימוני לילה - לאלופים האמיתיים 🌙",
+        "אימוני לילה - לאלופים 🌙",
         "כשכולם ישנים, אתה בונה את העתיד שלך 🌟",
         "המוטיבציה שלך לא מכירה שעות ⏰",
         "לילה שקט, אימון מושלם 🌃",
@@ -136,7 +144,7 @@ export default function MainScreen() {
     console.log("🏠 MainScreen - Greeting set to:", greeting);
     console.log("🏠 MainScreen - Time of day:", timeOfDay);
 
-    // יצירת הודעות אימון מותאמות מגדר // Create gender-adapted workout prompts
+    // יצירת הודעות אימון מותאמות מגדר
     const workoutPrompts = {
       ready: {
         male: [
@@ -166,32 +174,32 @@ export default function MainScreen() {
       },
       evening: {
         male: [
-          "סיים את היום בסטייל",
+          "סיים את היום כמו אלוף",
           "עוד אימון לפני השינה?",
           "הזמן המושלם להתאמן",
         ],
         female: [
-          "סיימי את היום בסטייל",
+          "סיימי את היום כמו אלופה",
           "עוד אימון לפני השינה?",
           "הזמן המושלם להתאמן",
         ],
       },
     };
 
-    // בחירת הודעה אקראית מותאמת מגדר // Select random gender-adapted message
+    // בחירת הודעה אקראית מותאמת מגדר
     const gender = isFemale ? "female" : "male";
     const promptCategory =
       hour < 12 ? "morning" : hour < 21 ? "ready" : "evening";
     const prompts = workoutPrompts[promptCategory][gender];
     setWorkoutPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
 
-    // בחירת אימוג'י אקראי לאימון // Select random workout emoji
+    // בחירת אימוג'י אקראי לאימון
     const workoutEmojis = ["💪", "🏋️‍♂️", "🤸‍♂️", "🏃‍♂️", "⚡", "🔥", "🎯", "🚀"];
     setWorkoutEmoji(
       workoutEmojis[Math.floor(Math.random() * workoutEmojis.length)]
     );
 
-    // אנימציות כניסה // Entry animations
+    // אנימציות כניסה
     console.log("🏠 MainScreen - Starting entry animations");
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -225,12 +233,12 @@ export default function MainScreen() {
         useNativeDriver: false,
       }).start();
     });
-  }, []);
+  }, [isFemale]); // הוספת תלות ב-isFemale
 
   const onRefresh = React.useCallback(() => {
     console.log("🏠 MainScreen - Pull to refresh triggered");
     setRefreshing(true);
-    // סימולציית רענון // Simulate refresh
+    // סימולציית רענון
     setTimeout(() => {
       console.log("🏠 MainScreen - Refresh completed");
       setRefreshing(false);
@@ -258,6 +266,68 @@ export default function MainScreen() {
           />
         }
       >
+        {/* תזכורת להשלמת שאלון - אם צריך */}
+        {!hasTrainingData && (
+          <TouchableOpacity
+            style={styles.completeQuestionnaireCard}
+            onPress={() =>
+              navigation.navigate("Questionnaire", { stage: "training" })
+            }
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
+              ]}
+              style={styles.questionnaireGradient}
+            >
+              <MaterialCommunityIcons
+                name="clipboard-list"
+                size={32}
+                color={theme.colors.text}
+              />
+              <Text style={styles.questionnaireTitle}>ברוך הבא! 👋</Text>
+              <Text style={styles.questionnaireText}>
+                בוא נבנה לך תוכנית אימונים מותאמת אישית
+              </Text>
+              <View style={styles.questionnaireButton}>
+                <Text style={styles.questionnaireButtonText}>התחל עכשיו</Text>
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={20}
+                  color={theme.colors.text}
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* תזכורת להשלמת פרופיל */}
+        {hasTrainingData && !hasProfileData && (
+          <TouchableOpacity
+            style={styles.profileReminderCard}
+            onPress={() =>
+              navigation.navigate("Questionnaire", { stage: "profile" })
+            }
+          >
+            <View style={styles.profileReminderContent}>
+              <MaterialCommunityIcons
+                name="account-details"
+                size={24}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.profileReminderText}>
+                השלם את הפרופיל שלך לקבלת המלצות מדויקות יותר
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={20}
+                color={theme.colors.primary}
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Header - גרסה משודרגת עם אנימציה ומוטיבציה */}
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <LinearGradient
@@ -448,7 +518,7 @@ export default function MainScreen() {
         <Animated.View
           style={[styles.statsCardsContainer, { opacity: statsOpacity }]}
         >
-          {/* כרטיס מטרה שבועית // Weekly goal card */}
+          {/* כרטיס מטרה שבועית */}
           <TouchableOpacity
             style={styles.goalCard}
             activeOpacity={0.8}
@@ -508,7 +578,7 @@ export default function MainScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* כרטיס סטטיסטיקה אישית // Personal stats card */}
+          {/* כרטיס סטטיסטיקה אישית */}
           <View style={styles.personalStatsCard}>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
@@ -570,7 +640,7 @@ export default function MainScreen() {
             </View>
           </View>
 
-          {/* כרטיס הישגים // Achievements card */}
+          {/* כרטיס הישגים */}
           <TouchableOpacity
             style={styles.achievementsCard}
             activeOpacity={0.8}
@@ -654,7 +724,7 @@ export default function MainScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.actionIconContainer}>
-                <MaterialCommunityIcons // החלפת אייקון
+                <MaterialCommunityIcons
                   name="brain"
                   size={28}
                   color={theme.colors.secondary}
@@ -682,13 +752,13 @@ export default function MainScreen() {
                 צפה באימונים קודמים
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.actionButton, styles.quickWorkoutButton]}
               onPress={async () => {
                 try {
                   // בדיקה אם יש נתוני שאלון
-                  const hasData =
-                    user?.questionnaireData?.metadata || user?.questionnaire;
+                  const hasData = hasTrainingData;
 
                   if (hasData) {
                     // יש נתונים - צור תוכנית ויתחיל אימון
@@ -705,9 +775,9 @@ export default function MainScreen() {
                         {
                           text: "לשאלון",
                           onPress: () =>
-                            navigation.navigate(
-                              "DynamicQuestionnaire" as never
-                            ),
+                            navigation.navigate("Questionnaire", {
+                              stage: "training",
+                            }),
                         },
                       ]
                     );
@@ -726,6 +796,7 @@ export default function MainScreen() {
                 <Text style={styles.quickWorkoutText}>אימון מהיר AI</Text>
               </LinearGradient>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => {
@@ -816,6 +887,71 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 30,
+  },
+  // סגנונות לכרטיסי השאלון
+  completeQuestionnaireCard: {
+    marginHorizontal: 20,
+    marginVertical: 10,
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  questionnaireGradient: {
+    padding: 24,
+    alignItems: "center",
+  },
+  questionnaireTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  questionnaireText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    textAlign: "center",
+    marginBottom: 20,
+    opacity: 0.9,
+  },
+  questionnaireButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  questionnaireButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginLeft: 8,
+  },
+  profileReminderCard: {
+    marginHorizontal: 20,
+    marginVertical: 10,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+  },
+  profileReminderContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  profileReminderText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.text,
+    marginHorizontal: 12,
+    textAlign: "right",
   },
   header: {
     marginBottom: theme.spacing.md,
@@ -990,7 +1126,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
 
-  // תצוגת כרטיסים // Cards view
+  // תצוגת כרטיסים
   statsCardsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,

@@ -18,7 +18,7 @@ import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
 import DynamicQuestionnaireScreen from "../screens/questionnaire/DynamicQuestionnaireScreen";
-
+import TwoStageQuestionnaireScreen from "../screens/questionnaire/TwoStageQuestionnaireScreen";
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
@@ -94,10 +94,11 @@ export default function AppNavigator() {
 
         {/* שאלון דינמי */}
         <Stack.Screen
-          name="DynamicQuestionnaire"
-          component={DynamicQuestionnaireScreen}
+          name="Questionnaire"
+          component={TwoStageQuestionnaireScreen}
           options={{
-            gestureEnabled: false, // מונע חזרה אחורה בשאלון
+            headerShown: false,
+            presentation: "modal",
           }}
         />
 
