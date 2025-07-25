@@ -40,7 +40,7 @@ import {
   QuestionType,
 } from "../../data/questionnaireData";
 import { questionnaireService } from "../../services/questionnaireService";
-
+import AgeSelector from "./AgeSelector";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // מילון טיפים לכל שאלה
@@ -486,52 +486,37 @@ export default function DynamicQuestionnaireScreen({ navigation, route }: any) {
 
     switch (currentQuestion.type) {
       case "single":
-        return (
-          <View style={styles.optionsContainer}>
-            {(currentQuestion.options || []).map((option) => {
-              const optionValue =
-                typeof option === "string"
-                  ? option
-                  : (option as OptionWithImage).id;
-              const optionText =
-                typeof option === "string"
-                  ? option
-                  : (option as OptionWithImage).label;
-              const isSelected = answers[currentQuestion.id] === optionValue;
+        // בדיקה אם זו שאלת גיל
+        if (currentQuestion.id === "age") {
+          return (
+            <AgeSelector
+              value={answers[currentQuestion.id]}
+              onChange={(value) => {
+                handleAnswer(value);
+                setError(""); // ניקוי שגיאה מיידי
+              }}
+              error={error}
+              onAutoNext={(value) => {
+                // עדכון התשובה והמעבר מיידי
+                handleAnswer(value);
 
-              return (
-                <TouchableOpacity
-                  key={optionValue}
-                  style={[
-                    styles.optionButton,
-                    isSelected && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => handleAnswer(optionValue)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      isSelected && styles.optionTextSelected,
-                    ]}
-                  >
-                    {optionText}
-                  </Text>
-                  <MaterialCommunityIcons
-                    name={isSelected ? "radiobox-marked" : "radiobox-blank"}
-                    size={24}
-                    color={
-                      isSelected
-                        ? theme.colors.primary
-                        : theme.colors.textSecondary
-                    }
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        );
-
+                // מעבר לשאלה הבאה עם הערך החדש
+                if (currentQuestionIndex < questions.length - 1) {
+                  animateTransition(true, () => {
+                    setCurrentQuestionIndex((prev) => prev + 1);
+                    setCurrentQuestionStartTime(Date.now());
+                    setTextInput("");
+                    setNumberInput("");
+                    setSelectedMultiple([]);
+                    setError(""); // ניקוי שגיאה
+                  });
+                } else {
+                  handleComplete();
+                }
+              }}
+            />
+          );
+        }
       case "multiple":
         return (
           <View style={styles.optionsContainer}>

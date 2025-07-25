@@ -41,6 +41,84 @@ git push
 
 
 
+
+🎯 Checkpoint #024 - קומפוננטת בחירת גיל היברידית
+📝 סיכום שלב
+יצרתי קומפוננטת AgeSelector חדשנית המשלבת בחירה מהירה מרשת של טווחי גילאים עם אפשרות להזנת גיל מדויק. הקומפוננטה כוללת מעבר אוטומטי לשאלה הבאה, אנימציות חלקות, ותמיכה מלאה ב-RTL ונגישות.
+✅ מה הושלם
+
+קומפוננטת AgeSelector.tsx חדשה
+
+תצוגת גריד 2x3 של טווחי גילאים עם אמוג'י
+כפתור "רוצה לציין גיל מדויק?" עם מודל
+אנימציות כניסה מדורגות
+Haptic feedback (עם Vibration API)
+תמיכה מלאה בנגישות וקורא מסך
+
+
+פיצ'ר מעבר אוטומטי
+
+לחיצה על טווח גיל מעבירה ישירות לשאלה הבאה
+העברת הערך ישירות ל-callback למניעת בעיות state
+השהיה של 300ms לצפייה באנימציה
+
+
+עיצוב ו-UX משופרים
+
+ללא צורך בגלילה - כל האפשרויות נראות
+עיצוב מודרני עם כרטיסיות ואמוג'י
+אנימציית שגיאה עם shake effect
+מודל מעוצב להזנת גיל מדויק
+
+
+
+📂 קבצים שנוצרו/עודכנו
+✅ src/screens/questionnaire/AgeSelector.tsx (חדש)
+🔄 src/screens/questionnaire/DynamicQuestionnaireScreen.tsx (דורש עדכון)
+🔧 שינויים נדרשים ב-DynamicQuestionnaireScreen
+typescript// 1. הוסף import
+import AgeSelector from './AgeSelector';
+
+// 2. בפונקציה renderAnswerInput, החלף את case "single":
+case "single":
+  if (currentQuestion.id === 'age') {
+    return (
+      <AgeSelector
+        value={answers[currentQuestion.id]}
+        onChange={(value) => {
+          handleAnswer(value);
+          setError("");
+        }}
+        error={error}
+        onAutoNext={(value) => {
+          handleAnswer(value);
+          // קוד המעבר הישיר כאן
+        }}
+      />
+    );
+  }
+  // ... שאר הקוד הקיים
+🎓 לקחים מרכזיים
+
+State Updates אסינכרוניים - כשצריך תגובה מיידית, עדיף להעביר ערכים ישירות ולא לסמוך על state
+Vibration API - תמיד זמין ב-React Native, לא צריך ספריות חיצוניות ל-haptic בסיסי
+חשיבות ה-UX - חיסכון בלחיצות משפר משמעותית את חוויית המשתמש
+אנימציות מדורגות - יוצרות תחושה של דינמיות ומקצועיות
+
+🐛 בעיות שנפתרו
+
+✅ צורך בגלילה בשאלת הגיל
+✅ בעיית הלחיצה הכפולה עקב state update
+✅ חוסר ב-haptic feedback
+✅ תצוגה לא אופטימלית במסכים קטנים
+
+💡 המלצות להמשך
+
+להחיל מעבר אוטומטי גם בשאלות single choice אחרות
+להוסיף אנימציית "success" קצרה לפני המעבר
+לשקול הוספת תמיכה בקלט קולי לגיל
+ליצור קומפוננטות דומות לשאלות אחרות (מגדר, מטרה)
+
 🔖 Checkpoint #023 - שיפורי UX מקיפים למסכי Welcome ו-Register
 🗓️ תאריך: 2025-07-25
 🎯 סטטוס: ✅ הושלם
