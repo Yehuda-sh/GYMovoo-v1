@@ -1,10 +1,6 @@
 /**
  * @file src/screens/questionnaire/HeightSlider.tsx
- * @brief רכיב סרגל גובה מתוקן - תצוגה נכונה ושליטה מדויקת
- * @brief Fixed height slider - correct display and precise control
- * @dependencies React Native, PanResponder, Animated
- * @notes תיקון מיקום סליידר, סימוני סרגל, וכפתורים
- * @notes Fixed slider position, ruler marks, and buttons
+ * @brief רכיב סרגל גובה מתוקן - תצוגה נכונה ושליטה מדויקת (אין עיגול ערך)
  */
 
 import React, { useRef, useState, useEffect } from "react";
@@ -25,7 +21,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface HeightSliderProps {
   value: number;
@@ -40,20 +36,19 @@ export default function HeightSlider({
   minHeight = 140,
   maxHeight = 220,
 }: HeightSliderProps) {
-  const [currentHeight, setCurrentHeight] = useState(value || 170);
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempHeight, setTempHeight] = useState(String(value || 170));
-  const sliderHeight = 200; // גובה מוקטן לסרגל
+  const [currentHeight, setCurrentHeight] = useState<number>(value || 170);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [tempHeight, setTempHeight] = useState<string>(String(value || 170));
+  const sliderHeight = 200;
   const range = maxHeight - minHeight;
 
-  // אנימציות
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const currentHeightRef = useRef(currentHeight);
 
-  // חישוב מיקום - הפוך כי אנחנו רוצים שהערכים הגבוהים יהיו למעלה
   const calculatePosition = (height: number) => {
     const percentage = (height - minHeight) / range;
-    return sliderHeight * (1 - percentage); // הפוך את הכיוון
+    return sliderHeight * (1 - percentage);
   };
 
   const positionY = useRef(
@@ -61,7 +56,6 @@ export default function HeightSlider({
   ).current;
   const currentPositionRef = useRef(calculatePosition(value));
 
-  // אנימציית פעימה
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -89,58 +83,45 @@ export default function HeightSlider({
       friction: 8,
     }).start();
     setCurrentHeight(value);
-    setTempHeight(String(value));
+    currentHeightRef.current = value;
+    setTempHeight(String(Math.round(value)));
   }, [value]);
 
-  // PanResponder לגרירה
+  // PAN RESPONDER
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-
       onPanResponderGrant: () => {
-        positionY.stopAnimation((value) => {
-          currentPositionRef.current = value;
+        positionY.stopAnimation((val) => {
+          currentPositionRef.current = val;
         });
-
         Animated.spring(scaleAnim, {
           toValue: 1.15,
           useNativeDriver: true,
         }).start();
-
-        if (Platform.OS === "ios") {
-          Vibration.vibrate(10);
-        }
+        if (Platform.OS === "ios") Vibration.vibrate(10);
       },
-
       onPanResponderMove: (_, gestureState) => {
         const sensitivity = 0.8;
         const adjustedDy = gestureState.dy * sensitivity;
-
         const newY = Math.max(
           0,
           Math.min(sliderHeight, adjustedDy + currentPositionRef.current)
         );
-
         positionY.setValue(newY);
-
-        // חישוב הגובה - הפוך כי ערכים גבוהים למעלה
         const percentage = 1 - newY / sliderHeight;
         const rawHeight = minHeight + percentage * range;
-        const newHeight = Math.round(rawHeight);
-
-        if (newHeight % 5 === 0 && newHeight !== currentHeight) {
-          if (Platform.OS === "ios") {
-            Vibration.vibrate(3);
-          }
-        }
-
+        const newHeight = Math.max(minHeight, Math.min(maxHeight, rawHeight));
         setCurrentHeight(newHeight);
-        setTempHeight(String(newHeight));
+        currentHeightRef.current = newHeight;
+        setTempHeight(newHeight.toFixed(0)); // הצגה כמספר שלם
       },
-
       onPanResponderRelease: () => {
-        const finalHeight = Math.round(currentHeight / 5) * 5;
+        const finalHeight = Math.max(
+          minHeight,
+          Math.min(maxHeight, currentHeightRef.current)
+        );
         const newPosition = calculatePosition(finalHeight);
         currentPositionRef.current = newPosition;
 
@@ -158,29 +139,23 @@ export default function HeightSlider({
         ]).start();
 
         setCurrentHeight(finalHeight);
-        setTempHeight(String(finalHeight));
+        setTempHeight(finalHeight.toFixed(0));
         onChange(finalHeight);
 
-        if (Platform.OS === "ios") {
-          Vibration.vibrate(5);
-        }
+        if (Platform.OS === "ios") Vibration.vibrate(5);
       },
     })
   ).current;
 
-  // שינוי גובה בכפתורים
+  // ADJUST BUTTONS
   const adjustHeight = (delta: number) => {
-    const newHeight = Math.max(
+    let newHeight = Math.max(
       minHeight,
-      Math.min(maxHeight, currentHeight + delta)
+      Math.min(maxHeight, currentHeightRef.current + delta)
     );
-
-    if (Platform.OS === "ios") {
-      Vibration.vibrate(3);
-    }
-
     setCurrentHeight(newHeight);
-    setTempHeight(String(newHeight));
+    currentHeightRef.current = newHeight;
+    setTempHeight(newHeight.toFixed(0));
     onChange(newHeight);
 
     const newPosition = calculatePosition(newHeight);
@@ -191,17 +166,19 @@ export default function HeightSlider({
       tension: 40,
       friction: 8,
     }).start();
+    if (Platform.OS === "ios") Vibration.vibrate(3);
   };
 
-  // הקלדה ישירה
+  // DIRECT INPUT
   const handleDirectInput = () => {
-    const inputHeight = parseInt(tempHeight);
+    const inputHeight = parseFloat(tempHeight);
     if (
       !isNaN(inputHeight) &&
       inputHeight >= minHeight &&
       inputHeight <= maxHeight
     ) {
       setCurrentHeight(inputHeight);
+      currentHeightRef.current = inputHeight;
       onChange(inputHeight);
 
       const newPosition = calculatePosition(inputHeight);
@@ -211,27 +188,19 @@ export default function HeightSlider({
         useNativeDriver: true,
       }).start();
     } else {
-      setTempHeight(String(currentHeight));
+      setTempHeight(String(Math.round(currentHeightRef.current)));
     }
     setIsEditing(false);
     Keyboard.dismiss();
   };
 
-  // סימוני סרגל
+  // MARKS
   const renderRulerMarks = () => {
     const marks = [];
-    // הולכים מלמעלה למטה - ערכים גבוהים למעלה
     for (let i = maxHeight; i >= minHeight; i -= 10) {
       const position = ((maxHeight - i) / range) * sliderHeight;
-
       marks.push(
-        <View
-          key={i}
-          style={[
-            styles.markContainer,
-            { top: position - 10 }, // התאמה למרכז הטקסט
-          ]}
-        >
+        <View key={i} style={[styles.markContainer, { top: position - 10 }]}>
           <View style={styles.mark} />
           <Text style={styles.markLabel}>{i}</Text>
         </View>
@@ -242,10 +211,8 @@ export default function HeightSlider({
 
   return (
     <View style={styles.container}>
-      {/* כותרת וערך */}
+      {/* ערך הגובה */}
       <View style={styles.header}>
-        <Text style={styles.title}>גובה</Text>
-
         {isEditing ? (
           <View style={styles.inputContainer}>
             <TextInput
@@ -253,7 +220,7 @@ export default function HeightSlider({
               value={tempHeight}
               onChangeText={setTempHeight}
               keyboardType="numeric"
-              maxLength={3}
+              maxLength={5}
               autoFocus
               selectTextOnFocus
               onBlur={handleDirectInput}
@@ -273,7 +240,9 @@ export default function HeightSlider({
                 { transform: [{ scale: pulseAnim }] },
               ]}
             >
-              <Text style={styles.heightValue}>{currentHeight}</Text>
+              <Text style={styles.heightValue}>
+                {Math.round(currentHeight)}
+              </Text>
               <Text style={styles.heightUnit}>ס״מ</Text>
               <MaterialCommunityIcons
                 name="pencil"
@@ -286,12 +255,11 @@ export default function HeightSlider({
         )}
       </View>
 
-      {/* אזור הסליידר המרכזי */}
+      {/* סליידר */}
       <View style={styles.sliderSection}>
-        {/* כפתור + משמאל */}
         <TouchableOpacity
           style={styles.adjustButton}
-          onPress={() => adjustHeight(5)}
+          onPress={() => adjustHeight(1)}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -302,23 +270,12 @@ export default function HeightSlider({
             ]}
             style={styles.adjustButtonGradient}
           >
-            <MaterialCommunityIcons
-              name="plus"
-              size={20} // הקטנה מ-22
-              color="white"
-            />
+            <MaterialCommunityIcons name="plus" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
-
-        {/* הסרגל במרכז */}
         <View style={styles.rulerContainer}>
-          {/* רקע הסרגל */}
           <View style={styles.rulerBackground} />
-
-          {/* סימוני הסרגל */}
           <View style={styles.rulerMarks}>{renderRulerMarks()}</View>
-
-          {/* הסליידר */}
           <Animated.View
             style={[
               styles.slider,
@@ -337,20 +294,16 @@ export default function HeightSlider({
             >
               <MaterialCommunityIcons
                 name="drag-horizontal"
-                size={20} // הקטנה מ-24
+                size={20}
                 color="white"
               />
             </LinearGradient>
-
-            {/* קו מחוון */}
             <View style={styles.indicatorLine} />
           </Animated.View>
         </View>
-
-        {/* כפתור - מימין */}
         <TouchableOpacity
           style={styles.adjustButton}
-          onPress={() => adjustHeight(-5)}
+          onPress={() => adjustHeight(-1)}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -361,11 +314,7 @@ export default function HeightSlider({
             ]}
             style={styles.adjustButtonGradient}
           >
-            <MaterialCommunityIcons
-              name="minus"
-              size={20} // הקטנה מ-22
-              color="white"
-            />
+            <MaterialCommunityIcons name="minus" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -377,10 +326,11 @@ export default function HeightSlider({
             key={height}
             style={[
               styles.quickButton,
-              currentHeight === height && styles.quickButtonActive,
+              Math.round(currentHeight) === height && styles.quickButtonActive,
             ]}
             onPress={() => {
               setCurrentHeight(height);
+              currentHeightRef.current = height;
               setTempHeight(String(height));
               onChange(height);
 
@@ -396,7 +346,8 @@ export default function HeightSlider({
             <Text
               style={[
                 styles.quickButtonText,
-                currentHeight === height && styles.quickButtonTextActive,
+                Math.round(currentHeight) === height &&
+                  styles.quickButtonTextActive,
               ]}
             >
               {height}
@@ -424,17 +375,11 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     alignItems: "center",
-    paddingVertical: theme.spacing.md, // הקטנה מ-lg
+    paddingVertical: theme.spacing.xs,
   },
   header: {
     alignItems: "center",
-    marginBottom: theme.spacing.lg, // הקטנה מ-xl
-  },
-  title: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-    letterSpacing: 0.5,
+    marginBottom: theme.spacing.xs,
   },
   heightDisplayButton: {
     marginBottom: theme.spacing.sm,
@@ -444,19 +389,20 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   heightValue: {
-    fontSize: 48, // הקטנה מ-56
-    fontWeight: "300",
+    fontSize: 50,
+    fontWeight: "500",
     color: theme.colors.primary,
-    letterSpacing: -2,
+    letterSpacing: -1.5,
   },
   heightUnit: {
     fontSize: 20,
     color: theme.colors.primary,
     marginRight: theme.spacing.xs,
+    marginLeft: theme.spacing.xs,
     opacity: 0.8,
   },
   editIcon: {
-    marginRight: theme.spacing.sm,
+    marginRight: theme.spacing.xs,
     opacity: 0.5,
   },
   inputContainer: {
@@ -465,7 +411,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   heightInput: {
-    fontSize: 48, // הקטנה מ-56
+    fontSize: 48,
     fontWeight: "300",
     color: theme.colors.primary,
     borderBottomWidth: 2,
@@ -476,38 +422,38 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
   sliderSection: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    marginBottom: theme.spacing.lg, // הקטנה מ-xl
-    height: 220, // הקטנה מ-260
+    marginBottom: theme.spacing.md,
+    height: 225,
   },
   adjustButton: {
     marginHorizontal: theme.spacing.sm,
   },
   adjustButtonGradient: {
-    width: 36, // הקטנה מ-40
-    height: 36,
-    borderRadius: 18,
+    width: 45,
+    height: 45,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
     ...theme.shadows.small,
   },
   rulerContainer: {
-    height: 200, // הקטנה מ-240
-    width: 160, // הקטנה מ-180
+    height: 225,
+    width: 150,
     position: "relative",
     alignItems: "center",
   },
   rulerBackground: {
     position: "absolute",
-    left: 50, // הקטנה מ-60
-    right: 50,
+    left: 60,
+    right: 60,
     top: 0,
     bottom: 0,
-    backgroundColor: theme.colors.card,
-    borderRadius: 25, // הקטנה מ-30
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: theme.colors.primary + "50",
   },
   rulerMarks: {
     position: "absolute",
@@ -522,58 +468,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     right: 0,
     width: "100%",
-    height: 20,
+    height: 30,
   },
   mark: {
-    width: 30,
-    height: 2,
-    backgroundColor: theme.colors.textSecondary + "40",
-    marginLeft: 60,
+    width: 45,
+    height: 1.2,
+    backgroundColor: theme.colors.primary,
+    opacity: 0.15,
+    marginLeft: 55,
   },
   markLabel: {
-    fontSize: 12,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     fontWeight: "500",
     marginLeft: 8,
-    minWidth: 30,
+    minWidth: 26,
+    opacity: 0.8,
   },
   slider: {
     position: "absolute",
-    width: 50, // הקטנה מ-60
+    width: 50,
     height: 50,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
   },
   sliderButton: {
-    width: 46, // הקטנה מ-54
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     ...theme.shadows.medium,
   },
   indicatorLine: {
-    position: "absolute",
-    left: 46, // הקטנה מ-54
-    right: -50, // הקטנה מ-60
-    height: 2, // הקטנה מ-3
-    backgroundColor: theme.colors.primary,
-    borderRadius: 1,
+    height: 1,
+    borderRadius: 0.5,
   },
   quickButtons: {
     flexDirection: "row",
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    justifyContent: "center",
+    gap: theme.spacing.lg,
+    marginBottom: theme.spacing.xs,
   },
   quickButton: {
-    paddingHorizontal: theme.spacing.lg, // הקטנה מ-xl
-    paddingVertical: theme.spacing.sm, // הקטנה מ-md
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    minWidth: 70, // הקטנה מ-80
+    minWidth: 70,
     alignItems: "center",
   },
   quickButtonActive: {
@@ -582,7 +527,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   quickButtonText: {
-    fontSize: 15, // הקטנה מ-16
+    fontSize: 15,
     color: theme.colors.textSecondary,
     fontWeight: "600",
   },
@@ -592,16 +537,17 @@ const styles = StyleSheet.create({
   tipContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
+    marginTop: theme.spacing.md,
     backgroundColor: theme.colors.warning + "10",
-    paddingHorizontal: theme.spacing.md, // הקטנה מ-lg
-    paddingVertical: theme.spacing.sm, // הקטנה מ-md
-    borderRadius: theme.borderRadius.md, // הקטנה מ-lg
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
     maxWidth: SCREEN_WIDTH - theme.spacing.xl * 2,
   },
   tipText: {
-    fontSize: 12, // הקטנה מ-13
+    fontSize: 12,
     color: theme.colors.text,
-    marginRight: theme.spacing.xs, // הקטנה מ-sm
+    marginRight: theme.spacing.xs,
     flex: 1,
     textAlign: "center",
   },

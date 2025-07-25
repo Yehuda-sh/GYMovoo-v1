@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -283,246 +284,253 @@ export default function QuestionnaireScreen({ navigation }: any) {
   const isLastQuestion = currentIndex === QUESTIONS.length - 1;
 
   return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={styles.container}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.backgroundAlt]}
+        style={styles.container}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
         >
-          {/* Header with progress */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={handleBack}
-              style={[
-                styles.backButton,
-                currentIndex === 0 && { opacity: 0.3 },
-              ]}
-              disabled={currentIndex === 0}
-            >
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={32}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
-
-            <View style={styles.progressContainer}>
-              <Text style={styles.progressText}>
-                {currentIndex + 1} מתוך {QUESTIONS.length}
-              </Text>
-              <View style={styles.progressBar}>
-                <Animated.View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: progressAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0%", "100%"],
-                      }),
-                    },
-                  ]}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header with progress */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                onPress={handleBack}
+                style={[
+                  styles.backButton,
+                  currentIndex === 0 && { opacity: 0.3 },
+                ]}
+                disabled={currentIndex === 0}
+              >
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={32}
+                  color={theme.colors.text}
                 />
+              </TouchableOpacity>
+
+              <View style={styles.progressContainer}>
+                <Text style={styles.progressText}>
+                  {currentIndex + 1} מתוך {QUESTIONS.length}
+                </Text>
+                <View style={styles.progressBar}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ["0%", "100%"],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
               </View>
+
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.closeButton}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={28}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.closeButton}
+            {/* Question content */}
+            <Animated.View
+              style={[
+                styles.questionContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateX: slideAnim },
+                    { translateX: errorShake },
+                  ],
+                },
+              ]}
             >
               <MaterialCommunityIcons
-                name="close"
-                size={28}
-                color={theme.colors.textSecondary}
+                name={question.icon as any}
+                size={80} // הגדלת האייקון
+                color={theme.colors.primary} // שינוי לצבע ראשי
+                style={styles.questionIcon}
               />
-            </TouchableOpacity>
-          </View>
 
-          {/* Question content */}
-          <Animated.View
-            style={[
-              styles.questionContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  { translateX: slideAnim },
-                  { translateX: errorShake },
-                ],
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={question.icon as any}
-              size={80} // הגדלת האייקון
-              color={theme.colors.primary} // שינוי לצבע ראשי
-              style={styles.questionIcon}
-            />
+              <Text style={styles.questionText}>{question.question}</Text>
 
-            <Text style={styles.questionText}>{question.question}</Text>
-
-            {/* Options */}
-            {question.type === "single" && (
-              <View style={styles.optionsContainer}>
-                {question.options?.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.optionButton,
-                      answers[currentIndex] === option && styles.selectedOption,
-                    ]}
-                    onPress={() => handleSingleOption(option)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        answers[currentIndex] === option &&
-                          styles.selectedOptionText,
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                    {answers[currentIndex] === option && (
-                      <MaterialCommunityIcons
-                        name="check-circle"
-                        size={24}
-                        color={theme.colors.text}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {question.type === "multiple" && (
-              <View style={styles.optionsContainer}>
-                {question.options?.map((option) => {
-                  const isSelected = answers[currentIndex]?.includes(option);
-                  return (
+              {/* Options */}
+              {question.type === "single" && (
+                <View style={styles.optionsContainer}>
+                  {question.options?.map((option) => (
                     <TouchableOpacity
                       key={option}
                       style={[
                         styles.optionButton,
-                        isSelected && styles.selectedOption,
+                        answers[currentIndex] === option &&
+                          styles.selectedOption,
                       ]}
-                      onPress={() => handleMultipleOption(option)}
+                      onPress={() => handleSingleOption(option)}
                       activeOpacity={0.8}
                     >
                       <Text
                         style={[
                           styles.optionText,
-                          isSelected && styles.selectedOptionText,
+                          answers[currentIndex] === option &&
+                            styles.selectedOptionText,
                         ]}
                       >
                         {option}
                       </Text>
-                      <MaterialCommunityIcons
-                        name={
-                          isSelected
-                            ? "checkbox-marked"
-                            : "checkbox-blank-outline"
-                        }
-                        size={24}
-                        color={
-                          isSelected
-                            ? theme.colors.text
-                            : theme.colors.textSecondary
-                        }
-                      />
+                      {answers[currentIndex] === option && (
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={24}
+                          color={theme.colors.text}
+                        />
+                      )}
                     </TouchableOpacity>
-                  );
-                })}
-                <Text style={styles.multipleHint}>
-                  ניתן לבחור יותר מאפשרות אחת
-                </Text>
-              </View>
-            )}
+                  ))}
+                </View>
+              )}
 
-            {question.type === "text" && (
-              <View style={styles.textInputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  value={textInput}
-                  onChangeText={setTextInput}
-                  placeholder={question.placeholder}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  multiline
-                  maxLength={200}
-                  textAlign="right"
-                />
-                <Text style={styles.textCounter}>{textInput.length}/200</Text>
-              </View>
-            )}
+              {question.type === "multiple" && (
+                <View style={styles.optionsContainer}>
+                  {question.options?.map((option) => {
+                    const isSelected = answers[currentIndex]?.includes(option);
+                    return (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          styles.optionButton,
+                          isSelected && styles.selectedOption,
+                        ]}
+                        onPress={() => handleMultipleOption(option)}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            isSelected && styles.selectedOptionText,
+                          ]}
+                        >
+                          {option}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name={
+                            isSelected
+                              ? "checkbox-marked"
+                              : "checkbox-blank-outline"
+                          }
+                          size={24}
+                          color={
+                            isSelected
+                              ? theme.colors.text
+                              : theme.colors.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <Text style={styles.multipleHint}>
+                    ניתן לבחור יותר מאפשרות אחת
+                  </Text>
+                </View>
+              )}
 
-            {/* Error message */}
-            {error && <Text style={styles.errorText}>{error}</Text>}
-          </Animated.View>
+              {question.type === "text" && (
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={textInput}
+                    onChangeText={setTextInput}
+                    placeholder={question.placeholder}
+                    placeholderTextColor={theme.colors.textSecondary}
+                    multiline
+                    maxLength={200}
+                    textAlign="right"
+                  />
+                  <Text style={styles.textCounter}>{textInput.length}/200</Text>
+                </View>
+              )}
 
-          {/* Bottom buttons */}
-          <View style={styles.bottomContainer}>
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-                !answers[currentIndex] &&
-                  question.type !== "text" &&
-                  styles.disabledButton,
-              ]}
-              onPress={handleNext}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={
-                  !answers[currentIndex] && question.type !== "text"
-                    ? [theme.colors.divider, theme.colors.divider]
-                    : [
-                        theme.colors.primaryGradientStart,
-                        theme.colors.primaryGradientEnd,
-                      ]
-                }
-                style={styles.nextButtonGradient}
-              >
-                <Text style={styles.nextButtonText}>
-                  {isLastQuestion ? "סיים שאלון" : "המשך"}
-                </Text>
-                <MaterialCommunityIcons
-                  name={isLastQuestion ? "check" : "chevron-right"}
-                  size={24}
-                  color={theme.colors.text}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
+              {/* Error message */}
+              {error && <Text style={styles.errorText}>{error}</Text>}
+            </Animated.View>
 
-            {question.type === "text" && (
+            {/* Bottom buttons */}
+            <View style={styles.bottomContainer}>
               <TouchableOpacity
-                onPress={() => {
-                  setTextInput("");
-                  handleNext();
-                }}
-                style={styles.skipButton}
+                style={[
+                  styles.nextButton,
+                  !answers[currentIndex] &&
+                    question.type !== "text" &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleNext}
+                activeOpacity={0.8}
               >
-                <Text style={styles.skipText}>דלג</Text>
+                <LinearGradient
+                  colors={
+                    !answers[currentIndex] && question.type !== "text"
+                      ? [theme.colors.divider, theme.colors.divider]
+                      : [
+                          theme.colors.primaryGradientStart,
+                          theme.colors.primaryGradientEnd,
+                        ]
+                  }
+                  style={styles.nextButtonGradient}
+                >
+                  <Text style={styles.nextButtonText}>
+                    {isLastQuestion ? "סיים שאלון" : "המשך"}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={isLastQuestion ? "check" : "chevron-right"}
+                    size={24}
+                    color={theme.colors.text}
+                  />
+                </LinearGradient>
               </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+
+              {question.type === "text" && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setTextInput("");
+                    handleNext();
+                  }}
+                  style={styles.skipButton}
+                >
+                  <Text style={styles.skipText}>דלג</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background, // או כל רקע אחר שתרצה
+  },
   container: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   header: {
     flexDirection: "row-reverse", // RTL
@@ -686,4 +694,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-
