@@ -1,300 +1,255 @@
-📘 GYMovoo – דף הנחיות עבודה למפתחים (גרסה 5.2, יולי 2025)
-המסמך הזה הוא "חוקי הברזל" של פיתוח ותחזוקה ב־GYMovoo. כל סטייה מהנחיות אלו מחייבת הצדקה, תיעוד ותיאום מראש!
+/\*\*
 
-1. 🟦 כללי זהב – עקרונות יסוד
-   🌍 RTL – תמיכה מלאה בימין־לשמאל (חובה!)
-   האפליקציה מיועדת לקהל עברי – כל מסך, קומפוננטה, וכפתור חייבים לתמוך ב־RTL מלא.
+- @file GYMovoo/docs/CRITICAL_PROJECT_CONTEXT_NEW.md
+- @brief חוקי הברזל, סטנדרטים והלקחים של פרויקט GYMovoo | Iron Rules, Standards & Lessons for GYMovoo Project
+- @dependencies theme.ts, theme.components, Zustand, Expo, React Navigation, TypeScript
+- @notes כל עדכון דורש סנכרון גם לכלי ה-AI ולעדכן גרסה במאגר.
+- @recurring_errors חובה לקרוא סעיף "לקחים חוזרים" לפני כל שינוי קוד!
+  \*/
 
-שימוש ב־flexDirection: 'row-reverse', textAlign: 'right'.
+# 🏋️‍♂️ GYMovoo – חוקי ברזל וסטנדרטים לפיתוח
 
-כפתורי ניווט (חץ אחורה) תמיד פונים ימינה וממוקמים בצד ימין.
+## 1. 🟦 כללי זהב (עברית)
 
-יוצא דופן: מותר ליישר טקסטים או כותרות למרכז רק כאשר זה עיצובי (יש לציין בהערה בקוד/PR).
-
-📋 תהליך עבודה – קבלת תיקונים ובדיקות
-שולחים לי קובץ או קטע קוד לתיקון/שדרוג.
-
-אני מחזירה קובץ מלא, מוכן להעתקה, או – אם זה שינוי קטן/פונקציה בודדת – אשלח קטע מסומן עם מספרי שורות והסבר היכן להדביק.
-
-אחרי ששינית – תשלח לי את הקובץ המעודכן לבדיקה סופית.
-
-אם מתגלות שגיאות או חסרים dependencies – אבקש ממך קבצים רלוונטיים.
-
-תמיד לסמן תיקונים או החלפות לפי מספרי שורות – עוזר למנוע טעויות מיזוג.
-
-🎨 Design System – theme בלבד!
-אסור להשתמש ב־hex/rgba לפלטות צבע או ערכי פיקסל קשיחים.
-
-כל צבע, מרווח, גודל ושאר סגנון – אך ורק דרך theme.ts (כולל theme.components).
-
-כשאתה עובר למסך ישן – אם חסר משתנה רלוונטי, תציין לי ואעדכן ב־theme.
-
-הקפדה על קו עיצוב אחיד – חובה.
-
-🚀 Checkpoint ו־Git
-אחרי כל שלב משמעותי, יש לבצע checkpoint (קומיט מסודר) – כולל יומן מעקב.
-
-יש להעתיק את תבנית checkpoint הרשמית:
-
-## 🔖 Checkpoint #[מספר] - [כותרת]
-
-**🗓️ תאריך:** YYYY-MM-DD
-**🎯 סטטוס:** [✅ הושלם / 🔄 בתהליך]
+- כל מסך/קומפוננטה חייבים לתמוך RTL מלא (flexDirection: 'row-reverse', textAlign: 'right', אייקונים/כפתורים לכיוון ימין).
+- אסור להשתמש בערכי עיצוב/צבע/גודל קשיחים – הכל מ-theme.ts ו-theme.components בלבד.
+- ייבוא יחסי בלבד (./) – לא src/...
+- אין שימוש ב-any ב-TypeScript – כל טיפוס ו-prop חייב להיות מוגדר במדויק.
+- כל שינוי ב-prop או interface – לעדכן בכל הממשקים/קבצים התלויים.
+- אין להשאיר קבצים מעל 500 שורות – חובה לפצל ל-components, hooks, utils.
+- אין לקנן FlatList בתוך ScrollView – רק FlatList כרכיב ראשי.
+- להעדיף פשטות על פני אפקטים, להוסיף גרדיאנט/אנימציה רק בדרישה אמיתית.
+- תיעוד דו-לשוני (עברית + אנגלית) בכל קובץ/פונקציה.
+- אייקונים/חצים מתואמים RTL (chevron-forward לימין).
+- כל UI/פיצ'ר חדש – לעדכן theme לפני שמיישמים.
+- מיילים/שמות משתמש באנגלית בלבד, ASCII בלבד.
+- לפני merge: לנקות לוגים, קוד דיבוג, וקוד מת.
 
 ---
 
-### ✅ מה הושלם:
+## 1.1 🟦 Golden Rules (English)
 
-- [פירוט...]
+- Every screen/component must fully support RTL: flexDirection: 'row-reverse', textAlign: 'right', all icons/buttons point right.
+- No hardcoded color/size/style values – use theme.ts and theme.components only.
+- Relative imports only (./) – never use src/...
+- No `any` in TypeScript – every type/prop must be strictly typed.
+- Any prop/interface change must update all dependent interfaces/files.
+- No files above 500 lines – always split into components, hooks, utils.
+- Never nest FlatList inside ScrollView – FlatList is the main scrolling component.
+- Prefer simplicity over effects; add gradients/animations only on real demand.
+- Bilingual documentation (Hebrew + English) in every file/function.
+- Icons/arrows always match RTL (chevron-forward to the right).
+- Any new UI/feature – update theme before use.
+- Emails/usernames in English only, ASCII only.
+- Before merge: remove logs, debug code, and dead code.
 
-### ⚠️ לקחים ושגיאות שנפתרו:
+---
 
-- **שגיאה:** [...]
-- **פתרון:** [...]
-- **לקח:** [...]
+## 2. 🟩 סטנדרטים של תיעוד (עברית)
 
-### 📂 קבצים שעודכנו:
+- כל קובץ פותח ב-Header תיעוד:
+  /\*\*
 
-- [...]
+* @file [נתיב מלא]
+* @brief [מה עושה]
+* @dependencies [תלויות עיקריות]
+* @notes [הערות מיוחדות]
+* @recurring_errors [שגיאות נפוצות]
+  \*/
 
-### 🚀 השלב הבא:
+- הערות בקוד – תמיד דו-לשוני (עברית ואז אנגלית).
+- אין שימוש ב-any.
+- כל קומפוננטה – פונקציונלית בלבד.
 
-- [...]
+---
 
-### 💻 פקודות Git:
+## 2.1 🟩 Documentation Standards (English)
 
-```bash
-git add .
-git commit -m "feat: [הודעה באנגלית]"
-git push
+- Every file starts with a documentation header:
+  /\*\*
 
-🕵️ סנכרון AI ("Resync")
-לאחר git push עם עדכון משמעותי, חובה לבצע Resync לכלי ה־AI.
+* @file [Full Path]
+* @brief [Purpose]
+* @dependencies [Main dependencies]
+* @notes [Special notes]
+* @recurring_errors [Common errors]
+  \*/
 
-מתחילים עבודה חדשה רק אחרי סנכרון.
+- Comments always bilingual (Hebrew first, then English).
+- No use of any.
+- All components functional only.
 
-גילית בעיה בקובץ תלוי? אבקש ממך לשלוח אותו.
+---
 
-⏰ מגבלת שיחה והערכת עומס
-כל סוף תשובה – אציין הערכה של עומס (% מנפח שיחה).
+## 3. 🎨 עיצוב ו-UI (עברית)
 
-הגעת ל־50% עומס? אשלח לך התראה לשקול התחלת שיחה חדשה.
+- שימוש ב-theme.components (גרסה 5.1+).
+- קצוות עגולים (borderRadius: 16) בכל הכרטיסים/רכיבים.
+- עיצוב כרטיס (Card) עם מסגרת וצל (theme.components.card).
+- כפתור ראשי/משני – מהtheme.
+- spacing רק מה-theme.
+- אייקונים – MaterialCommunityIcons בלבד.
+- שינוי עיצוב – רק דרך theme.
 
-המטרה: לא לאבד הקשר/מידע קריטי.
+---
 
-2. 🟩 סטנדרטים ודוקומנטציה
-כל קובץ חייב להתחיל ב־Header תיעוד:
+## 3.1 🎨 UI & Design (English)
 
+- Use theme.components (v5.1+).
+- Rounded corners (borderRadius: 16) for all cards/components.
+- Card design with border and shadow (theme.components.card).
+- Primary/secondary buttons – from theme.
+- Spacing from theme only.
+- Icons – MaterialCommunityIcons only.
+- Any design change – update theme first.
 
-/**
- * @file [נתיב מלא]
- * @brief [מה עושה]
- * @dependencies [תלויות עיקריות]
- * @notes [הערות מיוחדות]
- * @recurring_errors [שגיאות נפוצות]
- */
-הערות בקוד תמיד בעברית ואנגלית.
+---
 
-אין שימוש ב־any ב-TypeScript.
+## 4. 🗂️ ארגון קוד ונתונים (עברית)
 
-רכיבים – פונקציונליים בלבד.
+- כל קובץ data (שאלות, אופציות) בנפרד מהקומפוננטות.
+- פונקציות עזר – בתיקיית utils/helpers/data.
+- imports יחסיים בלבד.
+- שמות קבצים:
+  - רכיבים – kebab-case
+  - data – snake_case
+  - תיקיות – PascalCase
 
-3. 🎨 עיצוב ותשתית UI
-תמיד להשתמש ב־theme.components (גרסה 5.1+).
+---
 
-עיצוב מסכים אחיד:
+## 4.1 🗂️ Code & Data Organization (English)
 
-קצוות עגולים (borderRadius: 16)
+- All data files (questions, options) separated from components.
+- Helpers in utils/helpers/data.
+- Relative imports only.
+- File names:
+  - Components – kebab-case
+  - Data – snake_case
+  - Folders – PascalCase
 
-card עם מסגרת וצל (theme.components.card)
+---
 
-כפתור ראשי/משני לפי theme
+## 5. 🎯 UX וחוויית משתמש (עברית)
 
-spacing מ־theme בלבד
+- שאלון דינמי – כל שאלה בהתאם לתשובות.
+- אין מסך (מלבד אימון) עם גלילה.
+- כפתורי פעולה תמיד גלויים גם במסך קטן.
+- ברירות מחדל חכמות בכל שדה.
+- משוב מיידי למשתמש (הצלחה/שגיאה).
 
-אייקונים מ־MaterialCommunityIcons.
+---
 
-אין לחרוג מהסטנדרט – עדכון עיצוב ב־theme בלבד.
+## 5.1 🎯 UX & User Experience (English)
 
-4. 🗂️ ארגון נתונים וקוד
-כל קובץ data (שאלות, אופציות) בנפרד מהקומפוננטות.
+- Dynamic questionnaire – each question adapts to answers.
+- No screen (except workout) should require scrolling.
+- Action buttons always visible, even on small screens.
+- Smart defaults for every field.
+- Immediate feedback to user (success/error).
 
-פונקציות עזר מופרדות ל־utils/helpers/data.
+---
 
-imports יחסיים (לא מוחלטים).
+## 6. 🧪 בדיקות לפני הגשה (עברית)
 
-שמות קבצים:
+- בדוק RTL מלא, שימוש ב-theme, Header תיעוד, הערות דו-לשוניות, עיצוב כ-Workout, theme.components.
+- שינוי ב-data – לעדכן גם בקובצי עזר.
 
-רכיבים – kebab-case
+---
 
-data – snake_case
+## 6.1 🧪 Pre-submission QA (English)
 
-תיקיות – PascalCase
+- Test full RTL, theme usage, doc headers, bilingual comments, workout-style design, theme.components everywhere.
+- Data changes – update helpers as well.
 
-5. 🎯 UX וממשק
-שאלון חכם – דינמיקה לפי תשובות.
+---
 
-אין מסך (מלבד אימון) שדורש גלילה.
+## 7. 🟧 כללים נוספים (עברית)
 
-כפתורי פעולה תמיד נגישים – גם במסך קטן.
+- מותר לשלוח פונקציה/קטע קטן עם מספרי שורות – בתנאי שאח"כ שולחים קובץ מלא.
+- כל פיצ׳ר – checkpoint עם סיכום ופקודות git.
+- טיפוס מדויק ב-TS, שימוש ב-env רק לסודות.
+- חיפוש תלות גלובלי לפני merge.
+- אין any, אין קוד ישן.
 
-ברירות מחדל חכמות בכל שדה.
+---
 
-משוב מיידי למשתמש (שגיאות, הצלחות).
+## 7.1 🟧 Additional Rules (English)
 
-6. 🧪 בדיקות לפני הגשה
-RTL מלא
+- You may send a small function/patch with line numbers – but must send a full file for approval after.
+- Each feature – checkpoint with summary and git commands.
+- Precise TypeScript typing, use env for secrets only.
+- Global dependency search before merge.
+- No any, no legacy code.
 
-שימוש ב־theme בלבד
+---
 
-Header תיעוד
+## 📚 לקחים חוזרים מהיומן – Recurring Lessons from Progress Log
 
-הערות דו־לשוניות
+### 1. RTL – לא רק textAlign
 
-עיצוב כ־Workout
+- בעיה: יושם רק textAlign: 'right', אך לא שונה flexDirection, אייקונים או חצים.
+- פתרון: flexDirection: 'row-reverse' לכל רכיב רלוונטי + chevron-forward לימין.
 
-theme.components בכל רכיב
+#### Example:
 
-אם יש שינוי data – לעדכן לפי כללים!
-
-7. 🟧 כללים נוספים ועדכונים
-מותר לשלוח פונקציה/קטע קטן עם מספרי שורות – בתנאי שאח"כ שולחים את הקובץ השלם לאישור.
-
-תמיד תפרט מה הוחלף, איפה, ותבקש בדיקה.
-
-כל פיצ׳ר/משימה – לתעד ב־checkpoint.
-
-טיפוס מדויק ב־TS, שימוש ב־env לסודות בלבד.
-
-כל עדכון משמעותי – חיפוש גלובלי אחרי תלות במבנה ישן/ID.
-
-אין להשתמש ב־any, אין להשאיר קוד ישן/מת.
-
-📚 לקחים חוזרים מהיומן (מתעדכן לפי PROGRESS_LOG)
-סעיף זה מרכז טעויות חוזרות, פתרונות ולקחים שהופקו מהפיתוח בפועל. כל כלל כאן הוא תוצר של התנסות אמיתית – חשוב להקפיד!
-
-🛠️ טעויות נפוצות, פתרונות, ותתי־דוגמאות:
-1. RTL – לא רק יישור טקסט
-בעיה: יושם רק textAlign: 'right', אך לא שונה flexDirection, או שלא הוחלפו חצים/אייקונים.
-
-פתרון: מעבר שיטתי על כל רכיב, יישום מלא של כיווניות כולל כפתורים, אייקונים ו־row-reverse.
-
-דוגמה:
-במקום:
-
-
+```jsx
+// ❌ Wrong
 <View style={{ flexDirection: 'row' }}>
-לתקן ל:
-
-
+// ✅ Right
 <View style={{ flexDirection: 'row-reverse' }}>
-2. ייבוא לא עקבי בין קבצים
-בעיה: שימוש ב־import מוחלט (src/...) או relative לא נכון גרם לטעויות import ו־breakages.
-
-פתרון: שימוש ב־./ לכל קובץ באותה תיקייה, שמירה על imports עקביים.
-
-דוגמה:
-במקום:
-
-
-import { X } from 'src/screens/workout/X';
-לתקן ל:
-
-
-import { X } from './X';
-3. אי־עדכון props/טיפוסים אחרי שינוי
-בעיה: שינוי חתימת קומפוננטה (props) ללא עדכון ה־interfaces, מה שגרם לשגיאות TypeScript.
-
-פתרון: חיפוש ועדכון כל הקבצים שמייבאים/משתמשים בקומפוננטה.
-
-דוגמה ללקח:
-שינוי שם prop מ־isCompleted ל־completed דורש שינוי בכל המקומות בקוד, כולל ה־interfaces.
-
-4. שימוש בערכי עיצוב קשיחים במקום theme
-בעיה: צבעים, radii, padding ו־fontSize קשיחים במקום שימוש במשתנים מתוך theme.ts.
-
-פתרון: כל ערך עיצובי – מה־theme בלבד.
-
-דוגמה:
-במקום:
-
-
-borderRadius: 20, backgroundColor: '#121212'
-לתקן ל:
-
-
-borderRadius: theme.radius.lg, backgroundColor: theme.colors.card
-5. קינון FlatList בתוך ScrollView
-בעיה: גרם לאזהרת ביצועים ושגיאות בגלילה.
-
-פתרון: להעביר את הרכיב ל־FlatList עם ListHeaderComponent.
-
-דוגמה:
-במקום:
-
-
-<ScrollView>
-  <FlatList ... />
-</ScrollView>
-לתקן ל:
-
-
-<FlatList
-  ListHeaderComponent={<Header />}
-  ...
-/>
-6. עודף אפקטים או פיצ'רים לא נחוצים
-בעיה: ניסיון להרשים עם אפקטים ואנימציות לא נחוצים – פוגע בפשטות ובביצועים.
-
-פתרון: להעדיף תמיד פשטות, ולהוסיף רק כשיש צורך עסקי אמיתי (YAGNI).
-
-דוגמה:
-להסיר גרדיאנטים/אפקטים "רק בשביל היופי" אם המשתמש לא דרש זאת.
-
-7. בדיקות TypeScript לא קפדניות
-בעיה: שימוש ב־any, props בלי טיפוס מדויק, או קבלת נתונים ללא בדיקת interface.
-
-פתרון: הקפדה על טיפוסים בכל קובץ/פונקציה/props, והסרת any.
-
-דוגמה:
-לא:
-
-
-const foo: any = ...;
-כן:
-
-
-interface FooProps { ... }
-const foo: FooProps = ...;
-8. חוסר עקביות עיצובית
-בעיה: מסכים שונים עם ערכי עיצוב שונים, חוסר אחידות.
-
-פתרון: כל שינוי/פיצ'ר חדש – לעדכן תחילה ב־theme.ts, ורק אז להשתמש בכל הקומפוננטות.
-
-דוגמה:
-אם מוסיפים card חדש – קודם להגדיר style ב־theme.components, לא ישירות בקובץ החדש.
-
-9. אייקונים לא מותאמים ל־RTL
-בעיה: אייקונים/חצים לכיוון שמאל במסכים בעברית.
-
-פתרון: בכל RTL, החץ "אחורה" הוא chevron-forward (ימינה).
-
-דוגמה:
-
-
-<MaterialCommunityIcons name="chevron-forward" ... />
-10. נפח קובץ מונוליטי / קושי בתחזוקה
-בעיה: קובץ מסך אחד תפח ל־1200 שורות.
-
-פתרון: לפצל תמיד קומפוננטות ל־components קטנים, hooks, שירותים ועזרי נתונים.
-
-דוגמה:
-מסך אימון פוצל ל־QuickWorkoutScreen, ExerciseCard, RestTimer וכו'.
-
-💡 הנחיות פעולה עם לקחים אלה
-כל טעות שתחזור פעמיים/תגרום לבאג – יש להוסיף לסעיף זה עם דוגמה.
-
-לעדכן סעיף זה אחת לשבוע/סיום milestone.
-
-לפני תחילת פיתוח או refactor – לקרוא סעיף זה!
 ```
+
+2. ערכי עיצוב קשיחים
+   בעיה: שימוש ב-borderRadius/color קשיח.
+
+פתרון: תמיד theme בלבד.
+Example:
+// ❌ Wrong
+borderRadius: 20, backgroundColor: '#121212'
+// ✅ Right
+borderRadius: theme.radius.lg, backgroundColor: theme.colors.card 3. קינון FlatList ב-ScrollView
+בעיה: ביצועים ירודים, אזהרות.
+
+פתרון: FlatList כרכיב ראשי.
+
+Example:
+// ❌ Wrong
+<ScrollView>
+<FlatList ... />
+</ScrollView>
+// ✅ Right
+<FlatList ListHeaderComponent={<Header />} ... /> 5. ייבוא לא עקבי
+בעיה: import מוחלט/יחסי לא נכון.
+
+פתרון: רק ./ imports.
+
+Example:
+// ❌ Wrong
+import { X } from 'src/screens/workout/X';
+// ✅ Right
+import { X } from './X'; 6. אייקונים לא מותאמי RTL
+בעיה: חץ/אייקון שמאלה.
+
+פתרון: תמיד chevron-forward.
+
+Example:
+// ❌ Wrong
+<MaterialCommunityIcons name="chevron-back" ... />
+// ✅ Right
+<MaterialCommunityIcons name="chevron-forward" ... /> 7. הערות לא דו-לשוניות
+בעיה: הערה רק באנגלית או רק בעברית.
+
+פתרון: תמיד דו-לשוני.
+
+Example:
+// ❌ Wrong
+// Update user state
+// ✅ Right
+// עדכון מצב משתמש | Update user state 8. קבצים מונוליטיים
+בעיה: קבצים של 1200 שורות, בלתי מתחזקים.
+
+פתרון: פיצול תמידי ל-components, hooks, utils.
+🔔 Reminder:
+יש לקרוא מסמך זה לפני כל פיתוח/רפקטור ולסנכרן כל לקח/טעות חוזרת מיד בסעיף "לקחים חוזרים"!
+
+---
