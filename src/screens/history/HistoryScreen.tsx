@@ -1,88 +1,84 @@
 /**
  * @file src/screens/history/HistoryScreen.tsx
- * @brief מסך היסטוריית אימונים - Placeholder
+ * @brief מסך היסטוריית אימונים - זמני
+ * @brief Workout history screen - temporary
  * @dependencies React Native, theme
+ * @notes מסך זמני למניעת שגיאות ניווט
+ * @notes Temporary screen to prevent navigation errors
  */
 
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
 export default function HistoryScreen() {
   return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>היסטוריית אימונים</Text>
-          <Text style={styles.subtitle}>כל האימונים שלך במקום אחד</Text>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <MaterialCommunityIcons
+          name="history"
+          size={80}
+          color={theme.colors.primary}
+        />
+        <Text style={styles.title}>היסטוריית אימונים</Text>
+        <Text style={styles.subtitle}>
+          כאן תוכל לראות את כל האימונים שביצעת
+        </Text>
+        <Text style={styles.comingSoon}>בקרוב...</Text>
 
-        <View style={styles.comingSoonCard}>
-          <MaterialCommunityIcons
-            name="history"
-            size={64}
-            color={theme.colors.accent}
-          />
-          <Text style={styles.comingSoonTitle}>בקרוב!</Text>
-          <Text style={styles.comingSoonText}>
-            מעקב אחר כל האימונים, סטטיסטיקות מתקדמות וגרפים...
-          </Text>
-        </View>
-      </ScrollView>
-    </LinearGradient>
+        <TouchableOpacity style={styles.button}>
+          <MaterialCommunityIcons name="chart-line" size={24} color="#fff" />
+          <Text style={styles.buttonText}>צפה בנתונים</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
   content: {
-    flexGrow: 1,
-    padding: theme.spacing.lg,
-  },
-  header: {
-    marginTop: 60,
-    marginBottom: theme.spacing.xl,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.xl,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "700",
     color: theme.colors.text,
-    textAlign: "right",
+    marginTop: 24,
     marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-    textAlign: "right",
-  },
-  comingSoonCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    padding: 40,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.medium,
-    marginTop: 40,
-  },
-  comingSoonTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  comingSoonText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
+    marginBottom: 16,
+  },
+  comingSoon: {
+    fontSize: 18,
+    color: theme.colors.primary,
+    fontWeight: "600",
+    marginBottom: 32,
+  },
+  button: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

@@ -1,7 +1,7 @@
 /**
  * @file src/navigation/AppNavigator.tsx
  * @brief ניווט ראשי - משלב Stack Navigator עם Bottom Tabs
- * @dependencies React Navigation, Bottom Tabs
+ * @dependencies React Navigation, Bottom Tabs, WorkoutPlanScreen
  * @notes מסכי Auth ו-Onboarding בנפרד, Bottom Tabs למסכים העיקריים
  */
 
@@ -18,23 +18,55 @@ import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
 import DynamicQuestionnaireScreen from "../screens/questionnaire/DynamicQuestionnaireScreen";
+
+// מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
+import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 
 // מסכים נוספים שלא ב-Bottom Tabs // Additional screens not in Bottom Tabs
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
 
 const Stack = createStackNavigator();
 
-// טיפוסי ניווט // Navigation types
+// טיפוסי ניווט מעודכנים // Updated navigation types
 export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Register: undefined;
   Terms: undefined;
-  Questionnaire: undefined;
+  DynamicQuestionnaire: undefined;
+  WorkoutPlan: {
+    regenerate?: boolean;
+    autoStart?: boolean;
+    returnFromWorkout?: boolean;
+    completedWorkoutId?: string;
+  };
   MainApp: undefined;
-  ExerciseList: { fromScreen?: string };
+  QuickWorkout: {
+    exercises?: any[];
+    workoutName?: string;
+    workoutId?: string;
+    source?: "workout_plan" | "quick_start";
+    planData?: {
+      targetMuscles: string[];
+      estimatedDuration: number;
+      equipment: string[];
+    };
+  };
+  ExerciseList: {
+    fromScreen?: string;
+    mode?: "view" | "selection";
+    onSelectExercise?: (exercise: any) => void;
+  };
 };
+
+// הגדרת טיפוסי ניווט גלובליים
+// Global navigation types declaration
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList extends RootStackParamList {}
+  }
+}
 
 export default function AppNavigator() {
   return (
@@ -43,72 +75,69 @@ export default function AppNavigator() {
         initialRouteName="Welcome"
         screenOptions={{
           headerShown: false,
-          // אנימציות מעבר חלקות // Smooth transitions
-          cardStyleInterpolator: ({ current, layouts }) => {
-            return {
-              cardStyle: {
-                transform: [
-                  {
-                    translateX: current.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [layouts.screen.width, 0],
-                    }),
-                  },
-                ],
-                opacity: current.progress.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0, 0.5, 1],
-                }),
-              },
-            };
-          },
+          gestureEnabled: true,
+          gestureDirection: "horizontal-inverted", // RTL תמיכה
+          animationTypeForReplace: "push",
         }}
       >
-        {/* מסכי Onboarding ו-Auth // Onboarding and Auth screens */}
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+        {/* מסכי Onboarding ו-Auth */}
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
+          options={{
+            gestureEnabled: false, // מונע יציאה מהמסך הראשון
+          }}
+        />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
+
+        {/* שאלון דינמי */}
         <Stack.Screen
-          name="Questionnaire"
+          name="DynamicQuestionnaire"
           component={DynamicQuestionnaireScreen}
+          options={{
+            gestureEnabled: false, // מונע חזרה אחורה בשאלון
+          }}
         />
 
-        {/* האפליקציה הראשית עם Bottom Tabs // Main app with Bottom Tabs */}
+        {/* מסך תוכנית אימון AI */}
+        <Stack.Screen
+          name="WorkoutPlan"
+          component={WorkoutPlanScreen}
+          options={{
+            presentation: "card",
+            gestureDirection: "horizontal-inverted", // RTL
+            animationTypeForReplace: "push",
+          }}
+        />
+
+        {/* אפליקציה ראשית עם Bottom Tabs */}
         <Stack.Screen
           name="MainApp"
           component={BottomNavigation}
           options={{
-            // מנע חזרה למסכי הרשמה // Prevent going back to auth screens
-            headerLeft: () => null,
-            gestureEnabled: false,
+            gestureEnabled: false, // מונע יציאה מהאפליקציה הראשית
           }}
         />
+
+        {/* מסך אימון פעיל */}
         <Stack.Screen
-          name="WorkoutPlan"
-          component={WorkoutPlanScreen}
-          options={{ headerShown: false }}
+          name="QuickWorkout"
+          component={QuickWorkoutScreen}
+          options={{
+            gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
+            presentation: "card",
+          }}
         />
-        {/* מסך תרגילים // Exercise list screen */}
+
+        {/* מסכים נוספים */}
         <Stack.Screen
           name="ExerciseList"
           component={ExerciseListScreen}
           options={{
-            presentation: "modal",
-            cardStyleInterpolator: ({ current, layouts }) => {
-              return {
-                cardStyle: {
-                  transform: [
-                    {
-                      translateY: current.progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [layouts.screen.height, 0],
-                      }),
-                    },
-                  ],
-                },
-              };
-            },
+            presentation: "modal", // פתיחה כמודל
+            gestureDirection: "vertical", // סגירה למטה
           }}
         />
       </Stack.Navigator>

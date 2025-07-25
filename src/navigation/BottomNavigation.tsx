@@ -1,7 +1,7 @@
 /**
  * @file src/navigation/BottomNavigation.tsx
  * @brief ניווט תחתון קומפקטי - 5 מסכים עיקריים בעיצוב מינימליסטי
- * @dependencies React Navigation Bottom Tabs, Ionicons
+ * @dependencies React Navigation Bottom Tabs, Ionicons, WorkoutPlanScreen
  * @notes גובה מינימלי, אייקונים קטנים, תמיכה מלאה ב-RTL
  */
 
@@ -13,7 +13,7 @@ import { theme } from "../styles/theme";
 
 // מסכים // Screens
 import MainScreen from "../screens/main/MainScreen";
-import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen"; // יש ליצור
+import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
 import ProfileScreen from "../screens/profile/ProfileScreen";
@@ -48,9 +48,6 @@ const TabIcon: React.FC<TabIconProps> = ({
         size={focused ? size + 2 : size}
         color={color}
       />
-      {focused && (
-        <View style={[styles.indicator, { backgroundColor: color }]} />
-      )}
     </View>
   );
 };
@@ -58,115 +55,112 @@ const TabIcon: React.FC<TabIconProps> = ({
 export default function BottomNavigation() {
   return (
     <Tab.Navigator
-      initialRouteName="Home"
       screenOptions={{
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.colors.card,
+          borderTopColor: theme.colors.cardBorder,
+          borderTopWidth: 1,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          paddingTop: 8,
+          height: Platform.OS === "ios" ? 85 : 65,
+          ...theme.shadows.medium,
+        },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIconStyle: styles.tabBarIcon,
-        tabBarItemStyle: styles.tabBarItem,
-        // מאפייני נגישות // Accessibility
-        tabBarAccessibilityLabel: "ניווט ראשי",
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
+          textAlign: "center",
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
       }}
     >
-      {/* מסך ראשי // Home screen */}
+      {/* מסך ראשי */}
       <Tab.Screen
-        name="Home"
+        name="Main"
         component={MainScreen}
         options={{
-          tabBarLabel: "בית",
+          title: "בית",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
-              size={20}
+              size={size}
               iconName="home"
             />
           ),
-          tabBarAccessibilityLabel: "מסך הבית",
         }}
       />
 
-      {/* תוכניות אימון // Workout plans */}
+      {/* תוכניות אימון AI */}
       <Tab.Screen
-        name="Plans"
-        component={WorkoutPlansScreen}
+        name="WorkoutPlans"
+        component={WorkoutPlanScreen}
         options={{
-          tabBarLabel: "תוכניות",
+          title: "תוכניות AI",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
-              size={20}
-              iconName="calendar-multiselect"
+              size={size}
+              iconName="brain"
               isMaterial={true}
             />
           ),
-          tabBarAccessibilityLabel: "תוכניות אימון",
         }}
       />
 
-      {/* אימון מהיר // Quick workout */}
+      {/* אימון מהיר */}
       <Tab.Screen
-        name="Workout"
+        name="QuickWorkout"
         component={QuickWorkoutScreen}
         options={{
-          tabBarLabel: "אימון",
+          title: "אימון",
           tabBarIcon: ({ focused, color, size }) => (
-            <View style={styles.workoutIconContainer}>
-              <View
-                style={[
-                  styles.workoutIconBackground,
-                  focused && styles.workoutIconBackgroundActive,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="dumbbell"
-                  size={22}
-                  color={focused ? "#fff" : theme.colors.primary}
-                />
-              </View>
-            </View>
+            <TabIcon
+              focused={focused}
+              color={color}
+              size={size}
+              iconName="fitness"
+            />
           ),
-          tabBarAccessibilityLabel: "התחל אימון",
         }}
       />
 
-      {/* היסטוריה // History */}
+      {/* היסטוריה */}
       <Tab.Screen
         name="History"
         component={HistoryScreen}
         options={{
-          tabBarLabel: "היסטוריה",
+          title: "היסטוריה",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
-              size={20}
-              iconName="time"
+              size={size}
+              iconName="stats-chart"
             />
           ),
-          tabBarAccessibilityLabel: "היסטוריית אימונים",
         }}
       />
 
-      {/* פרופיל // Profile */}
+      {/* פרופיל */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: "פרופיל",
+          title: "פרופיל",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
-              size={20}
+              size={size}
               iconName="person"
             />
           ),
-          tabBarAccessibilityLabel: "פרופיל משתמש",
         }}
       />
     </Tab.Navigator>
@@ -174,59 +168,10 @@ export default function BottomNavigation() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: theme.colors.card,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.cardBorder,
-    height: Platform.OS === "ios" ? 60 : 56, // גובה מינימלי
-    paddingTop: 4,
-    paddingBottom: Platform.OS === "ios" ? 20 : 8,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  tabBarLabel: {
-    fontSize: 10, // פונט קטן לחיסכון במקום
-    fontWeight: "600",
-    marginTop: -4,
-    marginBottom: 0,
-  },
-  tabBarIcon: {
-    marginBottom: -2,
-  },
-  tabBarItem: {
-    paddingTop: 4,
-    paddingBottom: 0,
-  },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  indicator: {
-    position: "absolute",
-    bottom: -8,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  workoutIconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  workoutIconBackground: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.backgroundAlt,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-  },
-  workoutIconBackgroundActive: {
-    backgroundColor: theme.colors.primary,
-    transform: [{ scale: 1.05 }],
+    width: 24,
+    height: 24,
   },
 });

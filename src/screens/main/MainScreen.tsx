@@ -28,6 +28,7 @@ import {
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
+import { Alert } from "react-native"; // אם לא קיים
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -648,20 +649,20 @@ export default function MainScreen() {
               style={styles.actionButton}
               onPress={() => {
                 console.log("🏠 MainScreen - Workout plans button clicked");
-                alert("תוכניות אימון - בקרוב!");
+                navigation.navigate("WorkoutPlan");
               }}
               activeOpacity={0.7}
             >
               <View style={styles.actionIconContainer}>
-                <Ionicons
-                  name="calendar"
+                <MaterialCommunityIcons // החלפת אייקון
+                  name="brain"
                   size={28}
                   color={theme.colors.secondary}
                 />
               </View>
-              <Text style={styles.actionButtonText}>תוכניות אימון</Text>
+              <Text style={styles.actionButtonText}>תוכניות AI</Text>
               <Text style={styles.actionButtonSubtext}>
-                תוכניות מותאמות אישית
+                תוכניות חכמות מותאמות אישית
               </Text>
             </TouchableOpacity>
 
@@ -681,7 +682,50 @@ export default function MainScreen() {
                 צפה באימונים קודמים
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.quickWorkoutButton]}
+              onPress={async () => {
+                try {
+                  // בדיקה אם יש נתוני שאלון
+                  const hasData =
+                    user?.questionnaireData?.metadata || user?.questionnaire;
 
+                  if (hasData) {
+                    // יש נתונים - צור תוכנית ויתחיל אימון
+                    navigation.navigate("WorkoutPlan", {
+                      autoStart: true,
+                    });
+                  } else {
+                    // אין נתונים - נווט לשאלון
+                    Alert.alert(
+                      "נתונים חסרים",
+                      "יש להשלים את השאלון כדי לקבל אימון מותאם אישית",
+                      [
+                        { text: "ביטול", style: "cancel" },
+                        {
+                          text: "לשאלון",
+                          onPress: () =>
+                            navigation.navigate(
+                              "DynamicQuestionnaire" as never
+                            ),
+                        },
+                      ]
+                    );
+                  }
+                } catch (error) {
+                  console.error("Error starting quick workout:", error);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primary + "CC"]}
+                style={styles.quickWorkoutGradient}
+              >
+                <MaterialCommunityIcons name="flash" size={32} color="#fff" />
+                <Text style={styles.quickWorkoutText}>אימון מהיר AI</Text>
+              </LinearGradient>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => {
@@ -912,6 +956,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     ...theme.shadows.medium,
+  },
+  quickWorkoutButton: {
+    borderRadius: theme.borderRadius.lg,
+    overflow: "hidden",
+    marginTop: 16,
+    ...theme.shadows.medium,
+  },
+  quickWorkoutGradient: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+  },
+  quickWorkoutText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   quickStartButtonGradient: {
     flexDirection: "row-reverse",
