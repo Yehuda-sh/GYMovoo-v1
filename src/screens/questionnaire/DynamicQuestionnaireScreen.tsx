@@ -273,6 +273,29 @@ export default function DynamicQuestionnaireScreen({ navigation, route }: any) {
     setError("");
   };
 
+  // פונקציה למעבר אוטומטי בשאלות בחירה יחידה
+  // Function for auto-next in single choice questions
+  const handleSingleChoiceAnswer = (answer: any) => {
+    handleAnswer(answer);
+
+    // השהייה קצרה לפני המעבר לתת משוב ויזואלי
+    // Short delay before transitioning for visual feedback
+    setTimeout(() => {
+      if (currentQuestionIndex < questions.length - 1) {
+        animateTransition(true, () => {
+          setCurrentQuestionIndex((prev) => prev + 1);
+          setCurrentQuestionStartTime(Date.now());
+          setTextInput("");
+          setNumberInput("");
+          setSelectedMultiple([]);
+          setError("");
+        });
+      } else {
+        handleComplete();
+      }
+    }, 300);
+  };
+
   // מעבר לשאלה הבאה
   // Go to next question
   const handleNext = () => {
@@ -497,26 +520,63 @@ export default function DynamicQuestionnaireScreen({ navigation, route }: any) {
               }}
               error={error}
               onAutoNext={(value) => {
-                // עדכון התשובה והמעבר מיידי
-                handleAnswer(value);
-
-                // מעבר לשאלה הבאה עם הערך החדש
-                if (currentQuestionIndex < questions.length - 1) {
-                  animateTransition(true, () => {
-                    setCurrentQuestionIndex((prev) => prev + 1);
-                    setCurrentQuestionStartTime(Date.now());
-                    setTextInput("");
-                    setNumberInput("");
-                    setSelectedMultiple([]);
-                    setError(""); // ניקוי שגיאה
-                  });
-                } else {
-                  handleComplete();
-                }
+                handleSingleChoiceAnswer(value);
               }}
             />
           );
         }
+
+        // שאלות בחירה יחידה רגילות
+        return (
+          <View style={styles.optionsContainer}>
+            {(currentQuestion.options || []).map((option) => {
+              const optionValue =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).id;
+              const optionText =
+                typeof option === "string"
+                  ? option
+                  : (option as OptionWithImage).label;
+              const optionImage =
+                typeof option !== "string"
+                  ? (option as OptionWithImage).image
+                  : undefined;
+              const isSelected = answers[currentQuestion.id] === optionValue;
+
+              return (
+                <TouchableOpacity
+                  key={optionValue}
+                  style={[
+                    styles.optionButton,
+                    isSelected && styles.optionButtonSelected,
+                  ]}
+                  onPress={() => handleSingleChoiceAnswer(optionValue)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && styles.optionTextSelected,
+                    ]}
+                  >
+                    {optionText}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={isSelected ? "radiobox-marked" : "radiobox-blank"}
+                    size={24}
+                    color={
+                      isSelected
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        );
+
       case "multiple":
         return (
           <View style={styles.optionsContainer}>
@@ -890,6 +950,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 1,
     textAlign: "right",
+    marginHorizontal: theme.spacing.md,
   },
   optionTextSelected: {
     fontWeight: "600",
