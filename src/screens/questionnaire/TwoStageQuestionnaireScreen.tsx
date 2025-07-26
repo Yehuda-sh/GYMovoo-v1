@@ -1,9 +1,9 @@
 /**
  * @file src/screens/questionnaire/TwoStageQuestionnaireScreen.tsx
- * @brief מסך שאלון דו-שלבי - אימונים ופרופיל אישי
- * @brief Two-stage questionnaire - training and personal profile
+ * @brief מסך שאלון דו-שלבי - אימונים ופרופיל אישי עם תיקון מעבר אוטומטי
+ * @brief Two-stage questionnaire - training and personal profile with auto-transition fix
  * @dependencies userStore, twoStageQuestionnaireData, React Navigation
- * @notes שלב 1 חובה, שלב 2 אופציונלי
+ * @notes שלב 1 חובה, שלב 2 אופציונלי - תוקן מעבר אוטומטי בשאלות single choice
  * @recurring_errors וודא RTL וטיפול נכון במעברים בין שלבים
  */
 
@@ -78,44 +78,28 @@ export default function TwoStageQuestionnaireScreen({
     currentStage === "training"
       ? getTrainingQuestions(answers)
       : getProfileQuestions();
-
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
 
   // אנימציות
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const errorShake = useRef(new Animated.Value(0)).current;
   const stageTransitionAnim = useRef(new Animated.Value(0)).current;
 
   // עדכון progress bar
   useEffect(() => {
     Animated.timing(progressAnim, {
-      toValue: progress,
+      toValue: (currentQuestionIndex + 1) / totalQuestions,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [progress]);
+  }, [currentQuestionIndex, totalQuestions]);
 
-  // טעינת תשובות קיימות לשאלה הנוכחית
-  useEffect(() => {
-    if (currentQuestion) {
-      const existingAnswer = answers[currentQuestion.id];
-      if (existingAnswer) {
-        if (currentQuestion.type === "multiple") {
-          setSelectedMultiple(
-            Array.isArray(existingAnswer) ? existingAnswer : []
-          );
-        } else if (currentQuestion.type === "text") {
-          setTextInput(existingAnswer || "");
-        }
-      }
-    }
-  }, [currentQuestionIndex, currentQuestion]);
-
-  // פונקציות עזר
+  // אנימציה של מעבר
   const animateTransition = (isForward: boolean, callback: () => void) => {
+    setIsTransitioning(true);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -141,25 +125,64 @@ export default function TwoStageQuestionnaireScreen({
           duration: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        setIsTransitioning(false);
+      });
     });
   };
 
   const handleAnswer = (answer: any) => {
+    // מניעת לחיצות כפולות במהלך מעבר
+    if (isTransitioning) {
+      return;
+    }
+
     setError("");
     const newAnswers = { ...answers, [currentQuestion.id]: answer };
     setAnswers(newAnswers);
 
     // אם זו שאלת בחירה יחידה, עבור אוטומטית
     if (currentQuestion.type === "single") {
-      setTimeout(() => handleNext(), 300);
+      setTimeout(() => {
+        handleNext(newAnswers);
+      }, 300);
     }
   };
 
-  const handleNext = () => {
+  const handleNext = (updatedAnswers?: any) => {
+    // מניעת לחיצות כפולות במהלך מעבר
+    if (isTransitioning) {
+      return;
+    }
+
+    // שימוש בתשובות המעודכנות או הקיימות
+    const currentAnswers = updatedAnswers || answers;
+
     // וידוא שיש תשובה אם השאלה חובה
-    if (currentQuestion.required && !answers[currentQuestion.id]) {
+    if (currentQuestion.required && !currentAnswers[currentQuestion.id]) {
       setError("אנא בחר תשובה כדי להמשיך");
+      Animated.sequence([
+        Animated.timing(errorShake, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(errorShake, {
+          toValue: -10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(errorShake, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(errorShake, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
       return;
     }
 
@@ -169,9 +192,9 @@ export default function TwoStageQuestionnaireScreen({
         setError("אנא בחר לפחות אפשרות אחת");
         return;
       }
-      answers[currentQuestion.id] = selectedMultiple;
+      currentAnswers[currentQuestion.id] = selectedMultiple;
     } else if (currentQuestion.type === "text") {
-      answers[currentQuestion.id] = textInput;
+      currentAnswers[currentQuestion.id] = textInput;
     }
 
     // בדיקה אם סיימנו את השלב
@@ -188,7 +211,7 @@ export default function TwoStageQuestionnaireScreen({
   };
 
   const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
+    if (currentQuestionIndex > 0 && !isTransitioning) {
       animateTransition(false, () => {
         setCurrentQuestionIndex(currentQuestionIndex - 1);
       });
@@ -248,7 +271,7 @@ export default function TwoStageQuestionnaireScreen({
     } else {
       navigation.reset({
         index: 0,
-        routes: [{ name: "MainTabs" }],
+        routes: [{ name: "MainApp" }],
       });
     }
   };
@@ -296,9 +319,11 @@ export default function TwoStageQuestionnaireScreen({
                   style={[
                     styles.optionButton,
                     isSelected && styles.selectedOption,
+                    isTransitioning && styles.disabledButton,
                   ]}
                   onPress={() => handleAnswer(optionId)}
                   activeOpacity={0.8}
+                  disabled={isTransitioning}
                 >
                   <View style={styles.optionContent}>
                     {optionIcon && (
@@ -306,9 +331,10 @@ export default function TwoStageQuestionnaireScreen({
                         name={optionIcon}
                         size={28}
                         color={
-                          isSelected ? theme.colors.text : theme.colors.primary
+                          isSelected
+                            ? theme.colors.text
+                            : theme.colors.textSecondary
                         }
-                        style={styles.optionIcon}
                       />
                     )}
                     <View style={styles.optionTextContainer}>
@@ -328,13 +354,11 @@ export default function TwoStageQuestionnaireScreen({
                     </View>
                   </View>
                   <MaterialCommunityIcons
-                    name={
-                      isSelected ? "checkbox-marked-circle" : "circle-outline"
-                    }
+                    name={isSelected ? "radiobox-marked" : "radiobox-blank"}
                     size={24}
                     color={
                       isSelected
-                        ? theme.colors.text
+                        ? theme.colors.primary
                         : theme.colors.textSecondary
                     }
                   />
@@ -446,16 +470,6 @@ export default function TwoStageQuestionnaireScreen({
           />
         );
 
-      case "height":
-        return (
-          <HeightSlider
-            value={answers[currentQuestion.id] || 170}
-            onChange={(value: number) => handleAnswer(value)}
-            minHeight={currentQuestion.min || 140}
-            maxHeight={currentQuestion.max || 220}
-          />
-        );
-
       default:
         return null;
     }
@@ -473,91 +487,94 @@ export default function TwoStageQuestionnaireScreen({
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoid}
+          style={styles.keyboardView}
         >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={handlePrevious}
-                style={styles.backButton}
-                disabled={currentQuestionIndex === 0}
-              >
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={28}
-                  color={
-                    currentQuestionIndex === 0
-                      ? theme.colors.divider
-                      : theme.colors.text
-                  }
-                />
-              </TouchableOpacity>
+              {currentQuestionIndex > 0 && (
+                <TouchableOpacity
+                  onPress={handlePrevious}
+                  style={styles.backButton}
+                  disabled={isTransitioning}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={28}
+                    color={theme.colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
 
-              <View style={styles.stageInfo}>
-                <Text style={styles.stageTitle}>{stageInfo.title}</Text>
-                <Text style={styles.questionNumber}>
-                  שאלה {currentQuestionIndex + 1} מתוך {totalQuestions}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ["0%", "100%"],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {currentQuestionIndex + 1} / {totalQuestions}
                 </Text>
               </View>
 
               {currentStage === "profile" && (
-                <TouchableOpacity
-                  onPress={handleSkipProfile}
-                  style={styles.skipButton}
-                >
+                <TouchableOpacity onPress={handleSkipProfile}>
                   <Text style={styles.skipText}>דלג</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Progress Bar */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <Animated.View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: progressAnim.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ["0%", "100%"],
-                      }),
-                    },
-                  ]}
+            {/* Stage info */}
+            {currentQuestionIndex === 0 && (
+              <View style={styles.stageInfoContainer}>
+                <MaterialCommunityIcons
+                  name={stageInfo.icon as any}
+                  size={60}
+                  color={theme.colors.primary}
                 />
+                <Text style={styles.stageTitle}>{stageInfo.title}</Text>
+                <Text style={styles.stageSubtitle}>{stageInfo.subtitle}</Text>
+                <Text style={styles.stageTime}>
+                  זמן משוער: {stageInfo.estimatedTime}
+                </Text>
               </View>
-            </View>
+            )}
 
-            {/* Main Content */}
+            {/* Question content */}
             {currentQuestion && (
               <Animated.View
                 style={[
-                  styles.mainContent,
+                  styles.questionContainer,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }],
+                    transform: [
+                      { translateX: slideAnim },
+                      { translateX: errorShake },
+                    ],
                   },
                 ]}
               >
-                {/* Question */}
-                <View style={styles.questionContainer}>
+                <View style={styles.questionHeader}>
                   <MaterialCommunityIcons
-                    name={(currentQuestion.icon as any) || "help-circle"}
-                    size={48}
+                    name={currentQuestion.icon as any}
+                    size={40}
                     color={theme.colors.primary}
-                    style={styles.questionIcon}
                   />
                   <Text style={styles.questionText}>
                     {currentQuestion.question}
                   </Text>
-                  {currentQuestion.subtitle && (
-                    <Text style={styles.questionSubtitle}>
-                      {currentQuestion.subtitle}
-                    </Text>
-                  )}
                   {currentQuestion.helpText && (
                     <Text style={styles.helpText}>
                       {currentQuestion.helpText}
@@ -573,47 +590,50 @@ export default function TwoStageQuestionnaireScreen({
               </Animated.View>
             )}
 
-            {/* Bottom buttons */}
-            <View style={styles.bottomContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.nextButton,
-                  !answers[currentQuestion?.id] &&
-                    currentQuestion?.required &&
-                    currentQuestion?.type !== "text" &&
-                    styles.disabledButton,
-                ]}
-                onPress={handleNext}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={
+            {/* Bottom buttons - מוסתרים בשאלות single choice כשיש מעבר אוטומטי */}
+            {currentQuestion?.type !== "single" && (
+              <View style={styles.bottomContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.nextButton,
                     !answers[currentQuestion?.id] &&
-                    currentQuestion?.required &&
-                    currentQuestion?.type !== "text"
-                      ? [theme.colors.divider, theme.colors.divider]
-                      : [
-                          theme.colors.primaryGradientStart,
-                          theme.colors.primaryGradientEnd,
-                        ]
-                  }
-                  style={styles.nextButtonGradient}
+                      currentQuestion?.required &&
+                      currentQuestion?.type !== "text" &&
+                      styles.disabledButton,
+                  ]}
+                  onPress={handleNext}
+                  activeOpacity={0.8}
+                  disabled={isTransitioning}
                 >
-                  <Text style={styles.nextButtonText}>
-                    {isLastQuestion
-                      ? currentStage === "training"
-                        ? "סיים שלב זה"
-                        : "סיים"
-                      : "המשך"}
-                  </Text>
-                  <MaterialCommunityIcons
-                    name={isLastQuestion ? "check" : "chevron-left"}
-                    size={24}
-                    color={theme.colors.text}
-                  />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                  <LinearGradient
+                    colors={
+                      !answers[currentQuestion?.id] &&
+                      currentQuestion?.required &&
+                      currentQuestion?.type !== "text"
+                        ? [theme.colors.divider, theme.colors.divider]
+                        : [
+                            theme.colors.primaryGradientStart,
+                            theme.colors.primaryGradientEnd,
+                          ]
+                    }
+                    style={styles.nextButtonGradient}
+                  >
+                    <Text style={styles.nextButtonText}>
+                      {isLastQuestion
+                        ? currentStage === "training"
+                          ? "סיים שלב זה"
+                          : "סיים"
+                        : "המשך"}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name={isLastQuestion ? "check" : "arrow-left"}
+                      size={24}
+                      color={theme.colors.text}
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
@@ -624,12 +644,11 @@ export default function TwoStageQuestionnaireScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   gradient: {
     flex: 1,
   },
-  keyboardAvoid: {
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
@@ -639,109 +658,110 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   backButton: {
     padding: 8,
   },
-  stageInfo: {
+  progressContainer: {
     flex: 1,
-    alignItems: "center",
+    marginHorizontal: 16,
   },
-  stageTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: 4,
+  progressBar: {
+    height: 6,
+    backgroundColor: theme.colors.divider,
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  questionNumber: {
-    fontSize: 14,
+  progressFill: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
+  },
+  progressText: {
+    fontSize: 12,
     color: theme.colors.textSecondary,
-  },
-  skipButton: {
-    padding: 8,
+    textAlign: "center",
+    marginTop: 4,
   },
   skipText: {
     fontSize: 16,
     color: theme.colors.primary,
     fontWeight: "500",
   },
-  progressContainer: {
+  stageInfoContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
     paddingHorizontal: 20,
-    marginBottom: 30,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: theme.colors.divider,
-    borderRadius: 4,
-    overflow: "hidden",
+  stageTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginTop: 16,
+    textAlign: "center",
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: theme.colors.primary,
-    borderRadius: 4,
+  stageSubtitle: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 24,
   },
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: 20,
+  stageTime: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginTop: 8,
   },
   questionContainer: {
-    alignItems: "center",
-    marginBottom: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
-  questionIcon: {
-    marginBottom: 20,
+  questionHeader: {
+    alignItems: "center",
+    marginBottom: 24,
   },
   questionText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
-    marginBottom: 12,
-  },
-  questionSubtitle: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 8,
+    marginTop: 12,
+    lineHeight: 28,
   },
   helpText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     textAlign: "center",
-    fontStyle: "italic",
+    marginTop: 8,
   },
   optionsContainer: {
-    marginBottom: 20,
+    marginTop: 16,
   },
   optionButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: theme.colors.surface,
-    padding: 16,
     borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 2,
     borderColor: "transparent",
   },
   selectedOption: {
-    backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight + "10",
   },
   optionContent: {
-    flex: 1,
     flexDirection: "row-reverse",
     alignItems: "center",
-  },
-  optionIcon: {
-    marginLeft: 12,
+    flex: 1,
   },
   optionTextContainer: {
     flex: 1,
+    marginHorizontal: 12,
   },
   optionText: {
     fontSize: 16,
@@ -775,6 +795,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     minHeight: 100,
     textAlignVertical: "top",
+    textAlign: "right",
   },
   textCounter: {
     fontSize: 12,
