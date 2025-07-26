@@ -41,14 +41,14 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
         ex.sets.reduce(
           (setAcc, set) =>
             set.completed
-              ? setAcc + (set.weight || 0) * (set.reps || 0)
+              ? setAcc + (set.actualWeight || 0) * (set.actualReps || 0)
               : setAcc,
           0
         ),
       0
     ),
     personalRecords: workout.exercises.reduce(
-      (acc, ex) => acc + ex.sets.filter((s) => s.isPersonalRecord).length,
+      (acc, ex) => acc + ex.sets.filter((s) => s.isPR).length,
       0
     ),
   };
@@ -135,7 +135,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
         {workout.exercises.map((exercise, index) => {
           const completedSets = exercise.sets.filter((s) => s.completed);
           const exerciseVolume = completedSets.reduce(
-            (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
+            (acc, set) => acc + (set.actualWeight || 0) * (set.actualReps || 0),
             0
           );
 
@@ -149,9 +149,9 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
                 <Text style={styles.exerciseStat}>
                   {exerciseVolume.toLocaleString()} ק"ג נפח
                 </Text>
-                {exercise.sets.some((s) => s.isPersonalRecord) && (
+                {exercise.sets.some((s) => s.isPR) && (
                   <View style={styles.prBadge}>
-                    <Text style={styles.prText}>שיא חדש!</Text>
+                    <Text style={styles.prText}>שיא!</Text>
                   </View>
                 )}
               </View>

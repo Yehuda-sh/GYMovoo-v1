@@ -27,10 +27,16 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { Set, Exercise } from "../../types/workout.types";
 
+// Extended Set interface עם שדות נוספים לממשק המשתמש
+interface ExtendedSet extends Set {
+  previousWeight?: number;
+  previousReps?: number;
+}
+
 interface SetRowProps {
-  set: Set;
+  set: ExtendedSet;
   setNumber: number;
-  onUpdate: (updates: Partial<Set>) => void;
+  onUpdate: (updates: Partial<ExtendedSet>) => void;
   onDelete: () => void;
   onComplete: () => void;
   onLongPress: () => void;
@@ -59,15 +65,15 @@ const SetRow: React.FC<SetRowProps> = ({
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
-    if (!set.weight || !set.reps || !set.completed) return false;
+    if (!set.actualWeight || !set.actualReps || !set.completed) return false;
 
-    const currentVolume = set.weight * set.reps;
+    const currentVolume = set.actualWeight * set.actualReps;
     const previousVolume = (set.previousWeight || 0) * (set.previousReps || 0);
 
     return currentVolume > previousVolume && previousVolume > 0;
   }, [
-    set.weight,
-    set.reps,
+    set.actualWeight,
+    set.actualReps,
     set.completed,
     set.previousWeight,
     set.previousReps,
@@ -77,9 +83,9 @@ const SetRow: React.FC<SetRowProps> = ({
   useEffect(() => {
     if (isPR) {
       log("🏆 New personal record detected!", {
-        weight: set.weight,
-        reps: set.reps,
-        volume: set.weight! * set.reps!,
+        weight: set.actualWeight,
+        reps: set.actualReps,
+        volume: set.actualWeight! * set.actualReps!,
       });
 
       Animated.sequence([
@@ -100,7 +106,7 @@ const SetRow: React.FC<SetRowProps> = ({
         Vibration.vibrate(100);
       }
     }
-  }, [isPR]);
+  }, [isPR, set.actualWeight, set.actualReps, prBounceAnim]);
 
   useEffect(() => {
     Animated.timing(checkAnim, {
@@ -112,127 +118,130 @@ const SetRow: React.FC<SetRowProps> = ({
     if (set.completed) {
       log("✅ Set completed", {
         setNumber,
-        weight: set.weight,
-        reps: set.reps,
-        volume: set.weight && set.reps ? set.weight * set.reps : 0,
+        weight: set.actualWeight,
+        reps: set.actualReps,
+        volume:
+          set.actualWeight && set.actualReps
+            ? set.actualWeight * set.actualReps
+            : 0,
       });
     }
-  }, [set.completed]);
+  }, [set.completed, setNumber, set.actualWeight, set.actualReps, checkAnim]);
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
-      toValue: isActive ? 0.97 : 1,
-      friction: 5,
+      toValue: isActive ? 1.05 : 1,
+      friction: 4,
       useNativeDriver: true,
     }).start();
-  }, [isActive]);
+  }, [isActive, scaleAnim]);
 
-  const handleWeightChange = (text: string) => {
-    log("⚖️ Weight input changed", {
-      setNumber,
-      oldValue: set.weight,
-      newValue: text,
-    });
-    onUpdate({ weight: parseFloat(text) || undefined });
+  const handleWeightChange = (value: string) => {
+    log("⚖️ Weight changed", { setNumber, value });
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) || value === "") {
+      onUpdate({ actualWeight: value === "" ? undefined : numValue });
+    }
   };
 
-  const handleRepsChange = (text: string) => {
-    log("🔢 Reps input changed", {
-      setNumber,
-      oldValue: set.reps,
-      newValue: text,
-    });
-    onUpdate({ reps: parseInt(text, 10) || undefined });
+  const handleRepsChange = (value: string) => {
+    log("🔄 Reps changed", { setNumber, value });
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) || value === "") {
+      onUpdate({ actualReps: value === "" ? undefined : numValue });
+    }
   };
 
   const handleComplete = () => {
-    log("🎯 Complete button clicked", {
+    log("✅ Complete button pressed", {
       setNumber,
-      wasCompleted: set.completed,
-      weight: set.weight,
-      reps: set.reps,
+      weight: set.actualWeight,
+      reps: set.actualReps,
     });
 
-    // Vibrate on complete
-    if (!set.completed && Platform.OS !== "web") {
-      Vibration.vibrate(50);
+    if (!set.actualWeight || !set.actualReps) {
+      // Show target hint if missing data
+      setShowTargetHint(true);
+      setTimeout(() => setShowTargetHint(false), 3000);
+      return;
     }
 
     onComplete();
   };
 
   const handleDelete = () => {
-    log("🗑️ Delete button clicked", { setNumber });
+    log("🗑️ Delete pressed", { setNumber });
+    if (Platform.OS !== "web") {
+      Vibration.vibrate(10);
+    }
     onDelete();
   };
 
-  const handleLongPress = () => {
-    log("👆 Long press detected", { setNumber });
-    if (Platform.OS !== "web") {
-      Vibration.vibrate(50);
-    }
-    onLongPress();
-  };
-
-  // Calculate performance indicators
-  const performanceIndicator = React.useMemo(() => {
-    if (!set.weight || !set.previousWeight) return null;
-
-    const percentChange =
-      ((set.weight - set.previousWeight) / set.previousWeight) * 100;
-
-    if (percentChange > 5)
-      return { icon: "trending-up", color: theme.colors.success };
-    if (percentChange < -5)
-      return { icon: "trending-down", color: theme.colors.error };
-    return null;
-  }, [set.weight, set.previousWeight]);
-
-  // Show target hint
   const showHint = () => {
-    if (set.targetWeight || set.targetReps) {
-      setShowTargetHint(true);
-      setTimeout(() => setShowTargetHint(false), 3000);
-    }
+    setShowTargetHint(true);
+    setTimeout(() => setShowTargetHint(false), 2000);
   };
+
+  // Calculate performance indicator
+  const performanceIndicator = React.useMemo(() => {
+    if (!set.actualWeight || !set.previousWeight) return null;
+
+    const diff =
+      ((set.actualWeight - set.previousWeight) / set.previousWeight) * 100;
+
+    if (diff > 5) {
+      return { icon: "trending-up", color: theme.colors.success };
+    } else if (diff < -5) {
+      return { icon: "trending-down", color: theme.colors.error };
+    } else {
+      return { icon: "trending-neutral", color: theme.colors.textSecondary };
+    }
+  }, [set.actualWeight, set.previousWeight]);
 
   return (
     <TouchableOpacity
-      onLongPress={handleLongPress}
-      activeOpacity={1}
-      disabled={isActive}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+      style={{ marginBottom: 8 }}
     >
       <Animated.View
         style={[
           styles.container,
-          {
-            transform: [
-              { scale: scaleAnim },
-              {
-                translateY: prBounceAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -5],
-                }),
-              },
-            ],
-          },
           set.completed && styles.completedContainer,
           isActive && styles.activeContainer,
-          isPR && styles.prContainer,
+          { transform: [{ scale: scaleAnim }] },
         ]}
       >
-        {/* שינוי RTL: מספר הסט עבר להתחלה (צד ימין) */}
-        <View style={styles.setNumberWrapper}>
-          <Text
+        {/* PR Badge */}
+        {isPR && (
+          <Animated.View
             style={[
-              styles.setNumberText,
-              set.type === "warmup" && styles.warmupText,
+              styles.prBadge,
+              {
+                transform: [
+                  {
+                    scale: prBounceAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.3],
+                    }),
+                  },
+                ],
+              },
             ]}
           >
-            {setNumber}
-          </Text>
-          {set.type && set.type !== "normal" && (
-            <Text style={styles.setTypeLabel}>
+            <MaterialCommunityIcons
+              name="trophy"
+              size={16}
+              color={theme.colors.warning}
+            />
+          </Animated.View>
+        )}
+
+        {/* שינוי RTL: מספר הסט בצד ימין */}
+        <View style={styles.setNumber}>
+          <Text style={styles.setNumberText}>{setNumber}</Text>
+          {set.type !== "working" && (
+            <Text style={styles.setTypeText}>
               {set.type === "warmup" ? "חימום" : set.type}
             </Text>
           )}
@@ -268,7 +277,7 @@ const SetRow: React.FC<SetRowProps> = ({
         >
           <TextInput
             style={[styles.input, set.completed && styles.completedInput]}
-            value={set.weight?.toString() || ""}
+            value={set.actualWeight?.toString() || ""}
             onChangeText={handleWeightChange}
             onFocus={() => {
               log("⚖️ Weight input focused", { setNumber });
@@ -294,7 +303,7 @@ const SetRow: React.FC<SetRowProps> = ({
         >
           <TextInput
             style={[styles.input, set.completed && styles.completedInput]}
-            value={set.reps?.toString() || ""}
+            value={set.actualReps?.toString() || ""}
             onChangeText={handleRepsChange}
             onFocus={() => {
               log("🔢 Reps input focused", { setNumber });
@@ -347,35 +356,6 @@ const SetRow: React.FC<SetRowProps> = ({
             />
           </TouchableOpacity>
         </View>
-
-        {/* PR Badge */}
-        {isPR && (
-          <Animated.View
-            style={[
-              styles.prBadge,
-              {
-                opacity: prBounceAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 0.8],
-                }),
-                transform: [
-                  {
-                    scale: prBounceAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.2],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="trophy"
-              size={16}
-              color={theme.colors.warning}
-            />
-          </Animated.View>
-        )}
       </Animated.View>
     </TouchableOpacity>
   );
@@ -383,39 +363,35 @@ const SetRow: React.FC<SetRowProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row-reverse", // שינוי RTL: הפך את כיוון הפריסה
+    flexDirection: "row-reverse", // שינוי RTL חשוב
     alignItems: "center",
-    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
-    position: "relative",
+    paddingHorizontal: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   completedContainer: {
-    backgroundColor: `${theme.colors.success}1A`,
+    backgroundColor: theme.colors.success + "10",
+    borderColor: theme.colors.success + "30",
   },
   activeContainer: {
-    backgroundColor: `${theme.colors.primary}20`,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + "05",
   },
-  prContainer: {
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.warning,
-  },
-  setNumberWrapper: {
-    width: 30,
+  setNumber: {
+    width: 50,
     alignItems: "center",
-    justifyContent: "center",
+    marginLeft: 8, // שינוי RTL: margin-left במקום right
   },
   setNumberText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.text,
   },
-  warmupText: {
-    color: theme.colors.warning,
-  },
-  setTypeLabel: {
-    fontSize: 9,
+  setTypeText: {
+    fontSize: 10,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },

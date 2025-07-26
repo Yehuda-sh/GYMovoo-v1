@@ -6,7 +6,13 @@
  * @recurring_errors שכחה להעביר את ה-prop isPaused ל-RestTimer
  */
 
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
@@ -33,7 +39,7 @@ import { theme } from "../../../../styles/theme";
 
 // ייבוא ה-types
 // Import types
-import { Exercise, WorkoutSet, SetType } from "../../types/workout.types";
+import { Exercise, Set as WorkoutSet } from "../../types/workout.types";
 
 // אפשור LayoutAnimation באנדרואיד
 // Enable LayoutAnimation on Android
@@ -63,7 +69,7 @@ interface ExerciseCardProps {
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onShowTips?: () => void; // הוספת callback לטיפים
+  onShowTips?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
   isPaused?: boolean;
@@ -89,94 +95,125 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onStartRest,
   onMoveUp,
   onMoveDown,
-  onShowTips, // קבלת ה-callback
+  onShowTips,
   isFirst = false,
   isLast = false,
   isPaused = false,
-  showHistory = true,
-  showNotes = true,
+  showHistory = false,
+  showNotes = false,
   personalRecord,
   lastWorkout,
   onDuplicate,
   onReplace,
 }) => {
+  // מצבים מקומיים
+  // Local states
   const [isExpanded, setIsExpanded] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [selectedSets, setSelectedSets] = useState<Set<string>>(new Set());
+  const [selectedSets, setSelectedSets] = useState<globalThis.Set<string>>(
+    new globalThis.Set()
+  );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  const rotateAnim = useRef(new Animated.Value(1)).current;
-  const heightAnim = useRef(new Animated.Value(1)).current;
-  const selectionAnim = useRef(new Animated.Value(0)).current;
+  // אנימציות
+  // Animations
+  const expandAnimation = useRef(new Animated.Value(1)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const headerColorAnimation = useRef(new Animated.Value(0)).current;
 
-  // חישוב סטטיסטיקות
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const completedSets = sets.filter((s) => s.completed).length;
-    const totalVolume = sets.reduce((sum, set) => {
-      if (set.completed && set.weight && set.reps) {
-        return sum + set.weight * set.reps;
-      }
-      return sum;
-    }, 0);
-
-    return {
-      completedSets,
-      totalSets: sets.length,
-      totalVolume,
-    };
+  // חישוב האם התרגיל הושלם
+  // Calculate if exercise is completed
+  const isCompleted = useMemo(() => {
+    return sets.length > 0 && sets.every((set) => set.completed);
   }, [sets]);
 
-  const allSetsCompleted = stats.completedSets === stats.totalSets;
-  const progress =
-    stats.totalSets > 0 ? stats.completedSets / stats.totalSets : 0;
+  // חישוב נפח כולל
+  // Calculate total volume
+  const totalVolume = useMemo(() => {
+    return sets.reduce((total, set) => {
+      if (set.actualWeight && set.actualReps) {
+        return total + set.actualWeight * set.actualReps;
+      }
+      return total;
+    }, 0);
+  }, [sets]);
 
-  // טיפול בלחיצה על הכרטיס
-  // Handle card press
-  const handleCardPress = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
+  // חישוב סטים שהושלמו
+  // Calculate completed sets
+  const completedSets = useMemo(() => {
+    return sets.filter((set) => set.completed).length;
+  }, [sets]);
 
-    Animated.timing(rotateAnim, {
-      toValue: isExpanded ? 0 : 1,
-      duration: 200,
+  // חישוב חזרות כוללות
+  // Calculate total reps
+  const totalReps = useMemo(() => {
+    return sets.reduce((total, set) => {
+      return total + (set.actualReps || 0);
+    }, 0);
+  }, [sets]);
+
+  // טיפול בלחיצה על התרגיל
+  // Handle exercise tap
+  const handleToggleExpanded = useCallback(() => {
+    log("Toggle expanded", { isExpanded });
+
+    const toValue = !isExpanded ? 1 : 0;
+
+    LayoutAnimation.configureNext(
+      LayoutAnimation.create(
+        300,
+        LayoutAnimation.Types.easeInEaseOut,
+        LayoutAnimation.Properties.scaleY
+      )
+    );
+
+    Animated.timing(expandAnimation, {
+      toValue,
+      duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [isExpanded]);
 
-  // טיפול בתפריט
-  // Handle menu
-  const handleMenuPress = useCallback(() => {
-    setMenuVisible(true);
-    Vibration.vibrate(10);
+    setIsExpanded(!isExpanded);
+  }, [isExpanded, expandAnimation]);
+
+  // טיפול בהוספת סט
+  // Handle add set
+  const handleAddSet = useCallback(() => {
+    log("Add set clicked");
+
+    if (Platform.OS === "ios") {
+      Vibration.vibrate(1);
+    }
+
+    onAddSet();
+  }, [onAddSet]);
+
+  // טיפול בלחיצה ארוכה על סט
+  // Handle long press on set
+  const handleSetLongPress = useCallback((setId: string) => {
+    log("Set long press", { setId });
+
+    if (Platform.OS === "ios") {
+      Vibration.vibrate(10);
+    }
+
+    setIsSelectionMode(true);
+    setSelectedSets(new Set([setId]));
   }, []);
 
-  // מצב בחירה
-  // Selection mode
-  const handleSetLongPress = useCallback(
-    (setId: string) => {
-      if (!isSelectionMode) {
-        setIsSelectionMode(true);
-        Animated.spring(selectionAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-        }).start();
-      }
-      setSelectedSets((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(setId)) {
-          newSet.delete(setId);
-        } else {
-          newSet.add(setId);
-        }
-        return newSet;
-      });
-      Vibration.vibrate(10);
-    },
-    [isSelectionMode]
-  );
+  // ביטול מצב בחירה
+  // Cancel selection mode
+  const cancelSelectionMode = useCallback(() => {
+    log("Cancel selection mode");
+    setIsSelectionMode(false);
+    setSelectedSets(new Set());
+  }, []);
 
-  const handleDeleteSelected = useCallback(() => {
+  // מחיקת סטים נבחרים
+  // Delete selected sets
+  const deleteSelectedSets = useCallback(() => {
+    log("Delete selected sets", { count: selectedSets.size });
+
     Alert.alert("מחיקת סטים", `האם למחוק ${selectedSets.size} סטים?`, [
       { text: "ביטול", style: "cancel" },
       {
@@ -186,251 +223,221 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           selectedSets.forEach((setId) => {
             onDeleteSet?.(setId);
           });
-          setSelectedSets(new Set());
-          setIsSelectionMode(false);
+          cancelSelectionMode();
         },
       },
     ]);
-  }, [selectedSets, onDeleteSet]);
+  }, [selectedSets, onDeleteSet, cancelSelectionMode]);
 
-  const handleSelectAll = useCallback(() => {
-    if (selectedSets.size === sets.length) {
-      setSelectedSets(new Set());
-    } else {
-      setSelectedSets(new Set(sets.map((s) => s.id)));
-    }
-  }, [sets, selectedSets]);
+  // טיפול בבחירת סט
+  // Handle set selection
+  const handleSetSelect = useCallback((setId: string) => {
+    log("Set select", { setId });
 
-  const handleCancelSelection = useCallback(() => {
-    setIsSelectionMode(false);
-    setSelectedSets(new Set());
-    Animated.timing(selectionAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    setSelectedSets((prev: globalThis.Set<string>) => {
+      const newSet = new globalThis.Set(prev);
+      if (newSet.has(setId)) {
+        newSet.delete(setId);
+      } else {
+        newSet.add(setId);
+      }
+      return newSet;
+    });
   }, []);
 
-  // הוספת סט
-  // Add set
-  const handleAddSet = useCallback(() => {
-    onAddSet();
-    Vibration.vibrate(10);
-  }, [onAddSet]);
+  // אנימציה כשהתרגיל הושלם
+  // Animate when exercise is completed
+  useEffect(() => {
+    if (isCompleted) {
+      log("Exercise completed animation");
 
-  // עיבוד סרגל בחירה
-  // Render selection bar
-  const renderSelectionBar = () => {
-    if (!isSelectionMode) return null;
-
-    return (
-      <Animated.View
-        style={[
-          styles.selectionBar,
-          {
-            opacity: selectionAnim,
-            transform: [
-              {
-                translateY: selectionAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={handleSelectAll}
-          style={styles.selectionButton}
-        >
-          <Text style={styles.selectionText}>
-            {selectedSets.size === sets.length ? "בטל הכל" : "בחר הכל"} (
-            {selectedSets.size})
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: "row-reverse", gap: 8 }}>
-          <TouchableOpacity onPress={handleCancelSelection}>
-            <MaterialCommunityIcons
-              name="close"
-              size={24}
-              color={theme.colors.text}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleDeleteSelected}
-            style={{ opacity: selectedSets.size === 0 ? 0.5 : 1 }}
-            disabled={selectedSets.size === 0}
-          >
-            <MaterialCommunityIcons
-              name="delete"
-              size={24}
-              color={theme.colors.error}
-            />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    );
-  };
-
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "-90deg"],
-  });
+      Animated.sequence([
+        Animated.timing(headerColorAnimation, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isCompleted, headerColorAnimation, cardOpacity]);
 
   return (
     <View style={styles.container}>
-      {/* סרגל בחירה */}
+      {/* פס בחירה */}
       {/* Selection bar */}
-      {renderSelectionBar()}
+      {isSelectionMode && (
+        <View style={styles.selectionBar}>
+          <View style={{ flexDirection: "row-reverse", gap: 12 }}>
+            <TouchableOpacity
+              onPress={cancelSelectionMode}
+              style={styles.selectionButton}
+            >
+              <MaterialCommunityIcons
+                name="close"
+                size={24}
+                color={theme.colors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={deleteSelectedSets}
+              style={styles.selectionButton}
+            >
+              <MaterialCommunityIcons
+                name="delete"
+                size={24}
+                color={theme.colors.error}
+              />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.selectionText}>
+            {selectedSets.size} סטים נבחרו
+          </Text>
+        </View>
+      )}
 
-      {/* ראש הכרטיס */}
-      {/* Card header */}
+      {/* כותרת התרגיל */}
+      {/* Exercise header */}
       <TouchableOpacity
-        style={[styles.header, allSetsCompleted && styles.headerCompleted]}
-        onPress={handleCardPress}
+        style={[styles.header, isCompleted && styles.headerCompleted]}
+        onPress={handleToggleExpanded}
         activeOpacity={0.7}
       >
         <View style={styles.headerContent}>
-          {/* מידע על התרגיל */}
-          {/* Exercise info */}
           <View style={styles.exerciseInfo}>
             <View style={styles.titleRow}>
               <Text style={styles.exerciseName}>{exercise.name}</Text>
-              <Animated.View style={{ transform: [{ rotate }] }}>
+              {isCompleted && (
                 <MaterialCommunityIcons
-                  name="chevron-down"
-                  size={24}
-                  color={theme.colors.textSecondary}
+                  name="check-circle"
+                  size={20}
+                  color={theme.colors.success}
                 />
-              </Animated.View>
+              )}
             </View>
 
-            {/* סטטיסטיקות */}
-            {/* Statistics */}
             <View style={styles.statsRow}>
               <View style={styles.stat}>
                 <MaterialCommunityIcons
-                  name="checkbox-marked-circle"
-                  size={16}
-                  color={theme.colors.success}
+                  name="dumbbell"
+                  size={14}
+                  color={theme.colors.textSecondary}
                 />
                 <Text style={styles.statText}>
-                  {stats.completedSets}/{stats.totalSets}
+                  {completedSets}/{sets.length} סטים
                 </Text>
               </View>
 
-              {stats.totalVolume > 0 && (
+              {totalVolume > 0 && (
                 <View style={styles.stat}>
                   <MaterialCommunityIcons
-                    name="weight-kilogram"
-                    size={16}
-                    color={theme.colors.primary}
+                    name="weight"
+                    size={14}
+                    color={theme.colors.textSecondary}
                   />
-                  <Text style={styles.statText}>
-                    {stats.totalVolume.toFixed(0)} ק"ג
-                  </Text>
+                  <Text style={styles.statText}>{totalVolume} ק״ג</Text>
                 </View>
               )}
 
-              {personalRecord && (
+              {totalReps > 0 && (
                 <View style={styles.stat}>
                   <MaterialCommunityIcons
-                    name="trophy"
-                    size={16}
-                    color={theme.colors.warning}
+                    name="repeat"
+                    size={14}
+                    color={theme.colors.textSecondary}
                   />
-                  <Text style={styles.statText}>
-                    {personalRecord.weight}×{personalRecord.reps}
-                  </Text>
+                  <Text style={styles.statText}>{totalReps} חזרות</Text>
                 </View>
               )}
             </View>
           </View>
 
-          {/* כפתורי פעולה */}
-          {/* Action buttons */}
           <View style={styles.headerActions}>
-            {/* כפתור טיפים */}
-            {onShowTips && (
-              <TouchableOpacity
-                style={styles.menuButton}
-                onPress={onShowTips}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <MaterialCommunityIcons
-                  name="lightbulb-outline"
-                  size={24}
-                  color={theme.colors.warning}
-                />
-              </TouchableOpacity>
-            )}
-
-            {/* כפתור תפריט */}
             <TouchableOpacity
               style={styles.menuButton}
-              onPress={handleMenuPress}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={() => {
+                log("Menu button pressed");
+                setMenuVisible(true);
+              }}
             >
               <MaterialCommunityIcons
                 name="dots-vertical"
                 size={24}
-                color={theme.colors.textSecondary}
+                color={theme.colors.text}
               />
             </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Progress bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBackground}>
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.primaryGradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            <MaterialCommunityIcons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={24}
+              color={theme.colors.textSecondary}
             />
           </View>
         </View>
+
+        {/* פס התקדמות */}
+        {/* Progress bar */}
+        {sets.length > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBackground}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.progressFill,
+                  { width: `${(completedSets / sets.length) * 100}%` },
+                ]}
+              />
+            </View>
+          </View>
+        )}
       </TouchableOpacity>
 
       {/* תוכן התרגיל */}
       {/* Exercise content */}
       {isExpanded && (
-        <Animated.View style={[styles.content, { opacity: heightAnim }]}>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: expandAnimation,
+              transform: [{ scaleY: expandAnimation }],
+            },
+          ]}
+        >
           {/* מידע נוסף */}
           {/* Additional info */}
-          {(showNotes || showHistory) && (
-            <View style={styles.infoSection}>
-              {showNotes && exercise.notes && (
-                <View style={styles.notesContainer}>
-                  <MaterialCommunityIcons
-                    name="note-text"
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.notesText}>{exercise.notes}</Text>
-                </View>
-              )}
+          <View style={styles.infoSection}>
+            {exercise.notes && showNotes && (
+              <View style={styles.notesContainer}>
+                <MaterialCommunityIcons
+                  name="note-text"
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.notesText}>{exercise.notes}</Text>
+              </View>
+            )}
 
-              {showHistory && lastWorkout && (
-                <View style={styles.historyContainer}>
-                  <MaterialCommunityIcons
-                    name="history"
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.historyText}>
-                    פעם קודמת: {lastWorkout.bestSet.weight}ק"ג ×{" "}
-                    {lastWorkout.bestSet.reps} חזרות
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+            {lastWorkout && showHistory && (
+              <View style={styles.historyContainer}>
+                <MaterialCommunityIcons
+                  name="history"
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.historyText}>
+                  אימון קודם: {lastWorkout.bestSet.weight} ק״ג x{" "}
+                  {lastWorkout.bestSet.reps} חזרות
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* רשימת סטים */}
           {/* Sets list */}
@@ -440,10 +447,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 key={set.id}
                 set={set}
                 setNumber={index + 1}
-                onUpdate={(updates) => onUpdateSet(set.id, updates)}
-                onComplete={() => onCompleteSet(set.id)}
+                onUpdate={(updates: Partial<WorkoutSet>) =>
+                  onUpdateSet(set.id, updates)
+                }
                 onDelete={() => onDeleteSet?.(set.id)}
+                onComplete={() => onCompleteSet(set.id)}
                 onLongPress={() => handleSetLongPress(set.id)}
+                isActive={index === 0 && !set.completed}
                 exercise={exercise}
               />
             ))}
@@ -459,7 +469,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <LinearGradient
               colors={[
                 theme.colors.primary + "20",
-                theme.colors.primaryGradientEnd + "20",
+                theme.colors.primaryDark + "20",
               ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -498,7 +508,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     overflow: "visible",
-    shadowColor: theme.colors.shadow,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

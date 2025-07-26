@@ -168,11 +168,10 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     if (!nextSet) return null;
     return {
       name: nextExercise.name,
-      weight: nextSet.targetWeight || nextSet.previousWeight || 0,
-      reps: nextSet.targetReps || nextSet.previousReps || 0,
+      weight: nextSet.targetWeight || 0,
+      reps: nextSet.targetReps || 0,
     };
   }, [nextExercise]);
-
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],

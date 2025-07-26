@@ -39,6 +39,97 @@ git push
 
 ---
 
+🔖 Checkpoint #029 - תיקון שגיאות TypeScript במערכת האימון
+🗓️ תאריך: 2025-01-26
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+תיקון שגיאות TypeScript בקומפוננטות האימון:
+
+תיקון ExerciseCard/index.tsx - החלפת WorkoutSet ל-Set והתנגשות שמות
+תיקון SetRow.tsx - החלפת שדות לא קיימים והוספת ExtendedSet interface
+תיקון RestTimer.tsx - הסרת גישה לשדות לא קיימים
+תיקון WorkoutSummary.tsx - התאמת שמות שדות
+תיקון autoSaveService.ts - החלפת Workout ל-WorkoutData
+
+
+מיפוי שינויי שדות:
+weight → actualWeight
+reps → actualReps
+isPersonalRecord → isPR
+Workout → WorkoutData
+maxAge → draftExpiry
+
+פתרונות להתנגשות שמות:
+
+שימוש ב-Set as WorkoutSet למניעת התנגשות עם JavaScript Set
+שימוש ב-globalThis.Set<string> עבור JavaScript Set המובנה
+
+
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: שימוש בשדות שלא קיימים בטיפוס Set
+
+פתרון: מיפוי לשדות הנכונים (actualWeight, actualReps)
+לקח לעתיד: תמיד לבדוק את הטיפוסים המוגדרים לפני שימוש
+
+
+שגיאה: התנגשות בין טיפוס Set שלנו ל-JavaScript Set
+
+פתרון: שימוש ב-alias בעת הייבוא
+לקח לעתיד: להיזהר משמות שמתנגשים עם built-in types
+
+
+שגיאה: שימוש בשדות שלא קיימים (previousWeight, previousReps)
+
+פתרון: יצירת ExtendedSet interface או הסרת השימוש
+לקח לעתיד: לא להניח קיום שדות - לבדוק או להרחיב טיפוסים
+
+
+
+📂 קבצים עיקריים שעודכנו:
+src/screens/workout/components/
+├── ExerciseCard/
+│   ├── index.tsx
+│   └── SetRow.tsx
+├── RestTimer.tsx
+├── WorkoutSummary.tsx
+└── ../services/autoSaveService.ts
+🚀 השלב הבא:
+
+בדיקת האינטגרציה המלאה של מערכת האימון
+הוספת הפונקציונליות החסרה (מחשבון פלטות, טיפים)
+בדיקות end-to-end של זרימת האימון
+
+💻 פקודות Git:
+powershell# הוספת כל הקבצים המתוקנים
+git add src/screens/workout/components/ExerciseCard/index.tsx
+git add src/screens/workout/components/ExerciseCard/SetRow.tsx
+git add src/screens/workout/components/RestTimer.tsx
+git add src/screens/workout/components/WorkoutSummary.tsx
+git add src/screens/workout/services/autoSaveService.ts
+
+# יצירת commit
+git commit -m "fix: Resolve all TypeScript errors in workout system
+
+- Fix type mismatches (weight→actualWeight, reps→actualReps)
+- Resolve Set type collision with JavaScript Set
+- Update imports (Workout→WorkoutData)
+- Add ExtendedSet interface for additional fields
+- Fix AUTO_SAVE property names (maxAge→draftExpiry)"
+
+# דחיפה לענף
+git push origin main
+📊 סטטוס כללי של הפרויקט:
+
+✅ תשתית בסיסית מוכנה
+✅ מסכי אימון עם עיצוב מודרני
+✅ התאמה מלאה ל-RTL
+✅ תיקון כל שגיאות TypeScript במערכת האימון
+🔄 נדרש: המשך פיתוח פיצ'רים ובדיקות
+
 
 🔖 Checkpoint #028 - שדרוג theme.ts ויצירת קומפוננטות אוניברסליות
 🗓️ תאריך: 2025-01-26

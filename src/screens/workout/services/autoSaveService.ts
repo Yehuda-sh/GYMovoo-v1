@@ -6,7 +6,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, I18nManager } from "react-native";
-import { Workout, WorkoutDraft } from "../types/workout.types";
+import { WorkoutData, WorkoutDraft } from "../types/workout.types";
 import { AUTO_SAVE } from "../utils/workoutConstants";
 
 class AutoSaveService {
@@ -24,7 +24,7 @@ class AutoSaveService {
 
   // התחל שמירה אוטומטית
   // Start auto-save
-  startAutoSave(workoutId: string, getWorkoutState: () => Workout) {
+  startAutoSave(workoutId: string, getWorkoutState: () => WorkoutData) {
     this.currentWorkoutId = workoutId;
 
     // שמור מיד
@@ -50,7 +50,7 @@ class AutoSaveService {
 
   // שמור מצב אימון
   // Save workout state
-  async saveWorkoutState(workout: Workout): Promise<void> {
+  async saveWorkoutState(workout: WorkoutData): Promise<void> {
     if (!this.currentWorkoutId) return;
 
     try {
@@ -99,98 +99,18 @@ class AutoSaveService {
 
             if (age < AUTO_SAVE.draftExpiry) {
               validDrafts.push(draft);
-            } else {
-              // מחק טיוטות ישנות
-              // Delete old drafts
-              await AsyncStorage.removeItem(key);
             }
-          } catch (parseError) {
-            console.error("Error parsing draft:", parseError);
+          } catch (e) {
+            console.error("Error parsing draft:", e);
           }
         }
       }
 
-      // מיין לפי תאריך - החדשות ראשונות
-      // Sort by date - newest first
-      return validDrafts.sort(
-        (a, b) =>
-          new Date(b.lastSaved).getTime() - new Date(a.lastSaved).getTime()
-      );
+      return validDrafts;
     } catch (error) {
       console.error("Error recovering drafts:", error);
       return [];
     }
-  }
-
-  // הצג התראה לשחזור טיוטה
-  // Show draft recovery alert
-  async checkAndPromptDraftRecovery(): Promise<WorkoutDraft | null> {
-    const drafts = await this.recoverDrafts();
-
-    if (drafts.length === 0) return null;
-
-    return new Promise((resolve) => {
-      const latestDraft = drafts[0];
-      const savedDate = new Date(latestDraft.lastSaved);
-      const formattedDate = savedDate.toLocaleString("he-IL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      // סדר כפתורים מותאם ל-RTL
-      // Button order adapted for RTL
-      const buttons = I18nManager.isRTL
-        ? [
-            {
-              text: "שחזר",
-              style: "default" as const,
-              onPress: () => resolve(latestDraft),
-            },
-            {
-              text: "התחל חדש",
-              style: "cancel" as const,
-              onPress: () => resolve(null),
-            },
-            {
-              text: "מחק",
-              style: "destructive" as const,
-              onPress: async () => {
-                await this.deleteDraft(latestDraft.workout.id);
-                resolve(null);
-              },
-            },
-          ]
-        : [
-            {
-              text: "מחק",
-              style: "destructive" as const,
-              onPress: async () => {
-                await this.deleteDraft(latestDraft.workout.id);
-                resolve(null);
-              },
-            },
-            {
-              text: "התחל חדש",
-              style: "cancel" as const,
-              onPress: () => resolve(null),
-            },
-            {
-              text: "שחזר",
-              style: "default" as const,
-              onPress: () => resolve(latestDraft),
-            },
-          ];
-
-      Alert.alert(
-        "🔄 נמצאה טיוטת אימון",
-        `נמצא אימון לא גמור מ-${formattedDate}\n"${latestDraft.workout.name}"\n\nהאם לשחזר?`,
-        buttons,
-        { cancelable: false }
-      );
-    });
   }
 
   // מחק טיוטה
@@ -203,31 +123,56 @@ class AutoSaveService {
     }
   }
 
-  // מחק את כל הטיוטות
-  // Delete all drafts
-  async deleteAllDrafts(): Promise<void> {
+  // בדוק אם יש טיוטות
+  // Check if drafts exist
+  async hasDrafts(): Promise<boolean> {
     try {
-      const keys = await AsyncStorage.getAllKeys();
-      const draftKeys = keys.filter((key) => key.startsWith("workout_draft_"));
-      await AsyncStorage.multiRemove(draftKeys);
+      const drafts = await this.recoverDrafts();
+      return drafts.length > 0;
     } catch (error) {
-      console.error("Error deleting all drafts:", error);
+      return false;
     }
   }
 
-  // נקה טיוטות ישנות
-  // Clean old drafts
-  async cleanOldDrafts(): Promise<void> {
-    const drafts = await this.recoverDrafts();
+  // הצע שחזור טיוטות
+  // Offer draft recovery
+  async offerDraftRecovery(): Promise<WorkoutDraft | null> {
+    try {
+      const drafts = await this.recoverDrafts();
+      if (drafts.length === 0) return null;
 
-    if (drafts.length > AUTO_SAVE.maxDrafts) {
-      // השאר רק את החדשות ביותר
-      // Keep only the newest ones
-      const draftsToDelete = drafts.slice(AUTO_SAVE.maxDrafts);
+      // מיין לפי תאריך שמירה
+      // Sort by save date
+      drafts.sort(
+        (a, b) =>
+          new Date(b.lastSaved).getTime() - new Date(a.lastSaved).getTime()
+      );
 
-      for (const draft of draftsToDelete) {
-        await this.deleteDraft(draft.workout.id);
-      }
+      const latestDraft = drafts[0];
+      const savedDate = new Date(latestDraft.lastSaved);
+      const formattedDate = savedDate.toLocaleString("he-IL");
+
+      return new Promise((resolve) => {
+        Alert.alert(
+          "שחזור אימון",
+          `נמצאה טיוטה שנשמרה ב-${formattedDate}. לשחזר?`,
+          [
+            {
+              text: "לא",
+              style: "cancel",
+              onPress: () => resolve(null),
+            },
+            {
+              text: "כן",
+              onPress: () => resolve(latestDraft),
+            },
+          ],
+          { cancelable: false }
+        );
+      });
+    } catch (error) {
+      console.error("Error offering draft recovery:", error);
+      return null;
     }
   }
 }
