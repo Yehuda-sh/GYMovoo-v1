@@ -39,6 +39,76 @@ git push
 
 ---
 
+
+
+🔖 Checkpoint #030 - תיקון שגיאות TypeScript ועיצוב מינימליסטי למסך הראשי
+🗓️ תאריך: 2025-01-27
+🎯 סטטוס: ✅ הושלם
+
+✅ מה הושלם:
+
+תיקון שגיאות TypeScript:
+
+תיקון גישה לשדה gender מהשאלון
+החלפת משתנה const לשימוש ב-state (timeOfDayState)
+הוספת type assertions לגישה בטוחה לנתונים
+
+
+עיצוב מינימליסטי חדש:
+
+הסרת כרטיסיות גדולות וצבעוניות לטובת עיצוב נקי
+Header פשוט עם אווטאר, ברכה וכפתור התראות
+סטטיסטיקות כרשימה קומפקטית עם progress bar
+תפריט ניווט בגריד 2x2
+
+
+תיקוני RTL מלאים:
+
+flexDirection: 'row-reverse' בכל המקומות הנדרשים
+textAlign: 'right' לכל הטקסטים
+alignItems: 'flex-end' לקונטיינרים
+החלפת marginLeft/marginRight בהתאם לכיוון
+
+
+תיקון בעיית גודל קונטיינר:
+
+הגבלת גובה לסטטיסטיקות (maxHeight)
+הגבלת רוחב ל-progress bar
+יצירת פריסה קומפקטית יותר
+
+
+
+⚠️ לקחים ושגיאות שנפתרו:
+
+שגיאה: Property 'gender' does not exist on type 'QuestionnaireAnswers'
+פתרון: שימוש ב-type assertion ובגישה דרך bracket notation
+לקח לעתיד: יש לעדכן את הטיפוסים כך שיתמכו בכל השדות האפשריים
+שגיאה: Cannot assign to 'timeOfDay' because it is a constant
+פתרון: יצירת state נפרד (timeOfDayState) למשתנה שמשתנה
+לקח לעתיד: תמיד להשתמש ב-state למשתנים שמשתנים
+
+📂 קבצים עיקריים שעודכנו:
+
+src/screens/main/MainScreen.tsx - עיצוב מחדש מלא ותיקוני TypeScript
+
+🚀 השלב הבא:
+
+בדיקת הטמעת השינויים במכשיר
+אופציונלי: יצירת קומפוננטות UI משותפות לעקביות
+עדכון הטיפוס QuestionnaireAnswers לתמיכה בכל השדות
+
+💻 פקודות Git:
+bashgit add src/screens/main/MainScreen.tsx
+git commit -m "fix: TypeScript errors and implement minimalist design for MainScreen
+
+- Fix gender field access with type assertions
+- Replace const timeOfDay with state management
+- Complete RTL implementation with proper margins and alignments
+- Redesign to minimalist style matching project standards
+- Add height/width constraints to prevent oversized containers"
+
+git push origin main
+
 🔖 Checkpoint #029 - תיקון שגיאות TypeScript במערכת האימון
 🗓️ תאריך: 2025-01-26
 🎯 סטטוס: ✅ הושלם
