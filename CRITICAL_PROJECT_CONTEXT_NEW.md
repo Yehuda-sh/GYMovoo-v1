@@ -1,13 +1,33 @@
-/\*\*
+````markdown
+<!--
+@file docs/CRITICAL_PROJECT_CONTEXT_NEW.md
+@brief חוקי ברזל, סטנדרטים והלקחים של פרויקט GYMovoo | Iron Rules, Standards & Lessons for GYMovoo Project
+@dependencies theme.ts, theme.components, Zustand, Expo, React Navigation, TypeScript
+@notes כל עדכון דורש סנכרון גם לכלי ה-AI ולעדכן גרסה במאגר.
+@recurring_errors חובה לקרוא סעיף "לקחים חוזרים" לפני כל שינוי קוד!
+-->
 
-- @file GYMovoo/docs/CRITICAL_PROJECT_CONTEXT_NEW.md
-- @brief חוקי הברזל, סטנדרטים והלקחים של פרויקט GYMovoo | Iron Rules, Standards & Lessons for GYMovoo Project
-- @dependencies theme.ts, theme.components, Zustand, Expo, React Navigation, TypeScript
-- @notes כל עדכון דורש סנכרון גם לכלי ה-AI ולעדכן גרסה במאגר.
-- @recurring_errors חובה לקרוא סעיף "לקחים חוזרים" לפני כל שינוי קוד!
-  \*/
+# 🏋️‍♂️ GYMovoo – חוקי ברזל, סטנדרטים ולקחים
 
-# 🏋️‍♂️ GYMovoo – חוקי ברזל וסטנדרטים לפיתוח
+## תוכן עניינים | Table of Contents
+
+1. [כללי זהב (עברית)](#1-כללי-זהב-עברית)
+2. [Golden Rules (English)](#11-golden-rules-english)
+3. [סטנדרטים של תיעוד (עברית)](#2-סטנדרטים-של-תיעוד-עברית)
+4. [Documentation Standards (English)](#21-documentation-standards-english)
+5. [עיצוב ו־UI (עברית)](#3-עיצוב-ו-ui-עברית)
+6. [UI & Design (English)](#31-ui--design-english)
+7. [ארגון קוד ונתונים (עברית)](#4-ארגון-קוד-ונתונים-עברית)
+8. [Code & Data Organization (English)](#41-code--data-organization-english)
+9. [UX וחוויית משתמש (עברית)](#5-ux-וחוויית-משתמש-עברית)
+10. [UX & User Experience (English)](#51-ux--user-experience-english)
+11. [בדיקות לפני הגשה (עברית)](#6-בדיקות-לפני-הגשה-עברית)
+12. [Pre-submission QA (English)](#61-pre-submission-qa-english)
+13. [כללים נוספים (עברית)](#7-כללים-נוספים-עברית)
+14. [Additional Rules (English)](#71-additional-rules-english)
+15. [לקחים חוזרים מהיומן | Recurring Lessons](#📚-לקחים-חוזרים-מהיומן--recurring-lessons)
+
+---
 
 ## 1. 🟦 כללי זהב (עברית)
 
@@ -48,14 +68,17 @@
 ## 2. 🟩 סטנדרטים של תיעוד (עברית)
 
 - כל קובץ פותח ב-Header תיעוד:
-  /\*\*
 
-* @file [נתיב מלא]
-* @brief [מה עושה]
-* @dependencies [תלויות עיקריות]
-* @notes [הערות מיוחדות]
-* @recurring_errors [שגיאות נפוצות]
-  \*/
+```ts
+/**
+ * @file [נתיב מלא]
+ * @brief [מה עושה]
+ * @dependencies [תלויות עיקריות]
+ * @notes [הערות מיוחדות]
+ * @recurring_errors [שגיאות נפוצות]
+ */
+```
+````
 
 - הערות בקוד – תמיד דו-לשוני (עברית ואז אנגלית).
 - אין שימוש ב-any.
@@ -65,15 +88,17 @@
 
 ## 2.1 🟩 Documentation Standards (English)
 
-- Every file starts with a documentation header:
-  /\*\*
+Every file starts with a documentation header:
 
-* @file [Full Path]
-* @brief [Purpose]
-* @dependencies [Main dependencies]
-* @notes [Special notes]
-* @recurring_errors [Common errors]
-  \*/
+```ts
+/**
+ * @file [Full Path]
+ * @brief [Purpose]
+ * @dependencies [Main dependencies]
+ * @notes [Special notes]
+ * @recurring_errors [Common errors]
+ */
+```
 
 - Comments always bilingual (Hebrew first, then English).
 - No use of any.
@@ -86,7 +111,7 @@
 - שימוש ב-theme.components (גרסה 5.1+).
 - קצוות עגולים (borderRadius: 16) בכל הכרטיסים/רכיבים.
 - עיצוב כרטיס (Card) עם מסגרת וצל (theme.components.card).
-- כפתור ראשי/משני – מהtheme.
+- כפתור ראשי/משני – מה־theme.
 - spacing רק מה-theme.
 - אייקונים – MaterialCommunityIcons בלבד.
 - שינוי עיצוב – רק דרך theme.
@@ -187,69 +212,105 @@
 
 ### 1. RTL – לא רק textAlign
 
-- בעיה: יושם רק textAlign: 'right', אך לא שונה flexDirection, אייקונים או חצים.
-- פתרון: flexDirection: 'row-reverse' לכל רכיב רלוונטי + chevron-forward לימין.
+- **בעיה:** יושם רק `textAlign: 'right'`, אך לא שונה `flexDirection`, אייקונים או חצים.
+- **פתרון:** `flexDirection: 'row-reverse'` לכל רכיב רלוונטי + chevron-forward לימין.
 
-#### Example:
-
-```jsx
+```tsx
 // ❌ Wrong
 <View style={{ flexDirection: 'row' }}>
+
 // ✅ Right
 <View style={{ flexDirection: 'row-reverse' }}>
 ```
 
-2. ערכי עיצוב קשיחים
-   בעיה: שימוש ב-borderRadius/color קשיח.
+---
 
-פתרון: תמיד theme בלבד.
-Example:
+### 2. ערכי עיצוב קשיחים
+
+- **בעיה:** שימוש ב-borderRadius/color קשיח.
+- **פתרון:** תמיד theme בלבד.
+
+```ts
 // ❌ Wrong
 borderRadius: 20, backgroundColor: '#121212'
+
 // ✅ Right
-borderRadius: theme.radius.lg, backgroundColor: theme.colors.card 3. קינון FlatList ב-ScrollView
-בעיה: ביצועים ירודים, אזהרות.
+borderRadius: theme.radius.lg, backgroundColor: theme.colors.card
+```
 
-פתרון: FlatList כרכיב ראשי.
+---
 
-Example:
+### 3. קינון FlatList ב-ScrollView
+
+- **בעיה:** ביצועים ירודים, אזהרות.
+- **פתרון:** FlatList כרכיב ראשי.
+
+```tsx
 // ❌ Wrong
 <ScrollView>
-<FlatList ... />
+  <FlatList ... />
 </ScrollView>
+
 // ✅ Right
-<FlatList ListHeaderComponent={<Header />} ... /> 5. ייבוא לא עקבי
-בעיה: import מוחלט/יחסי לא נכון.
+<FlatList ListHeaderComponent={<Header />} ... />
+```
 
-פתרון: רק ./ imports.
+---
 
-Example:
+### 4. ייבוא לא עקבי
+
+- **בעיה:** import מוחלט/יחסי לא נכון.
+- **פתרון:** רק ./ imports.
+
+```ts
 // ❌ Wrong
-import { X } from 'src/screens/workout/X';
+import { X } from "src/screens/workout/X";
 // ✅ Right
-import { X } from './X'; 6. אייקונים לא מותאמי RTL
-בעיה: חץ/אייקון שמאלה.
+import { X } from "./X";
+```
 
-פתרון: תמיד chevron-forward.
+---
 
-Example:
+### 5. אייקונים לא מותאמי RTL
+
+- **בעיה:** חץ/אייקון שמאלה.
+- **פתרון:** תמיד chevron-forward.
+
+```tsx
 // ❌ Wrong
 <MaterialCommunityIcons name="chevron-back" ... />
 // ✅ Right
-<MaterialCommunityIcons name="chevron-forward" ... /> 7. הערות לא דו-לשוניות
-בעיה: הערה רק באנגלית או רק בעברית.
+<MaterialCommunityIcons name="chevron-forward" ... />
+```
 
-פתרון: תמיד דו-לשוני.
+---
 
-Example:
+### 6. הערות לא דו-לשוניות
+
+- **בעיה:** הערה רק באנגלית או רק בעברית.
+- **פתרון:** תמיד דו-לשוני.
+
+```ts
 // ❌ Wrong
 // Update user state
 // ✅ Right
-// עדכון מצב משתמש | Update user state 8. קבצים מונוליטיים
-בעיה: קבצים של 1200 שורות, בלתי מתחזקים.
+// עדכון מצב משתמש | Update user state
+```
 
-פתרון: פיצול תמידי ל-components, hooks, utils.
-🔔 Reminder:
+---
+
+### 7. קבצים מונוליטיים
+
+- **בעיה:** קבצים של 1200 שורות, בלתי מתחזקים.
+- **פתרון:** פיצול תמידי ל-components, hooks, utils.
+
+---
+
+🔔 **Reminder:**
 יש לקרוא מסמך זה לפני כל פיתוח/רפקטור ולסנכרן כל לקח/טעות חוזרת מיד בסעיף "לקחים חוזרים"!
 
 ---
+
+```
+
+```

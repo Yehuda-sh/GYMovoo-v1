@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { WorkoutData } from "../types/workout.types";
-
+const isRTL = theme.isRTL; // תמיכה ב-RTL
 interface WorkoutSummaryProps {
   workout: WorkoutData;
   onClose: () => void;
@@ -187,7 +187,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -198,23 +198,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xl,
   },
   congratsText: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     marginTop: theme.spacing.md,
+    textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   workoutName: {
-    fontSize: 18,
+    fontSize: theme.typography.body.fontSize + 2,
     color: theme.colors.text,
     opacity: 0.9,
     marginTop: theme.spacing.sm,
+    textAlign: isRTL ? "right" : "left",
   },
   content: {
     flex: 1,
     padding: theme.spacing.lg,
   },
   statsGrid: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL ? "row-reverse" : "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: theme.spacing.xl,
@@ -222,10 +225,11 @@ const styles = StyleSheet.create({
   statCard: {
     width: "48%",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     alignItems: "center",
     marginBottom: theme.spacing.md,
+    ...theme.shadows.medium,
   },
   statValue: {
     fontSize: 24,
@@ -234,76 +238,82 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
+    textAlign: isRTL ? "right" : "left",
   },
   exerciseSummary: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
+    ...theme.shadows.small,
   },
   exerciseName: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "500",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
+    textAlign: isRTL ? "right" : "left",
   },
   exerciseStats: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL ? "row-reverse" : "row",
     alignItems: "center",
-    gap: theme.spacing.md,
+    // gap: theme.spacing.md, // gap לא עובד בכל פלטפורמה!
   },
   exerciseStat: {
-    fontSize: 14,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
+    marginHorizontal: theme.spacing.sm / 2, // תחליף ל-gap
   },
   prBadge: {
     backgroundColor: theme.colors.warning,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 2,
   },
   prText: {
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.background,
     fontWeight: "500",
   },
   actions: {
     padding: theme.spacing.lg,
-    gap: theme.spacing.md,
+    flexDirection: "column",
+    // gap: theme.spacing.md, // תחליף ל-gap
   },
   saveButton: {
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     overflow: "hidden",
+    // אפשר לקחת מ-theme.components.primaryButton אם רוצים עיצוב קבוע
   },
   saveButtonGradient: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: theme.spacing.md,
-    gap: theme.spacing.sm,
+    // gap: theme.spacing.sm,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: theme.typography.button.fontSize,
+    fontWeight: theme.typography.button.fontWeight,
     color: theme.colors.text,
   },
   closeButton: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     paddingVertical: theme.spacing.md,
     alignItems: "center",
   },
   closeButtonText: {
-    fontSize: 16,
+    fontSize: theme.typography.button.fontSize,
     color: theme.colors.textSecondary,
   },
 });

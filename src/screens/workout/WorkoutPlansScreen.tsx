@@ -1377,7 +1377,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     ...theme.shadows.medium,
   },
   retryButtonText: {
@@ -1395,7 +1395,7 @@ const styles = StyleSheet.create({
     right: theme.spacing.lg,
     zIndex: 1,
     padding: 8,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.card + "80",
   },
   titleContainer: {
@@ -1432,7 +1432,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
   },
   tagText: {
     fontSize: 12,
@@ -1441,7 +1441,7 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     marginTop: 20,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     ...theme.shadows.medium,
   },
@@ -1493,7 +1493,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dayCard: {
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: theme.colors.border,
@@ -1566,7 +1566,7 @@ const styles = StyleSheet.create({
   targetMuscles: {
     backgroundColor: theme.colors.card,
     padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
   },
@@ -1586,7 +1586,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: theme.radius.full,
   },
   muscleChipText: {
     fontSize: 12,
@@ -1597,12 +1597,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   exerciseCardWrapper: {
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
   },
   exerciseCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     overflow: "hidden",
@@ -1665,7 +1665,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: theme.colors.info + "10",
     padding: 12,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
     marginBottom: 12,
   },
   exerciseNotes: {
@@ -1699,7 +1699,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignSelf: "center",
@@ -1713,7 +1713,7 @@ const styles = StyleSheet.create({
   },
   startButton: {
     marginTop: 28,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     elevation: 6,
     shadowColor: theme.colors.success,
@@ -1742,7 +1742,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     overflow: "hidden",
     ...theme.shadows.small,
   },

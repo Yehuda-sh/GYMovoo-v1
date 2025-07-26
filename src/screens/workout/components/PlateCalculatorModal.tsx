@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.sm,
   },
   incrementButton: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   summary: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     marginTop: theme.spacing.md,
   },

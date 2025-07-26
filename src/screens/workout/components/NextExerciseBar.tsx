@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   gradientBackground: {
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
     borderWidth: 1,
     borderColor: theme.colors.primary + "30",
     borderBottomWidth: 0,
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   skipButtonGradient: {
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.radius.xl,
     overflow: "hidden",
   },
   skipButtonGradientInner: {
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     left: theme.spacing.lg,
     right: theme.spacing.lg,
     backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     ...theme.shadows.small,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   floatingCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.radius.xl,
     padding: theme.spacing.lg,
     ...theme.shadows.large,
     borderWidth: 1,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     alignItems: "center",
   },

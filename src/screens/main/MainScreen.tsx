@@ -335,10 +335,10 @@ export default function MainScreen() {
               timeOfDay === "morning"
                 ? "rgba(255, 179, 0, 0.1)"
                 : timeOfDay === "afternoon"
-                ? "rgba(0, 122, 255, 0.1)"
-                : timeOfDay === "evening"
-                ? "rgba(88, 86, 214, 0.1)"
-                : "rgba(78, 158, 255, 0.1)",
+                  ? "rgba(0, 122, 255, 0.1)"
+                  : timeOfDay === "evening"
+                    ? "rgba(88, 86, 214, 0.1)"
+                    : "rgba(78, 158, 255, 0.1)",
               "transparent",
             ]}
             style={styles.headerGradient}
@@ -354,20 +354,20 @@ export default function MainScreen() {
                         timeOfDay === "morning"
                           ? "weather-sunny"
                           : timeOfDay === "afternoon"
-                          ? "white-balance-sunny"
-                          : timeOfDay === "evening"
-                          ? "weather-sunset"
-                          : "moon-waning-crescent"
+                            ? "white-balance-sunny"
+                            : timeOfDay === "evening"
+                              ? "weather-sunset"
+                              : "moon-waning-crescent"
                       }
                       size={24}
                       color={
                         timeOfDay === "morning"
                           ? theme.colors.warning
                           : timeOfDay === "afternoon"
-                          ? theme.colors.primary
-                          : timeOfDay === "evening"
-                          ? theme.colors.secondary
-                          : theme.colors.accent
+                            ? theme.colors.primary
+                            : timeOfDay === "evening"
+                              ? theme.colors.secondary
+                              : theme.colors.accent
                       }
                       style={styles.timeIcon}
                     />
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   quickWorkoutButton: {
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     marginTop: 16,
     ...theme.shadows.medium,
@@ -1284,7 +1284,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.sm) / 2,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
     ...theme.shadows.medium,
@@ -1320,7 +1320,7 @@ const styles = StyleSheet.create({
   planCard: {
     width: 200,
     marginLeft: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     overflow: "hidden",
   },
   firstPlanCard: {
@@ -1331,7 +1331,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
   },
   planName: {
     fontSize: 16,
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
   quoteCard: {
     marginHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.lg,
     flexDirection: "row-reverse",
     alignItems: "center",

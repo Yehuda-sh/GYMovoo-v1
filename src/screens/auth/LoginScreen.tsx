@@ -585,6 +585,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -597,20 +598,20 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 32,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xl,
     ...theme.shadows.medium,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   logoBackground: {
     backgroundColor: theme.colors.primaryGradientStart + "15",
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.lg,
     ...theme.shadows.small,
   },
   title: {
@@ -618,24 +619,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "600",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   subtitle: {
     color: theme.colors.textSecondary,
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: theme.spacing.xl,
     lineHeight: 22,
+    writingDirection: "rtl",
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
   },
   inputWrapper: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 16,
-    paddingHorizontal: 16,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     height: 56,
@@ -651,6 +654,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "right",
     paddingVertical: 0,
+    marginHorizontal: 0,
     marginRight: 8,
   },
   passwordToggle: {
@@ -667,12 +671,14 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   rememberMe: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 8,
+    // gap: 8, // השתמש ב-margin אם צריך לתמוך באנדרואיד
+    marginLeft: 0,
+    marginRight: 8,
   },
   rememberMeText: {
     color: theme.colors.textSecondary,
@@ -691,7 +697,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
-    gap: 8,
+    // gap: 8, // עדיף margin אם רוצים תאימות מלאה
   },
   errorText: {
     color: theme.colors.error,
@@ -702,7 +708,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginBottom: 20,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     ...theme.shadows.medium,
   },
@@ -712,6 +718,7 @@ const styles = StyleSheet.create({
   gradientButton: {
     paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
   loginButtonText: {
     color: "#fff",
@@ -738,10 +745,10 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     paddingVertical: 16,
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
     gap: 10,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
@@ -771,4 +778,3 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
-

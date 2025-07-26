@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
     padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     alignItems: "center",
     ...theme.shadows.medium,
   },

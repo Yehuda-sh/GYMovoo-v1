@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
   },
   buttonText: {
     color: "#FFFFFF",

@@ -1,3 +1,4 @@
+// src/services/exerciseService.ts
 import axios from "axios";
 
 const BASE_URL = "https://wger.de/api/v2";

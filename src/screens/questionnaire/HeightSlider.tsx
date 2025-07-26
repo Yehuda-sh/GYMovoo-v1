@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   quickButton: {
     paddingHorizontal: theme.spacing.xs,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: theme.radius.full,
     backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.warning + "10",
     paddingHorizontal: theme.spacing.xs,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     maxWidth: SCREEN_WIDTH - theme.spacing.xl * 2,
   },
   tipText: {

@@ -408,7 +408,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
@@ -425,26 +425,25 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     backgroundColor: theme.colors.card,
-    borderRadius: 30,
+    borderRadius: theme.radius.xl,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
+    ...theme.shadows.large,
   },
   appName: {
     fontSize: 48,
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 8,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   tagline: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   activeUsersContainer: {
     marginBottom: 20,
@@ -460,7 +459,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   liveIndicator: {
-    marginRight: 8,
+    marginHorizontal: 0,
+    marginLeft: 8,
     position: "relative",
   },
   liveDot: {
@@ -501,6 +501,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: 8,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   buttonsContainer: {
     width: "100%",
@@ -509,8 +510,9 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: "100%",
     marginBottom: 10,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
+    // אפשר גם: ...theme.components.primaryButton
   },
   gradientButton: {
     flexDirection: "row-reverse",
@@ -523,7 +525,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.buttonLarge.fontSize,
     fontWeight: "600",
     color: "#fff",
+    marginHorizontal: 0,
     marginLeft: 8,
+    textAlign: "center",
   },
   trialBadge: {
     flexDirection: "row-reverse",
@@ -531,12 +535,13 @@ const styles = StyleSheet.create({
     backgroundColor: `${theme.colors.warning}20`,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: theme.radius.full,
     marginBottom: 15,
   },
   trialText: {
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.warning,
+    marginHorizontal: 0,
     marginRight: 6,
   },
   dividerContainer: {
@@ -554,19 +559,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textSecondary,
+    textAlign: "center",
   },
   authGroup: {
     width: "100%",
-    gap: 12,
+    // gap: 12, // אפשר עם marginBottom לכל כפתור אם צריך
   },
   googleButton: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     paddingHorizontal: 20,
     shadowColor: "#000",
@@ -578,6 +584,7 @@ const styles = StyleSheet.create({
   googleLogo: {
     width: 60,
     height: 20,
+    marginHorizontal: 0,
     marginLeft: 8,
   },
   googleButtonText: {
@@ -592,7 +599,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     paddingHorizontal: 20,
   },
@@ -600,6 +607,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.button.fontSize,
     color: theme.colors.primary,
     fontWeight: "500",
+    marginHorizontal: 0,
     marginRight: 8,
   },
   footer: {
@@ -611,6 +619,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
+    writingDirection: "rtl",
   },
   footerLink: {
     color: theme.colors.primary,

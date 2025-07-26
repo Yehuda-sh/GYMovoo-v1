@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     gap: theme.spacing.sm,
   },
   timerText: {
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.radius.xl,
     ...theme.shadows.small,
   },
   gradientTimer: {

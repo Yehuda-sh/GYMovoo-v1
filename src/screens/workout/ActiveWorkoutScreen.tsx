@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   exerciseCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     ...theme.shadows.medium,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
     padding: theme.spacing.sm,
     backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
   },
   setText: {
     fontSize: theme.typography.body.fontSize,
@@ -167,14 +167,14 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     height: 8,
     backgroundColor: theme.colors.divider,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
     marginVertical: theme.spacing.md,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.radius.sm,
   },
   navButtons: {
     flexDirection: "row-reverse",
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     minWidth: 100,
     alignItems: "center",
   },

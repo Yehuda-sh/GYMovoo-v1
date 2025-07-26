@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   },
   ageButton: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     alignItems: "center",
     borderWidth: 2,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.primary + "30",
   },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.xl,
     width: SCREEN_WIDTH * 0.85,
     maxWidth: 350,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.radius.md,
     alignItems: "center",
   },
   cancelButton: {

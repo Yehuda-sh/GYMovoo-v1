@@ -825,6 +825,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
+              style={{ marginLeft: 8 }}
             />
           </View>
 
@@ -848,6 +849,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
+              style={{ marginLeft: 8 }} // חשוב!
             />
           </View>
 
@@ -925,23 +927,23 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
-    paddingBottom: 40,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   formBox: {
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xl,
     ...theme.shadows.medium,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
   },
   titleGradient: {
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   title: {
     color: "#fff",
@@ -953,17 +955,18 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 15,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   inputWrapper: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // קבוע לעברית, בלי תנאי
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: theme.radius.md,
+    paddingStart: theme.spacing.md,
+    paddingEnd: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.divider,
     height: 48,
@@ -979,6 +982,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 16,
     textAlign: "right",
+    writingDirection: "rtl",
     paddingVertical: 0,
   },
   fieldError: {
@@ -1006,42 +1010,47 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   switchRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // קבוע לעברית, בלי תנאי
     alignItems: "center",
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: theme.spacing.sm,
+    justifyContent: "space-between", // כדי שהטקסט יהיה מימין והכפתור משמאל
+    // gap: 8, // עדיף margin בין האלמנטים עצמם
   },
   switchLabel: {
     color: theme.colors.textSecondary,
     fontSize: 13,
+    textAlign: "right",
   },
   termsTextContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 4,
+    flex: 1,
+    justifyContent: "flex-start", // כדי שהטקסט יהיה מימין
+    // gap: 4, // כנ"ל
   },
   termsLink: {
     color: theme.colors.accent,
     fontSize: 13,
     textDecorationLine: "underline",
+    marginRight: 4, // כדי לשמור על ריווח בין הטקסט לקישור
   },
   errorText: {
     color: theme.colors.error,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
     fontSize: 14,
     fontWeight: "500",
   },
   registerButton: {
-    marginBottom: 16,
-    borderRadius: 12,
+    marginBottom: theme.spacing.md,
+    borderRadius: theme.radius.md,
     overflow: "hidden",
   },
   registerButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: 14,
+    paddingVertical: theme.spacing.md,
     alignItems: "center",
   },
   registerButtonText: {
@@ -1053,7 +1062,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   divider: {
     flex: 1,
@@ -1063,16 +1072,16 @@ const styles = StyleSheet.create({
   dividerText: {
     color: theme.colors.textSecondary,
     fontSize: 13,
-    marginHorizontal: 12,
+    marginHorizontal: theme.spacing.sm,
   },
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
     gap: 8,
     borderWidth: 1,
     borderColor: "#ea4335",
@@ -1084,12 +1093,13 @@ const styles = StyleSheet.create({
     color: "#ea4335",
     fontSize: 16,
     fontWeight: "600",
+    letterSpacing: 0.5,
   },
   linkRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // קבוע לעברית, בלי תנאי
     justifyContent: "center",
     alignItems: "center",
-    gap: 4,
+    // gap: 4,
   },
   linkText: {
     color: theme.colors.textSecondary,
