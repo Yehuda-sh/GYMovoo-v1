@@ -40,6 +40,60 @@ git push
 ---
 
 
+📋 הכנת Checkpoint #027 - תיקוני TypeScript ושיפור ניווט
+🎯 מה הושג בשלב זה:
+תיקוני באגים קריטיים:
+
+תיקון בעיית ניווט ל-DynamicQuestionnaire שלא קיים
+עדכון ממשקי TypeScript ב-TwoStageQuestionnaireScreen
+תיקון props של HeightSlider ו-WeightSlider
+הוספת תמיכה ב-surface color ב-theme
+
+שיפורים טכניים:
+
+מעבר מ-currentUser ל-user ב-store
+תיקון טיפוסי ניווט ב-RootStackParamList
+הוספת as any לאייקונים דינמיים
+עדכון שמות props לעקביות (onChange במקום onValueChange)
+
+📝 לקחים חשובים:
+
+תמיד לבדוק את שמות המסכים - הניווט חייב להתאים בדיוק לשמות ב-Navigator
+עקביות ב-props - לשמור על אותם שמות בין קומפוננטות דומות
+TypeScript strict mode - לעבוד עם טיפוסים מדויקים ולא להסתמך על any
+בדיקת ממשקים - תמיד לוודא שה-props תואמים לממשק המוגדר
+
+📁 קבצים שעודכנו:
+src/
+├── navigation/
+│   └── AppNavigator.tsx          # תיקון טיפוס Questionnaire
+├── screens/
+│   ├── welcome/
+│   │   └── WelcomeScreen.tsx     # תיקון ניווט ל-Questionnaire
+│   └── questionnaire/
+│       └── TwoStageQuestionnaireScreen.tsx  # תיקוני TypeScript
+└── styles/
+    └── theme.ts                  # הוספת צבע surface
+🐛 שגיאות שנמצאו ותוקנו:
+typescript// ❌ לפני
+navigation.navigate('DynamicQuestionnaire');
+// ✅ אחרי
+navigation.navigate('Questionnaire');
+
+// ❌ לפני
+<HeightSlider min={140} max={220} />
+// ✅ אחרי
+<HeightSlider minHeight={140} maxHeight={220} />
+🚀 הצעדים הבאים:
+
+בדיקת האפליקציה אחרי התיקונים
+וידוא שכל המסכים נטענים כראוי
+בדיקת flow השאלון מתחילתו ועד סופו
+הוספת בדיקות TypeScript אוטומטיות
+
+
+
+
 🔖 Checkpoint #027 - הגדרת סביבת הפיתוח ותיקון תלויות
 🗓️ תאריך: 2025-01-26
 🎯 סטטוס: ✅ הושלם

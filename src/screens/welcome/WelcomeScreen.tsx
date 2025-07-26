@@ -189,7 +189,7 @@ export default function WelcomeScreen() {
 
       // ניווט למסך השאלון (כי המשתמש החדש תמיד ללא שאלון)
       // Navigate to questionnaire (new user always without questionnaire)
-      navigation.navigate("DynamicQuestionnaire");
+      navigation.navigate("Questionnaire");
     } catch (error) {
       console.error("❌ Google sign in failed:", error);
     } finally {

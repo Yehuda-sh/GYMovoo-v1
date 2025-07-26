@@ -54,7 +54,7 @@ export default function TwoStageQuestionnaireScreen({
   navigation,
   route,
 }: Props) {
-  const { setQuestionnaire, currentUser } = useUserStore();
+  const { setQuestionnaire, user } = useUserStore();
 
   // קביעת השלב הנוכחי
   const initialStage = route.params?.stage || "training";
@@ -65,7 +65,7 @@ export default function TwoStageQuestionnaireScreen({
     initialStage
   );
   const [answers, setAnswers] = useState<{ [key: string]: any }>(
-    currentUser?.questionnaire || {}
+    user?.questionnaire || {}
   );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedMultiple, setSelectedMultiple] = useState<string[]>([]);
@@ -430,9 +430,9 @@ export default function TwoStageQuestionnaireScreen({
         return (
           <HeightSlider
             value={answers[currentQuestion.id] || 170}
-            onValueChange={(value) => handleAnswer(value)}
-            min={currentQuestion.min || 140}
-            max={currentQuestion.max || 220}
+            onChange={(value: number) => handleAnswer(value)}
+            minHeight={currentQuestion.min || 140}
+            maxHeight={currentQuestion.max || 220}
           />
         );
 
@@ -440,10 +440,19 @@ export default function TwoStageQuestionnaireScreen({
         return (
           <WeightSlider
             value={answers[currentQuestion.id] || 70}
-            onValueChange={(value) => handleAnswer(value)}
-            min={currentQuestion.min || 40}
-            max={currentQuestion.max || 150}
-            height={answers.height}
+            onChange={(value: number) => handleAnswer(value)}
+            minWeight={currentQuestion.min || 40}
+            maxWeight={currentQuestion.max || 150}
+          />
+        );
+
+      case "height":
+        return (
+          <HeightSlider
+            value={answers[currentQuestion.id] || 170}
+            onChange={(value: number) => handleAnswer(value)}
+            minHeight={currentQuestion.min || 140}
+            maxHeight={currentQuestion.max || 220}
           />
         );
 
@@ -536,7 +545,7 @@ export default function TwoStageQuestionnaireScreen({
                 {/* Question */}
                 <View style={styles.questionContainer}>
                   <MaterialCommunityIcons
-                    name={currentQuestion.icon}
+                    name={(currentQuestion.icon as any) || "help-circle"}
                     size={48}
                     color={theme.colors.primary}
                     style={styles.questionIcon}

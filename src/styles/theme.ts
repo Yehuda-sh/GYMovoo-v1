@@ -10,6 +10,7 @@ export const theme = {
     darkBackground: "#121212",
     primaryLight: "#4A90E2",
     info: "#2196F3",
+    surface: "#1E1E1E",
 
     // כרטיסים ומשטחים // Cards and surfaces
     card: "#242a47", // רקע כרטיסים

@@ -17,7 +17,6 @@ import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
-import DynamicQuestionnaireScreen from "../screens/questionnaire/DynamicQuestionnaireScreen";
 import TwoStageQuestionnaireScreen from "../screens/questionnaire/TwoStageQuestionnaireScreen";
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
@@ -34,7 +33,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Terms: undefined;
-  DynamicQuestionnaire: undefined;
+  Questionnaire: undefined;
   WorkoutPlan: {
     regenerate?: boolean;
     autoStart?: boolean;
