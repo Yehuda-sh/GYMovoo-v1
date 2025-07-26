@@ -29,7 +29,7 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
-import * as LocalAuthentication from "expo-local-authentication";
+// import * as LocalAuthentication from "expo-local-authentication";
 
 /**
  * מחשב את חוזק הסיסמה ומחזיר נתונים לתצוגה
@@ -340,52 +340,52 @@ export default function RegisterScreen() {
     return true;
   };
 
-  /**
-   * בודק זמינות Biometric // Checks biometric availability
-   */
-  const checkBiometricAvailability = async () => {
-    try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+  // /**
+  //  * בודק זמינות Biometric // Checks biometric availability
+  //  */
+  // const checkBiometricAvailability = async () => {
+  //   try {
+  //     const hasHardware = await LocalAuthentication.hasHardwareAsync();
+  //     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
-      if (hasHardware && isEnrolled) {
-        const supportedTypes =
-          await LocalAuthentication.supportedAuthenticationTypesAsync();
-        return supportedTypes.length > 0;
-      }
-      return false;
-    } catch (error) {
-      console.error("Biometric check failed:", error);
-      return false;
-    }
-  };
+  //     if (hasHardware && isEnrolled) {
+  //       const supportedTypes =
+  //         await LocalAuthentication.supportedAuthenticationTypesAsync();
+  //       return supportedTypes.length > 0;
+  //     }
+  //     return false;
+  //   } catch (error) {
+  //     console.error("Biometric check failed:", error);
+  //     return false;
+  //   }
+  // };
 
   /**
    * מציע שמירת סיסמה ב-Biometric // Offers to save password with biometric
    */
-  const offerBiometricSave = async () => {
-    const isAvailable = await checkBiometricAvailability();
+  // const offerBiometricSave = async () => {
+  //   const isAvailable = await checkBiometricAvailability();
 
-    if (isAvailable) {
-      Alert.alert(
-        "אבטחה משופרת",
-        "האם תרצה לאפשר כניסה מהירה עם טביעת אצבע או זיהוי פנים?",
-        [
-          {
-            text: "לא עכשיו",
-            style: "cancel",
-          },
-          {
-            text: "כן, אפשר",
-            onPress: async () => {
-              // כאן תוכל לשמור את הסיסמה בצורה מאובטחת
-              console.log("Biometric authentication enabled");
-            },
-          },
-        ]
-      );
-    }
-  };
+  //   if (isAvailable) {
+  //     Alert.alert(
+  //       "אבטחה משופרת",
+  //       "האם תרצה לאפשר כניסה מהירה עם טביעת אצבע או זיהוי פנים?",
+  //       [
+  //         {
+  //           text: "לא עכשיו",
+  //           style: "cancel",
+  //         },
+  //         {
+  //           text: "כן, אפשר",
+  //           onPress: async () => {
+  //             // כאן תוכל לשמור את הסיסמה בצורה מאובטחת
+  //             console.log("Biometric authentication enabled");
+  //           },
+  //         },
+  //       ]
+  //     );
+  //   }
+  // };
 
   /**
    * מטפל בתהליך ההרשמה
@@ -440,7 +440,7 @@ export default function RegisterScreen() {
       useUserStore.getState().setUser(newUser);
 
       // הצעת שמירה ביומטרית // Offer biometric save
-      await offerBiometricSave();
+      // await offerBiometricSave();
 
       // המתנה לאנימציית ההצלחה // Wait for success animation
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -494,7 +494,7 @@ export default function RegisterScreen() {
       useUserStore.getState().setUser(googleUser);
 
       // הצעת שמירה ביומטרית // Offer biometric save
-      await offerBiometricSave();
+      // await offerBiometricSave();
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -599,8 +599,8 @@ export default function RegisterScreen() {
                   fieldErrors.fullName
                     ? theme.colors.error
                     : fieldValidation.fullName === true
-                    ? theme.colors.success
-                    : theme.colors.accent
+                      ? theme.colors.success
+                      : theme.colors.accent
                 }
                 style={{ marginLeft: 8 }}
               />
@@ -644,8 +644,8 @@ export default function RegisterScreen() {
                   fieldErrors.email
                     ? theme.colors.error
                     : fieldValidation.email === true
-                    ? theme.colors.success
-                    : theme.colors.accent
+                      ? theme.colors.success
+                      : theme.colors.accent
                 }
                 style={{ marginLeft: 6 }}
               />
@@ -695,8 +695,8 @@ export default function RegisterScreen() {
                     fieldErrors.password
                       ? theme.colors.error
                       : fieldValidation.password === true
-                      ? theme.colors.success
-                      : theme.colors.accent
+                        ? theme.colors.success
+                        : theme.colors.accent
                   }
                   style={{ marginLeft: 6 }}
                 />
@@ -775,8 +775,8 @@ export default function RegisterScreen() {
                     fieldErrors.confirmPassword
                       ? theme.colors.error
                       : fieldValidation.confirmPassword === true
-                      ? theme.colors.success
-                      : theme.colors.accent
+                        ? theme.colors.success
+                        : theme.colors.accent
                   }
                   style={{ marginLeft: 6 }}
                 />
