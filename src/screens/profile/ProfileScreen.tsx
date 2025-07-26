@@ -18,6 +18,7 @@ import {
   Modal,
   FlatList,
   Alert,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
@@ -31,6 +32,8 @@ import {
   hasCompletedTrainingStage,
   hasCompletedProfileStage,
 } from "../../data/twoStageQuestionnaireData";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 // אווטארים מוכנים לבחירה
 const PRESET_AVATARS = [
@@ -81,7 +84,6 @@ const ACHIEVEMENTS = [
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const user = useUserStore((s) => s.user);
-  const currentUser = useUserStore((s) => s.currentUser); // הוספת currentUser
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
 
@@ -305,17 +307,15 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.questionnaireButton}
             onPress={() => {
-              const stage = hasCompletedTrainingStage(
-                currentUser?.questionnaire
-              )
-                ? "profile"
+              const stage = hasCompletedTrainingStage(user?.questionnaire)
+                ? hasCompletedProfileStage(user?.questionnaire)
+                  ? null
+                  : "profile"
                 : "training";
-              navigation.navigate("Questionnaire", {
-                stage,
-                fromSettings: true,
-              });
+              if (stage) {
+                navigation.navigate("Questionnaire", { stage });
+              }
             }}
-            activeOpacity={0.7}
           >
             <LinearGradient
               colors={[
@@ -325,196 +325,166 @@ export default function ProfileScreen() {
               style={styles.questionnaireGradient}
             >
               <MaterialCommunityIcons
-                name="clipboard-list"
-                size={24}
-                color={theme.colors.text}
-              />
-              <Text style={styles.questionnaireText}>
-                {hasCompletedProfileStage(currentUser?.questionnaire)
-                  ? "ערוך פרופיל אישי"
-                  : "השלם פרופיל אישי"}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-left"
+                name="clipboard-text"
                 size={20}
-                color={theme.colors.text}
+                color={theme.colors.white}
               />
+              <Text style={styles.questionnaireButtonText}>
+                {hasCompletedTrainingStage(user?.questionnaire)
+                  ? hasCompletedProfileStage(user?.questionnaire)
+                    ? "עדכן פרטים אישיים"
+                    : "השלם פרופיל אישי"
+                  : "השלם שאלון אימונים"}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* סטטיסטיקות מורחבות */}
-          <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>הסטטיסטיקות שלך</Text>
+          {/* סטטיסטיקות */}
+          <View style={styles.statsContainer}>
+            <Text style={styles.sectionTitle}>הסטטיסטיקות שלי</Text>
             <View style={styles.statsGrid}>
-              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+              <View style={styles.statCard}>
                 <LinearGradient
-                  colors={[
-                    theme.colors.primaryGradientStart,
-                    theme.colors.primaryGradientEnd,
-                  ]}
+                  colors={["#4e9eff", "#3a7bc8"]}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
                     name="dumbbell"
-                    size={28}
+                    size={24}
                     color="#fff"
                   />
-                  <Text style={styles.statValue}>{stats.workouts}</Text>
+                  <Text style={styles.statNumber}>{stats.workouts}</Text>
                   <Text style={styles.statLabel}>אימונים</Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+              <View style={styles.statCard}>
                 <LinearGradient
-                  colors={["#FF6B6B", "#FFA500"]}
+                  colors={["#ff6b6b", "#d84848"]}
                   style={styles.statGradient}
                 >
-                  <MaterialCommunityIcons name="fire" size={28} color="#fff" />
-                  <Text style={styles.statValue}>{stats.streak}</Text>
+                  <MaterialCommunityIcons name="fire" size={24} color="#fff" />
+                  <Text style={styles.statNumber}>{stats.streak}</Text>
                   <Text style={styles.statLabel}>ימי רצף</Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
+              <View style={styles.statCard}>
                 <LinearGradient
-                  colors={["#4ECDC4", "#44A08D"]}
+                  colors={["#00d9ff", "#00b8d4"]}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
-                    name="timer-outline"
-                    size={28}
+                    name="clock-outline"
+                    size={24}
                     color="#fff"
                   />
-                  <Text style={styles.statValue}>{stats.totalTime}</Text>
+                  <Text style={styles.statNumber}>{stats.totalTime}</Text>
                   <Text style={styles.statLabel}>זמן כולל</Text>
                 </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.statCard} activeOpacity={0.7}>
-                <LinearGradient
-                  colors={["#667eea", "#764ba2"]}
-                  style={styles.statGradient}
-                >
-                  <MaterialCommunityIcons
-                    name="chart-line"
-                    size={28}
-                    color="#fff"
-                  />
-                  <Text style={styles.statValue}>15%</Text>
-                  <Text style={styles.statLabel}>שיפור</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
 
           {/* הישגים */}
-          <View style={styles.achievementsSection}>
+          <View style={styles.achievementsContainer}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>ההישגים שלך</Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.seeAllText}>ראה הכל</Text>
+              <Text style={styles.sectionTitle}>ההישגים שלי</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>הצג הכל</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.achievementsList}
-            >
+
+            <View style={styles.achievementsGrid}>
               {ACHIEVEMENTS.map((achievement) => (
                 <View
                   key={achievement.id}
                   style={[
-                    styles.achievementCard,
-                    !achievement.unlocked && styles.achievementLocked,
+                    styles.achievementBadge,
+                    !achievement.unlocked && styles.lockedBadge,
                   ]}
                 >
                   <MaterialCommunityIcons
                     name={achievement.icon as any}
-                    size={32}
-                    color={achievement.unlocked ? achievement.color : "#666"}
+                    size={30}
+                    color={
+                      achievement.unlocked
+                        ? achievement.color
+                        : theme.colors.textTertiary
+                    }
                   />
-                  <Text style={styles.achievementTitle}>
+                  <Text
+                    style={[
+                      styles.achievementTitle,
+                      !achievement.unlocked && styles.lockedText,
+                    ]}
+                  >
                     {achievement.title}
                   </Text>
-                  {!achievement.unlocked && (
-                    <MaterialCommunityIcons
-                      name="lock"
-                      size={16}
-                      color="#666"
-                      style={styles.lockIcon}
-                    />
-                  )}
                 </View>
               ))}
-            </ScrollView>
-          </View>
-
-          {/* פעולות מהירות */}
-          <View style={styles.quickActionsSection}>
-            <Text style={styles.sectionTitle}>פעולות מהירות</Text>
-            <View style={styles.quickActionsGrid}>
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="history"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.quickActionText}>היסטוריה</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="target"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.quickActionText}>יעדים</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="account-group"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.quickActionText}>חברים</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionCard}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="share-variant"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.quickActionText}>שתף</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
+          {/* הגדרות נוספות */}
+          <View style={styles.settingsContainer}>
+            <TouchableOpacity style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialCommunityIcons
+                  name="bell-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>התראות</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialCommunityIcons
+                  name="lock-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>פרטיות ואבטחה</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialCommunityIcons
+                  name="help-circle-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <Text style={styles.settingText}>עזרה ותמיכה</Text>
+              </View>
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* כפתור התנתקות */}
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutText}>התנתק</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <MaterialCommunityIcons
               name="logout"
               size={20}
               color={theme.colors.error}
             />
+            <Text style={styles.logoutText}>התנתק</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -522,30 +492,40 @@ export default function ProfileScreen() {
       {/* מודל בחירת אווטאר */}
       <Modal
         visible={showAvatarModal}
+        transparent
         animationType="slide"
-        transparent={true}
         onRequestClose={() => setShowAvatarModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAvatarModal(false)}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>בחר אווטאר</Text>
               <TouchableOpacity
                 onPress={() => setShowAvatarModal(false)}
                 style={styles.closeButton}
               >
                 <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>בחר תמונת פרופיל</Text>
-              <View style={{ width: 24 }} />
             </View>
 
-            {/* אפשרויות העלאה */}
             <View style={styles.uploadOptions}>
               <TouchableOpacity
                 style={styles.uploadOption}
-                onPress={takePhoto}
-                activeOpacity={0.7}
+                onPress={pickImageFromGallery}
               >
+                <MaterialCommunityIcons
+                  name="image"
+                  size={32}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.uploadOptionText}>מהגלריה</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.uploadOption} onPress={takePhoto}>
                 <MaterialCommunityIcons
                   name="camera"
                   size={32}
@@ -553,27 +533,13 @@ export default function ProfileScreen() {
                 />
                 <Text style={styles.uploadOptionText}>צלם תמונה</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.uploadOption}
-                onPress={pickImageFromGallery}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="image"
-                  size={32}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.uploadOptionText}>בחר מגלריה</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* אווטארים מוכנים */}
-            <Text style={styles.presetsTitle}>או בחר אווטאר מוכן:</Text>
+            <Text style={styles.presetsTitle}>או בחר אימוג'י:</Text>
             <FlatList
               data={PRESET_AVATARS}
               numColumns={4}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={(item) => item}
               contentContainerStyle={styles.avatarGrid}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -582,14 +548,13 @@ export default function ProfileScreen() {
                     selectedAvatar === item && styles.selectedPreset,
                   ]}
                   onPress={() => selectPresetAvatar(item)}
-                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetAvatarText}>{item}</Text>
                 </TouchableOpacity>
               )}
             />
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </LinearGradient>
   );
@@ -603,11 +568,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
+    paddingBottom: 100,
   },
   container: {
     flex: 1,
-    paddingBottom: theme.spacing.xl,
   },
   header: {
     flexDirection: "row-reverse",
@@ -707,178 +671,173 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   username: {
-    color: theme.colors.text,
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "600",
-    textAlign: "center",
+    color: theme.colors.text,
     marginBottom: 4,
   },
   userEmail: {
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    fontSize: 16,
-    textAlign: "center",
     marginBottom: theme.spacing.md,
   },
   badgesContainer: {
     flexDirection: "row-reverse",
-    gap: 12,
+    gap: theme.spacing.sm,
   },
   badge: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: theme.colors.primaryGradientStart + "15",
+    backgroundColor: theme.colors.backgroundElevated,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
+    gap: 4,
   },
   badgeText: {
-    color: theme.colors.primary,
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: "500",
   },
 
-  // כפתור השאלון
+  // שאלון
   questionnaireButton: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   questionnaireGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    padding: theme.spacing.md,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     gap: 8,
   },
-  questionnaireText: {
-    color: theme.colors.text,
+  questionnaireButtonText: {
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
   },
 
-  statsSection: {
+  // סטטיסטיקות
+  statsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
   sectionTitle: {
-    color: theme.colors.text,
     fontSize: 20,
     fontWeight: "600",
+    color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "right",
   },
   statsGrid: {
     flexDirection: "row-reverse",
-    flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
+    gap: theme.spacing.sm,
   },
   statCard: {
-    width: "48%",
+    flex: 1,
     borderRadius: 16,
     overflow: "hidden",
-    ...theme.shadows.medium,
   },
   statGradient: {
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     alignItems: "center",
-    borderRadius: 16,
   },
-  statValue: {
-    color: "#fff",
-    fontSize: 28,
+  statNumber: {
+    fontSize: 24,
     fontWeight: "700",
+    color: "#fff",
     marginTop: 8,
   },
   statLabel: {
+    fontSize: 12,
     color: "#fff",
-    fontSize: 13,
-    marginTop: 4,
-    opacity: 0.9,
+    opacity: 0.8,
   },
-  achievementsSection: {
+
+  // הישגים
+  achievementsContainer: {
+    paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
   sectionHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.md,
   },
   seeAllText: {
     color: theme.colors.primary,
     fontSize: 14,
-    fontWeight: "500",
   },
-  achievementsList: {
-    paddingHorizontal: theme.spacing.lg,
-    gap: 12,
+  achievementsGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: theme.spacing.md,
   },
-  achievementCard: {
+  achievementBadge: {
+    width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.md * 3) / 4,
+    aspectRatio: 1,
     backgroundColor: theme.colors.card,
     borderRadius: 16,
-    padding: theme.spacing.lg,
     alignItems: "center",
-    minWidth: 100,
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
   },
-  achievementLocked: {
+  lockedBadge: {
     opacity: 0.5,
   },
   achievementTitle: {
+    fontSize: 10,
     color: theme.colors.text,
-    fontSize: 12,
-    marginTop: 8,
     textAlign: "center",
+    marginTop: 4,
   },
-  lockIcon: {
-    position: "absolute",
-    top: 8,
-    right: 8,
+  lockedText: {
+    color: theme.colors.textTertiary,
   },
-  quickActionsSection: {
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-  },
-  quickActionsGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  quickActionCard: {
-    width: "48%",
+
+  // הגדרות
+  settingsContainer: {
     backgroundColor: theme.colors.card,
+    marginHorizontal: theme.spacing.lg,
     borderRadius: 16,
-    padding: theme.spacing.lg,
-    alignItems: "center",
+    overflow: "hidden",
+    marginBottom: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
   },
-  quickActionText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    marginTop: 8,
-    fontWeight: "500",
+  settingItem: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.divider,
   },
-  logoutBtn: {
+  settingLeft: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: theme.colors.card,
+    gap: theme.spacing.md,
+  },
+  settingText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+
+  // התנתקות
+  logoutButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.error + "15",
+    marginHorizontal: theme.spacing.lg,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
