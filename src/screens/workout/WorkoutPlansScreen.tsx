@@ -27,6 +27,7 @@ import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { questionnaireService } from "../../services/questionnaireService";
+import { WorkoutDataService } from "../../services/workoutDataService"; // 🤖 AI Service
 import {
   WorkoutPlan,
   WorkoutTemplate,
@@ -97,6 +98,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const { user } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [aiMode, setAiMode] = useState(false); // 🤖 AI Mode toggle
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
@@ -190,6 +192,63 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * יצירת תוכנית אימון מותאמת אישית
    * Generate personalized workout plan
    */
+  // 🤖 פונקציה חדשה ליצירת תוכנית AI
+  const generateAIWorkoutPlan = async (forceRegenerate: boolean = false) => {
+    try {
+      setLoading(!refreshing);
+      if (refreshing) setRefreshing(true);
+      setAiMode(true);
+
+      console.log("🤖 AI Algorithm: יוצר תוכנית AI מותאמת אישית...");
+
+      // שימוש באלגוריתם ה-AI החדש!
+      const aiPlan = await WorkoutDataService.generateAIWorkoutPlan();
+      
+      if (aiPlan) {
+        setWorkoutPlan(aiPlan);
+        
+        if (forceRegenerate) {
+          Alert.alert(
+            "✅ תוכנית AI נוצרה!",
+            `נוצרה תוכנית AI חדשה: "${aiPlan.name}"\n\n` +
+            `📊 ציון AI: ${aiPlan.aiScore?.toFixed(0)}/100\n` +
+            `🎯 רמת התאמה: ${aiPlan.personalizationLevel}\n` +
+            `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0)}%\n` +
+            `🔄 ציון מגוון: ${aiPlan.varietyScore}\n\n` +
+            `${aiPlan.adaptations?.join(', ') || 'ללא התאמות מיוחדות'}`,
+            [{ text: "מעולה!", style: "default" }]
+          );
+        }
+      } else {
+        throw new Error("AI failed to generate plan");
+      }
+
+    } catch (error: any) {
+      console.error("❌ AI Plan Generation Error:", error);
+      
+      Alert.alert(
+        "שגיאה ביצירת תוכנית AI",
+        error.message === "NO_QUESTIONNAIRE_DATA" 
+          ? "אנא השלם את השאלון תחילה"
+          : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
+        [
+          { text: "אישור", style: "default" },
+          {
+            text: "נסה שוב",
+            style: "default",
+            onPress: () => generateAIWorkoutPlan(true),
+          },
+        ]
+      );
+      
+      // fallback לתוכנית רגילה
+      generateWorkoutPlan(forceRegenerate);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   const generateWorkoutPlan = async (forceRegenerate: boolean = false) => {
     try {
       setLoading(!refreshing);
@@ -921,11 +980,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             <View style={styles.titleContainer}>
               <View style={styles.titleRow}>
                 <MaterialCommunityIcons
-                  name="brain"
+                  name={aiMode ? "robot" : "brain"}
                   size={28}
-                  color={theme.colors.primary}
+                  color={aiMode ? "#FF6B35" : theme.colors.primary}
                 />
                 <Text style={styles.title}>{workoutPlan.name}</Text>
+                {aiMode && (
+                  <View style={styles.aiIndicator}>
+                    <Text style={styles.aiIndicatorText}>🤖 AI</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.subtitle}>{workoutPlan.description}</Text>
 
@@ -1278,6 +1342,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           {/* פעולות נוספות */}
           {/* Additional actions */}
           <View style={styles.actions}>
+            {/* 🤖 כפתור AI חדש */}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.aiButton]}
+              onPress={() => generateAIWorkoutPlan(true)}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={[
+                  "#FF6B35" + "20",
+                  "#FF6B35" + "10",
+                ]}
+                style={styles.actionButtonGradient}
+              >
+                <MaterialCommunityIcons
+                  name="robot"
+                  size={22}
+                  color="#FF6B35"
+                />
+                <Text style={[styles.actionButtonText, { color: "#FF6B35" }]}>
+                  🤖 תוכנית AI חכמה
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => generateWorkoutPlan(true)}
@@ -1295,7 +1383,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   size={22}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.actionButtonText}>צור תוכנית חדשה</Text>
+                <Text style={styles.actionButtonText}>צור תוכנית רגילה</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -1407,6 +1495,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     marginBottom: 8,
+  },
+  aiIndicator: {
+    backgroundColor: "#FF6B35" + "20",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FF6B35" + "40",
+  },
+  aiIndicatorText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FF6B35",
   },
   title: {
     fontSize: 32,
@@ -1745,6 +1846,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     overflow: "hidden",
     ...theme.shadows.small,
+  },
+  aiButton: {
+    borderWidth: 2,
+    borderColor: "#FF6B35" + "30",
   },
   actionButtonGradient: {
     flexDirection: "row-reverse",
