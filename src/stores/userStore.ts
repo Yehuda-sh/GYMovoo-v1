@@ -27,7 +27,7 @@ export interface QuestionnaireData {
   // נתונים מורחבים
   // Extended data
   metadata?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   // תאריך השלמה

@@ -62,7 +62,16 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
             lastSaved: new Date().toISOString(),
           })
         );
-      } catch (error) {
+      } catch (error: unknown) {
+        // אם מסד הנתונים מלא, עצור שמירות
+        const errorObj = error as { code?: number; message?: string };
+        if (
+          errorObj?.code === 13 ||
+          errorObj?.message?.includes("SQLITE_FULL")
+        ) {
+          console.warn("⚠️ Database full - stopping timer saves");
+          return;
+        }
         console.error("Error saving time:", error);
       }
     }

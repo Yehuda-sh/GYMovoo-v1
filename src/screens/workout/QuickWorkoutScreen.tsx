@@ -43,9 +43,8 @@ import { useUserPreferences } from "../../hooks/useUserPreferences";
 // Components - תיקון הייבוא
 import { WorkoutHeader } from "./components/WorkoutHeader";
 import { WorkoutDashboard } from "./components/WorkoutDashboard";
-import { RestTimerCompact } from "./components/RestTimerCompact";
 import ExerciseCard from "./components/ExerciseCard"; // שינוי לייבוא default
-import { NextExerciseBar } from "./components/NextExerciseBar";
+import { WorkoutStatusBar } from "./components/WorkoutStatusBar";
 import { WorkoutSummary } from "./components/WorkoutSummary";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ExerciseTipsModal } from "./components/ExerciseTipsModal";
@@ -232,7 +231,6 @@ const QuickWorkoutScreen: React.FC = () => {
     isRestTimerActive,
     restTimeRemaining,
     startRestTimer,
-    pauseRestTimer,
     skipRestTimer,
     addRestTime,
     subtractRestTime,
@@ -515,23 +513,33 @@ const QuickWorkoutScreen: React.FC = () => {
           onMenuPress={toggleDashboard}
         />
 
-        {/* Rest Timer - Fixed position */}
-        {isRestTimerActive && (
-          <RestTimerCompact
-            timeLeft={restTimeRemaining}
-            isPaused={false} // TODO: track pause state
-            onPause={pauseRestTimer}
-            onSkip={skipRestTimer}
-            onAddTime={(seconds: number) => {
-              addRestTime(seconds);
-            }}
-            onSubtractTime={(seconds: number) => {
-              subtractRestTime(seconds);
-            }}
-          />
-        )}
-
-        {/* Main Content - FlatList במקום ScrollView */}
+        {/* Workout Status Bar - Combined Rest Timer + Next Exercise */}
+        <WorkoutStatusBar
+          isRestActive={isRestTimerActive}
+          restTimeLeft={restTimeRemaining}
+          onAddRestTime={addRestTime}
+          onSubtractRestTime={subtractRestTime}
+          onSkipRest={skipRestTimer}
+          nextExercise={!isRestTimerActive ? nextExercise : null}
+          onSkipToNext={() => {
+            // מציאת התרגיל הבא ומעבר אליו | Find and move to next exercise
+            const currentExerciseIndex = exercises.findIndex(
+              (ex) => ex.id === nextExercise?.id
+            );
+            if (
+              currentExerciseIndex !== -1 &&
+              currentExerciseIndex < exercises.length - 1
+            ) {
+              // גלילה לתרגיל הבא | Scroll to next exercise
+              const nextIndex = currentExerciseIndex + 1;
+              // TODO: יש להוסיף ref ל-FlatList ולגלול אליו
+              // For now, just log the action
+              console.log(
+                `Skipping to exercise: ${exercises[nextIndex]?.name}`
+              );
+            }
+          }}
+        />
         <FlatList
           style={styles.listStyle}
           contentContainerStyle={styles.listContent}
@@ -691,16 +699,6 @@ const QuickWorkoutScreen: React.FC = () => {
           }}
           scrollEventThrottle={16}
         />
-
-        {/* Next Exercise Bar */}
-        {nextExercise && !isRestTimerActive && (
-          <NextExerciseBar
-            nextExercise={nextExercise}
-            onSkipToNext={() => {
-              // TODO: implement skip to next logic
-            }}
-          />
-        )}
 
         {/* FAB */}
         <FloatingActionButton

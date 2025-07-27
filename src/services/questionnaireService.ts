@@ -91,12 +91,6 @@ class QuestionnaireService {
     try {
       // בדוק קודם אם יש משתמש חדש ב-userStore
       const user = useUserStore.getState().user;
-      console.log("🔍 getUserPreferences - בודק userStore:", {
-        hasUser: !!user,
-        hasQuestionnaireData: !!user?.questionnaireData,
-        questionnaireData: user?.questionnaireData,
-      });
-
       // אם יש נתונים חדשים ב-userStore, תן להם עדיפות תמיד
       if (user?.questionnaireData) {
         // יצירת metadata מלא עם completedAt
@@ -108,16 +102,9 @@ class QuestionnaireService {
           // completedAt מהשדה הנכון
           completedAt: user.questionnaireData.completedAt,
         };
-        console.log(
-          "🔍 getUserPreferences - יוצר fullMetadata מ-userStore:",
-          fullMetadata
-        );
+
         // שמור את הנתונים בפורמט החדש (יחליף את הישנים)
         await this.saveQuestionnaireData(fullMetadata);
-        console.log(
-          "🔍 getUserPreferences - מחזיר נתונים מ-userStore:",
-          fullMetadata
-        );
         return fullMetadata;
       }
 

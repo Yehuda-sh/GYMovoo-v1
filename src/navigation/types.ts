@@ -36,6 +36,7 @@ export type RootStackParamList = {
     fromScreen?: string;
     mode?: "view" | "selection";
     onSelectExercise?: (exercise: Exercise) => void;
+    selectedMuscleGroup?: string;
   };
   // מסכים נוספים שחסרים
   Notifications: undefined;

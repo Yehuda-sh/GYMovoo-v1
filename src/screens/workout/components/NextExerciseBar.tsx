@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Vibration,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,12 +28,14 @@ interface NextExerciseBarProps {
 export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
   nextExercise,
   onSkipToNext,
-  variant = "gradient", // שנה את זה לסגנון הרצוי
+  variant = "gradient", // ברירת מחדל מהתכונות הפופולריות ביותר | Most popular variant as default
 }) => {
   const slideAnim = useRef(new Animated.Value(100)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
+    // אנימציית כניסה/יציאה | Entry/exit animation
     Animated.spring(slideAnim, {
       toValue: nextExercise ? 0 : 100,
       friction: 10,
@@ -39,9 +43,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       useNativeDriver: true,
     }).start();
 
-    // אנימציית פעימה לכפתור
-    if (nextExercise) {
-      Animated.loop(
+    // אנימציית פעימה לכפתור - עם ניקוי | Pulse animation with proper cleanup
+    if (nextExercise && onSkipToNext) {
+      pulseAnimationRef.current = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.05,
@@ -54,11 +58,22 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      pulseAnimationRef.current.start();
+    } else {
+      // עצירת האנימציה כשאין תרגיל או כפתור | Stop animation when no exercise or button
+      pulseAnimationRef.current?.stop();
+      pulseAnim.setValue(1);
     }
-  }, [nextExercise]);
 
-  if (!nextExercise) {
+    // ניקוי בעת unmount | Cleanup on unmount
+    return () => {
+      pulseAnimationRef.current?.stop();
+    };
+  }, [nextExercise, onSkipToNext]);
+
+  // בדיקת תקינות נתונים | Data validation
+  if (!nextExercise || !nextExercise.name) {
     return null;
   }
 
@@ -74,24 +89,25 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       >
         <LinearGradient
           colors={[
-            theme.colors.primary + "15",
-            theme.colors.primaryGradientEnd + "15",
+            theme.colors.primary + "25", // שקיפות יותר בולטת | More prominent transparency
+            theme.colors.primaryGradientEnd + "25",
+            theme.colors.card + "F0", // רקע כמעט אטום | Almost opaque background
           ]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }} // זווית אלכסונית | Diagonal angle
           style={styles.gradientBackground}
         >
           <View style={styles.contentGradient}>
             <View style={styles.labelContainerGradient}>
               <MaterialCommunityIcons
-                name="lightning-bolt"
-                size={20}
+                name="flash" // אייקון יותר בולט | More prominent icon
+                size={22} // גדול יותר | Larger
                 color={theme.colors.warning}
               />
               <Text style={styles.labelGradient}>הבא בתור</Text>
             </View>
 
-            <Text style={styles.exerciseNameGradient} numberOfLines={1}>
+            <Text style={styles.exerciseNameGradient} numberOfLines={2}>
               {nextExercise.name}
             </Text>
 
@@ -99,21 +115,28 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <TouchableOpacity
                   style={styles.skipButtonGradient}
-                  onPress={onSkipToNext}
+                  onPress={() => {
+                    // הוספת haptic feedback | Add haptic feedback
+                    if (Platform.OS !== "web") {
+                      Vibration.vibrate(50); // רטט קצר | Short vibration
+                    }
+                    onSkipToNext?.();
+                  }}
                   activeOpacity={0.7}
                 >
                   <LinearGradient
                     colors={[
                       theme.colors.primary,
                       theme.colors.primaryGradientEnd,
+                      theme.colors.primaryDark || theme.colors.primary, // צבע שלישי | Third color
                     ]}
                     start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                    end={{ x: 1, y: 1 }} // זווית אלכסונית | Diagonal angle
                     style={styles.skipButtonGradientInner}
                   >
                     <MaterialCommunityIcons
-                      name="arrow-left-bold"
-                      size={20}
+                      name="play-circle" // אייקון יותר ברור | Clearer icon
+                      size={24} // גדול יותר | Larger
                       color="white"
                     />
                   </LinearGradient>
@@ -184,7 +207,7 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
               onPress={onSkipToNext}
               activeOpacity={0.7}
             >
-              <Text style={styles.floatingButtonText}>← עבור לתרגיל</Text>
+              <Text style={styles.floatingButtonText}>עבור לתרגיל ←</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -241,7 +264,7 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.label}>הבא בתור:</Text>
-          <Text style={styles.exerciseName} numberOfLines={1}>
+          <Text style={styles.exerciseName} numberOfLines={2}>
             {nextExercise.name}
           </Text>
         </View>
@@ -326,48 +349,54 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingBottom: 20,
+    zIndex: 100, // וודא שמעל רכיבים אחרים | Ensure above other components
   },
   gradientBackground: {
     borderTopLeftRadius: theme.radius.xl,
     borderTopRightRadius: theme.radius.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
+    borderWidth: 2, // גבול עבה יותר | Thicker border
+    borderColor: theme.colors.primary + "50", // שקוף יותר | More transparent
     borderBottomWidth: 0,
     ...theme.shadows.large,
+    elevation: 8, // צל בולט יותר באנדרואיד | More prominent shadow on Android
   },
   contentGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 18, // ריווח גדול יותר | More padding
+    paddingHorizontal: 24,
   },
   labelContainerGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
+    gap: 8, // רווח גדול יותר | More gap
   },
   labelGradient: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: "500",
+    fontSize: 14, // גודל גדול יותר | Larger font
+    color: theme.colors.primary, // צבע בולט יותר | More prominent color
+    fontWeight: "600", // משקל גדול יותר | Heavier weight
   },
   exerciseNameGradient: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 17, // קצת קטן יותר לאיזון | Slightly smaller for balance
     fontWeight: "bold",
     color: theme.colors.text,
     textAlign: "center",
-    marginHorizontal: 16,
+    marginHorizontal: 12,
   },
   skipButtonGradient: {
     borderRadius: theme.radius.xl,
     overflow: "hidden",
+    borderWidth: 2, // גבול לכפתור | Border for button
+    borderColor: theme.colors.primary + "30",
+    ...theme.shadows.medium, // צל לכפתור | Shadow for button
   },
   skipButtonGradientInner: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20, // רחב יותר | Wider
+    paddingVertical: 12, // גבוה יותר | Taller
     alignItems: "center",
+    minWidth: 60, // רוחב מינימלי | Minimum width
   },
 
   // סגנון מינימליסטי

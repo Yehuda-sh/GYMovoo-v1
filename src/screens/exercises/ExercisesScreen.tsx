@@ -17,14 +17,27 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
+import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import { fetchMuscles, Muscle } from "../../services/exerciseService";
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// Type definition for muscle groups
+interface MuscleGroup {
+  id: string;
+  name: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  description: string;
+}
+
+type ExercisesScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+
 // קבוצות שרירים עיקריות
-const mainMuscleGroups = [
+const mainMuscleGroups: MuscleGroup[] = [
   {
     id: "chest",
     name: "חזה",
@@ -86,9 +99,10 @@ export default function ExercisesScreen() {
     }
   };
 
-  const handleMuscleGroupPress = (muscleGroup: any) => {
+  const handleMuscleGroupPress = (muscleGroup: MuscleGroup) => {
     // ניווט למסך רשימת התרגילים עם סינון לפי קבוצת שרירים
-    (navigation as any).navigate("ExerciseList", {
+    const typedNavigation = navigation as ExercisesScreenNavigationProp;
+    typedNavigation.navigate("ExerciseList", {
       fromScreen: "Exercises",
       mode: "view",
       selectedMuscleGroup: muscleGroup.id,
@@ -96,7 +110,8 @@ export default function ExercisesScreen() {
   };
 
   const handleViewAllExercises = () => {
-    (navigation as any).navigate("ExerciseList", {
+    const typedNavigation = navigation as ExercisesScreenNavigationProp;
+    typedNavigation.navigate("ExerciseList", {
       fromScreen: "Exercises",
       mode: "view",
     });
@@ -169,7 +184,7 @@ export default function ExercisesScreen() {
                   ]}
                 >
                   <MaterialCommunityIcons
-                    name={group.icon as any}
+                    name={group.icon}
                     size={32}
                     color={group.color}
                   />

@@ -12,11 +12,9 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { theme } from "../../../styles/theme";
 import { Exercise } from "../types/workout.types";
 
@@ -204,17 +202,31 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               style={styles.compactTimeButton}
               activeOpacity={0.7}
             >
-              <View style={[styles.compactButtonBg, { backgroundColor: theme.colors.warning + "20" }]}>
-                <Text style={[styles.compactButtonText, { color: theme.colors.warning }]}>-10</Text>
+              <View
+                style={[
+                  styles.compactButtonBg,
+                  { backgroundColor: theme.colors.warning + "20" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.compactButtonText,
+                    { color: theme.colors.warning },
+                  ]}
+                >
+                  -10
+                </Text>
               </View>
             </TouchableOpacity>
 
             {/* טיימר מרכזי קומפקטי */}
             <View style={styles.compactTimerWrapper}>
-              <Text style={[
-                styles.compactTimerText,
-                timeLeft <= 5 && { color: theme.colors.error }
-              ]}>
+              <Text
+                style={[
+                  styles.compactTimerText,
+                  timeLeft <= 5 && { color: theme.colors.error },
+                ]}
+              >
                 {formatTime(timeLeft)}
               </Text>
               <Text style={styles.compactTimerLabel}>זמן מנוחה</Text>
@@ -226,8 +238,20 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               style={styles.compactTimeButton}
               activeOpacity={0.7}
             >
-              <View style={[styles.compactButtonBg, { backgroundColor: theme.colors.success + "20" }]}>
-                <Text style={[styles.compactButtonText, { color: theme.colors.success }]}>+10</Text>
+              <View
+                style={[
+                  styles.compactButtonBg,
+                  { backgroundColor: theme.colors.success + "20" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.compactButtonText,
+                    { color: theme.colors.success },
+                  ]}
+                >
+                  +10
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -242,8 +266,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           </View>
         </LinearGradient>
       </View>
-    </Animated.View>
-  );
 
       <View style={styles.mainCard}>
         {/* אפקט גלו */}
@@ -469,7 +491,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                   <Text style={styles.nextSetLabel}>הסט הבא</Text>
                 </View>
 
-                <Text style={styles.nextSetName}>{nextSetInfo.name}</Text>
+                <Text style={styles.nextSetName}>{nextSetInfo?.name}</Text>
 
                 <View style={styles.nextSetStats}>
                   <View style={styles.nextSetStat}>
@@ -479,7 +501,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                       color={theme.colors.textSecondary}
                     />
                     <Text style={styles.nextSetStatText}>
-                      {nextSetInfo.weight} ק"ג
+                      {nextSetInfo?.weight} קג
                     </Text>
                   </View>
 
@@ -492,7 +514,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                       color={theme.colors.textSecondary}
                     />
                     <Text style={styles.nextSetStatText}>
-                      {nextSetInfo.reps} חזרות
+                      {nextSetInfo?.reps} חזרות
                     </Text>
                   </View>
                 </View>

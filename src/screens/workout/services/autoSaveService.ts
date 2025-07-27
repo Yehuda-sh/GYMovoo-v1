@@ -66,7 +66,14 @@ class AutoSaveService {
       );
 
       // שמירה בשקט ללא לוגים
-    } catch (error) {
+    } catch (error: unknown) {
+      // אם מסד הנתונים מלא, עצור את השמירות הנוספות
+      const errorObj = error as { code?: number; message?: string };
+      if (errorObj?.code === 13 || errorObj?.message?.includes("SQLITE_FULL")) {
+        console.warn("⚠️ Database full - stopping auto-save");
+        this.stopAutoSave();
+        return;
+      }
       console.error("Error saving workout:", error);
     }
   }

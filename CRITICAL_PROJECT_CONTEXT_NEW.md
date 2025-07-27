@@ -1100,7 +1100,146 @@ grep -r "console.log" src/
 - טיימרים דורשים ניקוי מדוקדק ב-useEffect
 - קומפוננטות קומפקטיות עדיפות על מודלים מלאים
 - לוגי פיתוח חייבים להיות מוסרים בסוף
-- עיצוב RTL צריך להיות מובנה מההתחלה, לא תוספת
+- - עיצוב RTL צריך להיות מובנה מההתחלה, לא תוספת
+
+---
+
+### 26. שילוב מחכים: WorkoutStatusBar
+
+- **בעיה:** שני רכיבים נפרדים (NextExerciseBar + RestTimer) יצרו כפילות קוד ובעיות תצוגה.
+- **פתרון:** יצירת רכיב משולב WorkoutStatusBar שמתאים את התצוגה בהתאם למצב האימון:
+
+**WorkoutStatusBar.tsx - רכיב משולב חכם:**
+
+```tsx
+export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
+  isRestActive,
+  restTimeLeft = 0,
+  onAddRestTime,
+  onSubtractRestTime,
+  onSkipRest,
+  nextExercise,
+  onSkipToNext,
+}) => {
+  // קביעת מה להציג בהתאם למצב
+  const shouldShow = isRestActive || (nextExercise && !isRestActive);
+
+  // מצב טיימר מנוחה
+  if (isRestActive) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={[success + "25", success + "15", card + "F0"]}>
+          <TouchableOpacity onPress={() => onSubtractRestTime(10)}>
+            <Text>-10</Text>
+          </TouchableOpacity>
+
+          <View style={styles.timerContainer}>
+            <MaterialCommunityIcons name="timer-sand" />
+            <Text>{formatTime(restTimeLeft)}</Text>
+            <Text>מנוחה</Text>
+          </View>
+
+          <TouchableOpacity onPress={() => onAddRestTime(10)}>
+            <Text>+10</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={onSkipRest}>
+            <MaterialCommunityIcons name="skip-forward" />
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+    );
+  }
+
+  // מצב התרגיל הבא
+  if (nextExercise) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[primary + "25", primaryEnd + "25", card + "F0"]}
+        >
+          <MaterialCommunityIcons name="flash" />
+          <Text>הבא בתור</Text>
+          <Text>{nextExercise.name}</Text>
+          <TouchableOpacity onPress={onSkipToNext}>
+            <MaterialCommunityIcons name="play-circle" />
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+    );
+  }
+};
+```
+
+**אינטגרציה ב-QuickWorkoutScreen:**
+
+```tsx
+// ❌ לפני - שני רכיבים נפרדים
+{isRestTimerActive && <RestTimerCompact ... />}
+{nextExercise && !isRestTimerActive && <NextExerciseBar ... />}
+
+// ✅ אחרי - רכיב אחד משולב
+<WorkoutStatusBar
+  isRestActive={isRestTimerActive}
+  restTimeLeft={restTimeRemaining}
+  onAddRestTime={addRestTime}
+  onSubtractRestTime={subtractRestTime}
+  onSkipRest={skipRestTimer}
+  nextExercise={!isRestTimerActive ? nextExercise : null}
+  onSkipToNext={handleSkipToNext}
+/>
+```
+
+**תכונות מתקדמות:**
+
+- **לוגיקה חכמה:** מציג רק את המידע הרלוונטי למצב הנוכחי
+- **עיצוב משולב:** גרדיאנטים שונים למצבים שונים (ירוק למנוחה, כחול לתרגיל)
+- **אנימציות משופרות:** פעימה רק לכפתור הפעיל
+- **Haptic feedback:** רטט קל בכל לחיצה
+- **RTL מלא:** כל האייכונים והטקסטים מותאמים
+
+**יתרונות הארכיטקטורה:**
+
+- **פחות קוד:** מיזוג של ~500 שורות ל-~200 שורות
+- **ביצועים:** רכיב אחד במקום שניים = פחות re-renders
+- **תחזוקה:** מקום אחד לשינויים במקום שניים
+- **UX עקבי:** עיצוב ואנימציות משולבים
+
+**אופטימיזציות נוספות:**
+
+```tsx
+// ניקוי אנימציות proper
+useEffect(() => {
+  const hasActiveButton =
+    (isRestActive && onSkipRest) || (!isRestActive && onSkipToNext);
+
+  if (shouldShow && hasActiveButton) {
+    // התחל אנימציה רק כשיש כפתור פעיל
+    pulseAnimationRef.current = Animated.loop(/*...*/);
+  } else {
+    // עצור אנימציה מיד כשאין צורך
+    pulseAnimationRef.current?.stop();
+  }
+
+  return () => pulseAnimationRef.current?.stop();
+}, [shouldShow, isRestActive, onSkipRest, onSkipToNext]);
+```
+
+**השפעה על מערכת:**
+
+- **ניקוי imports:** הסרת RestTimerCompact ו-NextExerciseBar מ-QuickWorkoutScreen
+- **פשטות קוד:** הגיון מרוכז במקום פזור
+- **גמישות עתידית:** קל להוסיף מצבים נוספים (למשל: מצב חימום)
+- **בדיקות:** קל יותר לבדוק רכיב אחד מאשר שניים
+
+**מקרי קצה שטופלו:**
+
+- מעבר מהיר בין מצבים - אנימציה חלקה
+- אין תרגיל הבא - הרכיב נעלם אוטומטית
+- מנוחה ללא כפתורים - רק תצוגת זמן
+- שמות תרגילים ארוכים - תמיכה ב-2 שורות
+
+````
 
 ---
 
@@ -1300,6 +1439,7 @@ const confirmDelete = () => {
 - ניקוי מחזור חיים מלא
 
 ````
+
 - תמיכה בפורמטים ישנים וחדשים של נתוני השאלון
 - הודעה ידידותית כשאין ציוד נבחר
 
@@ -1315,4 +1455,7 @@ const confirmDelete = () => {
 ```
 
 ```
-````
+
+```
+
+```
