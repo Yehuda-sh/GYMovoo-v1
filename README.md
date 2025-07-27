@@ -144,6 +144,31 @@ GYMovoo/
 - הגדרות אפליקציה
 - יצוא/ייבוא נתונים
 
+## 🛠️ כלי בדיקה ופיתוח
+
+הפרויקט כולל מספר כלי בדיקה שימושיים:
+
+### כלי בדיקה בסיסיים:
+
+- `npm run check:health` - בדיקת בריאות הפרויקט
+- `npm run check:navigation` - בדיקת מערכת הניווט
+- `npm run check:components` - בדיקת רכיבים חסרים
+- `npm run check:data-flow` - בדיקת זרימת נתונים
+
+### כלי בדיקה מתקדמים:
+
+- `npm run check:quality` - בדיקת איכות קוד (קבצים גדולים, משתנים לא בשימוש, complexity)
+- `npm run check:performance` - בדיקת ביצועים (bundle size, inline objects, re-renders)
+- `npm run check:security` - בדיקת אבטחה (sensitive data, dependencies vulnerabilities)
+- `npm run check:accessibility` - בדיקת נגישות (accessibility labels, color contrast, touch targets)
+
+### כלי בדיקה נוספים:
+
+- `npm run lint` - בדיקה ותיקון ESLint
+- `npm run type-check` - בדיקת TypeScript
+- `npm run audit` - בדיקת אבטחה של dependencies
+- `npm run check:all` - הרצת כל הבדיקות המתקדמות
+
 ## 🎨 עיצוב וסגנון
 
 ### Design System
