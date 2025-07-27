@@ -16,6 +16,15 @@ import {
   ExerciseTemplate,
 } from "../screens/workout/types/workout.types";
 
+// טיפוס עבור metadata של תוכנית אימון
+interface WorkoutMetadata {
+  frequency?: string;
+  duration?: string;
+  experience?: string;
+  goal?: string;
+  [key: string]: string | undefined;
+}
+
 // מחלקת נתוני אימון פשוטה
 // Simple workout data class
 export class WorkoutDataService {
@@ -107,22 +116,25 @@ export class WorkoutDataService {
       const equipment = await questionnaireService.getAvailableEquipment();
 
       // פרמטרים בסיסיים
-      const daysPerWeek = this.parseFrequency((metadata as any).frequency || "3");
-      const duration = this.parseDuration((metadata as any).duration || "45");
-      const difficulty = this.mapExperienceToDifficulty((metadata as any).experience || "beginner");
+      const daysPerWeek = this.parseFrequency(
+        (metadata as WorkoutMetadata).frequency || "3"
+      );
+      const duration = this.parseDuration((metadata as WorkoutMetadata).duration || "45");
+      const difficulty = this.mapExperienceToDifficulty(
+        (metadata as WorkoutMetadata).experience || "beginner"
+      );
 
       // יצירת אימונים פשוטים
       const workouts = this.createBasicWorkouts(
         daysPerWeek,
-        equipment,
-        metadata
+        equipment
       );
 
       return {
         id: `basic-plan-${Date.now()}`,
-        name: `תוכנית ${metadata.goal || "אימון"}`,
+        name: `תוכנית ${(metadata as WorkoutMetadata).goal || "אימון"}`,
         description: `תוכנית בסיסית ל${
-          metadata.goal || "אימון"
+          (metadata as WorkoutMetadata).goal || "אימון"
         } - ${daysPerWeek} ימים בשבוע`,
         difficulty: difficulty,
         duration: duration,
@@ -130,7 +142,9 @@ export class WorkoutDataService {
         workouts: workouts,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        tags: [(metadata as Record<string, any>).goal, "Basic"].filter(Boolean) as string[],
+        tags: [(metadata as WorkoutMetadata).goal, "Basic"].filter(
+          Boolean
+        ) as string[],
       };
     } catch (error) {
       console.error("Error generating basic workout plan:", error);
@@ -144,8 +158,8 @@ export class WorkoutDataService {
    */
   private static createBasicWorkouts(
     daysPerWeek: number,
-    equipment: string[],
-    metadata: any
+    equipment: string[]
+    // metadata מוסר כי לא משמש בפונקציה
   ): WorkoutTemplate[] {
     const workoutNames = this.getWorkoutNames(daysPerWeek);
     const workouts: WorkoutTemplate[] = [];
