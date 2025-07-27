@@ -12,6 +12,18 @@ export default defineConfig([
     extends: ["js/recommended"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
-  tseslint.configs.recommended,
+  // TypeScript-specific rules (excluding debug files)
+  {
+    files: ["**/*.{ts,mts,cts,tsx}"],
+    ...tseslint.configs.recommended,
+  },
+  // Relaxed rules for debug/test files
+  {
+    files: ["debug_*.js", "test_*.js", "**/*.test.js", "**/*.spec.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-var-requires": "off",
+    },
+  },
   pluginReact.configs.flat.recommended,
 ]);

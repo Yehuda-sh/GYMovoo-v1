@@ -53,7 +53,7 @@ export interface QuestionnaireMetadata {
   // Metadata
   completedAt?: string;
   version?: string;
-  analytics?: any;
+  analytics?: Record<string, unknown>;
   additional_notes?: string;
 }
 
@@ -67,7 +67,17 @@ export interface WorkoutRecommendation {
   targetMuscles: string[];
   type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
   estimatedCalories?: number;
-  exercises?: any[]; // רשימת תרגילים / exercise list
+  exercises?: Exercise[]; // רשימת תרגילים / exercise list
+}
+
+// טיפוס עבור תרגיל
+interface Exercise {
+  id: string;
+  name: string;
+  sets?: number;
+  reps?: string;
+  duration?: number;
+  restTime?: number;
 }
 
 // מפתחות אחסון
@@ -158,7 +168,9 @@ class QuestionnaireService {
 
     // מיזוג רשימות ללא כפילויות
     // Merge lists without duplicates
-    return [...new Set([...homeEquipment, ...gymEquipment])];
+    const mergedEquipment = [...new Set([...homeEquipment, ...gymEquipment])];
+
+    return mergedEquipment;
   }
 
   /**
@@ -460,8 +472,8 @@ class QuestionnaireService {
 
   private createStrengthWorkout(
     duration: number,
-    equipment: string[],
-    prefs: QuestionnaireMetadata
+    _equipment: string[],
+    _prefs: QuestionnaireMetadata
   ): WorkoutRecommendation {
     return {
       id: "strength-1",
@@ -478,8 +490,8 @@ class QuestionnaireService {
 
   private createPowerWorkout(
     duration: number,
-    equipment: string[],
-    prefs: QuestionnaireMetadata
+    _equipment: string[],
+    _prefs: QuestionnaireMetadata
   ): WorkoutRecommendation {
     return {
       id: "power-1",
@@ -496,7 +508,7 @@ class QuestionnaireService {
 
   private createCompoundWorkout(
     duration: number,
-    equipment: string[],
+    _equipment: string[],
     prefs: QuestionnaireMetadata
   ): WorkoutRecommendation {
     return {

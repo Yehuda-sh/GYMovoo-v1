@@ -37,8 +37,7 @@ import {
 // ייבוא מאגר התרגילים המרכזי
 // Import central exercise database
 import { EXTENDED_EXERCISE_DATABASE as ALL_EXERCISES } from "../../data/exerciseDatabase";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+import { ExerciseTemplate as DatabaseExercise } from "../../services/quickWorkoutGenerator";
 
 // קבועים לסוגי פיצול אימון
 // Workout split type constants
@@ -116,7 +115,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         acc[ex.id] = ex;
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<string, DatabaseExercise>
     );
   }, []);
 
@@ -222,12 +221,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       } else {
         throw new Error("AI failed to generate plan");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ AI Plan Generation Error:", error);
 
       Alert.alert(
         "שגיאה ביצירת תוכנית AI",
-        error.message === "NO_QUESTIONNAIRE_DATA"
+        error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
           ? "אנא השלם את השאלון תחילה"
           : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
         [
@@ -261,7 +260,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       // קבלת נתוני המשתמש מהשאלון
       // Get user data from questionnaire
       const userQuestionnaireData = user?.questionnaire || {};
-      const questData = userQuestionnaireData as any;
+      const questData = userQuestionnaireData as Record<
+        string | number,
+        string | string[]
+      >;
       // המרת נתונים לפורמט שה-WorkoutPlanScreen מצפה לו
       const metadata = {
         // משאלות האימון (שלב 1) - תמיכה בשני הפורמטים
@@ -318,12 +320,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         "5-6 פעמים בשבוע": 5,
         "כל יום": 6,
       };
-      const daysPerWeek = frequencyMap[metadata.frequency] || 3; // 🔴 תיקון - שימוש ב-frequency
+      const frequencyValue = Array.isArray(metadata.frequency)
+        ? metadata.frequency[0]
+        : metadata.frequency;
+      const daysPerWeek =
+        frequencyMap[frequencyValue as keyof typeof frequencyMap] || 3;
 
       // בחירת סוג פיצול לפי מספר ימי אימון
+      const experienceValue = Array.isArray(metadata.experience)
+        ? metadata.experience[0]
+        : metadata.experience;
       const splitType = getSplitType(
         daysPerWeek,
-        metadata.experience || "מתחיל (0-6 חודשים)"
+        experienceValue || "מתחיל (0-6 חודשים)"
       );
 
       // יצירת התוכנית
@@ -382,11 +391,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Create workout plan
    */
   const createWorkoutPlan = (
-    metadata: any,
+    metadata: Record<string | number, string | string[]>,
     equipment: string[],
     daysPerWeek: number,
-    splitType: string
+    _splitType: string // prefixed with underscore to indicate intentionally unused
   ): WorkoutPlan => {
+    // Helper function to extract string value from potentially array value
+    const getString = (
+      value: string | string[] | undefined,
+      defaultValue = ""
+    ): string => {
+      if (!value) return defaultValue;
+      return Array.isArray(value) ? value[0] || defaultValue : value;
+    };
+
     const workouts: WorkoutTemplate[] = [];
     const dayNames =
       WORKOUT_DAYS[daysPerWeek as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3];
@@ -394,11 +412,17 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     // יצירת אימונים לכל יום
     // Create workouts for each day
     dayNames.forEach((dayName, index) => {
+      const experienceValue = getString(
+        metadata.experience,
+        "מתחיל (0-6 חודשים)"
+      );
+      const durationValue = getString(metadata.duration, "45");
+
       const exercises = selectExercisesForDay(
         dayName,
         equipment,
-        metadata.experience || "מתחיל (0-6 חודשים)", // 🔴 תיקון - ברירת מחדל בעברית
-        parseInt(metadata.duration?.split("-")[0] || "45"),
+        experienceValue,
+        parseInt(durationValue.split("-")[0] || "45"),
         metadata
       );
       workouts.push({
@@ -411,19 +435,27 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       });
     });
 
+    const goalValue = getString(metadata.goal, "אימון");
+    const experienceValue = getString(
+      metadata.experience,
+      "מתחיל (0-6 חודשים)"
+    );
+    const durationValue = getString(metadata.duration, "45");
+    const locationValue = getString(metadata.location);
+
     return {
       id: `plan-${Date.now()}`,
-      name: `תוכנית AI ל${metadata.goal || "אימון"}`,
-      description: `תוכנית חכמה מותאמת אישית ל${
-        metadata.goal || "אימון"
-      } - ${daysPerWeek} ימים בשבוע`,
-      difficulty: mapExperienceToDifficulty(metadata.experience),
-      duration: parseInt(metadata.duration?.split("-")[0] || "45"),
+      name: `תוכנית AI ל${goalValue}`,
+      description: `תוכנית חכמה מותאמת אישית ל${goalValue} - ${daysPerWeek} ימים בשבוע`,
+      difficulty: mapExperienceToDifficulty(experienceValue),
+      duration: parseInt(durationValue.split("-")[0] || "45"),
       frequency: daysPerWeek,
       workouts: workouts,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      tags: ["AI-Generated", metadata.goal, metadata.location].filter(Boolean),
+      tags: ["AI-Generated", goalValue, locationValue].filter(
+        Boolean
+      ) as string[],
     };
   };
 
@@ -436,14 +468,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     equipment: string[],
     experience: string,
     duration: number,
-    metadata: any
+    metadata: Record<string | number, string | string[]>
   ): ExerciseTemplate[] => {
     const exercises: ExerciseTemplate[] = [];
     const targetMuscles = getTargetMusclesForDay(dayName);
 
     // סינון תרגילים מתאימים
     // Filter suitable exercises
-    const suitableExercises = ALL_EXERCISES.filter((ex: any) => {
+    const suitableExercises = ALL_EXERCISES.filter((ex: DatabaseExercise) => {
       // בדיקת התאמה לשרירים
       const muscleMatch = targetMuscles.some(
         (muscle) =>
@@ -470,16 +502,18 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // חלוקה לתרגילים מורכבים ובידוד (רק אם יש תמיכה במאגר)
     // Split to compound and isolation (only if supported in database)
-    const hasCompoundInfo = suitableExercises.some((ex: any) =>
-      ex.hasOwnProperty("isCompound")
+    const hasCompoundInfo = suitableExercises.some((ex: DatabaseExercise) =>
+      Object.prototype.hasOwnProperty.call(ex, "isCompound")
     );
 
     if (hasCompoundInfo && metadata.goal !== "שיקום מפציעה") {
       const compoundExercises = suitableExercises.filter(
-        (ex: any) => ex.isCompound
+        (ex: DatabaseExercise) =>
+          (ex as DatabaseExercise & { isCompound?: boolean }).isCompound
       );
       const isolationExercises = suitableExercises.filter(
-        (ex: any) => !ex.isCompound
+        (ex: DatabaseExercise) =>
+          !(ex as DatabaseExercise & { isCompound?: boolean }).isCompound
       );
 
       // יחס של 60% מורכבים, 40% בידוד
@@ -518,7 +552,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * בחירת תרגילים אקראיים מרשימה
    * Select random exercises from list
    */
-  const selectRandomExercises = (exercises: any[], count: number): any[] => {
+  const selectRandomExercises = (
+    exercises: DatabaseExercise[],
+    count: number
+  ): DatabaseExercise[] => {
     const shuffled = [...exercises].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
   };
@@ -528,9 +565,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Create exercise template
    */
   const createExerciseTemplate = (
-    exercise: any,
+    exercise: DatabaseExercise,
     experience: string,
-    metadata: any
+    metadata: Record<string | number, string | string[]>
   ): ExerciseTemplate => {
     return {
       exerciseId: exercise.id,
@@ -597,7 +634,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * קבלת מספר סטים לתרגיל
    * Get sets for exercise
    */
-  const getSetsForExercise = (exercise: any, experience: string): number => {
+  const getSetsForExercise = (
+    exercise: DatabaseExercise,
+    experience: string
+  ): number => {
     const setsMap: { [key: string]: number } = {
       "מתחיל (0-6 חודשים)": 3,
       "בינוני (6-24 חודשים)": 4,
@@ -613,11 +653,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Enhanced reps range for goal
    */
   const getRepsForGoal = (
-    exercise: any,
+    exercise: DatabaseExercise,
     experience: string,
-    metadata: any
+    metadata: Record<string | number, string | string[]>
   ): string => {
-    const goal = metadata?.goal;
+    // Helper function to extract string value from potentially array value
+    const getString = (
+      value: string | string[] | undefined,
+      defaultValue = ""
+    ): string => {
+      if (!value) return defaultValue;
+      return Array.isArray(value) ? value[0] || defaultValue : value;
+    };
+
+    const goal = getString(metadata?.goal);
 
     // התאמה לתרגילי בטן
     // Adjust for core exercises
@@ -634,7 +683,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     }
 
     // התאמה לגיל (אם יש בנתונים)
-    const age = metadata.age;
+    const age = getString(metadata.age);
     if (age && parseInt(age) > 50) {
       const ageAdjustment = {
         "ירידה במשקל": "15-20",
@@ -663,11 +712,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Get rest time for exercise
    */
   const getRestTimeForExercise = (
-    exercise: any,
+    exercise: DatabaseExercise,
     experience: string,
-    metadata: any
+    metadata: Record<string | number, string | string[]>
   ): number => {
-    const goal = metadata?.goal;
+    // Helper function to extract string value from potentially array value
+    const getString = (
+      value: string | string[] | undefined,
+      defaultValue = ""
+    ): string => {
+      if (!value) return defaultValue;
+      return Array.isArray(value) ? value[0] || defaultValue : value;
+    };
+
+    const goal = getString(metadata?.goal);
 
     // זמני מנוחה לפי מטרה (בשניות)
     // Rest times by goal (in seconds)
@@ -687,7 +745,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * קבלת הערות לתרגיל
    * Get exercise notes
    */
-  const getExerciseNotes = (exercise: any, experience: string): string => {
+  const getExerciseNotes = (
+    exercise: DatabaseExercise,
+    experience: string
+  ): string => {
     const notes: string[] = [];
 
     if (experience === "מתחיל (0-6 חודשים)") {
@@ -804,32 +865,66 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const startWorkout = (workout: WorkoutTemplate) => {
     try {
       console.log(`🏋️ Starting workout: ${workout.name}`);
+      console.log(`🔍 Workout template:`, JSON.stringify(workout, null, 2));
 
       // המרת התבנית לאימון פעיל
       // Convert template to active workout
       const activeExercises = workout.exercises
         .map((template: ExerciseTemplate) => {
-          const exercise = exerciseMap[template.exerciseId];
+          console.log(`🔍 Processing exercise template:`, template);
+
+          // קודם נחפש בתרגילים הרגילים
+          let exercise = exerciseMap[template.exerciseId];
+
+          // אם לא מצאנו, נחפש ב-ALL_EXERCISES ישירות
           if (!exercise) {
-            console.warn(`Exercise not found: ${template.exerciseId}`);
+            const foundExercise = ALL_EXERCISES.find(
+              (ex) => ex.id === template.exerciseId
+            );
+            if (foundExercise) {
+              exercise = foundExercise;
+              console.log(`🔍 Found exercise in ALL_EXERCISES:`, exercise.name);
+            }
+          }
+
+          if (!exercise) {
+            console.warn(`❌ Exercise not found: ${template.exerciseId}`);
             return null;
           }
 
+          console.log(`✅ Converting exercise: ${exercise.name}`);
+
           return {
-            ...exercise,
+            id: template.exerciseId,
+            name: exercise.name,
+            category: exercise.category || "כללי",
+            primaryMuscles: exercise.primaryMuscles || [],
+            secondaryMuscles: exercise.secondaryMuscles || [],
+            equipment: exercise.equipment || "bodyweight",
+            difficulty: exercise.difficulty || "beginner",
+            instructions: exercise.instructions || [],
             sets: Array.from({ length: template.sets }, (_, i) => ({
-              id: `set-${i + 1}`,
+              id: `${template.exerciseId}-set-${i + 1}`,
               type: i === 0 ? "warmup" : ("working" as const),
-              targetReps: parseInt(template.reps.split("-")[1] || "12"),
+              targetReps: parseInt(
+                template.reps.split("-")[1] || template.reps || "12"
+              ),
               targetWeight: 0,
               completed: false,
               restTime: template.restTime,
               isPR: false,
             })),
-            notes: template.notes,
+            restTime: template.restTime || 60,
+            notes: template.notes || "",
           };
         })
         .filter(Boolean);
+
+      console.log(`🎯 Created ${activeExercises.length} active exercises`);
+      console.log(
+        `📋 Active exercises:`,
+        activeExercises.map((ex) => ex?.name)
+      );
 
       if (activeExercises.length === 0) {
         Alert.alert("שגיאה", "לא נמצאו תרגילים מתאימים לאימון זה.");
@@ -838,6 +933,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // ניווט למסך אימון פעיל
       // Navigate to active workout screen
+      console.log(
+        `🚀 Navigating to QuickWorkout with ${activeExercises.length} exercises`
+      );
       (navigation as any).navigate("QuickWorkout", {
         exercises: activeExercises,
         workoutName: workout.name,
@@ -850,9 +948,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         },
       });
 
-      console.log(
-        `✅ Navigated to QuickWorkout with ${activeExercises.length} exercises`
-      );
+      console.log("✅ Navigation completed successfully");
     } catch (error) {
       console.error("Error starting workout:", error);
       Alert.alert("שגיאה", "לא הצלחנו להתחיל את האימון. נסה שוב.");
@@ -875,7 +971,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * החלפת תרגיל
    * Replace exercise
    */
-  const replaceExercise = (exerciseId: string, dayIndex: number) => {
+  const replaceExercise = (exerciseId: string, _dayIndex: number) => {
     Alert.alert("החלפת תרגיל", "האם ברצונך להחליף את התרגיל הנוכחי?", [
       { text: "ביטול", style: "cancel" },
       {

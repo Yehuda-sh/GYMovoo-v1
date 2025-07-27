@@ -1,20 +1,9 @@
 /**
- * @file src/screens/workout/import { RestTimerCompact } from "./components/RestTimerCompact";uickWorkoutScreen.tsx
+ * @file src/screens/workout/QuickWorkoutScreen.tsx
  * @description מסך אימון מהיר עם עיצוב משופר וקומפקטי
- * English: Quick workout screen with improved and com  // מעקב אחר שינויים ב      // חכה      // אם המשתמש השלים שאלון, צור אימון מותאם
-      // If user completed questionnaire, create personalized workout
-      if (hasCompletedQuestionnaire) {
-        const personalizedExercises = await generateQuickWorkout(); נטענים
-      // Wait until data is loaded
-      if (!isInitialized) {
-        return;
-      }
-
-      // אם המשתמש השלים שאלון, צור אימון מותאם useEffect(() => {
-    // עדכון מצב הטיימר בצורה שקטה
-  }, [isRestTimerActive, restTimeRemaining]);sign
+ * English: Quick workout screen with improved and compact design
  */
-// cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד, Subviews, אלרט
+// cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד, Subviews, אלרט, uick
 
 import React, {
   useState,
@@ -34,7 +23,7 @@ import {
   FlatList,
   Animated,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { generateQuickWorkout } from "../../services/quickWorkoutGenerator";
@@ -193,8 +182,25 @@ const FAB_CONFIG = {
 
 const QuickWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [workoutName, setWorkoutName] = useState("אימון מהיר");
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const route = useRoute();
+
+  // קבלת פרמטרים מהניווט
+  const { exercises: presetExercises, workoutName: presetWorkoutName } =
+    (route.params as {
+      exercises?: Exercise[];
+      workoutName?: string;
+      source?: string;
+    }) || {};
+
+  // בטח את האתחול כדי למנוע לוגים מיותרים
+  if (presetExercises && presetExercises.length > 0) {
+    console.log("🎯 QuickWorkout - התחיל עם תרגילים מוכנים מהתוכנית");
+  }
+
+  const [workoutName, setWorkoutName] = useState(
+    presetWorkoutName || "אימון מהיר"
+  );
+  const [exercises, setExercises] = useState<Exercise[]>(presetExercises || []);
   const [dashboardVisible, setDashboardVisible] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(true);
@@ -255,6 +261,17 @@ const QuickWorkoutScreen: React.FC = () => {
   const loadPersonalizedWorkout = async () => {
     try {
       setIsLoadingWorkout(true);
+
+      // אם יש תרגילים מוכנים מהתוכנית - השתמש בהם!
+      if (presetExercises && presetExercises.length > 0) {
+        console.log(
+          "✅ QuickWorkout - משתמש בתרגילים מהתוכנית:",
+          presetExercises.map((ex: Exercise) => ex.name)
+        );
+        setExercises(presetExercises);
+        setIsLoadingWorkout(false);
+        return;
+      }
 
       // חכה עד שהנתונים נטענים
       // Wait until data is loaded

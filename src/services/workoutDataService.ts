@@ -10,6 +10,7 @@
 import { questionnaireService } from "./questionnaireService";
 import { useUserStore } from "../stores/userStore";
 import { EXTENDED_EXERCISE_DATABASE } from "../data/exerciseDatabase";
+import { ExerciseTemplate as ExerciseFromDB } from "./quickWorkoutGenerator";
 import {
   WorkoutPlan,
   WorkoutTemplate,
@@ -41,6 +42,15 @@ interface AIWorkoutPlan extends WorkoutPlan {
   equipmentUtilization: number;
   varietyScore: number;
   adaptations: string[];
+}
+
+// ממשקים נוספים לפונקציות AI
+interface WorkoutMatrix {
+  intensityLevel: "low" | "medium" | "high";
+  targetMuscleGroups: string[];
+  workoutDuration: number;
+  exercisesPerWorkout: number;
+  workoutFrequency: number;
 }
 
 // מחלקת נתוני אימון פשוטה
@@ -189,14 +199,39 @@ export class WorkoutDataService {
    * Equipment analysis and usage strategy
    */
   private static async analyzeEquipment(metadata: WorkoutMetadata) {
-    const homeEquipment = metadata.home_equipment || [];
-    const gymEquipment = metadata.gym_equipment || [];
-    const location = metadata.location || "home";
+    // קודם ננסה לקבל את הציוד מהשירות - זה הנתון המעודכן ביותר
+    let availableEquipment: string[] = [];
 
-    const availableEquipment =
-      location === "gym" ? [...homeEquipment, ...gymEquipment] : homeEquipment;
+    try {
+      const serviceEquipment =
+        await questionnaireService.getAvailableEquipment();
+      if (serviceEquipment && serviceEquipment.length > 0) {
+        availableEquipment = serviceEquipment;
+      }
+    } catch {
+      // שגיאה בקבלת ציוד מהשירות - נסה fallback
+    }
 
-    console.log("📦 Available Equipment:", availableEquipment);
+    // אם אין ציוד מהשירות, ננסה מה-metadata
+    if (availableEquipment.length === 0) {
+      const homeEquipment = metadata.home_equipment || [];
+      const gymEquipment = metadata.gym_equipment || [];
+      const location = metadata.location || "home";
+
+      availableEquipment =
+        location === "gym"
+          ? [...homeEquipment, ...gymEquipment]
+          : homeEquipment;
+
+      console.log("📦 ציוד מ-metadata (fallback):", {
+        homeEquipment,
+        gymEquipment,
+        location,
+        availableEquipment,
+      });
+    }
+
+    console.log("🎯 ציוד סופי לשימוש:", availableEquipment);
 
     return {
       totalEquipment: availableEquipment,
@@ -417,28 +452,6 @@ export class WorkoutDataService {
     };
 
     return WORKOUT_DAYS[days as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3];
-  }
-
-  /**
-   * קבלת שרירי יעד ליום
-   * Get target muscles for day
-   */
-  private static getTargetMusclesForDay(dayName: string): string[] {
-    const muscleMap: { [key: string]: string[] } = {
-      "אימון מלא": ["חזה", "גב", "רגליים", "כתפיים"],
-      "פלג גוף עליון": ["חזה", "גב", "כתפיים", "ידיים"],
-      "פלג גוף תחתון": ["רגליים", "ישבן"],
-      דחיפה: ["חזה", "כתפיים", "טריצפס"],
-      משיכה: ["גב", "ביצפס"],
-      רגליים: ["רגליים", "ישבן"],
-      "חזה + טריצפס": ["חזה", "טריצפס"],
-      "גב + ביצפס": ["גב", "ביצפס"],
-      כתפיים: ["כתפיים"],
-      ידיים: ["ביצפס", "טריצפס"],
-      בטן: ["בטן"],
-    };
-
-    return muscleMap[dayName] || ["גוף מלא"];
   }
 
   /**
@@ -795,28 +808,445 @@ export class WorkoutDataService {
   }
 
   /**
-   * בחירת תרגילים עם AI
+   * קביעת שרירי יעד ליום אימון
+   * Determine target muscles for workout day
+   */
+  private static getTargetMusclesForDay(workoutName: string): string[] {
+    const muscleMap: { [key: string]: string[] } = {
+      "חזה ושלושי": ["chest", "triceps"],
+      "גב ודו-ראשי": ["back", "biceps"],
+      רגליים: ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+      כתפיים: ["shoulders", "deltoids"],
+      "בטן וליבה": ["abs", "core"],
+      "גוף עליון": ["chest", "back", "shoulders", "biceps", "triceps"],
+      "גוף תחתון": ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+      "גוף מלא": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders",
+        "biceps",
+        "triceps",
+        "abs",
+      ],
+      קרדיו: ["cardio"],
+      "כושר וגמישות": ["flexibility", "core"],
+    };
+
+    // חיפוש מדויק
+    const exactMatch = muscleMap[workoutName];
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // חיפוש חלקי
+    for (const [key, muscles] of Object.entries(muscleMap)) {
+      if (workoutName.includes(key) || key.includes(workoutName)) {
+        return muscles;
+      }
+    }
+
+    // ברירת מחדל - גוף מלא
+    return ["chest", "back", "legs", "shoulders", "biceps", "triceps"];
+  }
+
+  /**
+   * בחירת תרגילים עם AI - אלגוריתם מתקדם
+   * Advanced AI exercise selection algorithm
    */
   private static selectAIExercises(
     workoutName: string,
     equipment: string[],
     exerciseCount: number,
-    workoutMatrix: any
+    workoutMatrix: WorkoutMatrix
   ): ExerciseTemplate[] {
-    // כרגע placeholder - בהמשך נשלב עם מאגר התרגילים המלא
-    const exercises: ExerciseTemplate[] = [];
+    const targetMuscles = this.getTargetMusclesForDay(workoutName);
 
-    for (let i = 0; i < exerciseCount; i++) {
-      exercises.push({
-        exerciseId: `ai-exercise-${i + 1}`,
-        sets: workoutMatrix.intensityLevel === "high" ? 4 : 3,
-        reps: this.calculateOptimalReps(workoutMatrix.intensityLevel),
-        restTime: this.calculateRestTime(workoutMatrix.intensityLevel),
-        notes: `תרגיל AI מותאם - ${workoutName}`,
+    // שלב 1: סינון תרגילים מתאימים לציוד ושרירים
+    const suitableExercises = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
+      // בדיקת התאמת שרירים
+      const muscleMatch = targetMuscles.some(
+        (muscle) =>
+          exercise.primaryMuscles?.includes(muscle) ||
+          exercise.secondaryMuscles?.includes(muscle) ||
+          exercise.category === muscle
+      );
+
+      // בדיקת התאמת ציוד - תמיכה בציוד המפורט
+      const equipmentMatch = this.isEquipmentAvailable(
+        exercise.equipment,
+        equipment
+      );
+
+      // בדיקת רמת קושי מתאימה
+      const difficultyMatch = this.isDifficultyAppropriate(
+        exercise.difficulty,
+        workoutMatrix.intensityLevel
+      );
+
+      return muscleMatch && equipmentMatch && difficultyMatch;
+    });
+
+    if (suitableExercises.length === 0) {
+      console.warn(`⚠️ לא נמצאו תרגילים מתאימים עבור ${workoutName}`);
+      return this.createFallbackExercises(
+        exerciseCount,
+        workoutMatrix.intensityLevel
+      );
+    }
+
+    // שלב 2: בחירה חכמה של תרגילים
+    const selectedExercises = this.selectOptimalExercises(
+      suitableExercises,
+      targetMuscles,
+      exerciseCount,
+      workoutMatrix
+    );
+
+    // שלב 3: יצירת תבניות תרגיל מותאמות
+    return selectedExercises.map((exercise, index) =>
+      this.createAIExerciseTemplate(exercise, workoutMatrix, index)
+    );
+  }
+
+  /**
+   * בדיקה אם ציוד זמין
+   * Check if equipment is available
+   */
+  private static isEquipmentAvailable(
+    exerciseEquipment: string,
+    availableEquipment: string[]
+  ): boolean {
+    // אם התרגיל דורש משקל גוף - תמיד זמין
+    if (exerciseEquipment === "bodyweight" || exerciseEquipment === "none") {
+      return true;
+    }
+
+    // בדיקה ישירה
+    if (availableEquipment.includes(exerciseEquipment)) {
+      return true;
+    }
+
+    // מיפוי תחליפים - הרחבנו את הרשימה לכלול יותר אפשרויות
+    const equipmentMap: { [key: string]: string[] } = {
+      dumbbells: [
+        "dumbbells",
+        "adjustable_dumbbells",
+        "fixed_dumbbells",
+        "dumbbell_set",
+        "משקולות",
+        "משקולות יד",
+        "זוג משקולות",
+      ],
+      barbell: [
+        "barbell",
+        "olympic_barbell",
+        "ez_bar",
+        "מוט",
+        "מוט ישר",
+        "מוט אולימפי",
+      ],
+      kettlebell: [
+        "kettlebell",
+        "kettlebells",
+        "kettlebell_set",
+        "קטלבל",
+        "קטלבלים",
+      ],
+      resistance_bands: [
+        "resistance_bands",
+        "mini_bands",
+        "tube_bands",
+        "loop_bands",
+        "רצועות התנגדות",
+        "גומיות",
+        "מקלות גומי",
+      ],
+      pull_up_bar: [
+        "pullup_bar",
+        "pull_up_bar",
+        "chin_up_bar",
+        "מוט מתח",
+        "מוט סינים",
+      ],
+      cable_machine: [
+        "cable_machine",
+        "cable_crossover",
+        "lat_pulldown",
+        "מכונת כבלים",
+        "כבלים",
+        "מכון כבלים",
+      ],
+      bench: [
+        "bench",
+        "adjustable_bench",
+        "flat_bench",
+        "incline_bench",
+        "ספסל",
+        "ספסל מתכוונן",
+      ],
+      squat_rack: [
+        "squat_rack",
+        "power_rack",
+        "smith_machine",
+        "רק סקוואט",
+        "מתקן סקוואט",
+      ],
+      leg_press: ["leg_press", "leg_press_machine", "מכונת רגליים"],
+      treadmill: ["treadmill", "running_machine", "הליכון", "מסלול ריצה"],
+      bike: [
+        "bike",
+        "exercise_bike",
+        "stationary_bike",
+        "אופניים",
+        "אופני כושר",
+      ],
+      rowing_machine: ["rowing_machine", "rower", "מכונת חתירה"],
+      trx: ["trx", "suspension_trainer", "רצועות TRX"],
+      yoga_mat: ["yoga_mat", "exercise_mat", "floor_mat", "מזרן יוגה", "מזרון"],
+      foam_roller: ["foam_roller", "massage_roller", "גליל עיסוי"],
+    };
+
+    // בדיקת תחליפים
+    const alternatives = equipmentMap[exerciseEquipment] || [exerciseEquipment];
+    const hasAlternative = alternatives.some((alt) =>
+      availableEquipment.includes(alt)
+    );
+
+    return hasAlternative;
+  }
+
+  /**
+   * בדיקה אם רמת הקושי מתאימה
+   * Check if difficulty level is appropriate
+   */
+  private static isDifficultyAppropriate(
+    exerciseDifficulty: string | undefined,
+    intensityLevel: string
+  ): boolean {
+    if (!exerciseDifficulty) return true;
+
+    const difficultyMap = {
+      low: ["beginner"],
+      medium: ["beginner", "intermediate"],
+      high: ["beginner", "intermediate", "advanced"],
+    };
+
+    const allowedDifficulties = difficultyMap[
+      intensityLevel as keyof typeof difficultyMap
+    ] || ["beginner"];
+    return allowedDifficulties.includes(exerciseDifficulty);
+  }
+
+  /**
+   * בחירת תרגילים אופטימליים
+   * Select optimal exercises
+   */
+  private static selectOptimalExercises(
+    suitableExercises: ExerciseFromDB[],
+    targetMuscles: string[],
+    exerciseCount: number,
+    workoutMatrix: WorkoutMatrix
+  ): ExerciseFromDB[] {
+    const selected: ExerciseFromDB[] = [];
+    const usedExercises = new Set<string>();
+
+    // שלב 1: ודא כיסוי של כל שריר יעד
+    for (const muscle of targetMuscles) {
+      const muscleExercises = suitableExercises.filter(
+        (ex) =>
+          (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) &&
+          !usedExercises.has(ex.id)
+      );
+
+      if (muscleExercises.length > 0) {
+        // בחר את התרגיל הטוב ביותר לשריר הזה
+        const bestExercise = this.selectBestExerciseForMuscle(
+          muscleExercises,
+          workoutMatrix
+        );
+        selected.push(bestExercise);
+        usedExercises.add(bestExercise.id);
+      }
+    }
+
+    // שלב 2: השלמת תרגילים נוספים אם נדרש
+    while (
+      selected.length < exerciseCount &&
+      selected.length < suitableExercises.length
+    ) {
+      const remainingExercises = suitableExercises.filter(
+        (ex) => !usedExercises.has(ex.id)
+      );
+
+      if (remainingExercises.length === 0) break;
+
+      // בחר תרגיל אקראי מהנותרים (מגוון)
+      const randomIndex = Math.floor(Math.random() * remainingExercises.length);
+      const additionalExercise = remainingExercises[randomIndex];
+
+      selected.push(additionalExercise);
+      usedExercises.add(additionalExercise.id);
+    }
+
+    console.log(
+      `✅ נבחרו ${selected.length} תרגילים:`,
+      selected.map((ex) => ex.name)
+    );
+    return selected.slice(0, exerciseCount);
+  }
+
+  /**
+   * בחירת התרגיל הטוב ביותר לשריר
+   * Select best exercise for muscle
+   */
+  private static selectBestExerciseForMuscle(
+    exercises: ExerciseFromDB[],
+    workoutMatrix: WorkoutMatrix
+  ): ExerciseFromDB {
+    // העדפה לתרגילים מורכבים אם האינטנסיביות גבוהה
+    if (workoutMatrix.intensityLevel === "high") {
+      const compoundExercises = exercises.filter((ex) =>
+        ex.category?.includes("מורכב")
+      ); // או בדיקה אחרת לתרגילים מורכבים
+      if (compoundExercises.length > 0) {
+        return compoundExercises[0];
+      }
+    }
+
+    // אחרת, בחר את הראשון (או לפי קריטריונים נוספים)
+    return exercises[0];
+  }
+
+  /**
+   * יצירת תבנית תרגיל AI מותאמת
+   * Create AI exercise template
+   */
+  private static createAIExerciseTemplate(
+    exercise: ExerciseFromDB,
+    workoutMatrix: WorkoutMatrix,
+    index: number
+  ): ExerciseTemplate {
+    // חישוב פרמטרים מותאמים
+    const sets = this.calculateAISets(exercise, workoutMatrix, index);
+    const reps = this.calculateAIReps(exercise, workoutMatrix);
+    const restTime = this.calculateAIRestTime(exercise, workoutMatrix);
+    const notes = this.generateAIExerciseNotes(exercise);
+
+    return {
+      exerciseId: exercise.id,
+      sets,
+      reps,
+      restTime,
+      notes,
+    };
+  }
+
+  /**
+   * חישוב מספר סטים מותאם AI
+   */
+  private static calculateAISets(
+    exercise: ExerciseFromDB,
+    workoutMatrix: WorkoutMatrix,
+    exerciseIndex: number
+  ): number {
+    const baseSets =
+      workoutMatrix.intensityLevel === "high"
+        ? 4
+        : workoutMatrix.intensityLevel === "medium"
+          ? 3
+          : 2;
+
+    // תרגיל ראשון או מורכב = יותר סטים
+    if (exerciseIndex === 0 || exercise.category?.includes("מורכב")) {
+      return Math.min(baseSets + 1, 5);
+    }
+
+    return baseSets;
+  }
+
+  /**
+   * חישוב חזרות מותאם AI
+   */
+  private static calculateAIReps(
+    exercise: ExerciseFromDB,
+    workoutMatrix: WorkoutMatrix
+  ): string {
+    const goalType = workoutMatrix.targetMuscleGroups;
+
+    // התאמה לפי מטרה
+    if (goalType.includes("כח") || workoutMatrix.intensityLevel === "high") {
+      return "6-8";
+    } else if (goalType.includes("קרדיו") || exercise.category === "קרדיו") {
+      return "15-20";
+    } else {
+      return "10-12"; // ברירת מחדל לבניית שריר
+    }
+  }
+
+  /**
+   * חישוב זמן מנוחה מותאם AI
+   */
+  private static calculateAIRestTime(
+    exercise: ExerciseFromDB,
+    workoutMatrix: WorkoutMatrix
+  ): number {
+    // תרגילים מורכבים = יותר מנוחה
+    if (
+      exercise.category?.includes("מורכב") ||
+      exercise.difficulty === "advanced"
+    ) {
+      return workoutMatrix.intensityLevel === "high" ? 120 : 90;
+    }
+
+    // תרגילי בידוד
+    return workoutMatrix.intensityLevel === "high" ? 90 : 60;
+  }
+
+  /**
+   * יצירת הערות AI מותאמות
+   */
+  private static generateAIExerciseNotes(exercise: ExerciseFromDB): string {
+    const baseNote = `תרגיל AI מותאם - ${exercise.name}`;
+
+    if (exercise.tips && exercise.tips.length > 0) {
+      return `${baseNote} | טיפ: ${exercise.tips[0]}`;
+    }
+
+    return baseNote;
+  }
+
+  /**
+   * יצירת תרגילים חלופיים במקרה של חוסר
+   * Create fallback exercises when no suitable exercises found
+   */
+  private static createFallbackExercises(
+    exerciseCount: number,
+    intensityLevel: string
+  ): ExerciseTemplate[] {
+    const fallbackExercises: ExerciseTemplate[] = [];
+
+    // תרגילי משקל גוף בסיסיים שתמיד זמינים
+    const basicExercises = [
+      { id: "pushups", name: "שכיבות סמיכה", sets: 3 },
+      { id: "squats", name: "כפיפות ברכיים", sets: 3 },
+      { id: "plank", name: "פלאנק", sets: 3 },
+      { id: "jumping_jacks", name: "קפיצות", sets: 3 },
+      { id: "lunges", name: "צעדים", sets: 3 },
+    ];
+
+    for (let i = 0; i < Math.min(exerciseCount, basicExercises.length); i++) {
+      const exercise = basicExercises[i];
+      fallbackExercises.push({
+        exerciseId: exercise.id,
+        sets: exercise.sets,
+        reps: intensityLevel === "high" ? "8-10" : "10-15",
+        restTime: 60,
+        notes: `תרגיל חלופי - ${exercise.name}`,
       });
     }
 
-    return exercises;
+    return fallbackExercises;
   }
 
   /**
