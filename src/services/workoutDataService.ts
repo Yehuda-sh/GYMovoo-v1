@@ -107,9 +107,9 @@ export class WorkoutDataService {
       const equipment = await questionnaireService.getAvailableEquipment();
 
       // פרמטרים בסיסיים
-      const daysPerWeek = this.parseFrequency(metadata.frequency);
-      const duration = this.parseDuration(metadata.duration);
-      const difficulty = this.mapExperienceToDifficulty(metadata.experience);
+      const daysPerWeek = this.parseFrequency((metadata as any).frequency || "3");
+      const duration = this.parseDuration((metadata as any).duration || "45");
+      const difficulty = this.mapExperienceToDifficulty((metadata as any).experience || "beginner");
 
       // יצירת אימונים פשוטים
       const workouts = this.createBasicWorkouts(
@@ -130,7 +130,7 @@ export class WorkoutDataService {
         workouts: workouts,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        tags: [metadata.goal, "Basic"].filter(Boolean),
+        tags: [(metadata as Record<string, any>).goal, "Basic"].filter(Boolean) as string[],
       };
     } catch (error) {
       console.error("Error generating basic workout plan:", error);

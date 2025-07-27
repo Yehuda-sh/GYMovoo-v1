@@ -21,7 +21,7 @@ export default function BackButton({
   absolute = true,
   onPress,
 }: BackButtonProps) {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
 
   const handlePress = () => {
     if (onPress) {

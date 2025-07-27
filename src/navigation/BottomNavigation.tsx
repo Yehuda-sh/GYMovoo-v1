@@ -13,7 +13,7 @@ import { theme } from "../styles/theme";
 
 // מסכים // Screens
 import MainScreen from "../screens/main/MainScreen";
-import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
+import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen";
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
 import ProfileScreen from "../screens/profile/ProfileScreen";
@@ -98,7 +98,7 @@ export default function BottomNavigation() {
       {/* תוכניות אימון AI */}
       <Tab.Screen
         name="WorkoutPlans"
-        component={WorkoutPlanScreen}
+        component={WorkoutPlansScreen}
         options={{
           title: "תוכניות AI",
           tabBarIcon: ({ focused, color, size }) => (
