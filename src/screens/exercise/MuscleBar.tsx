@@ -15,11 +15,21 @@ import {
   FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { Muscle } from "../../services/exerciseService";
 import { theme } from "../../styles/theme";
 
-// טיפוסי props
-// Props types
+// טיפוס שם חוקי של אייקון
+type MaterialCommunityIconName = ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+type MuscleButton = {
+  id: number | "all";
+  name: string;
+  icon: MaterialCommunityIconName;
+};
+
 type MuscleBarProps = {
   muscles: Muscle[];
   selected: number | "all";
@@ -31,18 +41,20 @@ const MuscleBar: React.FC<MuscleBarProps> = ({
   selected,
   onSelect,
 }) => {
-  // הוספת "הכל" ככפתור ראשון
-  // Add "All" as first button
-  const buttons = [
-    { id: "all", name: "הכל", icon: "view-grid" } as any,
-    ...muscles.map((m) => ({ ...m, icon: "arm-flex" })),
+  const buttons: MuscleButton[] = [
+    { id: "all", name: "הכל", icon: "view-grid" },
+    ...muscles.map((m) => ({
+      id: m.id,
+      name: m.name,
+      icon: "arm-flex" as MaterialCommunityIconName,
+    })),
   ];
 
   return (
     <View style={styles.container}>
       <FlatList
         horizontal
-        inverted // RTL: היפוך כיוון הגלילה
+        inverted
         showsHorizontalScrollIndicator={false}
         data={buttons}
         keyExtractor={(item) => item.id.toString()}
@@ -70,7 +82,7 @@ const MuscleBar: React.FC<MuscleBarProps> = ({
                 ]}
                 numberOfLines={1}
               >
-                {item.name === "All" ? "הכל" : item.name}
+                {item.name}
               </Text>
             </TouchableOpacity>
           );

@@ -149,3 +149,158 @@ export const fakeGoogleRegister = async () => {
 // ייצוא פונקציית הגנרטור לשימוש חיצוני אם נדרש
 // Export generator function for external use if needed
 export { generateRandomUser };
+
+/**
+ * יוצר שאלון רנדומלי עם תשובות הגיוניות
+ * Creates random questionnaire with logical answers
+ */
+const generateRandomQuestionnaire = () => {
+  // ציבור גיל רנדומלי בין 18-65
+  const age = 18 + Math.floor(Math.random() * 47);
+
+  // מגדר רנדומלי
+  const genders = ["male", "female"];
+  const gender = genders[Math.floor(Math.random() * genders.length)];
+
+  // גובה ומשקל הגיוניים לפי מגדר
+  const height =
+    gender === "male"
+      ? 165 + Math.floor(Math.random() * 25) // 165-190
+      : 155 + Math.floor(Math.random() * 25); // 155-180
+
+  const weight =
+    gender === "male"
+      ? 60 + Math.floor(Math.random() * 40) // 60-100
+      : 50 + Math.floor(Math.random() * 30); // 50-80
+
+  // מטרות כושר אקראיות
+  const goals = [
+    "weight_loss",
+    "muscle_gain",
+    "general_fitness",
+    "strength",
+    "endurance",
+  ];
+  const goal = goals[Math.floor(Math.random() * goals.length)];
+
+  // רמת ניסיון
+  const experiences = ["beginner", "intermediate", "advanced"];
+  const experience =
+    experiences[Math.floor(Math.random() * experiences.length)];
+
+  // תדירות אימון
+  const frequencies = ["2_times", "3_times", "4_times", "5_times", "6_times"];
+  const frequency = frequencies[Math.floor(Math.random() * frequencies.length)];
+
+  // משך אימון
+  const durations = ["30_min", "45_min", "60_min", "90_min"];
+  const duration = durations[Math.floor(Math.random() * durations.length)];
+
+  // מיקום אימון
+  const locations = ["home", "gym", "both"];
+  const location = locations[Math.floor(Math.random() * locations.length)];
+
+  // ציוד בית (רק אם location כולל בית)
+  const homeEquipment =
+    location === "home" || location === "both"
+      ? ["dumbbells", "yoga_mat", "resistance_bands"]
+      : [];
+
+  // ציוד חדר כושר (רק אם location כולל חדר כושר)
+  const gymEquipment =
+    location === "gym" || location === "both"
+      ? ["barbell", "dumbbells", "cable_machine", "bench"]
+      : [];
+
+  // דיאטה
+  const diets = ["none", "keto", "vegetarian", "vegan", "paleo"];
+  const dietType = diets[Math.floor(Math.random() * diets.length)];
+
+  // שעות שינה
+  const sleepHours = 6 + Math.floor(Math.random() * 4); // 6-9 שעות
+
+  // רמת לחץ
+  const stressLevels = ["low", "medium", "high"];
+  const stressLevel =
+    stressLevels[Math.floor(Math.random() * stressLevels.length)];
+
+  // העדפת אימון
+  const workoutPrefs = ["strength", "cardio", "mixed", "functional"];
+  const workoutPreference =
+    workoutPrefs[Math.floor(Math.random() * workoutPrefs.length)];
+
+  return {
+    // שדות שלב 1 - אימונים (חובה)
+    age: age.toString(),
+    goal: goal,
+    experience: experience,
+    location: location,
+    frequency: frequency,
+    duration: duration,
+
+    // שדות דינמיים לפי location
+    ...(location === "home" || location === "both"
+      ? { home_equipment: homeEquipment }
+      : {}),
+    ...(location === "gym" || location === "both"
+      ? { gym_access: "full_gym" }
+      : {}),
+
+    // שדות שלב 2 - פרופיל (אופציונלי)
+    gender: gender,
+    height: height,
+    weight: weight,
+    diet_type: dietType,
+    sleep_hours: sleepHours.toString(),
+    stress_level: stressLevel,
+    water_intake: "2-3 ליטר",
+
+    // שדות נוספים לתאימות לאחור (מפתחות מספריים)
+    1: age.toString(),
+    2: gender,
+    3: height.toString(),
+    4: weight.toString(),
+    5: goal,
+    6: experience,
+    7: frequency,
+    8: duration,
+    9: location,
+    10: homeEquipment,
+    11: gymEquipment,
+    12: dietType,
+    13: sleepHours.toString(),
+    14: stressLevel,
+    15: workoutPreference,
+  };
+};
+
+/**
+ * מדמה התחברות Google עם שאלון מלא - רק לפיתוח!
+ * Simulates Google Sign In with complete questionnaire - DEV ONLY!
+ */
+export const fakeGoogleSignInWithQuestionnaire = async () => {
+  console.log("🚀 DEV MODE: Generating user with completed questionnaire");
+
+  // דימוי השהייה של שרת
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  const randomUser = generateRandomUser();
+  const randomQuestionnaire = generateRandomQuestionnaire();
+
+  console.log("🎲 Random user with questionnaire:", randomUser.email);
+  console.log("📋 Generated questionnaire:", randomQuestionnaire);
+
+  return {
+    ...randomUser,
+    questionnaire: randomQuestionnaire,
+    questionnaireData: {
+      answers: randomQuestionnaire,
+      completedAt: new Date().toISOString(),
+      version: "1.0",
+      metadata: {
+        generatedRandomly: true,
+        devMode: true,
+      },
+    },
+  };
+};

@@ -2,7 +2,9 @@
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @brief מסך פתיחה ראשי של האפליקציה עם אפשרויות הרשמה והתחברות
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient
- * @notes כולל אנימציות fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
+ * @notes כולל אנימ      // ניווט ישירות למסך הראשי (כי השאלון כבר מלא)
+      // Navigate directly to main screen (questionnaire already completed)
+      navigation.navigate("MainApp");ת fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
  * @enhancements אנימציית פעימה לנקודה ירוקה, Ripple effects, מיקרו-אינטראקציות, נגישות משופרת, Skeleton loading
  */
 
@@ -26,7 +28,10 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { fakeGoogleSignIn } from "../../services/authService";
+import {
+  fakeGoogleSignIn,
+  fakeGoogleSignInWithQuestionnaire,
+} from "../../services/authService";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -117,6 +122,7 @@ export default function WelcomeScreen() {
   const navigation = useNavigation<any>();
   const { setUser } = useUserStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDevLoading, setIsDevLoading] = useState(false);
   const [activeUsers] = useState(Math.floor(Math.random() * 2000) + 8000);
 
   // אנימציות // Animations
@@ -194,6 +200,32 @@ export default function WelcomeScreen() {
       console.error("❌ Google sign in failed:", error);
     } finally {
       setIsGoogleLoading(false);
+    }
+  };
+
+  // כניסה מהירה לפיתוח - עם שאלון מלא
+  // Dev quick login - with completed questionnaire
+  const handleDevQuickLogin = async () => {
+    setIsDevLoading(true);
+
+    try {
+      // יוצר משתמש עם שאלון מלא
+      // Creates user with completed questionnaire
+      const devUser = await fakeGoogleSignInWithQuestionnaire();
+
+      console.log("🚀 DEV: User with questionnaire created:", devUser.email);
+
+      // שמירה ב-store
+      // Save to store
+      setUser(devUser);
+
+      // ניווט ישירות למסך הראשי (כי השאלון כבר מלא)
+      // Navigate directly to main screen (questionnaire already completed)
+      navigation.navigate("MainApp");
+    } catch (error) {
+      console.error("❌ Dev login failed:", error);
+    } finally {
+      setIsDevLoading(false);
     }
   };
 
@@ -375,6 +407,36 @@ export default function WelcomeScreen() {
                   resizeMode="contain"
                 />
                 <Text style={styles.googleButtonText}>המשך עם Google</Text>
+              </TouchableButton>
+            )}
+
+            {/* כפתור פיתוח מהיר - רק לפיתוח! // Dev quick button - DEV ONLY! */}
+            {__DEV__ && (
+              <TouchableButton
+                style={[
+                  styles.devButton,
+                  isDevLoading && styles.disabledButton,
+                ]}
+                onPress={handleDevQuickLogin}
+                disabled={isDevLoading || isGoogleLoading}
+                accessibilityLabel="כניסה מהירה לפיתוח עם שאלון מלא"
+                accessibilityHint="לחץ לכניסה מהירה עם נתונים מדומים - רק למפתחים"
+              >
+                {isDevLoading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.warning}
+                  />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="rocket-launch"
+                    size={20}
+                    color={theme.colors.warning}
+                  />
+                )}
+                <Text style={styles.devButtonText}>
+                  {isDevLoading ? "יוצר נתונים..." : "🚀 דמו מהיר (פיתוח)"}
+                </Text>
               </TouchableButton>
             )}
 
@@ -624,5 +686,29 @@ export const styles = StyleSheet.create({
   footerLink: {
     color: theme.colors.primary,
     textDecorationLine: "underline",
+  },
+  // סטיילים לכפתור פיתוח // Dev button styles
+  devButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.warning,
+    borderRadius: theme.radius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 8,
+    borderStyle: "dashed",
+  },
+  devButtonText: {
+    fontSize: theme.typography.button.fontSize,
+    color: theme.colors.warning,
+    fontWeight: "600",
+    marginHorizontal: 0,
+    marginRight: 8,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });

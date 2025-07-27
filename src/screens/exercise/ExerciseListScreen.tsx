@@ -5,7 +5,7 @@
  * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי ומצב בחירה לאימון
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -26,31 +26,40 @@ import {
 } from "../../services/exerciseService";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import MuscleBar from "./MuscleBar";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import type { RootStackParamList } from "../../navigation/types";
+
+/**
+ * טיפוס params של המסך הזה, לפי ה-AppNavigator
+ */
+type ExerciseListScreenRouteProp = RouteProp<
+  RootStackParamList,
+  "ExerciseList"
+>;
 
 export default function ExerciseListScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
+  const route = useRoute<ExerciseListScreenRouteProp>();
 
   // בדיקה אם אנחנו במצב בחירה
-  // Check if we're in selection mode
-  const params = route.params as any;
-  const isSelectionMode = params?.mode === "selection";
-  const onSelectExercise = params?.onSelectExercise;
+  const params = route.params ?? {};
+  const isSelectionMode = params.mode === "selection";
+  const onSelectExercise = params.onSelectExercise;
 
+  // States
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [allMuscles, setAllMuscles] = useState<Muscle[]>([]);
   const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
-
-  // רשימת תרגילים שנבחרו
-  // List of selected exercises
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+
+  // Toast
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  // טעינת נתונים
   useEffect(() => {
     loadData();
   }, []);
@@ -58,28 +67,16 @@ export default function ExerciseListScreen() {
   const loadData = async () => {
     setLoading(true);
     setError(null);
-
     try {
-      // טעינת שרירים תחילה
-      // Load muscles first
-      console.log("[SCREEN] Fetching muscles...");
       const muscles = await fetchMuscles();
-      console.log("[SCREEN] Muscles loaded:", muscles.length);
       setAllMuscles(muscles);
-
-      // לאחר מכן טעינת תרגילים
-      // Then load exercises
-      console.log("[SCREEN] Fetching exercises...");
       const data = await fetchExercisesSimple(30);
-      console.log("[SCREEN] Exercises loaded:", data.length);
-
       if (data.length === 0) {
         setError("לא נמצאו תרגילים. אנא בדוק את חיבור האינטרנט שלך.");
       } else {
         setExercises(data);
       }
-    } catch (e) {
-      console.error("[SCREEN] ERROR:", e);
+    } catch {
       setError(
         "נכשלה טעינת התרגילים. אנא בדוק את חיבור האינטרנט שלך ונסה שנית."
       );
@@ -88,13 +85,9 @@ export default function ExerciseListScreen() {
     }
   };
 
-  // סינון תרגילים לפי שריר נבחר
-  // Filter exercises by selected muscle
+  // סינון תרגילים לפי שריר
   const filteredExercises = React.useMemo(() => {
-    if (selectedMuscle === "all") {
-      return exercises;
-    }
-
+    if (selectedMuscle === "all") return exercises;
     return exercises.filter(
       (ex) =>
         ex.muscles.some((m) => m.id === selectedMuscle) ||
@@ -102,59 +95,38 @@ export default function ExerciseListScreen() {
     );
   }, [exercises, selectedMuscle]);
 
-  const getMuscleName = (muscles?: Muscle[]): string => {
-    if (!muscles || !muscles.length) return "לא זמין";
-    return muscles.map((m) => m.name).join(", ");
-  };
+  // עוזר להצגת שמות שרירים
+  const getMuscleName = (muscles?: Muscle[]): string =>
+    !muscles || !muscles.length
+      ? "לא זמין"
+      : muscles.map((m) => m.name).join(", ");
 
-  // הצגת Toast
-  // Show toast
-  const showToastMessage = (message: string) => {
+  // Toast הצגת
+  const showToastMessage = useCallback((message: string) => {
     setToastMessage(message);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
-  };
+  }, []);
 
+  // בעת לחיצה על תרגיל
   const handleExercisePress = (item: Exercise) => {
-    console.log("[ExerciseList] Exercise pressed:", item.name);
-    console.log("[ExerciseList] Selection mode:", isSelectionMode);
-    console.log("[ExerciseList] onSelectExercise exists:", !!onSelectExercise);
-
     if (isSelectionMode && onSelectExercise) {
-      // במצב בחירה - מוסיפים/מסירים מהרשימה
-      // In selection mode - add/remove from list
       const exerciseId = item.id.toString();
-
       if (selectedExercises.includes(exerciseId)) {
-        // אם כבר נבחר - מסירים
-        console.log("[ExerciseList] Removing exercise:", exerciseId);
         setSelectedExercises((prev) => prev.filter((id) => id !== exerciseId));
         showToastMessage(`${item.name} הוסר מהרשימה`);
       } else {
-        // אם לא נבחר - מוסיפים
-        console.log("[ExerciseList] Adding exercise:", exerciseId);
         setSelectedExercises((prev) => [...prev, exerciseId]);
         showToastMessage(`${item.name} נוסף לאימון! 💪`);
-
-        // מוסיפים ישר לאימון
-        const exerciseForWorkout = {
-          id: exerciseId,
-          name: item.name,
-          category: item.category,
-          image: item.image,
-          primaryMuscles: item.muscles.map((m) => m.name),
-          secondaryMuscles: item.muscles_secondary.map((m) => m.name),
-          equipment: undefined,
-        };
-        onSelectExercise(exerciseForWorkout);
+        // הוספה לאימון דרך הפונקציה מה-params
+        onSelectExercise(item);
       }
     } else {
-      // במצב רגיל - פותחים את המודל
-      // In normal mode - open the modal
       setSelected(item);
     }
   };
 
+  // סיום בחירת תרגילים
   const handleFinishSelection = () => {
     if (selectedExercises.length === 0) {
       Alert.alert("לא נבחרו תרגילים", "בחר לפחות תרגיל אחד להוספה לאימון");
@@ -163,6 +135,7 @@ export default function ExerciseListScreen() {
     navigation.goBack();
   };
 
+  // רכיב כרטיס תרגיל
   const renderExerciseItem = ({ item }: { item: Exercise }) => (
     <TouchableOpacity
       style={styles.exerciseCard}
@@ -174,13 +147,12 @@ export default function ExerciseListScreen() {
           <Text style={styles.exerciseName} numberOfLines={2}>
             {item.name}
           </Text>
-          {item.muscles && item.muscles.length > 0 && (
+          {item.muscles?.length > 0 && (
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>{item.muscles[0].name}</Text>
             </View>
           )}
         </View>
-
         <View style={styles.muscleInfo}>
           <View style={styles.muscleRow}>
             <MaterialCommunityIcons
@@ -190,7 +162,6 @@ export default function ExerciseListScreen() {
             />
             <Text style={styles.muscleText}>{getMuscleName(item.muscles)}</Text>
           </View>
-
           {item.muscles_secondary.length > 0 && (
             <View style={styles.muscleRow}>
               <MaterialCommunityIcons
@@ -205,7 +176,6 @@ export default function ExerciseListScreen() {
           )}
         </View>
       </View>
-
       {item.image ? (
         <Image
           source={{ uri: item.image }}
@@ -221,18 +191,14 @@ export default function ExerciseListScreen() {
           />
         </View>
       )}
-
       <MaterialCommunityIcons
-        name={(() => {
-          if (isSelectionMode) {
-            const isSelected = selectedExercises.includes(item.id.toString());
-            console.log(
-              `[Icon] Exercise ${item.name} - Selected: ${isSelected}`
-            );
-            return isSelected ? "check-circle" : "plus-circle";
-          }
-          return "chevron-left";
-        })()}
+        name={
+          isSelectionMode
+            ? selectedExercises.includes(item.id.toString())
+              ? "check-circle"
+              : "plus-circle"
+            : "chevron-left"
+        }
         size={24}
         color={
           isSelectionMode
@@ -246,6 +212,7 @@ export default function ExerciseListScreen() {
     </TouchableOpacity>
   );
 
+  // Loading/Error
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -255,7 +222,6 @@ export default function ExerciseListScreen() {
       </View>
     );
   }
-
   if (error) {
     return (
       <View style={styles.centered}>
@@ -273,10 +239,10 @@ export default function ExerciseListScreen() {
     );
   }
 
+  // Main Render
   return (
     <View style={styles.container}>
-      {/* כותרת
-      Header */}
+      {/* כותרת */}
       <View style={styles.header}>
         {isSelectionMode && (
           <TouchableOpacity
@@ -306,8 +272,7 @@ export default function ExerciseListScreen() {
         )}
       </View>
 
-      {/* בר בחירת שריר
-      Muscle selection bar */}
+      {/* Muscle selection bar */}
       {allMuscles.length > 0 && (
         <MuscleBar
           muscles={allMuscles}
@@ -334,11 +299,27 @@ export default function ExerciseListScreen() {
             </Text>
           </View>
         }
-        // הוספת padding למטה כדי שהכפתור לא יסתיר תרגילים
-        // Add bottom padding so button doesn't hide exercises
         contentInset={{ bottom: isSelectionMode ? 100 : 0 }}
       />
 
+      {/* כפתור סיום בחירה */}
+      {isSelectionMode && (
+        <TouchableOpacity
+          style={styles.finishButton}
+          onPress={handleFinishSelection}
+        >
+          <Text style={styles.finishButtonText}>סיים בחירה</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* הצגת Toast */}
+      {showToast && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
+
+      {/* דיאלוג פרטי תרגיל */}
       {!isSelectionMode && selected && (
         <ExerciseDetailsModal
           exercise={selected}
@@ -349,8 +330,8 @@ export default function ExerciseListScreen() {
   );
 }
 
-// --- סגנונות ---
 // --- styles ---
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

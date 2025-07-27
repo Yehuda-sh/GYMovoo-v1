@@ -138,6 +138,8 @@ export const useUserStore = create<UserStore>()(
       // הגדרת תשובות שאלון (פורמט ישן)
       // Set questionnaire answers (old format)
       setQuestionnaire: (answers) => {
+        console.log("💾 userStore.setQuestionnaire נקרא עם:", answers);
+
         set((state) => ({
           user: {
             ...(state.user || {}),
@@ -147,7 +149,9 @@ export const useUserStore = create<UserStore>()(
 
         // שמירה גם ב-AsyncStorage הנפרד לתאימות
         // Also save in separate AsyncStorage for compatibility
-        AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers));
+        AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers))
+          .then(() => console.log("✅ נשמר ב-AsyncStorage"))
+          .catch((err) => console.error("❌ שגיאה בשמירה:", err));
       },
 
       // הגדרת נתוני שאלון מורחבים

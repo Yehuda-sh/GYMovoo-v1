@@ -2,7 +2,8 @@
  * @file src/screens/profile/ProfileScreen.tsx
  * @brief מסך פרופיל משתמש משודרג - כולל בחירת אווטאר, הישגים, התקדמות ועוד
  * @dependencies userStore (Zustand), DefaultAvatar, ImagePicker
- * @notes כולל אנימציות, מודלים ותכונות מתקדמות
+ * @notes עיצוב נקי ומינימליסטי בהתאם לשאר המסכים
+ * @recurring_errors בעיות RTL בסידור אלמנטים, כיווניות לא נכונה ב-flexDirection
  */
 
 import React, { useRef, useEffect, useState } from "react";
@@ -19,44 +20,41 @@ import {
   FlatList,
   Alert,
   Dimensions,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../../navigation/types";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
-import * as ImagePicker from "expo-image-picker";
-// ייבוא הפונקציות החסרות
 import {
   hasCompletedTrainingStage,
   hasCompletedProfileStage,
 } from "../../data/twoStageQuestionnaireData";
+import { ALL_EQUIPMENT, Equipment } from "../../data/equipmentData";
+import * as ImagePicker from "expo-image-picker";
+import type { ComponentProps } from "react";
+
+// טיפוס לאייקון
+type MaterialCommunityIconName = ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+type Achievement = {
+  id: number;
+  title: string;
+  icon: MaterialCommunityIconName;
+  color: string;
+  unlocked: boolean;
+};
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// אווטארים מוכנים לבחירה
-const PRESET_AVATARS = [
-  "💪",
-  "🏃‍♂️",
-  "🏋️‍♀️",
-  "🤸‍♂️",
-  "🏃‍♀️",
-  "🧘‍♂️",
-  "🧘‍♀️",
-  "🚴‍♂️",
-  "🚴‍♀️",
-  "⛹️‍♂️",
-  "⛹️‍♀️",
-  "🏊‍♂️",
-  "🏊‍♀️",
-  "🥊",
-  "🤺",
-  "🏄‍♂️",
-];
-
-// הישגים לדוגמה
-const ACHIEVEMENTS = [
+// דמו הישגים
+const ACHIEVEMENTS: Achievement[] = [
   {
     id: 1,
     title: "מתחיל נלהב",
@@ -81,19 +79,47 @@ const ACHIEVEMENTS = [
   },
 ];
 
+// דמו אווטארים (אימוג'ים)
+const PRESET_AVATARS = [
+  "💪",
+  "🏃‍♂️",
+  "🏋️‍♀️",
+  "🤸‍♂️",
+  "🏃‍♀️",
+  "🧘‍♂️",
+  "🧘‍♀️",
+  "🚴‍♂️",
+  "🚴‍♀️",
+  "⛹️‍♂️",
+  "⛹️‍♀️",
+  "🏊‍♂️",
+  "🏊‍♀️",
+  "🥊",
+  "🤺",
+  "🏄‍♂️",
+];
+
 export default function ProfileScreen() {
-  const navigation = useNavigation<any>();
-  const user = useUserStore((s) => s.user);
+  // נביגציה ומשתמש
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { user, updateUser, logout: userLogout } = useUserStore();
+
+  // מצב מקומי
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
+  const [refreshing, setRefreshing] = useState(false);
 
   // אנימציות
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // בדיקת השלמת השאלון
+  const hasTrainingStage = hasCompletedTrainingStage(user?.questionnaire);
+  const hasProfileStage = hasCompletedProfileStage(user?.questionnaire);
+  const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
+
   useEffect(() => {
-    // אנימציית כניסה
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -107,7 +133,6 @@ export default function ProfileScreen() {
       }),
     ]).start();
 
-    // אנימציית פעימה לכפתור העלאת תמונה
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -122,7 +147,64 @@ export default function ProfileScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [fadeAnim, slideAnim, pulseAnim]);
+
+  // עדכון avatar כאשר user משתנה
+  useEffect(() => {
+    if (user?.avatar && user.avatar !== selectedAvatar) {
+      setSelectedAvatar(user.avatar);
+    }
+  }, [user?.avatar, selectedAvatar]);
+
+  // רענון הנתונים
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+
+    // עדכון selectedAvatar מ-user
+    if (user?.avatar) {
+      setSelectedAvatar(user.avatar);
+    }
+
+    // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  }, [user?.avatar]);
+
+  // חישוב מידע נוסף מהשאלון
+  const getUserInfo = () => {
+    const questionnaire = (user?.questionnaire || {}) as Record<
+      string,
+      unknown
+    >;
+
+    return {
+      age: (questionnaire.age as string) || "לא צוין",
+      goal: (questionnaire.goal as string) || "לא צוין",
+      experience: (questionnaire.experience as string) || "לא צוין",
+      location:
+        questionnaire.location === "home"
+          ? "אימונים בבית"
+          : questionnaire.location === "gym"
+            ? "אימונים בחדר כושר"
+            : "לא צוין",
+      height: questionnaire.height ? `${questionnaire.height} ס"מ` : "לא צוין",
+      weight: questionnaire.weight ? `${questionnaire.weight} ק"ג` : "לא צוין",
+      diet: (questionnaire.diet_type as string) || "לא צוין",
+    };
+  };
+
+  const userInfo = getUserInfo();
+
+  // דמו סטטיסטיקות - נעדכן אחר כך ממקורות אמיתיים
+  const stats = {
+    workouts: user?.trainingStats?.totalWorkouts || 0,
+    streak: 12, // TODO: חישוב אמיתי של רצף
+    totalTime: "36h", // TODO: חישוב אמיתי של זמן
+    level: 5, // TODO: חישוב רמה על בסיס XP
+    xp: 2450,
+    nextLevelXp: 3000,
+  };
 
   const handleLogout = () => {
     Alert.alert("התנתקות", "האם אתה בטוח שברצונך להתנתק?", [
@@ -131,13 +213,14 @@ export default function ProfileScreen() {
         text: "התנתק",
         style: "destructive",
         onPress: () => {
-          useUserStore.getState().logout();
+          userLogout();
           navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
         },
       },
     ]);
   };
 
+  // בחר מהגלריה
   const pickImageFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -145,42 +228,34 @@ export default function ProfileScreen() {
       aspect: [1, 1],
       quality: 0.7,
     });
-
     if (!result.canceled) {
-      // שמירת התמונה
-      console.log("תמונה נבחרה:", result.assets[0].uri);
+      const newAvatar = result.assets[0].uri;
+      setSelectedAvatar(newAvatar);
+      updateUser({ avatar: newAvatar });
       setShowAvatarModal(false);
     }
   };
 
+  // בחר מהמצלמה
   const takePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
     });
-
     if (!result.canceled) {
-      // שמירת התמונה
-      console.log("תמונה צולמה:", result.assets[0].uri);
+      const newAvatar = result.assets[0].uri;
+      setSelectedAvatar(newAvatar);
+      updateUser({ avatar: newAvatar });
       setShowAvatarModal(false);
     }
   };
 
+  // בחר אימוג'י
   const selectPresetAvatar = (avatar: string) => {
     setSelectedAvatar(avatar);
-    // שמירה ב-store
+    updateUser({ avatar });
     setShowAvatarModal(false);
-  };
-
-  // סטטיסטיקות משתמש
-  const stats = {
-    workouts: 48,
-    streak: 12,
-    totalTime: "36h",
-    level: 5,
-    xp: 2450,
-    nextLevelXp: 3000,
   };
 
   return (
@@ -192,14 +267,19 @@ export default function ProfileScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       >
         <Animated.View
           style={[
             styles.container,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
+            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
           ]}
         >
           {/* Header */}
@@ -215,23 +295,66 @@ export default function ProfileScreen() {
                 color={theme.colors.text}
               />
             </TouchableOpacity>
-
             <Text style={styles.headerTitle}>הפרופיל שלי</Text>
-
-            <TouchableOpacity
-              style={styles.settingsButton}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate("Settings")}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={24}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              {/* כפתור השלמת שאלון אם לא הושלם */}
+              {!isQuestionnaireComplete && (
+                <TouchableOpacity
+                  style={styles.headerQuestionnaireButton}
+                  onPress={() =>
+                    navigation.navigate("Questionnaire", { stage: "training" })
+                  }
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name="clipboard-list"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
-          {/* כרטיס פרופיל משודרג */}
+          {/* כרטיס שאלון אם לא הושלם */}
+          {!isQuestionnaireComplete && (
+            <TouchableOpacity
+              style={styles.questionnaireCard}
+              onPress={() =>
+                navigation.navigate("Questionnaire", { stage: "training" })
+              }
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.primaryGradientStart,
+                  theme.colors.primaryGradientEnd,
+                ]}
+                style={styles.questionnaireGradient}
+              >
+                <MaterialCommunityIcons
+                  name="clipboard-list"
+                  size={24}
+                  color={theme.colors.white}
+                />
+                <View style={styles.questionnaireTextContainer}>
+                  <Text style={styles.questionnaireTitle}>השלם את השאלון</Text>
+                  <Text style={styles.questionnaireSubtitle}>
+                    {!hasTrainingStage
+                      ? "קבל תוכנית אימונים מותאמת אישית"
+                      : "השלם את הפרופיל האישי שלך"}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={24}
+                  color={theme.colors.white}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* כרטיס פרופיל */}
           <View style={styles.profileCard}>
             <View style={styles.avatarSection}>
               <TouchableOpacity
@@ -239,18 +362,20 @@ export default function ProfileScreen() {
                 style={styles.avatarContainer}
               >
                 {typeof selectedAvatar === "string" &&
-                selectedAvatar.length <= 2 ? (
-                  <View style={styles.emojiAvatar}>
-                    <Text style={styles.emojiText}>{selectedAvatar}</Text>
-                  </View>
-                ) : user?.avatar ? (
+                selectedAvatar.startsWith("http") ? (
                   <Image
-                    source={{ uri: user.avatar }}
+                    source={{ uri: selectedAvatar }}
                     style={styles.avatar}
                     resizeMode="cover"
                   />
+                ) : selectedAvatar && selectedAvatar.length === 2 ? (
+                  <View style={styles.emojiAvatar}>
+                    <Text style={styles.emojiText}>{selectedAvatar}</Text>
+                  </View>
                 ) : (
-                  <DefaultAvatar name={user?.name ?? "משתמש"} size={100} />
+                  <View style={styles.avatar}>
+                    <DefaultAvatar name={user?.name || "משתמש"} size={90} />
+                  </View>
                 )}
                 <Animated.View
                   style={[
@@ -265,7 +390,6 @@ export default function ProfileScreen() {
                   />
                 </Animated.View>
               </TouchableOpacity>
-
               {/* רמה ו-XP */}
               <View style={styles.levelContainer}>
                 <Text style={styles.levelText}>רמה {stats.level}</Text>
@@ -282,11 +406,10 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-
             <Text style={styles.username}>{user?.name || "אלוף הכושר"}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
-
-            {/* תגי סטטוס */}
+            <Text style={styles.userEmail}>
+              {user?.email || "user@gymovoo.com"}
+            </Text>
             <View style={styles.badgesContainer}>
               <View style={styles.badge}>
                 <MaterialCommunityIcons
@@ -303,41 +426,72 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* כפתור השלמת/עריכת שאלון */}
-          <TouchableOpacity
-            style={styles.questionnaireButton}
-            onPress={() => {
-              const stage = hasCompletedTrainingStage(user?.questionnaire)
-                ? hasCompletedProfileStage(user?.questionnaire)
-                  ? null
-                  : "profile"
-                : "training";
-              if (stage) {
-                navigation.navigate("Questionnaire", { stage });
-              }
-            }}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.primaryGradientStart,
-                theme.colors.primaryGradientEnd,
-              ]}
-              style={styles.questionnaireGradient}
-            >
-              <MaterialCommunityIcons
-                name="clipboard-text"
-                size={20}
-                color={theme.colors.white}
-              />
-              <Text style={styles.questionnaireButtonText}>
-                {hasCompletedTrainingStage(user?.questionnaire)
-                  ? hasCompletedProfileStage(user?.questionnaire)
-                    ? "עדכן פרטים אישיים"
-                    : "השלם פרופיל אישי"
-                  : "השלם שאלון אימונים"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* מידע אישי מהשאלון */}
+          {isQuestionnaireComplete && (
+            <View style={styles.infoContainer}>
+              <Text style={styles.sectionTitle}>המידע שלי</Text>
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="target"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.infoLabel}>מטרה</Text>
+                  <Text style={styles.infoValue}>{userInfo.goal}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.infoLabel}>גיל</Text>
+                  <Text style={styles.infoValue}>{userInfo.age}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="arm-flex"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.infoLabel}>ניסיון</Text>
+                  <Text style={styles.infoValue}>{userInfo.experience}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <MaterialCommunityIcons
+                    name="map-marker"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.infoLabel}>מיקום</Text>
+                  <Text style={styles.infoValue}>{userInfo.location}</Text>
+                </View>
+                {userInfo.height !== "לא צוין" && (
+                  <View style={styles.infoItem}>
+                    <MaterialCommunityIcons
+                      name="human-male-height"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.infoLabel}>גובה</Text>
+                    <Text style={styles.infoValue}>{userInfo.height}</Text>
+                  </View>
+                )}
+                {userInfo.weight !== "לא צוין" && (
+                  <View style={styles.infoItem}>
+                    <MaterialCommunityIcons
+                      name="weight"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.infoLabel}>משקל</Text>
+                    <Text style={styles.infoValue}>{userInfo.weight}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
 
           {/* סטטיסטיקות */}
           <View style={styles.statsContainer}>
@@ -357,7 +511,6 @@ export default function ProfileScreen() {
                   <Text style={styles.statLabel}>אימונים</Text>
                 </LinearGradient>
               </View>
-
               <View style={styles.statCard}>
                 <LinearGradient
                   colors={["#ff6b6b", "#d84848"]}
@@ -368,7 +521,6 @@ export default function ProfileScreen() {
                   <Text style={styles.statLabel}>ימי רצף</Text>
                 </LinearGradient>
               </View>
-
               <View style={styles.statCard}>
                 <LinearGradient
                   colors={["#00d9ff", "#00b8d4"]}
@@ -386,6 +538,140 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* ציוד זמין */}
+          {user?.questionnaire && (
+            <View style={styles.equipmentContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>הציוד שלי</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("Questionnaire", { stage: "training" })
+                  }
+                >
+                  <Text style={styles.seeAllText}>ערוך</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.equipmentScroll}
+                contentContainerStyle={styles.equipmentScrollContent}
+              >
+                {(() => {
+                  // חילוץ הציוד מהשאלון - תמיכה בפורמטים שונים
+                  const questionnaire: Record<string, string[]> =
+                    user.questionnaire as Record<string, string[]>;
+
+                  // ניסיון לחלץ ציוד בשני הפורמטים
+                  let homeEquipment: string[] = [];
+                  let gymEquipment: string[] = [];
+
+                  // פורמט חדש עם מפתחות string
+                  if (questionnaire?.home_equipment) {
+                    homeEquipment = Array.isArray(questionnaire.home_equipment)
+                      ? questionnaire.home_equipment
+                      : [];
+                  }
+                  if (questionnaire?.gym_equipment) {
+                    gymEquipment = Array.isArray(questionnaire.gym_equipment)
+                      ? questionnaire.gym_equipment
+                      : [];
+                  }
+
+                  // פורמט ישן עם מפתחות מספריים (נסיון לחילוץ מהשדות 10 ו-11)
+                  if (homeEquipment.length === 0 && questionnaire[10]) {
+                    homeEquipment = Array.isArray(questionnaire[10])
+                      ? questionnaire[10]
+                      : [];
+                  }
+                  if (gymEquipment.length === 0 && questionnaire[11]) {
+                    gymEquipment = Array.isArray(questionnaire[11])
+                      ? questionnaire[11]
+                      : [];
+                  }
+
+                  const allEquipment = [
+                    ...new Set([...homeEquipment, ...gymEquipment]),
+                  ];
+
+                  // דיבוג ציוד
+                  console.log("🔧 ProfileScreen - ציוד נמצא:", {
+                    homeEquipment,
+                    gymEquipment,
+                    allEquipment,
+                    questionnaire,
+                  });
+
+                  if (allEquipment.length === 0) {
+                    return (
+                      <View style={styles.noEquipmentContainer}>
+                        <MaterialCommunityIcons
+                          name="dumbbell"
+                          size={40}
+                          color={theme.colors.textSecondary}
+                        />
+                        <Text style={styles.noEquipmentText}>לא נבחר ציוד</Text>
+                        <Text style={styles.noEquipmentSubtext}>
+                          השלם את השאלון לקבלת המלצות
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return allEquipment
+                    .map((equipmentId: string) => {
+                      const equipment = ALL_EQUIPMENT.find(
+                        (eq) => eq.id === equipmentId
+                      );
+                      if (!equipment) return null;
+
+                      return (
+                        <View key={equipmentId} style={styles.equipmentItem}>
+                          <View style={styles.equipmentImageContainer}>
+                            {equipment.image ? (
+                              <Image
+                                source={equipment.image}
+                                style={styles.equipmentImage}
+                                resizeMode="contain"
+                              />
+                            ) : (
+                              <MaterialCommunityIcons
+                                name="dumbbell"
+                                size={28}
+                                color={theme.colors.primary}
+                              />
+                            )}
+                            {equipment.isPremium && (
+                              <View style={styles.equipmentPremiumBadge}>
+                                <MaterialCommunityIcons
+                                  name="crown"
+                                  size={12}
+                                  color={theme.colors.warning}
+                                />
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.equipmentLabel} numberOfLines={2}>
+                            {equipment.label}
+                          </Text>
+                          <View style={styles.equipmentCategoryBadge}>
+                            <Text style={styles.equipmentCategoryText}>
+                              {equipment.category === "home"
+                                ? "בית"
+                                : equipment.category === "gym"
+                                  ? "חדר כושר"
+                                  : "שניהם"}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                    .filter(Boolean);
+                })()}
+              </ScrollView>
+            </View>
+          )}
+
           {/* הישגים */}
           <View style={styles.achievementsContainer}>
             <View style={styles.sectionHeader}>
@@ -394,7 +680,6 @@ export default function ProfileScreen() {
                 <Text style={styles.seeAllText}>הצג הכל</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.achievementsGrid}>
               {ACHIEVEMENTS.map((achievement) => (
                 <View
@@ -405,7 +690,7 @@ export default function ProfileScreen() {
                   ]}
                 >
                   <MaterialCommunityIcons
-                    name={achievement.icon as any}
+                    name={achievement.icon}
                     size={30}
                     color={
                       achievement.unlocked
@@ -426,51 +711,50 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* הגדרות נוספות */}
+          {/* הגדרות בסיסיות */}
           <View style={styles.settingsContainer}>
-            <TouchableOpacity style={styles.settingItem}>
+            <Text style={styles.sectionTitle}>הגדרות</Text>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() =>
+                navigation.navigate("Questionnaire", { stage: "training" })
+              }
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <MaterialCommunityIcons
+                  name="clipboard-list"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.settingText}>ערוך שאלון</Text>
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => {
+                // TODO: הוסף הגדרות התראות
+                Alert.alert("בקרוב", "הגדרות התראות יהיו זמינות בקרוב");
+              }}
+              activeOpacity={0.7}
+            >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons
                   name="bell-outline"
                   size={24}
-                  color={theme.colors.text}
+                  color={theme.colors.primary}
                 />
                 <Text style={styles.settingText}>התראות</Text>
               </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <MaterialCommunityIcons
-                  name="lock-outline"
-                  size={24}
-                  color={theme.colors.text}
-                />
-                <Text style={styles.settingText}>פרטיות ואבטחה</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <MaterialCommunityIcons
-                  name="help-circle-outline"
-                  size={24}
-                  color={theme.colors.text}
-                />
-                <Text style={styles.settingText}>עזרה ותמיכה</Text>
-              </View>
-              <Ionicons
-                name="chevron-back"
+              <MaterialCommunityIcons
+                name="chevron-left"
                 size={20}
                 color={theme.colors.textSecondary}
               />
@@ -511,7 +795,6 @@ export default function ProfileScreen() {
                 <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
-
             <View style={styles.uploadOptions}>
               <TouchableOpacity
                 style={styles.uploadOption}
@@ -524,7 +807,6 @@ export default function ProfileScreen() {
                 />
                 <Text style={styles.uploadOptionText}>מהגלריה</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.uploadOption} onPress={takePhoto}>
                 <MaterialCommunityIcons
                   name="camera"
@@ -534,8 +816,7 @@ export default function ProfileScreen() {
                 <Text style={styles.uploadOptionText}>צלם תמונה</Text>
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.presetsTitle}>או בחר אימוג'י:</Text>
+            <Text style={styles.presetsTitle}>או בחר אימוג&apos;י:</Text>
             <FlatList
               data={PRESET_AVATARS}
               numColumns={4}
@@ -560,6 +841,8 @@ export default function ProfileScreen() {
   );
 }
 
+// שים את ה־styles שלך כאן (אותו דבר כמו הדוגמה שלך)
+
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
@@ -583,6 +866,16 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: theme.spacing.sm,
+  },
+  headerRight: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  headerQuestionnaireButton: {
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.primaryLight + "20",
+    borderRadius: 8,
   },
   settingsButton: {
     padding: theme.spacing.sm,
@@ -701,6 +994,13 @@ const styles = StyleSheet.create({
   },
 
   // שאלון
+  questionnaireCard: {
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
   questionnaireButton: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
@@ -710,15 +1010,64 @@ const styles = StyleSheet.create({
   questionnaireGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
+    justifyContent: "space-between",
+    paddingVertical: 20,
     paddingHorizontal: 24,
-    gap: 8,
+  },
+  questionnaireTextContainer: {
+    flex: 1,
+    marginHorizontal: theme.spacing.md,
+  },
+  questionnaireTitle: {
+    color: theme.colors.white,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+    textAlign: "right",
+  },
+  questionnaireSubtitle: {
+    color: theme.colors.white,
+    fontSize: 14,
+    opacity: 0.9,
+    textAlign: "right",
   },
   questionnaireButtonText: {
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // מידע אישי
+  infoContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+  },
+  infoGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: theme.spacing.md,
+  },
+  infoItem: {
+    width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.md) / 2,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  infoValue: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "600",
+    marginTop: 2,
+    textAlign: "center",
   },
 
   // סטטיסטיקות
@@ -926,5 +1275,94 @@ const styles = StyleSheet.create({
   },
   presetAvatarText: {
     fontSize: 35,
+  },
+
+  // סגנונות ציוד
+  equipmentContainer: {
+    backgroundColor: theme.colors.card,
+    marginHorizontal: theme.spacing.lg,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    paddingVertical: theme.spacing.md,
+  },
+  equipmentScroll: {
+    paddingHorizontal: theme.spacing.lg,
+  },
+  equipmentScrollContent: {
+    paddingRight: theme.spacing.lg,
+  },
+  noEquipmentContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  noEquipmentText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
+    marginTop: theme.spacing.sm,
+    textAlign: "center",
+  },
+  noEquipmentSubtext: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+    marginTop: theme.spacing.xs,
+    textAlign: "center",
+  },
+  equipmentItem: {
+    alignItems: "center",
+    marginLeft: theme.spacing.md,
+    width: 80,
+  },
+  equipmentImageContainer: {
+    position: "relative",
+    width: 60,
+    height: 60,
+    backgroundColor: theme.colors.backgroundAlt,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+  },
+  equipmentImage: {
+    width: 40,
+    height: 40,
+  },
+  equipmentPremiumBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: theme.colors.warning,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  equipmentLabel: {
+    fontSize: 12,
+    color: theme.colors.text,
+    textAlign: "center",
+    fontWeight: "500",
+    marginBottom: theme.spacing.xs,
+    lineHeight: 16,
+  },
+  equipmentCategoryBadge: {
+    backgroundColor: theme.colors.primary + "20",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  equipmentCategoryText: {
+    fontSize: 10,
+    color: theme.colors.primary,
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

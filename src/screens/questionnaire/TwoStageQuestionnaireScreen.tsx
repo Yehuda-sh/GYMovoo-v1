@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -34,14 +33,20 @@ import {
   hasCompletedTrainingStage,
   hasCompletedProfileStage,
 } from "../../data/twoStageQuestionnaireData";
-import { Question, OptionWithImage } from "../../data/questionnaireData";
+import { OptionWithImage } from "../../data/questionnaireData";
+import { NavigationProp } from "@react-navigation/native";
+import { RootStackParamList } from "../../navigation/types";
+
+// הרחבת OptionWithImage לכלול icon
+interface ExtendedOption extends OptionWithImage {
+  icon?: string;
+}
+
 import HeightSlider from "./HeightSlider";
 import WeightSlider from "./WeightSlider";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 interface Props {
-  navigation: any;
+  navigation: NavigationProp<RootStackParamList>;
   route: {
     params?: {
       stage?: "training" | "profile";
@@ -64,14 +69,20 @@ export default function TwoStageQuestionnaireScreen({
   const [currentStage, setCurrentStage] = useState<"training" | "profile">(
     initialStage
   );
-  const [answers, setAnswers] = useState<{ [key: string]: any }>(
-    user?.questionnaire || {}
+  const [answers, setAnswers] = useState<{
+    [key: string]: string | string[] | number;
+  }>(user?.questionnaire || {});
+  console.log(`🔍 TwoStageQuestionnaireScreen - איתחול answers:`, answers);
+  console.log(
+    `🔍 TwoStageQuestionnaireScreen - user.questionnaire:`,
+    user?.questionnaire
   );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedMultiple, setSelectedMultiple] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
   const [error, setError] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
 
   // קבלת שאלות לפי השלב
   const questions =
@@ -80,6 +91,16 @@ export default function TwoStageQuestionnaireScreen({
       : getProfileQuestions();
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentQuestionIndex];
+
+  // דיבוג השאלות
+  console.log(`🔍 TwoStageQuestionnaireScreen - שאלות נוכחיות:`, {
+    stage: currentStage,
+    totalQuestions,
+    currentQuestionIndex,
+    currentQuestionId: currentQuestion?.id,
+    answers,
+    allQuestionIds: questions.map((q) => q.id),
+  });
 
   // אנימציות
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -131,25 +152,65 @@ export default function TwoStageQuestionnaireScreen({
     });
   };
 
-  const handleAnswer = (answer: any) => {
+  const handleAnswer = (answer: string | string[] | number) => {
     // מניעת לחיצות כפולות במהלך מעבר
     if (isTransitioning) {
       return;
+    }
+
+    // לוג מיוחד לשאלות גובה ומשקל
+    if (currentQuestion.id === "height" || currentQuestion.id === "weight") {
+      console.log(`📏 שומר ${currentQuestion.id}:`, {
+        questionId: currentQuestion.id,
+        answer,
+        questionType: currentQuestion.type,
+      });
+    }
+
+    // לוג מיוחד לשאלת מיקום
+    if (currentQuestion.id === "location") {
+      console.log(`🏠 שומר מיקום:`, {
+        questionId: currentQuestion.id,
+        answer,
+        currentAnswers: answers,
+      });
     }
 
     setError("");
     const newAnswers = { ...answers, [currentQuestion.id]: answer };
     setAnswers(newAnswers);
 
-    // אם זו שאלת בחירה יחידה, עבור אוטומטית
-    if (currentQuestion.type === "single") {
+    // בדיקה אם התוספת של שאלות דינמיות צריכה לעדכן את הרשימה
+    if (currentQuestion.id === "location") {
+      console.log(`🔍 אחרי עדכון מיקום - בודק שאלות דינמיות:`, {
+        newAnswers,
+        currentStage,
+      });
+
+      // זמן קצר לעדכון הרשימה
+      setTimeout(() => {
+        const updatedQuestions =
+          currentStage === "training"
+            ? getTrainingQuestions(newAnswers)
+            : getProfileQuestions();
+        console.log(`🔍 שאלות מעודכנות אחרי בחירת מיקום:`, {
+          totalQuestions: updatedQuestions.length,
+          questionIds: updatedQuestions.map((q) => q.id),
+        });
+      }, 100);
+    }
+
+    // אם זו שאלת בחירה יחידה, עבור אוטומטית אבל רק אם המעבר האוטומטי מופעל
+    if (currentQuestion.type === "single" && autoAdvanceEnabled) {
       setTimeout(() => {
         handleNext(newAnswers);
-      }, 300);
+      }, 800); // הגדלת הזמן מ-300 ל-800 מילישניות
     }
   };
 
-  const handleNext = (updatedAnswers?: any) => {
+  const handleNext = (updatedAnswers?: {
+    [key: string]: string | string[] | number;
+  }) => {
     // מניעת לחיצות כפולות במהלך מעבר
     if (isTransitioning) {
       return;
@@ -193,6 +254,10 @@ export default function TwoStageQuestionnaireScreen({
         return;
       }
       currentAnswers[currentQuestion.id] = selectedMultiple;
+      console.log(
+        `🔍 שומר תשובת multiple ${currentQuestion.id}:`,
+        selectedMultiple
+      );
     } else if (currentQuestion.type === "text") {
       currentAnswers[currentQuestion.id] = textInput;
     }
@@ -219,8 +284,32 @@ export default function TwoStageQuestionnaireScreen({
   };
 
   const handleStageComplete = async () => {
+    // המרת המפתחות לnumber אם צריך לתאימות עם QuestionnaireAnswers
+    const formattedAnswers: { [key: number]: string | string[] } = {};
+
+    Object.entries(answers).forEach(([key, value]) => {
+      // אם הערך הוא number, נמיר אותו לstring
+      const formattedValue =
+        typeof value === "number" ? value.toString() : value;
+      const numericKey = parseInt(key, 10);
+      const finalKey = isNaN(numericKey) ? key : numericKey;
+      formattedAnswers[finalKey as number] = formattedValue;
+    });
+
     // שמירת התשובות
-    await setQuestionnaire(answers);
+    console.log(
+      "💾 TwoStageQuestionnaireScreen - שומר תשובות:",
+      formattedAnswers
+    );
+    await setQuestionnaire(formattedAnswers);
+
+    // בדיקה אחרי השמירה
+    const updatedUser = useUserStore.getState().user;
+    console.log("✅ TwoStageQuestionnaireScreen - אחרי שמירה:", {
+      questionnaire: updatedUser?.questionnaire,
+      hasTrainingStage: hasCompletedTrainingStage(updatedUser?.questionnaire),
+      hasProfileStage: hasCompletedProfileStage(updatedUser?.questionnaire),
+    });
 
     if (currentStage === "training") {
       // סיום שלב האימונים
@@ -301,16 +390,17 @@ export default function TwoStageQuestionnaireScreen({
       case "single":
         return (
           <View style={styles.optionsContainer}>
-            {options.map((option: string | OptionWithImage) => {
+            {options.map((option: string | ExtendedOption) => {
               const isOptionObject = typeof option === "object";
               const optionId = isOptionObject ? option.id : option;
               const optionLabel = isOptionObject ? option.label : option;
               const optionDescription = isOptionObject
                 ? option.description
                 : undefined;
-              const optionIcon = isOptionObject
-                ? (option as any).icon
-                : undefined;
+              const optionIcon =
+                isOptionObject && "icon" in option
+                  ? (option as ExtendedOption).icon
+                  : undefined;
               const isSelected = answers[currentQuestion.id] === optionId;
 
               return (
@@ -328,7 +418,9 @@ export default function TwoStageQuestionnaireScreen({
                   <View style={styles.optionContent}>
                     {optionIcon && (
                       <MaterialCommunityIcons
-                        name={optionIcon}
+                        name={
+                          optionIcon as keyof typeof MaterialCommunityIcons.glyphMap
+                        }
                         size={28}
                         color={
                           isSelected
@@ -371,7 +463,7 @@ export default function TwoStageQuestionnaireScreen({
       case "multiple":
         return (
           <View style={styles.optionsContainer}>
-            {options.map((option: string | OptionWithImage) => {
+            {options.map((option: string | ExtendedOption) => {
               const isOptionObject = typeof option === "object";
               const optionId = isOptionObject ? option.id : option;
               const optionLabel = isOptionObject ? option.label : option;
@@ -388,12 +480,26 @@ export default function TwoStageQuestionnaireScreen({
                     isSelected && styles.selectedOption,
                   ]}
                   onPress={() => {
+                    console.log(
+                      `🔍 Multiple בחירה: ${optionId}, isSelected: ${isSelected}, selectedMultiple:`,
+                      selectedMultiple
+                    );
                     if (isSelected) {
-                      setSelectedMultiple(
-                        selectedMultiple.filter((id) => id !== optionId)
+                      const newSelected = selectedMultiple.filter(
+                        (id) => id !== optionId
+                      );
+                      setSelectedMultiple(newSelected);
+                      console.log(
+                        `🔍 Multiple הוסר: ${optionId}, חדש:`,
+                        newSelected
                       );
                     } else {
-                      setSelectedMultiple([...selectedMultiple, optionId]);
+                      const newSelected = [...selectedMultiple, optionId];
+                      setSelectedMultiple(newSelected);
+                      console.log(
+                        `🔍 Multiple נוסף: ${optionId}, חדש:`,
+                        newSelected
+                      );
                     }
                   }}
                   activeOpacity={0.8}
@@ -450,25 +556,53 @@ export default function TwoStageQuestionnaireScreen({
           </View>
         );
 
-      case "height":
+      case "height": {
+        const heightValue =
+          typeof answers[currentQuestion.id] === "number"
+            ? (answers[currentQuestion.id] as number)
+            : parseInt(answers[currentQuestion.id] as string, 10) || 170;
+        console.log(
+          `🔍 TwoStageQuestionnaireScreen - HeightSlider יקבל value: ${heightValue}, currentQuestion.id: ${currentQuestion.id}`
+        );
         return (
           <HeightSlider
-            value={answers[currentQuestion.id] || 170}
-            onChange={(value: number) => handleAnswer(value)}
+            value={heightValue}
+            onChange={(value: number) => {
+              console.log(`🔍 HeightSlider onChange נקרא עם ערך: ${value}`);
+              // שמירה ישירה לגובה ומשקל כי הם לא מתקדמים אוטומטית
+              const newAnswers = { ...answers, [currentQuestion.id]: value };
+              setAnswers(newAnswers);
+              console.log(`🔍 HeightSlider - answers עודכן:`, newAnswers);
+            }}
             minHeight={currentQuestion.min || 140}
             maxHeight={currentQuestion.max || 220}
           />
         );
+      }
 
-      case "weight":
+      case "weight": {
+        const weightValue =
+          typeof answers[currentQuestion.id] === "number"
+            ? (answers[currentQuestion.id] as number)
+            : parseInt(answers[currentQuestion.id] as string, 10) || 70;
+        console.log(
+          `🔍 TwoStageQuestionnaireScreen - WeightSlider יקבל value: ${weightValue}, currentQuestion.id: ${currentQuestion.id}`
+        );
         return (
           <WeightSlider
-            value={answers[currentQuestion.id] || 70}
-            onChange={(value: number) => handleAnswer(value)}
+            value={weightValue}
+            onChange={(value: number) => {
+              console.log(`🔍 WeightSlider onChange נקרא עם ערך: ${value}`);
+              // שמירה ישירה לגובה ומשקל כי הם לא מתקדמים אוטומטית
+              const newAnswers = { ...answers, [currentQuestion.id]: value };
+              setAnswers(newAnswers);
+              console.log(`🔍 WeightSlider - answers עודכן:`, newAnswers);
+            }}
             minWeight={currentQuestion.min || 40}
             maxWeight={currentQuestion.max || 150}
           />
         );
+      }
 
       default:
         return null;
@@ -534,13 +668,30 @@ export default function TwoStageQuestionnaireScreen({
                   <Text style={styles.skipText}>דלג</Text>
                 </TouchableOpacity>
               )}
+
+              {/* כפתור להפעלה/כיבוי מעבר אוטומטי */}
+              <TouchableOpacity
+                onPress={() => setAutoAdvanceEnabled(!autoAdvanceEnabled)}
+                style={styles.autoAdvanceToggle}
+              >
+                <MaterialCommunityIcons
+                  name={autoAdvanceEnabled ? "play-speed" : "pause"}
+                  size={16}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.autoAdvanceText}>
+                  {autoAdvanceEnabled ? "עצור מעבר" : "מעבר אוטו"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Stage info */}
             {currentQuestionIndex === 0 && (
               <View style={styles.stageInfoContainer}>
                 <MaterialCommunityIcons
-                  name={stageInfo.icon as any}
+                  name={
+                    stageInfo.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                  }
                   size={60}
                   color={theme.colors.primary}
                 />
@@ -568,7 +719,9 @@ export default function TwoStageQuestionnaireScreen({
               >
                 <View style={styles.questionHeader}>
                   <MaterialCommunityIcons
-                    name={currentQuestion.icon as any}
+                    name={
+                      currentQuestion.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                    }
                     size={40}
                     color={theme.colors.primary}
                   />
@@ -585,13 +738,20 @@ export default function TwoStageQuestionnaireScreen({
                 {/* Options */}
                 {renderOptions()}
 
+                {/* הודעה על מעבר אוטומטי */}
+                {currentQuestion.type === "single" && autoAdvanceEnabled && (
+                  <Text style={styles.autoAdvanceHint}>
+                    ⏰ מעבר אוטומטי לשאלה הבאה תוך שנייה...
+                  </Text>
+                )}
+
                 {/* Error message */}
                 {error && <Text style={styles.errorText}>{error}</Text>}
               </Animated.View>
             )}
 
-            {/* Bottom buttons - מוסתרים בשאלות single choice כשיש מעבר אוטומטי */}
-            {currentQuestion?.type !== "single" && (
+            {/* Bottom buttons - מוסתרים בשאלות single choice כשיש מעבר אוטומטי פעיל */}
+            {(currentQuestion?.type !== "single" || !autoAdvanceEnabled) && (
               <View style={styles.bottomContainer}>
                 <TouchableOpacity
                   style={[
@@ -601,7 +761,7 @@ export default function TwoStageQuestionnaireScreen({
                       currentQuestion?.type !== "text" &&
                       styles.disabledButton,
                   ]}
-                  onPress={handleNext}
+                  onPress={() => handleNext()}
                   activeOpacity={0.8}
                   disabled={isTransitioning}
                 >
@@ -832,5 +992,25 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  autoAdvanceToggle: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+  },
+  autoAdvanceText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    marginRight: 4,
+  },
+  autoAdvanceHint: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginTop: 8,
+    fontStyle: "italic",
   },
 });

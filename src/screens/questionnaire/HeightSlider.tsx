@@ -37,6 +37,9 @@ export default function HeightSlider({
   maxHeight = 220,
 }: HeightSliderProps) {
   const [currentHeight, setCurrentHeight] = useState<number>(value || 170);
+  console.log(
+    `🔍 HeightSlider - איתחול: value=${value}, currentHeight=${currentHeight}`
+  );
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [tempHeight, setTempHeight] = useState<string>(String(value || 170));
   const sliderHeight = 200;
@@ -113,6 +116,7 @@ export default function HeightSlider({
         const percentage = 1 - newY / sliderHeight;
         const rawHeight = minHeight + percentage * range;
         const newHeight = Math.max(minHeight, Math.min(maxHeight, rawHeight));
+        console.log(`📏 HeightSlider - גרירה: newHeight=${newHeight}`);
         setCurrentHeight(newHeight);
         currentHeightRef.current = newHeight;
         setTempHeight(newHeight.toFixed(0)); // הצגה כמספר שלם
@@ -140,7 +144,11 @@ export default function HeightSlider({
 
         setCurrentHeight(finalHeight);
         setTempHeight(finalHeight.toFixed(0));
-        onChange(finalHeight);
+        const roundedHeight = Math.round(finalHeight);
+        console.log(
+          `✅ HeightSlider - שחרור סופי: finalHeight=${finalHeight}, roundedHeight=${roundedHeight}, נשלח onChange`
+        );
+        onChange(roundedHeight);
 
         if (Platform.OS === "ios") Vibration.vibrate(5);
       },
@@ -149,7 +157,7 @@ export default function HeightSlider({
 
   // ADJUST BUTTONS
   const adjustHeight = (delta: number) => {
-    let newHeight = Math.max(
+    const newHeight = Math.max(
       minHeight,
       Math.min(maxHeight, currentHeightRef.current + delta)
     );

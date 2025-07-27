@@ -36,8 +36,14 @@ export default function WeightSlider({
   maxWeight = 150,
 }: WeightSliderProps) {
   const [currentWeight, setCurrentWeight] = useState(value || 70);
+  console.log(
+    `🔍 WeightSlider - איתחול: value=${value}, currentWeight=${currentWeight}`
+  );
   const sliderWidth = SCREEN_WIDTH * 0.8; // רוחב הסרגל
   const range = maxWeight - minWeight;
+  console.log(
+    `🔍 WeightSlider - משתנים: sliderWidth=${sliderWidth}, range=${range}, minWeight=${minWeight}, maxWeight=${maxWeight}`
+  );
 
   // אנימציות
   const positionX = useRef(new Animated.Value(0)).current;
@@ -115,6 +121,7 @@ export default function WeightSlider({
         }
 
         setCurrentWeight(newWeight);
+        console.log(`🔍 WeightSlider - משקל עודכן ל: ${newWeight}`);
       },
 
       onPanResponderRelease: () => {
@@ -129,7 +136,15 @@ export default function WeightSlider({
           useNativeDriver: true,
         }).start();
 
-        onChange(currentWeight);
+        // חישוב המשקל מהמיקום הנוכחי במקום להסתמך על state
+        const percentage = currentPositionRef.current / sliderWidth;
+        const finalWeight = Math.round(minWeight + percentage * range);
+
+        setCurrentWeight(finalWeight);
+        onChange(finalWeight);
+        console.log(
+          `✅ WeightSlider - שחרור סופי: currentWeight=${currentWeight}, finalWeight=${finalWeight}, נשלח onChange`
+        );
       },
     })
   ).current;
@@ -195,7 +210,7 @@ export default function WeightSlider({
               },
             ]}
           >
-            {currentWeight}
+            {Math.round(currentWeight)}
           </Animated.Text>
           <Text style={styles.weightUnit}>ק״ג</Text>
         </View>

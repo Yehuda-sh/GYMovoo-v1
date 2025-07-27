@@ -273,8 +273,7 @@ const QuickWorkoutScreen: React.FC = () => {
               { text: "אחר כך", style: "cancel" },
               {
                 text: "לשאלון",
-                onPress: () =>
-                  navigation.navigate("DynamicQuestionnaire" as never),
+                onPress: () => navigation.navigate("Questionnaire" as never),
               },
             ]
           );

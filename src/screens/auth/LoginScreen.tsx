@@ -22,7 +22,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,6 +30,13 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleSignIn } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+  RouteProp,
+} from "@react-navigation/native";
+import type { RootStackParamList } from "../../navigation/types";
 
 // פונקציות עזר לאנימציות // Animation helper functions
 /**
@@ -58,8 +65,9 @@ const createShakeAnimation = (value: Animated.Value) => {
 };
 
 export default function LoginScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const navigation =
+    useNavigation<NavigationProp<RootStackParamList, "Login">>();
+  const route = useRoute<RouteProp<RootStackParamList, "Login">>();
 
   console.log("🔐 LoginScreen - Component mounted");
 

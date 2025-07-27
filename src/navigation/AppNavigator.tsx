@@ -1,16 +1,12 @@
-/**
- * @file src/navigation/AppNavigator.tsx
- * @brief ניווט ראשי - משלב Stack Navigator עם Bottom Tabs
- * @dependencies React Navigation, Bottom Tabs, WorkoutPlanScreen
- * @notes מסכי Auth ו-Onboarding בנפרד, Bottom Tabs למסכים העיקריים
- */
-
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
 // ניווט תחתון // Bottom navigation
 import BottomNavigation from "./BottomNavigation";
+
+// טיפוסי ניווט
+import { RootStackParamList } from "./types";
 
 // מסכי Onboarding ו-Auth // Onboarding and Auth screens
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
@@ -25,47 +21,12 @@ import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 // מסכים נוספים שלא ב-Bottom Tabs // Additional screens not in Bottom Tabs
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
 
-const Stack = createStackNavigator();
+// מסכים חדשים שנוספו
+import NotificationsScreen from "../screens/notifications/NotificationsScreen";
+import ProgressScreen from "../screens/progress/ProgressScreen";
+import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 
-// טיפוסי ניווט מעודכנים // Updated navigation types
-export type RootStackParamList = {
-  Welcome: undefined;
-  Login: undefined;
-  Register: undefined;
-  Terms: undefined;
-  Questionnaire: undefined;
-  WorkoutPlan: {
-    regenerate?: boolean;
-    autoStart?: boolean;
-    returnFromWorkout?: boolean;
-    completedWorkoutId?: string;
-  };
-  MainApp: undefined;
-  QuickWorkout: {
-    exercises?: any[];
-    workoutName?: string;
-    workoutId?: string;
-    source?: "workout_plan" | "quick_start";
-    planData?: {
-      targetMuscles: string[];
-      estimatedDuration: number;
-      equipment: string[];
-    };
-  };
-  ExerciseList: {
-    fromScreen?: string;
-    mode?: "view" | "selection";
-    onSelectExercise?: (exercise: any) => void;
-  };
-};
-
-// הגדרת טיפוסי ניווט גלובליים
-// Global navigation types declaration
-declare global {
-  namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
-  }
-}
+const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
@@ -138,6 +99,34 @@ export default function AppNavigator() {
           options={{
             presentation: "modal", // פתיחה כמודל
             gestureDirection: "vertical", // סגירה למטה
+          }}
+        />
+
+        {/* מסכים נוספים שנוספו */}
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{
+            presentation: "card",
+            gestureDirection: "horizontal-inverted", // RTL
+          }}
+        />
+
+        <Stack.Screen
+          name="Progress"
+          component={ProgressScreen}
+          options={{
+            presentation: "card",
+            gestureDirection: "horizontal-inverted", // RTL
+          }}
+        />
+
+        <Stack.Screen
+          name="Exercises"
+          component={ExercisesScreen}
+          options={{
+            presentation: "card",
+            gestureDirection: "horizontal-inverted", // RTL
           }}
         />
       </Stack.Navigator>

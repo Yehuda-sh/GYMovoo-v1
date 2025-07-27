@@ -35,6 +35,13 @@ import {
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// הגדרת interface לשדות השאלון
+interface QuestionnaireFields {
+  gender?: string;
+  height?: number;
+  weight?: number;
+}
+
 // סטטיסטיקות דמה
 const mockStats = {
   workoutsThisWeek: 3,
@@ -46,17 +53,19 @@ const mockStats = {
 };
 
 export default function MainScreen() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navigation = useNavigation<any>();
-  const { user, logout } = useUserStore();
+  const { user } = useUserStore();
   const displayName = user?.name || "משתמש";
 
   // תיקון: יצירת type assertion מתאים לגישה לשדות השאלון
-  const questionnaire = user?.questionnaire as any;
-  const questionnaireData = user?.questionnaireData?.answers as any;
+  const questionnaire = user?.questionnaire;
+  const questionnaireData = user?.questionnaireData?.answers;
 
   // גישה בטוחה לשדה gender
   const isFemale =
-    questionnaire?.gender === "נקבה" || questionnaireData?.gender === "נקבה";
+    (questionnaire as QuestionnaireFields)?.gender === "נקבה" ||
+    (questionnaireData as QuestionnaireFields)?.gender === "נקבה";
 
   // בדיקת השלמת שלבי השאלון
   const hasTrainingData = hasCompletedTrainingStage(user?.questionnaire);
@@ -271,10 +280,10 @@ export default function MainScreen() {
               </View>
             </View>
 
-            {/* סה"כ אימונים */}
+            {/* סה&quot;כ אימונים */}
             <View style={styles.statRow}>
               <View style={styles.statInfo}>
-                <Text style={styles.statLabel}>סה"כ אימונים</Text>
+                <Text style={styles.statLabel}>סה&quot;כ אימונים</Text>
                 <Text style={styles.statValue}>{mockStats.totalWorkouts}</Text>
               </View>
               <View style={styles.statIcon}>
@@ -366,7 +375,8 @@ export default function MainScreen() {
               style={styles.profilePromptIcon}
             />
             <Text style={styles.profilePromptText}>
-              השלם את הפרופיל האישי לקבלת המלצות תזונה
+              השלם את הפרופיל האישי: נשארו רק גובה ומשקל לקבלת המלצות מדויקות
+              יותר
             </Text>
             <Ionicons
               name="chevron-forward"

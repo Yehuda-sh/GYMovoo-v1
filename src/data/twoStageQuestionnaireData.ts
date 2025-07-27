@@ -247,10 +247,28 @@ export const PROFILE_QUESTIONS: Question[] = [
 export function getTrainingQuestions(answers: any): Question[] {
   const allQuestions = [...TRAINING_QUESTIONS];
 
+  console.log("🔍 getTrainingQuestions - בדיקת שאלות דינמיות:", {
+    answers,
+    location: answers?.location,
+    dynamicQuestionsCount: TRAINING_DYNAMIC_QUESTIONS.length,
+  });
+
   TRAINING_DYNAMIC_QUESTIONS.forEach((q) => {
-    if (!q.condition || q.condition(answers)) {
+    const shouldInclude = !q.condition || q.condition(answers);
+    console.log(`🔍 שאלה דינמית ${q.id}:`, {
+      hasCondition: !!q.condition,
+      conditionResult: shouldInclude,
+      answersForCondition: answers,
+    });
+
+    if (shouldInclude) {
       allQuestions.push(q);
     }
+  });
+
+  console.log("🔍 getTrainingQuestions - שאלות סופיות:", {
+    totalQuestions: allQuestions.length,
+    questionIds: allQuestions.map((q) => q.id),
   });
 
   return allQuestions;
@@ -270,12 +288,35 @@ export function hasCompletedTrainingStage(questionnaire: any): boolean {
     "frequency",
     "duration",
   ];
+
+  console.log("🔍 hasCompletedTrainingStage בדיקה:", {
+    questionnaire,
+    requiredFields,
+    results: requiredFields.map((field) => ({
+      field,
+      exists: questionnaire && questionnaire[field],
+      value: questionnaire?.[field],
+    })),
+  });
+
   return requiredFields.every((field) => questionnaire && questionnaire[field]);
 }
 
 // בדיקה האם המשתמש השלים את הפרופיל האישי
 export function hasCompletedProfileStage(questionnaire: any): boolean {
   const profileFields = ["gender", "height", "weight"];
+
+  console.log("🔍 hasCompletedProfileStage בדיקה:", {
+    questionnaire,
+    profileFields,
+    results: profileFields.map((field) => ({
+      field,
+      value: questionnaire?.[field],
+      exists:
+        questionnaire && questionnaire[field] ? questionnaire[field] : null,
+    })),
+  });
+
   return profileFields.every((field) => questionnaire && questionnaire[field]);
 }
 
