@@ -20,6 +20,7 @@ interface UseUserPreferencesReturn {
   // Data
   preferences: QuestionnaireMetadata | null;
   isLoading: boolean;
+  isInitialized: boolean; // הוספה: האם הנתונים אותחלו
   error: string | null;
 
   // נתונים ספציפיים
@@ -50,6 +51,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     null
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false); // הוספה: מעקב אחר האם ההוק הושלם
   const [error, setError] = useState<string | null>(null);
 
   // נתונים ספציפיים
@@ -124,8 +126,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           health_conditions: Array.isArray(user.questionnaire[7])
             ? user.questionnaire[7]
             : typeof user.questionnaire[7] === "string"
-            ? [user.questionnaire[7]]
-            : [],
+              ? [user.questionnaire[7]]
+              : [],
           // תיקון: שימוש בשם המאפיין הנכון לפי המיקום של הנתונים
           // Fix: Use correct property name based on location data
           home_equipment: Array.isArray(user.questionnaire[8])
@@ -147,11 +149,20 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           questionnaireService.hasCompletedQuestionnaire(),
         ]);
 
+      console.log("🔍 useUserPreferences - טען נתונים:", {
+        goal,
+        experience,
+        equipment,
+        duration,
+        completed,
+      });
+
       setUserGoal(goal);
       setUserExperience(experience);
       setAvailableEquipment(equipment);
       setPreferredDuration(duration);
       setHasCompletedQuestionnaire(completed);
+      setIsInitialized(true); // סמן שהנתונים נטענו
 
       // טען המלצות אם השלים שאלון
       // Load recommendations if questionnaire completed
@@ -224,6 +235,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     // Data
     preferences,
     isLoading,
+    isInitialized,
     error,
 
     // נתונים ספציפיים

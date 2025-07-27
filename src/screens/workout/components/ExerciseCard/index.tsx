@@ -52,7 +52,7 @@ if (
 
 // Debug mode
 const DEBUG = true;
-const log = (message: string, data?: any) => {
+const log = (message: string, data?: object) => {
   if (DEBUG) {
     console.log(`🏋️ ExerciseCard: ${message}`, data || "");
   }
@@ -92,16 +92,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onDeleteSet,
   onCompleteSet,
   onRemoveExercise,
-  onStartRest,
+  // onStartRest, // לא בשימוש כרגע
   onMoveUp,
   onMoveDown,
-  onShowTips,
+  // onShowTips, // לא בשימוש כרגע
   isFirst = false,
   isLast = false,
-  isPaused = false,
+  // isPaused = false, // לא בשימוש כרגע
   showHistory = false,
   showNotes = false,
-  personalRecord,
+  // personalRecord, // לא בשימוש כרגע
   lastWorkout,
   onDuplicate,
   onReplace,
@@ -176,18 +176,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     setIsExpanded(!isExpanded);
   }, [isExpanded, expandAnimation]);
 
-  // טיפול בהוספת סט
-  // Handle add set
-  const handleAddSet = useCallback(() => {
-    log("Add set clicked");
-
-    if (Platform.OS === "ios") {
-      Vibration.vibrate(1);
-    }
-
-    onAddSet();
-  }, [onAddSet]);
-
   // טיפול בלחיצה ארוכה על סט
   // Handle long press on set
   const handleSetLongPress = useCallback((setId: string) => {
@@ -231,19 +219,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   // טיפול בבחירת סט
   // Handle set selection
-  const handleSetSelect = useCallback((setId: string) => {
-    log("Set select", { setId });
+  // const handleSetSelect = useCallback((setId: string) => {
+  //   log("Set select", { setId });
 
-    setSelectedSets((prev: globalThis.Set<string>) => {
-      const newSet = new globalThis.Set(prev);
-      if (newSet.has(setId)) {
-        newSet.delete(setId);
-      } else {
-        newSet.add(setId);
-      }
-      return newSet;
-    });
-  }, []);
+  //   setSelectedSets((prev: globalThis.Set<string>) => {
+  //     const newSet = new globalThis.Set(prev);
+  //     if (newSet.has(setId)) {
+  //       newSet.delete(setId);
+  //     } else {
+  //       newSet.add(setId);
+  //     }
+  //     return newSet;
+  //   });
+  // }, []);
 
   // אנימציה כשהתרגיל הושלם
   // Animate when exercise is completed
@@ -442,6 +430,26 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* רשימת סטים */}
           {/* Sets list */}
           <View style={styles.setsList}>
+            {/* כותרות הטבלה */}
+            {/* Table headers */}
+            <View style={styles.setsTableHeader}>
+              <View style={styles.setNumberHeader}>
+                <Text style={styles.headerText}>סט</Text>
+              </View>
+              <View style={styles.previousHeader}>
+                <Text style={styles.headerText}>קודם</Text>
+              </View>
+              <View style={styles.weightHeader}>
+                <Text style={styles.headerText}>משקל</Text>
+              </View>
+              <View style={styles.repsHeader}>
+                <Text style={styles.headerText}>חזרות</Text>
+              </View>
+              <View style={styles.actionsHeader}>
+                <Text style={styles.headerText}>פעולות</Text>
+              </View>
+            </View>
+
             {sets.map((set, index) => (
               <SetRow
                 key={set.id}
@@ -458,31 +466,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               />
             ))}
           </View>
-
-          {/* כפתור הוספת סט */}
-          {/* Add set button */}
-          <TouchableOpacity
-            style={styles.addSetButton}
-            onPress={handleAddSet}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.primary + "20",
-                theme.colors.primaryDark + "20",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.addSetGradient}
-            >
-              <MaterialCommunityIcons
-                name="plus"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.addSetText}>הוסף סט</Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </Animated.View>
       )}
 
@@ -496,6 +479,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         onMoveDown={onMoveDown}
         onDuplicate={onDuplicate || (() => {})}
         onReplace={onReplace || (() => {})}
+        onAddSet={onAddSet}
+        onDeleteLastSet={() => {
+          // מחק את הסט האחרון
+          if (sets.length > 0) {
+            const lastSet = sets[sets.length - 1];
+            onDeleteSet?.(lastSet.id);
+          }
+        }}
+        hasLastSet={sets.length > 0}
         canMoveUp={!isFirst}
         canMoveDown={!isLast}
       />
@@ -622,22 +614,6 @@ const styles = StyleSheet.create({
   setsList: {
     gap: theme.spacing.sm,
   },
-  addSetButton: {
-    marginTop: theme.spacing.md,
-  },
-  addSetGradient: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.sm,
-    borderRadius: 12,
-    gap: theme.spacing.xs,
-  },
-  addSetText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
   selectionBar: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -654,6 +630,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
+  },
+  // כותרות טבלת הסטים - סגנונות חדשים
+  setsTableHeader: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  setNumberHeader: {
+    width: 50,
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  previousHeader: {
+    flex: 1.2,
+    alignItems: "center",
+  },
+  weightHeader: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  repsHeader: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  actionsHeader: {
+    width: 80,
+    alignItems: "center",
+  },
+  headerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    textTransform: "uppercase",
   },
 });
 

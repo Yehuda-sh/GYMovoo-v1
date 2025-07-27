@@ -9,6 +9,28 @@
 
 import { Question } from "./questionnaireData";
 
+// טיפוס עבור תשובות השאלון
+export interface QuestionnaireAnswers {
+  // שלב אימונים
+  age?: string;
+  goal?: string | string[];
+  experience?: string;
+  location?: string;
+  frequency?: string;
+  duration?: string;
+  equipment?: string[];
+
+  // שלב פרופיל אישי
+  gender?: string;
+  height?: number;
+  weight?: number;
+  diet_type?: string;
+  water_intake?: string;
+
+  // שדות כלליים
+  [key: string]: unknown;
+}
+
 // ==================== שלב 1: שאלות אימון חיוניות ====================
 // Stage 1: Essential training questions (6-7 questions)
 export const TRAINING_QUESTIONS: Question[] = [
@@ -244,7 +266,9 @@ export const PROFILE_QUESTIONS: Question[] = [
 ];
 
 // פונקציות עזר
-export function getTrainingQuestions(answers: any): Question[] {
+export function getTrainingQuestions(
+  answers: QuestionnaireAnswers
+): Question[] {
   const allQuestions = [...TRAINING_QUESTIONS];
 
   console.log("🔍 getTrainingQuestions - בדיקת שאלות דינמיות:", {
@@ -279,8 +303,10 @@ export function getProfileQuestions(): Question[] {
 }
 
 // בדיקה האם המשתמש השלים את שלב האימונים
-export function hasCompletedTrainingStage(questionnaire: any): boolean {
-  const requiredFields = [
+export function hasCompletedTrainingStage(
+  questionnaire: QuestionnaireAnswers | null | undefined
+): boolean {
+  const requiredFields: (keyof QuestionnaireAnswers)[] = [
     "age",
     "goal",
     "experience",
@@ -303,8 +329,14 @@ export function hasCompletedTrainingStage(questionnaire: any): boolean {
 }
 
 // בדיקה האם המשתמש השלים את הפרופיל האישי
-export function hasCompletedProfileStage(questionnaire: any): boolean {
-  const profileFields = ["gender", "height", "weight"];
+export function hasCompletedProfileStage(
+  questionnaire: QuestionnaireAnswers | null | undefined
+): boolean {
+  const profileFields: (keyof QuestionnaireAnswers)[] = [
+    "gender",
+    "height",
+    "weight",
+  ];
 
   console.log("🔍 hasCompletedProfileStage בדיקה:", {
     questionnaire,

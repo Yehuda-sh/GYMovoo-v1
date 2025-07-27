@@ -8,6 +8,53 @@
 - 🧩 **רכיבים:** 6 קטגוריות רכיבים
 - 🔧 **שירותים:** 5/5 שירותים פעילים
 - 📚 **תיעוד:** מלא ומעודכן
+- 🔍 **איכות קוד:** 75 בעיות (שיפור מ-76)
+
+## Checkpoint #036 - תיקון imports לא בשימוש בProfileScreen
+
+**תאريך:** 27/07/2025  
+**מטרה:** תיקון ESLint warning על import לא בשימוש בProfileScreen.tsx
+
+### 🔧 שינויים:
+
+- הסרת import של `Equipment` שלא היה בשימוש מ-equipmentData
+- השארת רק `ALL_EQUIPMENT` שבפועל משמש בקוד
+- תיקון ESLint warning על unused import
+
+### 📊 תוצאות:
+
+- ✅ TypeScript compilation עובד
+- ✅ ESLint warning תוקן
+- ✅ איכות קוד נשארה יציבה: 75 בעיות
+- ✅ קוד נקי יותר ללא imports מיותרים
+
+**Git:** `git commit -m "🧹 Remove unused Equipment import from ProfileScreen"`
+
+---
+
+## Checkpoint #035 - תיקון TypeScript types בשאלון דו-שלבי
+
+**תאריך:** 27/07/2025  
+**מטרה:** תיקון שגיאות ESLint עם `any` types בקובץ twoStageQuestionnaireData.ts
+
+### 🔧 שינויים:
+
+- הוספת `QuestionnaireAnswers` interface מובנה
+- עדכון פונקציות להשתמש בטיפוס החדש
+- שיפור type safety עם `keyof` ו-union types
+- הסרת כל השימושים ב-`any` type
+
+### 📊 תוצאות:
+
+- ✅ TypeScript compilation עובד
+- ✅ ESLint errors תוקנו
+- ✅ איכות קוד: מ-2 בעיות ל-1 בעיה
+- ✅ Type safety משופר
+
+**Git:** `git commit -m "🔧 Fix TypeScript any types in questionnaire data"`
+
+---
+
 - 🎯 **ניווט:** type-safe ללא שגיאות
 - 🛠️ **כלי פיתוח:** 3 כלי בדיקה אוטומטיים
 

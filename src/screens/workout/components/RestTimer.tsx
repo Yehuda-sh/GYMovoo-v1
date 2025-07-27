@@ -43,7 +43,8 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   onAddTime,
   onSubtractTime,
 }) => {
-  const slideAnim = useRef(new Animated.Value(-300)).current;
+  // הסרת הלוגים וקצת ניקוי
+  const slideAnim = useRef(new Animated.Value(0)).current; // שינוי: מתחיל מ-0 במקום -300
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -187,15 +188,62 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       style={[
         styles.container,
         {
-          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+          transform: [{ scale: scaleAnim }],
         },
       ]}
     >
-      {/* רקע מטושטש */}
-      {/* Blurred background */}
-      {Platform.OS !== "web" && (
-        <BlurView intensity={40} tint="dark" style={styles.blurBackground} />
-      )}
+      <View style={styles.compactCard}>
+        <LinearGradient
+          colors={[`${theme.colors.card}F8`, `${theme.colors.background}F0`]}
+          style={styles.gradientBackground}
+        >
+          <View style={styles.compactContent}>
+            {/* כפתור הפחתת זמן */}
+            <TouchableOpacity
+              onPress={() => onSubtractTime(10)}
+              style={styles.compactTimeButton}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.compactButtonBg, { backgroundColor: theme.colors.warning + "20" }]}>
+                <Text style={[styles.compactButtonText, { color: theme.colors.warning }]}>-10</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* טיימר מרכזי קומפקטי */}
+            <View style={styles.compactTimerWrapper}>
+              <Text style={[
+                styles.compactTimerText,
+                timeLeft <= 5 && { color: theme.colors.error }
+              ]}>
+                {formatTime(timeLeft)}
+              </Text>
+              <Text style={styles.compactTimerLabel}>זמן מנוחה</Text>
+            </View>
+
+            {/* כפתור הוספת זמן */}
+            <TouchableOpacity
+              onPress={() => onAddTime(10)}
+              style={styles.compactTimeButton}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.compactButtonBg, { backgroundColor: theme.colors.success + "20" }]}>
+                <Text style={[styles.compactButtonText, { color: theme.colors.success }]}>+10</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* כפתור דילוג */}
+            <TouchableOpacity
+              onPress={onSkip}
+              style={styles.compactSkipButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.compactSkipText}>דלג</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
+    </Animated.View>
+  );
 
       <View style={styles.mainCard}>
         {/* אפקט גלו */}
@@ -277,7 +325,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             {/* כפתור הוספת זמן */}
             {/* Add time button */}
             <TouchableOpacity
-              onPress={() => onAddTime(15)}
+              onPress={() => onAddTime(10)}
               style={styles.timeButton}
               activeOpacity={0.7}
             >
@@ -299,7 +347,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                     { color: theme.colors.success },
                   ]}
                 >
-                  +15
+                  +10
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -363,7 +411,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             {/* כפתור הפחתת זמן */}
             {/* Subtract time button */}
             <TouchableOpacity
-              onPress={() => onSubtractTime(15)}
+              onPress={() => onSubtractTime(10)}
               style={styles.timeButton}
               activeOpacity={0.7}
             >
@@ -385,7 +433,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                     { color: theme.colors.warning },
                   ]}
                 >
-                  -15
+                  -10
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -502,11 +550,66 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: 60,
-    left: 16,
-    right: 16,
+    // הסרת position absolute - הקונטיינר ההורה כבר מטפל בזה
+    left: 0,
+    right: 0,
     zIndex: 1000,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  compactCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: `${theme.colors.primary}20`,
+  },
+  compactContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  compactTimerWrapper: {
+    alignItems: "center",
+    flex: 1,
+  },
+  compactTimerText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: theme.colors.text,
+    fontVariant: ["tabular-nums"],
+  },
+  compactTimerLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  compactTimeButton: {
+    marginHorizontal: 8,
+  },
+  compactButtonBg: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 40,
+    alignItems: "center",
+  },
+  compactButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  compactSkipButton: {
+    backgroundColor: `${theme.colors.primary}20`,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  compactSkipText: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    fontWeight: "600",
   },
   blurBackground: {
     position: "absolute",
@@ -547,8 +650,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   titleContainer: {
     flexDirection: "row-reverse",
@@ -559,26 +662,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.text,
     letterSpacing: -0.5,
   },
   skipButton: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
     ...theme.shadows.small,
   },
   skipGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    gap: 8,
   },
   skipText: {
     color: theme.colors.primary,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
   },
   mainContent: {
@@ -586,24 +689,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 28,
   },
   timeButton: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
     ...theme.shadows.medium,
+    minWidth: 80,
+    minHeight: 80,
   },
   timeButtonGradient: {
     alignItems: "center",
     justifyContent: "center",
-    width: 64,
-    height: 64,
-    padding: 12,
+    width: 80,
+    height: 80,
+    padding: 16,
   },
   timeButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-    marginTop: 2,
+    marginTop: 4,
   },
   timerWrapper: {
     alignItems: "center",
@@ -612,23 +717,24 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
+    marginVertical: 8,
   },
   timerCircle: {
     position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     overflow: "hidden",
   },
   timerText: {
-    fontSize: 56,
+    fontSize: 64,
     fontWeight: "700",
     color: theme.colors.text,
     fontVariant: ["tabular-nums"],
-    letterSpacing: -2,
-    textShadowColor: "rgba(0,0,0,0.2)",
+    letterSpacing: -3,
+    textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 6,
   },
   timerTextUrgent: {
     color: theme.colors.error,
@@ -642,9 +748,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: `${theme.colors.background}E6`,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
   },
   nextSetInfo: {
     marginHorizontal: 20,

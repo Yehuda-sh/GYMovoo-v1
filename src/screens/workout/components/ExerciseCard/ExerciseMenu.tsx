@@ -34,8 +34,11 @@ interface ExerciseMenuProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onReplace?: () => void;
+  onAddSet?: () => void; // הוספת סט
+  onDeleteLastSet?: () => void; // מחיקת סט אחרון
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  hasLastSet?: boolean; // האם יש סט אחרון למחיקה
   // Batch mode props
   isBatchMode?: boolean;
   selectedExercises?: string[];
@@ -67,8 +70,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
   const iconColor = danger
     ? theme.colors.error
     : disabled
-    ? theme.colors.textSecondary + "60"
-    : theme.colors.text;
+      ? theme.colors.textSecondary + "60"
+      : theme.colors.text;
 
   return (
     <TouchableOpacity
@@ -82,7 +85,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
       activeOpacity={0.7}
     >
       <View style={styles.menuItemContent}>
-        <IconComponent name={icon as any} size={22} color={iconColor} />
+        <IconComponent name={icon as never} size={22} color={iconColor} />
         <Text
           style={[
             styles.menuItemText,
@@ -114,8 +117,11 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
   onDelete,
   onDuplicate,
   onReplace,
+  onAddSet,
+  onDeleteLastSet,
   canMoveUp = true,
   canMoveDown = true,
+  hasLastSet = false,
   isBatchMode = false,
   selectedExercises = [],
   onBatchDelete,
@@ -163,7 +169,11 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
     { useNativeDriver: true }
   );
 
-  const handleStateChange = ({ nativeEvent }: any) => {
+  const handleStateChange = ({
+    nativeEvent,
+  }: {
+    nativeEvent: { state: number; translationY: number };
+  }) => {
     if (nativeEvent.state === State.END) {
       if (nativeEvent.translationY > 100) {
         onClose();
@@ -299,6 +309,44 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
               ) : (
                 // Regular mode actions
                 <>
+                  {/* פעולות סטים */}
+                  <View style={styles.section}>
+                    <MenuItem
+                      icon="add-circle"
+                      label="הוסף סט"
+                      onPress={() => handleAction(onAddSet)}
+                      disabled={!onAddSet}
+                    />
+                    <MenuItem
+                      icon="remove-circle"
+                      label="מחק סט אחרון"
+                      onPress={() => handleAction(onDeleteLastSet)}
+                      disabled={!onDeleteLastSet || !hasLastSet}
+                    />
+                  </View>
+
+                  <View style={styles.separator} />
+
+                  {/* פעולות תרגיל */}
+                  <View style={styles.section}>
+                    <MenuItem
+                      icon="content-copy"
+                      iconFamily="material"
+                      label="שכפל תרגיל"
+                      onPress={() => handleAction(onDuplicate)}
+                    />
+                    <MenuItem
+                      icon="swap-horizontal"
+                      iconFamily="material"
+                      label="החלף תרגיל"
+                      onPress={() => handleAction(onReplace)}
+                      disabled={!onReplace}
+                    />
+                  </View>
+
+                  <View style={styles.separator} />
+
+                  {/* פעולות מיקום */}
                   <View style={styles.section}>
                     <MenuItem
                       icon="arrow-up"
@@ -318,24 +366,6 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
 
                   <View style={styles.section}>
                     <MenuItem
-                      icon="content-copy"
-                      iconFamily="material"
-                      label="שכפל תרגיל"
-                      onPress={() => handleAction(onDuplicate)}
-                    />
-                    <MenuItem
-                      icon="swap-horizontal"
-                      iconFamily="material"
-                      label="החלף תרגיל"
-                      onPress={() => handleAction(onReplace)}
-                      disabled={!onReplace}
-                    />
-                  </View>
-
-                  <View style={styles.separator} />
-
-                  <View style={styles.section}>
-                    <MenuItem
                       icon="trash"
                       label="מחק תרגיל"
                       onPress={confirmDelete}
@@ -345,17 +375,19 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
                 </>
               )}
             </View>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.cancelText}>ביטול</Text>
-            </TouchableOpacity>
           </Animated.View>
         </PanGestureHandler>
+
+        {/* Cancel Button - מחוץ ל-PanGestureHandler */}
+        <View style={styles.cancelButtonContainer}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cancelText}>ביטול</Text>
+          </TouchableOpacity>
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -372,14 +404,14 @@ const styles = StyleSheet.create({
   },
   menuSheet: {
     position: "absolute",
-    bottom: 0,
+    bottom: 80, // נותן מקום לכפתור הביטול
     left: 0,
     right: 0,
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 20,
-    maxHeight: screenHeight * 0.75,
+    maxHeight: screenHeight * 0.75 - 80, // נגרע את מקום הכפתור
     ...theme.shadows.large,
   },
   handle: {
@@ -459,6 +491,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+  },
+  cancelButtonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
   },
   cancelText: {
     fontSize: 16,

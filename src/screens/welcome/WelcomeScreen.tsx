@@ -13,8 +13,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Dimensions,
   ScrollView,
   Image,
   ActivityIndicator,
@@ -25,15 +23,14 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import {
   fakeGoogleSignIn,
   fakeGoogleSignInWithQuestionnaire,
 } from "../../services/authService";
-
-const { width: screenWidth } = Dimensions.get("window");
+import { RootStackParamList } from "../../navigation/types";
 
 // Skeleton component for Google button loading
 // קומפוננטת Skeleton לטעינת כפתור Google
@@ -51,6 +48,16 @@ const GoogleButtonSkeleton = () => (
   </View>
 );
 
+// Interface for TouchableButton props
+interface TouchableButtonProps {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: object;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}
+
 // Touchable wrapper with platform-specific feedback
 // עטיפת Touchable עם feedback ספציפי לפלטפורמה
 const TouchableButton = ({
@@ -60,7 +67,7 @@ const TouchableButton = ({
   disabled,
   accessibilityLabel,
   accessibilityHint,
-}: any) => {
+}: TouchableButtonProps) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -119,7 +126,7 @@ const TouchableButton = ({
 };
 
 export default function WelcomeScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { setUser } = useUserStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isDevLoading, setIsDevLoading] = useState(false);
@@ -195,7 +202,7 @@ export default function WelcomeScreen() {
 
       // ניווט למסך השאלון (כי המשתמש החדש תמיד ללא שאלון)
       // Navigate to questionnaire (new user always without questionnaire)
-      navigation.navigate("Questionnaire");
+      navigation.navigate("Questionnaire", { stage: "profile" });
     } catch (error) {
       console.error("❌ Google sign in failed:", error);
     } finally {
@@ -213,7 +220,12 @@ export default function WelcomeScreen() {
       // Creates user with completed questionnaire
       const devUser = await fakeGoogleSignInWithQuestionnaire();
 
-      console.log("🚀 DEV: User with questionnaire created:", devUser.email);
+      console.log("🚀 DEV: User with questionnaire created:", {
+        email: devUser.email,
+        hasQuestionnaireData: !!devUser.questionnaireData,
+        completedAt: devUser.questionnaireData?.completedAt,
+        metadata: devUser.questionnaireData?.metadata,
+      });
 
       // שמירה ב-store
       // Save to store
@@ -443,7 +455,7 @@ export default function WelcomeScreen() {
             {/* כפתור כניסה למשתמשים קיימים // Login button for existing users */}
             <TouchableButton
               style={styles.secondaryButton}
-              onPress={() => navigation.navigate("Login")}
+              onPress={() => navigation.navigate("Login", {})}
               accessibilityLabel="כניסה למשתמשים קיימים"
               accessibilityHint="לחץ אם כבר יש לך חשבון"
             >

@@ -5,7 +5,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert, I18nManager } from "react-native";
+import { Alert } from "react-native";
 import { WorkoutData, WorkoutDraft } from "../types/workout.types";
 import { AUTO_SAVE } from "../utils/workoutConstants";
 
@@ -65,10 +65,7 @@ class AutoSaveService {
         JSON.stringify(draft)
       );
 
-      console.log(
-        "💾 אימון נשמר אוטומטית:",
-        new Date().toLocaleTimeString("he-IL")
-      );
+      // שמירה בשקט ללא לוגים
     } catch (error) {
       console.error("Error saving workout:", error);
     }
@@ -86,7 +83,7 @@ class AutoSaveService {
       const drafts = await AsyncStorage.multiGet(draftKeys);
       const validDrafts: WorkoutDraft[] = [];
 
-      for (const [key, value] of drafts) {
+      for (const [, value] of drafts) {
         if (value) {
           try {
             const draft: WorkoutDraft = JSON.parse(value);
@@ -129,7 +126,7 @@ class AutoSaveService {
     try {
       const drafts = await this.recoverDrafts();
       return drafts.length > 0;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

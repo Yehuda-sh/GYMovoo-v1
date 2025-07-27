@@ -1,9 +1,20 @@
 /**
- * @file src/screens/workout/QuickWorkoutScreen.tsx
+ * @file src/screens/workout/import { RestTimerCompact } from "./components/RestTimerCompact";uickWorkoutScreen.tsx
  * @description מסך אימון מהיר עם עיצוב משופר וקומפקטי
- * English: Quick workout screen with improved and compact design
+ * English: Quick workout screen with improved and com  // מעקב אחר שינויים ב      // חכה      // אם המשתמש השלים שאלון, צור אימון מותאם
+      // If user completed questionnaire, create personalized workout
+      if (hasCompletedQuestionnaire) {
+        const personalizedExercises = await generateQuickWorkout(); נטענים
+      // Wait until data is loaded
+      if (!isInitialized) {
+        return;
+      }
+
+      // אם המשתמש השלים שאלון, צור אימון מותאם useEffect(() => {
+    // עדכון מצב הטיימר בצורה שקטה
+  }, [isRestTimerActive, restTimeRemaining]);sign
  */
-// cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד, Subviews
+// cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד, Subviews, אלרט
 
 import React, {
   useState,
@@ -32,7 +43,7 @@ import { useUserPreferences } from "../../hooks/useUserPreferences";
 // Components - תיקון הייבוא
 import { WorkoutHeader } from "./components/WorkoutHeader";
 import { WorkoutDashboard } from "./components/WorkoutDashboard";
-import { RestTimer } from "./components/RestTimer";
+import { RestTimerCompact } from "./components/RestTimerCompact";
 import ExerciseCard from "./components/ExerciseCard"; // שינוי לייבוא default
 import { NextExerciseBar } from "./components/NextExerciseBar";
 import { WorkoutSummary } from "./components/WorkoutSummary";
@@ -191,8 +202,12 @@ const QuickWorkoutScreen: React.FC = () => {
 
   // גישה לנתוני המשתמש
   // Access user data
-  const { userGoal, preferredDuration, hasCompletedQuestionnaire } =
-    useUserPreferences();
+  const {
+    userGoal,
+    preferredDuration,
+    hasCompletedQuestionnaire,
+    isInitialized,
+  } = useUserPreferences();
 
   // מצב FAB
   const [fabVisible, setFabVisible] = useState(true);
@@ -204,7 +219,7 @@ const QuickWorkoutScreen: React.FC = () => {
     exerciseTips: false,
   });
 
-  const [modalData, setModalData] = useState<{
+  const [modalData] = useState<{
     plateCalculatorWeight?: number;
     selectedExercise?: Exercise;
   }>({});
@@ -218,26 +233,49 @@ const QuickWorkoutScreen: React.FC = () => {
     restTimeRemaining,
     startRestTimer,
     pauseRestTimer,
-    resumeRestTimer,
     skipRestTimer,
+    addRestTime,
+    subtractRestTime,
   } = useRestTimer();
 
   // אנימציות
   const dashboardAnimation = useRef(new Animated.Value(0)).current;
 
+  // מעקב אחר שינויים בטיימר המנוחה
+  useEffect(() => {
+    // עדכון מצב הטיימר בצורה שקטה
+  }, [isRestTimerActive, restTimeRemaining]);
+
   // טעינת אימון מותאם אישית
   // Load personalized workout
   useEffect(() => {
-    loadPersonalizedWorkout();
-  }, []);
+    if (isInitialized) {
+      loadPersonalizedWorkout();
+    }
+  }, [isInitialized]);
 
   const loadPersonalizedWorkout = async () => {
     try {
       setIsLoadingWorkout(true);
 
+      // חכה עד שהנתונים נטענים
+      // Wait until data is loaded
+      if (!isInitialized) {
+        console.log("� QuickWorkout - ממתין לטעינת נתוני משתמש...");
+        return;
+      }
+
+      console.log("�🔍 QuickWorkout - בדיקת השלמת שאלון:", {
+        hasCompletedQuestionnaire,
+        userGoal,
+        preferredDuration,
+        isInitialized,
+      });
+
       // אם המשתמש השלים שאלון, צור אימון מותאם
       // If user completed questionnaire, create personalized workout
       if (hasCompletedQuestionnaire) {
+        console.log("✅ QuickWorkout - משתמש השלים שאלון, יוצר אימון מותאם");
         const personalizedExercises = await generateQuickWorkout();
         if (personalizedExercises.length > 0) {
           setExercises(personalizedExercises);
@@ -261,23 +299,38 @@ const QuickWorkoutScreen: React.FC = () => {
       } else {
         // אם לא השלים שאלון, השתמש באימון ברירת מחדל
         // If didn't complete questionnaire, use default workout
+        console.log(
+          "⚠️ QuickWorkout - משתמש לא השלים שאלון, משתמש בברירת מחדל"
+        );
         setExercises(initialExercises);
 
-        // הצג הודעה למשתמש
-        // Show message to user
-        setTimeout(() => {
-          Alert.alert(
-            "אימון מותאם אישית",
-            "השלם את השאלון כדי לקבל אימונים מותאמים אישית לפי המטרות והיכולות שלך",
-            [
-              { text: "אחר כך", style: "cancel" },
-              {
-                text: "לשאלון",
-                onPress: () => navigation.navigate("Questionnaire" as never),
-              },
-            ]
+        // הצג הודעה למשתמש רק אם באמת לא השלים שאלון ולא אם הנתונים עדיין נטענים
+        // Show message to user only if truly didn't complete questionnaire and not during data loading
+        console.log("🔍 QuickWorkout - בדיקת תנאי הצגת אלרט:", {
+          isInitialized,
+          hasCompletedQuestionnaire,
+          shouldShowAlert: isInitialized && !hasCompletedQuestionnaire,
+        });
+        if (isInitialized) {
+          console.log(
+            "🚨 QuickWorkout - מציג אלרט השלמת שאלון (נתונים נטענו במלואם)"
           );
-        }, 1000);
+          setTimeout(() => {
+            Alert.alert(
+              "אימון מותאם אישית",
+              "השלם את השאלון כדי לקבל אימונים מותאמים אישית לפי המטרות והיכולות שלך",
+              [
+                { text: "אחר כך", style: "cancel" },
+                {
+                  text: "לשאלון",
+                  onPress: () => navigation.navigate("Questionnaire" as never),
+                },
+              ]
+            );
+          }, 1000);
+        } else {
+          console.log("🔄 QuickWorkout - דילוג על אלרט - נתונים עדיין נטענים");
+        }
       }
     } catch (error) {
       console.error("Error loading personalized workout:", error);
@@ -322,9 +375,14 @@ const QuickWorkoutScreen: React.FC = () => {
     }));
 
     return () => {
+      // נקה את השירותים כשיוצאים מהמסך
       autoSaveService.stopAutoSave();
+      pauseTimer(); // עצור את הטיימר
+      if (isRestTimerActive) {
+        skipRestTimer(); // עצור טיימר מנוחה אם הוא פועל
+      }
     };
-  }, []);
+  }, [pauseTimer, isRestTimerActive, skipRestTimer]);
 
   // חישובי סטטיסטיקות
   const stats = useMemo(() => {
@@ -334,10 +392,15 @@ const QuickWorkoutScreen: React.FC = () => {
 
     exercises.forEach((exercise) => {
       exercise.sets.forEach((set) => {
-        if (set.completed && set.actualReps && set.actualWeight) {
+        if (set.completed) {
           completedSets++;
-          totalReps += set.actualReps;
-          totalVolume += set.actualReps * set.actualWeight;
+
+          // אם יש ערכים ממשיים, השתמש בהם. אחרת השתמש בערכי המטרה
+          const reps = set.actualReps || set.targetReps || 0;
+          const weight = set.actualWeight || set.targetWeight || 0;
+
+          totalReps += reps;
+          totalVolume += reps * weight;
         }
       });
     });
@@ -389,6 +452,12 @@ const QuickWorkoutScreen: React.FC = () => {
       return;
     }
 
+    // עצור את כל הטיימרים לפני סיום האימון
+    pauseTimer();
+    if (isRestTimerActive) {
+      skipRestTimer(); // עצור טיימר מנוחה אם הוא פועל
+    }
+
     const workoutData: WorkoutData = {
       id: `workout-${Date.now()}`,
       name: workoutName,
@@ -400,7 +469,15 @@ const QuickWorkoutScreen: React.FC = () => {
 
     autoSaveService.saveWorkoutState(workoutData);
     setShowSummary(true);
-  }, [workoutName, elapsedTime, exercises, stats]);
+  }, [
+    workoutName,
+    elapsedTime,
+    exercises,
+    stats,
+    pauseTimer,
+    isRestTimerActive,
+    skipRestTimer,
+  ]);
 
   // עיבוד המסך
   // Render screen
@@ -438,32 +515,29 @@ const QuickWorkoutScreen: React.FC = () => {
           onMenuPress={toggleDashboard}
         />
 
+        {/* Rest Timer - Fixed position */}
+        {isRestTimerActive && (
+          <RestTimerCompact
+            timeLeft={restTimeRemaining}
+            isPaused={false} // TODO: track pause state
+            onPause={pauseRestTimer}
+            onSkip={skipRestTimer}
+            onAddTime={(seconds: number) => {
+              addRestTime(seconds);
+            }}
+            onSubtractTime={(seconds: number) => {
+              subtractRestTime(seconds);
+            }}
+          />
+        )}
+
         {/* Main Content - FlatList במקום ScrollView */}
         <FlatList
           style={styles.listStyle}
           contentContainerStyle={styles.listContent}
           data={exercises}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            isRestTimerActive ? (
-              <RestTimer
-                timeLeft={restTimeRemaining}
-                progress={0} // TODO: calculate actual progress
-                isPaused={false} // TODO: track pause state
-                nextExercise={nextExercise}
-                onPause={pauseRestTimer}
-                onSkip={skipRestTimer}
-                onAddTime={(seconds: number) => {
-                  // TODO: implement add time
-                  console.log("Add time:", seconds);
-                }}
-                onSubtractTime={(seconds: number) => {
-                  // TODO: implement subtract time
-                  console.log("Subtract time:", seconds);
-                }}
-              />
-            ) : null
-          }
+          ListHeaderComponent={null}
           renderItem={({ item, index }) => (
             <ExerciseCard
               exercise={item}
@@ -510,9 +584,27 @@ const QuickWorkoutScreen: React.FC = () => {
                   (s) => s.id === setId
                 );
                 if (setIndex !== -1) {
-                  newExercises[exerciseIndex].sets[setIndex].completed =
-                    !newExercises[exerciseIndex].sets[setIndex].completed;
+                  const currentSet = newExercises[exerciseIndex].sets[setIndex];
+                  const isCompleting = !currentSet.completed;
+
+                  // אם מסמנים כמושלם ואין ערכים ממשיים, השתמש בערכי המטרה
+                  if (
+                    isCompleting &&
+                    !currentSet.actualReps &&
+                    !currentSet.actualWeight
+                  ) {
+                    currentSet.actualReps = currentSet.targetReps;
+                    currentSet.actualWeight = currentSet.targetWeight;
+                  }
+
+                  currentSet.completed = isCompleting;
                   setExercises(newExercises);
+
+                  // אם הסט הושלם - התחל טיימר מנוחה אוטומטית
+                  if (isCompleting) {
+                    const restDuration = 30; // 30 שניות ברירת מחדל
+                    startRestTimer(restDuration, item.name);
+                  }
                 }
               }}
               onRemoveExercise={() => {
@@ -523,6 +615,54 @@ const QuickWorkoutScreen: React.FC = () => {
               }}
               onStartRest={(duration: number) => {
                 startRestTimer(duration, item.name);
+              }}
+              onMoveUp={
+                index > 0
+                  ? () => {
+                      const newExercises = [...exercises];
+                      const temp = newExercises[index];
+                      newExercises[index] = newExercises[index - 1];
+                      newExercises[index - 1] = temp;
+                      setExercises(newExercises);
+                    }
+                  : undefined
+              }
+              onMoveDown={
+                index < exercises.length - 1
+                  ? () => {
+                      const newExercises = [...exercises];
+                      const temp = newExercises[index];
+                      newExercises[index] = newExercises[index + 1];
+                      newExercises[index + 1] = temp;
+                      setExercises(newExercises);
+                    }
+                  : undefined
+              }
+              onDuplicate={() => {
+                const newExercises = [...exercises];
+                const duplicatedExercise = {
+                  ...item,
+                  id: `${item.id}_copy_${Date.now()}`,
+                  sets: item.sets.map((set, setIndex) => ({
+                    ...set,
+                    id: `${item.id}_copy_${Date.now()}_set_${setIndex}`,
+                    completed: false,
+                    actualReps: undefined,
+                    actualWeight: undefined,
+                  })),
+                };
+                newExercises.splice(index + 1, 0, duplicatedExercise);
+                setExercises(newExercises);
+              }}
+              onDeleteSet={(setId: string) => {
+                const newExercises = [...exercises];
+                const exerciseIndex = newExercises.findIndex(
+                  (ex) => ex.id === item.id
+                );
+                newExercises[exerciseIndex].sets = newExercises[
+                  exerciseIndex
+                ].sets.filter((s) => s.id !== setId);
+                setExercises(newExercises);
               }}
               isFirst={index === 0}
               isLast={index === exercises.length - 1}
@@ -539,7 +679,6 @@ const QuickWorkoutScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           onScroll={(event) => {
             // הסתרת/הצגת FAB בגלילה
-            const offsetY = event.nativeEvent.contentOffset.y;
             const velocity = event.nativeEvent.velocity?.y || 0;
 
             if (velocity > 0.5) {
@@ -559,7 +698,6 @@ const QuickWorkoutScreen: React.FC = () => {
             nextExercise={nextExercise}
             onSkipToNext={() => {
               // TODO: implement skip to next logic
-              console.log("Skip to next exercise:", nextExercise.name);
             }}
           />
         )}
@@ -582,7 +720,9 @@ const QuickWorkoutScreen: React.FC = () => {
                   { text: "ביטול", style: "cancel" },
                   {
                     text: "התחל",
-                    onPress: () => console.log("Starting set..."),
+                    onPress: () => {
+                      // מתחיל סט חדש
+                    },
                   },
                 ]
               );
@@ -615,17 +755,8 @@ const QuickWorkoutScreen: React.FC = () => {
           pace={stats.currentPace}
           personalRecords={0} // TODO: calculate personal records
           elapsedTime={formattedTime}
+          onHide={toggleDashboard}
         />
-        <TouchableOpacity
-          style={styles.closeDashboard}
-          onPress={() => setDashboardVisible(false)}
-        >
-          <MaterialCommunityIcons
-            name="chevron-up"
-            size={24}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
       </Animated.View>
 
       {/* Modals */}
@@ -724,12 +855,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     ...theme.shadows.large,
-  },
-  closeDashboard: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
 });
 

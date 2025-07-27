@@ -5,7 +5,7 @@
 
 // DEBUG FLAG - הסר בסוף הפרויקט
 const DEBUG = true;
-const log = (message: string, data?: any) => {
+const log = (message: string, data?: object) => {
   if (DEBUG) {
     const timestamp = new Date().toLocaleTimeString("he-IL");
     console.log(`💪 [SetRow ${timestamp}] ${message}`, data || "");
@@ -52,7 +52,7 @@ const SetRow: React.FC<SetRowProps> = ({
   onComplete,
   onLongPress,
   isActive,
-  exercise,
+  // exercise, // לא בשימוש כרגע
 }) => {
   const checkAnim = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -159,13 +159,15 @@ const SetRow: React.FC<SetRowProps> = ({
       reps: set.actualReps,
     });
 
-    if (!set.actualWeight || !set.actualReps) {
-      // Show target hint if missing data
-      setShowTargetHint(true);
-      setTimeout(() => setShowTargetHint(false), 3000);
-      return;
+    // אם אין ערכים ממשיים, השתמש בערכי המטרה
+    if (!set.actualWeight && set.targetWeight) {
+      onUpdate({ actualWeight: set.targetWeight });
+    }
+    if (!set.actualReps && set.targetReps) {
+      onUpdate({ actualReps: set.targetReps });
     }
 
+    // השלם את הסט בכל מקרה
     onComplete();
   };
 
@@ -208,6 +210,7 @@ const SetRow: React.FC<SetRowProps> = ({
         style={[
           styles.container,
           set.completed && styles.completedContainer,
+          set.completed && styles.greenBorderContainer, // גבול ירוק לסט מושלם
           isActive && styles.activeContainer,
           { transform: [{ scale: scaleAnim }] },
         ]}
@@ -260,7 +263,9 @@ const SetRow: React.FC<SetRowProps> = ({
           </Text>
           {performanceIndicator && (
             <MaterialCommunityIcons
-              name={performanceIndicator.icon as any}
+              name={
+                performanceIndicator.icon as "trending-up" | "trending-down"
+              }
               size={12}
               color={performanceIndicator.color}
               style={styles.trendIcon}
@@ -469,6 +474,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 4,
     left: 4,
+  },
+  greenBorderContainer: {
+    borderColor: theme.colors.success,
+    borderWidth: 2,
   },
 });
 

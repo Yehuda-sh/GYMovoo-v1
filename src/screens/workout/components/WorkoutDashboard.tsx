@@ -7,7 +7,13 @@
 // cspell:ignore נפח, סטים, קצב, שיאים
 
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+} from "react-native";
 import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
@@ -32,6 +38,8 @@ interface WorkoutDashboardProps {
   elapsedTime?: string; // הוספת זמן אימון
   // English: Added workout time
   variant?: "default" | "compact" | "bar" | "floating";
+  onHide?: () => void; // פונקציה להעלמת הדשבורד
+  // English: Function to hide dashboard
 }
 
 // קומפוננטת סטטיסטיקה בודדת
@@ -71,9 +79,9 @@ const StatItem: React.FC<DashboardStatProps> = ({
       ]}
     >
       {iconFamily === "material" ? (
-        <MaterialCommunityIcons name={icon as any} size={24} color={color} />
+        <MaterialCommunityIcons name={icon as never} size={24} color={color} />
       ) : (
-        <FontAwesome5 name={icon as any} size={20} color={color} />
+        <FontAwesome5 name={icon as never} size={20} color={color} />
       )}
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -89,6 +97,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   personalRecords,
   elapsedTime,
   variant = "default",
+  onHide,
 }) => {
   // חישוב אחוז השלמה
   // Calculate completion percentage
@@ -144,63 +153,96 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Thin bar style (like NextExerciseBar)
   if (variant === "bar") {
     return (
-      <View style={styles.barContainer}>
-        <LinearGradient
-          colors={[theme.colors.card, theme.colors.background]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.barGradient}
+      <View style={styles.defaultContainer}>
+        <TouchableOpacity
+          style={styles.barContainer}
+          onPress={onHide}
+          disabled={!onHide}
+          activeOpacity={onHide ? 0.8 : 1}
         >
-          <View style={styles.barContent}>
-            {elapsedTime && (
-              <View style={styles.barTimer}>
-                <MaterialCommunityIcons
-                  name="timer"
-                  size={16}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.barTimerText}>{elapsedTime}</Text>
-              </View>
-            )}
-
-            <View style={styles.barStats}>
-              <Text style={styles.barStatText}>
-                {completedSets}/{totalSets} סטים
-              </Text>
-              <Text style={styles.barSeparator}>•</Text>
-              <Text style={styles.barStatText}>
-                {Math.round(totalVolume)} ק"ג
-              </Text>
-              {personalRecords > 0 && (
-                <>
-                  <Text style={styles.barSeparator}>•</Text>
+          <LinearGradient
+            colors={[theme.colors.card, theme.colors.background]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.barGradient}
+          >
+            <View style={styles.barContent}>
+              {elapsedTime && (
+                <View style={styles.barTimer}>
                   <MaterialCommunityIcons
-                    name="trophy"
-                    size={14}
-                    color={theme.colors.warning}
+                    name="timer"
+                    size={16}
+                    color={theme.colors.primary}
                   />
-                  <Text
-                    style={[
-                      styles.barStatText,
-                      { color: theme.colors.warning },
-                    ]}
-                  >
-                    {personalRecords}
-                  </Text>
-                </>
+                  <Text style={styles.barTimerText}>{elapsedTime}</Text>
+                </View>
               )}
-            </View>
 
-            <View style={styles.barProgress}>
-              <View
-                style={[
-                  styles.barProgressFill,
-                  { width: `${completionPercentage}%` },
-                ]}
-              />
+              <View style={styles.barStats}>
+                <Text style={styles.barStatText}>
+                  {completedSets}/{totalSets} סטים
+                </Text>
+                <Text style={styles.barSeparator}>•</Text>
+                <Text style={styles.barStatText}>
+                  {Math.round(totalVolume)} ק&quot;ג
+                </Text>
+                {personalRecords > 0 && (
+                  <>
+                    <Text style={styles.barSeparator}>•</Text>
+                    <MaterialCommunityIcons
+                      name="trophy"
+                      size={14}
+                      color={theme.colors.warning}
+                    />
+                    <Text
+                      style={[
+                        styles.barStatText,
+                        { color: theme.colors.warning },
+                      ]}
+                    >
+                      {personalRecords}
+                    </Text>
+                  </>
+                )}
+              </View>
+
+              <View style={styles.barProgress}>
+                <View
+                  style={[
+                    styles.barProgressFill,
+                    { width: `${completionPercentage}%` },
+                  ]}
+                />
+              </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* כפתור סגירה מתחת לווריאנט בר */}
+        {onHide && (
+          <TouchableOpacity
+            style={[
+              styles.closeButtonBelow,
+              {
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                marginTop: theme.spacing.xs,
+                alignSelf: "center",
+              },
+            ]}
+            onPress={() => {
+              onHide();
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="close"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -209,28 +251,60 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Compact style
   if (variant === "compact") {
     return (
-      <View style={styles.compactContainer}>
-        {stats.slice(0, 3).map((stat, index) => (
-          <React.Fragment key={stat.label}>
-            {index > 0 && <View style={styles.compactDivider} />}
-            <View style={styles.compactStat}>
-              {stat.iconFamily === "material" ? (
-                <MaterialCommunityIcons
-                  name={stat.icon as any}
-                  size={16}
-                  color={stat.color}
-                />
-              ) : (
-                <FontAwesome5
-                  name={stat.icon as any}
-                  size={14}
-                  color={stat.color}
-                />
-              )}
-              <Text style={styles.compactValue}>{stat.value}</Text>
-            </View>
-          </React.Fragment>
-        ))}
+      <View style={styles.defaultContainer}>
+        <TouchableOpacity
+          style={styles.compactContainer}
+          onPress={onHide}
+          disabled={!onHide}
+          activeOpacity={onHide ? 0.8 : 1}
+        >
+          {stats.slice(0, 3).map((stat, index) => (
+            <React.Fragment key={stat.label}>
+              {index > 0 && <View style={styles.compactDivider} />}
+              <View style={styles.compactStat}>
+                {stat.iconFamily === "material" ? (
+                  <MaterialCommunityIcons
+                    name={stat.icon as never}
+                    size={16}
+                    color={stat.color}
+                  />
+                ) : (
+                  <FontAwesome5
+                    name={stat.icon as never}
+                    size={14}
+                    color={stat.color}
+                  />
+                )}
+                <Text style={styles.compactValue}>{stat.value}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </TouchableOpacity>
+
+        {/* כפתור סגירה מתחת לווריאנט קומפקטי */}
+        {onHide && (
+          <TouchableOpacity
+            style={[
+              styles.closeButtonBelow,
+              {
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                marginTop: theme.spacing.xs,
+              },
+            ]}
+            onPress={() => {
+              onHide();
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="close"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -239,38 +313,71 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Floating style
   if (variant === "floating") {
     return (
-      <View style={styles.floatingContainer}>
-        <LinearGradient
-          colors={[
-            theme.colors.primary + "20",
-            theme.colors.primaryGradientEnd + "10",
-          ]}
-          style={styles.floatingGradient}
+      <View style={styles.defaultContainer}>
+        <TouchableOpacity
+          style={styles.floatingContainer}
+          onPress={onHide}
+          disabled={!onHide}
+          activeOpacity={onHide ? 0.8 : 1}
         >
-          <View style={styles.floatingContent}>
-            {stats.map((stat, index) => (
-              <View key={stat.label} style={styles.floatingStat}>
-                {stat.iconFamily === "material" ? (
-                  <MaterialCommunityIcons
-                    name={stat.icon as any}
-                    size={20}
-                    color={stat.color}
-                  />
-                ) : (
-                  <FontAwesome5
-                    name={stat.icon as any}
-                    size={16}
-                    color={stat.color}
-                  />
-                )}
-                <View>
-                  <Text style={styles.floatingValue}>{stat.value}</Text>
-                  <Text style={styles.floatingLabel}>{stat.label}</Text>
+          <LinearGradient
+            colors={[
+              theme.colors.primary + "20",
+              theme.colors.primaryGradientEnd + "10",
+            ]}
+            style={styles.floatingGradient}
+          >
+            <View style={styles.floatingContent}>
+              {stats.map((stat) => (
+                <View key={stat.label} style={styles.floatingStat}>
+                  {stat.iconFamily === "material" ? (
+                    <MaterialCommunityIcons
+                      name={stat.icon as never}
+                      size={20}
+                      color={stat.color}
+                    />
+                  ) : (
+                    <FontAwesome5
+                      name={stat.icon as never}
+                      size={16}
+                      color={stat.color}
+                    />
+                  )}
+                  <View>
+                    <Text style={styles.floatingValue}>{stat.value}</Text>
+                    <Text style={styles.floatingLabel}>{stat.label}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
+              ))}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* כפתור סגירה מתחת לווריאנט צף */}
+        {onHide && (
+          <TouchableOpacity
+            style={[
+              styles.closeButtonBelow,
+              {
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                marginTop: theme.spacing.sm,
+                alignSelf: "center",
+              },
+            ]}
+            onPress={() => {
+              onHide();
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="close"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -278,15 +385,91 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // ברירת מחדל - סגנון מקורי משופר
   // Default - improved original style
   return (
-    <View style={styles.container}>
-      {stats.map((stat) => (
-        <StatItem key={stat.label} {...stat} />
-      ))}
+    <View style={styles.defaultContainer}>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={() => {
+          if (onHide) {
+            onHide();
+          }
+        }}
+        disabled={!onHide}
+        activeOpacity={onHide ? 0.8 : 1}
+      >
+        {stats.map((stat) => (
+          <StatItem key={stat.label} {...stat} />
+        ))}
+      </TouchableOpacity>
+
+      {/* כפתור סגירה מתחת לדשבורד */}
+      {onHide && (
+        <TouchableOpacity
+          style={styles.closeButtonBelow}
+          onPress={() => {
+            onHide();
+          }}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="close"
+            size={18}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // קונטיינר ברירת מחדל עם כפתור סגירה
+  // Default container with close button
+  defaultContainer: {
+    position: "relative",
+  },
+  closeButton: {
+    position: "absolute",
+    top: -8,
+    right: theme.spacing.sm,
+    zIndex: 1000,
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  closeButtonBelow: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignSelf: "center",
+    marginTop: theme.spacing.sm,
+  },
+
   // סגנון מקורי
   // Original style
   container: {

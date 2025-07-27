@@ -89,22 +89,52 @@ class QuestionnaireService {
    */
   async getUserPreferences(): Promise<QuestionnaireMetadata | null> {
     try {
-      // נסה לקרוא מהפורמט החדש
+      // בדוק קודם אם יש משתמש חדש ב-userStore
+      const user = useUserStore.getState().user;
+      console.log("🔍 getUserPreferences - בודק userStore:", {
+        hasUser: !!user,
+        hasQuestionnaireData: !!user?.questionnaireData,
+        questionnaireData: user?.questionnaireData,
+      });
+
+      // אם יש נתונים חדשים ב-userStore, תן להם עדיפות תמיד
+      if (user?.questionnaireData) {
+        // יצירת metadata מלא עם completedAt
+        const fullMetadata = {
+          // נתונים מ-answers (השאלון האמיתי)
+          ...user.questionnaireData.answers,
+          // נתונים מ-metadata (מטא-דאטה)
+          ...user.questionnaireData.metadata,
+          // completedAt מהשדה הנכון
+          completedAt: user.questionnaireData.completedAt,
+        };
+        console.log(
+          "🔍 getUserPreferences - יוצר fullMetadata מ-userStore:",
+          fullMetadata
+        );
+        // שמור את הנתונים בפורמט החדש (יחליף את הישנים)
+        await this.saveQuestionnaireData(fullMetadata);
+        console.log(
+          "🔍 getUserPreferences - מחזיר נתונים מ-userStore:",
+          fullMetadata
+        );
+        return fullMetadata;
+      }
+
+      // רק אם אין נתונים ב-userStore, נסה לקרוא מ-AsyncStorage
       const metadata = await AsyncStorage.getItem(
         STORAGE_KEYS.QUESTIONNAIRE_METADATA
       );
       if (metadata) {
-        return JSON.parse(metadata);
+        const parsed = JSON.parse(metadata);
+        console.log(
+          "🔍 getUserPreferences - מצא נתונים ב-AsyncStorage:",
+          parsed
+        );
+        return parsed;
       }
 
-      // אם אין, בדוק אם יש נתונים ב-userStore
-      const user = useUserStore.getState().user;
-      if (user?.questionnaireData?.metadata) {
-        // שמור את הנתונים בפורמט החדש
-        await this.saveQuestionnaireData(user.questionnaireData.metadata);
-        return user.questionnaireData.metadata;
-      }
-
+      console.log("🔍 getUserPreferences - לא מצא נתונים");
       return null;
     } catch (error) {
       console.error("Error getting user preferences:", error);
@@ -171,7 +201,15 @@ class QuestionnaireService {
    */
   async hasCompletedQuestionnaire(): Promise<boolean> {
     const prefs = await this.getUserPreferences();
-    return prefs !== null && prefs.completedAt !== undefined;
+    const hasCompleted = prefs !== null && prefs.completedAt !== undefined;
+
+    console.log("🔍 hasCompletedQuestionnaire בדיקה:", {
+      prefs,
+      hasCompleted,
+      completedAt: prefs?.completedAt,
+    });
+
+    return hasCompleted;
   }
 
   /**
@@ -291,7 +329,7 @@ class QuestionnaireService {
         STORAGE_KEYS.QUESTIONNAIRE_METADATA,
         JSON.stringify({
           ...data,
-          completedAt: new Date().toISOString(),
+          completedAt: data.completedAt || new Date().toISOString(), // שמור את completedAt הקיים או יצור חדש
           version: "2.0",
         })
       );

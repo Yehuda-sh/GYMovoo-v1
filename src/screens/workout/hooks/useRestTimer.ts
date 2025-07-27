@@ -14,6 +14,8 @@ export interface UseRestTimerReturn {
   pauseRestTimer: () => void;
   resumeRestTimer: () => void;
   skipRestTimer: () => void;
+  addRestTime: (seconds: number) => void;
+  subtractRestTime: (seconds: number) => void;
   currentExerciseName?: string;
 }
 
@@ -137,6 +139,40 @@ export const useRestTimer = (): UseRestTimerReturn => {
     Vibration.vibrate([0, 300, 100, 300]);
   }, []);
 
+  // הוסף זמן לטיימר
+  // Add time to timer
+  const addRestTime = useCallback(
+    (seconds: number) => {
+      if (isRestTimerActive) {
+        endTimeRef.current += seconds * 1000;
+        const newRemaining = Math.ceil(
+          (endTimeRef.current - Date.now()) / 1000
+        );
+        setRestTimeRemaining(Math.max(0, newRemaining));
+      }
+    },
+    [isRestTimerActive]
+  );
+
+  // הפחת זמן מהטיימר
+  // Subtract time from timer
+  const subtractRestTime = useCallback(
+    (seconds: number) => {
+      if (isRestTimerActive) {
+        endTimeRef.current -= seconds * 1000;
+        const newRemaining = Math.ceil(
+          (endTimeRef.current - Date.now()) / 1000
+        );
+        if (newRemaining <= 0) {
+          completeRestTimer();
+        } else {
+          setRestTimeRemaining(newRemaining);
+        }
+      }
+    },
+    [isRestTimerActive]
+  );
+
   return {
     isRestTimerActive,
     restTimeRemaining,
@@ -144,6 +180,8 @@ export const useRestTimer = (): UseRestTimerReturn => {
     pauseRestTimer,
     resumeRestTimer,
     skipRestTimer,
+    addRestTime,
+    subtractRestTime,
     currentExerciseName,
   };
 };

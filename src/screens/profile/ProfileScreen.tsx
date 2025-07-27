@@ -34,7 +34,7 @@ import {
   hasCompletedTrainingStage,
   hasCompletedProfileStage,
 } from "../../data/twoStageQuestionnaireData";
-import { ALL_EQUIPMENT, Equipment } from "../../data/equipmentData";
+import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
 
