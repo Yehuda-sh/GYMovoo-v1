@@ -98,7 +98,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const { user } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [aiMode, setAiMode] = useState(false); // 🤖 AI Mode toggle
+  const [aiMode, setAiMode] = useState(true); // 🤖 AI Mode is now DEFAULT
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
@@ -129,7 +129,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     if (returnFromWorkout) {
       handlePostWorkoutReturn();
     } else {
-      generateWorkoutPlan(!!route?.params?.regenerate).then(() => {
+      // 🤖 Default to AI workout plan generation
+      generateAIWorkoutPlan(!!route?.params?.regenerate).then(() => {
         // אימון אוטומטי אם התבקש
         if (autoStart && workoutPlan?.workouts?.[0]) {
           setTimeout(() => {
@@ -203,32 +204,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // שימוש באלגוריתם ה-AI החדש!
       const aiPlan = await WorkoutDataService.generateAIWorkoutPlan();
-      
+
       if (aiPlan) {
         setWorkoutPlan(aiPlan);
-        
+
         if (forceRegenerate) {
           Alert.alert(
-            "✅ תוכנית AI נוצרה!",
-            `נוצרה תוכנית AI חדשה: "${aiPlan.name}"\n\n` +
-            `📊 ציון AI: ${aiPlan.aiScore?.toFixed(0)}/100\n` +
-            `🎯 רמת התאמה: ${aiPlan.personalizationLevel}\n` +
-            `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0)}%\n` +
-            `🔄 ציון מגוון: ${aiPlan.varietyScore}\n\n` +
-            `${aiPlan.adaptations?.join(', ') || 'ללא התאמות מיוחדות'}`,
-            [{ text: "מעולה!", style: "default" }]
+            "🤖 תוכנית AI חדשה נוצרה!",
+            `נוצרה תוכנית חכמה: "${aiPlan.name}"\n\n` +
+              `📊 ציון התאמה: ${aiPlan.aiScore?.toFixed(0)}/100\n` +
+              `🎯 רמה: ${aiPlan.personalizationLevel === "basic" ? "בסיסית" : aiPlan.personalizationLevel === "advanced" ? "מתקדמת" : "מומחה"}\n` +
+              `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0)}%\n\n` +
+              `✨ התוכנית תתאים את עצמה לפי הביצועים שלך!`,
+            [{ text: "בואו נתחיל! 💪", style: "default" }]
           );
         }
       } else {
         throw new Error("AI failed to generate plan");
       }
-
     } catch (error: any) {
       console.error("❌ AI Plan Generation Error:", error);
-      
+
       Alert.alert(
         "שגיאה ביצירת תוכנית AI",
-        error.message === "NO_QUESTIONNAIRE_DATA" 
+        error.message === "NO_QUESTIONNAIRE_DATA"
           ? "אנא השלם את השאלון תחילה"
           : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
         [
@@ -240,7 +239,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           },
         ]
       );
-      
+
       // fallback לתוכנית רגילה
       generateWorkoutPlan(forceRegenerate);
     } finally {
@@ -253,9 +252,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     try {
       setLoading(!refreshing);
       if (refreshing) setRefreshing(true);
+      setAiMode(false); // Switch to basic mode
 
       console.log(
-        `🧠 Generating workout plan${forceRegenerate ? " (forced)" : ""}...`
+        `🧠 Generating basic workout plan${forceRegenerate ? " (forced)" : ""}...`
       );
 
       // קבלת נתוני המשתמש מהשאלון
@@ -358,7 +358,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    */
   const handleRefresh = () => {
     setRefreshing(true);
-    generateWorkoutPlan(true);
+    // 🤖 Use AI workout plan on refresh by default
+    generateAIWorkoutPlan(true);
   };
 
   /**
@@ -889,7 +890,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   // מסך טעינה
-  // Loading screen
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -898,12 +898,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           size={80}
           color={theme.colors.primary}
         />
-        <Text style={styles.loadingText}>
-          יוצר תוכנית אימון מותאמת אישית...
-        </Text>
-        <Text style={styles.loadingSubtext}>
-          מנתח את הנתונים שלך ומתאים תרגילים חכמים
-        </Text>
+        <Text style={styles.loadingText}>🤖 יוצר תוכנית AI מותאמת...</Text>
+        <Text style={styles.loadingSubtext}>מנתח נתונים וכותב תוכנית חכמה</Text>
         <ActivityIndicator
           size="large"
           color={theme.colors.primary}
@@ -914,7 +910,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   }
 
   // מסך שגיאה
-  // Error screen
   if (!workoutPlan) {
     return (
       <View style={styles.errorContainer}>
@@ -926,7 +921,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         <Text style={styles.errorText}>לא הצלחנו ליצור תוכנית אימון</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => generateWorkoutPlan()}
+          onPress={() => generateAIWorkoutPlan()}
         >
           <Text style={styles.retryButtonText}>נסה שוב</Text>
         </TouchableOpacity>
@@ -1005,8 +1000,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               </View>
             </View>
 
-            {/* סטטיסטיקות משופרות */}
-            {/* Enhanced stats */}
+            {/* סטטיסטיקות */}
             <View style={styles.statsContainer}>
               <LinearGradient
                 colors={[
@@ -1025,7 +1019,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                     <Text style={styles.statValue}>
                       {workoutPlan.frequency}
                     </Text>
-                    <Text style={styles.statLabel}>ימים בשבוע</Text>
+                    <Text style={styles.statLabel}>📅 ימים בשבוע</Text>
                   </View>
 
                   <View style={styles.statDivider} />
@@ -1037,7 +1031,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                       color={theme.colors.primary}
                     />
                     <Text style={styles.statValue}>{workoutPlan.duration}</Text>
-                    <Text style={styles.statLabel}>דקות לאימון</Text>
+                    <Text style={styles.statLabel}>⏱️ דקות לאימון</Text>
                   </View>
 
                   <View style={styles.statDivider} />
@@ -1055,15 +1049,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                           ? "בינוני"
                           : "מתקדם"}
                     </Text>
-                    <Text style={styles.statLabel}>רמת קושי</Text>
+                    <Text style={styles.statLabel}>💪 רמת קושי</Text>
                   </View>
                 </View>
               </LinearGradient>
             </View>
           </View>
 
-          {/* בחירת יום משופרת */}
-          {/* Enhanced day selector */}
+          {/* בחירת יום */}
           <View style={styles.daySelectorWrapper}>
             <Text style={styles.sectionTitle}>בחר יום אימון</Text>
             <ScrollView
@@ -1120,7 +1113,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           </View>
 
           {/* פרטי היום הנבחר */}
-          {/* Selected day details */}
           {workoutPlan.workouts[selectedDay] && (
             <View style={styles.dayDetails}>
               <View style={styles.dayHeader}>
@@ -1152,7 +1144,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 </View>
 
                 {/* שרירי יעד */}
-                {/* Target muscles */}
                 <View style={styles.targetMuscles}>
                   <Text style={styles.targetMusclesTitle}>שרירי יעד:</Text>
                   <View style={styles.muscleChips}>
@@ -1167,8 +1158,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 </View>
               </View>
 
-              {/* רשימת תרגילים משופרת */}
-              {/* Enhanced exercise list */}
+              {/* רשימת תרגילים */}
               <View style={styles.exerciseList}>
                 {workoutPlan.workouts[selectedDay].exercises.map(
                   (exerciseTemplate: ExerciseTemplate, index: number) => {
@@ -1243,7 +1233,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                           </View>
 
                           {/* פרטים נוספים */}
-                          {/* Additional details */}
                           {isExpanded && (
                             <View style={styles.exerciseExpanded}>
                               {exerciseTemplate.notes && (
@@ -1317,8 +1306,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 )}
               </View>
 
-              {/* כפתור התחלה משופר */}
-              {/* Enhanced start button */}
+              {/* כפתור התחלה */}
               <TouchableOpacity
                 style={styles.startButton}
                 onPress={() => startWorkout(workoutPlan.workouts[selectedDay])}
@@ -1339,20 +1327,85 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             </View>
           )}
 
+          {/* הסבר על המודל AI */}
+          {aiMode && (
+            <View style={styles.aiExplanation}>
+              <View style={styles.aiExplanationHeader}>
+                <MaterialCommunityIcons
+                  name="brain"
+                  size={24}
+                  color="#FF6B35"
+                />
+                <Text style={styles.aiExplanationTitle}>
+                  איך AI עובד עבורך?
+                </Text>
+              </View>
+
+              <View style={styles.aiFeatures}>
+                <View style={styles.aiFeature}>
+                  <MaterialCommunityIcons
+                    name="trending-up"
+                    size={20}
+                    color={theme.colors.success}
+                  />
+                  <Text style={styles.aiFeatureText}>
+                    <Text style={styles.aiFeatureBold}>התקדמות אוטומטית:</Text>{" "}
+                    האימונים מתעצמים מעצמם לפי הביצועים שלך
+                  </Text>
+                </View>
+
+                <View style={styles.aiFeature}>
+                  <MaterialCommunityIcons
+                    name="auto-fix"
+                    size={20}
+                    color={theme.colors.info}
+                  />
+                  <Text style={styles.aiFeatureText}>
+                    <Text style={styles.aiFeatureBold}>התאמה דינמית:</Text>{" "}
+                    התוכנית משתנה כל שבוע לפי ההתקדמות
+                  </Text>
+                </View>
+
+                <View style={styles.aiFeature}>
+                  <MaterialCommunityIcons
+                    name="account-heart"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.aiFeatureText}>
+                    <Text style={styles.aiFeatureBold}>למידה אישית:</Text>{" "}
+                    האלגוריתם לומד את ההעדפות והיכולות שלך
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.aiExplanationNote}>
+                💡 אין צורך לערוך רמה בשאלון - המערכת מתאימה אוטומטית!
+              </Text>
+
+              <View style={styles.learningIndicator}>
+                <MaterialCommunityIcons
+                  name="brain"
+                  size={16}
+                  color={theme.colors.success}
+                />
+                <Text style={styles.learningText}>
+                  האלגוריתם לומד מכל אימון ומשפר את התוכנית שלך
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* פעולות נוספות */}
-          {/* Additional actions */}
           <View style={styles.actions}>
-            {/* 🤖 כפתור AI חדש */}
+            {/* 🤖 כפתור AI */}
             <TouchableOpacity
               style={[styles.actionButton, styles.aiButton]}
               onPress={() => generateAIWorkoutPlan(true)}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={[
-                  "#FF6B35" + "20",
-                  "#FF6B35" + "10",
-                ]}
+                colors={["#FF6B35" + "20", "#FF6B35" + "10"]}
                 style={styles.actionButtonGradient}
               >
                 <MaterialCommunityIcons
@@ -1361,7 +1414,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   color="#FF6B35"
                 />
                 <Text style={[styles.actionButtonText, { color: "#FF6B35" }]}>
-                  🤖 תוכנית AI חכמה
+                  תוכנית AI חכמה
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -1383,7 +1436,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   size={22}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.actionButtonText}>צור תוכנית רגילה</Text>
+                <Text style={styles.actionButtonText}>תוכנית בסיסית</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -1406,7 +1459,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   size={22}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.actionButtonText}>שמור תוכנית</Text>
+                <Text style={styles.actionButtonText}>💾 שמור תוכנית</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -1510,44 +1563,48 @@ const styles = StyleSheet.create({
     color: "#FF6B35",
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "700",
     color: theme.colors.text,
     textAlign: "center",
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
   tagsContainer: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
     justifyContent: "center",
     marginTop: 8,
+    paddingHorizontal: 20,
   },
   tag: {
-    backgroundColor: theme.colors.primary + "20",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    backgroundColor: theme.colors.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: theme.radius.sm,
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 11,
     color: theme.colors.primary,
     fontWeight: "500",
   },
   statsContainer: {
-    marginTop: 20,
+    marginTop: 24,
     borderRadius: theme.radius.lg,
     overflow: "hidden",
     ...theme.shadows.medium,
   },
   statsGradient: {
-    padding: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
   },
   statsRow: {
     flexDirection: "row-reverse",
@@ -1863,5 +1920,74 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: theme.colors.primary,
+  },
+  // סגנונות הסבר AI
+  aiExplanation: {
+    margin: theme.spacing.lg,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: "#FF6B35" + "30",
+    ...theme.shadows.small,
+  },
+  aiExplanationHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  aiExplanationTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text,
+    textAlign: "right",
+  },
+  aiFeatures: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  aiFeature: {
+    flexDirection: "row-reverse",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  aiFeatureText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.text,
+    textAlign: "right",
+    lineHeight: 20,
+  },
+  aiFeatureBold: {
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  aiExplanationNote: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    fontStyle: "italic",
+    backgroundColor: theme.colors.primary + "10",
+    padding: 12,
+    borderRadius: theme.radius.md,
+    marginBottom: 12,
+  },
+  learningIndicator: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: theme.colors.success + "10",
+    padding: 10,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.success + "30",
+  },
+  learningText: {
+    fontSize: 12,
+    color: theme.colors.success,
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

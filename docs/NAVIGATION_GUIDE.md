@@ -45,6 +45,8 @@ BottomNavigation.tsx - ניווט תחתון
 - **MainScreen** → Profile, Notifications, Questionnaire, WorkoutPlans, Exercises, Progress, History, QuickWorkout
 - **ProfileScreen** → Questionnaire (עריכה)
 - **WorkoutPlansScreen** → QuickWorkout, Questionnaire
+  - **עדכון חדש:** מסך משופר עם הסבר AI ואייקונים
+  - **תכונות AI:** התקדמות אוטומטית, התאמה דינמית, למידה אישית
 - **QuickWorkoutScreen** → Questionnaire
 - **ExercisesScreen** → ExerciseList
 - **ExerciseListScreen** → (מודל)
