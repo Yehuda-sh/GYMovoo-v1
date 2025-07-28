@@ -192,11 +192,6 @@ const QuickWorkoutScreen: React.FC = () => {
       source?: string;
     }) || {};
 
-  // בטח את האתחול כדי למנוע לוגים מיותרים
-  if (presetExercises && presetExercises.length > 0) {
-    console.log("🎯 QuickWorkout - התחיל עם תרגילים מוכנים מהתוכנית");
-  }
-
   const [workoutName, setWorkoutName] = useState(
     presetWorkoutName || "אימון מהיר"
   );
@@ -204,6 +199,7 @@ const QuickWorkoutScreen: React.FC = () => {
   const [dashboardVisible, setDashboardVisible] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(true);
+  const [hasLoggedPresetUse, setHasLoggedPresetUse] = useState(false); // מניעת לוגים חוזרים
 
   // גישה לנתוני המשתמש
   // Access user data
@@ -250,13 +246,13 @@ const QuickWorkoutScreen: React.FC = () => {
     // עדכון מצב הטיימר בצורה שקטה
   }, [isRestTimerActive, restTimeRemaining]);
 
-  // טעינת אימון מותאם אישית
-  // Load personalized workout
+  // טעינת אימון מותאם אישית - רק פעם אחת
+  // Load personalized workout - only once
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && isLoadingWorkout) {
       loadPersonalizedWorkout();
     }
-  }, [isInitialized]);
+  }, [isInitialized, isLoadingWorkout]);
 
   const loadPersonalizedWorkout = async () => {
     try {
@@ -264,10 +260,13 @@ const QuickWorkoutScreen: React.FC = () => {
 
       // אם יש תרגילים מוכנים מהתוכנית - השתמש בהם!
       if (presetExercises && presetExercises.length > 0) {
-        console.log(
-          "✅ QuickWorkout - משתמש בתרגילים מהתוכנית:",
-          presetExercises.map((ex: Exercise) => ex.name)
-        );
+        if (!hasLoggedPresetUse) {
+          console.log(
+            "✅ QuickWorkout - משתמש בתרגילים מהתוכנית:",
+            presetExercises.map((ex: Exercise) => ex.name)
+          );
+          setHasLoggedPresetUse(true);
+        }
         setExercises(presetExercises);
         setIsLoadingWorkout(false);
         return;

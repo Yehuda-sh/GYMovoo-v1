@@ -47,8 +47,13 @@ npm install
 # או
 yarn install
 
-# הפעל את האפליקציה
+# הפעל את האפליקציה בפיתוח
+npm start
+# או במפורש:
 npx expo start
+
+# הפעל עם development build (אם קיים)
+npm run start:dev-client
 ```
 
 ### הרצה במכשיר
