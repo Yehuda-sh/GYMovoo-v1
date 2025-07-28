@@ -2,9 +2,7 @@
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @brief מסך פתיחה ראשי של האפליקציה עם אפשרויות הרשמה והתחברות
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient
- * @notes כולל אנימ      // ניווט ישירות למסך הראשי (כי השאלון כבר מלא)
-      // Navigate directly to main screen (questionnaire already completed)
-      navigation.navigate("MainApp");ת fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
+ * @notes כולל אנימציות fade-in, Google Sign-in מדומה עם משתמשים רנדומליים
  * @enhancements אנימציית פעימה לנקודה ירוקה, Ripple effects, מיקרו-אינטראקציות, נגישות משופרת, Skeleton loading
  */
 
@@ -417,6 +415,7 @@ export default function WelcomeScreen() {
                   }}
                   style={styles.googleLogo}
                   resizeMode="contain"
+                  onError={() => console.warn("Google logo failed to load")} // הגנה מפני כשל טעינת תמונה
                 />
                 <Text style={styles.googleButtonText}>המשך עם Google</Text>
               </TouchableButton>
@@ -586,7 +585,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: theme.radius.lg,
     overflow: "hidden",
-    // אפשר גם: ...theme.components.primaryButton
+    ...theme.shadows.medium, // הוספת צל עקבי מהtheme
   },
   gradientButton: {
     flexDirection: "row-reverse",
@@ -637,7 +636,7 @@ export const styles = StyleSheet.create({
   },
   authGroup: {
     width: "100%",
-    // gap: 12, // אפשר עם marginBottom לכל כפתור אם צריך
+    gap: 12, // שימוש ב-gap במקום margin מרובים - React Native תומך מגרסה 0.71+
   },
   googleButton: {
     flexDirection: "row-reverse",
@@ -649,11 +648,7 @@ export const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...theme.shadows.small, // שימוש בצללים מהtheme במקום shadow ידני
   },
   googleLogo: {
     width: 60,
@@ -710,7 +705,6 @@ export const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    marginTop: 8,
     borderStyle: "dashed",
   },
   devButtonText: {

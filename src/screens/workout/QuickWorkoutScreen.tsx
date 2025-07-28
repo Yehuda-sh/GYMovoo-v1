@@ -419,13 +419,15 @@ const QuickWorkoutScreen: React.FC = () => {
       });
     });
 
-    return {
+    const statsResult = {
       completedSets,
       totalSets: exercises.reduce((acc, ex) => acc + ex.sets.length, 0),
       totalVolume,
       totalReps,
       currentPace: totalReps > 0 ? Math.round(elapsedTime / totalReps) : 0,
     };
+
+    return statsResult;
   }, [exercises, elapsedTime]);
 
   // התרגיל הבא
@@ -567,7 +569,12 @@ const QuickWorkoutScreen: React.FC = () => {
               exercise={item}
               sets={item.sets}
               onUpdateSet={(setId: string, updates: Partial<Set>) => {
-                const newExercises = [...exercises];
+                // יצירת העתק עמוק של exercises
+                const newExercises = exercises.map((ex) => ({
+                  ...ex,
+                  sets: ex.sets.map((s) => ({ ...s })),
+                }));
+
                 const exerciseIndex = newExercises.findIndex(
                   (ex) => ex.id === item.id
                 );
@@ -600,13 +607,19 @@ const QuickWorkoutScreen: React.FC = () => {
                 setExercises(newExercises);
               }}
               onCompleteSet={(setId: string) => {
-                const newExercises = [...exercises];
+                // יצירת העתק עמוק של exercises
+                const newExercises = exercises.map((ex) => ({
+                  ...ex,
+                  sets: ex.sets.map((s) => ({ ...s })),
+                }));
+
                 const exerciseIndex = newExercises.findIndex(
                   (ex) => ex.id === item.id
                 );
                 const setIndex = newExercises[exerciseIndex].sets.findIndex(
                   (s) => s.id === setId
                 );
+
                 if (setIndex !== -1) {
                   const currentSet = newExercises[exerciseIndex].sets[setIndex];
                   const isCompleting = !currentSet.completed;

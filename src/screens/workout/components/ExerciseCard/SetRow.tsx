@@ -3,15 +3,6 @@
  * @description שורת סט בודדת עם התאמה מלאה ל-RTL
  */
 
-// DEBUG FLAG - הסר בסוף הפרויקט
-const DEBUG = true;
-const log = (message: string, data?: object) => {
-  if (DEBUG) {
-    const timestamp = new Date().toLocaleTimeString("he-IL");
-    console.log(`💪 [SetRow ${timestamp}] ${message}`, data || "");
-  }
-};
-
 import React, { useRef, useEffect, useState } from "react";
 import {
   View,
@@ -82,12 +73,6 @@ const SetRow: React.FC<SetRowProps> = ({
   // Personal record animation
   useEffect(() => {
     if (isPR) {
-      log("🏆 New personal record detected!", {
-        weight: set.actualWeight,
-        reps: set.actualReps,
-        volume: set.actualWeight! * set.actualReps!,
-      });
-
       Animated.sequence([
         Animated.timing(prBounceAnim, {
           toValue: 1,
@@ -114,18 +99,6 @@ const SetRow: React.FC<SetRowProps> = ({
       duration: 300,
       useNativeDriver: true,
     }).start();
-
-    if (set.completed) {
-      log("✅ Set completed", {
-        setNumber,
-        weight: set.actualWeight,
-        reps: set.actualReps,
-        volume:
-          set.actualWeight && set.actualReps
-            ? set.actualWeight * set.actualReps
-            : 0,
-      });
-    }
   }, [set.completed, setNumber, set.actualWeight, set.actualReps, checkAnim]);
 
   useEffect(() => {
@@ -137,7 +110,6 @@ const SetRow: React.FC<SetRowProps> = ({
   }, [isActive, scaleAnim]);
 
   const handleWeightChange = (value: string) => {
-    log("⚖️ Weight changed", { setNumber, value });
     const numValue = parseFloat(value);
     if (!isNaN(numValue) || value === "") {
       onUpdate({ actualWeight: value === "" ? undefined : numValue });
@@ -145,7 +117,6 @@ const SetRow: React.FC<SetRowProps> = ({
   };
 
   const handleRepsChange = (value: string) => {
-    log("🔄 Reps changed", { setNumber, value });
     const numValue = parseInt(value);
     if (!isNaN(numValue) || value === "") {
       onUpdate({ actualReps: value === "" ? undefined : numValue });
@@ -153,12 +124,6 @@ const SetRow: React.FC<SetRowProps> = ({
   };
 
   const handleComplete = () => {
-    log("✅ Complete button pressed", {
-      setNumber,
-      weight: set.actualWeight,
-      reps: set.actualReps,
-    });
-
     // אם אין ערכים ממשיים, השתמש בערכי המטרה
     if (!set.actualWeight && set.targetWeight) {
       onUpdate({ actualWeight: set.targetWeight });
@@ -172,7 +137,6 @@ const SetRow: React.FC<SetRowProps> = ({
   };
 
   const handleDelete = () => {
-    log("🗑️ Delete pressed", { setNumber });
     if (Platform.OS !== "web") {
       Vibration.vibrate(10);
     }
@@ -281,17 +245,20 @@ const SetRow: React.FC<SetRowProps> = ({
           ]}
         >
           <TextInput
-            style={[styles.input, set.completed && styles.completedInput]}
+            style={[
+              styles.input,
+              set.completed && styles.completedInput,
+              weightFocused && styles.focusedInput,
+            ]}
             value={set.actualWeight?.toString() || ""}
             onChangeText={handleWeightChange}
             onFocus={() => {
-              log("⚖️ Weight input focused", { setNumber });
               setWeightFocused(true);
             }}
             onBlur={() => setWeightFocused(false)}
             keyboardType="numeric"
             placeholder={set.targetWeight?.toString() || "-"}
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={theme.colors.textSecondary + "60"}
             selectTextOnFocus
             editable={!set.completed}
           />
@@ -307,17 +274,20 @@ const SetRow: React.FC<SetRowProps> = ({
           ]}
         >
           <TextInput
-            style={[styles.input, set.completed && styles.completedInput]}
+            style={[
+              styles.input,
+              set.completed && styles.completedInput,
+              repsFocused && styles.focusedInput,
+            ]}
             value={set.actualReps?.toString() || ""}
             onChangeText={handleRepsChange}
             onFocus={() => {
-              log("🔢 Reps input focused", { setNumber });
               setRepsFocused(true);
             }}
             onBlur={() => setRepsFocused(false)}
             keyboardType="numeric"
             placeholder={set.targetReps?.toString() || "-"}
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={theme.colors.textSecondary + "60"}
             selectTextOnFocus
             editable={!set.completed}
           />
@@ -422,13 +392,18 @@ const styles = StyleSheet.create({
   focusedContainer: {
     transform: [{ scale: 1.02 }],
   },
+  focusedInput: {
+    color: theme.colors.text,
+    fontWeight: "600",
+    borderColor: theme.colors.primary + "40",
+  },
   input: {
     backgroundColor: theme.colors.background,
     borderRadius: 8,
     paddingVertical: 10,
     fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
+    fontWeight: "400", // פחות בולט מ-600
+    color: theme.colors.textSecondary + "80", // פחות בולט - כמו placeholder
     textAlign: "center",
     borderWidth: 1,
     borderColor: "transparent",
