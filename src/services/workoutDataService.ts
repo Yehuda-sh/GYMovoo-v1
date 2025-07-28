@@ -57,6 +57,35 @@ interface WorkoutMatrix {
 // Simple workout data class
 export class WorkoutDataService {
   /**
+   * ערבוב מערך עם זרע קבוע
+   * Shuffle array with fixed seed
+   */
+  private static shuffleArray<T>(array: T[], seed: number): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(this.seededRandom(seed + i) * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  /**
+   * רנדום עם זרע קבוע לעקביות - גרסה משופרת
+   * Seeded random for consistency - improved version
+   */
+  private static seededRandom(seed: number): number {
+    // שימוש באלגוריתם משופר יותר
+    let x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    x = x - Math.floor(x);
+
+    // תוספת של מיקסטורה נוספת
+    const y = Math.sin(seed * 23.1406 + 45.789) * 87421.2543;
+    const mixed = (x + (y - Math.floor(y))) / 2;
+
+    return mixed - Math.floor(mixed);
+  }
+
+  /**
    * קבלת נתוני משתמש מאוחדים מכל המקורות
    * Get unified user data from all sources
    */
@@ -460,16 +489,37 @@ export class WorkoutDataService {
    */
   private static parseFrequency(frequency: string): number {
     const frequencyMap: { [key: string]: number } = {
+      // פורמט עברי (ישן)
       "1-2": 2,
       "3-4": 3,
       "5-6": 5,
       "כל יום": 6,
+      // 🔧 FIX: פורמט אנגלי (חדש) מהשאלון הנוכחי
+      "2_times": 2,
+      "3_times": 3,
+      "4_times": 4, // 🔧 נוסף לכיסוי 4 פעמים
+      "5_times": 5,
+      "6_times": 6,
+      daily: 7,
     };
     return frequencyMap[frequency] || 3;
   }
 
   private static parseDuration(duration: string): number {
     if (!duration) return 45;
+
+    // 🔧 FIX: תמיכה בפורמט אנגלי חדש
+    if (duration.includes("_min")) {
+      const durationMap: { [key: string]: number } = {
+        "30_min": 30,
+        "45_min": 45,
+        "60_min": 60,
+        "90_min": 90,
+      };
+      return durationMap[duration] || 45;
+    }
+
+    // פורמט עברי ישן
     return parseInt(duration.split("-")[0]) || 45;
   }
 
@@ -786,12 +836,13 @@ export class WorkoutDataService {
       // חישוב מספר תרגילים על בסיס זמן הסשן
       const exerciseCount = Math.floor(sessionDuration / 8); // בערך 8 דקות לתרגיל
 
-      // בחירת תרגילים מותאמים עם AI
+      // בחירת תרגילים מותאמים עם AI עם זרע קבוע לכל יום
       const exercises = this.selectAIExercises(
         name,
         equipment,
         exerciseCount,
-        workoutMatrix
+        workoutMatrix,
+        index // העברת אינדקס היום לזרע קבוע
       );
 
       workouts.push({
@@ -813,9 +864,14 @@ export class WorkoutDataService {
    */
   private static getTargetMusclesForDay(workoutName: string): string[] {
     const muscleMap: { [key: string]: string[] } = {
+      // הגדרות חדשות עבור הימים בפועל
+      דחיפה: ["chest", "shoulders", "triceps"],
+      משיכה: ["back", "biceps"],
+      רגליים: ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+
+      // הגדרות קיימות
       "חזה ושלושי": ["chest", "triceps"],
       "גב ודו-ראשי": ["back", "biceps"],
-      רגליים: ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
       כתפיים: ["shoulders", "deltoids"],
       "בטן וליבה": ["abs", "core"],
       "גוף עליון": ["chest", "back", "shoulders", "biceps", "triceps"],
@@ -829,6 +885,18 @@ export class WorkoutDataService {
         "triceps",
         "abs",
       ],
+
+      // הגדרות נוספות עבור פיצולים אחרים
+      "חזה + טריצפס": ["chest", "triceps"],
+      "גב + ביצפס": ["back", "biceps"],
+      חזה: ["chest"],
+      גב: ["back"],
+      ידיים: ["biceps", "triceps"],
+      בטן: ["abs", "core"],
+      "אימון מלא": ["chest", "back", "legs", "shoulders", "biceps", "triceps"],
+      "פלג גוף עליון": ["chest", "back", "shoulders", "biceps", "triceps"],
+      "פלג גוף תחתון": ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+
       קרדיו: ["cardio"],
       "כושר וגמישות": ["flexibility", "core"],
     };
@@ -858,9 +926,13 @@ export class WorkoutDataService {
     workoutName: string,
     equipment: string[],
     exerciseCount: number,
-    workoutMatrix: WorkoutMatrix
+    workoutMatrix: WorkoutMatrix,
+    dayIndex: number = 0
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
+
+    console.log(`🎯 DEBUG selectAIExercises: ${workoutName} (day ${dayIndex})`);
+    console.log(`🎯 Target muscles:`, targetMuscles);
 
     // שלב 1: סינון תרגילים מתאימים לציוד ושרירים
     const suitableExercises = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
@@ -900,13 +972,21 @@ export class WorkoutDataService {
       suitableExercises,
       targetMuscles,
       exerciseCount,
-      workoutMatrix
+      workoutMatrix,
+      dayIndex
     );
 
     // שלב 3: יצירת תבניות תרגיל מותאמות
-    return selectedExercises.map((exercise, index) =>
+    const exerciseTemplates = selectedExercises.map((exercise, index) =>
       this.createAIExerciseTemplate(exercise, workoutMatrix, index)
     );
+
+    console.log(
+      `✅ Selected ${selectedExercises.length} exercises for ${workoutName}:`,
+      selectedExercises.map((ex) => ex.name)
+    );
+
+    return exerciseTemplates;
   }
 
   /**
@@ -1046,13 +1126,31 @@ export class WorkoutDataService {
     suitableExercises: ExerciseFromDB[],
     targetMuscles: string[],
     exerciseCount: number,
-    workoutMatrix: WorkoutMatrix
+    workoutMatrix: WorkoutMatrix,
+    dayIndex: number = 0
   ): ExerciseFromDB[] {
     const selected: ExerciseFromDB[] = [];
     const usedExercises = new Set<string>();
 
-    // שלב 1: ודא כיסוי של כל שריר יעד
-    for (const muscle of targetMuscles) {
+    console.log(
+      `🔍 DEBUG selectOptimalExercises: day ${dayIndex}, need ${exerciseCount} exercises`
+    );
+    console.log(`🔍 Available exercises: ${suitableExercises.length}`);
+
+    // יצירת זרע לערבוב השרירים לפי היום
+    const muscleOrderSeed = dayIndex * 555 + 2468;
+    const shuffledMuscles = this.shuffleArray(
+      [...targetMuscles],
+      muscleOrderSeed
+    );
+
+    console.log(
+      `🎯 Target muscles order for day ${dayIndex}:`,
+      shuffledMuscles
+    );
+
+    // שלב 1: ודא כיסוי של כל שריר יעד בסדר מעורבב
+    for (const muscle of shuffledMuscles) {
       const muscleExercises = suitableExercises.filter(
         (ex) =>
           (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) &&
@@ -1063,10 +1161,17 @@ export class WorkoutDataService {
         // בחר את התרגיל הטוב ביותר לשריר הזה
         const bestExercise = this.selectBestExerciseForMuscle(
           muscleExercises,
-          workoutMatrix
+          workoutMatrix,
+          dayIndex,
+          selected.length // מיקום בתרגילים
         );
         selected.push(bestExercise);
         usedExercises.add(bestExercise.id);
+        console.log(
+          `💪 Selected for ${muscle}: ${bestExercise.name} (seed base: ${dayIndex * 500 + selected.length * 100})`
+        );
+      } else {
+        console.log(`⚠️ No exercises found for muscle: ${muscle}`);
       }
     }
 
@@ -1081,9 +1186,16 @@ export class WorkoutDataService {
 
       if (remainingExercises.length === 0) break;
 
-      // בחר תרגיל אקראי מהנותרים (מגוון)
-      const randomIndex = Math.floor(Math.random() * remainingExercises.length);
+      // בחר תרגיל עם זרע קבוע (מגוון אבל עקבי)
+      const seed = dayIndex * 10000 + selected.length * 789 + 12345; // זרע ייחודי מאוד לכל יום ותרגיל
+      const randomIndex = Math.floor(
+        this.seededRandom(seed) * remainingExercises.length
+      );
       const additionalExercise = remainingExercises[randomIndex];
+
+      console.log(
+        `🎲 Additional exercise for day ${dayIndex}: ${additionalExercise.name} (seed: ${seed}, index: ${randomIndex}/${remainingExercises.length})`
+      );
 
       selected.push(additionalExercise);
       usedExercises.add(additionalExercise.id);
@@ -1102,7 +1214,9 @@ export class WorkoutDataService {
    */
   private static selectBestExerciseForMuscle(
     exercises: ExerciseFromDB[],
-    workoutMatrix: WorkoutMatrix
+    workoutMatrix: WorkoutMatrix,
+    dayIndex: number = 0,
+    exercisePosition: number = 0
   ): ExerciseFromDB {
     // העדפה לתרגילים מורכבים אם האינטנסיביות גבוהה
     if (workoutMatrix.intensityLevel === "high") {
@@ -1110,12 +1224,19 @@ export class WorkoutDataService {
         ex.category?.includes("מורכב")
       ); // או בדיקה אחרת לתרגילים מורכבים
       if (compoundExercises.length > 0) {
-        return compoundExercises[0];
+        // בחירה עם זרע קבוע
+        const seed = dayIndex * 7777 + exercisePosition * 333 + 9999;
+        const index = Math.floor(
+          this.seededRandom(seed) * compoundExercises.length
+        );
+        return compoundExercises[index];
       }
     }
 
-    // אחרת, בחר את הראשון (או לפי קריטריונים נוספים)
-    return exercises[0];
+    // אחרת, בחר עם זרע קבוע
+    const seed = dayIndex * 8888 + exercisePosition * 444 + 11111;
+    const index = Math.floor(this.seededRandom(seed) * exercises.length);
+    return exercises[index];
   }
 
   /**

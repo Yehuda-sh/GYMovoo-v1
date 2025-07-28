@@ -59,6 +59,9 @@ const WORKOUT_DAYS = {
   6: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן + קרדיו"],
 };
 
+// דיבוג - הצגת אפשרויות הימים
+console.log(`🔍 DEBUG: WORKOUT_DAYS options:`, WORKOUT_DAYS);
+
 // מיפוי אייקונים לימי אימון
 // Icons mapping for workout days
 const DAY_ICONS: { [key: string]: string } = {
@@ -97,10 +100,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const { user } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [aiMode, setAiMode] = useState(true); // 🤖 AI Mode is now DEFAULT
+  const [aiMode, setAiMode] = useState(false); // 🏠 Basic Mode is now DEFAULT to prevent repetitions
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
 
   // אנימציות
   // Animations
@@ -128,8 +132,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     if (returnFromWorkout) {
       handlePostWorkoutReturn();
     } else {
-      // 🤖 Default to AI workout plan generation
-      generateAIWorkoutPlan(!!route?.params?.regenerate).then(() => {
+      // 🏠 Default to basic workout plan generation to prevent repetitions
+      generateWorkoutPlan(!!route?.params?.regenerate).then(() => {
         // אימון אוטומטי אם התבקש
         if (autoStart && workoutPlan?.workouts?.[0]) {
           setTimeout(() => {
@@ -158,6 +162,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       ]).start();
     }
   }, [loading]);
+
+  // טעינת ציוד זמין
+  // Load available equipment
+  useEffect(() => {
+    const loadEquipment = async () => {
+      const equipment = await getAvailableEquipment();
+      setAvailableEquipment(equipment);
+    };
+    loadEquipment();
+  }, []);
 
   /**
    * טיפול בחזרה מאימון
@@ -200,12 +214,47 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       setAiMode(true);
 
       console.log("🤖 AI Algorithm: יוצר תוכנית AI מותאמת אישית...");
+      console.log(
+        "🔄 DEBUG: generateAIWorkoutPlan called with forceRegenerate:",
+        forceRegenerate
+      );
+
+      // איפוס מטמון התרגילים המשומשים בתחילת כל יצירת תוכנית
+      (global as any).usedExercises_day0 = new Set<string>();
+      (global as any).usedExercises_day1 = new Set<string>();
+      (global as any).usedExercises_day2 = new Set<string>();
+      console.log("🧹 Cleared exercise usage cache for new plan generation");
 
       // שימוש באלגוריתם ה-AI החדש!
       const aiPlan = await WorkoutDataService.generateAIWorkoutPlan();
 
       if (aiPlan) {
+        console.log(
+          "✅ DEBUG: AI Plan created with",
+          aiPlan.workouts.length,
+          "workouts"
+        );
+        console.log(
+          "📋 DEBUG: AI Workouts:",
+          aiPlan.workouts.map((w) => ({
+            name: w.name,
+            exerciseCount: w.exercises.length,
+          }))
+        );
+
         setWorkoutPlan(aiPlan);
+
+        console.log(`✅ DEBUG: AI Plan set successfully!`);
+        console.log(`✅ DEBUG: Plan has ${aiPlan.workouts.length} workouts`);
+        console.log(
+          `✅ DEBUG: Plan frequency: ${aiPlan.frequency} days per week`
+        );
+        console.log(
+          `✅ DEBUG: Plan workouts:`,
+          aiPlan.workouts.map(
+            (w, i) => `${i + 1}. ${w.name} (${w.exercises.length} exercises)`
+          )
+        );
 
         if (forceRegenerate) {
           Alert.alert(
@@ -256,6 +305,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.log(
         `🧠 Generating basic workout plan${forceRegenerate ? " (forced)" : ""}...`
       );
+      console.log("🔄 DEBUG: generateWorkoutPlan (FALLBACK) called");
+
+      // איפוס מטמון התרגילים המשומשים בתחילת כל יצירת תוכנית
+      (global as any).usedExercises_day0 = new Set<string>();
+      (global as any).usedExercises_day1 = new Set<string>();
+      (global as any).usedExercises_day2 = new Set<string>();
+      console.log("🧹 Cleared exercise usage cache for new plan generation");
 
       // קבלת נתוני המשתמש מהשאלון
       // Get user data from questionnaire
@@ -264,21 +320,130 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         string | number,
         string | string[]
       >;
+
+      // 🔍 DEBUG: בדיקת נתוני השאלון
+      console.log(`🔍 DEBUG: Raw questionnaire data:`, userQuestionnaireData);
+      console.log(
+        `🔍 DEBUG: Available keys:`,
+        Object.keys(userQuestionnaireData)
+      );
+      console.log(`🔍 DEBUG: questData[0]:`, questData[0]);
+      console.log(`🔍 DEBUG: questData[1]:`, questData[1]);
+      console.log(`🔍 DEBUG: questData[2]:`, questData[2]);
+      console.log(`🔍 DEBUG: questData[3]:`, questData[3]);
+      console.log(`🔍 DEBUG: questData[4]:`, questData[4]);
+      console.log(`🔍 DEBUG: questData[5]:`, questData[5]);
+      console.log(`🔍 DEBUG: questData[6]:`, questData[6]);
+
       // המרת נתונים לפורמט שה-WorkoutPlanScreen מצפה לו
       const metadata = {
-        // משאלות האימון (שלב 1) - תמיכה בשני הפורמטים
-        frequency: questData.trainingFrequency || questData[4],
-        duration: questData.sessionDuration || questData[5],
-        goal: questData.primaryGoal || questData[2],
-        experience: questData.fitnessLevel || questData[3],
-        location: questData.workoutLocation || questData[6],
+        // 🔧 FIX: תיקון מיפוי השדות - שימוש במפתחות הנכונים מהלוג
+        frequency: questData.frequency || questData[7], // 🔧 השתמש ב-[7] במקום [4]
+        duration: questData.duration || questData[8], // 🔧 השתמש ב-[8] במקום [5]
+        goal: questData.goal || questData[5], // 🔧 השתמש ב-[5] במקום [2]
+        experience: questData.experience || questData[6], // 🔧 השתמש ב-[6] במקום [3]
+        location: questData.location || questData[9], // 🔧 השתמש ב-[9] במקום [6]
 
         // נתונים נוספים מהשלב השני (אם קיימים)
-        age: questData.age || questData[0],
-        height: questData.height,
-        weight: questData.weight,
-        gender: questData.gender || questData[1],
+        age: questData.age || questData[1], // 🔧 השתמש ב-[1] במקום [0]
+        height: questData.height || questData[3], // 🔧 גם גובה
+        weight: questData.weight || questData[4], // 🔧 גם משקל
+        gender: questData.gender || questData[2], // 🔧 גם מין
       };
+
+      // 🔍 DEBUG: בדיקת מטא-דטה
+      console.log(`🔍 DEBUG: Parsed metadata:`, metadata);
+      console.log(`🔍 DEBUG: metadata.experience:`, metadata.experience);
+      console.log(`🔍 DEBUG: metadata.duration:`, metadata.duration);
+      console.log(`🔍 DEBUG: metadata.frequency:`, metadata.frequency);
+
+      // 🔧 FIX: Apply smart defaults for invalid data
+      if (
+        !metadata.experience ||
+        typeof metadata.experience !== "string" ||
+        !isNaN(Number(metadata.experience))
+      ) {
+        console.log(
+          `🔧 DEBUG: Invalid experience "${metadata.experience}", using default`
+        );
+        metadata.experience = "בינוני (6-24 חודשים)";
+      } else if (metadata.experience === "beginner") {
+        // 🔧 FIX: המרת פורמט אנגלי לעברי
+        console.log(
+          `🔧 DEBUG: Converting experience "beginner" → "מתחיל (0-6 חודשים)"`
+        );
+        metadata.experience = "מתחיל (0-6 חודשים)";
+      } else if (metadata.experience === "intermediate") {
+        console.log(
+          `🔧 DEBUG: Converting experience "intermediate" → "בינוני (6-24 חודשים)"`
+        );
+        metadata.experience = "בינוני (6-24 חודשים)";
+      } else if (metadata.experience === "advanced") {
+        console.log(
+          `🔧 DEBUG: Converting experience "advanced" → "מתקדם (2+ שנים)"`
+        );
+        metadata.experience = "מתקדם (2+ שנים)";
+      }
+
+      if (!metadata.duration || typeof metadata.duration !== "string") {
+        console.log(
+          `🔧 DEBUG: Invalid duration "${metadata.duration}", using default`
+        );
+        metadata.duration = "45-60 דקות";
+      } else if (metadata.duration.includes("_min")) {
+        // 🔧 FIX: המרת פורמט אנגלי לעברי
+        const durationMap: { [key: string]: string } = {
+          "30_min": "30-45 דקות",
+          "45_min": "45-60 דקות",
+          "60_min": "60-75 דקות",
+          "90_min": "75-90 דקות",
+        };
+        const convertedDuration =
+          durationMap[metadata.duration] || "45-60 דקות";
+        console.log(
+          `🔧 DEBUG: Converting duration "${metadata.duration}" → "${convertedDuration}"`
+        );
+        metadata.duration = convertedDuration;
+      }
+
+      if (!metadata.frequency || typeof metadata.frequency !== "string") {
+        console.log(
+          `🔧 DEBUG: Invalid frequency "${metadata.frequency}", using default`
+        );
+        metadata.frequency = "3-4 פעמים בשבוע";
+      }
+
+      if (!metadata.goal || typeof metadata.goal !== "string") {
+        console.log(`🔧 DEBUG: Invalid goal "${metadata.goal}", using default`);
+        metadata.goal = "בריאות כללית";
+      } else if (metadata.goal === "endurance") {
+        // 🔧 FIX: המרת פורמט אנגלי לעברי
+        console.log(`🔧 DEBUG: Converting goal "endurance" → "שיפור סיבולת"`);
+        metadata.goal = "שיפור סיבולת";
+      } else if (metadata.goal === "strength") {
+        console.log(`🔧 DEBUG: Converting goal "strength" → "שיפור כוח"`);
+        metadata.goal = "שיפור כוח";
+      } else if (metadata.goal === "weight_loss") {
+        console.log(`🔧 DEBUG: Converting goal "weight_loss" → "ירידה במשקל"`);
+        metadata.goal = "ירידה במשקל";
+      } else if (metadata.goal === "muscle_gain") {
+        console.log(
+          `🔧 DEBUG: Converting goal "muscle_gain" → "עליה במסת שריר"`
+        );
+        metadata.goal = "עליה במסת שריר";
+      } else if (metadata.goal === "general_fitness") {
+        console.log(
+          `🔧 DEBUG: Converting goal "general_fitness" → "בריאות כללית"`
+        );
+        metadata.goal = "בריאות כללית";
+      }
+
+      console.log(`🔧 DEBUG: Final metadata after fixes:`, {
+        experience: metadata.experience,
+        duration: metadata.duration,
+        frequency: metadata.frequency,
+        goal: metadata.goal,
+      });
 
       // בדיקת שדות חובה
       const requiredFields = ["frequency", "duration", "goal", "experience"];
@@ -313,18 +478,78 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         equipment = ["bodyweight"]; // ברירת מחדל למשקל גוף
       }
 
-      // המרת תדירות אימונים
+      // המרת תדירות אימונים - תמיכה בפורמטים העברי והאנגלי
       const frequencyMap: { [key: string]: number } = {
+        // פורמט עברי (ישן)
         "1-2 פעמים בשבוע": 2,
         "3-4 פעמים בשבוע": 3,
         "5-6 פעמים בשבוע": 5,
         "כל יום": 6,
+        // 🔧 FIX: פורמט אנגלי (חדש) מהשאלון הנוכחי
+        "2_times": 2,
+        "3_times": 3,
+        "4_times": 4, // 🔧 נוסף לכיסוי 4 פעמים
+        "5_times": 5,
+        "6_times": 6,
+        daily: 7,
       };
       const frequencyValue = Array.isArray(metadata.frequency)
         ? metadata.frequency[0]
         : metadata.frequency;
       const daysPerWeek =
         frequencyMap[frequencyValue as keyof typeof frequencyMap] || 3;
+
+      // 🔍 DEBUG: בדיקות מקיפות לתדירות אימונים
+      console.log(`🔍 DEBUG: === FREQUENCY MAPPING DEBUG ===`);
+      console.log(`🔍 DEBUG: Raw frequency:`, metadata.frequency);
+      console.log(`🔍 DEBUG: Raw frequency type:`, typeof metadata.frequency);
+      console.log(
+        `🔍 DEBUG: Raw frequency stringified:`,
+        JSON.stringify(metadata.frequency)
+      );
+      console.log(
+        `🔍 DEBUG: Frequency value after extraction:`,
+        frequencyValue
+      );
+      console.log(`🔍 DEBUG: Frequency value type:`, typeof frequencyValue);
+      console.log(
+        `🔍 DEBUG: Days per week:`,
+        daysPerWeek,
+        `(type: ${typeof daysPerWeek})`
+      );
+      console.log(
+        `🔍 DEBUG: Available frequency options:`,
+        Object.keys(frequencyMap)
+      );
+      console.log(
+        `🔍 DEBUG: frequencyMap lookup result:`,
+        frequencyMap[frequencyValue as keyof typeof frequencyMap]
+      );
+      console.log(
+        `🔍 DEBUG: Does frequencyMap have key "${frequencyValue}":`,
+        Object.prototype.hasOwnProperty.call(frequencyMap, frequencyValue)
+      );
+
+      // 🔍 DEBUG: בדיקת התאמה מדויקת
+      Object.keys(frequencyMap).forEach((key) => {
+        console.log(
+          `🔍 DEBUG: Comparing "${frequencyValue}" === "${key}": ${frequencyValue === key}`
+        );
+      });
+
+      // 🚨 אזהרה אם daysPerWeek לא תקין
+      if (isNaN(daysPerWeek) || daysPerWeek <= 0 || daysPerWeek > 6) {
+        console.error(
+          `❌ ERROR: Invalid daysPerWeek: ${daysPerWeek}! This will cause issues.`
+        );
+      }
+
+      // בדיקה האם WORKOUT_DAYS תומך במספר הימים הזה
+      if (!WORKOUT_DAYS[daysPerWeek as keyof typeof WORKOUT_DAYS]) {
+        console.warn(
+          `⚠️ WARNING: WORKOUT_DAYS doesn't have entry for ${daysPerWeek} days! Will use fallback.`
+        );
+      }
 
       // בחירת סוג פיצול לפי מספר ימי אימון
       const experienceValue = Array.isArray(metadata.experience)
@@ -344,6 +569,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       setWorkoutPlan(plan);
+
+      console.log(`✅ DEBUG: Basic Plan set successfully!`);
+      console.log(`✅ DEBUG: Plan has ${plan.workouts.length} workouts`);
+      console.log(`✅ DEBUG: Plan frequency: ${plan.frequency} days per week`);
+      console.log(
+        `✅ DEBUG: Plan workouts:`,
+        plan.workouts.map(
+          (w, i) => `${i + 1}. ${w.name} (${w.exercises.length} exercises)`
+        )
+      );
 
       // הודעת הצלחה אם זה חידוש
       if (forceRegenerate && !refreshing) {
@@ -366,9 +601,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Refresh plan
    */
   const handleRefresh = () => {
+    console.log(`🔄 DEBUG: handleRefresh called - starting refresh process`);
+    console.log(
+      `🔄 DEBUG: Current workout plan has ${workoutPlan?.workouts?.length || 0} days`
+    );
+
     setRefreshing(true);
-    // 🤖 Use AI workout plan on refresh by default
-    generateAIWorkoutPlan(true);
+    // 🏠 Use basic workout plan on refresh to prevent repetitions
+    generateWorkoutPlan(true);
   };
 
   /**
@@ -376,14 +616,36 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Select split type by training days and experience
    */
   const getSplitType = (days: number, experience: string): string => {
-    if (days <= 2) return WORKOUT_SPLITS.FULL_BODY;
-    if (days === 3) {
-      return experience === "מתחיל (0-6 חודשים)" // 🔴 תיקון - השוואה לערך בעברית
+    console.log(
+      `🔍 DEBUG: getSplitType - days: ${days}, experience: "${experience}"`
+    );
+
+    let splitType: string;
+
+    if (days <= 2) {
+      splitType = WORKOUT_SPLITS.FULL_BODY;
+      console.log(`🔍 DEBUG: ${days} days <= 2 → FULL_BODY`);
+    } else if (days === 3) {
+      const isBeginnerInHebrew = experience === "מתחיל (0-6 חודשים)";
+      console.log(
+        `� DEBUG: ${days} days === 3, is beginner (${experience}): ${isBeginnerInHebrew}`
+      );
+
+      splitType = isBeginnerInHebrew
         ? WORKOUT_SPLITS.FULL_BODY
         : WORKOUT_SPLITS.PUSH_PULL_LEGS;
+
+      console.log(`🔍 DEBUG: ${days} days === 3 → ${splitType}`);
+    } else if (days === 4) {
+      splitType = WORKOUT_SPLITS.UPPER_LOWER;
+      console.log(`🔍 DEBUG: ${days} days === 4 → UPPER_LOWER`);
+    } else {
+      splitType = WORKOUT_SPLITS.BODY_PART;
+      console.log(`🔍 DEBUG: ${days} days > 4 → BODY_PART`);
     }
-    if (days === 4) return WORKOUT_SPLITS.UPPER_LOWER;
-    return WORKOUT_SPLITS.BODY_PART;
+
+    console.log(`🔍 DEBUG: Final split type: ${splitType}`);
+    return splitType;
   };
 
   /**
@@ -409,22 +671,88 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const dayNames =
       WORKOUT_DAYS[daysPerWeek as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3];
 
+    // 🔍 DEBUG: בדיקות מקיפות לימי אימון
+    console.log(`🏗️ DEBUG: === WORKOUT DAYS SELECTION DEBUG ===`);
+    console.log(
+      `🏗️ DEBUG: Requested daysPerWeek: ${daysPerWeek} (type: ${typeof daysPerWeek})`
+    );
+    console.log(
+      `🏗️ DEBUG: WORKOUT_DAYS has key ${daysPerWeek}: ${Object.hasOwnProperty.call(WORKOUT_DAYS, daysPerWeek)}`
+    );
+    console.log(
+      `🏗️ DEBUG: Available WORKOUT_DAYS keys:`,
+      Object.keys(WORKOUT_DAYS)
+    );
+    console.log(`🏗️ DEBUG: Selected dayNames:`, dayNames);
+    console.log(`🏗️ DEBUG: Will create ${dayNames?.length || 0} workout days`);
+
+    // 🚨 אזהרה אם dayNames לא תקין
+    if (!dayNames || dayNames.length === 0) {
+      console.error(
+        `❌ ERROR: No dayNames found for ${daysPerWeek} days! Using fallback.`
+      );
+    }
+
+    console.log(
+      `🏗️ DEBUG: Creating workout plan for ${daysPerWeek} days per week`
+    );
+    console.log(`🏗️ DEBUG: Day names array:`, dayNames);
+    console.log(`🏗️ DEBUG: Will create ${dayNames.length} workout days`);
+
     // יצירת אימונים לכל יום
     // Create workouts for each day
     dayNames.forEach((dayName, index) => {
+      console.log(`🏗️ DEBUG: Processing day ${index + 1}: ${dayName}`);
+
       const experienceValue = getString(
         metadata.experience,
         "מתחיל (0-6 חודשים)"
       );
       const durationValue = getString(metadata.duration, "45");
 
+      // 🔍 DEBUG: בדיקת ערכי קלט מקיפה
+      console.log(`🔍 DEBUG: === INPUT VALUES DEBUG ===`);
+      console.log(
+        `🔍 DEBUG: experienceValue: "${experienceValue}" (type: ${typeof experienceValue})`
+      );
+      console.log(
+        `🔍 DEBUG: durationValue: "${durationValue}" (type: ${typeof durationValue})`
+      );
+      console.log(
+        `🔍 DEBUG: durationValue.split("-"): [${durationValue
+          .split("-")
+          .map((s) => `"${s}"`)
+          .join(", ")}]`
+      );
+      console.log(
+        `🔍 DEBUG: durationValue.split("-")[0]: "${durationValue.split("-")[0]}"`
+      );
+
+      const parsedDuration = parseInt(durationValue.split("-")[0] || "45");
+      console.log(
+        `🔍 DEBUG: parseInt result: ${parsedDuration} (type: ${typeof parsedDuration}, isNaN: ${isNaN(parsedDuration)})`
+      );
+
+      // 🚨 אזהרה אם duration לא תקין
+      if (isNaN(parsedDuration) || parsedDuration <= 0) {
+        console.error(
+          `❌ ERROR: Invalid parsed duration: ${parsedDuration}! This will cause NaN in exercise count.`
+        );
+      }
+
       const exercises = selectExercisesForDay(
         dayName,
         equipment,
         experienceValue,
-        parseInt(durationValue.split("-")[0] || "45"),
-        metadata
+        parsedDuration,
+        metadata,
+        index // העברת אינדקס היום לזרע קבוע
       );
+
+      console.log(
+        `🏗️ DEBUG: Day ${index + 1} (${dayName}) created with ${exercises.length} exercises`
+      );
+
       workouts.push({
         id: `day-${index + 1}`,
         name: dayName,
@@ -434,6 +762,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         equipment: extractEquipment(exercises),
       });
     });
+
+    console.log(
+      `🏗️ DEBUG: Final workout plan created with ${workouts.length} days:`,
+      workouts.map(
+        (w, i) => `Day ${i + 1}: ${w.name} (${w.exercises.length} exercises)`
+      )
+    );
 
     const goalValue = getString(metadata.goal, "אימון");
     const experienceValue = getString(
@@ -460,31 +795,105 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * בחירת תרגילים ליום אימון משופרת
-   * Enhanced exercise selection for workout day
+   * בחירת תרגילים ליום אימון משופרת עם זרע קבוע ומניעת חזרות
+   * Enhanced exercise selection for workout day with fixed seed and repetition prevention
    */
   const selectExercisesForDay = (
     dayName: string,
     equipment: string[],
     experience: string,
     duration: number,
-    metadata: Record<string | number, string | string[]>
+    metadata: Record<string | number, string | string[]>,
+    dayIndex: number = 0
   ): ExerciseTemplate[] => {
+    console.log(`🚀 [Day ${dayIndex}] === ENTERING selectExercisesForDay ===`);
+    console.log(
+      `🚀 [Day ${dayIndex}] dayName: "${dayName}", equipment:`,
+      equipment,
+      `experience: "${experience}"`
+    );
+    console.log(
+      `🚀 [Day ${dayIndex}] duration: ${duration} (type: ${typeof duration})`
+    );
+    console.log(
+      `🚀 [Day ${dayIndex}] This is the BASIC/FALLBACK plan generation, NOT AI`
+    );
+
+    // 🔍 בדיקה אם duration הוא NaN
+    if (isNaN(duration)) {
+      console.log(
+        `❌ [Day ${dayIndex}] ERROR: duration is NaN! Using default 45`
+      );
+      duration = 45;
+    }
+
+    // 🔍 DEBUG: בדיקת duration אחרי תיקון
+    console.log(
+      `🔍 [Day ${dayIndex}] Final duration after NaN check: ${duration} (type: ${typeof duration}, isNaN: ${isNaN(duration)})`
+    );
+
     const exercises: ExerciseTemplate[] = [];
     const targetMuscles = getTargetMusclesForDay(dayName);
 
-    // סינון תרגילים מתאימים
-    // Filter suitable exercises
-    const suitableExercises = ALL_EXERCISES.filter((ex: DatabaseExercise) => {
-      // בדיקת התאמה לשרירים
-      const muscleMatch = targetMuscles.some(
-        (muscle) =>
-          ex.primaryMuscles?.includes(muscle) || ex.category === muscle
-      );
+    console.log(
+      `🎯 [Day ${dayIndex}] ${dayName} - Target muscles:`,
+      targetMuscles
+    );
 
-      // בדיקת התאמה לציוד
-      const equipmentMatch =
-        equipment.includes(ex.equipment) || ex.equipment === "bodyweight";
+    // הרחבת ציוד זמין לכלול תמיד משקל גוף
+    const expandedEquipment = [...new Set([...equipment, "bodyweight"])];
+    console.log(`⚙️ [Day ${dayIndex}] Equipment available:`, expandedEquipment);
+    console.log(`👤 [Day ${dayIndex}] User experience: ${experience}`);
+
+    // ספירת תרגילים זמינים לפי ציוד
+    const equipmentStats = expandedEquipment
+      .map((eq) => {
+        const count = ALL_EXERCISES.filter((ex) => ex.equipment === eq).length;
+        return `${eq}: ${count}`;
+      })
+      .join(", ");
+    console.log(
+      `📊 [Day ${dayIndex}] Exercise counts by equipment: ${equipmentStats}`
+    );
+
+    // סינון תרגילים מתאימים עם שיפור במיפוי שרירים
+    const suitableExercises = ALL_EXERCISES.filter((ex: DatabaseExercise) => {
+      // בדיקת התאמה לשרירים - משופרת
+      const muscleMatch = targetMuscles.some((muscle) => {
+        // בדיקה ישירה
+        if (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) {
+          return true;
+        }
+
+        // מיפוי נוסף לשרירים
+        const muscleAliases: { [key: string]: string[] } = {
+          חזה: ["chest", "pectorals"],
+          כתפיים: ["shoulders", "deltoids", "delts"],
+          טריצפס: ["triceps", "tricep"],
+          גב: ["back", "lats", "latissimus"],
+          ביצפס: ["biceps", "bicep"],
+          רגליים: [
+            "legs",
+            "quadriceps",
+            "hamstrings",
+            "glutes",
+            "calves",
+            "thighs",
+          ],
+          ישבן: ["glutes", "gluteus", "butt"],
+        };
+
+        const aliases = muscleAliases[muscle] || [];
+        return aliases.some(
+          (alias) =>
+            ex.primaryMuscles?.includes(alias) ||
+            ex.secondaryMuscles?.includes(alias) ||
+            ex.category?.toLowerCase().includes(alias.toLowerCase())
+        );
+      });
+
+      // בדיקת התאמה לציוד המורחב
+      const equipmentMatch = expandedEquipment.includes(ex.equipment);
 
       // בדיקת התאמה לרמה
       const levelMatch = isExerciseSuitableForLevel(ex.difficulty, experience);
@@ -492,12 +901,41 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       return muscleMatch && equipmentMatch && levelMatch;
     });
 
+    console.log(
+      `💪 [Day ${dayIndex}] Found ${suitableExercises.length} suitable exercises for ${dayName}`
+    );
+
+    // 🔍 הצגת כל התרגילים המתאימים
+    console.log(
+      `📋 [Day ${dayIndex}] ALL suitable exercises for ${dayName}:`,
+      suitableExercises.map((ex) => ex.name)
+    );
+
+    // לוג מפורט על התרגילים הזמינים לכל שריר יעד
+    targetMuscles.forEach((muscle) => {
+      const muscleExercises = suitableExercises.filter(
+        (ex) => ex.primaryMuscles?.includes(muscle) || ex.category === muscle
+      );
+      console.log(
+        `🎯 [Day ${dayIndex}] ${muscle}: ${muscleExercises.length} exercises available`,
+        muscleExercises.slice(0, 3).map((ex) => ex.name)
+      );
+
+      // הצגת כל התרגילים לשריר הזה
+      if (muscleExercises.length > 0) {
+        console.log(
+          `📝 [Day ${dayIndex}] All ${muscle} exercises:`,
+          muscleExercises.map((ex) => `${ex.name}(${ex.equipment})`)
+        );
+      }
+    });
+
     // בחירת מספר תרגילים לפי משך האימון
     // Select number of exercises by duration
     const exerciseCount = Math.min(
-      Math.floor(duration / 8), // תרגיל לכל 8 דקות
+      Math.floor(duration / 8), // תרגيל לכל 8 דקות
       suitableExercises.length,
-      8 // מקסימום 8 תרגילים
+      8 // מקסימום 8 תرגילים
     );
 
     // חלוקה לתרגילים מורכבים ובידוד (רק אם יש תמיכה במאגר)
@@ -505,6 +943,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const hasCompoundInfo = suitableExercises.some((ex: DatabaseExercise) =>
       Object.prototype.hasOwnProperty.call(ex, "isCompound")
     );
+
+    // 🔍 DEBUG: בדיקת exerciseCount לפני השימוש
+    console.log(`🔢 [Day ${dayIndex}] === BEFORE USING exerciseCount ===`);
+    console.log(
+      `🔢 [Day ${dayIndex}] exerciseCount: ${exerciseCount} (isNaN: ${isNaN(exerciseCount)}, <= 0: ${exerciseCount <= 0})`
+    );
+    console.log(`🔢 [Day ${dayIndex}] hasCompoundInfo: ${hasCompoundInfo}`);
+    console.log(`🔢 [Day ${dayIndex}] metadata.goal: ${metadata.goal}`);
 
     if (hasCompoundInfo && metadata.goal !== "שיקום מפציעה") {
       const compoundExercises = suitableExercises.filter(
@@ -517,17 +963,21 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       // יחס של 60% מורכבים, 40% בידוד
-      const compoundCount = Math.ceil(exerciseCount * 0.6);
-      const isolationCount = exerciseCount - compoundCount;
+      const safeExerciseCount =
+        isNaN(exerciseCount) || exerciseCount <= 0 ? 5 : exerciseCount;
+      const compoundCount = Math.ceil(safeExerciseCount * 0.6);
+      const isolationCount = safeExerciseCount - compoundCount;
 
       // בחירת תרגילים מורכבים
       const selectedCompounds = selectRandomExercises(
         compoundExercises,
-        compoundCount
+        compoundCount,
+        dayIndex * 100 + 1 // זרע ייחודי לתרגילים מורכבים
       );
       const selectedIsolation = selectRandomExercises(
         isolationExercises,
-        isolationCount
+        isolationCount,
+        dayIndex * 100 + 2 // זרע ייחודי לתרגילי בידוד
       );
 
       // שילוב והמרה לתבנית
@@ -535,29 +985,158 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         exercises.push(createExerciseTemplate(exercise, experience, metadata));
       });
     } else {
-      // בחירה רגילה ללא חלוקה
-      const selectedExercises = selectRandomExercises(
-        suitableExercises,
-        exerciseCount
+      // בחירה משופרת עם מניעת חזרות
+      const usedExercisesKey = `usedExercises_day${dayIndex}`;
+      const dayUsedExercises =
+        (global as any)[usedExercisesKey] || new Set<string>();
+
+      // סינון תרגילים שלא שומשו היום
+      const availableExercises = suitableExercises.filter(
+        (ex) => !dayUsedExercises.has(ex.id)
       );
-      selectedExercises.forEach((exercise) => {
+
+      // אם אין מספיק תרגילים זמינים, השתמש בכל התרגילים
+      const exercisesToSelect =
+        availableExercises.length >= exerciseCount
+          ? availableExercises
+          : suitableExercises;
+
+      console.log(
+        `🎲 [Day ${dayIndex}] Selecting from ${exercisesToSelect.length} exercises (${availableExercises.length} unused)`
+      );
+
+      // הצגת התרגילים שמהם נבחר
+      console.log(
+        `🎲 [Day ${dayIndex}] Pool to select from:`,
+        exercisesToSelect.map((ex) => ex.name)
+      );
+
+      // 🔧 Safety check for exerciseCount
+      const safeExerciseCount =
+        isNaN(exerciseCount) || exerciseCount <= 0 ? 5 : exerciseCount;
+      console.log(
+        `🔧 [Day ${dayIndex}] Using safeExerciseCount: ${safeExerciseCount} (original: ${exerciseCount})`
+      );
+
+      const selectedExercises = selectRandomExercises(
+        exercisesToSelect,
+        safeExerciseCount,
+        dayIndex * 1000 + (Date.now() % 1000) // זרע מגוון יותר
+      );
+
+      console.log(
+        `🎯 [Day ${dayIndex}] selectRandomExercises returned:`,
+        selectedExercises.map((ex) => ex.name)
+      );
+
+      selectedExercises.forEach((exercise, idx) => {
         exercises.push(createExerciseTemplate(exercise, experience, metadata));
+        dayUsedExercises.add(exercise.id);
+        console.log(
+          `✅ [Day ${dayIndex}] Selected ${idx + 1}: ${exercise.name} (ID: ${exercise.id})`
+        );
       });
+
+      // שמירת התרגילים שנבחרו
+      (global as any)[usedExercisesKey] = dayUsedExercises;
     }
 
     return exercises;
   };
 
   /**
-   * בחירת תרגילים אקראיים מרשימה
-   * Select random exercises from list
+   * בחירת תרגילים אקראיים מרשימה עם זרע קבוע משופר
+   * Select random exercises from list with improved fixed seed
    */
   const selectRandomExercises = (
     exercises: DatabaseExercise[],
-    count: number
+    count: number,
+    seed: number = 0
   ): DatabaseExercise[] => {
-    const shuffled = [...exercises].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    console.log(
+      `🎲 selectRandomExercises called with ${exercises.length} exercises, need ${count}, seed ${seed}`
+    );
+    console.log(
+      `🎲 Input exercises:`,
+      exercises.slice(0, 5).map((ex) => ex.name)
+    );
+
+    // � DEBUG: בדיקות מקדימות של הפרמטרים
+    console.log(`🎲 === PARAMETER VALIDATION ===`);
+    console.log(
+      `🎲 count: ${count} (type: ${typeof count}, isNaN: ${isNaN(count)}, count <= 0: ${count <= 0})`
+    );
+    console.log(`🎲 exercises.length: ${exercises.length}`);
+    console.log(`🎲 seed: ${seed} (type: ${typeof seed})`);
+
+    // �🔧 FIX: Handle NaN count parameter
+    const originalCount = count;
+    if (isNaN(count) || count <= 0) {
+      console.log(
+        `❌ selectRandomExercises: Invalid count (${originalCount}), using default 5`
+      );
+      count = Math.min(5, exercises.length);
+      console.log(
+        `🔧 selectRandomExercises: Corrected count from ${originalCount} to ${count}`
+      );
+    }
+
+    if (exercises.length === 0) {
+      console.log(`❌ selectRandomExercises: No exercises to select from`);
+      return [];
+    }
+    if (count >= exercises.length) {
+      console.log(
+        `📝 selectRandomExercises: Returning all ${exercises.length} exercises`
+      );
+      return [...exercises];
+    }
+
+    // יצירת רנדום עם זרע קבוע משופר
+    const seededRandom = (seed: number) => {
+      // שימוש במספר אלגוריתמים משולבים לשיפור הרנדומיות
+      let x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+      x = x - Math.floor(x);
+
+      let y = Math.sin(seed * 93.9898 + 47.233) * 28758.5453;
+      y = y - Math.floor(y);
+
+      const result = (x + y) / 2;
+      console.log(`🎲 seededRandom(${seed}) = ${result}`);
+      return result;
+    };
+
+    // יצירת רשימה עם אינדקסים
+    const indexedExercises = exercises.map((ex, index) => ({ ex, index }));
+
+    console.log(
+      `🔀 Starting shuffle with ${indexedExercises.length} exercises`
+    );
+
+    // ערבוב משופר עם זרע קבוע
+    for (let i = indexedExercises.length - 1; i > 0; i--) {
+      // שימוש בזרע מורכב יותר
+      const complexSeed = seed * (i + 1) + (seed % 1000) * 1000 + i;
+      const randomValue = seededRandom(complexSeed);
+      const j = Math.floor(randomValue * (i + 1));
+
+      console.log(
+        `🔀 Shuffle step ${i}: seed=${complexSeed}, random=${randomValue}, j=${j}`
+      );
+
+      [indexedExercises[i], indexedExercises[j]] = [
+        indexedExercises[j],
+        indexedExercises[i],
+      ];
+    }
+
+    const selected = indexedExercises.slice(0, count).map((item) => item.ex);
+    console.log(
+      `🔀 Shuffled and selected ${selected.length}/${exercises.length} exercises:`,
+      selected.map((ex) => ex.name)
+    );
+
+    return selected;
   };
 
   /**
@@ -579,17 +1158,27 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * קבלת שרירי יעד ליום אימון
-   * Get target muscles for workout day
+   * קבלת שרירי יעד ליום אימון - משופר עם מיפוי מפורט
+   * Get target muscles for workout day - improved with detailed mapping
    */
   const getTargetMusclesForDay = (dayName: string): string[] => {
     const muscleMap: { [key: string]: string[] } = {
       "אימון מלא": ["חזה", "גב", "רגליים", "כתפיים"],
       "פלג גוף עליון": ["חזה", "גב", "כתפיים", "ידיים"],
       "פלג גוף תחתון": ["רגליים", "ישבן"],
-      דחיפה: ["חזה", "כתפיים", "טריצפס"],
-      משיכה: ["גב", "ביצפס"],
-      רגליים: ["רגליים", "ישבן"],
+      // מיפוי מפורט יותר עבור Push/Pull/Legs
+      דחיפה: ["chest", "shoulders", "triceps", "חזה", "כתפיים", "טריצפס"],
+      משיכה: ["back", "biceps", "lats", "גב", "ביצפס"],
+      רגליים: [
+        "legs",
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "calves",
+        "רגליים",
+        "ישבן",
+      ],
+      // מיפוי נוסף
       "חזה + טריצפס": ["חזה", "טריצפס"],
       "גב + ביצפס": ["גב", "ביצפס"],
       "כתפיים + בטן": ["כתפיים", "בטן"],
@@ -597,7 +1186,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       "בטן + קרדיו": ["בטן"],
     };
 
-    return muscleMap[dayName] || ["גוף מלא"];
+    const muscles = muscleMap[dayName] || ["גוף מלא"];
+    console.log(`🎯 Target muscles for "${dayName}":`, muscles);
+    return muscles;
   };
 
   /**
@@ -859,6 +1450,113 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
+   * קבלת ציוד זמין עבור המשתמש
+   * Get available equipment for user
+   */
+  const getAvailableEquipment = async (): Promise<string[]> => {
+    try {
+      const equipment = await questionnaireService.getAvailableEquipment();
+
+      // אם אין ציוד זמין, נחזיר ציוד דמה למטרות דיבוג
+      if (!equipment || equipment.length === 0) {
+        return ["barbell", "dumbbells", "cable_machine", "bench"];
+      }
+
+      return equipment;
+    } catch (error) {
+      console.error("Error getting equipment:", error);
+      // החזר ציוד דמה במקרה של שגיאה
+      return ["barbell", "dumbbells", "cable_machine", "bench"];
+    }
+  };
+
+  /**
+   * המרת שמות ציוד לעברית
+   * Convert equipment names to Hebrew
+   */
+  const translateEquipment = (equipment: string): string => {
+    const equipmentTranslations: { [key: string]: string } = {
+      bodyweight: "משקל גוף",
+      dumbbells: "משקולות",
+      barbell: "מוט ברזל",
+      resistance_bands: "רצועות התנגדות",
+      pull_up_bar: "מתקן מתחים",
+      yoga_mat: "מזרן יוגה",
+      kettlebell: "קטלבל",
+      cable_machine: "מכונת כבלים",
+      treadmill: "הליכון",
+      bike: "אופניים",
+      rowing_machine: "מכונת חתירה",
+      bench: "ספסל",
+      squat_rack: "מתקן סקוואט",
+      smith_machine: "מכונת סמית'",
+      leg_press: "מכונת לחיצת רגליים",
+      lat_pulldown: "מכונת משיכות לאט",
+      chest_press: "מכונת לחיצת חזה",
+      preacher_curl: "ספסל ביצפס",
+      foam_roller: "גליל פילאטיס",
+      trx: "TRX",
+      free_weights: "משקלים חופשיים",
+    };
+
+    return equipmentTranslations[equipment] || equipment;
+  };
+
+  /**
+   * חישוב גודל דינמי לכפתורי הימים
+   * Calculate dynamic size for day buttons
+   */
+  const getDayButtonStyle = () => {
+    const dayCount = workoutPlan?.workouts.length || 3;
+
+    if (dayCount <= 3) {
+      // גודל רגיל עבור 3 ימים או פחות
+      return {
+        minWidth: 110,
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        iconSize: 32,
+        titleSize: 16,
+        subtitleSize: 12,
+        gap: 12,
+      };
+    } else if (dayCount === 4) {
+      // גודל מוקטן עבור 4 ימים
+      return {
+        minWidth: 90,
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+        iconSize: 28,
+        titleSize: 14,
+        subtitleSize: 11,
+        gap: 10,
+      };
+    } else if (dayCount === 5) {
+      // גודל עוד יותר קטן עבור 5 ימים
+      return {
+        minWidth: 75,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        iconSize: 24,
+        titleSize: 13,
+        subtitleSize: 10,
+        gap: 8,
+      };
+    } else {
+      // גודל מינימלי עבור 6+ ימים
+      return {
+        minWidth: 65,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        iconSize: 22,
+        titleSize: 12,
+        subtitleSize: 9,
+        gap: 6,
+      };
+    }
+  };
+
+  /**
    * התחלת אימון משופרת
    * Enhanced start workout
    */
@@ -866,6 +1564,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     try {
       console.log(`🏋️ Starting workout: ${workout.name}`);
       console.log(`🔍 Workout template:`, JSON.stringify(workout, null, 2));
+      console.log(
+        "🔄 DEBUG: startWorkout called with exercises:",
+        workout.exercises.map((e) => e.exerciseId)
+      );
 
       // המרת התבנית לאימון פעיל
       // Convert template to active workout
@@ -1150,61 +1852,149 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 </View>
               </LinearGradient>
             </View>
+
+            {/* ציוד זמין */}
+            {availableEquipment.length > 0 && (
+              <View style={styles.equipmentContainer}>
+                <View style={styles.equipmentHeader}>
+                  <MaterialCommunityIcons
+                    name="dumbbell"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.equipmentTitle}>הציוד הזמין שלך</Text>
+                </View>
+                <View style={styles.equipmentGrid}>
+                  {availableEquipment.map((equipment, index) => (
+                    <View key={index} style={styles.equipmentChip}>
+                      <Text style={styles.equipmentChipText}>
+                        {translateEquipment(equipment)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* בחירת יום */}
           <View style={styles.daySelectorWrapper}>
             <Text style={styles.sectionTitle}>בחר יום אימון</Text>
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.daySelector}
+              contentContainerStyle={[
+                styles.daySelector,
+                { gap: getDayButtonStyle().gap },
+              ]}
               style={styles.daySelectorContainer}
             >
-              {workoutPlan.workouts.map((workout, index) => (
-                <TouchableOpacity
-                  key={workout.id}
-                  style={[
-                    styles.dayCard,
-                    selectedDay === index && styles.dayCardActive,
-                  ]}
-                  onPress={() => setSelectedDay(index)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={
-                      selectedDay === index
-                        ? [theme.colors.primary, theme.colors.primary + "DD"]
-                        : ["transparent", "transparent"]
-                    }
-                    style={styles.dayCardGradient}
+              {workoutPlan.workouts.map((workout, index) => {
+                console.log(
+                  `🎯 DEBUG: Rendering day button ${index + 1}: ${workout.name} with ${workout.exercises.length} exercises`
+                );
+
+                const buttonStyle = getDayButtonStyle();
+
+                return (
+                  <TouchableOpacity
+                    key={workout.id}
+                    style={[
+                      styles.dayCard,
+                      selectedDay === index && styles.dayCardActive,
+                    ]}
+                    onPress={() => {
+                      console.log(
+                        `🔘 DEBUG: Day ${index + 1} button pressed - "${workout.name}"`
+                      );
+                      console.log(
+                        `🔘 DEBUG: Switching from day ${selectedDay} to day ${index}`
+                      );
+                      console.log(
+                        `🔘 DEBUG: Workout has ${workout.exercises.length} exercises`
+                      );
+
+                      // הצגת רשימת התרגילים ביום הנבחר
+                      const exerciseNames = workout.exercises.map((ex) => {
+                        const exercise = exerciseMap[ex.exerciseId];
+                        return exercise?.name || ex.exerciseId;
+                      });
+                      console.log(
+                        `🔘 DEBUG: Exercises in ${workout.name}:`,
+                        exerciseNames
+                      );
+
+                      setSelectedDay(index);
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons
-                      name={(DAY_ICONS[workout.name] || "dumbbell") as any}
-                      size={32}
-                      color={
-                        selectedDay === index ? "#FFFFFF" : theme.colors.primary
+                    <LinearGradient
+                      colors={
+                        selectedDay === index
+                          ? [theme.colors.primary, theme.colors.primary + "DD"]
+                          : ["transparent", "transparent"]
                       }
-                    />
-                    <Text
                       style={[
-                        styles.dayCardTitle,
-                        selectedDay === index && styles.dayCardTitleActive,
+                        styles.dayCardGradient,
+                        {
+                          paddingHorizontal: buttonStyle.paddingHorizontal,
+                          paddingVertical: buttonStyle.paddingVertical,
+                          minWidth: buttonStyle.minWidth,
+                        },
                       ]}
                     >
-                      יום {index + 1}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.dayCardSubtitle,
-                        selectedDay === index && styles.dayCardSubtitleActive,
-                      ]}
-                    >
-                      {workout.name}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
+                      <MaterialCommunityIcons
+                        name={(DAY_ICONS[workout.name] || "dumbbell") as any}
+                        size={buttonStyle.iconSize}
+                        color={
+                          selectedDay === index
+                            ? "#FFFFFF"
+                            : theme.colors.primary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.dayCardTitle,
+                          selectedDay === index && styles.dayCardTitleActive,
+                          {
+                            fontSize: buttonStyle.titleSize,
+                            marginTop: buttonStyle.titleSize >= 16 ? 8 : 6,
+                          },
+                        ]}
+                      >
+                        יום {index + 1}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.dayCardSubtitle,
+                          selectedDay === index && styles.dayCardSubtitleActive,
+                          {
+                            fontSize: buttonStyle.subtitleSize,
+                            marginTop: buttonStyle.subtitleSize >= 12 ? 4 : 2,
+                          },
+                        ]}
+                      >
+                        {workout.name}
+                      </Text>
+
+                      {/* 🔍 דיבוג - מספר תרגילים */}
+                      <Text
+                        style={{
+                          fontSize: Math.max(buttonStyle.subtitleSize - 1, 9),
+                          color:
+                            selectedDay === index
+                              ? "#FFFFFF"
+                              : theme.colors.textSecondary,
+                          marginTop: 2,
+                        }}
+                      >
+                        {workout.exercises.length} תרגילים
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
@@ -1744,7 +2534,7 @@ const styles = StyleSheet.create({
   },
   daySelector: {
     paddingHorizontal: theme.spacing.lg,
-    gap: 12,
+    // gap is now dynamic - set via getDayButtonStyle()
   },
   dayCard: {
     borderRadius: theme.radius.lg,
@@ -1758,25 +2548,21 @@ const styles = StyleSheet.create({
     ...theme.shadows.large,
   },
   dayCardGradient: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    minWidth: 110,
+    // Dynamic sizing - now controlled by getDayButtonStyle()
     alignItems: "center",
   },
   dayCardTitle: {
-    fontSize: 16,
     fontWeight: "700",
     color: theme.colors.text,
-    marginTop: 8,
+    // fontSize and marginTop are now dynamic
   },
   dayCardTitleActive: {
     color: "#FFFFFF",
   },
   dayCardSubtitle: {
-    fontSize: 12,
     color: theme.colors.textSecondary,
-    marginTop: 4,
     textAlign: "center",
+    // fontSize and marginTop are now dynamic
   },
   dayCardSubtitleActive: {
     color: "#FFFFFF",
@@ -2085,5 +2871,44 @@ const styles = StyleSheet.create({
     color: theme.colors.success,
     fontWeight: "500",
     textAlign: "center",
+  },
+  // סגנונות לציוד זמין
+  // Available equipment styles
+  equipmentContainer: {
+    marginTop: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginHorizontal: theme.spacing.lg,
+    ...theme.shadows.small,
+  },
+  equipmentHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  equipmentTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  equipmentGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  equipmentChip: {
+    backgroundColor: theme.colors.primary + "15",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+  },
+  equipmentChipText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: "500",
   },
 });
