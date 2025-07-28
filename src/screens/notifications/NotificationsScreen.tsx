@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTextContainer: {
-    marginRight: theme.spacing.md,
+    marginEnd: theme.spacing.md, // שינוי RTL: marginEnd במקום marginRight
     flex: 1,
   },
   settingText: {

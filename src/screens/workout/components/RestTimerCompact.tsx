@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
   },
   compactSkipText: {
     color: theme.colors.primary,

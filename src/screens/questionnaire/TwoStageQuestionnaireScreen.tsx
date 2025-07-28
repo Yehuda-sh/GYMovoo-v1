@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
   },
   disabledButton: {
     opacity: 0.5,
@@ -1004,7 +1004,7 @@ const styles = StyleSheet.create({
   autoAdvanceText: {
     fontSize: 12,
     color: theme.colors.primary,
-    marginRight: 4,
+    marginEnd: 4, // שינוי RTL: marginEnd במקום marginRight
   },
   autoAdvanceHint: {
     fontSize: 12,

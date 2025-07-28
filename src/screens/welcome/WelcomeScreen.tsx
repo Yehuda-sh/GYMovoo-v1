@@ -534,7 +534,7 @@ export const styles = StyleSheet.create({
   },
   liveIndicator: {
     marginHorizontal: 0,
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
     position: "relative",
   },
   liveDot: {
@@ -600,7 +600,7 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     marginHorizontal: 0,
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
     textAlign: "center",
   },
   trialBadge: {
@@ -616,7 +616,7 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.warning,
     marginHorizontal: 0,
-    marginRight: 6,
+    marginEnd: 6, // שינוי RTL: marginEnd במקום marginRight
   },
   dividerContainer: {
     flexDirection: "row-reverse",
@@ -659,7 +659,7 @@ export const styles = StyleSheet.create({
     width: 60,
     height: 20,
     marginHorizontal: 0,
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
   },
   googleButtonText: {
     fontSize: theme.typography.button.fontSize,
@@ -682,7 +682,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "500",
     marginHorizontal: 0,
-    marginRight: 8,
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
   },
   footer: {
     marginTop: 20,
@@ -718,7 +718,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.warning,
     fontWeight: "600",
     marginHorizontal: 0,
-    marginRight: 8,
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
   },
   disabledButton: {
     opacity: 0.6,

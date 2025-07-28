@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   fitnessRight: {
     alignItems: "center",
     flex: 1,
-    marginLeft: theme.spacing.md,
+    marginStart: theme.spacing.md, // שינוי RTL: marginStart במקום marginLeft
   },
   fitnessValue: {
     fontSize: 14,

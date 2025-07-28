@@ -415,7 +415,7 @@ export default function LoginScreen() {
                       ? theme.colors.error
                       : theme.colors.textSecondary
                   }
-                  style={{ marginLeft: 8 }}
+                  style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
                 />
                 <TextInput
                   style={styles.input}
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     paddingVertical: 0,
     marginHorizontal: 0,
-    marginRight: 8,
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
   },
   passwordToggle: {
     padding: 4,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
     textAlign: "right",
-    marginRight: 4,
+    marginEnd: 4, // שינוי RTL: marginEnd במקום marginRight
   },
   optionsRow: {
     flexDirection: "row-reverse",
@@ -685,8 +685,8 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     // gap: 8, // השתמש ב-margin אם צריך לתמוך באנדרואיד
-    marginLeft: 0,
-    marginRight: 8,
+    marginStart: 0, // שינוי RTL: marginStart במקום marginLeft
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
   },
   rememberMeText: {
     color: theme.colors.textSecondary,

@@ -1,11 +1,15 @@
 // App.tsx
 import React, { useEffect } from "react";
+import { I18nManager } from "react-native";
 import AppNavigator from "./src/navigation/AppNavigator";
 // בתחילת הקובץ הראשי (App.tsx או app/_layout.tsx)
 import "react-native-reanimated";
 import Toast from "react-native-toast-message";
 import "react-native-gesture-handler";
 import { StorageCleanup } from "./src/utils/storageCleanup";
+
+// הפעלת תמיכה מלאה ב-RTL לעברית | Enable full RTL support for Hebrew
+I18nManager.allowRTL(true);
 
 export default function App() {
   useEffect(() => {

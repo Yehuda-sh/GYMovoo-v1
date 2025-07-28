@@ -258,7 +258,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
             name="chevron-down"
             size={20}
             color={theme.colors.textSecondary}
-            style={{ marginLeft: theme.spacing.xs }}
+            style={{ marginStart: theme.spacing.xs }} // שינוי RTL: marginStart במקום marginLeft
           />
         </TouchableOpacity>
 

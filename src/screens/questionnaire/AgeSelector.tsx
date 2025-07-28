@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   preciseButtonText: {
     fontSize: 16,
     color: theme.colors.primary,
-    marginRight: theme.spacing.sm,
+    marginEnd: theme.spacing.sm, // שינוי RTL: marginEnd במקום marginRight
   },
   errorContainer: {
     flexDirection: "row-reverse",
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 14,
     color: theme.colors.error,
-    marginRight: theme.spacing.sm,
+    marginEnd: theme.spacing.sm, // שינוי RTL: marginEnd במקום marginRight
   },
   modalOverlay: {
     flex: 1,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   yearLabel: {
     fontSize: 20,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.md,
+    marginStart: theme.spacing.md, // שינוי RTL: marginStart במקום marginLeft
   },
   modalHint: {
     fontSize: 14,

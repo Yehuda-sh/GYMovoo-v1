@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   },
   exerciseInfo: {
     flex: 1,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm, // שינוי RTL: marginStart במקום marginLeft
   },
   titleRow: {
     flexDirection: "row-reverse",
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm, // שינוי RTL: marginStart במקום marginLeft
     textAlign: "right",
   },
   statsRow: {
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   setNumberHeader: {
     width: 50,
     alignItems: "center",
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
   },
   previousHeader: {
     flex: 1.2,

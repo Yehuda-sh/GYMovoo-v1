@@ -405,12 +405,12 @@ const styles = StyleSheet.create({
   heightUnit: {
     fontSize: 20,
     color: theme.colors.primary,
-    marginRight: theme.spacing.xs,
-    marginLeft: theme.spacing.xs,
+    marginEnd: theme.spacing.xs, // שינוי RTL: marginEnd במקום marginRight
+    marginStart: theme.spacing.xs, // שינוי RTL: marginStart במקום marginLeft
     opacity: 0.8,
   },
   editIcon: {
-    marginRight: theme.spacing.xs,
+    marginEnd: theme.spacing.xs, // שינוי RTL: marginEnd במקום marginRight
     opacity: 0.5,
   },
   inputContainer: {
@@ -483,13 +483,13 @@ const styles = StyleSheet.create({
     height: 1.2,
     backgroundColor: theme.colors.primary,
     opacity: 0.15,
-    marginLeft: 55,
+    marginStart: 55, // שינוי RTL: marginStart במקום marginLeft
   },
   markLabel: {
     fontSize: 15,
     color: theme.colors.textSecondary,
     fontWeight: "500",
-    marginLeft: 8,
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
     minWidth: 26,
     opacity: 0.8,
   },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 12,
     color: theme.colors.text,
-    marginRight: theme.spacing.xs,
+    marginEnd: theme.spacing.xs, // שינוי RTL: marginEnd במקום marginRight
     flex: 1,
     textAlign: "center",
   },

@@ -38,6 +38,25 @@ import {
 // Import central exercise database
 import { EXTENDED_EXERCISE_DATABASE as ALL_EXERCISES } from "../../data/exerciseDatabase";
 import { ExerciseTemplate as DatabaseExercise } from "../../services/quickWorkoutGenerator";
+import {
+  useWgerExercises,
+  WgerExerciseFormatted,
+} from "../../hooks/useWgerExercisesNew";
+
+// Temporary type definition when WGER is disabled
+// interface WgerExerciseFormatted {
+//   id: string;
+//   name: string;
+//   category: string;
+//   primaryMuscles: string[];
+//   secondaryMuscles: string[];
+//   equipment: string;
+//   difficulty: string;
+//   instructions: string[];
+//   images: string[];
+//   source: 'wger';
+//   wgerId: number;
+// }
 
 // קבועים לסוגי פיצול אימון
 // Workout split type constants
@@ -74,12 +93,12 @@ const DAY_ICONS: { [key: string]: string } = {
   חזה: "shield",
   גב: "human",
   "גב + ביצפס": "human",
-  כתפיים: "shoulder",
+  כתפיים: "human-handsup",
   ידיים: "arm-flex",
   בטן: "ab-testing",
   "חזה + טריצפס": "shield",
 
-  "כתפיים + בטן": "shoulder",
+  "כתפיים + בטן": "human-handsup",
   "ידיים + בטן": "arm-flex",
   "בטן + קרדיו": "run-fast",
 };
@@ -105,6 +124,32 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
+
+  // WGER API Integration
+  // WGER Integration
+  const {
+    exercises: wgerExercises,
+    loading: wgerLoading,
+    error: wgerError,
+    searchExercisesByEquipment,
+    getExercisesByMuscle,
+    getAllExercises,
+    clearError,
+  } = useWgerExercises();
+
+  // Temporary placeholders when WGER is disabled
+  // const wgerExercises: any[] = [];
+  // const wgerLoading = false;
+  // const wgerError = null;
+  // const searchExercisesByEquipment = async (equipment: string[]) => [];
+  // const getExercisesByMuscle = async (muscles: string[]) => [];
+  // const getAllExercises = async () => [];
+  // const clearError = () => {};
+
+  const [wgerEnabled, setWgerEnabled] = useState(true); // לאפשר/לנטרל WGER
+  const [combinedExercises, setCombinedExercises] = useState<
+    (DatabaseExercise | WgerExerciseFormatted)[]
+  >([]);
 
   // אנימציות
   // Animations
@@ -172,6 +217,45 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     };
     loadEquipment();
   }, []);
+
+  // טעינת תרגילי WGER לפי ציוד זמין
+  // Load WGER exercises based on available equipment
+  useEffect(() => {
+    const loadWgerExercises = async () => {
+      if (!wgerEnabled || availableEquipment.length === 0) {
+        console.log("🚫 WGER disabled or no equipment available");
+        setCombinedExercises([...ALL_EXERCISES]);
+        return;
+      }
+
+      try {
+        console.log(
+          "🌐 Loading WGER exercises for equipment:",
+          availableEquipment
+        );
+        const wgerResults =
+          await searchExercisesByEquipment(availableEquipment);
+
+        console.log(`✅ Loaded ${wgerResults.length} WGER exercises`);
+
+        // שילוב תרגילים מקומיים ומ-WGER
+        const combined = [...ALL_EXERCISES, ...wgerResults];
+        setCombinedExercises(combined);
+
+        console.log(
+          `🔗 Combined total: ${combined.length} exercises (${ALL_EXERCISES.length} local + ${wgerResults.length} WGER)`
+        );
+      } catch (error) {
+        console.error("❌ Failed to load WGER exercises:", error);
+        // במקרה של שגיאה, נשתמש רק בתרגילים המקומיים
+        setCombinedExercises([...ALL_EXERCISES]);
+      }
+    };
+
+    if (availableEquipment.length > 0) {
+      loadWgerExercises();
+    }
+  }, [availableEquipment, wgerEnabled, searchExercisesByEquipment]);
 
   /**
    * טיפול בחזרה מאימון
@@ -795,6 +879,45 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
+   * פונקציות עזר לעבודה עם תרגילי WGER
+   * Helper functions for working with WGER exercises
+   */
+  const isWgerExercise = (
+    exercise: DatabaseExercise | WgerExerciseFormatted
+  ): exercise is WgerExerciseFormatted => {
+    return "source" in exercise && exercise.source === "wger";
+  };
+
+  const isLocalExercise = (
+    exercise: DatabaseExercise | WgerExerciseFormatted
+  ): exercise is DatabaseExercise => {
+    return !("source" in exercise);
+  };
+
+  const convertToLocalFormat = (
+    exercise: DatabaseExercise | WgerExerciseFormatted
+  ): DatabaseExercise => {
+    if (isLocalExercise(exercise)) {
+      return exercise;
+    }
+
+    // המרה של תרגיל WGER לפורמט מקומי
+    return {
+      id: `wger_${exercise.wgerId}`,
+      name: exercise.name,
+      category: exercise.category,
+      primaryMuscles: exercise.primaryMuscles,
+      secondaryMuscles: exercise.secondaryMuscles,
+      equipment: exercise.equipment,
+      difficulty: exercise.difficulty as
+        | "beginner"
+        | "intermediate"
+        | "advanced",
+      instructions: exercise.instructions,
+    };
+  };
+
+  /**
    * בחירת תרגילים ליום אימון משופרת עם זרע קבוע ומניעת חזרות
    * Enhanced exercise selection for workout day with fixed seed and repetition prevention
    */
@@ -845,10 +968,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     console.log(`⚙️ [Day ${dayIndex}] Equipment available:`, expandedEquipment);
     console.log(`👤 [Day ${dayIndex}] User experience: ${experience}`);
 
-    // ספירת תרגילים זמינים לפי ציוד
+    // ספירת תרגילים זמינים לפי ציוד - משתמש בתרגילים המשולבים
+    const exerciseSource =
+      combinedExercises.length > 0 ? combinedExercises : ALL_EXERCISES;
+    console.log(
+      `📚 [Day ${dayIndex}] Using ${exerciseSource.length} exercises (${combinedExercises.length > ALL_EXERCISES.length ? "including WGER" : "local only"})`
+    );
+
     const equipmentStats = expandedEquipment
       .map((eq) => {
-        const count = ALL_EXERCISES.filter((ex) => ex.equipment === eq).length;
+        const count = exerciseSource.filter((ex) => ex.equipment === eq).length;
         return `${eq}: ${count}`;
       })
       .join(", ");
@@ -857,49 +986,54 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     );
 
     // סינון תרגילים מתאימים עם שיפור במיפוי שרירים
-    const suitableExercises = ALL_EXERCISES.filter((ex: DatabaseExercise) => {
-      // בדיקת התאמה לשרירים - משופרת
-      const muscleMatch = targetMuscles.some((muscle) => {
-        // בדיקה ישירה
-        if (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) {
-          return true;
-        }
+    const suitableExercises = exerciseSource.filter(
+      (ex: DatabaseExercise | WgerExerciseFormatted) => {
+        // בדיקת התאמה לשרירים - משופרת
+        const muscleMatch = targetMuscles.some((muscle) => {
+          // בדיקה ישירה
+          if (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) {
+            return true;
+          }
 
-        // מיפוי נוסף לשרירים
-        const muscleAliases: { [key: string]: string[] } = {
-          חזה: ["chest", "pectorals"],
-          כתפיים: ["shoulders", "deltoids", "delts"],
-          טריצפס: ["triceps", "tricep"],
-          גב: ["back", "lats", "latissimus"],
-          ביצפס: ["biceps", "bicep"],
-          רגליים: [
-            "legs",
-            "quadriceps",
-            "hamstrings",
-            "glutes",
-            "calves",
-            "thighs",
-          ],
-          ישבן: ["glutes", "gluteus", "butt"],
-        };
+          // מיפוי נוסף לשרירים
+          const muscleAliases: { [key: string]: string[] } = {
+            חזה: ["chest", "pectorals"],
+            כתפיים: ["shoulders", "deltoids", "delts"],
+            טריצפס: ["triceps", "tricep"],
+            גב: ["back", "lats", "latissimus"],
+            ביצפס: ["biceps", "bicep"],
+            רגליים: [
+              "legs",
+              "quadriceps",
+              "hamstrings",
+              "glutes",
+              "calves",
+              "thighs",
+            ],
+            ישבן: ["glutes", "gluteus", "butt"],
+          };
 
-        const aliases = muscleAliases[muscle] || [];
-        return aliases.some(
-          (alias) =>
-            ex.primaryMuscles?.includes(alias) ||
-            ex.secondaryMuscles?.includes(alias) ||
-            ex.category?.toLowerCase().includes(alias.toLowerCase())
+          const aliases = muscleAliases[muscle] || [];
+          return aliases.some(
+            (alias) =>
+              ex.primaryMuscles?.includes(alias) ||
+              ex.secondaryMuscles?.includes(alias) ||
+              ex.category?.toLowerCase().includes(alias.toLowerCase())
+          );
+        });
+
+        // בדיקת התאמה לציוד המורחב
+        const equipmentMatch = expandedEquipment.includes(ex.equipment);
+
+        // בדיקת התאמה לרמה
+        const levelMatch = isExerciseSuitableForLevel(
+          ex.difficulty,
+          experience
         );
-      });
 
-      // בדיקת התאמה לציוד המורחב
-      const equipmentMatch = expandedEquipment.includes(ex.equipment);
-
-      // בדיקת התאמה לרמה
-      const levelMatch = isExerciseSuitableForLevel(ex.difficulty, experience);
-
-      return muscleMatch && equipmentMatch && levelMatch;
-    });
+        return muscleMatch && equipmentMatch && levelMatch;
+      }
+    );
 
     console.log(
       `💪 [Day ${dayIndex}] Found ${suitableExercises.length} suitable exercises for ${dayName}`
@@ -940,9 +1074,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // חלוקה לתרגילים מורכבים ובידוד (רק אם יש תמיכה במאגר)
     // Split to compound and isolation (only if supported in database)
-    const hasCompoundInfo = suitableExercises.some((ex: DatabaseExercise) =>
-      Object.prototype.hasOwnProperty.call(ex, "isCompound")
-    );
+    const hasCompoundInfo = suitableExercises.some((ex) => {
+      const localEx = convertToLocalFormat(ex);
+      return Object.prototype.hasOwnProperty.call(localEx, "isCompound");
+    });
 
     // 🔍 DEBUG: בדיקת exerciseCount לפני השימוש
     console.log(`🔢 [Day ${dayIndex}] === BEFORE USING exerciseCount ===`);
@@ -953,14 +1088,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     console.log(`🔢 [Day ${dayIndex}] metadata.goal: ${metadata.goal}`);
 
     if (hasCompoundInfo && metadata.goal !== "שיקום מפציעה") {
-      const compoundExercises = suitableExercises.filter(
-        (ex: DatabaseExercise) =>
-          (ex as DatabaseExercise & { isCompound?: boolean }).isCompound
-      );
-      const isolationExercises = suitableExercises.filter(
-        (ex: DatabaseExercise) =>
-          !(ex as DatabaseExercise & { isCompound?: boolean }).isCompound
-      );
+      const compoundExercises = suitableExercises.filter((ex) => {
+        const localEx = convertToLocalFormat(ex);
+        return (localEx as DatabaseExercise & { isCompound?: boolean })
+          .isCompound;
+      });
+      const isolationExercises = suitableExercises.filter((ex) => {
+        const localEx = convertToLocalFormat(ex);
+        return !(localEx as DatabaseExercise & { isCompound?: boolean })
+          .isCompound;
+      });
 
       // יחס של 60% מורכבים, 40% בידוד
       const safeExerciseCount =
@@ -1045,11 +1182,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * בחירת תרגילים אקראיים מרשימה עם זרע קבוע משופר
-   * Select random exercises from list with improved fixed seed
+   * בחירת תרגילים אקראיים מרשימה עם זרע קבוע משופר - תומך ב-WGER
+   * Select random exercises from list with improved fixed seed - supports WGER
    */
   const selectRandomExercises = (
-    exercises: DatabaseExercise[],
+    exercises: (DatabaseExercise | WgerExerciseFormatted)[],
     count: number,
     seed: number = 0
   ): DatabaseExercise[] => {
@@ -1089,7 +1226,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.log(
         `📝 selectRandomExercises: Returning all ${exercises.length} exercises`
       );
-      return [...exercises];
+      return exercises.map(convertToLocalFormat);
     }
 
     // יצירת רנדום עם זרע קבוע משופר
@@ -1130,7 +1267,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       ];
     }
 
-    const selected = indexedExercises.slice(0, count).map((item) => item.ex);
+    const selected = indexedExercises
+      .slice(0, count)
+      .map((item) => convertToLocalFormat(item.ex));
     console.log(
       `🔀 Shuffled and selected ${selected.length}/${exercises.length} exercises:`,
       selected.map((ex) => ex.name)
@@ -1795,6 +1934,23 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                       <Text style={styles.tagText}>{tag}</Text>
                     </View>
                   ))}
+
+                {/* WGER Toggle Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.wgerToggle,
+                    { backgroundColor: wgerEnabled ? "#4CAF50" : "#757575" },
+                  ]}
+                  onPress={() => {
+                    setWgerEnabled(!wgerEnabled);
+                    if (wgerError) clearError();
+                  }}
+                >
+                  <MaterialCommunityIcons name="web" size={16} color="#fff" />
+                  <Text style={styles.wgerToggleText}>
+                    {wgerEnabled ? "WGER ON" : "WGER OFF"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -1873,6 +2029,41 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                     </View>
                   ))}
                 </View>
+              </View>
+            )}
+
+            {/* WGER Status */}
+            {wgerEnabled && (
+              <View style={styles.wgerStatus}>
+                <MaterialCommunityIcons
+                  name="web"
+                  size={16}
+                  color={
+                    wgerLoading
+                      ? theme.colors.warning
+                      : wgerError
+                        ? theme.colors.error
+                        : theme.colors.success
+                  }
+                />
+                <Text
+                  style={[
+                    styles.wgerStatusText,
+                    {
+                      color: wgerLoading
+                        ? theme.colors.warning
+                        : wgerError
+                          ? theme.colors.error
+                          : theme.colors.success,
+                    },
+                  ]}
+                >
+                  {wgerLoading
+                    ? "טוען תרגילים מ-WGER..."
+                    : wgerError
+                      ? `שגיאה: ${wgerError}`
+                      : `✅ נטענו ${wgerExercises.length} תרגילים מ-WGER`}
+                </Text>
               </View>
             )}
           </View>
@@ -2663,7 +2854,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 12,
+    marginStart: 12, // שינוי RTL: marginStart במקום marginLeft
   },
   exerciseNumberText: {
     fontSize: 16,
@@ -2672,7 +2863,7 @@ const styles = StyleSheet.create({
   },
   exerciseInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginStart: 12, // שינוי RTL: marginStart במקום marginLeft
   },
   exerciseName: {
     fontSize: 18,
@@ -2909,6 +3100,32 @@ const styles = StyleSheet.create({
   equipmentChipText: {
     fontSize: 12,
     color: theme.colors.primary,
+    fontWeight: "500",
+  },
+  wgerToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.radius.sm,
+    gap: 4,
+  },
+  wgerToggleText: {
+    fontSize: 10,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  wgerStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: theme.colors.backgroundAlt,
+    borderRadius: theme.radius.md,
+    marginVertical: 8,
+    gap: 8,
+  },
+  wgerStatusText: {
+    fontSize: 12,
     fontWeight: "500",
   },
 });

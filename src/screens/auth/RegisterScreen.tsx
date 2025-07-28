@@ -513,7 +513,7 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginLeft: 8 }}
+                style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
               />
               <TextInput
                 style={styles.input}
@@ -558,7 +558,7 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginLeft: 6 }}
+                style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
               />
               <TextInput
                 ref={emailRef}
@@ -609,7 +609,7 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginLeft: 6 }}
+                  style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
                 />
               </TouchableOpacity>
               <TextInput
@@ -688,7 +688,7 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginLeft: 6 }}
+                  style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
                 />
               </TouchableOpacity>
               <TextInput
@@ -735,7 +735,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginLeft: 8 }}
+              style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
             />
           </View>
           {/* --- אישור תנאים --- */}
@@ -758,7 +758,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginLeft: 8 }}
+              style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
             />
           </View>
 
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     fontSize: 13,
     textDecorationLine: "underline",
-    marginRight: 4, // כדי לשמור על ריווח בין הטקסט לקישור
+    marginEnd: 4, // שינוי RTL: marginEnd במקום marginRight - כדי לשמור על ריווח בין הטקסט לקישור
   },
   errorText: {
     color: theme.colors.error,
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginLeft: -50,
+    marginStart: -50, // שינוי RTL: marginStart במקום marginLeft
     marginTop: -50,
     zIndex: 1000,
   },

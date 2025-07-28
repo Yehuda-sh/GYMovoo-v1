@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   },
   tipContent: {
     flex: 1,
-    marginRight: theme.spacing.md,
+    marginEnd: theme.spacing.md, // שינוי RTL: marginEnd במקום marginRight
   },
   tipTitle: {
     fontSize: 14,

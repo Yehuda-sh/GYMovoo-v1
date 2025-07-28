@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   setNumber: {
     width: 50,
     alignItems: "center",
-    marginLeft: 8, // שינוי RTL: margin-left במקום right
+    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft (תוקן)
   },
   setNumberText: {
     fontSize: 16,

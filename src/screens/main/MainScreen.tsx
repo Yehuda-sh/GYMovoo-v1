@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   },
   quickStartTextContainer: {
     flex: 1,
-    marginLeft: theme.spacing.lg,
+    marginStart: theme.spacing.lg, // שינוי RTL: marginStart במקום marginLeft
     alignItems: "flex-end", // יישור לימין
   },
   quickStartTitle: {
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     textAlign: "right", // יישור טקסט לימין
   },
   statIcon: {
-    marginLeft: theme.spacing.md, // שינוי מ-marginRight ל-marginLeft
+    marginStart: theme.spacing.md, // שינוי RTL: marginStart במקום marginLeft
   },
   progressContainer: {
     flexDirection: "row-reverse",
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: theme.colors.divider,
     borderRadius: 3,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm, // שינוי RTL: marginStart במקום marginLeft
     overflow: "hidden",
     maxWidth: 80, // הגבלת רוחב ה-progress bar
   },
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     minWidth: 35,
     textAlign: "right", // שינוי מ-left ל-right
-    marginLeft: theme.spacing.sm, // הוספת מרווח משמאל
+    marginStart: theme.spacing.sm, // שינוי RTL: marginStart במקום marginLeft - הוספת מרווח משמאל
   },
   quickMenu: {
     marginHorizontal: theme.spacing.lg,
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   profilePromptIcon: {
-    marginRight: theme.spacing.sm, // שינוי מ-marginLeft ל-marginRight
+    marginEnd: theme.spacing.sm, // שינוי RTL: marginEnd במקום marginRight
   },
   profilePromptText: {
     flex: 1,

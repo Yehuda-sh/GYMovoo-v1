@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   weightUnit: {
     fontSize: 18,
     color: theme.colors.textSecondary,
-    marginRight: theme.spacing.xs, // RTL
+    marginEnd: theme.spacing.xs, // שינוי RTL: marginEnd במקום marginRight
   },
   category: {
     fontSize: 13,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   centerLine: {
     position: "absolute",
     left: "50%",
-    marginLeft: -1,
+    marginStart: -1, // שינוי RTL: marginStart במקום marginLeft
     width: 2,
     height: 40,
     backgroundColor: theme.colors.primary,
