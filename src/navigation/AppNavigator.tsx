@@ -13,7 +13,7 @@ import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
-import TwoStageQuestionnaireScreen from "../screens/questionnaire/TwoStageQuestionnaireScreen";
+import SmartQuestionnaireScreen from "../screens/questionnaire/SmartQuestionnaireScreen";
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
@@ -52,10 +52,10 @@ export default function AppNavigator() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
 
-        {/* שאלון דינמי */}
+        {/* שאלון חכם עם AI */}
         <Stack.Screen
           name="Questionnaire"
-          component={TwoStageQuestionnaireScreen}
+          component={SmartQuestionnaireScreen}
           options={{
             headerShown: false,
             presentation: "modal",

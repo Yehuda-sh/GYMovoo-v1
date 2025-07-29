@@ -30,10 +30,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../navigation/types";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
-import {
-  hasCompletedTrainingStage,
-  hasCompletedProfileStage,
-} from "../../data/twoStageQuestionnaireData";
+// Removed problematic twoStageQuestionnaireData imports - using simple questionnaire validation
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
@@ -182,9 +179,13 @@ export default function ProfileScreen() {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // בדיקת השלמת השאלון
-  const hasTrainingStage = hasCompletedTrainingStage(user?.questionnaire);
-  const hasProfileStage = hasCompletedProfileStage(user?.questionnaire);
+  // בדיקת השלמת השאלון - פשוטה ומאוחדת
+  const hasTrainingStage =
+    !!user?.questionnaire &&
+    (user.questionnaire as any).age &&
+    (user.questionnaire as any).goal;
+  const hasProfileStage =
+    !!user?.questionnaire && (user.questionnaire as any).gender;
   const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
 
   // חישוב הישגים מהנתונים המדעיים

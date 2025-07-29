@@ -24,10 +24,9 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import {
-  fakeGoogleSignIn,
-  fakeGoogleSignInWithQuestionnaire,
-} from "../../services/authService";
+import { fakeGoogleSignIn } from "../../services/authService";
+import { realisticDemoService } from "../../services/realisticDemoService";
+import { workoutSimulationService } from "../../services/workoutSimulationService";
 import { RootStackParamList } from "../../navigation/types";
 
 // Skeleton component for Google button loading
@@ -208,32 +207,45 @@ export default function WelcomeScreen() {
     }
   };
 
-  // כניסה מהירה לפיתוח - עם שאלון מלא
-  // Dev quick login - with completed questionnaire
+  // דמו מציאותי - משתמש שמתחיל מאפס
+  // Realistic demo - user starting from zero
   const handleDevQuickLogin = async () => {
     setIsDevLoading(true);
 
     try {
-      // יוצר משתמש עם שאלון מלא
-      // Creates user with completed questionnaire
-      const devUser = await fakeGoogleSignInWithQuestionnaire();
+      console.log("🌟 REALISTIC DEMO: Creating user starting from zero...");
 
-      console.log("🚀 DEV: User with questionnaire created:", {
-        email: devUser.email,
-        hasQuestionnaireData: !!devUser.questionnaireData,
-        completedAt: devUser.questionnaireData?.completedAt,
-        metadata: devUser.questionnaireData?.metadata,
-      });
+      // יצירת משתמש דמו עם נתוני שאלון בסיסיים בלבד
+      await realisticDemoService.createRealisticDemoUser();
+
+      // סימולציה של 6 חודשי אימונים מציאותיים
+      console.log(
+        "🏃‍♂️ REALISTIC DEMO: Simulating 6 months of realistic workouts..."
+      );
+      await workoutSimulationService.simulateRealisticWorkoutHistory();
+
+      // קבלת המשתמש המעודכן עם ההיסטוריה
+      const demoUser = await realisticDemoService.getDemoUser();
+
+      if (!demoUser) {
+        throw new Error("Failed to create demo user");
+      }
+
+      console.log("✅ Realistic demo user created with simulated history:");
+      console.log(`📊 Total workouts: ${demoUser.currentStats.totalWorkouts}`);
+      console.log(`🏋️ Total volume: ${demoUser.currentStats.totalVolume}kg`);
+      console.log(`⭐ Average rating: ${demoUser.currentStats.averageRating}`);
+      console.log(
+        `🔥 Current streak: ${demoUser.currentStats.currentStreak} days`
+      );
 
       // שמירה ב-store
-      // Save to store
-      setUser(devUser);
+      setUser(demoUser);
 
-      // ניווט ישירות למסך הראשי (כי השאלון כבר מלא)
-      // Navigate directly to main screen (questionnaire already completed)
+      // ניווט למסך הראשי
       navigation.navigate("MainApp");
     } catch (error) {
-      console.error("❌ Dev login failed:", error);
+      console.error("❌ Realistic demo creation failed:", error);
     } finally {
       setIsDevLoading(false);
     }
@@ -446,7 +458,9 @@ export default function WelcomeScreen() {
                   />
                 )}
                 <Text style={styles.devButtonText}>
-                  {isDevLoading ? "יוצר נתונים..." : "🚀 דמו מהיר (פיתוח)"}
+                  {isDevLoading
+                    ? "יוצר דמו מציאותי..."
+                    : "🎯 דמו מציאותי (6 חודשים)"}
                 </Text>
               </TouchableButton>
             )}

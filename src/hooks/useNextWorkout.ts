@@ -10,7 +10,7 @@ import {
   NextWorkoutRecommendation,
 } from "../services/nextWorkoutLogicService";
 import { useUserStore } from "../stores/userStore";
-import { QuestionnaireAnswers } from "../data/twoStageQuestionnaireData";
+import { ExtendedQuestionnaireAnswers } from "../data/extendedQuestionnaireData";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;

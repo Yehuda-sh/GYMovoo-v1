@@ -1,3 +1,4 @@
+// src/components/index.ts
 // Common components
 export { default as BackButton } from "./common/BackButton";
 export { default as DefaultAvatar } from "./common/DefaultAvatar";

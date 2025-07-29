@@ -6,7 +6,7 @@
  * @notes כולל יצירת משתמשים רנדומליים לבדיקות
  */
 
-import { scientificUserGenerator } from "./scientificUserGenerator";
+// הפונקציה הישנה scientificUserGenerator נמחקה - משתמשים עכשיו ב-realisticDemoService בלבד
 
 // רשימות לגנרטור הרנדומלי
 // Lists for random generator
@@ -276,44 +276,4 @@ const generateRandomQuestionnaire = () => {
   };
 };
 
-/**
- * מדמה התחברות Google עם שאלון מלא מדעי - רק לפיתוח!
- * Simulates Google Sign In with complete scientific questionnaire - DEV ONLY!
- */
-export const fakeGoogleSignInWithQuestionnaire = async () => {
-  console.log(
-    "🚀 DEV MODE: Generating user with completed scientific questionnaire"
-  );
-
-  // דימוי השהייה של שרת
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  // השתמש במערכת החדשה
-  const fullScientificUser =
-    await scientificUserGenerator.generateFullScientificUser();
-
-  console.log("🎲 Full scientific user generated:", {
-    email: fullScientificUser.email,
-    workouts: fullScientificUser.activityHistory.workouts.length,
-    totalVolume: fullScientificUser.currentStats.totalVolume,
-    streak: fullScientificUser.currentStats.currentStreak,
-    averageRating: fullScientificUser.currentStats.averageRating,
-  });
-
-  // החזר בפורמט הישן לתאימות
-  return {
-    id: fullScientificUser.id,
-    name: fullScientificUser.name,
-    email: fullScientificUser.email,
-    avatar: fullScientificUser.avatar,
-    provider: fullScientificUser.provider,
-    questionnaire: fullScientificUser.questionnaireData.answers,
-    questionnaireData: fullScientificUser.questionnaireData,
-
-    // נתונים מתקדמים חדשים (אופציונלי)
-    scientificProfile: fullScientificUser.scientificProfile,
-    aiRecommendations: fullScientificUser.aiRecommendations,
-    activityHistory: fullScientificUser.activityHistory,
-    currentStats: fullScientificUser.currentStats,
-  };
-};
+// הפונקציה הישנה נמחקה - משתמשים עכשיו ב-realisticDemoService בלבד

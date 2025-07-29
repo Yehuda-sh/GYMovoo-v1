@@ -34,6 +34,7 @@ export interface QuestionnaireMetadata {
   // Training data
   home_equipment?: string[];
   gym_equipment?: string[];
+  available_equipment?: string[]; // 🔧 תמיכה במשתמש מדעי
   workout_preference?: string[];
 
   // נתוני אורח חיים
@@ -166,9 +167,15 @@ class QuestionnaireService {
     const homeEquipment = prefs?.home_equipment || [];
     const gymEquipment = prefs?.gym_equipment || [];
 
+    // 🔧 FIX: תמיכה במשתמש מדעי - בדיקת available_equipment
+    // Support for scientific user - check available_equipment
+    const availableEquipment = prefs?.available_equipment || [];
+
     // מיזוג רשימות ללא כפילויות
     // Merge lists without duplicates
-    const mergedEquipment = [...new Set([...homeEquipment, ...gymEquipment])];
+    const mergedEquipment = [
+      ...new Set([...homeEquipment, ...gymEquipment, ...availableEquipment]),
+    ];
 
     return mergedEquipment;
   }

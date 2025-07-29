@@ -1,3 +1,5 @@
+// src\components\README.md
+
 # Shared Components
 
 This directory contains reusable components that are used throughout the GYMovoo application. All components are designed with RTL support and follow the app's design system.

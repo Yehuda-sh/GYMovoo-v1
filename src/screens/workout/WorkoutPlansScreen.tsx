@@ -843,9 +843,37 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         `🔍 DEBUG: durationValue.split("-")[0]: "${durationValue.split("-")[0]}"`
       );
 
-      const parsedDuration = parseInt(durationValue.split("-")[0] || "45");
+      const parsedDuration = (() => {
+        // תיקון בטוח לחישוב duration
+        const durationStr = durationValue.toString();
+
+        // אם יש "-" בטקסט, קח את החלק הראשון
+        if (durationStr.includes("-")) {
+          const firstPart = durationStr.split("-")[0].trim();
+          const parsed = parseInt(firstPart);
+          if (!isNaN(parsed) && parsed > 0) {
+            return parsed;
+          }
+        }
+
+        // נסה לחלץ מספרים מהטקסט
+        const numbers = durationStr.match(/\d+/);
+        if (numbers && numbers.length > 0) {
+          const parsed = parseInt(numbers[0]);
+          if (!isNaN(parsed) && parsed > 0) {
+            return parsed;
+          }
+        }
+
+        // ברירת מחדל
+        console.warn(
+          `⚠️ Could not parse duration "${durationValue}", using default 45`
+        );
+        return 45;
+      })();
+
       console.log(
-        `🔍 DEBUG: parseInt result: ${parsedDuration} (type: ${typeof parsedDuration}, isNaN: ${isNaN(parsedDuration)})`
+        `🔍 DEBUG: Final parsed duration: ${parsedDuration} (type: ${typeof parsedDuration}, isNaN: ${isNaN(parsedDuration)})`
       );
 
       // 🚨 אזהרה אם duration לא תקין
@@ -1105,6 +1133,34 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // חלוקה לתרגילים מורכבים ובידוד (רק אם יש תמיכה במאגר)
     // Split to compound and isolation (only if supported in database)
+
+    // ✅ SAFETY CHECK: וידוא ש-exerciseCount תקין
+    console.log(`🔍 [Day ${dayIndex}] === EXERCISE COUNT VALIDATION ===`);
+    console.log(
+      `🔍 [Day ${dayIndex}] exerciseCount: ${exerciseCount} (type: ${typeof exerciseCount})`
+    );
+    console.log(
+      `🔍 [Day ${dayIndex}] isNaN(exerciseCount): ${isNaN(exerciseCount)}`
+    );
+    console.log(
+      `🔍 [Day ${dayIndex}] exerciseCount <= 0: ${exerciseCount <= 0}`
+    );
+    if (isNaN(exerciseCount) || exerciseCount <= 0) {
+      console.error(
+        `🚨 [Day ${dayIndex}] CRITICAL: exerciseCount is ${exerciseCount}! This will result in 0 exercises for ${dayName}`
+      );
+      console.error(
+        `🚨 [Day ${dayIndex}] Debug info: duration=${duration}, suitableExercises.length=${suitableExercises.length}`
+      );
+      console.error(
+        `🚨 [Day ${dayIndex}] Math.floor(duration / 8) = ${Math.floor(duration / 8)}`
+      );
+    } else {
+      console.log(
+        `✅ [Day ${dayIndex}] exerciseCount is valid: ${exerciseCount}`
+      );
+    }
+
     const hasCompoundInfo = suitableExercises.some((ex) => {
       const localEx = convertToLocalFormat(ex);
       return Object.prototype.hasOwnProperty.call(localEx, "isCompound");

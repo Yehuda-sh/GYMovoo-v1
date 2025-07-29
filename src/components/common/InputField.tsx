@@ -1,3 +1,4 @@
+// src/components/common/InputField.tsx
 import React, { useState } from "react";
 import {
   View,
