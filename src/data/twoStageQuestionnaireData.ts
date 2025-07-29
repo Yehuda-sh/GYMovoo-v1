@@ -306,6 +306,16 @@ export function getProfileQuestions(): Question[] {
 export function hasCompletedTrainingStage(
   questionnaire: QuestionnaireAnswers | null | undefined
 ): boolean {
+  // אם יש פרופיל מדעי - השאלון הושלם
+  if (
+    questionnaire?.age_range ||
+    questionnaire?.primary_goal ||
+    questionnaire?.fitness_experience
+  ) {
+    console.log("✅ hasCompletedTrainingStage - פרופיל מדעי נמצא");
+    return true;
+  }
+
   const requiredFields: (keyof QuestionnaireAnswers)[] = [
     "age",
     "goal",
@@ -332,6 +342,12 @@ export function hasCompletedTrainingStage(
 export function hasCompletedProfileStage(
   questionnaire: QuestionnaireAnswers | null | undefined
 ): boolean {
+  // אם יש פרופיל מדעי עם מגדר - הפרופיל הושלם חלקית לפחות
+  if (questionnaire?.gender) {
+    console.log("✅ hasCompletedProfileStage - מגדר נמצא בפרופיל מדעי");
+    return true;
+  }
+
   const profileFields: (keyof QuestionnaireAnswers)[] = [
     "gender",
     "height",

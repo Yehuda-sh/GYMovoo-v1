@@ -46,6 +46,85 @@ import autoSaveService from "./services/autoSaveService";
 
 // Types
 import { Exercise, WorkoutData, Set } from "./types/workout.types";
+import { useUserStore } from "../../stores/userStore";
+
+// פונקציה לחישוב שיאים אישיים מהיסטוריית המשתמש
+const calculatePersonalRecords = (
+  user: any,
+  currentExercises: Exercise[]
+): number => {
+  if (!user?.activityHistory?.workouts) return 0;
+
+  let prCount = 0;
+  const workouts = user.activityHistory.workouts;
+
+  // עבור כל תרגיל נוכחי, בדוק אם יש שיא חדש
+  currentExercises.forEach((exercise) => {
+    const bestFromHistory = findBestPerformance(workouts, exercise.name);
+    const currentBest = findCurrentBest(exercise);
+
+    if (currentBest && bestFromHistory && currentBest > bestFromHistory) {
+      prCount++;
+    }
+  });
+
+  return prCount;
+};
+
+// פונקציה למציאת הביצוע הטוב ביותר בהיסטוריה
+const findBestPerformance = (workouts: any[], exerciseName: string): number => {
+  let best = 0;
+
+  workouts.forEach((workout) => {
+    if (workout.exercises) {
+      workout.exercises.forEach((ex: any) => {
+        if (ex.name === exerciseName || ex.exerciseName === exerciseName) {
+          const performance = calculatePerformanceScore(ex);
+          if (performance > best) {
+            best = performance;
+          }
+        }
+      });
+    }
+  });
+
+  return best;
+};
+
+// פונקציה למציאת הביצוע הטוב ביותר באימון הנוכחי
+const findCurrentBest = (exercise: Exercise): number => {
+  let best = 0;
+
+  exercise.sets.forEach((set) => {
+    if (set.completed && set.actualReps && set.actualWeight) {
+      const performance = set.actualWeight * set.actualReps;
+      if (performance > best) {
+        best = performance;
+      }
+    }
+  });
+
+  return best;
+};
+
+// פונקציה לחישוב ציון ביצוע (משקל * חזרות)
+const calculatePerformanceScore = (exercise: any): number => {
+  if (exercise.sets && exercise.sets.length > 0) {
+    let maxScore = 0;
+    exercise.sets.forEach((set: any) => {
+      const score =
+        (set.weight || set.actualWeight || 0) *
+        (set.reps || set.actualReps || 0);
+      if (score > maxScore) {
+        maxScore = score;
+      }
+    });
+    return maxScore;
+  }
+
+  // אם אין sets, השתמש בערכים ישירים
+  return (exercise.weight || 0) * (exercise.reps || 0);
+};
 
 const initialExercises: Exercise[] = [
   {
@@ -209,6 +288,8 @@ const QuickWorkoutScreen: React.FC = () => {
     hasCompletedQuestionnaire,
     isInitialized,
   } = useUserPreferences();
+
+  const { user } = useUserStore();
 
   // מצב FAB
   const [fabVisible, setFabVisible] = useState(true);
@@ -780,7 +861,7 @@ const QuickWorkoutScreen: React.FC = () => {
           completedSets={stats.completedSets}
           totalSets={stats.totalSets}
           pace={stats.currentPace}
-          personalRecords={0} // TODO: calculate personal records
+          personalRecords={calculatePersonalRecords(user, exercises)}
           elapsedTime={formattedTime}
           onHide={toggleDashboard}
         />

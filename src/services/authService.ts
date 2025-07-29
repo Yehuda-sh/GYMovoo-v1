@@ -6,6 +6,8 @@
  * @notes כולל יצירת משתמשים רנדומליים לבדיקות
  */
 
+import { scientificUserGenerator } from "./scientificUserGenerator";
+
 // רשימות לגנרטור הרנדומלי
 // Lists for random generator
 const firstNamesEnglish = [
@@ -275,32 +277,43 @@ const generateRandomQuestionnaire = () => {
 };
 
 /**
- * מדמה התחברות Google עם שאלון מלא - רק לפיתוח!
- * Simulates Google Sign In with complete questionnaire - DEV ONLY!
+ * מדמה התחברות Google עם שאלון מלא מדעי - רק לפיתוח!
+ * Simulates Google Sign In with complete scientific questionnaire - DEV ONLY!
  */
 export const fakeGoogleSignInWithQuestionnaire = async () => {
-  console.log("🚀 DEV MODE: Generating user with completed questionnaire");
+  console.log(
+    "🚀 DEV MODE: Generating user with completed scientific questionnaire"
+  );
 
   // דימוי השהייה של שרת
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const randomUser = generateRandomUser();
-  const randomQuestionnaire = generateRandomQuestionnaire();
+  // השתמש במערכת החדשה
+  const fullScientificUser =
+    await scientificUserGenerator.generateFullScientificUser();
 
-  console.log("🎲 Random user with questionnaire:", randomUser.email);
-  console.log("📋 Generated questionnaire:", randomQuestionnaire);
+  console.log("🎲 Full scientific user generated:", {
+    email: fullScientificUser.email,
+    workouts: fullScientificUser.activityHistory.workouts.length,
+    totalVolume: fullScientificUser.currentStats.totalVolume,
+    streak: fullScientificUser.currentStats.currentStreak,
+    averageRating: fullScientificUser.currentStats.averageRating,
+  });
 
+  // החזר בפורמט הישן לתאימות
   return {
-    ...randomUser,
-    questionnaire: randomQuestionnaire,
-    questionnaireData: {
-      answers: randomQuestionnaire,
-      completedAt: new Date().toISOString(),
-      version: "1.0",
-      metadata: {
-        generatedRandomly: true,
-        devMode: true,
-      },
-    },
+    id: fullScientificUser.id,
+    name: fullScientificUser.name,
+    email: fullScientificUser.email,
+    avatar: fullScientificUser.avatar,
+    provider: fullScientificUser.provider,
+    questionnaire: fullScientificUser.questionnaireData.answers,
+    questionnaireData: fullScientificUser.questionnaireData,
+
+    // נתונים מתקדמים חדשים (אופציונלי)
+    scientificProfile: fullScientificUser.scientificProfile,
+    aiRecommendations: fullScientificUser.aiRecommendations,
+    activityHistory: fullScientificUser.activityHistory,
+    currentStats: fullScientificUser.currentStats,
   };
 };

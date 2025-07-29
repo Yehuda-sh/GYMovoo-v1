@@ -1,14 +1,14 @@
 /**
  * @file src/screens/workout/ActiveWorkoutScreen.tsx
- * @brief מסך אימון פעיל - Active Workout screen UI & mock data
- * @dependencies react-native, @react-navigation/native, theme
+ * @brief מסך אימון פעיל - מציג אימון בזמן אמת עם נתונים מתוך המערכת
+ * @dependencies react-native, @react-navigation/native, theme, userStore
  * @author GYMovoo
- * עברית: מסך דמו לאימון פעיל עם תצוגת סטים, היסטוריה, וניווט בסיסי.
- * English: Demo screen for active workout, includes sets, last performance, and basic navigation.
+ * עברית: מסך אימון פעיל עם תצוגת סטים, היסטוריה, וניווט על בסיס נתוני המשתמש.
+ * English: Active workout screen with sets, history, and navigation based on user data.
  */
 // cspell:ignore סקוואט
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,23 +16,91 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
+import { useUserStore } from "../../stores/userStore";
 
-// נתוני דמו
-// Mock data
-const MOCK_EXERCISE = {
-  name: "סקוואט",
-  sets: [
-    { number: 1, weight: 50, reps: 8 },
-    { number: 2, weight: 50, reps: 8 },
-    { number: 3, weight: 50, reps: 6 },
-  ],
-  lastPerformance: "8x50kg (2024-07-15)",
+// ממשק לתרגיל פעיל
+interface ActiveExercise {
+  name: string;
+  sets: Array<{
+    number: number;
+    weight: number;
+    reps: number;
+    completed?: boolean;
+  }>;
+  lastPerformance?: string;
+  instructions?: string[];
+}
+
+// פונקציה לקבלת נתוני התרגיל הפעיל
+const getActiveExercise = (
+  user: any,
+  exerciseName?: string
+): ActiveExercise => {
+  // אם יש שם תרגיל ספציפי, נחפש אותו בהיסטוריה
+  if (exerciseName && user?.activityHistory?.workouts) {
+    const recentWorkouts = user.activityHistory.workouts.slice(0, 5); // 5 אימונים אחרונים
+
+    for (const workout of recentWorkouts) {
+      if (workout.exercises) {
+        const exercise = workout.exercises.find(
+          (ex: any) =>
+            ex.name?.includes(exerciseName) ||
+            ex.exerciseName?.includes(exerciseName)
+        );
+
+        if (exercise) {
+          return {
+            name: exercise.name || exercise.exerciseName || exerciseName,
+            sets: exercise.sets || [
+              {
+                number: 1,
+                weight: exercise.weight || 50,
+                reps: exercise.reps || 8,
+              },
+              {
+                number: 2,
+                weight: exercise.weight || 50,
+                reps: exercise.reps || 8,
+              },
+              {
+                number: 3,
+                weight: exercise.weight || 50,
+                reps: exercise.reps || 6,
+              },
+            ],
+            lastPerformance: `${exercise.reps || 8}x${exercise.weight || 50}kg (${new Date(workout.date).toLocaleDateString("he-IL")})`,
+            instructions: exercise.instructions || [],
+          };
+        }
+      }
+    }
+  }
+
+  // נתוני דמו כגיבוי
+  return {
+    name: exerciseName || "סקוואט",
+    sets: [
+      { number: 1, weight: 50, reps: 8 },
+      { number: 2, weight: 50, reps: 8 },
+      { number: 3, weight: 50, reps: 6 },
+    ],
+    lastPerformance: "8x50kg (השבוע שעבר)",
+  };
 };
 
 export default function ActiveWorkoutScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { user } = useUserStore();
+  const [currentSet, setCurrentSet] = useState(0);
+
+  // קבלת שם התרגיל מה-route או ברירת מחדל
+  const exerciseName = (route.params as any)?.exerciseName;
+
+  // קבלת נתוני התרגיל הפעיל
+  const activeExercise = getActiveExercise(user, exerciseName);
 
   // מעבר לתרגיל הבא
   // Navigate to next exercise
@@ -55,13 +123,13 @@ export default function ActiveWorkoutScreen() {
       <Text style={styles.header}>אימון A - רגליים</Text>
 
       <View style={styles.exerciseCard}>
-        <Text style={styles.exerciseName}>{MOCK_EXERCISE.name}</Text>
+        <Text style={styles.exerciseName}>{activeExercise.name}</Text>
         <Text style={styles.lastPerf}>
-          תוצאה אחרונה: {MOCK_EXERCISE.lastPerformance}
+          תוצאה אחרונה: {activeExercise.lastPerformance}
         </Text>
 
         <FlatList
-          data={MOCK_EXERCISE.sets}
+          data={activeExercise.sets}
           keyExtractor={(item) => `set-${item.number}`}
           renderItem={({ item }) => (
             <View style={styles.setRow}>

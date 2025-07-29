@@ -48,10 +48,17 @@ export interface User {
   avatar?: string; // URL או נתיב מקומי / URL or local path
   provider?: string; // לדוגמה: "google", "facebook" וכו' / e.g., "google", "facebook" etc.
 
-  // נתוני השאלון
-  // Questionnaire data
+  // נתוני השאלון הישן (לתאימות לאחור)
+  // Old questionnaire data (for backward compatibility)
   questionnaire?: QuestionnaireAnswers; // לתאימות לאחור / for backward compatibility
   questionnaireData?: QuestionnaireData; // נתונים מורחבים / extended data
+
+  // נתונים מדעיים חדשים
+  // New scientific data
+  scientificProfile?: any; // יבוא מ-scientificUserGenerator
+  aiRecommendations?: any;
+  activityHistory?: any;
+  currentStats?: any;
 
   // העדפות משתמש
   // User preferences

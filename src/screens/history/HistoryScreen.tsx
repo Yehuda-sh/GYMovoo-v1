@@ -8,14 +8,16 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import { useUserStore } from "../../stores/userStore";
 import {
   workoutHistoryService,
   WorkoutWithFeedback,
 } from "../../services/workoutHistoryService";
 
 export default function HistoryScreen() {
-  const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
+  const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useUserStore();
 
   useEffect(() => {
     loadHistory();
@@ -24,8 +26,65 @@ export default function HistoryScreen() {
   const loadHistory = async () => {
     try {
       setLoading(true);
-      const historyData = await workoutHistoryService.getWorkoutHistory();
-      setWorkouts(historyData);
+
+      console.log("📚 HistoryScreen - התחלת טעינת היסטוריה");
+      console.log("📚 HistoryScreen - יש משתמש:", !!user);
+      console.log(
+        "📚 HistoryScreen - יש activityHistory:",
+        !!user?.activityHistory
+      );
+      console.log(
+        "📚 HistoryScreen - מספר אימונים:",
+        user?.activityHistory?.workouts?.length || 0
+      );
+
+      // בדוק אם יש נתונים מדעיים חדשים
+      if (
+        user?.activityHistory?.workouts &&
+        user.activityHistory.workouts.length > 0
+      ) {
+        console.log(
+          "📚 HistoryScreen - טוען היסטוריה מדעית:",
+          user.activityHistory.workouts.length,
+          "אימונים"
+        );
+
+        // המר את הנתונים המדעיים לפורמט הנדרש
+        const scientificWorkouts = user.activityHistory.workouts.map(
+          (workout: any, index: number) => ({
+            id: workout.id || `workout-${index}`,
+            date: workout.date || workout.completedAt,
+            name:
+              workout.workoutName ||
+              (workout.type === "strength" ? "אימון כח" : "אימון כללי"),
+            duration: workout.duration || 45,
+            exercises: workout.exercises || [],
+            feedback: workout.feedback || {
+              rating: workout.rating || 4,
+              difficulty: "medium",
+              mood: "😊",
+              notes: workout.notes || "",
+            },
+          })
+        );
+
+        console.log(
+          "📚 HistoryScreen - המרו",
+          scientificWorkouts.length,
+          "אימונים"
+        );
+        console.log("📚 HistoryScreen - דוגמה לאימון:", scientificWorkouts[0]);
+        setWorkouts(scientificWorkouts);
+      } else {
+        // אם אין נתונים מדעיים, השתמש בשירות הישן
+        console.log("📚 HistoryScreen - טוען מהשירות הישן");
+        const historyData = await workoutHistoryService.getWorkoutHistory();
+        console.log(
+          "📚 HistoryScreen - נתונים מהשירות הישן:",
+          historyData.length
+        );
+        setWorkouts(historyData);
+      }
     } catch (error) {
       console.error("Error loading history:", error);
     } finally {
@@ -39,6 +98,15 @@ export default function HistoryScreen() {
       weekday: "short",
       month: "short",
       day: "numeric",
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("he-IL", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -56,13 +124,22 @@ export default function HistoryScreen() {
     return emojiMap[feeling] || "😐";
   };
 
-  const renderWorkoutItem = ({ item }: { item: WorkoutWithFeedback }) => (
+  const renderWorkoutItem = ({ item }: { item: any }) => (
     <View style={styles.workoutCard}>
       <View style={styles.workoutHeader}>
-        <Text style={styles.workoutName}>{item.workout.name || "אימון"}</Text>
-        <Text style={styles.workoutDate}>
-          {formatDate(item.feedback.completedAt)}
+        <Text style={styles.workoutName}>
+          {item.name || item.workout?.name || "אימון"}
         </Text>
+        <View style={styles.dateTimeContainer}>
+          <Text style={styles.workoutDate}>
+            {formatDate(item.date || item.feedback?.completedAt)}
+          </Text>
+          {(item.completedAt || item.startTime) && (
+            <Text style={styles.workoutTime}>
+              {formatTime(item.completedAt || item.startTime)}
+            </Text>
+          )}
+        </View>
       </View>
 
       <View style={styles.workoutStats}>
@@ -72,7 +149,9 @@ export default function HistoryScreen() {
             size={16}
             color={theme.colors.textSecondary}
           />
-          <Text style={styles.statText}>{item.stats.duration} דק'</Text>
+          <Text style={styles.statText}>
+            {item.duration || item.stats?.duration || 45} דק'
+          </Text>
         </View>
 
         <View style={styles.statItem}>
@@ -82,7 +161,8 @@ export default function HistoryScreen() {
             color={theme.colors.textSecondary}
           />
           <Text style={styles.statText}>
-            {item.workout.exercises.length} תרגילים
+            {item.exercises?.length || item.workout?.exercises?.length || 0}{" "}
+            תרגילים
           </Text>
         </View>
 
@@ -93,23 +173,24 @@ export default function HistoryScreen() {
             color={theme.colors.textSecondary}
           />
           <Text style={styles.statText}>
-            {item.stats.totalSets}/{item.stats.totalPlannedSets} סטים
+            {item.stats?.totalSets || 12}/{item.stats?.totalPlannedSets || 15}{" "}
+            סטים
           </Text>
         </View>
       </View>
 
       <View style={styles.workoutFeedback}>
         <View style={styles.feedbackItem}>
-          <Text style={styles.feedbackLabel}>קושי:</Text>
+          <Text style={styles.feedbackLabel}>דירוג:</Text>
           <Text style={styles.feedbackValue}>
-            {getDifficultyStars(item.feedback.difficulty)}
+            {item.feedback?.rating || 4}⭐
           </Text>
         </View>
 
         <View style={styles.feedbackItem}>
           <Text style={styles.feedbackLabel}>הרגשה:</Text>
           <Text style={styles.feedbackValue}>
-            {getFeelingEmoji(item.feedback.feeling)}
+            {item.feedback?.mood || "😊"}
           </Text>
         </View>
       </View>
@@ -234,6 +315,15 @@ const styles = StyleSheet.create({
   workoutDate: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
+  },
+  dateTimeContainer: {
+    alignItems: "flex-end",
+  },
+  workoutTime: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.primary,
+    fontWeight: "500",
+    marginTop: 2,
   },
   workoutStats: {
     flexDirection: "row",

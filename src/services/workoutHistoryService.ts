@@ -24,6 +24,10 @@ export interface WorkoutWithFeedback {
     totalVolume: number;
     personalRecords: number;
   };
+  // זמנים מתקדמים
+  startTime?: string; // זמן התחלת האימון
+  endTime?: string; // זמן סיום האימון
+  actualStartTime?: string; // זמן התחלה אמיתי (יכול להיות שונה מהמתוכנן)
 }
 
 // טיפוס לביצועים קודמים (לתצוגה באימון הבא)
@@ -89,6 +93,42 @@ class WorkoutHistoryService {
     } catch (error) {
       console.error("Error saving workout to history:", error);
       throw error;
+    }
+  }
+
+  /**
+   * תיעוד זמן התחלת אימון
+   */
+  async recordWorkoutStart(workoutId: string): Promise<void> {
+    try {
+      const startTime = new Date().toISOString();
+      await AsyncStorage.setItem(`workout_start_${workoutId}`, startTime);
+      console.log(`🚀 Workout ${workoutId} started at ${startTime}`);
+    } catch (error) {
+      console.error("Error recording workout start time:", error);
+    }
+  }
+
+  /**
+   * קבלת זמן התחלת אימון
+   */
+  async getWorkoutStartTime(workoutId: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(`workout_start_${workoutId}`);
+    } catch (error) {
+      console.error("Error getting workout start time:", error);
+      return null;
+    }
+  }
+
+  /**
+   * מחיקת זמן התחלת אימון (אחרי שמירת האימון)
+   */
+  async clearWorkoutStartTime(workoutId: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(`workout_start_${workoutId}`);
+    } catch (error) {
+      console.error("Error clearing workout start time:", error);
     }
   }
 

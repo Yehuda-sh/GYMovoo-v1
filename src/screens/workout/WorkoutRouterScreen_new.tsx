@@ -20,8 +20,7 @@ export default function WorkoutRouterScreen() {
   const { user } = useUserStore();
 
   useEffect(() => {
-    console.log("📍 WorkoutRouter - redirecting to WorkoutPlans tab");
-    // נווט לטאב של תוכניות אימון במקום המסך הנוכחי
+    console.log("📍 WorkoutRouter - navigating to WorkoutPlans");
     (navigation as any).navigate("WorkoutPlans");
   }, [navigation]);
 
@@ -35,7 +34,7 @@ export default function WorkoutRouterScreen() {
           color={theme.colors.primary}
           style={styles.icon}
         />
-        <Text style={styles.loadingText}>עובר לתוכניות אימון...</Text>
+        <Text style={styles.loadingText}>טוען אימונים...</Text>
       </View>
     </View>
   );

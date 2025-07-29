@@ -6,7 +6,7 @@
  * @recurring_errors בעיות RTL בסידור אלמנטים, כיווניות לא נכונה ב-flexDirection
  */
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -53,8 +53,76 @@ type Achievement = {
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// דמו הישגים
-const ACHIEVEMENTS: Achievement[] = [
+// פונקציה לחישוב הישגים מהנתונים המדעיים
+const calculateAchievements = (user: any): Achievement[] => {
+  const achievements: Achievement[] = [
+    {
+      id: 1,
+      title: "מתחיל נלהב",
+      icon: "star",
+      color: "#FFD700",
+      unlocked: !!user?.scientificProfile, // אם יש פרופיל מדעי
+    },
+    {
+      id: 2,
+      title: "7 ימי רצף",
+      icon: "fire",
+      color: "#FF6347",
+      unlocked: false,
+    },
+    {
+      id: 3,
+      title: "30 אימונים",
+      icon: "medal",
+      color: "#C0C0C0",
+      unlocked: false,
+    },
+    {
+      id: 4,
+      title: "גיבור כושר",
+      icon: "trophy",
+      color: "#FFD700",
+      unlocked: false,
+    },
+  ];
+
+  // אם יש נתונים מדעיים, חשב הישגים אמיתיים
+  if (user?.activityHistory?.workouts) {
+    const workouts = user.activityHistory.workouts;
+    const workoutCount = workouts.length;
+
+    // 30 אימונים
+    if (workoutCount >= 30) {
+      achievements[2].unlocked = true;
+    }
+
+    // 7 ימי רצף - בדיקה פשוטה
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentWorkouts = workouts.filter(
+      (w: any) => new Date(w.date || w.completedAt) >= oneWeekAgo
+    );
+
+    if (recentWorkouts.length >= 5) {
+      // אם יש לפחות 5 אימונים בשבוע
+      achievements[1].unlocked = true;
+    }
+
+    // גיבור כושר - אם יש יותר מ-50 אימונים עם דירוג גבוה
+    const highRatedWorkouts = workouts.filter(
+      (w: any) => (w.feedback?.rating || w.rating || 0) >= 4
+    );
+
+    if (workoutCount >= 50 && highRatedWorkouts.length >= workoutCount * 0.8) {
+      achievements[3].unlocked = true;
+    }
+  }
+
+  return achievements;
+};
+
+// דמו הישגים מקוריים (גיבוי)
+const ORIGINAL_ACHIEVEMENTS: Achievement[] = [
   {
     id: 1,
     title: "מתחיל נלהב",
@@ -118,6 +186,9 @@ export default function ProfileScreen() {
   const hasTrainingStage = hasCompletedTrainingStage(user?.questionnaire);
   const hasProfileStage = hasCompletedProfileStage(user?.questionnaire);
   const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
+
+  // חישוב הישגים מהנתונים המדעיים
+  const achievements = useMemo(() => calculateAchievements(user), [user]);
 
   useEffect(() => {
     Animated.parallel([
@@ -196,15 +267,66 @@ export default function ProfileScreen() {
 
   const userInfo = getUserInfo();
 
-  // דמו סטטיסטיקות - נעדכן אחר כך ממקורות אמיתיים
-  const stats = {
-    workouts: user?.trainingStats?.totalWorkouts || 0,
-    streak: 12, // TODO: חישוב אמיתי של רצף
-    totalTime: "36h", // TODO: חישוב אמיתי של זמן
-    level: 5, // TODO: חישוב רמה על בסיס XP
-    xp: 2450,
-    nextLevelXp: 3000,
-  };
+  // חישוב סטטיסטיקות מהנתונים המדעיים
+  const stats = useMemo(() => {
+    if (user?.activityHistory?.workouts) {
+      const workouts = user.activityHistory.workouts;
+
+      // חישוב רצף
+      const now = new Date();
+      let streak = 0;
+      let checkDate = new Date(now);
+      const sortedWorkouts = [...workouts].sort(
+        (a, b) =>
+          new Date(b.date || b.completedAt).getTime() -
+          new Date(a.date || a.completedAt).getTime()
+      );
+
+      for (const workout of sortedWorkouts) {
+        const workoutDate = new Date(workout.date || workout.completedAt);
+        const diffDays = Math.floor(
+          (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (diffDays <= 2) {
+          streak++;
+          checkDate = workoutDate;
+        } else {
+          break;
+        }
+      }
+
+      // חישוב זמן כולל (בשעות)
+      const totalMinutes = workouts.reduce(
+        (sum: number, w: any) => sum + (w.duration || 45),
+        0
+      );
+      const totalHours = Math.floor(totalMinutes / 60);
+
+      // חישוב רמה (כל 20 אימונים = רמה)
+      const level = Math.floor(workouts.length / 20) + 1;
+      const xp = workouts.length * 50; // 50 XP לכל אימון
+      const nextLevelXp = level * 20 * 50;
+
+      return {
+        workouts: workouts.length,
+        streak,
+        totalTime: `${totalHours}h`,
+        level,
+        xp,
+        nextLevelXp,
+      };
+    }
+
+    // נתונים ברירת מחדל
+    return {
+      workouts: user?.trainingStats?.totalWorkouts || 0,
+      streak: 0,
+      totalTime: "0h",
+      level: 1,
+      xp: 0,
+      nextLevelXp: 1000,
+    };
+  }, [user]);
 
   const handleLogout = () => {
     Alert.alert("התנתקות", "האם אתה בטוח שברצונך להתנתק?", [
@@ -681,7 +803,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.achievementsGrid}>
-              {ACHIEVEMENTS.map((achievement) => (
+              {achievements.map((achievement: Achievement) => (
                 <View
                   key={achievement.id}
                   style={[
