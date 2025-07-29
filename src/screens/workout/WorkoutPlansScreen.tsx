@@ -1681,16 +1681,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    */
   const getAvailableEquipment = async (): Promise<string[]> => {
     try {
+      console.log("🔍 getAvailableEquipment - מתחיל לטעון ציוד...");
       const equipment = await questionnaireService.getAvailableEquipment();
+      console.log("🔍 getAvailableEquipment - ציוד שהתקבל:", equipment);
 
       // אם אין ציוד זמין, נחזיר ציוד דמה למטרות דיבוג
       if (!equipment || equipment.length === 0) {
+        console.log("⚠️ לא נמצא ציוד - משתמש בציוד דמה");
         return ["barbell", "dumbbells", "cable_machine", "bench"];
       }
 
+      console.log("✅ getAvailableEquipment - מחזיר ציוד:", equipment);
       return equipment;
     } catch (error) {
-      console.error("Error getting equipment:", error);
+      console.error("❌ Error getting equipment:", error);
       // החזר ציוד דמה במקרה של שגיאה
       return ["barbell", "dumbbells", "cable_machine", "bench"];
     }

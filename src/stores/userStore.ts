@@ -147,18 +147,45 @@ export const useUserStore = create<UserStore>()(
       setQuestionnaire: (answers) => {
         console.log("💾 userStore.setQuestionnaire נקרא עם:", answers);
 
+        // יצירת נתוני שאלון מורחבים
+        const questionnaireData = {
+          answers: answers,
+          metadata: {
+            completedAt: new Date().toISOString(),
+            version: "smart-questionnaire-v1",
+          },
+          completedAt: new Date().toISOString(),
+          version: "smart-questionnaire-v1",
+        };
+
+        console.log("💾 Creating questionnaireData:", questionnaireData);
+
         set((state) => ({
           user: {
             ...(state.user || {}),
             questionnaire: answers,
+            questionnaireData: questionnaireData, // 🔧 הוספת נתונים מורחבים
           },
         }));
 
         // שמירה גם ב-AsyncStorage הנפרד לתאימות
         // Also save in separate AsyncStorage for compatibility
         AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers))
-          .then(() => console.log("✅ נשמר ב-AsyncStorage"))
-          .catch((err) => console.error("❌ שגיאה בשמירה:", err));
+          .then(() =>
+            console.log("✅ questionnaire_answers נשמר ב-AsyncStorage")
+          )
+          .catch((err) =>
+            console.error("❌ שגיאה בשמירת questionnaire_answers:", err)
+          );
+
+        // שמירת המטאדאטה המורחבת
+        AsyncStorage.setItem("questionnaire_metadata", JSON.stringify(answers))
+          .then(() =>
+            console.log("✅ questionnaire_metadata נשמר ב-AsyncStorage")
+          )
+          .catch((err) =>
+            console.error("❌ שגיאה בשמירת questionnaire_metadata:", err)
+          );
       },
 
       // הגדרת נתוני שאלון מורחבים

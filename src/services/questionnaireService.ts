@@ -4,7 +4,15 @@
  * @brief Service for managing questionnaire data and selecting personalized workouts
  * @dependencies AsyncStorage, userStore
  * @notes שירות מרכזי לכל הפעולות הקשורות לנתוני השאלון
- * @notes Central service for all questionnaire data operations
+ * @notes Central service for all questionnaire       case "general_health":
+      case "שמירה על כושר":
+      case "fitness_maintenance":
+        recommendations.push(
+          this.createBalancedWorkout(duration, equipment, prefs),
+          this.createFunctionalWorkout(duration, equipment, prefs),
+          this.createMobilityWorkout(duration, equipment, prefs)
+        );
+        break;erations
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -100,10 +108,37 @@ class QuestionnaireService {
    */
   async getUserPreferences(): Promise<QuestionnaireMetadata | null> {
     try {
+      console.log("🔍 getUserPreferences - מתחיל...");
       // בדוק קודם אם יש משתמש חדש ב-userStore
       const user = useUserStore.getState().user;
+      console.log("🔍 user from userStore:", user);
+
       // אם יש נתונים חדשים ב-userStore, תן להם עדיפות תמיד
+      if (user?.questionnaire) {
+        console.log("🔍 נמצא questionnaire ב-userStore:", user.questionnaire);
+
+        // יצירת metadata מלא מהשאלון
+        const fullMetadata = {
+          // העתק את כל הנתונים מהשאלון
+          ...user.questionnaire,
+          // וודא שיש completedAt
+          completedAt:
+            user.questionnaireData?.completedAt || new Date().toISOString(),
+          version: user.questionnaireData?.version || "smart-questionnaire-v1",
+        };
+
+        console.log("🔍 fullMetadata שנוצר מהשאלון:", fullMetadata);
+        // שמור את הנתונים בפורמט החדש (יחליף את הישנים)
+        await this.saveQuestionnaireData(fullMetadata);
+        return fullMetadata;
+      }
+
+      // אם יש questionnaireData, השתמש בו
       if (user?.questionnaireData) {
+        console.log(
+          "🔍 נמצא questionnaireData ב-userStore:",
+          user.questionnaireData
+        );
         // יצירת metadata מלא עם completedAt
         const fullMetadata = {
           // נתונים מ-answers (השאלון האמיתי)
@@ -114,6 +149,7 @@ class QuestionnaireService {
           completedAt: user.questionnaireData.completedAt,
         };
 
+        console.log("🔍 fullMetadata שנוצר מ-questionnaireData:", fullMetadata);
         // שמור את הנתונים בפורמט החדש (יחליף את הישנים)
         await this.saveQuestionnaireData(fullMetadata);
         return fullMetadata;
@@ -163,21 +199,91 @@ class QuestionnaireService {
    * Get available equipment list
    */
   async getAvailableEquipment(): Promise<string[]> {
+    console.log("🔍 questionnaireService.getAvailableEquipment - מתחיל...");
     const prefs = await this.getUserPreferences();
+    console.log("🔍 prefs מתוך getUserPreferences:", prefs);
+
     const homeEquipment = prefs?.home_equipment || [];
     const gymEquipment = prefs?.gym_equipment || [];
+    console.log("🔍 homeEquipment:", homeEquipment);
+    console.log("🔍 gymEquipment:", gymEquipment);
 
     // 🔧 FIX: תמיכה במשתמש מדעי - בדיקת available_equipment
     // Support for scientific user - check available_equipment
     const availableEquipment = prefs?.available_equipment || [];
+    console.log("🔍 availableEquipment:", availableEquipment);
+
+    // 🆕 תמיכה בשאלות ציוד דינמיות חדשות
+    // Support for new dynamic equipment questions
+    const dynamicEquipment =
+      QuestionnaireService.extractEquipmentFromQuestionnaire(prefs);
+    console.log("🔍 dynamicEquipment:", dynamicEquipment);
 
     // מיזוג רשימות ללא כפילויות
     // Merge lists without duplicates
     const mergedEquipment = [
-      ...new Set([...homeEquipment, ...gymEquipment, ...availableEquipment]),
+      ...new Set([
+        ...homeEquipment,
+        ...gymEquipment,
+        ...availableEquipment,
+        ...dynamicEquipment,
+      ]),
     ];
 
+    console.log("🔍 mergedEquipment final:", mergedEquipment);
     return mergedEquipment;
+  }
+
+  /**
+   * חילוץ ציוד מהשאלות הדינמיות החדשות
+   * Extract equipment from new dynamic questions
+   */
+  private static extractExperienceFromQuestionnaire(prefs: any): string {
+    // תמיכה בפורמט החדש - מחפש בדינמיים
+    // Support new format - search in dynamic questions
+    if (prefs.dynamicQuestions) {
+      const experienceQuestion = prefs.dynamicQuestions.find(
+        (q: any) => q.questionId === "experience"
+      );
+      if (experienceQuestion && experienceQuestion.answer) {
+        return experienceQuestion.answer;
+      }
+    }
+
+    // תמיכה לאחור בפורמט הישן
+    // Backward compatibility with old format
+    return prefs.experience || "מתחיל";
+  }
+
+  private static extractEquipmentFromQuestionnaire(prefs: any): string[] {
+    console.log("🔍 extractEquipmentFromQuestionnaire - prefs:", prefs);
+    const equipment: string[] = [];
+
+    // שאלות ציוד דינמיות חדשות - מעודכן!
+    const dynamicQuestions = [
+      "bodyweight_equipment_options", // ציוד ביתי בסיסי
+      "home_equipment_options", // ציוד ביתי מתקדם
+      "gym_equipment_options", // ציוד חדר כושר
+    ];
+
+    dynamicQuestions.forEach((questionId) => {
+      const answer = prefs?.[questionId];
+      console.log(`🔍 בדיקת ${questionId}:`, answer);
+      if (Array.isArray(answer)) {
+        answer.forEach((option: any) => {
+          console.log(`🔍 אפשרות:`, option);
+          if (option?.metadata?.equipment) {
+            console.log(`🔍 מוסיף ציוד:`, option.metadata.equipment);
+            equipment.push(...option.metadata.equipment);
+          }
+        });
+      }
+    });
+
+    console.log("🔍 ציוד שנמצא לפני הסינון:", equipment);
+    const result = [...new Set(equipment)]; // ללא כפילויות
+    console.log("🔍 ציוד סופי אחרי הסינון:", result);
+    return result;
   }
 
   /**
@@ -186,11 +292,18 @@ class QuestionnaireService {
    */
   async getPreferredDuration(): Promise<number> {
     const prefs = await this.getUserPreferences();
-    const duration = prefs?.duration || "45-60 דקות";
+    const duration = prefs?.duration || "45-60-min";
 
-    // המרה לדקות
-    // Convert to minutes
+    // המרה לדקות - תמיכה בפורמטים ישנים וחדשים
+    // Convert to minutes - support old and new formats
     const durationMap: { [key: string]: number } = {
+      // פורמט חדש
+      "20-30-min": 25,
+      "30-45-min": 37,
+      "45-60-min": 52,
+      "60-90-min": 75,
+      "90-plus-min": 105,
+      // פורמט ישן (לתמיכה לאחור)
       "20-30 דקות": 25,
       "30-45 דקות": 37,
       "45-60 דקות": 52,
@@ -230,10 +343,11 @@ class QuestionnaireService {
     const equipment = await this.getAvailableEquipment();
     const duration = await this.getPreferredDuration();
 
-    // המלצות לפי מטרה
-    // Recommendations by goal
+    // המלצות לפי מטרה - תמיכה בפורמטים ישנים וחדשים
+    // Recommendations by goal - support old and new formats
     switch (prefs.goal) {
       case "ירידה במשקל":
+      case "weight_loss":
         recommendations.push(
           this.createCardioWorkout(duration, equipment, prefs),
           this.createHIITWorkout(Math.min(duration, 30), equipment, prefs),
@@ -242,6 +356,7 @@ class QuestionnaireService {
         break;
 
       case "עליה במסת שריר":
+      case "muscle_gain":
         recommendations.push(
           this.createUpperBodyWorkout(duration, equipment, prefs),
           this.createLowerBodyWorkout(duration, equipment, prefs),
@@ -250,6 +365,7 @@ class QuestionnaireService {
         break;
 
       case "שיפור כוח":
+      case "strength_improvement":
         recommendations.push(
           this.createStrengthWorkout(duration, equipment, prefs),
           this.createPowerWorkout(duration, equipment, prefs),
@@ -258,6 +374,7 @@ class QuestionnaireService {
         break;
 
       case "שיפור סיבולת":
+      case "endurance_improvement":
         recommendations.push(
           this.createEnduranceWorkout(duration, equipment, prefs),
           this.createCardioWorkout(duration, equipment, prefs),
@@ -266,6 +383,7 @@ class QuestionnaireService {
         break;
 
       case "בריאות כללית":
+      case "general_health":
         recommendations.push(
           this.createFullBodyWorkout(duration, equipment, prefs),
           this.createFunctionalWorkout(duration, equipment, prefs),

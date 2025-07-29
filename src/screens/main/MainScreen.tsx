@@ -28,6 +28,8 @@ export default function MainScreen() {
   const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
 
+  console.log("🔥 MainScreen נטען עם כפתור דמו חדש!");
+
   // אנימציות
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -86,6 +88,146 @@ export default function MainScreen() {
     (navigation as any).navigate("WorkoutPlans");
   };
 
+  // פונקציה ליצירת נתוני דמו רנדומליים
+  const handleDemoRandomize = () => {
+    console.log("🎲 יצירת נתוני דמו רנדומליים...");
+    console.log("🎲 הפונקציה handleDemoRandomize נקראה!");
+
+    try {
+      // מערכי אפשרויות לבחירה רנדומלית
+      const ages = ["18-25", "26-35", "36-45", "46-55", "55-plus"];
+      const goals = [
+        "weight_loss",
+        "muscle_gain",
+        "strength_improvement",
+        "endurance_improvement",
+        "general_health",
+        "fitness_maintenance",
+      ];
+      const experiences = [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "expert",
+        "competitive",
+      ];
+      const frequencies = [
+        "2-times",
+        "3-times",
+        "4-times",
+        "5-times",
+        "6-plus-times",
+      ];
+      const durations = [
+        "20-30-min",
+        "30-45-min",
+        "45-60-min",
+        "60-90-min",
+        "90-plus-min",
+      ];
+
+      console.log("🎲 מערכי נתונים נוצרו");
+
+      // ציוד אפשרי
+      const bodyweightOptions = [
+        { id: "bodyweight_only", metadata: { equipment: ["bodyweight"] } },
+        { id: "mat_available", metadata: { equipment: ["mat"] } },
+        { id: "chair_available", metadata: { equipment: ["chair"] } },
+        { id: "wall_space", metadata: { equipment: ["wall"] } },
+        { id: "stairs_available", metadata: { equipment: ["stairs"] } },
+      ];
+
+      const homeOptions = [
+        { id: "dumbbells_home", metadata: { equipment: ["dumbbells"] } },
+        {
+          id: "resistance_bands",
+          metadata: { equipment: ["resistance_bands"] },
+        },
+        { id: "kettlebell_home", metadata: { equipment: ["kettlebell"] } },
+        { id: "pullup_bar", metadata: { equipment: ["pullup_bar"] } },
+        { id: "exercise_ball", metadata: { equipment: ["exercise_ball"] } },
+      ];
+
+      const gymOptions = [
+        {
+          id: "free_weights_gym",
+          metadata: { equipment: ["dumbbells", "barbell"] },
+        },
+        { id: "squat_rack_gym", metadata: { equipment: ["squat_rack"] } },
+        { id: "bench_press_gym", metadata: { equipment: ["bench_press"] } },
+        { id: "cable_machine_gym", metadata: { equipment: ["cable_machine"] } },
+        {
+          id: "cardio_machines_gym",
+          metadata: { equipment: ["treadmill", "elliptical"] },
+        },
+      ];
+
+      console.log("🎲 ציוד נוצר");
+
+      // בחירה רנדומלית
+      const randomAge = ages[Math.floor(Math.random() * ages.length)];
+      const randomGoal = goals[Math.floor(Math.random() * goals.length)];
+      const randomExperience =
+        experiences[Math.floor(Math.random() * experiences.length)];
+      const randomFrequency =
+        frequencies[Math.floor(Math.random() * frequencies.length)];
+      const randomDuration =
+        durations[Math.floor(Math.random() * durations.length)];
+
+      console.log("🎲 נתונים רנדומליים נבחרו:", {
+        randomAge,
+        randomGoal,
+        randomExperience,
+      });
+
+      // בחירה רנדומלית של ציוד (1-3 פריטים מכל קטגוריה)
+      const selectedBodyweight = bodyweightOptions.slice(
+        0,
+        Math.floor(Math.random() * 3) + 1
+      );
+      const selectedHome = homeOptions.slice(
+        0,
+        Math.floor(Math.random() * 3) + 1
+      );
+      const selectedGym = gymOptions.slice(
+        0,
+        Math.floor(Math.random() * 3) + 1
+      );
+
+      console.log("🎲 ציוד נבחר:", {
+        selectedBodyweight,
+        selectedHome,
+        selectedGym,
+      });
+
+      // יצירת נתוני שאלון חדשים
+      const newQuestionnaireData = {
+        age: { id: randomAge, label: randomAge },
+        goal: { id: randomGoal, label: randomGoal },
+        experience: { id: randomExperience, label: randomExperience },
+        frequency: { id: randomFrequency, label: randomFrequency },
+        duration: { id: randomDuration, label: randomDuration },
+        bodyweight_equipment_options: selectedBodyweight,
+        home_equipment_options: selectedHome,
+        gym_equipment_options: selectedGym,
+        available_equipment: [
+          ...selectedBodyweight.flatMap((item) => item.metadata.equipment),
+          ...selectedHome.flatMap((item) => item.metadata.equipment),
+          ...selectedGym.flatMap((item) => item.metadata.equipment),
+        ],
+      };
+
+      console.log("🎲 נתוני דמו חדשים:", newQuestionnaireData);
+
+      // עדכון ה-store
+      console.log("🎲 מעדכן את ה-store...");
+      useUserStore.getState().setQuestionnaire(newQuestionnaireData);
+      console.log("✅ נתוני השאלון עודכנו באופן רנדומלי!");
+    } catch (error) {
+      console.error("❌ שגיאה בפונקציית הדמו:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -123,6 +265,15 @@ export default function MainScreen() {
                 <Text style={styles.profileInitials}>
                   {displayName.charAt(0).toUpperCase()}
                 </Text>
+              </TouchableOpacity>
+
+              {/* כפתור דמו לשינוי תוצאות השאלון */}
+              <TouchableOpacity
+                style={styles.demoButton}
+                onPress={handleDemoRandomize}
+              >
+                <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
+                <Text style={styles.demoText}>דמו</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1033,5 +1184,28 @@ const styles = StyleSheet.create({
     flex: 1,
     writingDirection: "rtl",
     lineHeight: 16,
+  },
+
+  // סטיילים לכפתור הדמו
+  demoButton: {
+    backgroundColor: theme.colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  demoText: {
+    fontSize: 10,
+    color: theme.colors.surface,
+    fontFamily: "Heebo-Bold",
+    marginTop: 2,
   },
 });

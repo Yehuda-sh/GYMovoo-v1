@@ -29,14 +29,17 @@
 
 #### 🆕 תכונות חדשות (יולי 2025)
 
+- **מערכת שאלון חכמה מתקדמת** - 6-7 שאלות דינמיות עם בחירה מרובה
+- **מאגר ציוד מקיף** - מעל 100 פריטי ציוד מקטלגים (בית, חדר כושר, שניהם)
+- **סינכרון מושלם** - מסך הפרופיל מתעדכן אוטומטית עם הציוד הנבחר
+- **מערכת דמו לבדיקות** - כפתור דמו במסך הראשי לבדיקת תרחישים שונים
+- **שאלות דינמיות** - השאלון מתאים את עצמו לפי התשובות הקודמות
 - **מסך סיום אימון משופר** - תצוגת סיכום מקיפה עם שיאים אישיים
 - **זיהוי שיאים בזמן אמת** - המערכת מזהה שיאי משקל, נפח וחזרות אוטומטית
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
-- **מערכת שיאים אישיים מלאה** - מעקב אחר כל השיפורים וההישגים
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
 - **שירותים חדשים** - workoutHistoryService, workoutSimulationService, scientificAIService ועוד
-- **UI/UX משופר** - עיצוב מותאם למובייל עם תמיכת RTL מלאה
 
 ## 🚀 התחלה מהירה
 
@@ -62,13 +65,21 @@ npm install
 yarn install
 
 # הפעל את האפליקציה בפיתוח
-npm start
-# או במפורש:
 npx expo start
 
-# הפעל עם development build (אם קיים)
-npm run start:dev-client
+# הפעל עם ניקוי קאש (אם יש בעיות)
+npx expo start --clear
+
+# הפעל במצב תונל (אם יש בעיות רשת)
+npx expo start --tunnel
 ```
+
+### ⚠️ הערות חשובות להפעלה
+
+- **השתמש רק ב-`npx expo start`** - זו הפקודה הנכונה לפרויקט Expo
+- **אל תשתמש ב-`npm run start`** - זה עלול לגרום לבעיות
+- אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הקאש
+- במקרה של בעיות רשת, השתמש ב-`--tunnel`
 
 ### הרצה במכשיר
 

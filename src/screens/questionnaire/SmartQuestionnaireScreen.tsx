@@ -224,6 +224,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<SmartOption | null>(
     null
   );
+  const [selectedOptions, setSelectedOptions] = useState<SmartOption[]>([]); // לבחירות מרובות
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isAnswering, setIsAnswering] = useState(false);
@@ -236,17 +237,70 @@ const SmartQuestionnaireScreen: React.FC = () => {
     const question = manager.getCurrentQuestion();
     setCurrentQuestion(question);
     setSelectedOption(null);
+    setSelectedOptions([]); // נקה בחירות מרובות
   };
 
   const handleOptionSelect = async (option: SmartOption) => {
     if (isAnswering) return;
 
-    setSelectedOption(option);
+    // אם זה שאלה עם בחירה אחת - עבור ישירות
+    if (currentQuestion?.type === "single") {
+      setSelectedOption(option);
+      setIsAnswering(true);
+
+      // המתן קצר לאנימציה
+      setTimeout(() => {
+        const feedback = manager.answerQuestion(currentQuestion!.id, option);
+
+        if (feedback) {
+          setAiFeedback(feedback);
+          setShowFeedback(true);
+        }
+
+        // המשך לשאלה הבאה אחרי המשוב
+        setTimeout(() => {
+          const hasNextQuestion = manager.nextQuestion();
+
+          if (hasNextQuestion) {
+            loadCurrentQuestion();
+          } else {
+            completeQuestionnaire();
+          }
+
+          setIsAnswering(false);
+        }, 3000); // 3 שניות להצגת המשוב
+      }, 500);
+    }
+    // אם זה שאלה עם בחירות מרובות - הוסף/הסר מהרשימה
+    else if (currentQuestion?.type === "multiple") {
+      const isAlreadySelected = selectedOptions.some(
+        (opt) => opt.id === option.id
+      );
+
+      if (isAlreadySelected) {
+        // הסר מהבחירה
+        setSelectedOptions((prev) =>
+          prev.filter((opt) => opt.id !== option.id)
+        );
+      } else {
+        // הוסף לבחירה
+        setSelectedOptions((prev) => [...prev, option]);
+      }
+    }
+  };
+
+  // פונקציה חדשה לטיפול בכפתור "הבא" בשאלות מרובות
+  const handleMultipleNext = async () => {
+    if (selectedOptions.length === 0 || isAnswering) return;
+
     setIsAnswering(true);
 
     // המתן קצר לאנימציה
     setTimeout(() => {
-      const feedback = manager.answerQuestion(currentQuestion!.id, option);
+      const feedback = manager.answerQuestion(
+        currentQuestion!.id,
+        selectedOptions
+      );
 
       if (feedback) {
         setAiFeedback(feedback);
@@ -339,15 +393,42 @@ const SmartQuestionnaireScreen: React.FC = () => {
 
         {/* אפשרויות */}
         <View style={styles.optionsContainer}>
-          {currentQuestion.options?.map((option, index) => (
-            <SmartOptionComponent
-              key={option.id}
-              option={option}
-              isSelected={selectedOption?.id === option.id}
-              onSelect={() => handleOptionSelect(option)}
-            />
-          ))}
+          {currentQuestion.options?.map((option, index) => {
+            const isSelected =
+              currentQuestion.type === "single"
+                ? selectedOption?.id === option.id
+                : selectedOptions.some((opt) => opt.id === option.id);
+
+            return (
+              <SmartOptionComponent
+                key={option.id}
+                option={option}
+                isSelected={isSelected}
+                onSelect={() => handleOptionSelect(option)}
+              />
+            );
+          })}
         </View>
+
+        {/* כפתור הבא לשאלות מרובות */}
+        {currentQuestion.type === "multiple" && selectedOptions.length > 0 && (
+          <View style={styles.nextButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.nextButton,
+                isAnswering && styles.nextButtonDisabled,
+              ]}
+              onPress={handleMultipleNext}
+              disabled={isAnswering}
+            >
+              <Text style={styles.nextButtonText}>
+                {isAnswering
+                  ? "מעבד..."
+                  : `הבא (${selectedOptions.length} נבחרו)`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* רווח תחתון */}
         <View style={styles.bottomSpacer} />
@@ -630,6 +711,35 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: 50,
+  },
+
+  // סטיילים לכפתור הבא
+  nextButtonContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginTop: 16,
+  },
+  nextButton: {
+    backgroundColor: "#4CAF50",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  nextButtonDisabled: {
+    backgroundColor: "#9E9E9E",
+    shadowColor: "#9E9E9E",
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "right",
   },
 });
 

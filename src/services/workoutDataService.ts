@@ -704,10 +704,18 @@ export class WorkoutDataService {
    * בדיקה אם ניתן לבצע קרדיו
    */
   private static canDoCardio(equipment: string[]): boolean {
-    const cardioEquipment = ["treadmill", "bike", "rowing_machine", "none"];
+    const cardioEquipment = [
+      "treadmill",
+      "bike",
+      "rowing_machine",
+      "stairs", // ✅ מדרגות לקרדיו
+      "none",
+      "bodyweight", // ✅ רק משקל גוף
+    ];
     return (
       equipment.some((eq) => cardioEquipment.includes(eq)) ||
-      equipment.includes("none")
+      equipment.includes("none") ||
+      equipment.length === 0 // אם אין ציוד - תמיד אפשר קרדיו עם משקל גוף
     );
   }
 
@@ -720,11 +728,17 @@ export class WorkoutDataService {
       "barbell",
       "kettlebell",
       "resistance_bands",
+      "chair", // ✅ כיסא לתרגילי כח
+      "wall", // ✅ קיר לדחיפות
+      "water_bottles", // ✅ בקבוקי מים כמשקולות
+      "towel", // ✅ מגבת להתנגדות
       "none",
+      "bodyweight", // ✅ רק משקל גוף
     ];
     return (
       equipment.some((eq) => strengthEquipment.includes(eq)) ||
-      equipment.includes("none")
+      equipment.includes("none") ||
+      equipment.length === 0 // אם אין ציוד - תמיד אפשר כח עם משקל גוף
     );
   }
 
@@ -732,10 +746,23 @@ export class WorkoutDataService {
    * בדיקה אם ניתן לבצע אימון פונקציונלי
    */
   private static canDoFunctional(equipment: string[]): boolean {
-    const functionalEquipment = ["trx", "yoga_mat", "foam_roller", "none"];
+    const functionalEquipment = [
+      "trx",
+      "yoga_mat",
+      "foam_roller",
+      "mat", // ✅ מזרון ליוגה ואימונים פונקציונליים
+      "pillow", // ✅ כרית ליציבות
+      "chair", // ✅ כיסא לאימונים פונקציונליים
+      "wall", // ✅ קיר לתמיכה
+      "towel", // ✅ מגבת למתיחות
+      "stairs", // ✅ מדרגות לאימון פונקציונלי
+      "none",
+      "bodyweight", // ✅ רק משקל גוף
+    ];
     return (
       equipment.some((eq) => functionalEquipment.includes(eq)) ||
-      equipment.includes("none")
+      equipment.includes("none") ||
+      equipment.length === 0 // אם אין ציוד - תמיד אפשר אימון פונקציונלי
     );
   }
 

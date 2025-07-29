@@ -244,6 +244,52 @@ export default function ProfileScreen() {
   }, [user?.avatar]);
 
   // חישוב מידע נוסף מהשאלון
+  // פונקציה להמרת מזהים לטקסטים בעברית
+  const formatQuestionnaireValue = (key: string, value: string): string => {
+    if (value === "לא צוין" || !value) return "לא צוין";
+
+    const translations: Record<string, Record<string, string>> = {
+      age: {
+        "18-25": "18-25",
+        "26-35": "26-35",
+        "36-45": "36-45",
+        "46-55": "46-55",
+        "56+": "56+",
+      },
+      goal: {
+        weight_loss: "ירידה במשקל",
+        muscle_gain: "עליה במסת שריר",
+        strength_improvement: "שיפור כוח",
+        endurance_improvement: "שיפור סיבולת",
+        general_health: "בריאות כללית",
+        injury_rehab: "שיקום מפציעה",
+      },
+      experience: {
+        beginner: "מתחיל (0-6 חודשים)",
+        intermediate: "בינוני (6-24 חודשים)",
+        advanced: "מתקדם (2-5 שנים)",
+        expert: "מקצועי (5+ שנים)",
+        athlete: "ספורטאי תחרותי",
+      },
+      frequency: {
+        "2-times": "2 פעמים בשבוע",
+        "3-times": "3 פעמים בשבוע",
+        "4-times": "4 פעמים בשבוע",
+        "5-times": "5 פעמים בשבוע",
+        "6-7-times": "6-7 פעמים בשבוע",
+      },
+      duration: {
+        "20-30-min": "20-30 דקות",
+        "30-45-min": "30-45 דקות",
+        "45-60-min": "45-60 דקות",
+        "60-90-min": "60-90 דקות",
+        "90-plus-min": "90+ דקות",
+      },
+    };
+
+    return translations[key]?.[value] || value;
+  };
+
   const getUserInfo = () => {
     const questionnaire = (user?.questionnaire || {}) as Record<
       string,
@@ -251,9 +297,20 @@ export default function ProfileScreen() {
     >;
 
     return {
-      age: (questionnaire.age as string) || "לא צוין",
-      goal: (questionnaire.goal as string) || "לא צוין",
-      experience: (questionnaire.experience as string) || "לא צוין",
+      age: formatQuestionnaireValue("age", questionnaire.age as string),
+      goal: formatQuestionnaireValue("goal", questionnaire.goal as string),
+      experience: formatQuestionnaireValue(
+        "experience",
+        questionnaire.experience as string
+      ),
+      frequency: formatQuestionnaireValue(
+        "frequency",
+        questionnaire.frequency as string
+      ),
+      duration: formatQuestionnaireValue(
+        "duration",
+        questionnaire.duration as string
+      ),
       location:
         questionnaire.location === "home"
           ? "אימונים בבית"
@@ -581,6 +638,28 @@ export default function ProfileScreen() {
                   <Text style={styles.infoLabel}>ניסיון</Text>
                   <Text style={styles.infoValue}>{userInfo.experience}</Text>
                 </View>
+                {userInfo.frequency !== "לא צוין" && (
+                  <View style={styles.infoItem}>
+                    <MaterialCommunityIcons
+                      name="calendar-week"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.infoLabel}>תדירות</Text>
+                    <Text style={styles.infoValue}>{userInfo.frequency}</Text>
+                  </View>
+                )}
+                {userInfo.duration !== "לא צוין" && (
+                  <View style={styles.infoItem}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.infoLabel}>משך אימון</Text>
+                    <Text style={styles.infoValue}>{userInfo.duration}</Text>
+                  </View>
+                )}
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons
                     name="map-marker"
@@ -681,48 +760,76 @@ export default function ProfileScreen() {
                 contentContainerStyle={styles.equipmentScrollContent}
               >
                 {(() => {
-                  // חילוץ הציוד מהשאלון - תמיכה בפורמטים שונים
-                  const questionnaire: Record<string, string[]> =
-                    user.questionnaire as Record<string, string[]>;
+                  // חילוץ הציוד מהשאלון החדש - תמיכה בשאלון החכם המעודכן
+                  const questionnaire: Record<string, any> =
+                    user.questionnaire as Record<string, any>;
 
-                  // ניסיון לחלץ ציוד בשני הפורמטים
-                  let homeEquipment: string[] = [];
-                  let gymEquipment: string[] = [];
+                  let allEquipment: string[] = [];
 
-                  // פורמט חדש עם מפתחות string
-                  if (questionnaire?.home_equipment) {
-                    homeEquipment = Array.isArray(questionnaire.home_equipment)
-                      ? questionnaire.home_equipment
-                      : [];
-                  }
-                  if (questionnaire?.gym_equipment) {
-                    gymEquipment = Array.isArray(questionnaire.gym_equipment)
-                      ? questionnaire.gym_equipment
-                      : [];
-                  }
-
-                  // פורמט ישן עם מפתחות מספריים (נסיון לחילוץ מהשדות 10 ו-11)
-                  if (homeEquipment.length === 0 && questionnaire[10]) {
-                    homeEquipment = Array.isArray(questionnaire[10])
-                      ? questionnaire[10]
-                      : [];
-                  }
-                  if (gymEquipment.length === 0 && questionnaire[11]) {
-                    gymEquipment = Array.isArray(questionnaire[11])
-                      ? questionnaire[11]
-                      : [];
-                  }
-
-                  const allEquipment = [
-                    ...new Set([...homeEquipment, ...gymEquipment]),
+                  // 🆕 השיטה החדשה - ציוד מהשאלות הדינמיות
+                  const dynamicQuestions = [
+                    "bodyweight_equipment_options", // ציוד ביתי בסיסי
+                    "home_equipment_options", // ציוד ביתי מתקדם
+                    "gym_equipment_options", // ציוד חדר כושר
                   ];
+
+                  dynamicQuestions.forEach((questionId) => {
+                    const answer = questionnaire?.[questionId];
+                    if (Array.isArray(answer)) {
+                      answer.forEach((option: any) => {
+                        if (option?.metadata?.equipment) {
+                          allEquipment.push(...option.metadata.equipment);
+                        }
+                      });
+                    }
+                  });
+
+                  // 🔧 תמיכה בשדה available_equipment החדש
+                  if (
+                    questionnaire?.available_equipment &&
+                    Array.isArray(questionnaire.available_equipment)
+                  ) {
+                    allEquipment.push(...questionnaire.available_equipment);
+                  }
+
+                  // 🔧 תמיכה לאחור - פורמטים ישנים
+                  if (allEquipment.length === 0) {
+                    // פורמט רגיל
+                    if (questionnaire?.home_equipment) {
+                      const homeEq = Array.isArray(questionnaire.home_equipment)
+                        ? questionnaire.home_equipment
+                        : [];
+                      allEquipment.push(...homeEq);
+                    }
+                    if (questionnaire?.gym_equipment) {
+                      const gymEq = Array.isArray(questionnaire.gym_equipment)
+                        ? questionnaire.gym_equipment
+                        : [];
+                      allEquipment.push(...gymEq);
+                    }
+
+                    // פורמט ישן עם מספרים
+                    if (allEquipment.length === 0 && questionnaire[10]) {
+                      const oldHomeEq = Array.isArray(questionnaire[10])
+                        ? questionnaire[10]
+                        : [];
+                      allEquipment.push(...oldHomeEq);
+                    }
+                    if (allEquipment.length === 0 && questionnaire[11]) {
+                      const oldGymEq = Array.isArray(questionnaire[11])
+                        ? questionnaire[11]
+                        : [];
+                      allEquipment.push(...oldGymEq);
+                    }
+                  }
+
+                  // הסרת כפילויות
+                  allEquipment = [...new Set(allEquipment)];
 
                   // דיבוג ציוד
                   console.log("🔧 ProfileScreen - ציוד נמצא:", {
-                    homeEquipment,
-                    gymEquipment,
                     allEquipment,
-                    questionnaire,
+                    dynamicQuestions,
                   });
 
                   if (allEquipment.length === 0) {
@@ -743,9 +850,13 @@ export default function ProfileScreen() {
 
                   return allEquipment
                     .map((equipmentId: string) => {
+                      // חיפוש ישיר לפי השם מהשאלון
                       const equipment = ALL_EQUIPMENT.find(
                         (eq) => eq.id === equipmentId
                       );
+
+                      console.log(`🔧 מחפש ציוד: ${equipmentId}`, equipment);
+
                       if (!equipment) return null;
 
                       return (

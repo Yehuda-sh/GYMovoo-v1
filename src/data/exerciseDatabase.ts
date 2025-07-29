@@ -242,6 +242,90 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
     difficulty: "beginner",
   },
 
+  // משקל גוף
+  {
+    id: "superman",
+    name: "סופרמן",
+    category: "גב",
+    primaryMuscles: ["גב", "גב תחתון"],
+    secondaryMuscles: ["ישבן"],
+    equipment: "bodyweight",
+    difficulty: "beginner",
+    instructions: [
+      "שכב על הבטן עם הידיים מושטות קדימה",
+      "הרם בו זמנית את החזה והרגליים מהרצפה",
+      "החזק לכמה שניות ורד באיטיות",
+    ],
+    tips: ["התמקד בכיווץ שרירי הגב", "אל תמתח יותר מדי את הצוואר"],
+  },
+  {
+    id: "reverse_plank",
+    name: "פלאנק הפוך",
+    category: "גב",
+    primaryMuscles: ["גב", "גב תחתון"],
+    secondaryMuscles: ["ישבן", "אחורי ירך"],
+    equipment: "bodyweight",
+    difficulty: "intermediate",
+    instructions: [
+      "שב עם הרגליים מושטות והידיים מאחורה",
+      "הרם את האגן ויצור קו ישר מראש ועד רגליים",
+      "החזק את התנוחה כמה שיותר זמן",
+    ],
+  },
+  {
+    id: "prone_y_raises",
+    name: "הרמות Y בשכיבה",
+    category: "גב",
+    primaryMuscles: ["גב עליון", "כתפיים"],
+    equipment: "bodyweight",
+    difficulty: "beginner",
+    instructions: [
+      "שכב על הבטן עם הידיים יוצרות צורת Y",
+      "הרם את הידיים והחזה מהרצפה",
+      "החזק וחזור לתנוחת התחלה",
+    ],
+  },
+  {
+    id: "prone_t_raises",
+    name: "הרמות T בשכיבה",
+    category: "גב",
+    primaryMuscles: ["גב עליון", "כתפיים אחוריות"],
+    equipment: "bodyweight",
+    difficulty: "beginner",
+    instructions: [
+      "שכב על הבטן עם הידיים לצדדים ברמת הכתפיים",
+      "הרם את הידיים והחזה מהרצפה",
+      "סחוט את לוחות הכתף יחד",
+    ],
+  },
+  {
+    id: "wall_handstand_hold",
+    name: "עמידת ידיים על קיר",
+    category: "גב",
+    primaryMuscles: ["גב", "כתפיים"],
+    secondaryMuscles: ["core", "ידיים"],
+    equipment: "bodyweight",
+    difficulty: "advanced",
+    instructions: [
+      "התחל במצב פלאנק מול קיר",
+      "הלך עם הרגליים על הקיר למעלה",
+      "החזק את עמידת הידיים כמה שיותר זמן",
+    ],
+  },
+  {
+    id: "bridge_reverse_flies",
+    name: "פרפר הפוך בגשר",
+    category: "גב",
+    primaryMuscles: ["גב עליון", "כתפיים אחוריות"],
+    equipment: "bodyweight",
+    difficulty: "intermediate",
+    instructions: [
+      "שכב על הגב בתנוחת גשר (ברכיים כפופות)",
+      "הרם את הזרועות לצדדים כמו פרפר",
+      "סחוט את לוחות הכתף",
+    ],
+  },
+
   // ========== תרגילי רגליים ==========
   // Leg exercises
 

@@ -1,22 +1,13 @@
 /**
  * @file src/data/smartQuestionnaireData.ts
- * @brief שאלון חכם מאוחד עם משוב AI בזמן אמת
- * @description האבולוציה הבאה של מערכת השאלונים - שאלון אחד חכם עם AI
- * @author AI Assistant
- * @date 2025-07-29
+ * @brief שאלון דינמי חדש עם ציוד מסודר (מוחלף!)
+ * @date 2025-01-28
  */
 
 import { ImageSourcePropType } from "react-native";
 
 // טיפוסים בסיסיים
-export type SmartQuestionType =
-  | "single"
-  | "multiple"
-  | "slider"
-  | "location_equipment"
-  | "time_preference"
-  | "goal_focused"
-  | "experience_assessment";
+export type SmartQuestionType = "single" | "multiple";
 
 // ממשק למשוב AI
 export interface AIFeedback {
@@ -29,7 +20,7 @@ export interface AIFeedback {
   };
 }
 
-// ממשק לאפשרות מתקדמת
+// ממשק לאפשרות
 export interface SmartOption {
   id: string;
   label: string;
@@ -37,16 +28,11 @@ export interface SmartOption {
   image?: ImageSourcePropType;
   metadata?: {
     equipment?: string[];
-    intensity?: "low" | "medium" | "high" | "adaptive" | "varied";
-    focus?: string[];
-    recommendation?: string;
-    modifications?: string[];
-    style?: string[];
   };
-  aiInsight?: string; // תובנה מיוחדת מה-AI
+  aiInsight?: string;
 }
 
-// ממשק לשאלה חכמה
+// ממשק לשאלה
 export interface SmartQuestion {
   id: string;
   title: string;
@@ -54,667 +40,735 @@ export interface SmartQuestion {
   question: string;
   type: SmartQuestionType;
   icon: string;
-  category: "essential" | "optimization" | "personalization";
-
-  // אפשרויות
+  category: "essential";
   options?: SmartOption[];
-
-  // הגדרות מיוחדות
-  settings?: {
-    min?: number;
-    max?: number;
-    step?: number;
-    unit?: string;
-  };
-
-  // לוגיקה של AI
-  aiLogic: {
-    generateFeedback: (answer: any, previousAnswers: any) => AIFeedback;
-    influenceNextQuestions?: (answer: any) => string[]; // אילו שאלות להציג הבא
-    generateRecommendations?: (answer: any, previousAnswers: any) => string[];
-  };
-
-  // מתי להציג את השאלה
-  showCondition?: (previousAnswers: any) => boolean;
-
   required: boolean;
   helpText?: string;
+
+  aiLogic: {
+    generateFeedback: (answer: any, previousAnswers: any) => AIFeedback;
+    influenceNextQuestions?: (answer: any) => string[];
+  };
 }
 
-// פונקציות עזר למשוב AI חכם
+// פונקציות עזר למשוב AI
 const AIFeedbackGenerator = {
-  // משוב חיובי כללי
-  positive: (message: string, insight?: string): AIFeedback => ({
+  positive: (message: string): AIFeedback => ({
     message,
     type: "positive",
     icon: "✨",
-    ...(insight && { actionable: { text: insight, action: () => {} } }),
   }),
 
-  // הצעה לשיפור
-  suggestion: (message: string, actionText?: string): AIFeedback => ({
+  suggestion: (message: string): AIFeedback => ({
     message,
     type: "suggestion",
     icon: "💡",
-    ...(actionText && { actionable: { text: actionText, action: () => {} } }),
   }),
 
-  // תובנה מעמיקה
   insight: (message: string): AIFeedback => ({
     message,
     type: "insight",
     icon: "🎯",
   }),
-
-  // אזהרה עדינה
-  warning: (message: string): AIFeedback => ({
-    message,
-    type: "warning",
-    icon: "⚠️",
-  }),
 };
 
-// 🎯 השאלות החכמות החדשות
+// השאלות החדשות - מוחלפות!
 export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
-  // שאלה 1: מיקום וציוד חכם
+  // שאלה 1 - גיל
   {
-    id: "location_equipment",
-    title: "איפה תתאמן?",
-    subtitle: "בואי נמצא את המקום המושלם בשבילך",
-    question: "איפה אתה מעדיף להתאמן?",
-    type: "location_equipment",
+    id: "age",
+    title: "כמה אתה בן/בת?",
+    subtitle: "הגיל עוזר לנו להתאים את התוכנית בצורה מיטבית",
+    question: "מה הגיל שלך?",
+    type: "single",
+    icon: "👤",
+    category: "essential",
+    required: true,
+
+    options: [
+      {
+        id: "18-25",
+        label: "18-25",
+        description: "צעיר ומלא אנרגיה",
+        aiInsight: "גיל מעולה להתחיל בניית הרגלים בריאים!",
+      },
+      {
+        id: "26-35",
+        label: "26-35",
+        description: "בשיא הכוחות",
+        aiInsight: "הגיל המושלם לאימונים אינטנסיביים!",
+      },
+      {
+        id: "36-45",
+        label: "36-45",
+        description: "ניסיון חיים + מוטיבציה",
+        aiInsight: "שילוב מושלם של ניסיון ומוטיבציה!",
+      },
+      {
+        id: "46-55",
+        label: "46-55",
+        description: "בוגר ומנוסה",
+        aiInsight: "הגיל הטוב ביותר לאימונים חכמים ומדוקדקים!",
+      },
+      {
+        id: "56+",
+        label: "56+",
+        description: "חכם ופעיל",
+        aiInsight: "כל הכבוד! אימונים בגיל הזה הם השקעה בעתיד!",
+      },
+    ],
+
+    aiLogic: {
+      generateFeedback: (answer) => {
+        const option = answer as SmartOption;
+        return AIFeedbackGenerator.positive(option.aiInsight || "בחירה מעולה!");
+      },
+    },
+
+    helpText: "הגיל מאפשר לנו להתאים את עצימות האימונים",
+  },
+
+  // שאלה 2 - מטרה
+  {
+    id: "goal",
+    title: "מה המטרה שלך?",
+    subtitle: "המטרה הראשית תקבע את כיוון התוכנית",
+    question: "מה המטרה העיקרית שלך מאימונים?",
+    type: "single",
+    icon: "🎯",
+    category: "essential",
+    required: true,
+
+    options: [
+      {
+        id: "weight_loss",
+        label: "ירידה במשקל",
+        description: "שריפת קלוריות ושיפור הרכב הגוף",
+        aiInsight: "נתמקד באימונים שורפי קלוריות עם קרדיו ו-HIIT!",
+      },
+      {
+        id: "muscle_gain",
+        label: "עליה במסת שריר",
+        description: "בניית שרירים וחיזוק הגוף",
+        aiInsight: "נבנה תוכנית כוח מתקדמת עם דגש על צמיחת שרירים!",
+      },
+      {
+        id: "strength_improvement",
+        label: "שיפור כוח",
+        description: "הגברת כוח ויכולת פיזית",
+        aiInsight: "נתמקד בתרגילים מורכבים ובהעלאת משקולות!",
+      },
+      {
+        id: "endurance_improvement",
+        label: "שיפור סיבולת",
+        description: "הגברת סיבולת לב-ריאה ושרירית",
+        aiInsight: "נבנה תוכנית סיבולת עם אימוני קרדיו מתקדמים!",
+      },
+      {
+        id: "general_health",
+        label: "בריאות כללית",
+        description: "שמירה על כושר ובריאות טובה",
+        aiInsight: "נשלב את כל סוגי האימונים לבריאות מיטבית!",
+      },
+      {
+        id: "injury_rehab",
+        label: "שיקום מפציעה",
+        description: "החלמה והתחזקות אחרי פציעה",
+        aiInsight: "נתמקד באימונים עדינים ובשיקום מתקדם!",
+      },
+    ],
+
+    aiLogic: {
+      generateFeedback: (answer) => {
+        const option = answer as SmartOption;
+        return AIFeedbackGenerator.insight(option.aiInsight || "מטרה ברורה!");
+      },
+    },
+
+    helpText: "המטרה תקבע את סוג האימונים והתרגילים",
+  },
+
+  // שאלה 3 - רמת ניסיון
+  {
+    id: "experience",
+    title: "מה רמת הניסיון שלך?",
+    subtitle: "נתאים את רמת הקושי בהתאם לניסיון שלך",
+    question: "כמה ניסיון יש לך באימונים?",
+    type: "single",
+    icon: "⭐",
+    category: "essential",
+    required: true,
+
+    options: [
+      {
+        id: "beginner",
+        label: "מתחיל (0-6 חודשים)",
+        description: "חדש לעולם האימונים",
+        aiInsight: "נתחיל בעדינות ונבנה בסיס חזק!",
+      },
+      {
+        id: "intermediate",
+        label: "בינוני (6-24 חודשים)",
+        description: "יש לי קצת ניסיון",
+        aiInsight: "זמן לקחת את זה לשלב הבא!",
+      },
+      {
+        id: "advanced",
+        label: "מתקדם (2-5 שנים)",
+        description: "מאמן בקביעות כבר כמה שנים",
+        aiInsight: "אתה מוכן לאתגרים מתקדמים!",
+      },
+      {
+        id: "expert",
+        label: "מקצועי (5+ שנים)",
+        description: "ניסיון רב ויידע מעמיק",
+        aiInsight: "בואו ניצור משהו מאתגר ומותאם אישית!",
+      },
+      {
+        id: "athlete",
+        label: "ספורטאי תחרותי",
+        description: "אימונים ברמה תחרותית",
+        aiInsight: "נבנה תוכנית ברמה פרו לביצועים מקסימליים!",
+      },
+    ],
+
+    aiLogic: {
+      generateFeedback: (answer) => {
+        const option = answer as SmartOption;
+        return AIFeedbackGenerator.positive(option.aiInsight || "מעולה!");
+      },
+    },
+
+    helpText: "רמת הניסיון תקבע את עצימות ומורכבות האימונים",
+  },
+
+  // שאלה 4 - תדירות
+  {
+    id: "frequency",
+    title: "כמה פעמים בשבוע תרצה להתאמן?",
+    subtitle: "תדירות האימונים חשובה לבניית תוכנית מתאימה",
+    question: "כמה פעמים בשבוע אתה יכול להתאמן?",
+    type: "single",
+    icon: "📅",
+    category: "essential",
+    required: true,
+
+    options: [
+      {
+        id: "2-times",
+        label: "2 פעמים בשבוע",
+        description: "אימונים קצרים ויעילים",
+        aiInsight: "נמקסם כל אימון עם תרגילים מורכבים!",
+      },
+      {
+        id: "3-times",
+        label: "3 פעמים בשבוע",
+        description: "קצב נוח ויעיל",
+        aiInsight: "הקצב המושלם להתחלה וקידום!",
+      },
+      {
+        id: "4-times",
+        label: "4 פעמים בשבוע",
+        description: "מחויבות גבוהה לכושר",
+        aiInsight: "נוכל לפצל ולהתמחות בקבוצות שרירים!",
+      },
+      {
+        id: "5-times",
+        label: "5 פעמים בשבוע",
+        description: "האימונים הם חלק מהשגרה",
+        aiInsight: "רמת מחויבות מרשימה! נבנה תוכנית מתקדמת!",
+      },
+      {
+        id: "6-7-times",
+        label: "6-7 פעמים בשבוע",
+        description: "אימונים הם אורח חיים",
+        aiInsight: "אורח חיים של אתלטים! נוסיף גיוון ומנוחה חכמה!",
+      },
+    ],
+
+    aiLogic: {
+      generateFeedback: (answer) => {
+        const option = answer as SmartOption;
+        return AIFeedbackGenerator.positive(option.aiInsight || "בחירה חכמה!");
+      },
+    },
+
+    helpText: "התדירות תקבע את פיצול האימונים",
+  },
+
+  // שאלה 5 - משך אימון
+  {
+    id: "duration",
+    title: "כמה זמן יש לך לאימון?",
+    subtitle: "משך האימון יקבע את תכנון התרגילים",
+    question: "כמה זמן אתה יכול להקדיש לאימון?",
+    type: "single",
+    icon: "⏱️",
+    category: "essential",
+    required: true,
+
+    options: [
+      {
+        id: "20-30-min",
+        label: "20-30 דקות",
+        description: "אימון קצר ויעיל",
+        aiInsight: "נמקסם כל דקה עם אימוני HIIT אינטנסיביים!",
+      },
+      {
+        id: "30-45-min",
+        label: "30-45 דקות",
+        description: "זמן נוח לאימון מלא",
+        aiInsight: "הזמן המושלם לאימון מקיף ויעיל!",
+      },
+      {
+        id: "45-60-min",
+        label: "45-60 דקות",
+        description: "אימון מפורט ויסודי",
+        aiInsight: "זמן מעולה לפיתוח כל קבוצות השרירים!",
+      },
+      {
+        id: "60-90-min",
+        label: "60-90 דקות",
+        description: "אימון ארוך ומעמיק",
+        aiInsight: "זמן רב לבניית כוח ומסת שריר מתקדמת!",
+      },
+      {
+        id: "90-plus-min",
+        label: "90+ דקות",
+        description: "אימון מקצועי מורחב",
+        aiInsight: "זמן לאימונים ברמת אתלטים מקצועיים!",
+      },
+    ],
+
+    aiLogic: {
+      generateFeedback: (answer) => {
+        const option = answer as SmartOption;
+        return AIFeedbackGenerator.suggestion(
+          option.aiInsight || "בחירה מעולה!"
+        );
+      },
+    },
+
+    helpText: "משך האימון יקבע את מספר התרגילים והסטים",
+  },
+
+  // שאלה ראשית - איזה ציוד זמין
+  {
+    id: "equipment_availability",
+    title: "איזה ציוד זמין לך לאימונים?",
+    subtitle: "בחר את המצב שהכי מתאים לך",
+    question: "איזה ציוד יש לך לאימונים?",
+    type: "single",
     icon: "🏋️",
     category: "essential",
     required: true,
 
     options: [
       {
-        id: "home_no_equipment",
-        label: "בבית - ללא ציוד",
-        description: "אימוני משקל גוף יעילים",
-        metadata: {
-          equipment: ["bodyweight"],
-          intensity: "medium",
-          focus: ["flexibility", "endurance"],
-        },
-        aiInsight: "מושלם למתחילים! אימוני משקל גוף יכולים להיות מאוד יעילים",
+        id: "no_equipment",
+        label: "ללא ציוד (בבית עם חפצים בסיסיים)",
+        description: "משקל גוף + מזרון + כיסא + חפצים ביתיים",
+        aiInsight:
+          "אימונים עם משקל גוף וחפצים ביתיים יכולים להיות סופר יעילים!",
       },
       {
-        id: "home_basic",
-        label: "בבית - ציוד בסיסי",
-        description: "דאמבלס, מזרן, גומיות",
-        metadata: {
-          equipment: ["dumbbells", "yoga_mat", "resistance_bands"],
-          intensity: "medium",
-          focus: ["strength", "flexibility"],
-        },
-        aiInsight: "שילוב מעולה של נוחות וגמישות באימונים",
+        id: "home_equipment",
+        label: "יש לי ציוד בבית",
+        description: "דמבלים, גומיות, או ציוד ביתי אחר",
+        aiInsight: "ציוד ביתי פותח הרבה אפשרויות לאימונים מגוונים!",
       },
       {
-        id: "home_advanced",
-        label: "בבית - חדר כושר ביתי",
-        description: "ציוד מלא כמו בחדר כושר",
-        metadata: {
-          equipment: ["barbell", "dumbbells", "bench", "squat_rack"],
-          intensity: "high",
-          focus: ["strength", "muscle_building"],
-        },
-        aiInsight: "יש לך הכל! נוכל לבנות תוכניות מתקדמות מאוד",
-      },
-      {
-        id: "gym_standard",
-        label: "חדר כושר",
-        description: "גישה לכל הציוד והמכונות",
-        metadata: {
-          equipment: ["all_equipment"],
-          intensity: "high",
-          focus: ["variety", "progression"],
-        },
-        aiInsight: "אפשרויות אינסופיות! נוכל ליצור תוכניות מגוונות ומאתגרות",
+        id: "gym_access",
+        label: "יש לי גישה לחדר כושר",
+        description: "מנוי בחדר כושר עם ציוד מקצועי",
+        aiInsight: "חדר כושר נותן גישה לציוד מקצועי ואפשרויות אינסופיות!",
       },
     ],
 
     aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
+      generateFeedback: (answer) => {
         const option = answer as SmartOption;
-
-        if (option.id === "home_no_equipment") {
-          return AIFeedbackGenerator.positive(
-            "בחירה מעולה! אימוני משקל גוף יכולים להיות יעילים מאוד",
-            "רבים מהחזקים בעולם התחילו עם שכיבות סמיכה פשוטות"
-          );
-        }
-
-        if (option.id === "gym_standard") {
-          return AIFeedbackGenerator.insight(
-            "מגוון הציוד בחדר הכושר יאפשר לנו ליצור תוכניות מגוונות ומרגשות!"
-          );
-        }
-
-        return AIFeedbackGenerator.positive(
-          `${option.aiInsight}`,
-          "נתאים את התוכנית בדיוק לציוד שיש לך"
-        );
+        return AIFeedbackGenerator.positive(option.aiInsight || "בחירה מעולה!");
       },
 
       influenceNextQuestions: (answer) => {
-        // כרגע לא מוסיפים שאלות נוספות - כל השאלות החיוניות כבר נכללות
-        // בעתיד נוכל להוסיף כאן לוגיקה לשאלות דינמיות
-        return [];
+        const option = answer as SmartOption;
+
+        switch (option?.id) {
+          case "no_equipment":
+            return ["bodyweight_equipment_options"];
+          case "home_equipment":
+            return ["home_equipment_options"];
+          case "gym_access":
+            return ["gym_equipment_options"];
+          default:
+            return [];
+        }
       },
     },
 
-    helpText: "הבחירה הזו תשפיע על כל התוכנית שלך",
+    helpText: "זה יקבע איזה שאלות תקבל הבא",
   },
 
-  // שאלה 2: מטרה חכמה עם AI
+  // ========== אימונים ללא ציוד (עם חפצים ביתיים) ==========
   {
-    id: "smart_goal",
-    title: "מה המטרה שלך?",
-    subtitle: "בואי נמקד בדיוק במה שחשוב לך",
-    question: "מה הכי חשוב לך להשיג?",
-    type: "goal_focused",
-    icon: "🎯",
+    id: "bodyweight_equipment_options",
+    title: "איזה חפצים יש לך בבית?",
+    subtitle: "בחר את מה שזמין לך לאימונים עם משקל גוף",
+    question: "איזה חפצים בסיסיים יש לك בבית?",
+    type: "multiple",
+    icon: "🏠",
     category: "essential",
     required: true,
 
     options: [
       {
-        id: "lose_weight",
-        label: "לרדת במשקל",
-        description: "שריפת שומנים וירידה במשקל",
-        metadata: {
-          intensity: "medium",
-          focus: ["cardio", "strength", "nutrition"],
-        },
-        aiInsight: "שילוב של קרדיו וכוח + תזונה נכונה = הצלחה מובטחת!",
+        id: "bodyweight_only",
+        label: "רק משקל גוף",
+        description: "אין חפצים נוספים",
+        image: require("../../assets/bodyweight.png"),
+        metadata: { equipment: ["bodyweight"] },
+        aiInsight: "הבסיס הכי טבעי!",
       },
       {
-        id: "build_muscle",
-        label: "לבנות שרירים",
-        description: "עליה במסת שריר וכוח",
-        metadata: {
-          intensity: "high",
-          focus: ["strength", "hypertrophy", "nutrition"],
-        },
-        aiInsight: "בניית שרירים דורשת עקביות - אבל התוצאות משלמות!",
+        id: "mat_available",
+        label: "מזרון/שטיח",
+        description: "לתרגילי רצפה נוחים",
+        image: require("../../assets/yoga_mat.png"),
+        metadata: { equipment: ["mat"] },
+        aiInsight: "נוחות לתרגילי ליבה!",
       },
       {
-        id: "get_fit",
-        label: "להיות בכושר",
-        description: "כושר כללי וחיוניות",
-        metadata: {
-          intensity: "medium",
-          focus: ["general_fitness", "endurance", "strength"],
-        },
-        aiInsight: "כושר כללי זה הבסיס לכל דבר טוב בחיים!",
+        id: "chair_available",
+        label: "כיסא יציב",
+        description: "לתרגילי דחיפה וכוח",
+        metadata: { equipment: ["chair"] },
+        aiInsight: "כיסא פותח הרבה אפשרויות!",
       },
       {
-        id: "feel_better",
-        label: "להרגיש טוב יותר",
-        description: "בריאות נפשית ופיזית",
-        metadata: {
-          intensity: "low",
-          focus: ["wellness", "mobility", "stress_relief"],
-        },
-        aiInsight: "הספורט הוא התרופה הטבעית הכי טובה לגוף ולנפש!",
+        id: "wall_space",
+        label: "קיר פנוי",
+        description: "לתרגילי קיר ומתיחות",
+        metadata: { equipment: ["wall"] },
+        aiInsight: "הקיר הוא הכלי הכי יציב!",
       },
       {
-        id: "get_strong",
-        label: "להיות חזק יותר",
-        description: "כוח ויכולת פונקציונלית",
-        metadata: {
-          intensity: "high",
-          focus: ["strength", "power", "functional"],
-        },
-        aiInsight: "כוח פונקציונלי ישפר את איכות החיים שלך בכל תחום!",
+        id: "stairs_available",
+        label: "מדרגות",
+        description: "לאימוני קרדיו וכוח רגליים",
+        metadata: { equipment: ["stairs"] },
+        aiInsight: "מדרגות = חדר כושר טבעי!",
+      },
+      {
+        id: "towel_available",
+        label: "מגבת",
+        description: "להתנגדות ומתיחות",
+        metadata: { equipment: ["towel"] },
+        aiInsight: "מגבת יכולה להיות גומית התנגדות!",
+      },
+      {
+        id: "water_bottles",
+        label: "בקבוקי מים מלאים",
+        description: "כמשקולות קלות",
+        metadata: { equipment: ["water_bottles"] },
+        aiInsight: "משקולות ביתיות מושלמות!",
+      },
+      {
+        id: "pillow_available",
+        label: "כרית",
+        description: "לתמיכה ותרגילי יציבות",
+        metadata: { equipment: ["pillow"] },
+        aiInsight: "תמיכה נוחה לתרגילים!",
+      },
+      {
+        id: "table_sturdy",
+        label: "שולחן חזק",
+        description: "לתרגילי שכיבה תמיכה",
+        metadata: { equipment: ["table"] },
+        aiInsight: "פלטפורמה מעולה לתרגילים!",
+      },
+      {
+        id: "backpack_heavy",
+        label: "תיק עם ספרים",
+        description: "להוספת משקל לתרגילים",
+        metadata: { equipment: ["weighted_backpack"] },
+        aiInsight: "משקל נוסף לאתגר גדול יותר!",
       },
     ],
 
     aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const option = answer as SmartOption;
+      generateFeedback: (answer) => {
+        const options = answer as SmartOption[];
+        const count = Array.isArray(options) ? options.length : 0;
 
-        if (option.id === "lose_weight") {
-          return AIFeedbackGenerator.positive(
-            "מטרה מעולה! נשלב אימוני כוח עם קרדיו לתוצאות מקסימליות",
-            "80% מהירידה במשקל מתחילה במטבח - נתן לך טיפים!"
-          );
-        }
-
-        if (option.id === "build_muscle") {
+        if (count === 0) {
+          return AIFeedbackGenerator.suggestion("בחר לפחות אפשרות אחת");
+        } else if (count >= 5) {
           return AIFeedbackGenerator.insight(
-            "בניית שרירים היא מסע מרגש! נמקד בתרגילים מורכבים ובהעמסה מתקדמת"
+            "מעולה! יש לך הרבה אפשרויות לאימונים מגוונים"
+          );
+        } else {
+          return AIFeedbackGenerator.positive(
+            "נהדר! נכין אימונים יצירתיים עם מה שיש לך"
           );
         }
-
-        return AIFeedbackGenerator.positive(
-          `${option.aiInsight}`,
-          "נתאים את התוכנית בדיוק למטרה שלך"
-        );
-      },
-
-      generateRecommendations: (answer, previousAnswers) => {
-        const option = answer as SmartOption;
-        if (option.id === "lose_weight") {
-          return [
-            "נתחיל עם 3-4 אימונים בשבוע",
-            "נשלב קרדיו וכוח באופן מיטבי",
-            "נתמקד בתזונה בריאה",
-          ];
-        }
-        return [];
       },
     },
 
-    helpText: "המטרה שלך תקבע את כל האסטרטגיה",
+    helpText: "חפצים ביתיים יכולים להפוך אימון רגיל לאימון מעניין ויעיל",
   },
 
-  // שאלה 3: ניסיון חכם
+  // ========== ציוד ביתי ==========
   {
-    id: "experience_smart",
-    title: "מה הניסיון שלך?",
-    subtitle: "נכיר אותך טוב יותר",
-    question: "איך תמדד את הניסיון שלך באימונים?",
-    type: "experience_assessment",
-    icon: "💪",
+    id: "home_equipment_options",
+    title: "איזה ציוד יש לך בבית?",
+    subtitle: "בחר כמה פריטים שרוצה - כל ציוד נוסף מרחיב אפשרויות!",
+    question: "איזה ציוד אימונים יש לך בבית? (ניתן לבחור מספר אפשרויות)",
+    type: "multiple",
+    icon: "🏠",
     category: "essential",
     required: true,
 
     options: [
       {
-        id: "complete_beginner",
-        label: "מתחיל לגמרי",
-        description: "חדש לעולם הספורט",
-        metadata: {
-          intensity: "low",
-          focus: ["basics", "form", "habit_building"],
-        },
-        aiInsight: "כולם התחילו איפשהו! נתמקד ביסודות החשובים",
+        id: "dumbbells_home",
+        label: "דמבלים",
+        description: "משקולות יד - קבועות או מתכווננות",
+        image: require("../../assets/dumbbells.png"),
+        metadata: { equipment: ["dumbbells"] },
+        aiInsight: "הציוד הכי גמיש לכוח!",
       },
       {
-        id: "some_experience",
-        label: "יש לי קצת ניסיון",
-        description: "התאמנתי בעבר או מתאמן מדי פעם",
-        metadata: { intensity: "medium", focus: ["progression", "technique"] },
-        aiInsight: "יש לך בסיס טוב! נבנה עליו ונשפר את הטכניקה",
+        id: "resistance_bands",
+        label: "גומיות התנגדות",
+        description: "רצועות אלסטיות להתנגדות משתנה",
+        image: require("../../assets/resistance_bands.png"),
+        metadata: { equipment: ["resistance_bands"] },
+        aiInsight: "קלות ויעילות מדהימה!",
       },
       {
-        id: "experienced",
-        label: "מנוסה",
-        description: "מתאמן בקביעות כבר תקופה",
-        metadata: { intensity: "high", focus: ["advanced", "specialization"] },
-        aiInsight: "מצוין! נוכל לעבוד על טכניקות מתקדמות",
+        id: "kettlebell_home",
+        label: "קטלבל",
+        description: "משקולת עם ידית לתרגילים דינמיים",
+        image: require("../../assets/kettlebell.png"),
+        metadata: { equipment: ["kettlebell"] },
+        aiInsight: "כוח + קרדיו בכלי אחד!",
       },
       {
-        id: "athlete",
-        label: "ספורטאי",
-        description: "רמה גבוהה או תחרותית",
-        metadata: {
-          intensity: "high",
-          focus: ["performance", "periodization"],
-        },
-        aiInsight: "רמה גבוהה! נמקד בביצועים ופריצת מגבלות",
+        id: "yoga_mat_home",
+        label: "מזרן יוגה",
+        description: "בסיס נוח לתרגילי רצפה",
+        image: require("../../assets/yoga_mat.png"),
+        metadata: { equipment: ["yoga_mat"] },
+        aiInsight: "בסיס חיוני לתרגילי ליבה!",
+      },
+      {
+        id: "pullup_bar",
+        label: "מוט מתח",
+        description: "מוט מתכוונן לדלת",
+        image: require("../../assets/pullup_bar.png"),
+        metadata: { equipment: ["pullup_bar"] },
+        aiInsight: "פותח עולם של תרגילי גב!",
+      },
+      {
+        id: "foam_roller",
+        label: "גלגל מסאז'",
+        description: "לשחרור שרירים והתאוששות",
+        image: require("../../assets/foam_roller.png"),
+        metadata: { equipment: ["foam_roller"] },
+        aiInsight: "התאוששות חכמה!",
+      },
+      {
+        id: "exercise_ball",
+        label: "כדור פיזיותרפיה",
+        description: "לתרגילי יציבות וליבה",
+        metadata: { equipment: ["exercise_ball"] },
+        aiInsight: "יציבות ואיזון מושלמים!",
+      },
+      {
+        id: "jump_rope",
+        label: "חבל קפיצה",
+        description: "לאימוני קרדיו מהירים",
+        metadata: { equipment: ["jump_rope"] },
+        aiInsight: "קרדיו יעיל בזמן קצר!",
+      },
+      {
+        id: "home_bench",
+        label: "ספסל אימונים",
+        description: "ספסל מתכוונן לבית",
+        image: require("../../assets/bench.png"),
+        metadata: { equipment: ["bench"] },
+        aiInsight: "פותח אפשרויות אינסופיות!",
+      },
+      {
+        id: "barbell_home",
+        label: "ברבל ביתי",
+        description: "מוט עם משקולות לבית",
+        image: require("../../assets/barbell.png"),
+        metadata: { equipment: ["barbell"] },
+        aiInsight: "רמה מקצועית בבית!",
       },
     ],
 
     aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const option = answer as SmartOption;
+      generateFeedback: (answer) => {
+        const options = answer as SmartOption[];
+        const count = Array.isArray(options) ? options.length : 0;
 
-        if (option.id === "complete_beginner") {
-          return AIFeedbackGenerator.positive(
-            "מושלם! המסע הכי מרגש מתחיל עכשיו",
-            "המשפט הכי חשוב: 'התחלה טובה היא חצי מההצלחה'"
-          );
-        }
-
-        if (option.id === "athlete") {
+        if (count === 0) {
+          return AIFeedbackGenerator.suggestion("בחר את הציוד הזמין לך");
+        } else if (count >= 6) {
           return AIFeedbackGenerator.insight(
-            "מרשים! נוכל ליצור תוכניות מתקדמות מאוד ומותאמות לביצועים"
+            "חדר כושר ביתי מלא! נוכל ליצור תוכניות מקצועיות"
+          );
+        } else {
+          return AIFeedbackGenerator.positive(
+            "מעולה! יש לך ציוד טוב לאימונים מגוונים"
           );
         }
-
-        return AIFeedbackGenerator.positive(
-          `${option.aiInsight}`,
-          "נתאים את רמת הקושי בדיוק לניסיון שלך"
-        );
       },
     },
 
-    helpText: "כנות פה חשובה - זה יקבע את רמת הקושי",
+    helpText: "בחר רק את הציוד שבאמת יש לך או שאתה מתכנן לקנות",
   },
 
-  // שאלה 4: זמן וזמינות חכמה
+  // ========== ציוד חדר כושר ==========
   {
-    id: "time_smart",
-    title: "כמה זמן יש לך?",
-    subtitle: "נמצא את הקצב המושלם בשבילך",
-    question: "כמה זמן אתה יכול להקדיש לאימון?",
-    type: "time_preference",
-    icon: "⏰",
+    id: "gym_equipment_options",
+    title: "איזה ציוד יש בחדר הכושר שלך?",
+    subtitle: "בחר את הציוד הזמין או שאתה הכי אוהב להשתמש בו",
+    question: "איזה ציוד זמין לך בחדר הכושר? (ניתן לבחור מספר אפשרויות)",
+    type: "multiple",
+    icon: "🏋️‍♂️",
     category: "essential",
     required: true,
 
     options: [
       {
-        id: "time_15_30",
-        label: "15-30 דקות",
-        description: "אימונים קצרים ויעילים",
-        metadata: { intensity: "high", focus: ["hiit", "express"] },
-        aiInsight: "אימונים קצרים יכולים להיות סופר יעילים עם הגישה הנכונה!",
+        id: "free_weights_gym",
+        label: "משקולות חופשיות",
+        description: "דמבלים וברבלים עם צלחות משקל",
+        image: require("../../assets/free_weights.png"),
+        metadata: { equipment: ["dumbbells", "barbell"] },
+        aiInsight: "הבסיס של אימוני כוח אמיתיים!",
       },
       {
-        id: "time_30_45",
-        label: "30-45 דקות",
-        description: "הזמן הסטנדרטי המומלץ",
-        metadata: { intensity: "medium", focus: ["balanced", "standard"] },
-        aiInsight: "הזמן המושלם! מספיק לאימון יסודי ולא יותר מדי",
+        id: "squat_rack_gym",
+        label: "מתקן סקוואט",
+        description: "מדף ברבל עם מגני בטיחות",
+        image: require("../../assets/squat_rack.png"),
+        metadata: { equipment: ["squat_rack"] },
+        aiInsight: "המלך של תרגילי הרגליים!",
       },
       {
-        id: "time_45_60",
-        label: "45-60 דקות",
-        description: "אימון מקיף ויסודי",
-        metadata: { intensity: "medium", focus: ["comprehensive", "detailed"] },
-        aiInsight: "נוכל ליצור אימונים מקיפים עם חימום וקירור מלאים",
+        id: "bench_press_gym",
+        label: "ספסל לחיצה",
+        description: "ספסל מתכוונן עם מדף ברבל",
+        image: require("../../assets/bench.png"),
+        metadata: { equipment: ["bench_press"] },
+        aiInsight: "חיוני לאימוני חזה מקצועיים!",
       },
       {
-        id: "time_flexible",
-        label: "זה משתנה",
-        description: "לפעמים יותר, לפעמים פחות",
-        metadata: { intensity: "adaptive", focus: ["flexible", "adaptive"] },
-        aiInsight: "נכין לך אפשרויות גמישות - אימון קצר ארוך לפי הצורך",
+        id: "cable_machine_gym",
+        label: "מכונת כבלים",
+        description: "מערכת פולי רב-תכליתית",
+        image: require("../../assets/cable_machine.png"),
+        metadata: { equipment: ["cable_machine"] },
+        aiInsight: "גמישות אינסופית לכל השרירים!",
+      },
+      {
+        id: "leg_press_gym",
+        label: "מכונת לג פרס",
+        description: "מכונה ללחיצת רגליים בישיבה",
+        image: require("../../assets/leg_press.png"),
+        metadata: { equipment: ["leg_press"] },
+        aiInsight: "כוח רגליים מקסימלי בבטיחות!",
+      },
+      {
+        id: "lat_pulldown_gym",
+        label: "מכונת לט פולדאון",
+        description: "משיכה למטה לשרירי הגב",
+        image: require("../../assets/lat_pulldown.png"),
+        metadata: { equipment: ["lat_pulldown"] },
+        aiInsight: "מושלמת לפיתוח גב רחב!",
+      },
+      {
+        id: "smith_machine_gym",
+        label: "מכונת סמית'",
+        description: "ברבל מונחה על מסילות בטוחות",
+        image: require("../../assets/smith_machine.png"),
+        metadata: { equipment: ["smith_machine"] },
+        aiInsight: "בטיחות מקסימלית עם עומסים כבדים!",
+      },
+      {
+        id: "cardio_machines_gym",
+        label: "מכונות קרדיו",
+        description: "הליכון, אליפטיקל, אופני כושר",
+        image: require("../../assets/treadmill.png"),
+        metadata: { equipment: ["treadmill", "elliptical"] },
+        aiInsight: "חיוני לחימום וקרדיו איכותי!",
+      },
+      {
+        id: "chest_press_gym",
+        label: "מכונת חזה",
+        description: "לחיצת חזה במכונה מונחית",
+        image: require("../../assets/chest_press.png"),
+        metadata: { equipment: ["chest_press"] },
+        aiInsight: "בטוחה ויעילה לפיתוח החזה!",
+      },
+      {
+        id: "rowing_machine_gym",
+        label: "מכונת חתירה",
+        description: "אימון גב וקרדיו משולב",
+        image: require("../../assets/rowing_machine.png"),
+        metadata: { equipment: ["rowing_machine"] },
+        aiInsight: "אימון מלא לכל הגוף בתנועה אחת!",
       },
     ],
 
     aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const option = answer as SmartOption;
+      generateFeedback: (answer) => {
+        const options = answer as SmartOption[];
+        const count = Array.isArray(options) ? options.length : 0;
 
-        if (option.id === "time_15_30") {
-          return AIFeedbackGenerator.positive(
-            "מעולה! אימונים קצרים ויעילים יכולים להיות מאוד יעילים",
-            "HIIT של 20 דקות יכול לשרוף יותר קלוריות מאשר שעה של קרדיו איטי"
-          );
-        }
-
-        if (option.id === "time_flexible") {
-          return AIFeedbackGenerator.insight(
-            "חשיבה חכמה! נכין לך תוכניות גמישות שמתאימות לכל יום"
-          );
-        }
-
-        return AIFeedbackGenerator.positive(
-          `${option.aiInsight}`,
-          "נתאים את האימונים בדיוק לזמן שיש לך"
-        );
-      },
-    },
-
-    helpText: "תחשוב על ממוצע - כמה זמן בדרך כלל יש לך",
-  },
-
-  // שאלה 5: תדירות חכמה
-  {
-    id: "frequency_smart",
-    title: "כמה פעמים בשבוע?",
-    subtitle: "נמצא את הקצב הנכון לך",
-    question: "כמה פעמים בשבוע אתה יכול להתאמן?",
-    type: "single",
-    icon: "🗓️",
-    category: "essential",
-    required: true,
-
-    options: [
-      {
-        id: "freq_2",
-        label: "פעמיים בשבוע",
-        description: "בסיס טוב להתחלה",
-        metadata: { intensity: "medium", focus: ["full_body", "basics"] },
-        aiInsight: "פעמיים בשבוע זה בסיס מעולה! האורח חיים הבריא מתחיל פה",
-      },
-      {
-        id: "freq_3",
-        label: "3 פעמים בשבוע",
-        description: "הקצב האידיאלי למרבית האנשים",
-        metadata: { intensity: "medium", focus: ["split_routine", "balanced"] },
-        aiInsight: "הקצב הזהב! 3 פעמים בשבוע זה מושלם לתוצאות ולמניעת שחיקה",
-      },
-      {
-        id: "freq_4_5",
-        label: "4-5 פעמים בשבוע",
-        description: "רמה גבוהה ומחויבות",
-        metadata: { intensity: "high", focus: ["split_routine", "advanced"] },
-        aiInsight: "רמה גבוהה! נוכל ליצור תוכניות מתמחות לכל קבוצת שרירים",
-      },
-      {
-        id: "freq_daily",
-        label: "כמעט כל יום",
-        description: "אימונים הם חלק מהחיים שלי",
-        metadata: { intensity: "varied", focus: ["periodization", "recovery"] },
-        aiInsight: "מרשים! נחשוב על מחזוריות ומנוחה כדי למנוע שחיקה",
-      },
-    ],
-
-    aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const option = answer as SmartOption;
-
-        if (option.id === "freq_2") {
-          return AIFeedbackGenerator.positive(
-            "התחלה חכמה! עדיף איכות על כמות",
-            "דיסציפלינה עם 2 אימונים טובה מ-5 אימונים לא עקביים"
-          );
-        }
-
-        if (option.id === "freq_daily") {
+        if (count === 0) {
           return AIFeedbackGenerator.suggestion(
-            "מעולה! נוסיף ימי התאוששות פעילה לתוכנית",
-            "מנוחה היא חלק מהאימון - בימי הביניים נעשה יוגה או הליכה"
+            "בחר את הציוד הזמין בחדר הכושר"
           );
-        }
-
-        return AIFeedbackGenerator.positive(
-          `${option.aiInsight}`,
-          "נבנה תוכנית שמתאימה בדיוק לקצב שלך"
-        );
-      },
-    },
-
-    helpText: "חשוב על מה שבאמת ריאליסטי לטווח הארוך",
-  },
-
-  // שאלה 6: מגבלות ובעיות
-  {
-    id: "limitations_smart",
-    title: "יש מגבלות?",
-    subtitle: "נדאג שהאימונים יהיו בטוחים ומתאימים",
-    question: "יש לך מגבלות או בעיות שכדאי שנדע עליהן?",
-    type: "multiple",
-    icon: "⚕️",
-    category: "essential",
-    required: false,
-
-    options: [
-      {
-        id: "back_pain",
-        label: "כאבי גב",
-        description: "בעיות עם הגב התחתון או העליון",
-        metadata: { modifications: ["core_focus", "avoid_heavy_deadlifts"] },
-        aiInsight: "נמקד בחיזוק הליבה ובשיפור היציבה - זה יעזור מאוד!",
-      },
-      {
-        id: "knee_issues",
-        label: "בעיות ברכיים",
-        description: "כאבים או פציעות ברכיים",
-        metadata: { modifications: ["low_impact", "strengthen_quads"] },
-        aiInsight: "נבחר תרגילים ידידותיים לברכיים ונחזק את השרירים מסביב",
-      },
-      {
-        id: "shoulder_problems",
-        label: "בעיות כתפיים",
-        description: "כאבים או מגבלות תנועה",
-        metadata: { modifications: ["avoid_overhead", "mobility_focus"] },
-        aiInsight: "נעבוד על ניידות הכתפיים ונמנע מתרגילים מעל הראש",
-      },
-      {
-        id: "time_pressure",
-        label: "לחץ זמן",
-        description: "קשה לי למצוא זמן קבוע",
-        metadata: { modifications: ["flexible_timing", "quick_workouts"] },
-        aiInsight: "נכין לך אימונים גמישים שאפשר לעשות בכל זמן",
-      },
-      {
-        id: "beginner_anxiety",
-        label: "חרדה של מתחיל",
-        description: "מפחד להתחיל או לא בטוח בעצמי",
-        metadata: { modifications: ["gentle_start", "confidence_building"] },
-        aiInsight: "כולם היו פעם מתחילים! נתחיל בעדינות ונבנה ביטחון",
-      },
-      {
-        id: "no_limitations",
-        label: "אין מגבלות מיוחדות",
-        description: "מרגיש טוב ומוכן לכל דבר",
-        metadata: { modifications: [] },
-        aiInsight: "מעולה! נוכל ליצור תוכניות מגוונות וליהנות מהחופש",
-      },
-    ],
-
-    aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const options = answer as SmartOption[];
-
-        if (!Array.isArray(options)) {
-          return AIFeedbackGenerator.positive("תודה על השיתוף!");
-        }
-
-        if (options.some((opt) => opt.id === "no_limitations")) {
-          return AIFeedbackGenerator.positive(
-            "נהדר! נוכל ליצור תוכניות מגוונות ומאתגרות",
-            "עדיין נתחיל בזהירות ונבנה בהדרגה"
-          );
-        }
-
-        if (options.length > 0) {
+        } else if (count >= 7) {
           return AIFeedbackGenerator.insight(
-            "תודה על הכנות! נתאים את האימונים בדיוק למגבלות שלך"
+            "חדר כושר מדהים! נוכל ליצור תוכניות ברמה מקצועית גבוהה"
           );
+        } else {
+          return AIFeedbackGenerator.positive("מעולה! יש לך גישה לציוד איכותי");
         }
-
-        return AIFeedbackGenerator.positive("הבנתי, נמשיך!");
       },
     },
 
-    helpText: "אפשר לבחור כמה אפשרויות או לדלג",
-  },
-
-  // שאלה 7: העדפות אימון
-  {
-    id: "workout_preferences",
-    title: "איך אתה אוהב להתאמן?",
-    subtitle: "נכיר את הסגנון שלך",
-    question: "איזה סגנון אימון מתאים לך יותר?",
-    type: "multiple",
-    icon: "🎵",
-    category: "optimization",
-    required: false,
-
-    options: [
-      {
-        id: "high_intensity",
-        label: "אוהב אתגרים קשים",
-        description: "כל אימון צריך לדחוף אותי לגבול",
-        metadata: { style: ["hiit", "challenging", "intense"] },
-        aiInsight: "אנרגיה גבוהה! נכין לך אימונים שבאמת ידחפו אותך",
-      },
-      {
-        id: "steady_pace",
-        label: "מעדיף קצב קבוע",
-        description: "אוהב אימונים יציבים ומבוקרים",
-        metadata: { style: ["steady", "controlled", "methodical"] },
-        aiInsight: "גישה חכמה! התמדה וקביעות הן המפתח להצלחה",
-      },
-      {
-        id: "variety_lover",
-        label: "אוהב גיוון",
-        description: "כל אימון צריך להיות שונה",
-        metadata: { style: ["varied", "creative", "diverse"] },
-        aiInsight: "נוכל ליצור לך אימונים מגוונים שלא ישעממו לעולם!",
-      },
-      {
-        id: "music_motivated",
-        label: "אימון עם מוזיקה",
-        description: "המוזיקה נותנת לי אנרגיה",
-        metadata: { style: ["rhythmic", "energetic", "music_based"] },
-        aiInsight: "המוזיקה היא דלק מצוין! נכלול המלצות פלייליסט",
-      },
-      {
-        id: "quiet_focused",
-        label: "אימון שקט וממוקד",
-        description: "אוהב להתרכז ולחשוב על הטכניקה",
-        metadata: { style: ["mindful", "technical", "focused"] },
-        aiInsight: "גישה מדיטטיבית! נמקד בטכניקה וחיבור גוף-נפש",
-      },
-      {
-        id: "social_workout",
-        label: "אוהב אימונים חברתיים",
-        description: "יותר כיף להתאמן עם אחרים",
-        metadata: { style: ["social", "group", "partner"] },
-        aiInsight: "אנרגיה חברתית! נכלול רעיונות לאימונים עם חברים",
-      },
-    ],
-
-    aiLogic: {
-      generateFeedback: (answer, previousAnswers) => {
-        const options = answer as SmartOption[];
-
-        if (!Array.isArray(options) || options.length === 0) {
-          return AIFeedbackGenerator.positive("בסדר, נמשיך!");
-        }
-
-        const styles = options.map((opt) => opt.label).join(", ");
-        return AIFeedbackGenerator.insight(
-          `הבנתי את הסגנון שלך: ${styles}. נכין אימונים שבאמת יתאימו לך!`
-        );
-      },
-    },
-
-    helpText: "אפשר לבחור כמה אפשרויות שמתאימות לך",
+    helpText: "בחר את הציוד שאתה הכי נוח להשתמש בו או שזמין ברוב הזמן",
   },
 ];
 
-// פונקציות לניהול השאלון החכם
+// פונקציות לניהול השאלון
 export class SmartQuestionnaireManager {
   private answers: Map<string, any> = new Map();
   private currentQuestionIndex = 0;
-  private questionsToShow: string[] = [];
-
-  constructor() {
-    // התחל עם השאלות החיוניות - תמיד יצור רשימה חדשה
-    this.questionsToShow = SMART_QUESTIONNAIRE.filter(
-      (q) => q.category === "essential"
-    )
-      .map((q) => q.id)
-      .slice(); // יצור עותק חדש של המערך
-  }
+  private questionsToShow: string[] = [
+    "age",
+    "goal",
+    "experience",
+    "frequency",
+    "duration",
+    "equipment_availability",
+  ];
 
   getCurrentQuestion(): SmartQuestion | null {
-    // בדיקה וניקוי אגרסיבי של השאלות הזרות
-    const beforeCount = this.questionsToShow.length;
-    this.questionsToShow = this.questionsToShow.filter(
-      (id) => !["home_motivation", "time_flexibility"].includes(id)
-    );
-    const afterCount = this.questionsToShow.length;
-
     if (this.currentQuestionIndex >= this.questionsToShow.length) {
       return null;
     }
 
     const questionId = this.questionsToShow[this.currentQuestionIndex];
-
-    const foundQuestion = SMART_QUESTIONNAIRE.find((q) => q.id === questionId);
-
-    return foundQuestion || null;
+    return SMART_QUESTIONNAIRE.find((q) => q.id === questionId) || null;
   }
 
   answerQuestion(questionId: string, answer: any): AIFeedback | null {
@@ -729,11 +783,19 @@ export class SmartQuestionnaireManager {
       Object.fromEntries(this.answers)
     );
 
-    // עדכן רשימת שאלות עתידיות אם צריך
+    // עדכן רשימת שאלות עתידיות
     if (question.aiLogic.influenceNextQuestions) {
       const newQuestions = question.aiLogic.influenceNextQuestions(answer);
-
       if (newQuestions && newQuestions.length > 0) {
+        // הסר שאלות קיימות דומות והוסף החדשות
+        this.questionsToShow = this.questionsToShow.filter(
+          (q) =>
+            ![
+              "bodyweight_equipment_options",
+              "home_equipment_options",
+              "gym_equipment_options",
+            ].includes(q)
+        );
         this.questionsToShow.push(...newQuestions);
       }
     }
@@ -743,8 +805,36 @@ export class SmartQuestionnaireManager {
 
   nextQuestion(): boolean {
     this.currentQuestionIndex++;
-
     return this.currentQuestionIndex < this.questionsToShow.length;
+  }
+
+  getAllAnswers(): Record<string, any> {
+    const answers = Object.fromEntries(this.answers);
+
+    // חילוץ ציוד מהתשובות
+    const extractedEquipment: string[] = [];
+
+    // בדיקת כל התשובות לחילוץ ציוד
+    Object.values(answers).forEach((answer: any) => {
+      if (Array.isArray(answer)) {
+        answer.forEach((option: any) => {
+          if (option?.metadata?.equipment) {
+            extractedEquipment.push(...option.metadata.equipment);
+          }
+        });
+      } else if (answer?.metadata?.equipment) {
+        extractedEquipment.push(...answer.metadata.equipment);
+      }
+    });
+
+    // הוספת הציוד החולץ
+    answers.available_equipment = [...new Set(extractedEquipment)];
+
+    return answers;
+  }
+
+  isComplete(): boolean {
+    return this.currentQuestionIndex >= this.questionsToShow.length;
   }
 
   getProgress(): { current: number; total: number; percentage: number } {
@@ -756,15 +846,6 @@ export class SmartQuestionnaireManager {
       ),
     };
   }
-
-  getAllAnswers(): Record<string, any> {
-    return Object.fromEntries(this.answers);
-  }
-
-  isComplete(): boolean {
-    return this.currentQuestionIndex >= this.questionsToShow.length;
-  }
 }
 
 export default SMART_QUESTIONNAIRE;
-// Force refresh
