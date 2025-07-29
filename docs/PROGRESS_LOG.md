@@ -61,7 +61,7 @@
 #### קבצים עיקריים שתוקנו:
 
 - מסכי השאלון: WeightSlider, HeightSlider, AgeSelector
-- מסכי אימות: LoginScreen, RegisterScreen  
+- מסכי אימות: LoginScreen, RegisterScreen
 - מסך ראשי: MainScreen
 - מסכי תרגילים: ExercisesScreen
 - מסכים נוספים: ProgressScreen, NotificationsScreen
@@ -79,7 +79,7 @@
 ### 🎯 הישגים מרכזיים:
 
 1. **הרחבת מערך הרכיבים** - 5+ רכיבים משותפים חדשים לשימוש חוזר
-2. **הרחבת מערך השירותים** - 7+ שירותים חדשים לפונקציונליות מתקדמת  
+2. **הרחבת מערך השירותים** - 7+ שירותים חדשים לפונקציונליות מתקדמת
 3. **תיקוני RTL מקיפים** - 30+ תיקונים לתמיכה מלאה בעברית
 4. **תיעוד מעודכן** - כל המסמכים מעודכנים עם המידע החדש
 5. **איכות קוד משופרת** - קוד נקי יותר עם רכיבים משותפים

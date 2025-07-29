@@ -471,7 +471,7 @@ GYMovoo/
 ### Services (13 services):
 
 - **Authentication**: authService
-- **Exercise**: exerciseService, wgerService, wgerApiService  
+- **Exercise**: exerciseService, wgerService, wgerApiService
 - **Questionnaire**: questionnaireService
 - **Workout Generation**: quickWorkoutGenerator, workoutDataService, nextWorkoutLogicService
 - **Scientific AI**: scientificAIService, scientificUserGenerator, realisticDemoService

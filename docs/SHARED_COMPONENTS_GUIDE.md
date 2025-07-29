@@ -24,6 +24,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 ```
 
 **Props:**
+
 - `text?: string` - טקסט להצגה מתחת לספינר
 - `size?: "small" | "large"` - גודל הספינר
 - `color?: string` - צבע הספינר
@@ -33,21 +34,19 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 רכיב לתצוגת מצב ריק עם אייקון ופעולות.
 
 ```tsx
-import EmptyState from '../components/common/EmptyState';
+import EmptyState from "../components/common/EmptyState";
 
 <EmptyState
   icon="folder-open-outline"
   title="אין אימונים בהיסטוריה"
   description="התחל להתאמן כדי לראות את ההיסטוריה שלך כאן"
 >
-  <UniversalButton 
-    title="התחל אימון" 
-    onPress={startWorkout} 
-  />
-</EmptyState>
+  <UniversalButton title="התחל אימון" onPress={startWorkout} />
+</EmptyState>;
 ```
 
 **Props:**
+
 - `icon: string` - שם אייקון MaterialCommunityIcons
 - `title: string` - כותרת המצב הריק
 - `description: string` - תיאור המצב
@@ -58,17 +57,18 @@ import EmptyState from '../components/common/EmptyState';
 כפתור אייקון פשוט ונקי לשימוש חוזר.
 
 ```tsx
-import IconButton from '../components/common/IconButton';
+import IconButton from "../components/common/IconButton";
 
-<IconButton 
-  icon="heart" 
+<IconButton
+  icon="heart"
   onPress={toggleFavorite}
   size={24}
   color={theme.colors.primary}
-/>
+/>;
 ```
 
 **Props:**
+
 - `icon: string` - שם אייקון MaterialCommunityIcons
 - `onPress: () => void` - פונקציית לחיצה
 - `size?: number` - גודל האייקון (ברירת מחדל: 24)
@@ -80,7 +80,7 @@ import IconButton from '../components/common/IconButton';
 מודל אישור לפעולות חשובות.
 
 ```tsx
-import ConfirmationModal from '../components/common/ConfirmationModal';
+import ConfirmationModal from "../components/common/ConfirmationModal";
 
 <ConfirmationModal
   visible={showDeleteModal}
@@ -91,10 +91,11 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
   onConfirm={deleteWorkout}
   onCancel={() => setShowDeleteModal(false)}
   isDestructive={true}
-/>
+/>;
 ```
 
 **Props:**
+
 - `visible: boolean` - האם המודל מוצג
 - `title: string` - כותרת המודל
 - `message: string` - הודעת האישור
@@ -134,6 +135,7 @@ import InputField from '../components/common/InputField';
 ```
 
 **Props:**
+
 - `label: string` - תווית השדה
 - `placeholder?: string` - טקסט placeholder
 - `value: string` - הערך הנוכחי
@@ -151,28 +153,32 @@ import InputField from '../components/common/InputField';
 
 ```tsx
 // קוד טעינה שחזר על עצמו 10+ פעמים
-{loading && (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" color={theme.colors.primary} />
-    <Text style={{ marginTop: 16, color: theme.colors.textSecondary }}>
-      טוען...
-    </Text>
-  </View>
-)}
+{
+  loading && (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={{ marginTop: 16, color: theme.colors.textSecondary }}>
+        טוען...
+      </Text>
+    </View>
+  );
+}
 
 // כפתור אייקון שחזר על עצמו רבות
 <TouchableOpacity onPress={onPress} style={styles.iconButton}>
   <Ionicons name="heart" size={24} color={theme.colors.text} />
-</TouchableOpacity>
+</TouchableOpacity>;
 ```
 
 ### אחרי - רכיבים משותפים
 
 ```tsx
 // נקי, אחיד ותחזוקה קלה
-{loading && <LoadingSpinner text="טוען נתונים..." />}
+{
+  loading && <LoadingSpinner text="טוען נתונים..." />;
+}
 
-<IconButton icon="heart" onPress={toggleFavorite} />
+<IconButton icon="heart" onPress={toggleFavorite} />;
 ```
 
 ## 📊 השפעה על הפרויקט
@@ -187,24 +193,27 @@ import InputField from '../components/common/InputField';
 ## 🔄 הגירה הדרגתית
 
 ### שלב 1: החלפת דפוסים קיימים
+
 - החלפת ActivityIndicator חוזר ב-LoadingSpinner
 - החלפת TouchableOpacity + Ionicons ב-IconButton
 
 ### שלב 2: הוספת רכיבים מתקדמים
+
 - שימוש ב-EmptyState במקום תצוגות ריקות מותאמות אישית
 - שימוש ב-ConfirmationModal למודלי אישור
 
 ### שלב 3: שיפורי UX
+
 - הוספת InputField לטפסים עם validation משופרת
 - יצירת רכיבים מורכבים על בסיס הרכיבים הבסיסיים
 
 ## 🚀 צעדים הבאים
 
 1. החלפה הדרגתית של דפוסים קיימים ברכיבים המשותפים
-2. הוספת רכיבים מיוחדים נוספים לפי הצורך  
+2. הוספת רכיבים מיוחדים נוספים לפי הצורך
 3. שיקול יצירת רכיבים מורכבים לדפוסים מתקדמים
 4. הוספת Storybook או כלי דומה לתיעוד הרכיבים
 
 ---
 
-*מסמך זה מעודכן ב-29/07/2025*
+_מסמך זה מעודכן ב-29/07/2025_
