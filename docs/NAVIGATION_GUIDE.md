@@ -51,11 +51,21 @@ BottomNavigation.tsx - ניווט תחתון
 - **ExercisesScreen** → ExerciseList
 - **ExerciseListScreen** → (מודל)
 
-### מסכים חדשים
+### מסכים חדשים וחדשנים
 
-- **NotificationsScreen** - מסך התראות (בקרוב)
-- **ProgressScreen** - מעקב התקדמות (בקרוב)
-- **ExercisesScreen** - ספריית תרגילים מלאה
+- **NotificationsScreen** - מסך התראות מלא עם הגדרות התאמה אישית
+- **ProgressScreen** - מעקב התקדמות מתקדם עם גרפים וסטטיסטיקות  
+- **ExercisesScreen** - ספריית תרגילים מלאה עם 200+ תרגילים
+- **HistoryScreen משופר** - תצוגת כרטיסי אימון עשירה עם משוב חזותי
+- **WorkoutSummary משופר** - מסך סיום אימון עם זיהוי שיאים אישיים בזמן אמת
+
+### רכיבים משותפים חדשים
+
+- **LoadingSpinner** - ספינר טעינה אוניברסלי
+- **EmptyState** - תצוגת מצב ריק עם פעולות
+- **IconButton** - כפתור אייקון לשימוש חוזר
+- **ConfirmationModal** - מודל אישור פעולות
+- **InputField** - שדה קלט משופר עם RTL
 
 ## 📋 פרמטרים לניווט
 

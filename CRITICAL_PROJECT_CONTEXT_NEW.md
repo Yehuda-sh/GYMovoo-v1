@@ -461,15 +461,21 @@ GYMovoo/
 - **Welcome**: WelcomeScreen (1 screen)
 - **Workout**: WorkoutScreen (1 screen)
 
-### Core Components (6 categories):
+### Core Components (6+ categories):
 
-- **Common**: BackButton, DefaultAvatar
+- **Common**: BackButton, DefaultAvatar, LoadingSpinner (🆕), EmptyState (🆕), IconButton (🆕), ConfirmationModal (🆕), InputField (🆕)
 - **UI**: ScreenContainer, UniversalButton, UniversalCard
-- **Workout**: FloatingActionButton
+- **Workout**: FloatingActionButton, ExerciseTipsModal, NextExerciseBar
+- **Forms**: Input components with validation and RTL support
 
-### Services (5 services):
+### Services (13 services):
 
-- Authentication, Exercise, Questionnaire, QuickWorkout, WorkoutData
+- **Authentication**: authService
+- **Exercise**: exerciseService, wgerService, wgerApiService  
+- **Questionnaire**: questionnaireService
+- **Workout Generation**: quickWorkoutGenerator, workoutDataService, nextWorkoutLogicService
+- **Scientific AI**: scientificAIService, scientificUserGenerator, realisticDemoService
+- **History & Simulation**: workoutHistoryService, workoutSimulationService
 
 ### Central Navigation:
 
@@ -1448,7 +1454,7 @@ const confirmDelete = () => {
 🔔 **Reminder:**
 יש לקרוא מסמך זה לפני כל פיתוח/רפקטור ולסנכרן כל לקח/טעות חוזרת מיד בסעיף "לקחים חוזרים"!
 
-**📈 Project Status:** 100/100 Health Score | 22 Screens | 6 Components | 5/5 Services | Perfect Navigation
+**📈 Project Status:** 100/100 Health Score | 22+ Screens | 6+ Components Categories | 13/13 Services | Perfect Navigation | RTL Complete
 
 ---
 

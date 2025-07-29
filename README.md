@@ -32,7 +32,10 @@
 - **מסך סיום אימון משופר** - תצוגת סיכום מקיפה עם שיאים אישיים
 - **זיהוי שיאים בזמן אמת** - המערכת מזהה שיאי משקל, נפח וחזרות אוטומטית
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
-- **תצוגת ביצועים קודמים** - השוואה לאימונים קודמים (בפיתוח)
+- **מערכת שיאים אישיים מלאה** - מעקב אחר כל השיפורים וההישגים
+- **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
+- **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
+- **שירותים חדשים** - workoutHistoryService, workoutSimulationService, scientificAIService ועוד
 - **UI/UX משופר** - עיצוב מותאם למובייל עם תמיכת RTL מלאה
 
 ## 🚀 התחלה מהירה
@@ -186,6 +189,11 @@ GYMovoo/
 - `npm run type-check` - בדיקת TypeScript
 - `npm run audit` - בדיקת אבטחה של dependencies
 - `npm run check:all` - הרצת כל הבדיקות המתקדמות
+- **כלי בדיקה מיוחדים חדשים:**
+  - `node scripts/checkScientificQuestionnaire.js` - בדיקת השאלון המדעי
+  - `node scripts/testScientificDemo.js` - בדיקת הדמו המדעי
+  - `node scripts/testDataFlow.js` - בדיקת זרימת נתונים מלאה
+  - `node scripts/analyzeQuestionnaireUsage.js` - ניתוח שימוש בשאלונים
 
 ## 🎨 עיצוב וסגנון
 
