@@ -17,6 +17,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { WorkoutData } from "../types/workout.types";
 import { workoutHistoryService } from "../../../services/workoutHistoryService";
+import { nextWorkoutLogicService } from "../../../services/nextWorkoutLogicService";
+import { getWorkoutIndexByName } from "../../../utils/workoutNamesSync";
 const isRTL = theme.isRTL; // תמיכה ב-RTL
 interface WorkoutSummaryProps {
   workout: WorkoutData;
@@ -101,6 +103,30 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
 
       // שמירה לHistoryStorage
       await workoutHistoryService.saveWorkoutWithFeedback(workoutWithFeedback);
+
+      // עדכון מחזור האימונים
+      try {
+        const workoutName = workout.name || "אימון";
+
+        // קבלת התוכנית השבועית (נניח תוכנית בסיסית של 3 ימים אם אין מידע)
+        const weeklyPlan = ["דחיפה", "משיכה", "רגליים"]; // יכול להיות דינמי בעתיד
+
+        // שימוש בכלי החכם לזיהוי האינדקס
+        const workoutIndex = getWorkoutIndexByName(workoutName, weeklyPlan);
+
+        console.log(
+          `🔄 Updating workout cycle: "${workoutName}" → index ${workoutIndex} in plan:`,
+          weeklyPlan
+        );
+
+        await nextWorkoutLogicService.updateWorkoutCompleted(
+          workoutIndex,
+          workoutName
+        );
+      } catch (cycleError) {
+        console.warn("⚠️ Could not update workout cycle:", cycleError);
+        // לא נעצור את השמירה בגלל זה
+      }
 
       // הודעת הצלחה
       alert("האימון והמשוב נשמרו בהצלחה! 💾\nתוכל לראות אותם במסך ההיסטוריה");

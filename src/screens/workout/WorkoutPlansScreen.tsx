@@ -110,6 +110,8 @@ interface WorkoutPlanScreenProps {
       autoStart?: boolean;
       returnFromWorkout?: boolean;
       completedWorkoutId?: string;
+      requestedWorkoutIndex?: number;
+      requestedWorkoutName?: string;
     };
   };
 }
@@ -173,6 +175,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   useEffect(() => {
     const autoStart = route?.params?.autoStart;
     const returnFromWorkout = route?.params?.returnFromWorkout;
+    const requestedWorkoutIndex = route?.params?.requestedWorkoutIndex;
+    const requestedWorkoutName = route?.params?.requestedWorkoutName;
 
     if (returnFromWorkout) {
       handlePostWorkoutReturn();
@@ -180,9 +184,36 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       // 🏠 Default to basic workout plan generation to prevent repetitions
       generateWorkoutPlan(!!route?.params?.regenerate).then(() => {
         // אימון אוטומטי אם התבקש
-        if (autoStart && workoutPlan?.workouts?.[0]) {
+        if (autoStart && workoutPlan?.workouts) {
+          let workoutToStart = workoutPlan.workouts[0];
+
+          // אם התבקש אימון ספציפי, נסה למצוא אותו
+          if (
+            requestedWorkoutIndex !== undefined &&
+            requestedWorkoutIndex < workoutPlan.workouts.length
+          ) {
+            workoutToStart = workoutPlan.workouts[requestedWorkoutIndex];
+            console.log(
+              `🎯 Starting requested workout by index: ${requestedWorkoutIndex} - ${workoutToStart.name}`
+            );
+          } else if (requestedWorkoutName) {
+            const foundWorkout = workoutPlan.workouts.find(
+              (w) => w.name === requestedWorkoutName
+            );
+            if (foundWorkout) {
+              workoutToStart = foundWorkout;
+              console.log(
+                `🎯 Starting requested workout by name: ${requestedWorkoutName}`
+              );
+            } else {
+              console.log(
+                `⚠️ Requested workout "${requestedWorkoutName}" not found, using first workout`
+              );
+            }
+          }
+
           setTimeout(() => {
-            startWorkout(workoutPlan.workouts[0]);
+            startWorkout(workoutToStart);
           }, 1500);
         }
       });

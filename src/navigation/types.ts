@@ -48,6 +48,8 @@ export type RootStackParamList = {
     autoStart?: boolean;
     returnFromWorkout?: boolean;
     completedWorkoutId?: string;
+    requestedWorkoutIndex?: number;
+    requestedWorkoutName?: string;
   };
   Profile: undefined;
   History: undefined;

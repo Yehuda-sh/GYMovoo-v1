@@ -193,81 +193,71 @@ export default function MainScreen() {
           </View>
         </Animated.View>
 
-        {/* אימונים אחרונים */}
+        {/* ניווט מהיר */}
         <Animated.View
           style={[
-            styles.recentWorkoutsSection,
+            styles.quickNavSection,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <Text style={styles.sectionTitle}>אימונים אחרונים</Text>
+          <Text style={styles.sectionTitle}>ניווט מהיר</Text>
 
-          <View style={styles.recentWorkoutsList}>
-            <View style={styles.recentWorkoutItem}>
-              <View style={styles.workoutIcon}>
-                <MaterialCommunityIcons
-                  name="dumbbell"
-                  size={24}
-                  color="#007AFF"
-                />
-              </View>
-              <View style={styles.workoutInfo}>
-                <Text style={styles.workoutTitle}>אימון חזה וכתפיים</Text>
-                <Text style={styles.workoutDate}>אתמול • 45 דקות</Text>
-              </View>
-              <View style={styles.workoutRating}>
-                <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.8</Text>
-              </View>
-            </View>
+          <View style={styles.quickNavGrid}>
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => (navigation as any).navigate("Main")}
+            >
+              <MaterialCommunityIcons name="home" size={24} color="#007AFF" />
+              <Text style={styles.navItemText}>בית</Text>
+            </TouchableOpacity>
 
-            <View style={styles.recentWorkoutItem}>
-              <View style={styles.workoutIcon}>
-                <MaterialCommunityIcons name="run" size={24} color="#007AFF" />
-              </View>
-              <View style={styles.workoutInfo}>
-                <Text style={styles.workoutTitle}>רגליים וישבן</Text>
-                <Text style={styles.workoutDate}>לפני 3 ימים • 50 דקות</Text>
-              </View>
-              <View style={styles.workoutRating}>
-                <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.5</Text>
-              </View>
-            </View>
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => (navigation as any).navigate("WorkoutPlans")}
+            >
+              <MaterialCommunityIcons name="robot" size={24} color="#007AFF" />
+              <Text style={styles.navItemText}>AI מאמן</Text>
+            </TouchableOpacity>
 
-            <View style={styles.recentWorkoutItem}>
-              <View style={styles.workoutIcon}>
-                <MaterialCommunityIcons
-                  name="arm-flex"
-                  size={24}
-                  color="#007AFF"
-                />
-              </View>
-              <View style={styles.workoutInfo}>
-                <Text style={styles.workoutTitle}>גב וביצפס</Text>
-                <Text style={styles.workoutDate}>לפני 5 ימים • 40 דקות</Text>
-              </View>
-              <View style={styles.workoutRating}>
-                <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.7</Text>
-              </View>
-            </View>
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => (navigation as any).navigate("WorkoutPlans")}
+            >
+              <MaterialCommunityIcons
+                name="dumbbell"
+                size={24}
+                color="#007AFF"
+              />
+              <Text style={styles.navItemText}>אימון</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => (navigation as any).navigate("History")}
+            >
+              <MaterialCommunityIcons
+                name="chart-line"
+                size={24}
+                color="#007AFF"
+              />
+              <Text style={styles.navItemText}>היסטוריה</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => (navigation as any).navigate("Profile")}
+            >
+              <MaterialCommunityIcons
+                name="account"
+                size={24}
+                color="#007AFF"
+              />
+              <Text style={styles.navItemText}>פרופיל</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => (navigation as any).navigate("History")}
-          >
-            <Text style={styles.viewAllText}>צפה בכל ההיסטוריה</Text>
-            <MaterialCommunityIcons
-              name="chevron-left"
-              size={20}
-              color="#007AFF"
-            />
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
     </View>
@@ -455,69 +445,24 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "right",
   },
-  recentWorkoutsSection: {
+  quickNavSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
-  recentWorkoutsList: {
-    gap: theme.spacing.sm,
-  },
-  recentWorkoutItem: {
+  quickNavGrid: {
     flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  navItem: {
+    width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.md * 2) / 5,
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
-    borderRadius: 12,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: "#333333",
+    marginBottom: theme.spacing.md,
   },
-  workoutIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#2A2A2A",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: theme.spacing.md,
-  },
-  workoutInfo: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  workoutTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textAlign: "right",
-    marginBottom: 4,
-  },
-  workoutDate: {
+  navItemText: {
     fontSize: 12,
     color: "#AAAAAA",
-    textAlign: "right",
-  },
-  workoutRating: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    marginRight: theme.spacing.md,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginRight: 4,
-  },
-  viewAllButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: "#007AFF",
-    fontWeight: "600",
-    marginRight: theme.spacing.xs,
+    textAlign: "center",
+    marginTop: theme.spacing.xs,
   },
 });
