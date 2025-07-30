@@ -721,7 +721,7 @@ class WorkoutHistoryService {
         other: { count: 0, averageDifficulty: 0 },
       };
 
-      let totalDifficultyByGender = {
+      const totalDifficultyByGender = {
         male: 0,
         female: 0,
         other: 0,

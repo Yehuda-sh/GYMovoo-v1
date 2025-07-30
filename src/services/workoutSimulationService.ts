@@ -31,26 +31,12 @@ class WorkoutSimulationService {
    * סימולציה של 6 חודשי אימונים מציאותיים
    */
   async simulateRealisticWorkoutHistory(): Promise<void> {
-    console.log(
-      "🏃‍♂️ WORKOUT SIMULATION: Starting 6-month realistic workout simulation..."
-    );
-
-    // התחלה מנתוני משתמש בסיסיים
+    // Create 6-month realistic workout simulation with minimal logging // יצירת סימולציית אימונים מציאותית של 6 חודשים עם לוגים מינימליים
     const user = await realisticDemoService.getDemoUser();
     if (!user) {
-      console.error("❌ WORKOUT SIMULATION: No demo user found");
+      console.error("No demo user found for workout simulation");
       return;
     }
-
-    console.log(
-      `👤 WORKOUT SIMULATION: Simulating workouts for user: ${user.name}`
-    );
-    console.log(
-      `🎯 WORKOUT SIMULATION: Primary goal: ${user.questionnaireData.primary_goal}`
-    );
-    console.log(
-      `💪 WORKOUT SIMULATION: Experience: ${user.questionnaireData.fitness_experience}`
-    );
 
     // פרמטרי סימולציה ראשוניים
     let currentParams: SimulationParameters = {
@@ -75,10 +61,9 @@ class WorkoutSimulationService {
     let totalWorkouts = 0;
     let missedWorkouts = 0;
 
+    // Simulate 26 weeks (6 months) with minimal logging // סימולציה של 26 שבועות (6 חודשים) עם לוגים מינימליים
     for (let week = 0; week < 26; week++) {
-      console.log(`📅 Simulating week ${week + 1}/26...`);
-
-      // התאמת פרמטרים לפי התקדמות
+      // Update parameters based on progression // התאמת פרמטרים לפי התקדמות
       currentParams = this.updateSimulationParameters(
         currentParams,
         week,
@@ -103,21 +88,19 @@ class WorkoutSimulationService {
         currentParams.currentStreak = 0;
       }
 
-      // הפסקה קצרה כל 8 שבועות (התרפקות)
+      // Recovery/deload weeks with minimal logging // הפסקה קצרה כל 8 שבועות עם לוגים מינימליים
       if (week === 7 || week === 15) {
-        console.log(
-          `😴 Week ${week + 1}: Rest/recovery week - reduced activity`
-        );
         currentParams.motivation = Math.max(currentParams.motivation - 1, 4);
         currentParams.energyLevel = Math.max(currentParams.energyLevel - 1, 5);
       }
     }
 
-    console.log(`✅ Simulation complete!`);
-    console.log(`📊 Total workouts: ${totalWorkouts}`);
-    console.log(`❌ Missed workouts: ${missedWorkouts}`);
+    // Final summary with essential statistics only // סיכום סופי עם סטטיסטיקות חיוניות בלבד
+    const completionRate = Math.round(
+      (totalWorkouts / (totalWorkouts + missedWorkouts)) * 100
+    );
     console.log(
-      `📈 Completion rate: ${Math.round((totalWorkouts / (totalWorkouts + missedWorkouts)) * 100)}%`
+      `✅ Workout simulation completed: ${totalWorkouts} workouts (${completionRate}% completion rate)`
     );
   }
 

@@ -5,7 +5,7 @@
  * @notes תצוגת רשת עם תמונות, תגיות מומלץ, וברירות מחדל
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -50,20 +50,106 @@ export default function EquipmentSelector({
     }
   }, []);
 
-  const toggleItem = (itemId: string) => {
-    const isDefault = defaultItems.includes(itemId);
-    const newSelected = selected.includes(itemId)
-      ? selected.filter((id) => id !== itemId)
-      : [...selected, itemId];
+  const toggleItem = useCallback(
+    (itemId: string) => {
+      const isDefault = defaultItems.includes(itemId);
+      const newSelected = selected.includes(itemId)
+        ? selected.filter((id) => id !== itemId)
+        : [...selected, itemId];
 
-    // אל תאפשר הסרת ברירת מחדל אם זו הבחירה היחידה
-    if (isDefault && newSelected.length === 0) {
-      return;
-    }
+      // אל תאפשר הסרת ברירת מחדל אם זו הבחירה היחידה
+      if (isDefault && newSelected.length === 0) {
+        return;
+      }
 
-    setSelected(newSelected);
-    onChange(newSelected);
-  };
+      setSelected(newSelected);
+      onChange(newSelected);
+    },
+    [selected, defaultItems, onChange]
+  );
+
+  const renderEquipmentOption = useCallback(
+    (item: OptionWithImage) => {
+      const isSelected = selected.includes(item.id);
+      const isDefault = defaultItems.includes(item.id);
+
+      return (
+        <TouchableOpacity
+          key={item.id}
+          style={[
+            styles.itemContainer,
+            isSelected && styles.selectedItem,
+            isDefault && styles.defaultItem,
+          ]}
+          onPress={() => toggleItem(item.id)}
+          activeOpacity={0.8}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: isSelected }}
+          accessibilityLabel={`${item.label}${isDefault ? ", ברירת מחדל" : ""}${item.isPremium ? ", מומלץ" : ""}`}
+        >
+          {/* תג מומלץ */}
+          {item.isPremium && (
+            <View style={styles.premiumBadge}>
+              <MaterialCommunityIcons
+                name="crown"
+                size={12}
+                color={theme.colors.warning}
+              />
+            </View>
+          )}
+
+          {/* תמונה או אייקון */}
+          <View style={styles.imageContainer}>
+            {item.image ? (
+              <Image
+                source={
+                  typeof item.image === "string"
+                    ? { uri: item.image }
+                    : item.image
+                }
+                style={styles.image}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="dumbbell"
+                size={32}
+                color={
+                  isSelected ? theme.colors.primary : theme.colors.textSecondary
+                }
+              />
+            )}
+          </View>
+
+          {/* שם הציוד */}
+          <Text
+            style={[styles.itemLabel, isSelected && styles.selectedLabel]}
+            numberOfLines={2}
+          >
+            {item.label}
+          </Text>
+
+          {/* סימון בחירה */}
+          <View style={styles.checkContainer}>
+            <MaterialCommunityIcons
+              name={isSelected ? "checkbox-marked" : "checkbox-blank-outline"}
+              size={20}
+              color={isSelected ? theme.colors.primary : theme.colors.divider}
+            />
+          </View>
+
+          {/* תג ברירת מחדל */}
+          {isDefault && (
+            <View style={styles.defaultBadge}>
+              <Text style={styles.defaultText}>ברירת מחדל</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    },
+    [selected, defaultItems, toggleItem]
+  );
 
   return (
     <View style={styles.container}>
@@ -78,86 +164,10 @@ export default function EquipmentSelector({
         contentContainerStyle={styles.scrollContent}
         style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
         nestedScrollEnabled={true}
+        accessible={true}
+        accessibilityLabel="בחירת ציוד אימון"
       >
-        <View style={styles.grid}>
-          {options.map((item) => {
-            const isSelected = selected.includes(item.id);
-            const isDefault = defaultItems.includes(item.id);
-
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.itemContainer,
-                  isSelected && styles.selectedItem,
-                  isDefault && styles.defaultItem,
-                ]}
-                onPress={() => toggleItem(item.id)}
-                activeOpacity={0.8}
-              >
-                {/* תג מומלץ */}
-                {item.isPremium && (
-                  <View style={styles.premiumBadge}>
-                    <MaterialCommunityIcons
-                      name="crown"
-                      size={12}
-                      color={theme.colors.warning}
-                    />
-                  </View>
-                )}
-
-                {/* תמונה או אייקון */}
-                <View style={styles.imageContainer}>
-                  {item.image ? (
-                    <Image
-                      source={item.image}
-                      style={styles.image}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="dumbbell"
-                      size={32}
-                      color={
-                        isSelected
-                          ? theme.colors.primary
-                          : theme.colors.textSecondary
-                      }
-                    />
-                  )}
-                </View>
-
-                {/* שם הציוד */}
-                <Text
-                  style={[styles.itemLabel, isSelected && styles.selectedLabel]}
-                  numberOfLines={2}
-                >
-                  {item.label}
-                </Text>
-
-                {/* סימון בחירה */}
-                <View style={styles.checkContainer}>
-                  <MaterialCommunityIcons
-                    name={
-                      isSelected ? "checkbox-marked" : "checkbox-blank-outline"
-                    }
-                    size={20}
-                    color={
-                      isSelected ? theme.colors.primary : theme.colors.divider
-                    }
-                  />
-                </View>
-
-                {/* תג ברירת מחדל */}
-                {isDefault && (
-                  <View style={styles.defaultBadge}>
-                    <Text style={styles.defaultText}>ברירת מחדל</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <View style={styles.grid}>{options.map(renderEquipmentOption)}</View>
       </ScrollView>
 
       {helpText && (
@@ -196,6 +206,7 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     flex: 1,
+    writingDirection: "rtl",
   },
   subtitleContainer: {
     backgroundColor: theme.colors.primaryGradientStart + "10",
@@ -203,11 +214,15 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderRadius: 12,
     marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "20",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
+    fontWeight: "500",
   },
   scrollContent: {
     paddingBottom: theme.spacing.md,
@@ -216,6 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", // RTL
     flexWrap: "wrap",
     justifyContent: "space-between",
+    gap: theme.spacing.xs,
   },
   itemContainer: {
     width: ITEM_SIZE,
@@ -230,13 +246,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
     ...theme.shadows.small,
+    // Enhanced interaction feedback
+    transform: [{ scale: 1 }],
   },
   selectedItem: {
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.primaryGradientStart + "10",
+    transform: [{ scale: 1.02 }],
+    ...theme.shadows.medium,
   },
   defaultItem: {
     borderStyle: "dashed",
+    borderColor: theme.colors.primary + "80",
   },
   imageContainer: {
     width: ITEM_SIZE - 40,
@@ -244,16 +265,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.xs,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface + "30",
   },
   image: {
     width: "100%",
     height: "100%",
+    borderRadius: 6,
   },
   itemLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     textAlign: "center",
     paddingHorizontal: theme.spacing.xs,
+    writingDirection: "rtl",
+    lineHeight: theme.typography.caption.lineHeight,
   },
   selectedLabel: {
     color: theme.colors.text,
@@ -263,6 +289,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: theme.spacing.xs,
     right: theme.spacing.xs, // RTL
+    backgroundColor: theme.colors.card,
+    borderRadius: 10,
+    padding: 2,
   },
   premiumBadge: {
     position: "absolute",
@@ -271,6 +300,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.warning + "20",
     borderRadius: 12,
     padding: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.warning + "40",
   },
   defaultBadge: {
     position: "absolute",
@@ -279,11 +310,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "40",
   },
   defaultText: {
     fontSize: 10,
     color: theme.colors.primary,
     fontWeight: "600",
+    writingDirection: "rtl",
   },
   helpContainer: {
     flexDirection: "row-reverse", // RTL
@@ -291,11 +325,19 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     marginTop: theme.spacing.sm,
     paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surface + "50",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
   },
   helpText: {
-    fontSize: 13,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     flex: 1,
+    writingDirection: "rtl",
+    textAlign: "right",
+    lineHeight: theme.typography.caption.lineHeight,
   },
   premiumSuggestion: {
     flexDirection: "row-reverse", // RTL
@@ -304,10 +346,15 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: 12,
     marginTop: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.warning + "30",
   },
   premiumText: {
-    fontSize: 14,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.text,
     flex: 1,
+    writingDirection: "rtl",
+    textAlign: "right",
+    fontWeight: "500",
   },
 });

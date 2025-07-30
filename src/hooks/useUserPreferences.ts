@@ -282,7 +282,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       const preferencesData = await questionnaireService.getUserPreferences();
 
       let rawPreferences: QuestionnaireMetadata | null = preferencesData;
-      let currentSystemType: typeof systemType = "legacy";
+      const currentSystemType: typeof systemType = "legacy";
 
       // אם אין נתונים, נסה מהסטור הישן
       if (!rawPreferences && user?.questionnaire) {
