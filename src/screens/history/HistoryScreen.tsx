@@ -1,6 +1,11 @@
 /**
- * @file src/screens/history/HistoryScreen.tsx
- * @brief מסך היסטוריית אימונים - עם תמיכה במשוב והתאמת מגדר
+ * @file src/screens/history/HistoryScreen.tsx    console.log('📚 HistoryScreen - Checking user activityHistory...');
+    console.log('📚 user?.activityHistory exists:', !!user?.activityHistory);
+    console.log('📚 user?.activityHistory is array:', Array.isArray(user?.activityHistory));
+    console.log('📚 user?.activityHistory type:', typeof user?.activityHistory);
+    console.log('📚 user?.activityHistory value:', user?.activityHistory);
+    console.log('📚 user?.activityHistory length:', user?.activityHistory?.length || 0);
+    console.log('📚 user?.activityHistory sample:', user?.activityHistory?.[0]);brief מסך היסטוריית אימונים - עם תמיכה במשוב והתאמת מגדר
  * @brief Workout history screen - with feedback support and gender adaptation
  * @updated 2025-07-30 הוספת תמיכה בהתאמת מגדר ותכונות מתקדמות
  */
@@ -34,6 +39,7 @@ export default function HistoryScreen() {
   const { user } = useUserStore();
 
   useEffect(() => {
+    console.log("🚀 HistoryScreen - Component mounted, loading data...");
     loadHistory();
     loadStatistics();
     loadLatestCongratulation();
@@ -44,11 +50,57 @@ export default function HistoryScreen() {
       setLoading(true);
       console.log("📚 HistoryScreen - טוען היסטוריה מעודכנת");
 
-      const historyData = await workoutHistoryService.getWorkoutHistory();
+      // תחילה ננסה לטעון מההיסטוריה הישירה של המשתמש (דמו)
+      let historyData: WorkoutWithFeedback[] = [];
+
+      if (
+        user?.activityHistory?.workouts &&
+        Array.isArray(user.activityHistory.workouts) &&
+        user.activityHistory.workouts.length > 0
+      ) {
+        console.log(
+          "📚 HistoryScreen - 🎯 משתמש בהיסטוריה מהדמו! נמצאו",
+          user.activityHistory.workouts.length,
+          "אימונים"
+        );
+        historyData = user.activityHistory.workouts.map((workout: any) => ({
+          id: workout.id,
+          workout: workout,
+          feedback: workout.feedback || {
+            completedAt: workout.endTime || workout.startTime,
+            difficulty: workout.feedback?.overallRating || 3,
+            feeling: workout.feedback?.mood || "😐",
+            readyForMore: null,
+          },
+          stats: {
+            duration: workout.duration || 0,
+            personalRecords: workout.plannedVsActual?.personalRecords || 0,
+            totalSets: workout.plannedVsActual?.totalSetsCompleted || 0,
+            totalPlannedSets: workout.plannedVsActual?.totalSetsPlanned || 0,
+            totalVolume: workout.totalVolume || 0,
+          },
+          metadata: {
+            userGender: getUserGender(),
+            deviceInfo: {
+              platform: "unknown",
+              screenWidth: 375,
+              screenHeight: 667,
+            },
+            version: "1.0.0",
+            workoutSource: "demo" as const,
+          },
+        })) as WorkoutWithFeedback[];
+      } else {
+        // אם אין היסטוריה ישירה, נשתמש בשירות
+        console.log("📚 HistoryScreen - משתמש בשירות ההיסטוריה");
+        historyData = await workoutHistoryService.getWorkoutHistory();
+      }
+
       console.log("📚 HistoryScreen - נמצאו", historyData.length, "אימונים");
+      console.log("📚 HistoryScreen - Sample workout:", historyData[0]);
       setWorkouts(historyData);
     } catch (error) {
-      console.error("Error loading history:", error);
+      console.error("❌ Error loading history:", error);
       Alert.alert("שגיאה", "לא ניתן לטעון את היסטוריית האימונים");
     } finally {
       setLoading(false);
@@ -57,11 +109,77 @@ export default function HistoryScreen() {
 
   const loadStatistics = async () => {
     try {
-      const stats = await workoutHistoryService.getGenderGroupedStatistics();
-      setStatistics(stats);
-      console.log("📊 Statistics loaded:", stats);
+      console.log("📊 HistoryScreen - טוען סטטיסטיקות...");
+
+      // אם יש היסטוריה ישירה של המשתמש, נחשב סטטיסטיקות מהיא
+      if (
+        user?.activityHistory?.workouts &&
+        Array.isArray(user.activityHistory.workouts) &&
+        user.activityHistory.workouts.length > 0
+      ) {
+        console.log(
+          "📊 HistoryScreen - מחשב סטטיסטיקות מהיסטוריה ישירה מהדמו:",
+          user.activityHistory.workouts.length,
+          "אימונים"
+        );
+        const userGender = getUserGender();
+
+        const totalWorkouts = user.activityHistory.workouts.length;
+        const totalDuration = user.activityHistory.workouts.reduce(
+          (sum: number, w: any) => sum + (w.duration || 0),
+          0
+        );
+
+        // חישוב ציון קושי ממוצע - נבדוק אם יש ציון בפידבק
+        const workoutsWithDifficulty = user.activityHistory.workouts.filter(
+          (w: any) =>
+            w.feedback?.overallRating && !isNaN(w.feedback.overallRating)
+        );
+        const averageDifficulty =
+          workoutsWithDifficulty.length > 0
+            ? workoutsWithDifficulty.reduce(
+                (sum: number, w: any) => sum + (w.feedback.overallRating || 4),
+                0
+              ) / workoutsWithDifficulty.length
+            : 4; // ברירת מחדל
+
+        const stats = {
+          total: {
+            totalWorkouts,
+            totalDuration,
+            averageDifficulty,
+            workoutStreak: 1, // מחושב באופן פשוט
+          },
+          byGender: {
+            male: {
+              count: userGender === "male" ? totalWorkouts : 0,
+              averageDifficulty: userGender === "male" ? averageDifficulty : 0,
+            },
+            female: {
+              count: userGender === "female" ? totalWorkouts : 0,
+              averageDifficulty:
+                userGender === "female" ? averageDifficulty : 0,
+            },
+            other: {
+              count: userGender === "other" ? totalWorkouts : 0,
+              averageDifficulty: userGender === "other" ? averageDifficulty : 0,
+            },
+          },
+        };
+
+        setStatistics(stats);
+        console.log("📊 Statistics calculated from user history:", stats);
+      } else {
+        // אחרת, נשתמש בשירות
+        console.log("📊 HistoryScreen - מחשב סטטיסטיקות מהשירות");
+        const stats = await workoutHistoryService.getGenderGroupedStatistics();
+        setStatistics(stats);
+        console.log("📊 Statistics loaded from service:", stats);
+      }
+
+      console.log("📊 Total workouts:", statistics?.total?.totalWorkouts || 0);
     } catch (error) {
-      console.error("Error loading statistics:", error);
+      console.error("❌ Error loading statistics:", error);
     }
   };
 
@@ -129,13 +247,29 @@ export default function HistoryScreen() {
     const smartData = user?.smartQuestionnaireData;
     const regularData = user?.questionnaire;
 
+    console.log("👤 getUserGender - Smart data:", !!smartData);
+    console.log("👤 getUserGender - Regular data:", !!regularData);
+    console.log("👤 getUserGender - Smart answers:", smartData?.answers);
+    console.log(
+      "👤 getUserGender - Regular questionnaire keys:",
+      regularData ? Object.keys(regularData) : "none"
+    );
+
     if (smartData?.answers?.gender) {
+      console.log(
+        "👤 getUserGender - Found gender in smart data:",
+        smartData.answers.gender
+      );
       return smartData.answers.gender;
     }
 
     // לשאלון הישן - מגדר בדרך כלל נמצא בשאלה 1
     if (regularData && regularData[1]) {
       const genderAnswer = regularData[1] as string;
+      console.log(
+        "👤 getUserGender - Found answer in question 1:",
+        genderAnswer
+      );
       if (
         genderAnswer === "male" ||
         genderAnswer === "female" ||
@@ -145,6 +279,7 @@ export default function HistoryScreen() {
       }
     }
 
+    console.log("👤 getUserGender - Returning default: other");
     return "other";
   };
 

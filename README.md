@@ -29,17 +29,17 @@
 
 #### 🆕 תכונות חדשות (יולי 2025)
 
-- **מערכת שאלון חכמה מתקדמת** - 6-7 שאלות דינמיות עם בחירה מרובה
+- **מערכת שאלון חכמה מתקדמת** - 7 שאלות דינמיות עם בחירה מרובה
 - **מאגר ציוד מקיף** - מעל 100 פריטי ציוד מקטלגים (בית, חדר כושר, שניהם)
 - **סינכרון מושלם** - מסך הפרופיל מתעדכן אוטומטית עם הציוד הנבחר
 - **מערכת דמו לבדיקות** - כפתור דמו במסך הראשי לבדיקת תרחישים שונים
 - **שאלות דינמיות** - השאלון מתאים את עצמו לפי התשובות הקודמות
 - **מסך סיום אימון משופר** - תצוגת סיכום מקיפה עם שיאים אישיים
 - **זיהוי שיאים בזמן אמת** - המערכת מזהה שיאי משקל, נפח וחזרות אוטומטית
-- **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
+- **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט ותמיכה בנתוני דמו
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
-- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר), scientificAIService ועוד
+- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר), scientificAIService ועוד (15 שירותים פעילים)
 
 ## 🚀 התחלה מהירה
 
@@ -65,9 +65,12 @@ npm install
 yarn install
 
 # הפעל את האפליקציה בפיתוח
-npx expo start --android
+npx expo start
 
-# הפעל עם ניקוי קאש (אם יש בעיות)
+# או השתמש בסקריפט המובנה
+npm start
+
+# הפעל עם ניקוי cache (רק אם יש בעיות טעינה)
 npx expo start --clear
 
 # הפעל במצב תונל (אם יש בעיות רשת)
@@ -77,8 +80,8 @@ npx expo start --tunnel
 ### ⚠️ הערות חשובות להפעלה
 
 - **השתמש רק ב-`npx expo start`** - זו הפקודה הנכונה לפרויקט Expo
-- **אל תשתמש ב-`npm run start`** - זה עלול לגרום לבעיות
-- אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הקאש
+- **`npm run start` גם עובד** - מוגדר לקרוא ל-`npx expo start`
+- אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הcache
 - במקרה של בעיות רשת, השתמש ב-`--tunnel`
 
 ### הרצה במכשיר
@@ -88,6 +91,13 @@ npx expo start --tunnel
 3. האפליקציה תיפתח במכשירך
 
 ## 🏗️ ארכיטקטורה
+
+### 📊 סטטיסטיקות הפרויקט
+
+- **📱 מסכים פעילים:** 27 מסכים ראשיים (ללא רכיבים וגיבויים)
+- **🧩 רכיבים:** 12 רכיבים ב-3 קטגוריות (common, ui, workout)
+- **🔧 שירותים:** 15 שירותים פעילים כולל workoutHistoryService
+- **📚 תיעוד:** 17 קבצי .md מאורגנים עם מידע מעודכן
 
 ### מבנה התיקיות
 
@@ -103,10 +113,10 @@ GYMovoo/
 │   │   ├── workout/        # מסכי אימון
 │   │   ├── exercise/       # רשימת תרגילים
 │   │   └── profile/        # פרופיל משתמש
-│   ├── components/         # רכיבים משותפים
+│   ├── components/         # רכיבים משותפים (3 קטגוריות)
 │   │   ├── common/         # רכיבי UI בסיסיים
-│   │   ├── forms/          # רכיבי טפסים
-│   │   └── workout/        # רכיבי אימון
+│   │   ├── ui/             # רכיבי ממשק משתמש
+│   │   └── workout/        # רכיבי אימון ייעודיים
 │   ├── stores/             # ניהול State (Zustand)
 │   ├── services/           # שירותים ו-API
 │   ├── hooks/              # React Hooks מותאמים
@@ -129,7 +139,7 @@ GYMovoo/
 - **React Hook Form** - ניהול טפסים
 - **Linear Gradient** - אפקטים ויזואליים
 
-## 📱 מסכים עיקריים
+## 📱 מסכים עיקריים (27 מסכים פעילים)
 
 ### 1. מסך פתיחה (Welcome)
 
@@ -193,7 +203,7 @@ GYMovoo/
 
 ## 🛠️ כלי בדיקה ופיתוח
 
-הפרויקט כולל מספר כלי בדיקה שימושיים:
+הפרויקט כולל מערכת בדיקות מקיפה עם 15+ סקריפטים שונים:
 
 ### כלי בדיקה בסיסיים:
 
@@ -270,8 +280,9 @@ GYMovoo/
 ### סקריפטים זמינים
 
 ```bash
-# הרצת האפליקציה
-npm start
+# הרצת האפליקציה (שתי אפשרויות זמינות)
+npm start                    # סקריפט מובנה שקורא ל-npx expo start
+npx expo start              # פקודה ישירה של Expo
 
 # הרצה ב-iOS
 npm run ios
@@ -345,13 +356,14 @@ eas build -p ios
 
 #### 🆕 Latest Features (July 2025)
 
-- **Advanced Smart Questionnaire System** - 6-7 dynamic questions with multiple selection
+- **Advanced Smart Questionnaire System** - 7 dynamic questions with multiple selection
 - **Comprehensive Equipment Database** - 100+ equipment items categorized (home, gym, both)
 - **Perfect Synchronization** - Profile screen automatically updates with selected equipment
 - **Demo System** - Demo button on main screen for testing different scenarios
 - **Dynamic Questions** - Questionnaire adapts based on previous answers
 - **Gender-First Approach** - Gender selection as first question for language adaptation
 - **RTL & Gender Adaptation** - Complete system for Hebrew RTL and gender-adaptive text
+- **Enhanced History System** - Complete workout history with comprehensive demo data and feedback
 
 ## 🚀 Quick Start
 
@@ -387,6 +399,13 @@ npx expo start
 3. The app will open on your device
 
 ## 🏗️ Architecture
+
+### 📊 Project Statistics
+
+- **📱 Active Screens:** 27 main screens (excluding components and backups)
+- **🧩 Components:** 12 components in 3 categories (common, ui, workout)
+- **🔧 Services:** 15 active services including workoutHistoryService
+- **📚 Documentation:** 17 organized .md files with up-to-date information
 
 ### Technology Stack
 

@@ -307,7 +307,7 @@ GYMovoo/
 └── docs/                  # תיעוד מפורט
 ```
 
-### מסכים קיימים (22 מסכים):
+### מסכים קיימים (27 מסכים פעילים):
 
 ```
 src/screens/
@@ -346,7 +346,7 @@ src/screens/
     └── WorkoutScreen.tsx
 ```
 
-### רכיבים עיקריים (6 קטגוריות):
+### רכיבים עיקריים (3 קטגוריות, 12 רכיבים):
 
 ```
 src/components/
@@ -361,7 +361,7 @@ src/components/
     └── FloatingActionButton.tsx # FAB למשימות מהירות
 ```
 
-### שירותים (5 שירותים):
+### שירותים (15 שירותים פעילים):
 
 ```
 src/services/
@@ -369,7 +369,16 @@ src/services/
 ├── exerciseService.ts     # ניהול תרגילים
 ├── questionnaireService.ts # עיבוד שאלון
 ├── quickWorkoutGenerator.ts # יצירת אימונים
-└── workoutDataService.ts  # ניהול נתוני אימון
+├── workoutDataService.ts  # ניהול נתוני אימון
+├── wgerService.ts         # שירות WGER ראשי (הנכון לשימוש)
+├── wgerApiService.ts      # שירות WGER משני (גיבוי)
+├── workoutHistoryService.ts # ניהול היסטוריית אימונים (עם התאמת מגדר)
+├── workoutSimulationService.ts # סימולציית אימונים
+├── scientificAIService.ts # AI מדעי
+├── scientificUserGenerator.ts # יצירת משתמשים מדעיים
+├── realisticDemoService.ts # שירות דמו ריאליסטי
+├── nextWorkoutLogicService.ts # לוגיקת אימון הבא
+└── [+ 2 קבצי example נוספים]
 ```
 
 ### כלי פיתוח ודיבוג:
@@ -403,14 +412,19 @@ src/navigation/
 └── QuestionnaireNavigationUpdate.tsx # עדכוני ניווט דינמיים
 ```
 
-### כלי בדיקה אוטומטיים:
+### כלי בדיקה אוטומטיים (15+ סקריפטים):
 
 ```
 scripts/
 ├── checkNavigation.js     # בדיקת ניווט מלא
 ├── checkMissingComponents.js # בדיקת imports חסרים
 ├── projectHealthCheck.js  # בדיקה כללית (100/100)
-└── testDataFlow.js       # בדיקת זרימת נתונים
+├── testDataFlow.js       # בדיקת זרימת נתונים
+├── performanceCheck.js   # בדיקת ביצועים
+├── securityCheck.js      # בדיקת אבטחה
+├── accessibilityCheck.js # בדיקת נגישות
+├── codeQualityCheck.js   # בדיקת איכות קוד
+└── [+ 7 סקריפטים נוספים לבדיקות מתקדמות]
 ```
 
 ### תיעוד מקיף:
@@ -447,7 +461,7 @@ GYMovoo/
 └── docs/                  # Detailed documentation
 ```
 
-### Existing Screens (22 screens):
+### Existing Screens (27 active screens):
 
 - **Authentication**: Login, Register, Terms (3 screens)
 - **Exercise Library**: ExerciseList, ExerciseDetails, MuscleBar (3 screens)
@@ -459,23 +473,22 @@ GYMovoo/
 - **Progress**: ProgressScreen (1 screen)
 - **Questionnaire**: 8 selector screens + Results (9 screens)
 - **Welcome**: WelcomeScreen (1 screen)
-- **Workout**: WorkoutScreen (1 screen)
+- **Workout**: WorkoutScreen + components (multiple screens)
 
-### Core Components (6+ categories):
+### Core Components (3 categories, 12 components):
 
-- **Common**: BackButton, DefaultAvatar, LoadingSpinner (🆕), EmptyState (🆕), IconButton (🆕), ConfirmationModal (🆕), InputField (🆕)
+- **Common**: BackButton, DefaultAvatar, LoadingSpinner, EmptyState, IconButton, ConfirmationModal, InputField
 - **UI**: ScreenContainer, UniversalButton, UniversalCard
 - **Workout**: FloatingActionButton, ExerciseTipsModal, NextExerciseBar
-- **Forms**: Input components with validation and RTL support
 
-### Services (13 services):
+### Services (15 active services):
 
 - **Authentication**: authService
-- **Exercise**: exerciseService, wgerService, wgerApiService
+- **Exercise**: exerciseService, wgerService (main), wgerApiService (backup)
 - **Questionnaire**: questionnaireService
 - **Workout Generation**: quickWorkoutGenerator, workoutDataService, nextWorkoutLogicService
 - **Scientific AI**: scientificAIService, scientificUserGenerator, realisticDemoService
-- **History & Simulation**: workoutHistoryService, workoutSimulationService
+- **History & Simulation**: workoutHistoryService (with gender adaptation), workoutSimulationService
 
 ### Central Navigation:
 
@@ -1454,7 +1467,7 @@ const confirmDelete = () => {
 🔔 **Reminder:**
 יש לקרוא מסמך זה לפני כל פיתוח/רפקטור ולסנכרן כל לקח/טעות חוזרת מיד בסעיף "לקחים חוזרים"!
 
-**📈 Project Status:** 100/100 Health Score | 22+ Screens | 6+ Components Categories | 13/13 Services | Perfect Navigation | RTL Complete
+**📈 Project Status:** 100/100 Health Score | 27 Active Screens | 3 Component Categories (12 components) | 15 Services | Perfect Navigation | RTL Complete
 
 ---
 
@@ -1577,19 +1590,120 @@ style: {
 
 _חובה לקרוא לפני כל שינוי קוד!_
 
-### 1. **WGER API & שאילתות:**
+### 1. **🚨 אסור נתונים דינמיים בתיעוד קבוע - לקח חדש קריטי!**
+
+**תאריך:** 30/07/2025 | **הקשר:** ארגון מסמכי תיעוד
+
+**❌ הבעיה שהתגלתה:**
+נכללו במסמכים נתונים דינמיים כמו "69 אימונים", "4,817 דקות", "ממוצע 4.5/5"
+
+**🔍 למה זה בעיה חמורה:**
+
+- נתונים משתנים כל פעם שמישהו יוצר דמו חדש
+- כל משתמש חדש משנה סטטיסטיקות
+- תיעוד הופך למיושן ושגוי אוטומטית
+- יוצר אי-עקביות בין מסמכים
+
+**✅ הפתרון הנכון:**
+| ❌ לא נכון | ✅ נכון |
+|-------------|----------|
+| "69 אימונים מהדמו" | "מגוון אימונים מהדמו" |
+| "4,817 דקות סה"כ" | "נתונים מלאים ומדויקים" |
+| "ממוצע קושי 4.5/5" | "חישוב תקין של דירוגים" |
+
+**🎯 כלל זהב חדש:**
+**תיעוד מתאר יכולות, לא תוצאות נוכחיות!**
+
+**📋 בדיקת 3 שאלות לפני הוספת כל מספר:**
+
+1. האם המספר יכול להשתנות?
+2. האם הוא תלוי בנתוני משתמש/דמו?
+3. האם הוא יהיה רלוונטי בעוד שנה?
+
+**אם תשובה אחת היא "כן" - אל תכלול! ❗**
+
+### 3. **🔍 בדיקת מבנה נתונים - לקח חדש קריטי!**
+
+**תאריך:** 30/07/2025 | **הקשר:** דיבוג HistoryScreen שהציג 1 אימון במקום 69
+
+**❌ הבעיה שהתגלתה:**
+הנחת מבנה נתונים שגויה - בדקנו `user.activityHistory` כמערך ישירות כשזה אובייקט עם מפתח `workouts`
+
+**🔍 למה זה בעיה חמורה:**
+- גורם לשגיאות לוגיות בגישה לנתונים
+- יוצר באגים קשים לזיהוי
+- נתונים קיימים אבל לא נגישים
+- האפליקציה לא קורסת אבל מתנהגת לא נכון
+
+**✅ הפתרון הנכון:**
+```typescript
+// ❌ לא נכון - הנחה שזה מערך
+if (user.activityHistory && user.activityHistory.length > 0)
+
+// ✅ נכון - בדיקת המבנה האמיתי
+if (user?.activityHistory?.workouts && 
+    Array.isArray(user.activityHistory.workouts) && 
+    user.activityHistory.workouts.length > 0)
+```
+
+**🎯 כלל זהב חדש:**
+**תמיד בדוק את המבנה האמיתי של הנתונים לפני הגישה!**
+
+**📋 בדיקת 3 שלבים לכל גישה לנתונים:**
+1. **console.log** את המבנה האמיתי
+2. **בדוק טיפוסים** (Array.isArray, typeof)
+3. **הוסף fallback** לכל מקרה אפשרי
+
+**🚨 מקרים נפוצים לבדיקה:**
+- `user.data` vs `user.data.items`
+- `response` vs `response.data`
+- `history` vs `history.workouts`
+- `settings` vs `settings.preferences`
+
+### 4. **🔄 כללי טרמינל ו-Expo - לקח חשוב מאוד!**
+
+**תאריך:** 30/07/2025 | **הקשר:** עבודה עם Expo בפיתוח
+
+**❌ הבעיה הנפוצה:**
+AI פותח טרמינל חדש כשרוצה לרענן את Expo, מה שגורם להתנגשות עם התהליך הקיים
+
+**✅ הפתרון הנכון:**
+
+- **לרענון Expo** - לבקש מהמשתמש ללחוץ `r` בטרמינל הקיים
+- **לפקודות Windows** - רק אז לפתוח טרמינל חדש
+- **אסור** להריץ `npx expo start` מחדש כשזה כבר פועל
+
+**🎯 כלל זהב:**
+**אם Expo פועל - תמיד עבוד בטרמינל הקיים, לא תפתח חדש!**
+
+**📋 מתי לפתוח טרמינל חדש:**
+
+- פקודות מערכת Windows (`dir`, `copy`, `move`)
+- פקודות שלא קשורות ל-Expo
+- כשהמשתמש מבקש במפורש
+
+**🚫 מתי לא לפתוח טרמינל חדש:**
+
+- רענון האפליקציה (`r` בטרמינל הקיים)
+- פקודות Expo כלליות
+- כשהמשתמש לא ביקש זאת במפורש
+
+### 3. **WGER API & שאילתות:**
 
 - אם WGER API איטי, תמיד להוסיף cache ולהציג loading
 - שתי שאילתות: (1) muscles/?language=he, (2) exercise/?muscles=ID&limit=20&offset=0&ordering=name
 - תמיד לוודא exercises.json עדכני (131 תרגילי עברית מקומיים + WGER) ❗
+- **ניקוי cache:** הפקודה הנכונה היא `--clear` (לא `--reset-cache`) - רק כשיש בעיות טעינה
 
-### 2. **ניווט ושגיאות חוזרות:**
+### 4. **ניווט ושגיאות חוזרות:**
+
+### 4. **ניווט ושגיאות חוזרות:**
 
 - תמיד לוודא screens מיושרים עם AppNavigator.tsx
 - זיכרון: תרגילים נטענים ב-ExercisesScreen ולא ב-ExerciseListScreen
 - אסור לשנות navigation types בלי עדכון AppNavigator ❗
 
-### 3. **RTL תמיכה חובה (RTL Support Rules) - עדכון חדש!**
+### 5. **RTL תמיכה חובה (RTL Support Rules) - עדכון חדש!**
 
 - **תמיד** להשתמש ב-marginStart/marginEnd במקום marginLeft/marginRight
 - כל תיקון RTL חייב להכיל הערה דו-לשונית: `// שינוי RTL: marginStart במקום marginLeft`
@@ -1597,14 +1711,14 @@ _חובה לקרוא לפני כל שינוי קוד!_
 - בעת פיתוח רכיב חדש - לבדוק תמיד בכיוון עברית ❗
 - 42 תיקוני RTL בוצעו ב-16 קבצים - לא לחזור על אותן שגיאות!
 
-### 4. **קריטי - אופטימיזציות ביצועים:**
+### 6. **קריטי - אופטימיזציות ביצועים:**
 
 - React.memo() תמיד לרכיבים הגדולים שנטענים הרבה
 - useMemo() לטענת תרגילים וניתוח נתונים כבדים
 - useCallback() לפונקציות של handlePress ו-navigation
 - חכמת היימורי: flatListProps מהירים יותר מ-map ברשימות ארוכות ❗
 
-### 5. **עיצוב ו-UX:**
+### 7. **עיצוב ו-UX:**
 
 - תמיד לשמור על theme.ts מרכזי - לא inline styles
 - spacing מתוך theme בלבד: theme.spacing.xs/sm/md/lg/xl
