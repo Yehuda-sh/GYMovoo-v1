@@ -1,3 +1,5 @@
+// docs/TECHNICAL_SUMMARY_HISTORY_INTEGRATION.md
+
 # סיכום טכני: אינטגרציה של HistoryScreen עם מערכת הדמו
 
 ## 🎯 סיכום ביצועים

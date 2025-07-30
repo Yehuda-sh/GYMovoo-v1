@@ -1,3 +1,5 @@
+// DOCUMENTATION_CONSOLIDATION_PLAN.md
+
 # תוכנית איחוד וארגון מסמכים - GYMovoo
 
 ## 🎯 מטרה

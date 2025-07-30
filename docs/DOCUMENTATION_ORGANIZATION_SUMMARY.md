@@ -1,3 +1,5 @@
+// DOCUMENTATION_ORGANIZATION_SUMMARY.md
+
 # סיכום ארגון המסמכים - GYMovoo
 
 ## ✅ פעולות שהושלמו

@@ -1,3 +1,4 @@
+// docs/LESSONS_LEARNED_HISTORY_SCREEN_INTEGRATION.md
 # לקחים נלמדים: אינטגרציה של HistoryScreen עם נתוני הדמו
 
 ## תאריך: 30 ביולי 2025

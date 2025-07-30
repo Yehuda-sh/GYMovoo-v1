@@ -1,3 +1,5 @@
+// docs/AI_Algorithm_Demo.md
+
 # 🤖 הדגמת אלגוריתם AI לבחירת תרגילים - GYMovoo
 
 ## סקירה כללית

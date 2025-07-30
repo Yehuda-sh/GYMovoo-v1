@@ -1,3 +1,5 @@
+// COPILOT_GUIDELINES.md
+
 # GitHub Copilot - הנחיות עבודה לפרויקט GYMovoo
 
 ## 🚫 פקודות טרמינל אסורות

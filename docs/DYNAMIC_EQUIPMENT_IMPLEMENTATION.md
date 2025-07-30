@@ -1,3 +1,5 @@
+// docs/DYNAMIC_EQUIPMENT_IMPLEMENTATION.md
+
 # 🎯 Dynamic Equipment Questions - Implementation Summary (CORRECTED)
 
 ## תאריך: 28 ינואר 2025

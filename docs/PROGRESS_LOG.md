@@ -1,3 +1,4 @@
+// docs/PROGRESS_LOG.md
 🚦 GYMovoo - יומן התקדמות
 תיעוד התקדמות מפורט לפי שלבים ו-Checkpoints.
 

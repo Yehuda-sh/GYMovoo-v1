@@ -1,3 +1,5 @@
+// docs/TECHNICAL_IMPLEMENTATION_GUIDE.md
+
 # מדריך טכני - מערכת שאלון חכמה עם תמיכת RTL והתאמת מגדר
 
 ## סקירה כללית

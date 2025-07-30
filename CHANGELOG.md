@@ -1,3 +1,5 @@
+// CHANGELOG.md
+
 # Changelog
 
 All notable changes to the GYMovoo project will be documented in this file.

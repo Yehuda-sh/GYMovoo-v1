@@ -1,3 +1,5 @@
+// docs/SHARED_COMPONENTS_GUIDE.md
+
 # מדריך רכיבים משותפים - GYMovoo
 
 ## סקירה כללית

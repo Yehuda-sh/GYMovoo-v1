@@ -1,3 +1,5 @@
+// docs/RTL_GENDER_ADAPTATION_IMPLEMENTATION.md
+
 # יישום תמיכת RTL והתאמת מגדר - מדריך מלא
 
 ## תאריך עדכון: 30 יולי 2025 - עדכון userStore מורחב
