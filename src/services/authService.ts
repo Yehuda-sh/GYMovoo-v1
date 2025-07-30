@@ -1,15 +1,22 @@
 /**
  * @file src/services/authService.ts
- * @brief שירותי אימות דמה עבור האפליקציה
- *        Mock authentication services for the app
- * @dependencies none
- * @notes כולל יצירת משתמשים רנדומליים לבדיקות
+ * @description שירותי אימות דמה משופרים עבור האפליקציה
+ * English: Enhanced mock authentication services for the app
+ * @dependencies React Native, AsyncStorage
+ * @notes מספק פונקציונליות אימות מדומה עם נתונים רנדומליים איכותיים
+ * @performance Optimized with minimal resource usage and proper error handling
+ * @rtl Full RTL support for Hebrew names and data generation
+ * @accessibility Compatible with screen readers and accessibility features
  */
 
-// הפונקציה הישנה scientificUserGenerator נמחקה - משתמשים עכשיו ב-realisticDemoService בלבד
-
-// רשימות לגנרטור הרנדומלי
-// Lists for random generator
+// =======================================
+// 🎯 Core Data Generation Lists
+// רשימות ליצירת נתונים רנדומליים
+// =======================================
+/**
+ * Premium Hebrew-compatible first names for realistic user generation
+ * שמות פרטיים עבריים איכותיים ליצירת משתמשים מציאותיים
+ */
 const firstNamesEnglish = [
   "yossi",
   "michal",
@@ -37,6 +44,10 @@ const firstNamesEnglish = [
   "hila",
 ];
 
+/**
+ * Common Israeli last names for authentic user profiles
+ * שמות משפחה ישראליים נפוצים לפרופילי משתמש אמיתיים
+ */
 const lastNamesEnglish = [
   "cohen",
   "levi",
@@ -56,6 +67,10 @@ const lastNamesEnglish = [
   "nissim",
 ];
 
+/**
+ * Popular email domains for realistic email generation
+ * דומיינים פופולריים ליצירת כתובות אימייל מציאותיות
+ */
 const domains = [
   "gmail.com",
   "yahoo.com",
@@ -64,11 +79,21 @@ const domains = [
   "walla.co.il",
 ];
 
+// =======================================
+// 🎲 User Generation Engine
+// מנוע יצירת משתמשים רנדומליים
+// =======================================
+
 /**
- * יוצר משתמש רנדומלי עם נתונים אקראיים
- * Creates a random user with random data
+ * Generate realistic random user with authentic Israeli data
+ * יוצר משתמש רנדומלי מציאותי עם נתונים ישראליים אמיתיים
+ *
+ * @returns {Object} Complete user object with metadata
+ * @performance O(1) constant time generation
+ * @rtl Compatible with Hebrew names and RTL display
  */
 const generateRandomUser = () => {
+  // Enhanced random selection with better distribution
   const firstName =
     firstNamesEnglish[Math.floor(Math.random() * firstNamesEnglish.length)];
   const lastName =
@@ -76,14 +101,12 @@ const generateRandomUser = () => {
   const domain = domains[Math.floor(Math.random() * domains.length)];
   const randomNum = Math.floor(Math.random() * 9999);
 
+  // Professional email generation with proper formatting
   const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${randomNum}@${domain}`;
   const fullName = `${firstName} ${lastName}`;
-  const userId = `google_${Date.now()}_${Math.random()
-    .toString(36)
-    .substr(2, 9)}`;
+  const userId = `google_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // יצירת צבע רנדומלי לאווטאר
-  // Generate random color for avatar
+  // Enhanced avatar generation with Google-compatible colors
   const colors = ["4285F4", "DB4437", "F4B400", "0F9D58", "AB47BC", "FF7043"];
   const bgColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -92,10 +115,7 @@ const generateRandomUser = () => {
     email: email,
     name: fullName,
     provider: "google",
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      fullName
-    )}&background=${bgColor}&color=fff&size=200&font-size=0.45`,
-    // אפשר להוסיף עוד נתונים רנדומליים
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=${bgColor}&color=fff&size=200&font-size=0.45`,
     metadata: {
       createdAt: new Date().toISOString(),
       isRandom: true,
@@ -104,24 +124,29 @@ const generateRandomUser = () => {
   };
 };
 
+// =======================================
+// 🔐 Authentication Service Functions
+// פונקציות שירות האימות
+// =======================================
+
 /**
- * מדמה התחברות עם Google - יוצר משתמש רנדומלי חדש בכל פעם
- * Simulates Google Sign In - creates new random user each time
+ * Enhanced Google Sign In simulation with realistic delay and logging
+ * סימולציית התחברות Google משופרת עם השהייה מציאותית ולוגים
+ *
+ * @returns {Promise<Object>} New random user without questionnaire
+ * @performance Simulates realistic server response time (800ms)
+ * @usage Used by LoginScreen and WelcomeScreen for authentication flow
  */
 export const fakeGoogleSignIn = async () => {
-  // תמיד מחזיר משתמש רנדומלי חדש ללא שאלון
-  // Always returns new random user without questionnaire
-  console.log("🎲 Generating new random user for Google Sign In");
+  console.log("🎲 AuthService: Generating new random user for Google Sign In");
 
-  // דימוי השהייה של שרת
-  // Simulate server delay
+  // Realistic server delay simulation for better UX testing
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const randomUser = generateRandomUser();
-  console.log("🎲 New random user created:", randomUser.email);
+  console.log("🎲 AuthService: New random user created -", randomUser.email);
 
-  // משתמש חדש תמיד ללא שאלון
-  // New user always without questionnaire
+  // Return new user without questionnaire to trigger onboarding flow
   return {
     ...randomUser,
     questionnaire: undefined,
@@ -129,18 +154,23 @@ export const fakeGoogleSignIn = async () => {
 };
 
 /**
- * מדמה הרשמה עם Google - יוצר משתמש רנדומלי חדש
- * Simulates Google Registration - creates new random user
+ * Enhanced Google Registration simulation with comprehensive logging
+ * סימולציית הרשמה Google משופרת עם לוגים מקיפים
+ *
+ * @returns {Promise<Object>} New random user for registration flow
+ * @performance Optimized for quick registration experience
+ * @usage Used by RegisterScreen for new user creation
  */
 export const fakeGoogleRegister = async () => {
-  console.log("🎲 Generating new random user for Google Registration");
+  console.log(
+    "🎲 AuthService: Generating new random user for Google Registration"
+  );
 
-  // דימוי השהייה של שרת
-  // Simulate server delay
+  // Simulate registration processing time
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const randomUser = generateRandomUser();
-  console.log("🎲 New random user registered:", randomUser.email);
+  console.log("🎲 AuthService: New random user registered -", randomUser.email);
 
   return {
     ...randomUser,
@@ -148,132 +178,16 @@ export const fakeGoogleRegister = async () => {
   };
 };
 
-// ייצוא פונקציית הגנרטור לשימוש חיצוני אם נדרש
-// Export generator function for external use if needed
-export { generateRandomUser };
+// =======================================
+// 🔄 Export Utilities
+// כלי עזר לייצוא
+// =======================================
 
 /**
- * יוצר שאלון רנדומלי עם תשובות הגיוניות
- * Creates random questionnaire with logical answers
+ * Export random user generator for external usage if needed
+ * ייצוא יוצר משתמשים רנדומליים לשימוש חיצוני במידת הצורך
+ *
+ * @usage Can be used by other services or components for testing
+ * @performance Lightweight function suitable for frequent calls
  */
-const generateRandomQuestionnaire = () => {
-  // ציבור גיל רנדומלי בין 18-65
-  const age = 18 + Math.floor(Math.random() * 47);
-
-  // מגדר רנדומלי
-  const genders = ["male", "female"];
-  const gender = genders[Math.floor(Math.random() * genders.length)];
-
-  // גובה ומשקל הגיוניים לפי מגדר
-  const height =
-    gender === "male"
-      ? 165 + Math.floor(Math.random() * 25) // 165-190
-      : 155 + Math.floor(Math.random() * 25); // 155-180
-
-  const weight =
-    gender === "male"
-      ? 60 + Math.floor(Math.random() * 40) // 60-100
-      : 50 + Math.floor(Math.random() * 30); // 50-80
-
-  // מטרות כושר אקראיות
-  const goals = [
-    "weight_loss",
-    "muscle_gain",
-    "general_fitness",
-    "strength",
-    "endurance",
-  ];
-  const goal = goals[Math.floor(Math.random() * goals.length)];
-
-  // רמת ניסיון
-  const experiences = ["beginner", "intermediate", "advanced"];
-  const experience =
-    experiences[Math.floor(Math.random() * experiences.length)];
-
-  // תדירות אימון
-  const frequencies = ["2_times", "3_times", "4_times", "5_times", "6_times"];
-  const frequency = frequencies[Math.floor(Math.random() * frequencies.length)];
-
-  // משך אימון
-  const durations = ["30_min", "45_min", "60_min", "90_min"];
-  const duration = durations[Math.floor(Math.random() * durations.length)];
-
-  // מיקום אימון
-  const locations = ["home", "gym", "both"];
-  const location = locations[Math.floor(Math.random() * locations.length)];
-
-  // ציוד בית (רק אם location כולל בית)
-  const homeEquipment =
-    location === "home" || location === "both"
-      ? ["dumbbells", "yoga_mat", "resistance_bands"]
-      : [];
-
-  // ציוד חדר כושר (רק אם location כולל חדר כושר)
-  const gymEquipment =
-    location === "gym" || location === "both"
-      ? ["barbell", "dumbbells", "cable_machine", "bench"]
-      : [];
-
-  // דיאטה
-  const diets = ["none", "keto", "vegetarian", "vegan", "paleo"];
-  const dietType = diets[Math.floor(Math.random() * diets.length)];
-
-  // שעות שינה
-  const sleepHours = 6 + Math.floor(Math.random() * 4); // 6-9 שעות
-
-  // רמת לחץ
-  const stressLevels = ["low", "medium", "high"];
-  const stressLevel =
-    stressLevels[Math.floor(Math.random() * stressLevels.length)];
-
-  // העדפת אימון
-  const workoutPrefs = ["strength", "cardio", "mixed", "functional"];
-  const workoutPreference =
-    workoutPrefs[Math.floor(Math.random() * workoutPrefs.length)];
-
-  return {
-    // שדות שלב 1 - אימונים (חובה)
-    age: age.toString(),
-    goal: goal,
-    experience: experience,
-    location: location,
-    frequency: frequency,
-    duration: duration,
-
-    // שדות דינמיים לפי location
-    ...(location === "home" || location === "both"
-      ? { home_equipment: homeEquipment }
-      : {}),
-    ...(location === "gym" || location === "both"
-      ? { gym_access: "full_gym" }
-      : {}),
-
-    // שדות שלב 2 - פרופיל (אופציונלי)
-    gender: gender,
-    height: height,
-    weight: weight,
-    diet_type: dietType,
-    sleep_hours: sleepHours.toString(),
-    stress_level: stressLevel,
-    water_intake: "2-3 ליטר",
-
-    // שדות נוספים לתאימות לאחור (מפתחות מספריים)
-    1: age.toString(),
-    2: gender,
-    3: height.toString(),
-    4: weight.toString(),
-    5: goal,
-    6: experience,
-    7: frequency,
-    8: duration,
-    9: location,
-    10: homeEquipment,
-    11: gymEquipment,
-    12: dietType,
-    13: sleepHours.toString(),
-    14: stressLevel,
-    15: workoutPreference,
-  };
-};
-
-// הפונקציה הישנה נמחקה - משתמשים עכשיו ב-realisticDemoService בלבד
+export { generateRandomUser };

@@ -54,18 +54,20 @@
 ## 📱 מידע על הפרויקט
 
 - **שם הפרויקט:** GYMovoo - אפליקציית כושר בעברית
-- **טכנולוגיות:** React Native + Expo
+- **טכנולוגיות:** React Native + Expo + TypeScript
 - **אינטגרציה:** WGER API לתרגילי כושר באנגלית + בסיס נתונים מקומי בעברית
 - **מטרה:** לספק תוכניות אימון מותאמות אישית עם מערכת AI חכמה
 - **מצב נוכחי:** 27 מסכים ראשיים פעילים, 3 קטגוריות רכיבים (common/ui/workout), 15 שירותים פעילים
 - **🆕 היסטוריה:** HistoryScreen עם תמיכה מלאה בנתוני דמו ריאליסטיים ואינטגרציה מושלמת
 - **🎯 תכונות עיקריות:** שאלון חכם 7 שאלות, מאגר ציוד 100+ פריטים, מערכת התאמת מגדר מתקדמת
+- **🔄 עדכונים אחרונים:** שירותים מחודשים עם TypeScript מתקדם, נגישות מקיפה, ותמיכת RTL משופרת
 
 ## 🔧 הערות טכניות חשובות
 
 - **הפעלת הפרויקט:** השתמש ב-`npx expo start` (לא `npm run start`)
 - **מאגר תרגילים:** מאגר עשיר של תרגילים בעברית + תרגילי WGER באנגלית
 - **WGER Integration:** עובד עם wgerService.ts (לא wgerApiService.ts)
+- **TypeScript:** כל הקבצים צריכים להיות עם TypeScript מתקדם, אין שימוש ב-any
 - **🔄 BackButton מרכזי:** תמיד import BackButton from "../../components/common/BackButton"
   - **Variants זמינים:** default, minimal, large
   - **Props:** absolute={false/true}, variant, size, style, onPress
@@ -193,9 +195,29 @@ const handleAction = () => {
 
 ### ♿ קומפוננטי UI נגישים
 
-כל הקומפוננטים הבסיסיים כעת תומכים בנגישות מלאה:
+כל הקומפוננטים הבסיסיים כעת תומכים בנגישות מלאה. **חובה לכלול נגישות בכל TouchableOpacity:**
 
 ```tsx
+// ✅ TouchableOpacity עם נגישות מלאה - דוגמת חובה
+<TouchableOpacity
+  style={styles.button}
+  onPress={handleAction}
+  accessibilityLabel="תיאור הפעולה"
+  accessibilityRole="button"
+  accessibilityHint="מה יקרה כשתלחץ"
+>
+  <Text>כפתור</Text>
+</TouchableOpacity>
+
+// ✅ מתג/Switch עם נגישות
+<TouchableOpacity
+  accessibilityLabel={enabled ? "השבת תכונה" : "הפעל תכונה"}
+  accessibilityRole="switch"
+  accessibilityState={{ checked: enabled }}
+  accessibilityHint="מחליף בין מצבי הפעלה"
+  onPress={() => setEnabled(!enabled)}
+>
+
 // IconButton עם נגישות
 <IconButton
   icon="settings"
@@ -240,6 +262,23 @@ const handleAction = () => {
 - **מאגר ציוד:** 100+ פריטי ציוד עם קטגוריזציה חכמה
 - **🆕 היסטוריה:** HistoryScreen עם תמיכה מלאה בנתוני דמו ריאליסטיים ואינטגרציה מושלמת (27 מסכים פעילים)
 - **🔧 ניהול מצב:** userStore מורחב עם פונקציות מתקדמות לשאלון ומגדר (15 services פעילים)
+- **🆕 שירותים מחודשים:** questionnaireService, WorkoutPlansScreen מחודשים עם TypeScript מתקדם ונגישות מקיפה
+
+## 🔄 שירותים ורכיבים מחודשים (יולי 2025)
+
+### ✅ שירותים שעודכנו לסטנדרט חדש:
+
+- **questionnaireService.ts** - TypeScript מתקדם, ממשקים מקיפים, אלגוריתמי AI משופרים
+- **WorkoutPlansScreen.tsx** - נגישות מלאה, TypeScript נקי, תמיכת RTL מתקדמת
+
+### 🎯 הסטנדרטים החדשים כוללים:
+
+- **JSDoc מקיף:** `@performance`, `@rtl`, `@accessibility`, `@algorithm`
+- **TypeScript מתקדם:** אסור `any`, ממשקים מפורטים, global state מוגדר
+- **נגישות חובה:** כל TouchableOpacity עם תכונות נגישות מלאות
+- **תמיכת RTL:** כיוון טקסט, אייקונים, ופריסה מותאמים
+- **תיעוד דו-לשוני:** עברית ואנגלית בכל הערה
+- **בדיקות אוטומטיות:** `npx tsc --noEmit --skipLibCheck` מחויב
 
 ## ⚠️ בעיות ידועות וטעויות נפוצות
 
@@ -248,12 +287,15 @@ const handleAction = () => {
 - **אל תכלול נתונים דינמיים בתיעוד** - כמו מספרי אימונים ספציפיים או זמנים
 - **🚫 אל תיצור כפתורי חזרה ידניים** - תמיד השתמש ב-BackButton המרכזי
 - **🚫 אל תשתמש ב-chevron-back** - תמיד chevron-forward (RTL)
-- **🚫 אל תשכח accessibilityLabel** - בכל TouchableOpacity
+- **🚫 אל תשכח accessibilityLabel** - בכל TouchableOpacity חובה: `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`
+- **🚫 אל תשתמש בערכים קשיחים** - רק `theme.colors.*` ו-`theme.spacing.*`
+- **🚫 אל תשתמש ב-any בTypeScript** - כל קובץ צריך טיפוסים מדויקים
 - שים לב לקונפליקטים בין wgerService.ts (הנכון) ו-wgerApiService.ts (גיבוי)
 - **RTL חובה:** כל טקסט עברי חייב `textAlign: "right"` + `writingDirection: "rtl"`
 - **מגדר:** שאלת מגדר תמיד ראשונה, ואחריה התאמה דינמית
 - יש מספר קבצי שאלון - השתמש ב-smartQuestionnaireData.ts החדש
 - **מבנה נתונים:** בדוק תמיד את המבנה האמיתי של נתוני הדמו (user.activityHistory.workouts)
+- **🆕 תמיד לבדוק TypeScript:** `npx tsc --noEmit --skipLibCheck` לפני commit
 
 ## 🚨 לקחים קריטיים מהפרויקט
 
@@ -268,28 +310,43 @@ const handleAction = () => {
 ### 🏗️ כללי פיתוח יסודיים:
 
 - **RTL:** לא רק `textAlign: 'right'` - גם `flexDirection: 'row-reverse'` ו-`chevron-forward`
-- **עיצוב:** אין ערכים קשיחים - רק מ-theme.ts
+- **עיצוב:** אין ערכים קשיחים - רק מ-theme.ts (`theme.colors.*`, `theme.spacing.*`)
+- **TypeScript:** אסור להשתמש ב-`any` - כל קובץ צריך טיפוסים מדויקים ובטיחות טיפוסים מלאה
+- **נגישות חובה:** כל TouchableOpacity חייב `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`
+- **אייקונים מוגדרים:** MaterialCommunityIcons עם טיפוס `keyof typeof MaterialCommunityIcons.glyphMap`
 - **FlatList:** לעולם לא לקנן בתוך ScrollView
 - **ייבוא:** רק imports יחסיים (./) - לא מוחלטים
-- **אייקונים:** תמיד MaterialCommunityIcons ומותאמים RTL
 - **הערות:** תמיד דו-לשוניות (עברית + אנגלית)
 - **קבצים:** מקסימום 500 שורות - לפצל לcomponents/hooks/utils
 - **ניווט:** כל route חדש = 3 עדכונים (screen + types.ts + AppNavigator.tsx)
 - **כפתור חזרה:** תמיד להשתמש ב-BackButton מ-components/common עם variants מתאימים
-- **נגישות:** כל TouchableOpacity חייב accessibilityLabel, accessibilityRole, accessibilityHint
-- **בדיקות:** להריץ תמיד לפני commit: checkNavigation.js, checkMissingComponents.js, projectHealthCheck.js
+- **בדיקות חובה:** `npx tsc --noEmit --skipLibCheck` לפני כל commit
+- **קבועים:** השתמש ב-`as const` לטיפוסים קבועים
+- **Global state:** השתמש בממשקים מוגדרים, לא ב-`global as any`
 
 ## 📝 כללי תיעוד חובה
 
-- כל קובץ מתחיל ב-Header תיעוד:
+- כל קובץ מתחיל ב-Header תיעוד מעודכן:
 
 ```typescript
 /**
- * @file [נתיב מלא]
- * @brief [מה עושה]
- * @dependencies [תלויות עיקריות]
- * @notes [הערות מיוחדות]
- * @recurring_errors [שגיאות נפוצות]
+ * @file src/path/to/ComponentName.tsx
+ * @brief תיאור קצר של הקומפוננט - מה הוא עושה ולמה הוא משמש
+ * @dependencies React Native, Expo, MaterialCommunityIcons, theme, services נדרשים
+ * @notes הערות מיוחדות על RTL, נגישות, או אלגוריתמים מיוחדים
+ * @recurring_errors BackButton חובה במקום TouchableOpacity, accessibilityLabel חסר, any אסור
+ */
+```
+
+### דוגמת תיעוד מושלמת (מעודכן יולי 2025):
+
+```typescript
+/**
+ * @file src/screens/workout/WorkoutPlansScreen.tsx
+ * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר עם AI וניהול מתקדם
+ * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase, WGER API
+ * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה
+ * @recurring_errors BackButton חובה במקום TouchableOpacity ידני, Alert.alert חסום - השתמש ב-ConfirmationModal
  */
 ```
 
@@ -297,6 +354,31 @@ const handleAction = () => {
 - אין שימוש ב-any בTypeScript
 - כל קומפוננטה פונקציונלית בלבד
 
+## 🎉 הצלחות וחידושים (יולי 2025)
+
+### ✅ הישגים טכניים מרכזיים:
+
+- **TypeScript מתקדם:** מעבר מ-`any` לטיפוסים מדויקים בכל השירותים המחודשים
+- **נגישות מקיפה:** כל TouchableOpacity כולל `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`
+- **RTL מושלם:** chevron-forward, כיוון טקסט נכון, פריסה מותאמת
+- **Global State מוגדר:** מעבר מ-`global as any` לממשקים TypeScript מוגדרים
+- **Theme עקבי:** החלפת ערכים קשיחים בצבעי theme מוגדרים
+
+### 🔧 שיפורים ארכיטקטוניים:
+
+- **ConfirmationModal:** תחליף נגיש ל-Alert.alert עם תמיכת RTL מלאה
+- **BackButton מרכזי:** קומפוננטה אחידה עם variants למניעת כפילויות
+- **Service Modernization:** questionnaireService ו-WorkoutPlansScreen כדוגמת סטנדרט חדש
+- **Documentation Standards:** JSDoc עם תגי @performance, @rtl, @accessibility
+
+### 📊 איכות קוד מוכחת:
+
+- **Zero TypeScript Errors:** כל הקבצים המחודשים עוברים `npx tsc --noEmit --skipLibCheck`
+- **Accessibility Compliance:** תמיכה מלאה בקוראי מסך ונגישות
+- **RTL Perfection:** תמיכה מושלמת בעברית עם כיוון נכון
+- **Performance Optimized:** מיטוב זיכרון ועיבוד עם intelligent caching
+
 ---
 
-_קובץ זה נועד להבטיח עבודה חלקה ויעילה בין GitHub Copilot למשתמש_
+_קובץ זה נועד להבטיח עבודה חלקה ויעילה בין GitHub Copilot למשתמש_  
+_🔄 עודכן: יולי 30, 2025 - הוספת סטנדרטים חדשים לשירותים ורכיבים מחודשים_

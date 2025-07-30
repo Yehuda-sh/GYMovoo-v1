@@ -4,7 +4,7 @@
  * English: Workout summary screen - updated with feedback and analysis
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,20 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
   const [readyForMore, setReadyForMore] = useState<boolean | null>(null);
   const [personalRecords, setPersonalRecords] = useState<any[]>([]);
 
+  // Optimized handlers with useCallback
+  const handleDifficultyChange = useCallback((star: number) => {
+    setDifficulty(star);
+  }, []);
+
+  const handleFeelingChange = useCallback((emotionValue: string) => {
+    setFeeling(emotionValue);
+  }, []);
+
+  const handleShareWorkout = useCallback(() => {
+    console.log("Share workout");
+    // TODO: Implement sharing functionality
+  }, []);
+
   // זיהוי שיאים אישיים באימון הנוכחי
   useEffect(() => {
     const detectRecords = async () => {
@@ -51,43 +65,46 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
     detectRecords();
   }, [workout]);
 
-  // חישוב סטטיסטיקות
-  const stats = {
-    duration: Math.floor((workout.duration || 0) / 60),
-    totalSets: workout.exercises.reduce(
-      (acc, ex) => acc + ex.sets.filter((s) => s.completed).length,
-      0
-    ),
-    totalPlannedSets: workout.exercises.reduce(
-      (acc, ex) => acc + ex.sets.length,
-      0
-    ),
-    totalVolume: workout.exercises.reduce(
-      (acc, ex) =>
-        acc +
-        ex.sets.reduce(
-          (setAcc, set) =>
-            set.completed
-              ? setAcc + (set.actualWeight || 0) * (set.actualReps || 0)
-              : setAcc,
-          0
-        ),
-      0
-    ),
-    personalRecords: personalRecords.length, // עדכון להשתמש בשיאים החדשים שזוהו
-  };
+  // חישוב סטטיסטיקות - optimized with useMemo
+  const stats = React.useMemo(
+    () => ({
+      duration: Math.floor((workout.duration || 0) / 60),
+      totalSets: workout.exercises.reduce(
+        (acc, ex) => acc + ex.sets.filter((s) => s.completed).length,
+        0
+      ),
+      totalPlannedSets: workout.exercises.reduce(
+        (acc, ex) => acc + ex.sets.length,
+        0
+      ),
+      totalVolume: workout.exercises.reduce(
+        (acc, ex) =>
+          acc +
+          ex.sets.reduce(
+            (setAcc, set) =>
+              set.completed
+                ? setAcc + (set.actualWeight || 0) * (set.actualReps || 0)
+                : setAcc,
+            0
+          ),
+        0
+      ),
+      personalRecords: personalRecords.length, // עדכון להשתמש בשיאים החדשים שזוהו
+    }),
+    [workout, personalRecords]
+  );
 
-  const formatDuration = (minutes: number) => {
+  const formatDuration = useCallback((minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0) {
       return `${hours} שעות ו-${mins} דקות`;
     }
     return `${mins} דקות`;
-  };
+  }, []);
 
   // פונקציה לשמירת המשוב והאימון להיסטוריה
-  const handleSaveWorkoutWithFeedback = async () => {
+  const handleSaveWorkoutWithFeedback = useCallback(async () => {
     try {
       // יצירת אובייקט מלא עם כל הנתונים
       const workoutWithFeedback = {
@@ -137,7 +154,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
       console.error("Error saving workout:", error);
       alert("שגיאה בשמירת האימון - נסה שוב");
     }
-  };
+  }, [workout, difficulty, feeling, readyForMore, stats, onSave]);
 
   return (
     <View style={styles.modalContainer}>
@@ -151,7 +168,12 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
         >
           {/* כפתורי פעולה עליונים */}
           <View style={styles.topActions}>
-            <TouchableOpacity style={styles.topActionButton} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.topActionButton}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="סגור מסך סיכום"
+            >
               <MaterialCommunityIcons
                 name="close"
                 size={24}
@@ -174,7 +196,9 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
             <View style={styles.topActionsRight}>
               <TouchableOpacity
                 style={styles.topActionButton}
-                onPress={() => console.log("Share workout")}
+                onPress={handleShareWorkout}
+                accessibilityRole="button"
+                accessibilityLabel="שתף אימון"
               >
                 <MaterialCommunityIcons
                   name="share-variant"
@@ -183,7 +207,12 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.topActionButton} onPress={onSave}>
+              <TouchableOpacity
+                style={styles.topActionButton}
+                onPress={onSave}
+                accessibilityRole="button"
+                accessibilityLabel="שמור אימון מהיר"
+              >
                 <MaterialCommunityIcons
                   name="content-save"
                   size={20}
@@ -194,7 +223,12 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
           </View>
         </LinearGradient>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          accessible={true}
+          accessibilityLabel="תוכן סיכום האימון"
+        >
           {/* סטטיסטיקות */}
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -259,8 +293,11 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
                 {[1, 2, 3, 4, 5].map((star) => (
                   <TouchableOpacity
                     key={star}
-                    onPress={() => setDifficulty(star)}
+                    onPress={() => handleDifficultyChange(star)}
                     style={styles.starButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={`דרג קושי ${star} מתוך 5 כוכבים`}
+                    accessibilityState={{ selected: star <= difficulty }}
                   >
                     <MaterialCommunityIcons
                       name={star <= difficulty ? "star" : "star-outline"}
@@ -296,11 +333,14 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
                 ].map((emotion) => (
                   <TouchableOpacity
                     key={emotion.value}
-                    onPress={() => setFeeling(emotion.value)}
+                    onPress={() => handleFeelingChange(emotion.value)}
                     style={[
                       styles.emotionButtonCompact,
                       feeling === emotion.value && styles.emotionButtonSelected,
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`הרגשה: ${emotion.label}`}
+                    accessibilityState={{ selected: feeling === emotion.value }}
                   >
                     <Text style={styles.emotionEmojiSmall}>
                       {emotion.emoji}
@@ -339,6 +379,14 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
                           // כאן נוכל להוסיף תזכורת או לתכנן אימון
                         }
                       }}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        hasWorkout
+                          ? `יום ${day} - אימון הושלם`
+                          : isNextPlanned
+                            ? `יום ${day} - אימון מתוכנן, לחץ להוספת תזכורת`
+                            : `יום ${day}`
+                      }
                     >
                       {hasWorkout ? (
                         <MaterialCommunityIcons
@@ -485,6 +533,9 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
             <TouchableOpacity
               style={styles.mainSaveButton}
               onPress={handleSaveWorkoutWithFeedback}
+              accessibilityRole="button"
+              accessibilityLabel="שמור אימון ומשוב במערכת"
+              accessibilityHint="שומר את פרטי האימון והמשוב שלך להיסטוריה"
             >
               <MaterialCommunityIcons
                 name="content-save"
@@ -513,6 +564,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   header: {
     paddingVertical: theme.spacing.sm, // הקטנתי מ-md
@@ -526,16 +578,14 @@ export const styles = StyleSheet.create({
   },
   topActionButton: {
     padding: theme.spacing.md,
-    borderRadius: theme.radius.lg,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.15)",
     marginHorizontal: theme.spacing.xs,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...theme.shadows.small,
+    // Enhanced interaction feedback
+    transform: [{ scale: 1 }],
   },
   headerCenter: {
     alignItems: "center",
@@ -549,7 +599,7 @@ export const styles = StyleSheet.create({
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginTop: theme.spacing.xs, // הקטנתי מ-md
-    textAlign: isRTL ? "right" : "left",
+    textAlign: "center",
     writingDirection: isRTL ? "rtl" : "ltr",
   },
   workoutName: {
@@ -557,7 +607,8 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     opacity: 0.9,
     marginTop: theme.spacing.xs, // הקטנתי מ-sm
-    textAlign: isRTL ? "right" : "left",
+    textAlign: "center",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   content: {
     flex: 1,
@@ -595,6 +646,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.sm, // הקטנתי מ-md
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   exerciseSummary: {
     backgroundColor: theme.colors.card,
@@ -609,6 +661,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   exerciseStats: {
     flexDirection: isRTL ? "row-reverse" : "row",
@@ -703,12 +756,14 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 0.3,
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   difficultyHint: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     flex: 0.4,
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
     fontStyle: "italic",
   },
   emotionsContainerCompact: {
@@ -735,6 +790,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     marginTop: 2,
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   dayCirclePlanned: {
     borderColor: theme.colors.primary,
@@ -963,6 +1019,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 18,
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
     marginBottom: theme.spacing.sm,
   },
   recommendationItem: {

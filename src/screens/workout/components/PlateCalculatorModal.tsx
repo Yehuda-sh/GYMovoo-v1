@@ -5,7 +5,13 @@
  */
 // cspell:ignore פלטות
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import {
   Modal,
   View,
@@ -15,7 +21,6 @@ import {
   ScrollView,
   TextInput,
   Animated,
-  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
@@ -55,6 +60,17 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   const [targetWeight, setTargetWeight] = useState(currentWeight);
   const slideAnim = useRef(new Animated.Value(300)).current;
 
+  // Optimized weight change handler
+  const handleWeightChange = useCallback((increment: number) => {
+    setTargetWeight((prev) => Math.max(0, prev + increment));
+  }, []);
+
+  // Optimized text input handler
+  const handleTextChange = useCallback((text: string) => {
+    const numericValue = parseFloat(text) || 0;
+    setTargetWeight(numericValue);
+  }, []);
+
   useEffect(() => {
     if (visible) {
       setTargetWeight(currentWeight);
@@ -70,7 +86,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, currentWeight]);
+  }, [visible, currentWeight, slideAnim]);
 
   const plateCalculation = useMemo(() => {
     const weight = targetWeight || 0;
@@ -100,16 +116,14 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     };
   }, [targetWeight]);
 
-  const handleWeightChange = (increment: number) => {
-    setTargetWeight((prev) => Math.max(0, prev + increment));
-  };
-
   return (
     <Modal
       visible={visible}
       animationType="none"
       transparent={true}
       onRequestClose={onClose}
+      accessible={true}
+      accessibilityLabel="מחשבון פלטות למשקולות"
     >
       <TouchableOpacity
         style={styles.modalOverlay}
@@ -124,7 +138,12 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
         >
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.header}>
-              <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={onClose}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="סגור מחשבון פלטות"
+              >
                 <Ionicons
                   name="close-circle"
                   size={28}
@@ -145,6 +164,8 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   style={styles.incrementButton}
                   onPress={() => handleWeightChange(WEIGHT_INCREMENT)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="הוסף משקל"
                 >
                   <Ionicons name="add" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
@@ -152,16 +173,18 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                 <TextInput
                   style={styles.input}
                   value={targetWeight.toString()}
-                  onChangeText={(text) =>
-                    setTargetWeight(parseFloat(text) || 0)
-                  }
+                  onChangeText={handleTextChange}
                   keyboardType="numeric"
                   selectTextOnFocus
+                  accessibilityLabel="משקל יעד בקילוגרמים"
+                  accessibilityHint="הקלד או השתמש בכפתורים לשינוי המשקל"
                 />
                 <TouchableOpacity
                   style={styles.incrementButton}
                   onPress={() => handleWeightChange(-WEIGHT_INCREMENT)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="הפחת משקל"
                 >
                   <Ionicons
                     name="remove"
@@ -258,15 +281,17 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.divider,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
-    textAlign: "center", // הוספת יישור למרכז
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl",
     marginBottom: theme.spacing.sm,
     marginTop: theme.spacing.lg,
   },
@@ -275,11 +300,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
+    borderRadius: 20,
     padding: theme.spacing.sm,
+    ...theme.shadows.small,
   },
   incrementButton: {
     padding: theme.spacing.md,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary + "10",
+    // Enhanced interaction feedback
+    transform: [{ scale: 1 }],
   },
   input: {
     flex: 1,
@@ -288,11 +318,13 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     textAlign: "center",
     minWidth: 100,
+    writingDirection: "ltr", // Numbers should be LTR
   },
   kgLabel: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
-    marginHorizontal: theme.spacing.sm, // שינוי ל-marginHorizontal
+    marginHorizontal: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   barVisualization: {
     flexDirection: "row",
@@ -324,9 +356,10 @@ const styles = StyleSheet.create({
   },
   summary: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
+    borderRadius: 20,
     padding: theme.spacing.lg,
     marginTop: theme.spacing.md,
+    ...theme.shadows.medium,
   },
   summaryRow: {
     flexDirection: "row-reverse",
@@ -335,15 +368,17 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
-    textAlign: "right", // הוספת יישור לימין
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.text,
     fontWeight: "500",
-    textAlign: "left", // הוספת יישור לשמאל
+    textAlign: "left",
+    writingDirection: "ltr", // Numbers should be LTR
   },
   divider: {
     height: 1,
@@ -351,21 +386,25 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.xs,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: theme.typography.bodyLarge.fontSize,
     color: theme.colors.text,
     fontWeight: "bold",
-    textAlign: "right", // הוספת יישור לימין
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: theme.typography.bodyLarge.fontSize,
     color: theme.colors.primary,
     fontWeight: "bold",
-    textAlign: "left", // הוספת יישור לשמאל
+    textAlign: "left",
+    writingDirection: "ltr", // Numbers should be LTR
   },
   warningText: {
-    fontSize: 12,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.warning,
     textAlign: "center",
+    writingDirection: "rtl",
     marginTop: theme.spacing.sm,
+    fontWeight: "500",
   },
 });

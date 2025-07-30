@@ -1,10 +1,62 @@
 /**
  * @file src/screens/workout/components/WorkoutDashboard.tsx
- * @brief דשבורד קומפקטי ואופקי עם סטטיסטיקות חיות של האימון
- * @dependencies MaterialCommunityIcons, FontAwesome5, theme
- * @notes משולב עם טיימר אימון וסגנונות שונים
+ * @brief דשבורד אימון אינטרקטיבי עם סטטיסטיקות חיות ווריאנטים מגוונים
+ * @version 2.0.0
+ * @author GYMovoo Development Team
+ * @created 2024-12-15
+ * @modified 2025-07-30
+ *
+ * @description
+ * רכיב דשבורד מתקדם המציג סטטיסטיקות אימון בזמן אמת עם תמיכה ב-4 ווריאנטים:
+ * - default: תצוגה מלאה עם כל הסטטיסטיקות
+ * - compact: תצוגה קומפקטית עם 3 סטטיסטיקות עיקריות
+ * - bar: תצוגת בר דק בסגנון NextExerciseBar
+ * - floating: תצוגה צפה עם גרדיאנט
+ *
+ * @features
+ * - ✅ סטטיסטיקות חיות: נפח, סטים, קצב, שיאים אישיים
+ * - ✅ טיימר אימון אינטגרלי
+ * - ✅ אנימציות מתקדמות עם Animated API
+ * - ✅ תמיכת RTL מלאה
+ * - ✅ נגישות מקיפה עם ARIA labels
+ * - ✅ 4 ווריאנטי תצוגה שונים
+ * - ✅ כפתור סגירה דינמי
+ * - ✅ גרדיאנטים וצללים מתקדמים
+ *
+ * @performance
+ * אופטימיזציה מתקדמת עם useRef לאנימציות, memo optimization עבור StatItem,
+ * חישובי אחוז השלמה מקומיים ללא re-renders מיותרים
+ *
+ * @rtl
+ * תמיכה מלאה בעברית עם flexDirection: row-reverse, textAlign: right,
+ * ופריסת אייקונים מותאמת לכיוון קריאה מימין לשמאל
+ *
+ * @accessibility
+ * תמיכה מלאה ב-Screen Readers עם accessibilityLabel, accessibilityRole,
+ * accessibilityHint מפורטים לכל רכיב אינטרקטיבי
+ *
+ * @algorithm
+ * חישוב אחוז השלמה: (completedSets / totalSets) * 100
+ * אנימציית סקלה: 1 → 1.1 → 1 עם spring physics
+ *
+ * @dependencies MaterialCommunityIcons, FontAwesome5, LinearGradient, theme
+ * @exports WorkoutDashboard
+ *
+ * @example
+ * ```tsx
+ * <WorkoutDashboard
+ *   totalVolume={2450}
+ *   completedSets={8}
+ *   totalSets={12}
+ *   pace={3.2}
+ *   personalRecords={2}
+ *   elapsedTime="25:30"
+ *   variant="default"
+ *   onHide={() => setShowDashboard(false)}
+ * />
+ * ```
  */
-// cspell:ignore נפח, סטים, קצב, שיאים
+// cspell:ignore נפח, סטים, קצב, שיאים, ווריאנטים, גרדיאנט
 
 import React, { useEffect, useRef } from "react";
 import {
@@ -21,9 +73,7 @@ import { theme } from "../../../styles/theme";
 interface DashboardStatProps {
   label: string;
   value: string | number;
-  icon:
-    | React.ComponentProps<typeof MaterialCommunityIcons>["name"]
-    | React.ComponentProps<typeof FontAwesome5>["name"];
+  icon: string; // Support both MaterialCommunityIcons and FontAwesome5 icon names
   iconFamily: "material" | "font5";
   color?: string;
   animate?: boolean;
@@ -42,52 +92,72 @@ interface WorkoutDashboardProps {
   // English: Function to hide dashboard
 }
 
-// קומפוננטת סטטיסטיקה בודדת
-// Single stat component
-const StatItem: React.FC<DashboardStatProps> = ({
-  label,
-  value,
-  icon,
-  iconFamily,
-  color = theme.colors.primary,
-  animate = false,
-}) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+// קומפוננטת סטטיסטיקה בודדת - ממוחזרת עם React.memo לביצועים
+// Single stat component - memoized with React.memo for performance
+const StatItem: React.FC<DashboardStatProps> = React.memo(
+  ({
+    label,
+    value,
+    icon,
+    iconFamily,
+    color = theme.colors.primary,
+    animate = false,
+  }) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    if (animate) {
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [value, animate]);
+    useEffect(() => {
+      if (animate) {
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    }, [value, animate, scaleAnim]);
 
-  return (
-    <Animated.View
-      style={[
-        styles.statItem,
-        animate && { transform: [{ scale: scaleAnim }] },
-      ]}
-    >
-      {iconFamily === "material" ? (
-        <MaterialCommunityIcons name={icon as never} size={24} color={color} />
-      ) : (
-        <FontAwesome5 name={icon as never} size={20} color={color} />
-      )}
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </Animated.View>
-  );
-};
+    return (
+      <Animated.View
+        style={[
+          styles.statItem,
+          animate && { transform: [{ scale: scaleAnim }] },
+        ]}
+        accessible={true}
+        accessibilityRole="text"
+        accessibilityLabel={`${label}: ${value}`}
+        accessibilityHint="סטטיסטיקת אימון"
+      >
+        {iconFamily === "material" ? (
+          <MaterialCommunityIcons
+            name={
+              icon as React.ComponentProps<
+                typeof MaterialCommunityIcons
+              >["name"]
+            }
+            size={24}
+            color={color}
+          />
+        ) : (
+          <FontAwesome5
+            name={icon as React.ComponentProps<typeof FontAwesome5>["name"]}
+            size={20}
+            color={color}
+          />
+        )}
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </Animated.View>
+    );
+  }
+);
+
+StatItem.displayName = "StatItem";
 
 export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   totalVolume,
@@ -159,6 +229,12 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           onPress={onHide}
           disabled={!onHide}
           activeOpacity={onHide ? 0.8 : 1}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="דשבורד אימון - תצוגת בר"
+          accessibilityHint={
+            onHide ? "הקש כדי להסתיר את הדשבורד" : "תצוגת סטטיסטיקות אימון"
+          }
         >
           <LinearGradient
             colors={[theme.colors.card, theme.colors.background]}
@@ -235,6 +311,10 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
               onHide();
             }}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="סגור דשבורד"
+            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
           >
             <MaterialCommunityIcons
               name="close"
@@ -257,6 +337,14 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           onPress={onHide}
           disabled={!onHide}
           activeOpacity={onHide ? 0.8 : 1}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="דשבורד אימון - תצוגה קומפקטית"
+          accessibilityHint={
+            onHide
+              ? "הקש כדי להסתיר את הדשבורד"
+              : "תצוגת סטטיסטיקות אימון קומפקטית"
+          }
         >
           {stats.slice(0, 3).map((stat, index) => (
             <React.Fragment key={stat.label}>
@@ -264,13 +352,21 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
               <View style={styles.compactStat}>
                 {stat.iconFamily === "material" ? (
                   <MaterialCommunityIcons
-                    name={stat.icon as never}
+                    name={
+                      stat.icon as React.ComponentProps<
+                        typeof MaterialCommunityIcons
+                      >["name"]
+                    }
                     size={16}
                     color={stat.color}
                   />
                 ) : (
                   <FontAwesome5
-                    name={stat.icon as never}
+                    name={
+                      stat.icon as React.ComponentProps<
+                        typeof FontAwesome5
+                      >["name"]
+                    }
                     size={14}
                     color={stat.color}
                   />
@@ -297,6 +393,10 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
               onHide();
             }}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="סגור דשבורד"
+            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
           >
             <MaterialCommunityIcons
               name="close"
@@ -319,6 +419,12 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           onPress={onHide}
           disabled={!onHide}
           activeOpacity={onHide ? 0.8 : 1}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="דשבורד אימון - תצוגה צפה"
+          accessibilityHint={
+            onHide ? "הקש כדי להסתיר את הדשבורד" : "תצוגת סטטיסטיקות אימון צפה"
+          }
         >
           <LinearGradient
             colors={[
@@ -332,13 +438,21 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
                 <View key={stat.label} style={styles.floatingStat}>
                   {stat.iconFamily === "material" ? (
                     <MaterialCommunityIcons
-                      name={stat.icon as never}
+                      name={
+                        stat.icon as React.ComponentProps<
+                          typeof MaterialCommunityIcons
+                        >["name"]
+                      }
                       size={20}
                       color={stat.color}
                     />
                   ) : (
                     <FontAwesome5
-                      name={stat.icon as never}
+                      name={
+                        stat.icon as React.ComponentProps<
+                          typeof FontAwesome5
+                        >["name"]
+                      }
                       size={16}
                       color={stat.color}
                     />
@@ -370,6 +484,10 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
               onHide();
             }}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="סגור דשבורד"
+            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
           >
             <MaterialCommunityIcons
               name="close"
@@ -395,6 +513,12 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
         }}
         disabled={!onHide}
         activeOpacity={onHide ? 0.8 : 1}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="דשבורד אימון מלא"
+        accessibilityHint={
+          onHide ? "הקש כדי להסתיר את הדשבורד" : "תצוגת סטטיסטיקות אימון מפורטת"
+        }
       >
         {stats.map((stat) => (
           <StatItem key={stat.label} {...stat} />
@@ -409,6 +533,10 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
             onHide();
           }}
           activeOpacity={0.7}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="סגור דשבורד"
+          accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
         >
           <MaterialCommunityIcons
             name="close"
