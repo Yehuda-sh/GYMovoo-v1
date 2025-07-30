@@ -1630,19 +1630,21 @@ _חובה לקרוא לפני כל שינוי קוד!_
 הנחת מבנה נתונים שגויה - בדקנו `user.activityHistory` כמערך ישירות כשזה אובייקט עם מפתח `workouts`
 
 **🔍 למה זה בעיה חמורה:**
+
 - גורם לשגיאות לוגיות בגישה לנתונים
 - יוצר באגים קשים לזיהוי
 - נתונים קיימים אבל לא נגישים
 - האפליקציה לא קורסת אבל מתנהגת לא נכון
 
 **✅ הפתרון הנכון:**
+
 ```typescript
 // ❌ לא נכון - הנחה שזה מערך
 if (user.activityHistory && user.activityHistory.length > 0)
 
 // ✅ נכון - בדיקת המבנה האמיתי
-if (user?.activityHistory?.workouts && 
-    Array.isArray(user.activityHistory.workouts) && 
+if (user?.activityHistory?.workouts &&
+    Array.isArray(user.activityHistory.workouts) &&
     user.activityHistory.workouts.length > 0)
 ```
 
@@ -1650,11 +1652,13 @@ if (user?.activityHistory?.workouts &&
 **תמיד בדוק את המבנה האמיתי של הנתונים לפני הגישה!**
 
 **📋 בדיקת 3 שלבים לכל גישה לנתונים:**
+
 1. **console.log** את המבנה האמיתי
 2. **בדוק טיפוסים** (Array.isArray, typeof)
 3. **הוסף fallback** לכל מקרה אפשרי
 
 **🚨 מקרים נפוצים לבדיקה:**
+
 - `user.data` vs `user.data.items`
 - `response` vs `response.data`
 - `history` vs `history.workouts`
