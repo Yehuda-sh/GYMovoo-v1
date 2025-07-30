@@ -14,16 +14,18 @@ import {
   StyleSheet,
   SafeAreaView,
   Alert,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
-  SmartQuestionnaireManager,
+  NewQuestionnaireManager,
   SmartQuestion,
   SmartOption,
   AIFeedback,
-} from "../../data/smartQuestionnaireData";
+  getSmartQuestionnaireInsights,
+} from "../../data/newSmartQuestionnaire";
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
@@ -85,16 +87,6 @@ const AIFeedbackComponent: React.FC<{
         <Text style={styles.aiFeedbackIcon}>{feedback.icon}</Text>
         <View style={styles.aiFeedbackText}>
           <Text style={styles.aiFeedbackMessage}>{feedback.message}</Text>
-          {feedback.actionable && (
-            <TouchableOpacity
-              style={styles.aiFeedbackAction}
-              onPress={feedback.actionable.action}
-            >
-              <Text style={styles.aiFeedbackActionText}>
-                {feedback.actionable.text}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
         <TouchableOpacity onPress={onClose} style={styles.aiFeedbackClose}>
           <Text style={styles.aiFeedbackCloseText}>✕</Text>
@@ -137,30 +129,39 @@ const SmartOptionComponent: React.FC<{
         activeOpacity={0.8}
       >
         <View style={styles.optionContent}>
-          <Text
-            style={[
-              styles.optionLabel,
-              isSelected && styles.optionLabelSelected,
-            ]}
-          >
-            {option.label}
-          </Text>
-          {option.description && (
-            <Text
-              style={[
-                styles.optionDescription,
-                isSelected && styles.optionDescriptionSelected,
-              ]}
-            >
-              {option.description}
-            </Text>
-          )}
-          {option.aiInsight && isSelected && (
-            <View style={styles.aiInsightContainer}>
-              <Text style={styles.aiInsightIcon}>🤖</Text>
-              <Text style={styles.aiInsightText}>{option.aiInsight}</Text>
+          {/* תמונת ציוד אם קיימת */}
+          {option.image && (
+            <View style={styles.optionImageContainer}>
+              <Image source={option.image} style={styles.optionImage} />
             </View>
           )}
+
+          <View style={styles.optionTextContainer}>
+            <Text
+              style={[
+                styles.optionLabel,
+                isSelected && styles.optionLabelSelected,
+              ]}
+            >
+              {option.label}
+            </Text>
+            {option.description && (
+              <Text
+                style={[
+                  styles.optionDescription,
+                  isSelected && styles.optionDescriptionSelected,
+                ]}
+              >
+                {option.description}
+              </Text>
+            )}
+            {option.aiInsight && isSelected && (
+              <View style={styles.aiInsightContainer}>
+                <Text style={styles.aiInsightIcon}>🤖</Text>
+                <Text style={styles.aiInsightText}>{option.aiInsight}</Text>
+              </View>
+            )}
+          </View>
         </View>
         {isSelected && (
           <View style={styles.selectedIndicator}>
@@ -218,9 +219,9 @@ const SmartQuestionnaireScreen: React.FC = () => {
 
   const [manager] = useState(() => {
     console.log(
-      `🔍 DEBUG: Creating new SmartQuestionnaireManager in React component`
+      `🔍 DEBUG: Creating new NewQuestionnaireManager in React component`
     );
-    return new SmartQuestionnaireManager();
+    return new NewQuestionnaireManager();
   });
   const [currentQuestion, setCurrentQuestion] = useState<SmartQuestion | null>(
     null
@@ -337,34 +338,24 @@ const SmartQuestionnaireScreen: React.FC = () => {
       // שמור את התשובות
       await setQuestionnaire(answers);
 
-      // קבל את המגדר מהתשובות
-      const genderAnswer = answers.find((a: any) => a.questionId === "gender");
-      const selectedGender = genderAnswer
-        ? genderAnswer.selectedOptions[0]?.id
-        : null;
+      // קבל אינסייטים חכמים מהמערכת החדשה
+      const insights = getSmartQuestionnaireInsights(answers);
 
-      // התאם טקסט לפי מגדר
-      const inviteText =
-        selectedGender === "female"
-          ? "תוכנית האימונים האישית שלך מוכנה! בואי נתחיל להתאמן"
-          : selectedGender === "male"
-            ? "תוכנית האימונים האישית שלך מוכנה! בוא נתחיל להתאמן"
-            : "תוכנית האימונים האישית שלך מוכנה! בואו נתחיל להתאמן";
+      // קבל את המגדר מהתשובות אם קיים (במערכת החדשה אין שאלת מגדר)
+      const inviteText = "תוכנית האימונים האישית שלך מוכנה! בואו נתחיל להתאמן";
+      const buttonText = "בואו נתחיל!";
 
-      const buttonText =
-        selectedGender === "female"
-          ? "בואי נתחיל!"
-          : selectedGender === "male"
-            ? "בוא נתחיל!"
-            : "בואו נתחיל!";
-
-      // הצג הודעת הצלחה עם סיכום AI
-      Alert.alert("🎉 השאלון הושלם!", inviteText, [
-        {
-          text: buttonText,
-          onPress: () => navigation.navigate("MainApp"),
-        },
-      ]);
+      // הצג הודעת הצלחה עם סיכום AI מתקדם
+      Alert.alert(
+        "🎉 השאלון הושלם!",
+        `${inviteText}\n\n📊 ניתוח חכם:\n• ציון השלמה: ${insights.completionScore}%\n• רמת מוכנות: ${insights.equipmentReadinessLevel}/5\n• ${insights.insights[0] || "מוכן לאימונים!"}\n\n💪 ${insights.trainingCapabilities.slice(0, 2).join(", ")}`,
+        [
+          {
+            text: buttonText,
+            onPress: () => navigation.navigate("MainApp"),
+          },
+        ]
+      );
     } catch (error) {
       console.error("Error saving questionnaire:", error);
       Alert.alert("שגיאה", "בעיה בשמירת השאלון. אנא נסה שוב.");
@@ -405,9 +396,19 @@ const SmartQuestionnaireScreen: React.FC = () => {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          {/* התקדמות */}
+          {/* התקדמות עם טיפים חכמים */}
           <SmartProgressBar progress={progress} />
-
+          {/* טיפ חכם בהתאם להתקדמות */}
+          {progress.percentage > 0 && progress.percentage < 100 && (
+            <View style={styles.smartTipContainer}>
+              <Text style={styles.smartTipIcon}>💡</Text>
+              <Text style={styles.smartTipText}>
+                {progress.percentage < 50
+                  ? "ככל שתענה יותר, כך נוכל ליצור תוכנית מותאמת יותר עבורך"
+                  : "כמעט סיימנו! התשובות שלך עוזרות לנו ליצור את האימון המושלם"}
+              </Text>
+            </View>
+          )}
           {/* כותרת השאלה */}
           <View style={styles.questionHeader}>
             <Text style={styles.questionIcon}>{currentQuestion.icon}</Text>
@@ -418,7 +419,6 @@ const SmartQuestionnaireScreen: React.FC = () => {
               </Text>
             )}
           </View>
-
           {/* השאלה עצמה */}
           <View style={styles.questionContainer}>
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
@@ -426,8 +426,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
               <Text style={styles.helpText}>{currentQuestion.helpText}</Text>
             )}
           </View>
-
-          {/* אפשרויות */}
+          {/* אפשרויות עם תמונות חכמות */}
           <View style={styles.optionsContainer}>
             {currentQuestion.options?.map((option, index) => {
               const isSelected =
@@ -444,8 +443,25 @@ const SmartQuestionnaireScreen: React.FC = () => {
                 />
               );
             })}
-          </View>
 
+            {/* הצגת מידע נוסף על הבחירות */}
+            {selectedOptions.length > 0 && (
+              <View style={styles.selectionSummary}>
+                <Text style={styles.selectionSummaryTitle}>
+                  ✨ הבחירות שלך ({selectedOptions.length}):
+                </Text>
+                <View style={styles.selectedItemsContainer}>
+                  {selectedOptions.map((option, index) => (
+                    <View key={option.id} style={styles.selectedItem}>
+                      <Text style={styles.selectedItemText}>
+                        {option.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>{" "}
           {/* רווח תחתון */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
@@ -672,7 +688,27 @@ const styles = StyleSheet.create({
   },
   optionContent: {
     flex: 1,
-    alignItems: "flex-end", // מיישר תוכן לימין ב-RTL
+    flexDirection: "row-reverse", // תמונה משמאל, טקסט מימין ב-RTL
+    alignItems: "center",
+  },
+  optionImageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surfaceVariant,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: theme.spacing.md, // תמיד marginLeft בעברית
+    overflow: "hidden",
+  },
+  optionImage: {
+    width: 40,
+    height: 40,
+    resizeMode: "contain",
+  },
+  optionTextContainer: {
+    flex: 1,
+    alignItems: "flex-end", // מיישר טקסט לימין ב-RTL
   },
   optionLabel: {
     ...theme.typography.bodyLarge,
@@ -811,6 +847,70 @@ const styles = StyleSheet.create({
   loadingMessage: {
     ...theme.typography.bodyLarge,
     color: theme.colors.text,
+    textAlign: "center",
+    writingDirection: "rtl",
+  },
+
+  // סטיילים לטיפים חכמים
+  smartTipContainer: {
+    backgroundColor: theme.colors.info + "15",
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    flexDirection: "row-reverse", // אייקון מימין בעברית
+    alignItems: "center",
+    borderRightWidth: 3,
+    borderRightColor: theme.colors.info,
+  },
+  smartTipIcon: {
+    fontSize: 20,
+    marginLeft: theme.spacing.sm, // רווח מימין בעברית
+  },
+  smartTipText: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.info,
+    textAlign: "right",
+    writingDirection: "rtl",
+    lineHeight: 20,
+  },
+
+  // סטיילים לסיכום בחירות
+  selectionSummary: {
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.lg,
+    marginTop: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+  },
+  selectionSummaryTitle: {
+    ...theme.typography.bodyLarge,
+    color: theme.colors.primary,
+    fontWeight: "600",
+    textAlign: "right",
+    marginBottom: theme.spacing.md,
+    writingDirection: "rtl",
+  },
+  selectedItemsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    justifyContent: "flex-end", // מיישר לימין ב-RTL
+  },
+  selectedItem: {
+    backgroundColor: theme.colors.primary + "20",
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "40",
+  },
+  selectedItemText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.primary,
+    fontWeight: "500",
     textAlign: "center",
     writingDirection: "rtl",
   },

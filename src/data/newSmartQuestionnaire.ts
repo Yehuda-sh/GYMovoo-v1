@@ -1,7 +1,23 @@
 /**
  * @file src/data/newSmartQuestionnaire.ts
- * @brief שאלון דינמי חדש עם ציוד מסודר
+ * @brief שאלון דינמי חדש עם ציוד מסודר ואלגוריתם חכם
+ * @brief New dynamic questionnaire wit  // ========== אימונים ללא ציוד (עם חפצים ביתיים) ==========
+  {
+    id: "bodyweight_equipment_options",
+    title: "איזה חפצים יש לך בבית?",
+    subtitle: "בחר את מה שזמין לך לאימונים עם משקל גוף",
+    question: "איזה חפצים בסיסיים יש לך בבית?",
+    type: "multiple",
+    icon: "🏠",
+    category: "essential",
+    required: true,
+    algorithmWeight: 8,
+    impactArea: ["bodyweight_workouts", "home_adaptability", "equipment_creativity"],
+    priority: "high",
+    customIcon: "questionnaire/home_items.png",d equipment and smart algorithm
  * @date 2025-01-28
+ * @notes משלב AI מתקדם עם אלגוריתם התאמה אישית לפי ציוד זמין ומטרות
+ * @notes Integrates advanced AI with personalized matching algorithm based on available equipment and goals
  */
 
 import { ImageSourcePropType } from "react-native";
@@ -28,7 +44,7 @@ export interface SmartOption {
   aiInsight?: string;
 }
 
-// ממשק לשאלה
+// ממשק לשאלה עם אלגוריתם חכם מתקדם
 export interface SmartQuestion {
   id: string;
   title: string;
@@ -40,6 +56,12 @@ export interface SmartQuestion {
   options?: SmartOption[];
   required: boolean;
   helpText?: string;
+
+  // מטא-דאטה לאלגוריתם חכם
+  algorithmWeight?: number; // משקל בחישוב האלגוריתם (1-10)
+  impactArea?: string[]; // תחומים שהשאלה משפיעה עליהם
+  priority?: "critical" | "high" | "medium" | "low"; // עדיפות השאלה
+  customIcon?: string; // אייקון מותאם עתידי
 
   aiLogic: {
     generateFeedback: (answer: any, previousAnswers: any) => AIFeedback;
@@ -80,6 +102,10 @@ export const NEW_SMART_QUESTIONNAIRE: SmartQuestion[] = [
     icon: "🏋️",
     category: "essential",
     required: true,
+    algorithmWeight: 10,
+    impactArea: ["equipment_selection", "workout_type", "exercise_variety"],
+    priority: "critical",
+    customIcon: "questionnaire/equipment.png",
 
     options: [
       {
@@ -246,6 +272,10 @@ export const NEW_SMART_QUESTIONNAIRE: SmartQuestion[] = [
     icon: "🏠",
     category: "essential",
     required: true,
+    algorithmWeight: 9,
+    impactArea: ["home_workouts", "equipment_variety", "strength_training"],
+    priority: "critical",
+    customIcon: "questionnaire/home_gym.png",
 
     options: [
       {
@@ -360,6 +390,14 @@ export const NEW_SMART_QUESTIONNAIRE: SmartQuestion[] = [
     icon: "🏋️‍♂️",
     category: "essential",
     required: true,
+    algorithmWeight: 10,
+    impactArea: [
+      "professional_workouts",
+      "advanced_training",
+      "equipment_mastery",
+    ],
+    priority: "critical",
+    customIcon: "questionnaire/gym_equipment.png",
 
     options: [
       {
@@ -557,6 +595,272 @@ export class NewQuestionnaireManager {
       ),
     };
   }
+}
+
+// ==================== Smart Analysis Functions ====================
+
+/**
+ * Calculate smart questionnaire completion score based on algorithm weights
+ * Returns score from 0-100 based on importance of answered questions
+ */
+export function calculateSmartCompletionScore(
+  answers: Record<string, any>
+): number {
+  let totalWeight = 0;
+  let answeredWeight = 0;
+
+  NEW_SMART_QUESTIONNAIRE.forEach((question) => {
+    const weight = question.algorithmWeight ?? 1;
+    totalWeight += weight;
+
+    const answer = answers[question.id];
+    if (answer && answer !== "" && answer !== null && answer !== undefined) {
+      // Check if it's an array with at least one item or a valid single answer
+      if (Array.isArray(answer) ? answer.length > 0 : true) {
+        answeredWeight += weight;
+      }
+    }
+  });
+
+  return totalWeight > 0 ? Math.round((answeredWeight / totalWeight) * 100) : 0;
+}
+
+/**
+ * Calculate equipment readiness level based on available equipment
+ * Returns level from 1-5 based on equipment variety and quality
+ */
+export function calculateEquipmentReadinessLevel(
+  availableEquipment: string[]
+): number {
+  if (!availableEquipment || availableEquipment.length === 0) {
+    return 1; // Basic bodyweight only
+  }
+
+  const equipmentCount = availableEquipment.length;
+  const hasAdvancedEquipment = availableEquipment.some((eq) =>
+    ["barbell", "squat_rack", "bench_press", "cable_machine"].includes(eq)
+  );
+  const hasCardioEquipment = availableEquipment.some((eq) =>
+    ["treadmill", "rowing_machine", "elliptical"].includes(eq)
+  );
+
+  // Level calculation based on equipment variety and quality
+  if (hasAdvancedEquipment && hasCardioEquipment && equipmentCount >= 8)
+    return 5; // Professional gym
+  if (hasAdvancedEquipment && equipmentCount >= 6) return 4; // Advanced home gym
+  if (equipmentCount >= 4) return 3; // Good home setup
+  if (equipmentCount >= 2) return 2; // Basic equipment
+  return 1; // Minimal equipment
+}
+
+/**
+ * Get workout variety score based on available equipment
+ * Returns score from 1-10 based on exercise possibilities
+ */
+export function calculateWorkoutVarietyScore(
+  availableEquipment: string[]
+): number {
+  if (!availableEquipment || availableEquipment.length === 0) {
+    return 3; // Bodyweight exercises only
+  }
+
+  const varietyFactors = {
+    strength: availableEquipment.filter((eq) =>
+      ["dumbbells", "barbell", "kettlebell", "resistance_bands"].includes(eq)
+    ).length,
+    cardio: availableEquipment.filter((eq) =>
+      ["treadmill", "rowing_machine", "jump_rope", "stairs"].includes(eq)
+    ).length,
+    functional: availableEquipment.filter((eq) =>
+      ["cable_machine", "pullup_bar", "exercise_ball", "trx"].includes(eq)
+    ).length,
+    support: availableEquipment.filter((eq) =>
+      ["bench", "yoga_mat", "foam_roller"].includes(eq)
+    ).length,
+  };
+
+  const totalFactors = Object.values(varietyFactors).reduce(
+    (sum, count) => sum + Math.min(count, 3),
+    0
+  );
+  return Math.min(Math.max(Math.round(totalFactors * 0.8) + 2, 3), 10);
+}
+
+/**
+ * Get smart equipment recommendations based on current setup
+ * Returns array of equipment suggestions for improvement
+ */
+export function getSmartEquipmentRecommendations(
+  availableEquipment: string[],
+  maxRecommendations: number = 3
+): Array<{
+  equipment: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+  hebrewName: string;
+}> {
+  const recommendations = [];
+  const hasEquipment = (eq: string) => availableEquipment.includes(eq);
+
+  // High priority recommendations
+  if (!hasEquipment("yoga_mat") && !hasEquipment("mat")) {
+    recommendations.push({
+      equipment: "yoga_mat",
+      reason: "חיוני לתרגילי רצפה ומתיחות",
+      priority: "high" as const,
+      hebrewName: "מזרן יוגה",
+    });
+  }
+
+  if (!hasEquipment("dumbbells") && !hasEquipment("resistance_bands")) {
+    recommendations.push({
+      equipment: "resistance_bands",
+      reason: "זול ומגוון לאימוני כוח",
+      priority: "high" as const,
+      hebrewName: "גומיות התנגדות",
+    });
+  }
+
+  // Medium priority recommendations
+  if (hasEquipment("dumbbells") && !hasEquipment("bench")) {
+    recommendations.push({
+      equipment: "bench",
+      reason: "יפתח אפשרויות אימון חדשות",
+      priority: "medium" as const,
+      hebrewName: "ספסל אימונים",
+    });
+  }
+
+  if (!hasEquipment("kettlebell") && hasEquipment("dumbbells")) {
+    recommendations.push({
+      equipment: "kettlebell",
+      reason: "משלב כוח וקרדיו בתרגיל אחד",
+      priority: "medium" as const,
+      hebrewName: "קטלבל",
+    });
+  }
+
+  // Low priority recommendations
+  if (!hasEquipment("foam_roller")) {
+    recommendations.push({
+      equipment: "foam_roller",
+      reason: "חשוב להתאוששות ומניעת פציעות",
+      priority: "low" as const,
+      hebrewName: "גלגל מסאז׳",
+    });
+  }
+
+  if (!hasEquipment("pullup_bar") && hasEquipment("dumbbells")) {
+    recommendations.push({
+      equipment: "pullup_bar",
+      reason: "פותח עולם של תרגילי גב",
+      priority: "low" as const,
+      hebrewName: "מוט מתח",
+    });
+  }
+
+  // Sort by priority and return limited results
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+  return recommendations
+    .sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority])
+    .slice(0, maxRecommendations);
+}
+
+/**
+ * Get comprehensive smart questionnaire insights
+ * Returns detailed analysis with recommendations and next steps
+ */
+export function getSmartQuestionnaireInsights(answers: Record<string, any>): {
+  completionScore: number;
+  equipmentReadinessLevel: number;
+  workoutVarietyScore: number;
+  availableEquipment: string[];
+  equipmentRecommendations: any[];
+  insights: string[];
+  nextSteps: string[];
+  trainingCapabilities: string[];
+} {
+  const availableEquipment = answers.available_equipment || [];
+  const completionScore = calculateSmartCompletionScore(answers);
+  const equipmentReadinessLevel =
+    calculateEquipmentReadinessLevel(availableEquipment);
+  const workoutVarietyScore = calculateWorkoutVarietyScore(availableEquipment);
+  const equipmentRecommendations =
+    getSmartEquipmentRecommendations(availableEquipment);
+
+  const insights: string[] = [];
+  const nextSteps: string[] = [];
+  const trainingCapabilities: string[] = [];
+
+  // Generate insights based on equipment setup
+  if (equipmentReadinessLevel >= 4) {
+    insights.push("מערך ציוד מקצועי! יש לך כל מה שצריך לאימונים ברמה גבוהה");
+    trainingCapabilities.push(
+      "אימוני כוח מתקדמים",
+      "תוכניות מקצועיות",
+      "עבודה עם עומסים כבדים"
+    );
+  } else if (equipmentReadinessLevel >= 3) {
+    insights.push("מערך ציוד טוב! מתאים לאימונים מגוונים ויעילים");
+    trainingCapabilities.push(
+      "אימוני כוח",
+      "אימונים פונקציונליים",
+      "אימוני יציבות"
+    );
+  } else if (equipmentReadinessLevel >= 2) {
+    insights.push("מערך ציוד בסיסי אבל יעיל לתחילת המסע");
+    trainingCapabilities.push(
+      "אימוני משקל גוף",
+      "אימונים עם ציוד קל",
+      "פיתוח כוח בסיסי"
+    );
+  } else {
+    insights.push(
+      "מתחילים עם הבסיס - אימוני משקל גוף יכולים להיות סופר יעילים!"
+    );
+    trainingCapabilities.push(
+      "אימוני משקל גוף",
+      "תרגילי יציבות",
+      "פיתוח כוח פונקציונלי"
+    );
+  }
+
+  // Generate variety insights
+  if (workoutVarietyScore >= 8) {
+    insights.push("מגוון אימונים עצום זמין לך - לא תשתעמם!");
+  } else if (workoutVarietyScore >= 6) {
+    insights.push("מגוון אימונים טוב - יש מספיק אפשרויות להתקדמות");
+  } else if (workoutVarietyScore >= 4) {
+    insights.push("מגוון בסיסי - אפשר להרחיב עם ציוד נוסף");
+  }
+
+  // Generate next steps
+  if (completionScore >= 80) {
+    nextSteps.push("השאלון הושלם! מוכן להתחיל באימונים מותאמים");
+  } else {
+    nextSteps.push("השלם את השאלון למידע מותאם יותר");
+  }
+
+  if (equipmentRecommendations.length > 0) {
+    nextSteps.push(
+      `שקול להוסיף ${equipmentRecommendations[0].hebrewName} לשיפור האימונים`
+    );
+  }
+
+  if (equipmentReadinessLevel < 3) {
+    nextSteps.push("התחל עם אימוני משקל גוף ושקול הוספת ציוד בסיסי");
+  }
+
+  return {
+    completionScore,
+    equipmentReadinessLevel,
+    workoutVarietyScore,
+    availableEquipment,
+    equipmentRecommendations,
+    insights,
+    nextSteps,
+    trainingCapabilities,
+  };
 }
 
 export default NEW_SMART_QUESTIONNAIRE;

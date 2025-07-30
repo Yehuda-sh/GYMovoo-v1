@@ -25,6 +25,8 @@ interface FloatingActionButtonProps {
   bottom?: number;
   size?: "small" | "medium" | "large";
   color?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export default function FloatingActionButton({
@@ -35,6 +37,8 @@ export default function FloatingActionButton({
   bottom = 80, // מעל ה-Bottom Navigation
   size = "medium",
   color = theme.colors.primary,
+  accessibilityLabel,
+  accessibilityHint,
 }: FloatingActionButtonProps) {
   // אנימציות // Animations
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -117,7 +121,12 @@ export default function FloatingActionButton({
             },
           ]}
         >
-          <Text style={styles.labelText}>{label}</Text>
+          <Text
+            style={styles.labelText}
+            accessible={false} // האב כבר נגיש
+          >
+            {label}
+          </Text>
         </Animated.View>
       )}
 
@@ -134,9 +143,21 @@ export default function FloatingActionButton({
         ]}
         onPress={onPress}
         activeOpacity={0.8}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel || label || `כפתור ${icon}`}
+        accessibilityHint={accessibilityHint || "כפתור פעולה צף"}
+        accessibilityState={{
+          disabled: false,
+        }}
       >
         <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-          <Ionicons name={icon} size={currentSize.icon} color="#fff" />
+          <Ionicons
+            name={icon}
+            size={currentSize.icon}
+            color="#fff"
+            accessible={false} // האב כבר נגיש
+          />
         </Animated.View>
 
         {/* אפקט לחיצה // Press effect */}

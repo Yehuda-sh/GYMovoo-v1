@@ -43,7 +43,7 @@ import { ExerciseTemplate as DatabaseExercise } from "../../services/quickWorkou
 import {
   useWgerExercises,
   WgerExerciseFormatted,
-} from "../../hooks/useWgerExercisesNew";
+} from "../../hooks/useWgerExercises";
 
 // Temporary type definition when WGER is disabled
 // interface WgerExerciseFormatted {

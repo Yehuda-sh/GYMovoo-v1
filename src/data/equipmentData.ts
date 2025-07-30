@@ -1,24 +1,28 @@
 /**
  * @file src/data/equipmentData.ts
- * @brief מאגר ציוד מקיף לבית וחדר כושר
- * @brief Comprehensive equipment database for home and gym
- * @description כולל ציוד נפוץ עם קטגוריות ותגיות לחיפוש
- * @description Includes common equipment with categories and search tags
+ * @brief מאגר ציוד מקיף לבית וחדר כושר עם אינטגרציה ל-WGER
+ * @brief Comprehensive equipment database for home and gym with WGER integration
+ * @description מעטפת מקומית עם תמיכה בעברית ומיפוי ל-WGER API
+ * @description Local wrapper with Hebrew support and WGER API mapping
  */
 
 import { ImageSourcePropType } from "react-native";
 
-// ממשק ציוד מורחב
-// Extended equipment interface
+// ממשק ציוד מורחב עם תמיכה ב-WGER ותמונות מותאמות
+// Extended equipment interface with WGER support and custom images
 export interface Equipment {
   id: string;
   label: string;
   image?: ImageSourcePropType;
+  customImage?: string; // נתיב לתמונה מותאמת עתידית
   description?: string;
   isDefault?: boolean;
   isPremium?: boolean;
   category: "home" | "gym" | "both";
   tags: string[];
+  wgerMapping?: string[]; // מיפוי לשמות ב-WGER API
+  algorithmWeight?: number; // משקל באלגוריתם (1-10)
+  recommendedFor?: string[]; // המלצות לפי רמת כושר
 }
 
 // מאגר ציוד מאוחד
@@ -29,10 +33,14 @@ export const ALL_EQUIPMENT: Equipment[] = [
     id: "none",
     label: "ללא ציוד",
     image: require("../../assets/bodyweight.png"),
+    customImage: "equipment/bodyweight_custom.png", // תמונה מותאמת עתידית
     description: "אימונים עם משקל גוף בלבד",
     isDefault: true,
     category: "both",
     tags: ["bodyweight", "no equipment", "ללא ציוד", "משקל גוף"],
+    wgerMapping: ["Body weight", "None (bodyweight exercise)"],
+    algorithmWeight: 10, // גבוה - תמיד זמין
+    recommendedFor: ["beginner", "intermediate", "advanced"],
   },
   {
     id: "bodyweight",
@@ -250,9 +258,13 @@ export const ALL_EQUIPMENT: Equipment[] = [
     id: "dumbbells",
     label: "משקולות יד",
     image: require("../../assets/dumbbells.png"),
+    customImage: "equipment/dumbbells_custom.png",
     description: "זוג משקולות מתכווננות או קבועות",
     category: "both",
     tags: ["dumbbells", "משקולות", "משקולות יד", "זוג משקולות"],
+    wgerMapping: ["Dumbbell", "Dumbbells"],
+    algorithmWeight: 9, // גבוה - רב-תכליתי
+    recommendedFor: ["beginner", "intermediate", "advanced"],
   },
   {
     id: "adjustable_dumbbells",
@@ -267,10 +279,14 @@ export const ALL_EQUIPMENT: Equipment[] = [
     id: "barbell",
     label: "מוט ישר",
     image: require("../../assets/barbell.png"),
+    customImage: "equipment/barbell_custom.png",
     description: "מוט אולימפי עם משקולות",
     isDefault: true,
     category: "gym",
     tags: ["barbell", "מוט", "מוט ישר", "אולימפי"],
+    wgerMapping: ["Barbell", "Long barbell"],
+    algorithmWeight: 8, // גבוה אבל דורש ניסיון
+    recommendedFor: ["intermediate", "advanced"],
   },
   {
     id: "ez_bar",
@@ -294,9 +310,13 @@ export const ALL_EQUIPMENT: Equipment[] = [
     id: "resistance_bands",
     label: "גומיות התנגדות",
     image: require("../../assets/resistance_bands.png"),
+    customImage: "equipment/resistance_bands_custom.png",
     description: "סט גומיות בעוצמות שונות",
     category: "both",
     tags: ["bands", "גומיות", "resistance", "התנגדות"],
+    wgerMapping: ["Resistance band"],
+    algorithmWeight: 8, // גבוה - נוח ורב-תכליתי
+    recommendedFor: ["beginner", "intermediate"],
   },
   {
     id: "mini_bands",
@@ -347,9 +367,13 @@ export const ALL_EQUIPMENT: Equipment[] = [
     id: "kettlebell",
     label: "קטלבל",
     image: require("../../assets/kettlebell.png"),
+    customImage: "equipment/kettlebell_custom.png",
     description: "משקולת כדורית עם ידית",
     category: "both",
     tags: ["kettlebell", "קטלבל", "כדורית"],
+    wgerMapping: ["Kettlebell"],
+    algorithmWeight: 7, // בינוני-גבוה - דורש טכניקה
+    recommendedFor: ["intermediate", "advanced"],
   },
   {
     id: "medicine_ball",
@@ -741,8 +765,17 @@ export const ALL_EQUIPMENT: Equipment[] = [
   },
 ];
 
-// פונקציות עזר
-// Helper functions
+// פונקציות עזר משופרות
+// Enhanced helper functions
+
+/**
+ * מחזיר מיפוי WGER עבור ציוד מסוים
+ * Get WGER mapping for specific equipment
+ */
+export function getWgerMapping(equipmentId: string): string[] {
+  const equipment = ALL_EQUIPMENT.find((eq) => eq.id === equipmentId);
+  return equipment?.wgerMapping || [];
+}
 
 /**
  * מחזיר ציוד לפי קטגוריה
@@ -790,6 +823,161 @@ export function getDefaultEquipment(category: "home" | "gym"): string[] {
  */
 export function getPremiumEquipment(): Equipment[] {
   return ALL_EQUIPMENT.filter((eq) => eq.isPremium);
+}
+
+/**
+ * מיזוג נתוני ציוד מקומיים עם WGER
+ * Merge local equipment data with WGER
+ */
+export function mergeWithWgerEquipment(
+  localEquipment: string[],
+  wgerEquipmentNames: string[]
+): string[] {
+  const merged = new Set(localEquipment);
+
+  // מיפוי הפוך - מוצא ציוד מקומי לפי שמות WGER
+  wgerEquipmentNames.forEach((wgerName) => {
+    const localEquip = ALL_EQUIPMENT.find((eq) =>
+      eq.wgerMapping?.some((mapping) =>
+        mapping.toLowerCase().includes(wgerName.toLowerCase())
+      )
+    );
+
+    if (localEquip) {
+      merged.add(localEquip.id);
+    }
+  });
+
+  return Array.from(merged);
+}
+
+/**
+ * אלגוריתם חכם לבחירת ציוד מומלץ
+ * Smart algorithm for recommended equipment selection
+ */
+export function getRecommendedEquipment(
+  fitnessLevel: "beginner" | "intermediate" | "advanced",
+  location: "home" | "gym" | "both",
+  budget?: "low" | "medium" | "high"
+): Equipment[] {
+  return ALL_EQUIPMENT.filter((eq) => {
+    // סינון לפי מקום
+    if (
+      location !== "both" &&
+      eq.category !== "both" &&
+      eq.category !== location
+    ) {
+      return false;
+    }
+
+    // סינון לפי רמת כושר
+    if (eq.recommendedFor && !eq.recommendedFor.includes(fitnessLevel)) {
+      return false;
+    }
+
+    // סינון לפי תקציב
+    if (budget === "low" && eq.isPremium) {
+      return false;
+    }
+
+    return true;
+  })
+    .sort((a, b) => {
+      // מיון לפי משקל אלגוריתם
+      const weightA = a.algorithmWeight || 5;
+      const weightB = b.algorithmWeight || 5;
+      return weightB - weightA;
+    })
+    .slice(0, 10); // מחזיר רק 10 הטובים ביותר
+}
+
+/**
+ * חישוב ציון התאמה לציוד מסוים
+ * Calculate equipment compatibility score
+ */
+export function calculateEquipmentScore(
+  equipmentId: string,
+  userProfile: {
+    fitnessLevel: "beginner" | "intermediate" | "advanced";
+    location: "home" | "gym" | "both";
+    hasSpace: boolean;
+    budget: "low" | "medium" | "high";
+  }
+): number {
+  const equipment = ALL_EQUIPMENT.find((eq) => eq.id === equipmentId);
+  if (!equipment) return 0;
+
+  let score = equipment.algorithmWeight || 5;
+
+  // בונוס לפי רמת כושר
+  if (equipment.recommendedFor?.includes(userProfile.fitnessLevel)) {
+    score += 2;
+  }
+
+  // בונוס לפי מיקום
+  if (
+    equipment.category === userProfile.location ||
+    equipment.category === "both"
+  ) {
+    score += 2;
+  }
+
+  // קנס לציוד פרימיום עם תקציב נמוך
+  if (equipment.isPremium && userProfile.budget === "low") {
+    score -= 3;
+  }
+
+  // בונוס לציוד בסיסי למתחילים
+  if (userProfile.fitnessLevel === "beginner" && equipment.isDefault) {
+    score += 1;
+  }
+
+  return Math.max(0, Math.min(10, score)); // מגביל בין 0-10
+}
+
+/**
+ * חיפוש ציוד חכם לפי העדפות משתמש
+ * Smart equipment search based on user preferences
+ */
+export function smartEquipmentSearch(
+  searchQuery: string,
+  userProfile: {
+    fitnessLevel: "beginner" | "intermediate" | "advanced";
+    location: "home" | "gym" | "both";
+  }
+): Equipment[] {
+  const basicResults = searchEquipment(searchQuery);
+
+  return basicResults
+    .map((eq) => ({
+      ...eq,
+      score: calculateEquipmentScore(eq.id, {
+        ...userProfile,
+        hasSpace: true,
+        budget: "medium",
+      }),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * קבלת תמונה מותאמת או ברירת מחדל
+ * Get custom image or fallback to default
+ */
+export function getEquipmentImage(
+  equipmentId: string
+): ImageSourcePropType | string {
+  const equipment = ALL_EQUIPMENT.find((eq) => eq.id === equipmentId);
+  if (!equipment) return require("../../assets/exercise-default.png");
+
+  // אם יש תמונה מותאמת - החזר אותה (עתידי)
+  if (equipment.customImage) {
+    // TODO: בעתיד נטען תמונות מותאמות מתיקייה מיוחדת
+    // return { uri: equipment.customImage };
+  }
+
+  // אחרת החזר תמונה ברירת מחדל
+  return equipment.image || require("../../assets/exercise-default.png");
 }
 
 /**

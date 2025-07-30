@@ -1,53 +1,136 @@
 // docs/NAVIGATION_GUIDE.md
 
-# מדריך ניווט מקיף - GYMovoo
+# מדריך ניווט מתקדם - GYMovoo Smart Navigation System
 
-## 📱 מבנה הניווט
+## � עדכון מרכזי: מערכת ניווט חכמה (30/07/2025)
 
-### Stack Navigator (ראשי)
+### 💪 המערכת החדשה - AppNavigator.tsx מתקדם
 
-```
-AppNavigator.tsx - ניווט ראשי של האפליקציה
-├── Welcome - מסך ברוכים הבאים
-├── Login - התחברות
-├── Register - הרשמה
-├── Terms - תנאי שימוש
-├── Questionnaire - שאלון דינמי
-├── WorkoutPlan - תוכנית אימון AI
-├── MainApp - אפליקציה ראשית (Bottom Tabs)
-├── QuickWorkout - אימון פעיל
-├── ExerciseList - רשימת תרגילים
-├── Notifications - התראות
-├── Progress - מסך התקדמות
-└── Exercises - ספריית תרגילים
-```
+המערכת עודכנה למערכת ניווט חכמה מתקדמת עם:
 
-### Bottom Tab Navigator (תוך האפליקציה)
+- 🎨 **אנימציות RTL מותאמות אישית** לכל מסך
+- ⚡ **אופטימיזציות ביצועים מתקדמות**
+- 🎯 **גסטורות חכמות** עם רספונסיביות מירבית
+- 🎪 **אפקטים ויזואליים מתקדמים** למודלים ומסכים
+
+## �📱 מבנה הניווט המתקדם
+
+### Stack Navigator (ראשי) - עם אנימציות RTL חכמות
 
 ```
-BottomNavigation.tsx - ניווט תחתון
-├── Main - מסך ראשי
-├── WorkoutPlans - תוכניות אימון AI
-├── QuickWorkout - אימון מהיר
-├── History - היסטוריית אימונים
-└── Profile - פרופיל משתמש
+AppNavigator.tsx - ניווט ראשי מתקדם עם אלגוריתמים חכמים
+├── Welcome - מסך ברוכים הבאים (אנימציה מיוחדת)
+├── Login - התחברות (RTL animations)
+├── Register - הרשמה (RTL animations)
+├── Terms - תנאי שימוש (RTL animations)
+├── Questionnaire - שאלון דינמי (מודל עם גסטורות אנכיות)
+├── WorkoutPlan - תוכנית אימון AI (RTL optimized)
+├── MainApp - אפליקציה ראשית (Bottom Tabs עם הגנה)
+├── QuickWorkout - אימון פעיל (הגנה מפני יציאה בטעות)
+├── ExerciseList - רשימת תרגילים (מודל עם רקע כהה)
+├── Notifications - התראות (RTL animations)
+├── Progress - מסך התקדמות (אופטימיזציה לגרפים)
+└── Exercises - ספריית תרגילים (אופטימיזציה לרשימות גדולות)
 ```
 
-## 🔗 מפת קישורים
+### 🎨 אנימציות RTL מותאמות אישית
 
-### מסכי Auth & Onboarding
+```typescript
+// אנימציה חכמה לכל מסך עברי
+cardStyleInterpolator: ({ current, layouts }) => ({
+  cardStyle: {
+    transform: [{
+      translateX: current.progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [layouts.screen.width, 0], // RTL slide
+      }),
+    }],
+  },
+}),
+gestureDirection: "horizontal-inverted", // RTL gestures
+```
 
-- **WelcomeScreen** → Register, Login, Questionnaire
-- **LoginScreen** → Register
-- **RegisterScreen** → Login, Terms, Questionnaire
-- **TermsScreen** → (חזרה)
+### ⚡ אופטימיזציות ביצועים מתקדמות
 
-### מסכים עיקריים
+```typescript
+// אופטימיזציות חכמות לכל המסכים
+screenOptions: {
+  freezeOnBlur: true,              // חיסכון זיכרון
+  detachPreviousScreen: false,     // אנימציות חלקות
+  gestureResponseDistance: 200,    // רספונסיביות מירבית
+  animationTypeForReplace: "push", // אנימציה עדינה
+}
+```
 
-- **MainScreen** → Profile, Notifications, Questionnaire, WorkoutPlans, Exercises, Progress, History, QuickWorkout
-- **ProfileScreen** → Questionnaire (עריכה)
-- **WorkoutPlansScreen** → QuickWorkout, Questionnaire
-  - **עדכון חדש:** מסך משופר עם הסבר AI ואייקונים
+## 🎯 מסכים עם אופטימיזציות ייעודיות
+
+### 📋 שאלון חכם (Questionnaire)
+
+```typescript
+options: {
+  presentation: "modal",          // פתיחה כמודל מתקדם
+  gestureDirection: "vertical",   // סגירה בגרירה למטה
+  gestureResponseDistance: 200,   // רספונסיביות מירבית
+  headerShown: false
+}
+```
+
+### 💪 אימון פעיל (QuickWorkout)
+
+```typescript
+options: {
+  gestureEnabled: false,          // הגנה מפני יציאה בטעות
+  presentation: "card",
+  cardStyle: {
+    backgroundColor: "transparent" // רקע שקוף לאנימציות
+  }
+}
+```
+
+### 📊 רשימת תרגילים (ExerciseList)
+
+```typescript
+options: {
+  presentation: "modal",          // פתיחה כמודל
+  gestureDirection: "vertical",   // סגירה למטה
+  cardStyle: {
+    backgroundColor: "rgba(0,0,0,0.5)" // רקע כהה למודל
+  }
+}
+```
+
+### 📈 מסכי נתונים מותאמים
+
+```typescript
+// Progress Screen - אופטימיזציה לגרפים
+Progress: {
+  cardStyle: {
+    backgroundColor: "rgba(248, 250, 252, 1)"; // רקע בהיר
+  }
+}
+
+// Exercises Screen - אופטימיזציה לרשימות גדולות
+Exercises: {
+  freezeOnBlur: true; // חיסכון בביצועים
+}
+```
+
+## 🔗 מפת קישורים מעודכנת
+
+### מסכי Auth & Onboarding (עם RTL חלק)
+
+- **WelcomeScreen** → Register, Login, Questionnaire (אנימציה מיוחדת)
+- **LoginScreen** → Register (RTL animations)
+- **RegisterScreen** → Login, Terms, Questionnaire (RTL animations)
+- **TermsScreen** → (חזרה עם RTL animation)
+
+### מסכים עיקריים (עם אופטימיזציות חכמות)
+
+- **MainScreen** → כל המסכים עם navigation מותאם
+- **ProfileScreen** → Questionnaire (עריכה במודל)
+- **WorkoutPlansScreen** → QuickWorkout, Questionnaire (RTL optimized)
+- **QuickWorkout** → הגנה מפני יציאה + רקע שקוף
+- **ExerciseList** → מודל עם רקע כהה ואנימציות חלקות
   - **תכונות AI:** התקדמות אוטומטית, התאמה דינמית, למידה אישית
 - **QuickWorkoutScreen** → Questionnaire
 - **ExercisesScreen** → ExerciseList

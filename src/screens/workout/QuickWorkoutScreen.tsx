@@ -811,6 +811,8 @@ const QuickWorkoutScreen: React.FC = () => {
         <FloatingActionButton
           visible={fabVisible}
           label={fabLabelVisible ? "התחל עכשיו" : undefined}
+          accessibilityLabel="התחל את הסט הבא"
+          accessibilityHint="הקש כדי להתחיל את הסט הבא באימון"
           onPress={() => {
             // מצא את הסט הבא שלא הושלם
             const nextSet = exercises

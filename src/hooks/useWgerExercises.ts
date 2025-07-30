@@ -1,11 +1,3 @@
-/**
- * @file src/hooks/useWgerExercises.ts
- * @brief Hook לאינטגרציה עם WGER API לתרגילי כושר באנגלית | WGER API integration hook for English exercises
- * @dependencies wgerService, React hooks
- * @notes מספק תרגילים באנגלית מ-WGER לצד התרגילים המקומיים בעברית
- * @recurring_errors שימוש ב-wgerApiService.ts במקום wgerService.ts הנכון
- */
-
 import { useState, useEffect, useCallback } from "react";
 import { wgerService, WgerExerciseInfo } from "../services/wgerService";
 
@@ -23,7 +15,7 @@ export interface WgerExerciseFormatted {
   wgerId: number;
 }
 
-function useWgerExercises() {
+export function useWgerExercises() {
   const [exercises, setExercises] = useState<WgerExerciseFormatted[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +26,7 @@ function useWgerExercises() {
     Array<{ id: number; name: string }>
   >([]);
 
-  // טעינת נתונים בסיסיים (שרירים, ציוד) בעת טעינה ראשונה | Load basic data (muscles, equipment) on mount
+  // Load basic data (muscles, equipment) on mount
   useEffect(() => {
     loadBasicData();
   }, []);
@@ -89,7 +81,7 @@ function useWgerExercises() {
           await wgerService.getExercisesByEquipment(equipmentNames);
         console.log(`📊 Found ${wgerExercises.length} WGER exercises`);
 
-        // המרה לפורמט הפנימי שלנו | Convert to our internal format
+        // Convert to our internal format
         const formattedExercises: WgerExerciseFormatted[] = wgerExercises.map(
           convertWgerExerciseToInternal
         );
@@ -119,12 +111,12 @@ function useWgerExercises() {
       setError(null);
 
       try {
-        // לחיפוש לפי שרירים, נשתמש בתרגילים הבסיסיים ונסנן | For muscle-based search, we'll use the basic exercises and filter
+        // For muscle-based search, we'll use the basic exercises and filter
         console.log("🎯 Searching for muscles:", muscleNames);
 
         const allExercises = await wgerService.getExercises({ limit: 100 });
 
-        // סינון לפי שמות שרירים (התאמת טקסט בסיסית) | Filter by muscle names (basic text matching)
+        // Filter by muscle names (basic text matching)
         const filtered = allExercises.filter((ex) =>
           muscleNames.some((muscleName) =>
             ex.name.toLowerCase().includes(muscleName.toLowerCase())
@@ -133,7 +125,7 @@ function useWgerExercises() {
 
         console.log(`📊 Found ${filtered.length} exercises for muscles`);
 
-        // המרת הפורמט הבסיסי לפורמט WgerExerciseInfo לעקביות | Convert the basic format to WgerExerciseInfo format for consistency
+        // Convert the basic format to WgerExerciseInfo format for consistency
         const wgerInfoExercises: WgerExerciseInfo[] = filtered.map((ex) => ({
           id: ex.id,
           name: ex.name,
@@ -173,7 +165,7 @@ function useWgerExercises() {
     try {
       const allExercises = await wgerService.getExercises({ limit: 100 });
 
-      // המרת הפורמט הבסיסי לפורמט WgerExerciseInfo לעקביות | Convert the basic format to WgerExerciseInfo format for consistency
+      // Convert the basic format to WgerExerciseInfo format for consistency
       const wgerInfoExercises: WgerExerciseInfo[] = allExercises.map((ex) => ({
         id: ex.id,
         name: ex.name,
@@ -213,5 +205,3 @@ function useWgerExercises() {
     clearError: () => setError(null),
   };
 }
-
-export { useWgerExercises };

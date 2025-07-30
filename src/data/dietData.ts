@@ -6,8 +6,6 @@
  * @description Diet options with images and descriptions
  */
 
-import { ImageSourcePropType } from "react-native";
-
 // ממשק אפשרות תזונה
 // Diet option interface
 export interface DietOption {
@@ -23,6 +21,25 @@ export interface DietOption {
   sampleMeal?: string; // דוגמה לארוחה
   linkToGuide?: string; // מדריך/כתבה מורחבת
 }
+
+// קטגוריות עיקריות לסינון
+export const DIET_CATEGORIES = {
+  GENERAL: "כללי",
+  PLANT_BASED: "צמחי",
+  LOW_CARB: "דל פחמימות",
+  SPECIAL_NEEDS: "צרכים מיוחדים",
+  LIFESTYLE: "אורח חיים",
+} as const;
+
+// מפת אייקונים מקומיים
+export const DIET_ICONS = {
+  none_diet: require("../../assets/none_diet.png"),
+  vegan: require("../../assets/vegan.png"),
+  vegetarian: require("../../assets/vegetarian.png"),
+  keto: require("../../assets/keto.png"),
+  paleo: require("../../assets/paleo.png"),
+  other_meal: require("../../assets/other_meal.png"),
+} as const;
 
 // אפשרויות תזונה עם תמונות
 // Diet options with images
@@ -144,3 +161,41 @@ export const DIET_OPTIONS: DietOption[] = [
     linkToGuide: "https://www.dietitian.org.il/?CategoryID=287&ArticleID=569",
   },
 ];
+
+// פונקציות עזר לעבודה עם נתוני התזונה
+// Helper functions for working with diet data
+
+/**
+ * מחזיר אפשרות תזונה לפי ID
+ */
+export const getDietById = (id: string): DietOption | undefined => {
+  return DIET_OPTIONS.find((diet) => diet.id === id);
+};
+
+/**
+ * מחזיר את האפשרות ברירת המחדל
+ */
+export const getDefaultDiet = (): DietOption => {
+  return DIET_OPTIONS.find((diet) => diet.isDefault) || DIET_OPTIONS[0];
+};
+
+/**
+ * מסנן אפשרויות תזונה לפי תגיות
+ */
+export const searchDietsByTags = (searchTerm: string): DietOption[] => {
+  const term = searchTerm.toLowerCase();
+  return DIET_OPTIONS.filter(
+    (diet) =>
+      diet.tags?.some((tag) => tag.toLowerCase().includes(term)) ||
+      diet.label.toLowerCase().includes(term) ||
+      diet.description?.toLowerCase().includes(term)
+  );
+};
+
+/**
+ * מחזיר רשימת כל התגיות הזמינות
+ */
+export const getAllDietTags = (): string[] => {
+  const allTags = DIET_OPTIONS.flatMap((diet) => diet.tags || []);
+  return [...new Set(allTags)].sort();
+};

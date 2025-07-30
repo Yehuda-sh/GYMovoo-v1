@@ -1,16 +1,29 @@
 /**
  * @file src/data/exerciseDatabase.ts
- * @brief מאגר תרגילים מקיף עם תמיכה בכל סוגי הציוד
- * @brief Comprehensive exercise database with all equipment types support
- * @description מאגר תרגילים מורחב עם מעל 100 תרגילים
- * @description Extended exercise database with over 100 exercises
+ * @brief מאגר תרגילים מקיף עם תמיכה בכל סוגי הציוד ותמונות מותאמות
+ * @brief Comprehensive exercise database with all equipment types support and custom images
+ * @description מאגר תרגילים מורחב עם מעל 100 תרגילים, תמונות חכמות ואלגוריתם התאמה
+ * @description Extended exercise database with over 100 exercises, smart images and matching algorithm
  */
 
 import { ExerciseTemplate } from "../services/quickWorkoutGenerator";
 
-// מאגר תרגילים מורחב
-// Extended exercise database
-export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
+// ממשק תרגיל מורחב עם תמיכה בתמונות מותאמות ואלגוריתם
+// Extended exercise interface with custom images and algorithm support
+export interface ExtendedExerciseTemplate extends ExerciseTemplate {
+  customImage?: string; // נתיב לתמונה מותאמת עתידית
+  algorithmScore?: number; // ציון באלגוריתם (1-10)
+  wgerEquivalent?: string; // תרגיל מקביל ב-WGER
+  targetGoals?: string[]; // מטרות שהתרגיל משרת
+  workoutTypes?: string[]; // סוגי אימונים מתאימים
+  prerequisites?: string[]; // תנאי קדם (תרגילים שחייבים לדעת קודם)
+  progressionTo?: string[]; // תרגילים מתקדמים יותר
+  safetyNotes?: string[]; // הערות בטיחות
+}
+
+// מאגר תרגילים מורחב ומשופר
+// Extended and enhanced exercise database
+export const EXTENDED_EXERCISE_DATABASE: ExtendedExerciseTemplate[] = [
   // ========== תרגילי חזה ==========
   // Chest exercises
 
@@ -29,6 +42,14 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
       "דחוף למעלה עד יישור מלא",
     ],
     tips: ["שמור על כפות הרגליים על הרצפה", "נשום החוצה בדחיפה"],
+    customImage: "exercises/db_bench_press.png",
+    algorithmScore: 9,
+    wgerEquivalent: "Dumbbell bench press",
+    targetGoals: ["עליה במסת שריר", "שיפור כוח"],
+    workoutTypes: ["כוח", "היפרטרופיה"],
+    prerequisites: ["pushups"],
+    progressionTo: ["db_incline_press", "bench_press"],
+    safetyNotes: ["וודא יציבות הספסל", "התחל במשקל קל"],
   },
   {
     id: "db_flyes",
@@ -89,6 +110,14 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
       "הורד את הגוף עד שהחזה כמעט נוגע ברצפה",
       "דחוף חזרה למעלה",
     ],
+    customImage: "exercises/pushups.png",
+    algorithmScore: 10, // הציון הגבוה ביותר - תמיד זמין
+    wgerEquivalent: "Push-up",
+    targetGoals: ["שיפור כוח", "שיפור סיבולת", "עליה במסת שריר"],
+    workoutTypes: ["כוח", "סיבולת", "היפרטרופיה", "HIIT"],
+    prerequisites: [],
+    progressionTo: ["diamond_pushups", "decline_pushups", "db_bench_press"],
+    safetyNotes: ["שמור על גב ישר", "אל תתן לירכיים לרדת"],
   },
   {
     id: "wide_pushups",
@@ -160,6 +189,14 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
       "משוך את הגוף למעלה עד שהסנטר מעל המוט",
       "הורד באיטיות לתנוחת התחלה",
     ],
+    customImage: "exercises/pullups.png",
+    algorithmScore: 9, // תרגיל מעולה אבל דורש ציוד ויכולת
+    wgerEquivalent: "Pull-up",
+    targetGoals: ["שיפור כוח", "עליה במסת שריר", "חיטוב גב"],
+    workoutTypes: ["כוח", "היפרטרופיה"],
+    prerequisites: ["band_row", "superman"],
+    progressionTo: ["wide_grip_pullups", "weighted_pullups"],
+    safetyNotes: ["ודא שמוט המתח יציב", "התחל עם עזרה אם צריך"],
   },
   {
     id: "chinups",
@@ -412,6 +449,14 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
     primaryMuscles: ["רגליים", "ישבן"],
     equipment: "bodyweight",
     difficulty: "beginner",
+    customImage: "exercises/bodyweight_squat.png",
+    algorithmScore: 10, // תרגיל יסוד חיוני
+    wgerEquivalent: "Bodyweight squat",
+    targetGoals: ["שיפור כוח", "שיפור סיבולת", "שיקום"],
+    workoutTypes: ["כוח", "סיבולת", "חימום", "HIIT"],
+    prerequisites: [],
+    progressionTo: ["jump_squats", "goblet_squat", "barbell_squat"],
+    safetyNotes: ["ברכיים בכיוון האצבעות", "גב ישר"],
   },
   {
     id: "jump_squats",
@@ -699,6 +744,14 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
       "שמור על קו ישר מהראש לעקבים",
       "החזק את המצב למשך הזמן הנדרש",
     ],
+    customImage: "exercises/plank.png",
+    algorithmScore: 10, // תרגיל יסוד לליבה
+    wgerEquivalent: "Plank",
+    targetGoals: ["חיזוק ליבה", "שיפור יציבות", "שיקום"],
+    workoutTypes: ["ליבה", "יציבות", "שיקום", "חימום"],
+    prerequisites: [],
+    progressionTo: ["side_plank", "plank_variations", "ab_wheel"],
+    safetyNotes: ["גב ישר", "אל תרים את הישבן", "נשימה רגילה"],
   },
   {
     id: "side_plank",
@@ -1547,7 +1600,7 @@ export const EXTENDED_EXERCISE_DATABASE: ExerciseTemplate[] = [
 // Function to get exercises by equipment
 export function getExercisesByEquipment(
   equipment: string[]
-): ExerciseTemplate[] {
+): ExtendedExerciseTemplate[] {
   return EXTENDED_EXERCISE_DATABASE.filter(
     (exercise) =>
       equipment.includes(exercise.equipment) ||
@@ -1559,7 +1612,7 @@ export function getExercisesByEquipment(
 // Function to get exercises by muscle group
 export function getExercisesByMuscleGroup(
   muscleGroup: string
-): ExerciseTemplate[] {
+): ExtendedExerciseTemplate[] {
   return EXTENDED_EXERCISE_DATABASE.filter(
     (exercise) =>
       exercise.primaryMuscles.includes(muscleGroup) ||
@@ -1572,10 +1625,190 @@ export function getExercisesByMuscleGroup(
 // Function to get exercises by difficulty
 export function getExercisesByDifficulty(
   difficulty: "beginner" | "intermediate" | "advanced"
-): ExerciseTemplate[] {
+): ExtendedExerciseTemplate[] {
   return EXTENDED_EXERCISE_DATABASE.filter(
     (exercise) => exercise.difficulty === difficulty
   );
+}
+
+/**
+ * אלגוריתם חכם לבחירת תרגילים מותאמים אישית
+ * Smart algorithm for personalized exercise selection
+ */
+export function getSmartExerciseRecommendations(userProfile: {
+  fitnessLevel: "beginner" | "intermediate" | "advanced";
+  availableEquipment: string[];
+  goals: string[];
+  workoutType: string;
+  timeConstraints: number; // בדקות
+  injuries?: string[];
+}): ExtendedExerciseTemplate[] {
+  // סינון בסיסי לפי ציוד ורמת כושר
+  let candidates = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
+    // בדיקת ציוד
+    const hasEquipment =
+      userProfile.availableEquipment.includes(exercise.equipment) ||
+      exercise.equipment === "bodyweight";
+
+    // בדיקת רמת קושי (למתחילים - גם תרגילי intermediate קלים)
+    const difficultyMatch =
+      exercise.difficulty === userProfile.fitnessLevel ||
+      (userProfile.fitnessLevel === "intermediate" &&
+        exercise.difficulty === "beginner") ||
+      (userProfile.fitnessLevel === "advanced" &&
+        exercise.difficulty !== "beginner");
+
+    return hasEquipment && difficultyMatch;
+  });
+
+  // סינון לפי מטרות
+  if (userProfile.goals.length > 0) {
+    candidates = candidates.filter((exercise) =>
+      exercise.targetGoals?.some((goal) =>
+        userProfile.goals.some(
+          (userGoal) => goal.includes(userGoal) || userGoal.includes(goal)
+        )
+      )
+    );
+  }
+
+  // סינון לפי סוג אימון
+  candidates = candidates.filter(
+    (exercise) =>
+      exercise.workoutTypes?.includes(userProfile.workoutType) ||
+      exercise.workoutTypes?.includes("כוח") // ברירת מחדל
+  );
+
+  // ציון חכם לכל תרגיל
+  const scoredExercises = candidates.map((exercise) => ({
+    ...exercise,
+    smartScore: calculateExerciseSmartScore(exercise, userProfile),
+  }));
+
+  // מיון לפי ציון ובחירת הטובים ביותר
+  return scoredExercises
+    .sort((a, b) => b.smartScore - a.smartScore)
+    .slice(0, Math.min(20, Math.ceil(userProfile.timeConstraints / 3))); // 3 דקות ממוצע לתרגיל
+}
+
+/**
+ * חישוב ציון חכם לתרגיל
+ * Calculate smart score for exercise
+ */
+function calculateExerciseSmartScore(
+  exercise: ExtendedExerciseTemplate,
+  userProfile: any
+): number {
+  let score = exercise.algorithmScore || 5; // ציון בסיס
+
+  // בונוס לתרגילי משקל גוף (תמיד זמינים)
+  if (exercise.equipment === "bodyweight") {
+    score += 2;
+  }
+
+  // בונוס לתרגילים רב-שריריים
+  if (exercise.primaryMuscles.length > 1) {
+    score += 1;
+  }
+
+  // בונוס לתרגילים עם הוראות ברורות
+  if (exercise.instructions && exercise.instructions.length >= 3) {
+    score += 1;
+  }
+
+  // בונוס לתרגילים בטוחים (ללא דרישות קדם)
+  if (!exercise.prerequisites || exercise.prerequisites.length === 0) {
+    score += 1;
+  }
+
+  // קנס לתרגילים מתקדמים למתחילים
+  if (
+    userProfile.fitnessLevel === "beginner" &&
+    exercise.difficulty === "advanced"
+  ) {
+    score -= 3;
+  }
+
+  // בונוס למתרגלים מתקדמים עבור תרגילים מאתגרים
+  if (
+    userProfile.fitnessLevel === "advanced" &&
+    exercise.difficulty === "advanced"
+  ) {
+    score += 2;
+  }
+
+  return Math.max(0, Math.min(10, score));
+}
+
+/**
+ * קבלת תמונה מותאמת או ברירת מחדל לתרגיל
+ * Get custom image or fallback for exercise
+ */
+export function getExerciseImage(exerciseId: string): string {
+  const exercise = EXTENDED_EXERCISE_DATABASE.find(
+    (ex) => ex.id === exerciseId
+  );
+
+  if (!exercise) return "exercises/default_exercise.png";
+
+  // אם יש תמונה מותאמת - החזר אותה
+  if (exercise.customImage) {
+    return exercise.customImage;
+  }
+
+  // אחרת החזר תמונה לפי קטגוריה
+  const categoryImages: { [key: string]: string } = {
+    חזה: "exercises/chest_default.png",
+    גב: "exercises/back_default.png",
+    רגליים: "exercises/legs_default.png",
+    כתפיים: "exercises/shoulders_default.png",
+    ידיים: "exercises/arms_default.png",
+    בטן: "exercises/core_default.png",
+    קרדיו: "exercises/cardio_default.png",
+    גמישות: "exercises/flexibility_default.png",
+  };
+
+  return categoryImages[exercise.category] || "exercises/default_exercise.png";
+}
+
+/**
+ * קבלת מסלול התקדמות לתרגיל
+ * Get progression path for exercise
+ */
+export function getExerciseProgressionPath(exerciseId: string): {
+  current: ExtendedExerciseTemplate;
+  prerequisites: ExtendedExerciseTemplate[];
+  progressions: ExtendedExerciseTemplate[];
+} {
+  const exercise = EXTENDED_EXERCISE_DATABASE.find(
+    (ex) => ex.id === exerciseId
+  );
+
+  if (!exercise) {
+    return {
+      current: {} as ExtendedExerciseTemplate,
+      prerequisites: [],
+      progressions: [],
+    };
+  }
+
+  const prerequisites =
+    exercise.prerequisites
+      ?.map((preId) => EXTENDED_EXERCISE_DATABASE.find((ex) => ex.id === preId))
+      .filter(Boolean) || [];
+
+  const progressions =
+    exercise.progressionTo
+      ?.map((progId) =>
+        EXTENDED_EXERCISE_DATABASE.find((ex) => ex.id === progId)
+      )
+      .filter(Boolean) || [];
+
+  return {
+    current: exercise,
+    prerequisites: prerequisites as ExtendedExerciseTemplate[],
+    progressions: progressions as ExtendedExerciseTemplate[],
+  };
 }
 
 // פונקציה לקבלת תרגילים לפי מטרה

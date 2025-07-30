@@ -1,15 +1,39 @@
 /**
  * @file src/data/extendedQuestionnaireData.ts
- * @brief שאלון מורחב אופציונלי: פרטים אישיים והעדפות מתקדמות
- * @brief Extended optional questionnaire: personal details and advanced preferences
- * @dependencies Question interface from questionnaireData
- * @notes משלים את השאלון החכם עם מידע נוסף לחידוד תוכניות
- * @notes Complements the smart questionnaire with additional info for refined programs
+ * @brief שאלון מורחב אופציונלי עם אלגוריתם חכם: פרטים אישיים והעדפות מתקדמות
+ * @brief Extended optional questionnaire with smart algorithm: personal details and advanced preferences
+ * @notes משלים את השאלון החכם עם מידע נוסף לחידוד תוכניות ואלגוריתם התאמה
+ * @notes Complements the smart questionnaire with additional info for refined programs and matching algorithm
  */
 
-import { Question } from "./questionnaireData";
+// סוגי שאלות
+export type QuestionType =
+  | "single"
+  | "multiple"
+  | "text"
+  | "number"
+  | "slider"
+  | "height"
+  | "weight";
 
-// טיפוס עבור תשובות השאלון המורחב
+// ממשק שאלה בסיסי
+export interface Question {
+  id: string;
+  question: string;
+  subtitle?: string;
+  icon: string;
+  type: QuestionType;
+  options?: string[];
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  unit?: string;
+  required?: boolean;
+  helpText?: string;
+  defaultValue?: any;
+}
+
+// טיפוס עבור תשובות השאלון המורחב עם מטא-דאטה
 export interface ExtendedQuestionnaireAnswers {
   // פרטים אישיים (חסרים מהשאלון החכם)
   gender?: string;
@@ -39,13 +63,27 @@ export interface ExtendedQuestionnaireAnswers {
   body_areas_focus?: string[];
   specific_skills?: string[];
 
+  // מטא-דאטה לאלגוריתם
+  completion_score?: number; // ציון השלמת השאלון (0-100)
+  personalization_level?: "basic" | "intermediate" | "advanced"; // רמת אישיות
+  algorithm_priorities?: string[]; // עדיפויות לאלגוריתם
+  last_updated?: Date; // מתי עודכן לאחרונה
+
   // שדות כלליים
   [key: string]: unknown;
 }
 
+// ממשק מורחב לשאלות עם נתוני אלגוريתם
+interface ExtendedQuestion extends Question {
+  algorithmWeight?: number; // משקל בחישוב האלגוריתם (1-10)
+  impactArea?: string[]; // תחומים שהשאלה משפיעה עליהם
+  customIcon?: string; // אייקון מותאם עתידי
+  priority?: "critical" | "high" | "medium" | "low"; // עדיפות השאלה
+}
+
 // ==================== פרטים אישיים חסרים ====================
 // Personal details missing from smart questionnaire
-export const PERSONAL_DETAILS_QUESTIONS: Question[] = [
+export const PERSONAL_DETAILS_QUESTIONS: ExtendedQuestion[] = [
   {
     id: "gender",
     question: "מה המגדר שלך?",
@@ -54,6 +92,10 @@ export const PERSONAL_DETAILS_QUESTIONS: Question[] = [
     options: ["זכר", "נקבה", "אחר/מעדיף לא לענות"],
     required: false,
     helpText: "עוזר לנו להתאים המלצות תזונה וקלוריות",
+    algorithmWeight: 8,
+    impactArea: ["nutrition", "calories", "workout_intensity"],
+    priority: "high",
+    customIcon: "questionnaire/gender.png",
   },
 
   {
@@ -65,6 +107,10 @@ export const PERSONAL_DETAILS_QUESTIONS: Question[] = [
     max: 220,
     required: false,
     helpText: "גרור את הסרגל כדי לבחור את הגובה שלך",
+    algorithmWeight: 9,
+    impactArea: ["calories", "BMI", "exercise_scaling"],
+    priority: "critical",
+    customIcon: "questionnaire/height.png",
   },
 
   {
@@ -76,6 +122,10 @@ export const PERSONAL_DETAILS_QUESTIONS: Question[] = [
     max: 150,
     required: false,
     helpText: "גרור את הסרגל כדי לבחור את המשקל שלך",
+    algorithmWeight: 9,
+    impactArea: ["calories", "BMI", "workout_intensity"],
+    priority: "critical",
+    customIcon: "questionnaire/weight.png",
   },
 
   {
@@ -86,12 +136,86 @@ export const PERSONAL_DETAILS_QUESTIONS: Question[] = [
     options: ["16-25", "26-35", "36-45", "46-55", "56-65", "65+"],
     required: false,
     helpText: "עוזר לנו להתאים את עצימות האימונים והמלצות התזונה",
+    algorithmWeight: 7,
+    impactArea: ["workout_intensity", "recovery", "nutrition"],
+    priority: "high",
+    customIcon: "questionnaire/age.png",
+  },
+]; // ==================== מטרות ומחויבות ====================
+// Goals and commitment level
+export const GOALS_COMMITMENT_QUESTIONS: ExtendedQuestion[] = [
+  {
+    id: "training_main_goal",
+    question: "מה המטרה העיקרית שלך מהאימונים?",
+    icon: "target",
+    type: "single",
+    options: [
+      "ירידה במשקל",
+      "עלייה במסת שריר",
+      "שיפור כושר גופני",
+      "הגדלת כוח",
+      "רק להיות פעיל יותר",
+      "שיפור במצב הרוח",
+    ],
+    required: false,
+    algorithmWeight: 10,
+    impactArea: ["workout_type", "exercise_selection", "intensity"],
+    priority: "critical",
+    customIcon: "questionnaire/goal.png",
+  },
+
+  {
+    id: "weekly_commitment",
+    question: "כמה פעמים בשבוע אתה מתכוון להתאמן?",
+    icon: "calendar-week",
+    type: "single",
+    options: ["1-2 פעמים", "3 פעמים", "4 פעמים", "5+ פעמים"],
+    required: false,
+    algorithmWeight: 9,
+    impactArea: ["workout_frequency", "progression", "recovery"],
+    priority: "critical",
+    customIcon: "questionnaire/frequency.png",
+  },
+
+  {
+    id: "workout_duration",
+    question: "כמה זמן אתה יכול להקדיש לאימון?",
+    icon: "clock",
+    type: "single",
+    options: ["פחות מ-30 דקות", "30-45 דקות", "45-60 דקות", "יותר משעה"],
+    required: false,
+    helpText: "זמן שאתה יכול להקדיש לאימון בכל פעם",
+    algorithmWeight: 8,
+    impactArea: ["workout_duration", "exercise_count", "intensity"],
+    priority: "high",
+    customIcon: "questionnaire/duration.png",
+  },
+
+  {
+    id: "motivation_factors",
+    question: "מה מניע אותך להתאמן?",
+    icon: "lightning-bolt",
+    type: "multiple",
+    options: [
+      "לחזור לכושר",
+      "למנוע מחלות",
+      "להרגיש טוב יותר עם עצמי",
+      "להרגיש יותר אנרגטי",
+      "לשפר את ביטחון העצמי",
+      "להתאמן עם חברים",
+      "למלא זמן פוי",
+    ],
+    required: false,
+    algorithmWeight: 6,
+    impactArea: ["motivation", "workout_type", "social_features"],
+    priority: "medium",
+    customIcon: "questionnaire/motivation.png",
   },
 ];
 
 // ==================== העדפות תזונה ====================
 // Nutrition preferences
-export const NUTRITION_QUESTIONS: Question[] = [
+export const NUTRITION_QUESTIONS: ExtendedQuestion[] = [
   {
     id: "diet_type",
     question: "איזה סוג תזונה מתאים לך?",
@@ -110,6 +234,10 @@ export const NUTRITION_QUESTIONS: Question[] = [
     ],
     required: false,
     helpText: "נתאים המלצות תזונה לסגנון החיים שלך",
+    algorithmWeight: 8,
+    impactArea: ["nutrition", "meal_planning", "calories"],
+    priority: "high",
+    customIcon: "questionnaire/diet.png",
   },
 
   {
@@ -129,6 +257,10 @@ export const NUTRITION_QUESTIONS: Question[] = [
     ],
     required: false,
     helpText: "חשוב לדעת כדי להמליץ על מזונות בטוחים",
+    algorithmWeight: 9,
+    impactArea: ["nutrition", "safety", "meal_planning"],
+    priority: "critical",
+    customIcon: "questionnaire/allergies.png",
   },
 
   {
@@ -145,6 +277,10 @@ export const NUTRITION_QUESTIONS: Question[] = [
     ],
     required: false,
     helpText: "נתאים המלצות תזונה לזמן הפנוי שלך",
+    algorithmWeight: 6,
+    impactArea: ["meal_planning", "nutrition", "time_management"],
+    priority: "medium",
+    customIcon: "questionnaire/meal_prep.png",
   },
 
   {
@@ -160,12 +296,16 @@ export const NUTRITION_QUESTIONS: Question[] = [
     ],
     required: false,
     helpText: "נתאים רמת מורכבות המתכונים עבורך",
+    algorithmWeight: 5,
+    impactArea: ["meal_planning", "nutrition", "recipe_complexity"],
+    priority: "medium",
+    customIcon: "questionnaire/cooking.png",
   },
 ];
 
 // ==================== אורח חיים ובריאות ====================
 // Lifestyle and health
-export const LIFESTYLE_QUESTIONS: Question[] = [
+export const LIFESTYLE_QUESTIONS: ExtendedQuestion[] = [
   {
     id: "sleep_hours",
     question: "כמה שעות שינה אתה ישן בממוצע?",
@@ -174,6 +314,10 @@ export const LIFESTYLE_QUESTIONS: Question[] = [
     options: ["פחות מ-6", "6-7 שעות", "7-8 שעות", "8+ שעות"],
     required: false,
     helpText: "שינה איכותית חיונית להתאוששות ולתוצאות טובות",
+    algorithmWeight: 7,
+    impactArea: ["recovery", "performance", "health"],
+    priority: "high",
+    customIcon: "questionnaire/sleep.png",
   },
 
   {
@@ -184,6 +328,10 @@ export const LIFESTYLE_QUESTIONS: Question[] = [
     options: ["נמוכה", "בינונית", "גבוהה", "גבוהה מאוד"],
     required: false,
     helpText: "לחץ משפיע על התאוששות, תוצאות וצורכי תזונה",
+    algorithmWeight: 6,
+    impactArea: ["recovery", "workout_intensity", "nutrition"],
+    priority: "medium",
+    customIcon: "questionnaire/stress.png",
   },
 
   {
@@ -194,6 +342,10 @@ export const LIFESTYLE_QUESTIONS: Question[] = [
     options: ["פחות מליטר", "1-2 ליטר", "2-3 ליטר", "3+ ליטר"],
     required: false,
     helpText: "הידרציה חשובה לביצועים ולהתאוששות",
+    algorithmWeight: 5,
+    impactArea: ["performance", "recovery", "health"],
+    priority: "medium",
+    customIcon: "questionnaire/water.png",
   },
 
   {
@@ -209,6 +361,10 @@ export const LIFESTYLE_QUESTIONS: Question[] = [
     ],
     required: false,
     helpText: "עוזר לחשב צורכי קלוריות מדויקים יותר",
+    algorithmWeight: 7,
+    impactArea: ["calories", "workout_intensity", "recovery"],
+    priority: "high",
+    customIcon: "questionnaire/activity.png",
   },
 ];
 
@@ -447,3 +603,242 @@ export const EXTENDED_QUESTIONNAIRE_INFO = {
 // 4. העדפות אימון מתקדמות (3 שאלות) - עדיפות בינונית
 // 5. מטרות מפורטות (2 שאלות) - עדיפות נמוכה
 // סה״כ: 17 שאלות אופציונליות שמשפרות את דיוק ההמלצות
+
+// ==================== Smart Questionnaire Analysis Functions ====================
+
+/**
+ * Calculate questionnaire completion score based on algorithm weights
+ * Returns score from 0-100 based on importance of answered questions
+ */
+export function calculateCompletionScore(
+  answers: ExtendedQuestionnaireAnswers
+): number {
+  let totalWeight = 0;
+  let answeredWeight = 0;
+
+  const allQuestions = [
+    ...PERSONAL_DETAILS_QUESTIONS,
+    ...GOALS_COMMITMENT_QUESTIONS,
+    ...NUTRITION_QUESTIONS,
+    // Add other question arrays as they're enhanced
+  ];
+
+  allQuestions.forEach((question) => {
+    const weight = question.algorithmWeight ?? 1;
+    totalWeight += weight;
+
+    const answer = answers[question.id as keyof ExtendedQuestionnaireAnswers];
+    if (answer && answer !== "" && answer !== null && answer !== undefined) {
+      answeredWeight += weight;
+    }
+  });
+
+  return totalWeight > 0 ? Math.round((answeredWeight / totalWeight) * 100) : 0;
+}
+
+/**
+ * Calculate personalization level based on critical questions answered
+ * Returns level from 1-5 based on completeness of key information
+ */
+export function calculatePersonalizationLevel(
+  answers: ExtendedQuestionnaireAnswers
+): number {
+  const criticalQuestions = [
+    "training_main_goal",
+    "weekly_commitment",
+    "height",
+    "weight",
+    "gender",
+  ];
+
+  const highPriorityQuestions = [
+    "age_range",
+    "workout_duration",
+    "diet_type",
+    "food_allergies",
+  ];
+
+  let criticalAnswered = 0;
+  let highPriorityAnswered = 0;
+
+  criticalQuestions.forEach((questionId) => {
+    const answer = answers[questionId as keyof ExtendedQuestionnaireAnswers];
+    if (answer && answer !== "" && answer !== null && answer !== undefined) {
+      criticalAnswered++;
+    }
+  });
+
+  highPriorityQuestions.forEach((questionId) => {
+    const answer = answers[questionId as keyof ExtendedQuestionnaireAnswers];
+    if (answer && answer !== "" && answer !== null && answer !== undefined) {
+      highPriorityAnswered++;
+    }
+  });
+
+  // Level calculation based on answered questions
+  if (criticalAnswered >= 4) return 5; // Highest personalization
+  if (criticalAnswered >= 3 && highPriorityAnswered >= 2) return 4;
+  if (criticalAnswered >= 2) return 3;
+  if (criticalAnswered >= 1) return 2;
+  return 1; // Basic level
+}
+
+/**
+ * Get priority-based question recommendations for incomplete questionnaire
+ * Returns array of question IDs sorted by importance for personalization
+ */
+export function getRecommendedQuestions(
+  answers: ExtendedQuestionnaireAnswers,
+  maxRecommendations: number = 5
+): string[] {
+  const allQuestions = [
+    ...PERSONAL_DETAILS_QUESTIONS,
+    ...GOALS_COMMITMENT_QUESTIONS,
+    ...NUTRITION_QUESTIONS,
+  ];
+
+  const unansweredQuestions = allQuestions
+    .filter((question) => {
+      const answer = answers[question.id as keyof ExtendedQuestionnaireAnswers];
+      return (
+        !answer || answer === "" || answer === null || answer === undefined
+      );
+    })
+    .sort((a, b) => {
+      // Sort by priority: critical > high > medium > low
+      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      const aPriority = priorityOrder[a.priority ?? "low"] || 0;
+      const bPriority = priorityOrder[b.priority ?? "low"] || 0;
+
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority; // Higher priority first
+      }
+
+      // If same priority, sort by algorithm weight
+      const aWeight = a.algorithmWeight ?? 1;
+      const bWeight = b.algorithmWeight ?? 1;
+      return bWeight - aWeight;
+    })
+    .slice(0, maxRecommendations)
+    .map((question) => question.id);
+
+  return unansweredQuestions;
+}
+
+/**
+ * Calculate algorithm priorities based on user answers
+ * Returns object with weighted priorities for different aspects
+ */
+export function calculateAlgorithmPriorities(
+  answers: ExtendedQuestionnaireAnswers
+): Record<string, number> {
+  const priorities: Record<string, number> = {
+    weight_loss: 0,
+    muscle_gain: 0,
+    fitness_improvement: 0,
+    strength_building: 0,
+    nutrition_focus: 0,
+    time_efficiency: 0,
+    recovery_focus: 0,
+    beginner_friendly: 0,
+  };
+
+  // Main goal impact
+  if (answers.training_main_goal === "ירידה במשקל") {
+    priorities.weight_loss = 10;
+    priorities.nutrition_focus = 8;
+  } else if (answers.training_main_goal === "עלייה במסת שריר") {
+    priorities.muscle_gain = 10;
+    priorities.nutrition_focus = 7;
+  } else if (answers.training_main_goal === "שיפור כושר גופני") {
+    priorities.fitness_improvement = 10;
+  } else if (answers.training_main_goal === "הגדלת כוח") {
+    priorities.strength_building = 10;
+  }
+
+  // Time constraints impact
+  if (answers.workout_duration === "פחות מ-30 דקות") {
+    priorities.time_efficiency = 9;
+  } else if (answers.workout_duration === "30-45 דקות") {
+    priorities.time_efficiency = 6;
+  }
+
+  // Frequency impact on recovery
+  if (answers.weekly_commitment === "1-2 פעמים") {
+    priorities.beginner_friendly = 8;
+    priorities.recovery_focus = 6;
+  } else if (answers.weekly_commitment === "5+ פעמים") {
+    priorities.recovery_focus = 9;
+  }
+
+  // Diet focus
+  if (answers.diet_type && answers.diet_type !== "רגיל - אוכל הכל") {
+    priorities.nutrition_focus += 3;
+  }
+
+  if (answers.food_allergies && answers.food_allergies.length > 1) {
+    priorities.nutrition_focus += 2;
+  }
+
+  return priorities;
+}
+
+/**
+ * Get smart questionnaire insights based on current answers
+ * Returns insights and recommendations for better personalization
+ */
+export function getQuestionnaireInsights(
+  answers: ExtendedQuestionnaireAnswers
+): {
+  completionScore: number;
+  personalizationLevel: number;
+  recommendedQuestions: string[];
+  algorithmPriorities: Record<string, number>;
+  insights: string[];
+  nextSteps: string[];
+} {
+  const completionScore = calculateCompletionScore(answers);
+  const personalizationLevel = calculatePersonalizationLevel(answers);
+  const recommendedQuestions = getRecommendedQuestions(answers);
+  const algorithmPriorities = calculateAlgorithmPriorities(answers);
+
+  const insights: string[] = [];
+  const nextSteps: string[] = [];
+
+  // Generate insights based on completion
+  if (completionScore >= 80) {
+    insights.push("פרופיל מלא וחדר! נוכל לתת לך המלצות מותאמות אישית מעולות");
+  } else if (completionScore >= 60) {
+    insights.push("פרופיל טוב! עוד כמה שאלות יכולות לשפר את ההמלצות");
+  } else if (completionScore >= 40) {
+    insights.push(
+      "פרופיל בסיסי. שאלות נוספות יכולות לשפר משמעותית את ההתאמה האישית"
+    );
+  } else {
+    insights.push(
+      "פרופיל לא שלם. מומלץ להשלים שאלות נוספות להמלצות טובות יותר"
+    );
+  }
+
+  // Generate next steps
+  if (recommendedQuestions.length > 0) {
+    nextSteps.push(
+      `מומלץ להשלים ${recommendedQuestions.length} שאלות נוספות לשיפור ההתאמה`
+    );
+  }
+
+  if (personalizationLevel < 3) {
+    nextSteps.push(
+      "השלמת פרטים בסיסיים (גובה, משקל, מטרה) תשפר משמעותית את ההמלצות"
+    );
+  }
+
+  return {
+    completionScore,
+    personalizationLevel,
+    recommendedQuestions,
+    algorithmPriorities,
+    insights,
+    nextSteps,
+  };
+}

@@ -48,6 +48,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
               name="loading"
               size={24}
               color={theme.colors.primary}
+              accessible={false}
             />
             <Text style={styles.loadingText}>מחשב אימון הבא...</Text>
           </View>
@@ -68,7 +69,13 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
     };
 
     return (
-      <View style={styles.container}>
+      <View
+        style={styles.container}
+        accessible={true}
+        accessibilityRole="text"
+        accessibilityLabel={`האימון הבא שלך: ${defaultWorkout.workoutName}. ${defaultWorkout.reason}.`}
+        accessibilityHint="פרטי האימון הבא המומלץ עבורך"
+      >
         <LinearGradient
           colors={[theme.colors.primary + "30", theme.colors.primary + "10"]}
           style={styles.gradient}
@@ -79,6 +86,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
                 name="dumbbell"
                 size={20}
                 color={theme.colors.primary}
+                accessible={false}
               />
               <Text style={styles.title}>האימון הבא שלך</Text>
             </View>
@@ -95,12 +103,17 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
                 defaultWorkout.workoutIndex
               )
             }
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`התחל אימון ${defaultWorkout.workoutName}`}
+            accessibilityHint="הקש כדי להתחיל את האימון הבא"
           >
             <Text style={styles.startButtonText}>התחל אימון</Text>
             <MaterialCommunityIcons
               name="play-circle"
               size={20}
               color="white"
+              accessible={false}
             />
           </TouchableOpacity>
         </LinearGradient>
@@ -142,7 +155,13 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={`האימון הבא שלך: ${nextWorkout.workoutName}. ${nextWorkout.reason}. ${getIntensityText()}.`}
+      accessibilityHint="פרטי האימון הבא המומלץ עבורך"
+    >
       <LinearGradient
         colors={[theme.colors.primary + "15", theme.colors.primary + "05"]}
         style={styles.gradient}
@@ -154,6 +173,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
               name="dumbbell"
               size={20}
               color={theme.colors.primary}
+              accessible={false}
             />
             <Text style={styles.title}>האימון הבא שלך</Text>
           </View>
@@ -169,6 +189,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
               name={getIntensityIcon()}
               size={14}
               color={getIntensityColor()}
+              accessible={false}
             />
             <Text
               style={[styles.intensityText, { color: getIntensityColor() }]}
@@ -191,6 +212,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
               name="calendar-clock"
               size={16}
               color={theme.colors.textSecondary}
+              accessible={false}
             />
             <Text style={styles.infoText}>
               {nextWorkout.daysSinceLastWorkout === 1
@@ -229,12 +251,21 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
             onStartWorkout(nextWorkout.workoutName, nextWorkout.workoutIndex)
           }
           activeOpacity={0.8}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`התחל אימון ${nextWorkout.workoutName}`}
+          accessibilityHint="הקש כדי להתחיל את האימון הבא"
         >
           <LinearGradient
             colors={[theme.colors.primary, theme.colors.primary + "DD"]}
             style={styles.startButtonGradient}
           >
-            <MaterialCommunityIcons name="play" size={20} color="white" />
+            <MaterialCommunityIcons
+              name="play"
+              size={20}
+              color="white"
+              accessible={false}
+            />
             <Text style={styles.startButtonText}>התחל אימון</Text>
           </LinearGradient>
         </TouchableOpacity>
