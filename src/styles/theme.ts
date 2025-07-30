@@ -1,9 +1,10 @@
 /**
  * @file src/styles/theme.ts
- * @brief ערכת נושא מרכזית של האפליקציה עם תמיכה מלאה ב-RTL
+ * @brief ערכת נושא מרכזית של האפליקציה עם תמיכה מלאה ב-RTL והתאמת מגדר
  * @dependencies React Native, Dimensions
- * @notes כולל צבעים, רווחים, טיפוגרפיה, צללים ורכיבים מוכנים
+ * @notes כולל צבעים, רווחים, טיפוגרפיה, צללים ורכיבים מוכנים עם תמיכה בהתאמת מגדר
  * @recurring_errors אין להשתמש בערכים קשיחים - הכל דרך theme בלבד
+ * @updated 2025-07-30 הוספת תמיכה במערכת השאלון החכם והתאמת מגדר
  */
 
 import { Dimensions, Platform } from "react-native";
@@ -64,6 +65,17 @@ export const colors = {
   workoutCardStart: "#2d5a7a",
   workoutCardEnd: "#1a3a5a",
 
+  // Questionnaire & Gender Adaptation Colors
+  questionnaireCard: "#1f2937",
+  questionnaireBorder: "#374151",
+  selectedOption: "#4f46e5",
+  selectedOptionBg: "rgba(79, 70, 229, 0.1)",
+  genderMale: "#3b82f6",
+  genderFemale: "#ec4899",
+  genderNeutral: "#8b5cf6",
+  progressFill: "#10b981",
+  progressBg: "#374151",
+
   // Gradient Colors
   primaryGradientStart: "#4e9eff",
   primaryGradientEnd: "#3a7bc8",
@@ -71,6 +83,13 @@ export const colors = {
   secondaryGradientEnd: "#00b8d4",
   accentGradientStart: "#ff6b6b",
   accentGradientEnd: "#d84848",
+
+  // Smart Questionnaire Gradients
+  questionnaireGradientStart: "#1f2937",
+  questionnaireGradientEnd: "#111827",
+  genderGradientMale: ["#3b82f6", "#1d4ed8"],
+  genderGradientFemale: ["#ec4899", "#be185d"],
+  genderGradientNeutral: ["#8b5cf6", "#7c3aed"],
 };
 
 // --- Border Radius ---
@@ -274,6 +293,108 @@ export const components = {
     borderColor: colors.cardBorder,
     ...shadows.medium,
   },
+
+  // Smart Questionnaire Components
+  questionnaireCard: {
+    backgroundColor: colors.questionnaireCard,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.questionnaireBorder,
+    ...shadows.medium,
+  },
+
+  questionnaireOption: {
+    backgroundColor: colors.backgroundElevated,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: isRTL ? "row-reverse" : "row",
+    alignItems: "center" as const,
+    paddingRight: spacing.lg, // RTL support
+  },
+
+  questionnaireOptionSelected: {
+    backgroundColor: colors.selectedOptionBg,
+    borderColor: colors.selectedOption,
+    borderWidth: 2,
+  },
+
+  questionnaireOptionContent: {
+    flex: 1,
+    alignItems: isRTL ? "flex-end" : "flex-start",
+  },
+
+  questionnaireText: {
+    textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
+    width: "100%",
+  },
+
+  genderButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    minWidth: 100,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+
+  genderButtonMale: {
+    backgroundColor: colors.genderMale,
+    borderColor: colors.genderMale,
+  },
+
+  genderButtonFemale: {
+    backgroundColor: colors.genderFemale,
+    borderColor: colors.genderFemale,
+  },
+
+  genderButtonNeutral: {
+    backgroundColor: colors.genderNeutral,
+    borderColor: colors.genderNeutral,
+  },
+
+  progressIndicator: {
+    height: 4,
+    backgroundColor: colors.progressBg,
+    borderRadius: 2,
+    overflow: "hidden" as const,
+    marginBottom: spacing.md,
+  },
+
+  progressIndicatorFill: {
+    height: "100%",
+    backgroundColor: colors.progressFill,
+    borderRadius: 2,
+  },
+
+  floatingActionButton: {
+    position: "absolute" as const,
+    bottom: spacing.xl,
+    right: isRTL ? undefined : spacing.lg,
+    left: isRTL ? spacing.lg : undefined,
+    backgroundColor: colors.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    ...shadows.glow,
+    zIndex: 1000,
+  },
+
+  selectionIndicator: {
+    position: "absolute" as const,
+    right: 16,
+    top: "50%",
+    transform: [{ translateY: -12 }],
+  },
   exerciseCard: {
     flexDirection: isRTL ? "row-reverse" : "row",
     backgroundColor: colors.card,
@@ -336,6 +457,24 @@ export const components = {
     height: 56,
     ...shadows.small,
   },
+
+  // RTL-Enhanced Input
+  rtlInput: {
+    backgroundColor: colors.backgroundAlt,
+    borderRadius: radius.lg,
+    paddingRight: spacing.md, // Specific for RTL
+    paddingLeft: spacing.md,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    color: colors.text,
+    fontSize: 16,
+    textAlign: "right" as const,
+    writingDirection: "rtl" as const,
+    width: "100%",
+    height: 56,
+    ...shadows.small,
+  },
   modalContainer: {
     backgroundColor: colors.card,
     borderRadius: radius.xl,
@@ -367,6 +506,31 @@ export const components = {
   rtlText: {
     textAlign: "right" as const,
     writingDirection: "rtl" as const,
+  },
+
+  // Enhanced RTL Text Variants
+  rtlTextTitle: {
+    textAlign: "right" as const,
+    writingDirection: "rtl" as const,
+    width: "100%",
+    ...typography.title2,
+    color: colors.text,
+  },
+
+  rtlTextBody: {
+    textAlign: "right" as const,
+    writingDirection: "rtl" as const,
+    width: "100%",
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+
+  rtlTextCaption: {
+    textAlign: "right" as const,
+    writingDirection: "rtl" as const,
+    width: "100%",
+    ...typography.caption,
+    color: colors.textTertiary,
   },
   gradientButton: {
     paddingStart: spacing.xl,
@@ -507,6 +671,150 @@ export const layout = {
   isLargeDevice: screenWidth >= 768,
 };
 
+// --- Gender-Adaptive Theme Helpers ---
+export const genderHelpers = {
+  /**
+   * קבלת צבע לפי מגדר
+   * Get color by gender
+   */
+  getGenderColor: (gender: "male" | "female" | "other") => {
+    switch (gender) {
+      case "male":
+        return colors.genderMale;
+      case "female":
+        return colors.genderFemale;
+      default:
+        return colors.genderNeutral;
+    }
+  },
+
+  /**
+   * קבלת גרדיאנט לפי מגדר
+   * Get gradient by gender
+   */
+  getGenderGradient: (gender: "male" | "female" | "other") => {
+    switch (gender) {
+      case "male":
+        return colors.genderGradientMale;
+      case "female":
+        return colors.genderGradientFemale;
+      default:
+        return colors.genderGradientNeutral;
+    }
+  },
+
+  /**
+   * קבלת סגנון כפתור מגדר
+   * Get gender button style
+   */
+  getGenderButtonStyle: (
+    gender: "male" | "female" | "other",
+    isSelected: boolean = false
+  ) => {
+    const baseStyle = components.genderButton;
+
+    if (!isSelected) return baseStyle;
+
+    switch (gender) {
+      case "male":
+        return { ...baseStyle, ...components.genderButtonMale };
+      case "female":
+        return { ...baseStyle, ...components.genderButtonFemale };
+      default:
+        return { ...baseStyle, ...components.genderButtonNeutral };
+    }
+  },
+};
+
+// --- RTL Theme Helpers ---
+export const rtlHelpers = {
+  /**
+   * קבלת סגנון RTL מלא לטקסט
+   * Get full RTL text style
+   */
+  getFullRTLTextStyle: (variant: "title" | "body" | "caption" = "body") => {
+    switch (variant) {
+      case "title":
+        return components.rtlTextTitle;
+      case "caption":
+        return components.rtlTextCaption;
+      default:
+        return components.rtlTextBody;
+    }
+  },
+
+  /**
+   * קבלת סגנון קונטיינר RTL
+   * Get RTL container style
+   */
+  getRTLContainerStyle: (
+    options: {
+      alignItems?: "flex-start" | "flex-end" | "center";
+      paddingDirection?: "right" | "left";
+      paddingValue?: number;
+    } = {}
+  ) => ({
+    alignItems: options.alignItems || "flex-end",
+    flexDirection: isRTL ? "row-reverse" : "row",
+    ...(options.paddingDirection === "right"
+      ? { paddingRight: options.paddingValue || spacing.md }
+      : options.paddingDirection === "left"
+        ? { paddingLeft: options.paddingValue || spacing.md }
+        : {}),
+  }),
+
+  /**
+   * קבלת סגנון אינדיקטור בחירה RTL
+   * Get RTL selection indicator style
+   */
+  getSelectionIndicatorStyle: (isSelected: boolean = false) => ({
+    ...components.selectionIndicator,
+    opacity: isSelected ? 1 : 0,
+  }),
+
+  /**
+   * קבלת סגנון input RTL מלא
+   * Get full RTL input style
+   */
+  getRTLInputStyle: () => components.rtlInput,
+};
+
+// --- Smart Questionnaire Theme Helpers ---
+export const questionnaireHelpers = {
+  /**
+   * קבלת סגנון אפשרות שאלון
+   * Get questionnaire option style
+   */
+  getOptionStyle: (isSelected: boolean = false) => {
+    const baseStyle = components.questionnaireOption;
+    return isSelected
+      ? { ...baseStyle, ...components.questionnaireOptionSelected }
+      : baseStyle;
+  },
+
+  /**
+   * קבלת סגנון התקדמות
+   * Get progress style
+   */
+  getProgressStyle: (progress: number) => ({
+    container: components.progressIndicator,
+    fill: {
+      ...components.progressIndicatorFill,
+      width: `${Math.min(100, Math.max(0, progress))}%`,
+    },
+  }),
+
+  /**
+   * קבלת סגנון כפתור צף
+   * Get floating button style
+   */
+  getFloatingButtonStyle: (isVisible: boolean = true) => ({
+    ...components.floatingActionButton,
+    opacity: isVisible ? 1 : 0,
+    transform: [{ scale: isVisible ? 1 : 0.8 }],
+  }),
+};
+
 // --- Theme Object ---
 export const theme = {
   isRTL,
@@ -519,6 +827,11 @@ export const theme = {
   components,
   icons,
   layout,
+
+  // Enhanced helpers for smart questionnaire and gender adaptation
+  genderHelpers,
+  rtlHelpers,
+  questionnaireHelpers,
 };
 
 export default theme;

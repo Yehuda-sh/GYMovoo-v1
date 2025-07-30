@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 30 July 2025: Enhanced userStore with Smart Questionnaire & Gender Adaptation 🛠️
+
+#### 🏗️ **userStore Enhancement**
+
+- **15+ new functions** for comprehensive user state management
+- **Smart questionnaire integration** - Full support for SmartQuestionnaireData
+- **Gender adaptation system** - Dynamic workout name adaptation based on gender
+- **Data validation functions** - `validateUserData()`, `getCompletionStatus()`
+- **Manual storage control** - `saveToStorage()` for precise data management
+- **Backward compatibility** - Full support for old questionnaire format
+
+#### 📚 **Comprehensive Documentation & Examples**
+
+- **`userStore.example.ts`** - 14 detailed usage examples covering all scenarios
+- **Updated technical documentation** - Enhanced RTL_GENDER_ADAPTATION_IMPLEMENTATION.md
+- **Code examples** - Real-world usage patterns and integration guides
+- **TypeScript support** - Full type safety with comprehensive interfaces
+- **Custom hooks** - Additional convenience hooks for common use cases
+
+#### 🔧 **New userStore Functions**
+
+**Smart Questionnaire Management:**
+
+- `setSmartQuestionnaireData()` - Save complete smart questionnaire data
+- `updateSmartQuestionnaireData()` - Partial updates with metadata preservation
+- `getSmartQuestionnaireAnswers()` - Extract questionnaire answers
+- `resetSmartQuestionnaire()` - Clean reset with storage cleanup
+
+**Gender Adaptation System:**
+
+- `setUserGender()` - Set user gender with profile updates
+- `updateGenderProfile()` - Update gender-specific adaptations
+- `getAdaptedWorkoutName()` - Get gender-adapted workout names
+
+**Data Validation & Management:**
+
+- `validateUserData()` - Comprehensive user data validation
+- `getCompletionStatus()` - Detailed setup completion status
+- `saveToStorage()` - Manual AsyncStorage management
+- `updateTrainingPreferences()` - Training-specific preferences
+- `updateTrainingStats()` - User training statistics
+
+#### 🎯 **Enhanced Features**
+
+- **Type-safe operations** - All functions with proper TypeScript interfaces
+- **Automatic storage sync** - Real-time AsyncStorage synchronization
+- **Metadata tracking** - Complete questionnaire metadata with device info
+- **Gender-specific UI** - Dynamic text and workout name adaptation
+- **Comprehensive error handling** - Robust error management and logging
+
 ### Added - 29 July 2025: Smart Questionnaire Revolution 🎯
 
 #### 📋 **Smart Questionnaire System Overhaul**

@@ -1,18 +1,38 @@
-# מדריך טכני - מערכת שאלון חכמה ומאגר ציוד מקיף
+# מדריך טכני - מערכת שאלון חכמה עם תמיכת RTL והתאמת מגדר
 
 ## סקירה כללית
 
-מדריך זה מתעד את המימוש הטכני של מערכת השאלון החכמה החדשה, מאגר הציוד המקיף, מערכת הדמו, וכן את מערכת סיום האימונים, מעקב שיאים ורכיבים משותפים.
+מדריך זה מתעד את המימוש הטכני של מערכת השאלון החכמה החדשה עם תמיכת RTL מלאה והתאמת מגדר דינמית, מאגר הציוד המקיף, מערכת הדמו, וכן את מערכת סיום האימונים, מעקב שיאים ורכיבים משותפים.
 
-## 📊 עדכון אחרון: יולי 2025
+## 📊 עדכון אחרון: 30 יולי 2025
 
 ### שינויים מרכזיים באפדט החדש:
 
-#### 🎯 **מהפכת מערכת השאלון:**
+#### 🌍 **תמיכת RTL מושלמת:**
 
-- הרחבה מ-3 ל-6-7 שאלות דינמיות
+- יישור כל הטקסטים לימין בעברית
+- תיקון סימני בחירה ואלמנטים ויזואליים
+- ריווחים וצמצמות מותאמים לכיוון RTL
+- `writingDirection: "rtl"` בכל הטקסטים העבריים
+
+#### 👥 **מערכת התאמת מגדר דינמית:**
+
+- שאלת מגדר כשאלה ראשונה
+- התאמה אוטומטית של כל הטקסטים לפי המגדר
+- פונקציות התאמה מתקדמות: `adaptTextToGender`, `adaptOptionToGender`
+- הודעות סיום מותאמות אישית
+
+#### 📝 **נייטרליות מגדרית:**
+
+- כל הטקסטים הקבועים נוסחו בצורה נייטרלית
+- הסרת הטיות מגדריות מתיאורי האפשרויות
+- שפה כוללת ומכבדת לכל המשתמשים
+
+#### 🎯 **מהפכת מערכת השאלון (מתקדם):**
+
+- הרחבה מ-3 ל-7 שאלות דינמיות עם התאמת מגדר
 - תמיכה מלאה בבחירה מרובה
-- שאלות דינמיות המתאימות את עצמן לתשובות קודמות
+- שאלות דינמיות המתאימות את עצמן לתשובות קודמות ולמגדר
 - UI משופר עם אנימציות וכפתור "הבא" חכם
 
 #### 🏋️ **מאגר ציוד מקיף:**
@@ -22,7 +42,7 @@
 - תיאורים מפורטים בעברית
 - תמיכה בתגיות חיפוש
 
-#### � **סינכרון מושלם:**
+#### 🔄 **סינכרון מושלם:**
 
 - מסך הפרופיל מתעדכן אוטומטית
 - לוגיקת חילוץ ציוד חכמה מהשאלון
@@ -113,7 +133,7 @@ useEffect(() => {
 
 #### פונקציית שמירה
 
-```typescript
+````typescript
 const handleSaveWorkout = async () => {
   if (feedback.rating === 0) {
     Alert.alert("דירוג חסר", "אנא בחר דירוג לאימון");
@@ -127,11 +147,163 @@ const handleSaveWorkout = async () => {
     navigation.goBack();
   } catch (error) {
     Alert.alert("שגיאה", "לא ניתן לשמור את האימון");
-  } finally {
-    setIsLoading(false);
+---
+
+## 🌍 תמיכת RTL והתאמת מגדר
+
+### סקירה כללית
+
+מערכת השאלון החכם מממשת תמיכה מלאה ב-RTL (Right-to-Left) לעברית ומערכת התאמת מגדר דינמית שמותאמת את כל הטקסטים לפי המגדר שנבחר.
+
+### 1. מבנה מערכת ההתאמה
+
+#### SmartQuestionnaireManager - המנוע המרכזי
+
+```typescript
+export class SmartQuestionnaireManager {
+  private selectedGender: string = "neutral";
+
+  // התאמת טקסט בסיסי לפי מגדר
+  private adaptTextToGender(text: string, gender: string): string {
+    if (gender === "male") {
+      return text
+        .replace(/תרצה/g, "תרצה")
+        .replace(/תרצי/g, "תרצה")
+        .replace(/מעוניין\/ת/g, "מעוניין")
+        .replace(/מעוניינת/g, "מעוניין");
+    } else if (gender === "female") {
+      return text
+        .replace(/תרצה/g, "תרצי")
+        .replace(/מעוניין\/ת/g, "מעוניינת")
+        .replace(/מעוניין/g, "מעוניינת");
+    }
+    return text; // נייטרלי
   }
+
+  // התאמת אפשרויות מלאה
+  private adaptOptionToGender(option: SmartOption, gender: string): SmartOption {
+    return {
+      ...option,
+      label: this.adaptTextToGender(option.label, gender),
+      description: option.description
+        ? this.adaptTextToGender(option.description, gender)
+        : undefined,
+      aiInsight: option.aiInsight
+        ? this.adaptTextToGender(option.aiInsight, gender)
+        : undefined,
+    };
+  }
+}
+````
+
+### 2. תיקוני RTL במסך השאלון
+
+#### יישור טקסטים נכון לימין
+
+```tsx
+// סטיילים עיקריים לתמיכת RTL
+const styles = StyleSheet.create({
+  // קונטיינר האפשרויות
+  optionContainer: {
+    paddingRight: theme.spacing.lg + 30, // ✅ ריווח מימין לסמן
+    // ... שאר הסטיילים
+  },
+
+  // תוכן האפשרות
+  optionContent: {
+    alignItems: "flex-end", // ✅ מיישר תוכן לימין
+  },
+
+  // טקסט האפשרות
+  optionLabel: {
+    textAlign: "right", // ✅ יישור לימין
+    writingDirection: "rtl", // ✅ כיוון כתיבה עברי
+    width: "100%", // ✅ תופס רוחב מלא
+  },
+
+  // תיאור האפשרות
+  optionDescription: {
+    textAlign: "right",
+    writingDirection: "rtl",
+    width: "100%",
+  },
+
+  // סמן הבחירה
+  selectedIndicator: {
+    position: "absolute",
+    right: theme.spacing.md, // ✅ ממוקם מימין
+    // ... שאר הסטיילים
+  },
+});
+```
+
+### 3. התאמת הודעות סיום למגדר
+
+```typescript
+const completeQuestionnaire = async () => {
+  // קבלת המגדר מהתשובות
+  const genderAnswer = answers.find((a: any) => a.questionId === "gender");
+  const selectedGender = genderAnswer
+    ? genderAnswer.selectedOptions[0]?.id
+    : null;
+
+  // התאמת טקסט הודעה
+  const inviteText =
+    selectedGender === "female"
+      ? "תוכנית האימונים האישית שלך מוכנה! בואי נתחיל להתאמן"
+      : selectedGender === "male"
+        ? "תוכנית האימונים האישית שלך מוכנה! בוא נתחיל להתאמן"
+        : "תוכנית האימונים האישית שלך מוכנה! בואו נתחיל להתאמן";
+
+  // התאמת טקסט כפתור
+  const buttonText =
+    selectedGender === "female"
+      ? "בואי נתחיל!"
+      : selectedGender === "male"
+        ? "בוא נתחיל!"
+        : "בואו נתחיל!";
 };
 ```
+
+### 4. נייטרליות מגדרית בנתונים
+
+#### טקסטים שתוקנו לנייטרליים:
+
+```typescript
+// לפני - טקסטים עם הטיה מגדרית:
+"צעיר ומלא אנרגיה"; // זכר
+"בוגר ונמרץ"; // זכר
+"חכם ופעיל"; // זכר
+"מחפש אתגרים"; // זכר
+
+// אחרי - טקסטים נייטרליים:
+"בתחילת הדרך עם המון מוטיבציה"; // נייטרלי
+"עם ניסיון ומוטיבציה"; // נייטרלי
+"מנוסה ופעיל"; // נייטרלי
+"מעוניין באתגרים"; // נייטרלי + התאמה דינמית
+```
+
+### 5. בדיקות ואימות
+
+#### רשימת בדיקות שבוצעו:
+
+- ✅ יישור כל הטקסטים לימין
+- ✅ סימני בחירה בצד הנכון (ימין)
+- ✅ ריווחים נכונים לכיוון RTL
+- ✅ התאמת מגדר בכל השאלות
+- ✅ הודעות סיום מותאמות
+- ✅ טקסטים נייטרליים בנתונים הקבועים
+
+---
+
+## 📋 מערכת השאלון החכם המקורי
+
+} finally {
+setIsLoading(false);
+}
+};
+
+````
 
 ### 2. workoutHistoryService.ts - שרותי הנתונים
 
@@ -141,7 +313,7 @@ const handleSaveWorkout = async () => {
 const WORKOUT_HISTORY_KEY = "workout_history";
 const PREVIOUS_PERFORMANCES_KEY = "previous_performances";
 const PERSONAL_RECORDS_KEY = "personal_records";
-```
+````
 
 #### שמירת אימון עם משוב
 
@@ -577,6 +749,273 @@ crashlytics().recordError(new Error("Workout save failed"));
 - **גרסאות**: מערכת גרסאות סמנטית (semantic versioning)
 - **מיגרציות**: סקריפטים למעבר בין גרסאות נתונים
 - **רגרסיות**: בדיקות אוטומטיות למניעת נזק לפונקציונליות קיימת
+
+---
+
+## 📱 ניהול אחסון מקומי מתקדם
+
+### StorageCleanup - מערכת ניקוי אחסון חכמה
+
+המערכת כוללת כלי ניקוי מתקדם עם תמיכה מלאה בנתוני השאלון החכם:
+
+#### מפתחות אחסון מרכזיים:
+
+```typescript
+// נתוני משתמש חיוניים
+"userPreferences"; // העדפות משתמש כלליות
+"smart_questionnaire_results"; // תוצאות השאלון החכם
+"user_gender_preference"; // העדפת מגדר לשפה
+"selected_equipment"; // ציוד נבחר מהשאלון
+
+// נתונים זמניים (ניתנים לניקוי)
+"questionnaire_draft_*"; // טיוטות שאלון
+"gender_adaptation_temp_*"; // נתוני התאמת מגדר זמניים
+"smart_questionnaire_session_*"; // סשן שאלון פעיל
+"questionnaire_analytics_*"; // אנליטיקה של השאלון
+```
+
+#### פונקציות ניקוי מתקדמות:
+
+```typescript
+import { StorageCleanup } from "@/utils/storageCleanup";
+
+// בדיקת מצב אחסון מפורט
+const info = await StorageCleanup.getStorageInfo();
+console.log({
+  totalKeys: info.totalKeys,
+  questionnaireKeys: info.questionnaireKeys,
+  genderAdaptationKeys: info.genderAdaptationKeys,
+  userPreferencesSize: info.userPreferencesSize,
+});
+
+// ניקוי מיוחד לנתוני שאלון
+await StorageCleanup.cleanQuestionnaireData();
+
+// גיבוי ושחזור נתונים חיוניים
+const backup = await StorageCleanup.backupEssentialQuestionnaireData();
+await StorageCleanup.restoreEssentialQuestionnaireData(backup);
+
+// וואלידציה של נתוני שאלון
+const isValid = await StorageCleanup.validateQuestionnaireData();
+if (!isValid) {
+  console.log("נתוני השאלון דורשים שחזור או איפוס");
+}
+
+// תחזוקה אוטומטית בהפעלת האפליקציה
+await StorageCleanup.cleanOldData(); // ניקוי נתונים מעל שבוע
+if (await StorageCleanup.isStorageFull()) {
+  await StorageCleanup.emergencyCleanup(); // ניקוי חירום
+}
+```
+
+#### אינטגרציה עם השאלון החכם:
+
+```typescript
+// לפני התחלת שאלון חדש
+await StorageCleanup.cleanQuestionnaireData();
+
+// אחרי השלמת שאלון
+const isValid = await StorageCleanup.validateQuestionnaireData();
+if (!isValid) {
+  // טיפול בנתונים שגויים
+}
+
+// תחזוקה יומית
+await StorageCleanup.cleanOldData();
+```
+
+לדוגמאות מלאות, ראה: `src/utils/storageCleanup.example.ts`
+
+---
+
+## 🏋️ ניהול שמות אימונים עם התאמת מגדר
+
+### WorkoutNamesSync - מערכת סנכרון שמות אימונים חכמה
+
+המערכת כוללת כלי מתקדם לניהול שמות אימונים עם תמיכה מלאה בהתאמת מגדר:
+
+#### התאמת שמות אימונים למגדר:
+
+```typescript
+import {
+  adaptWorkoutNameToGender,
+  getGenderAdaptedWorkoutPlan,
+  isValidWorkoutName,
+} from "@/utils/workoutNamesSync";
+
+// התאמת שם אימון בודד
+const adaptedName = adaptWorkoutNameToGender("פלג גוף עליון", "female");
+// Result: "פלג גוף עליון מתקדמת"
+
+// קבלת תוכנית שלמה מותאמת
+const plan = getGenderAdaptedWorkoutPlan(3, "male");
+// Result: ["דחיפה", "משיכה", "רגליים"] -> מותאם למגדר
+
+// וולידציה של שם אימון
+const isValid = isValidWorkoutName("אימון מלא לאישה", 1, "female");
+```
+
+#### חיפוש חכם עם סובלנות לטעויות:
+
+```typescript
+// חיפוש עם סובלנות
+const result = findWorkoutNameWithTolerance("פלג עליון", 2, "female");
+// יחזיר: "פלג גוף עליון מתקדמת"
+
+// קבלת כל הוריאציות האפשריות
+const variations = getWorkoutNameVariations("אימון מלא");
+// Result: ["אימון מלא", "אימון מלא לגבר", "אימון מלא לאישה", ...]
+```
+
+#### אינטגרציה עם השאלון החכם:
+
+```typescript
+// שימוש בנתוני השאלון
+const questionnaireData = {
+  gender: "female",
+  workoutDays: 4,
+};
+
+// קבלת תוכנית מותאמת
+const adaptedPlan = getGenderAdaptedWorkoutPlan(
+  questionnaireData.workoutDays,
+  questionnaireData.gender
+);
+
+// חיפוש אימון ספציפי עם התאמה
+const workoutIndex = getWorkoutIndexByName(
+  "חזה + טריצפס",
+  adaptedPlan,
+  questionnaireData.gender
+);
+```
+
+#### וולידציה ובדיקות תקינות:
+
+```typescript
+// וולידציה של המערכת כולה
+validateWorkoutNamesSync("female");
+
+// בדיקת תקינות שם אימון
+const isValidWorkout = isValidWorkoutName("גב + ביצפס", 4, "male");
+```
+
+לדוגמאות מלאות, ראה: `src/utils/workoutNamesSync.example.ts`
+
+---
+
+## 🎨 מערכת עיצוב מתקדמת עם תמיכה בהתאמת מגדר
+
+### Theme System - ערכת נושא מקיפה עם RTL ו-Gender Adaptation
+
+המערכת כוללת ערכת נושא מתקדמת עם תמיכה מלאה בהתאמת מגדר ו-RTL:
+
+#### צבעים ייעודיים להתאמת מגדר:
+
+```typescript
+import { theme } from "@/styles/theme";
+
+// צבעים לפי מגדר
+const genderColors = {
+  male: theme.colors.genderMale, // כחול
+  female: theme.colors.genderFemale, // ורוד
+  neutral: theme.colors.genderNeutral, // סגול
+};
+
+// גרדיאנטים לפי מגדר
+const maleGradient = theme.colors.genderGradientMale; // ["#3b82f6", "#1d4ed8"]
+const femaleGradient = theme.colors.genderGradientFemale; // ["#ec4899", "#be185d"]
+```
+
+#### רכיבי UI מותאמים לשאלון חכם:
+
+```typescript
+// כרטיס שאלון
+const questionCard = theme.components.questionnaireCard;
+
+// אפשרויות שאלון
+const normalOption = theme.components.questionnaireOption;
+const selectedOption = theme.components.questionnaireOptionSelected;
+
+// כפתורי מגדר
+const maleButton = theme.components.genderButtonMale;
+const femaleButton = theme.components.genderButtonFemale;
+
+// אינדיקטור התקדמות
+const progressBar = theme.components.progressIndicator;
+const progressFill = theme.components.progressIndicatorFill;
+```
+
+#### עוזרי עיצוב מתקדמים:
+
+```typescript
+// התאמת עיצוב למגדר
+const genderColor = theme.genderHelpers.getGenderColor("female");
+const genderGradient = theme.genderHelpers.getGenderGradient("female");
+const genderButtonStyle = theme.genderHelpers.getGenderButtonStyle(
+  "female",
+  true
+);
+
+// עוזרי RTL מתקדמים
+const rtlTitleStyle = theme.rtlHelpers.getFullRTLTextStyle("title");
+const rtlContainerStyle = theme.rtlHelpers.getRTLContainerStyle({
+  alignItems: "flex-end",
+  paddingDirection: "right",
+  paddingValue: 16,
+});
+
+// עוזרי שאלון חכם
+const optionStyle = theme.questionnaireHelpers.getOptionStyle(isSelected);
+const progressStyle = theme.questionnaireHelpers.getProgressStyle(60); // 60%
+const floatingButtonStyle =
+  theme.questionnaireHelpers.getFloatingButtonStyle(true);
+```
+
+#### אינטגרציה מלאה עם השאלון החכם:
+
+```typescript
+// דוגמה מלאה לעיצוב שאלון
+const QuestionnaireStyles = {
+  // רקע עם גרדיאנט
+  background: [
+    theme.colors.questionnaireGradientStart,
+    theme.colors.questionnaireGradientEnd,
+  ],
+
+  // כרטיס שאלה
+  questionCard: theme.components.questionnaireCard,
+
+  // טקסט כותרת RTL
+  questionTitle: theme.rtlHelpers.getFullRTLTextStyle("title"),
+
+  // אפשרות נבחרת
+  selectedOption: theme.questionnaireHelpers.getOptionStyle(true),
+
+  // התקדמות
+  progress: theme.questionnaireHelpers.getProgressStyle(progress),
+
+  // כפתור מגדר נבחר
+  genderButton: theme.genderHelpers.getGenderButtonStyle(userGender, true),
+
+  // כפתור צף
+  floatingButton: theme.questionnaireHelpers.getFloatingButtonStyle(true),
+};
+```
+
+#### טקסטים RTL משופרים:
+
+```typescript
+// וריאנטים שונים של טקסט RTL
+const rtlStyles = {
+  title: theme.components.rtlTextTitle, // כותרת עם יישור מלא לימין
+  body: theme.components.rtlTextBody, // טקסט גוף עם יישור לימין
+  caption: theme.components.rtlTextCaption, // כיתוב עם יישור לימין
+  input: theme.components.rtlInput, // שדה קלט עם תמיכה RTL מלאה
+};
+```
+
+לדוגמאות מלאות, ראה: `src/styles/theme.example.ts`
 
 ---
 

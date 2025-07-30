@@ -1,15 +1,66 @@
 /**
  * @file src/stores/userStore.ts
- * @brief Store מרכזי לניהול מצב המשתמש באפליקציה
- * @brief Central store for managing user state in the app
+ * @brief Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם והתאמת מגדר
+ * @brief Central store for managing user state with smart questionnaire and gender adaptation
  * @dependencies zustand, AsyncStorage
- * @notes כולל שמירה אוטומטית ב-AsyncStorage
- * @notes Includes automatic saving to AsyncStorage
+ * @notes כולל שמירה אוטומטית ב-AsyncStorage עם תמיכה מלאה בנתוני השאלון החכם
+ * @notes Includes automatic saving to AsyncStorage with full smart questionnaire data support
+ * @updated 2025-07-30 הוספת תמיכה מלאה במערכת השאלון החכם והתאמת מגדר
  */
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// טיפוס נתוני השאלון החכם החדש
+// New smart questionnaire data type
+export interface SmartQuestionnaireData {
+  // תשובות השאלון החכם
+  // Smart questionnaire answers
+  answers: {
+    gender?: "male" | "female" | "other";
+    fitnessLevel?: "beginner" | "intermediate" | "advanced";
+    goals?: string[];
+    availability?: string[];
+    preferences?: string[];
+    equipment?: string[];
+    nutrition?: string[];
+  };
+
+  // מטאדאטה מורחבת
+  // Extended metadata
+  metadata: {
+    completedAt: string;
+    version: string;
+    sessionId?: string;
+    completionTime?: number; // זמן השלמה במילישניות
+    questionsAnswered?: number;
+    totalQuestions?: number;
+    deviceInfo?: {
+      platform?: string;
+      screenWidth?: number;
+      screenHeight?: number;
+    };
+  };
+
+  // נתוני AI ותובנות
+  // AI data and insights
+  aiInsights?: {
+    fitnessAssessment?: string;
+    recommendedProgram?: string;
+    equipmentSuggestions?: string[];
+    nutritionTips?: string[];
+    personalizedMessage?: string;
+  };
+
+  // נתוני התאמת מגדר
+  // Gender adaptation data
+  genderAdaptation?: {
+    textVariations?: { [key: string]: string };
+    workoutNameAdaptations?: { [key: string]: string };
+    preferredLanguageStyle?: string;
+  };
+}
 
 // טיפוס תשובות השאלון הישן (לתאימות לאחור)
 // Old questionnaire answers type (for backward compatibility)
@@ -17,8 +68,8 @@ type QuestionnaireAnswers = {
   [key: number]: string | string[];
 };
 
-// טיפוס נתוני השאלון החדש
-// New questionnaire data type
+// טיפוס נתוני השאלון הישן (לתאימות לאחור)
+// Old questionnaire data type (for backward compatibility)
 export interface QuestionnaireData {
   // תשובות בפורמט הישן
   // Answers in old format
@@ -48,6 +99,10 @@ export interface User {
   avatar?: string; // URL או נתיב מקומי / URL or local path
   provider?: string; // לדוגמה: "google", "facebook" וכו' / e.g., "google", "facebook" etc.
 
+  // נתוני השאלון החכם החדש (עיקרי)
+  // New smart questionnaire data (primary)
+  smartQuestionnaireData?: SmartQuestionnaireData;
+
   // נתוני השאלון הישן (לתאימות לאחור)
   // Old questionnaire data (for backward compatibility)
   questionnaire?: QuestionnaireAnswers; // לתאימות לאחור / for backward compatibility
@@ -60,22 +115,44 @@ export interface User {
   activityHistory?: any;
   currentStats?: any;
 
-  // העדפות משתמש
-  // User preferences
+  // העדפות משתמש מורחבות
+  // Extended user preferences
   preferences?: {
     theme?: "light" | "dark";
     notifications?: boolean;
     language?: "he" | "en";
     units?: "metric" | "imperial";
+    // העדפות חדשות מהשאלון החכם
+    gender?: "male" | "female" | "other";
+    rtlPreference?: boolean;
+    workoutNameStyle?: "adapted" | "neutral" | "original";
   };
 
-  // נתוני אימון
-  // Training data
+  // נתוני אימון מורחבים
+  // Extended training data
   trainingStats?: {
     totalWorkouts?: number;
     totalVolume?: number;
     favoriteExercises?: string[];
     lastWorkoutDate?: string;
+    // נתונים חדשים מהשאלון החכם
+    preferredWorkoutDays?: number;
+    selectedEquipment?: string[];
+    fitnessGoals?: string[];
+    currentFitnessLevel?: "beginner" | "intermediate" | "advanced";
+  };
+
+  // נתוני פרופיל מותאמים למגדר
+  // Gender-adapted profile data
+  genderProfile?: {
+    selectedGender: "male" | "female" | "other";
+    adaptedWorkoutNames?: { [key: string]: string };
+    personalizedMessages?: string[];
+    completionMessages?: {
+      male?: string;
+      female?: string;
+      neutral?: string;
+    };
   };
 }
 
@@ -90,23 +167,51 @@ interface UserStore {
   updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 
-  // פעולות שאלון
-  // Questionnaire actions
+  // פעולות שאלון חכם חדשות
+  // New smart questionnaire actions
+  setSmartQuestionnaireData: (data: SmartQuestionnaireData) => void;
+  updateSmartQuestionnaireData: (
+    updates: Partial<SmartQuestionnaireData>
+  ) => void;
+  getSmartQuestionnaireAnswers: () => SmartQuestionnaireData["answers"] | null;
+  resetSmartQuestionnaire: () => void;
+
+  // פעולות התאמת מגדר
+  // Gender adaptation actions
+  setUserGender: (gender: "male" | "female" | "other") => void;
+  updateGenderProfile: (profile: Partial<User["genderProfile"]>) => void;
+  getAdaptedWorkoutName: (originalName: string) => string;
+
+  // פעולות שאלון ישן (לתאימות לאחור)
+  // Old questionnaire actions (for backward compatibility)
   setQuestionnaire: (answers: QuestionnaireAnswers) => void;
   setQuestionnaireData: (data: QuestionnaireData) => void;
   resetQuestionnaire: () => void;
 
-  // פעולות העדפות
-  // Preferences actions
+  // פעולות העדפות מורחבות
+  // Extended preferences actions
   updatePreferences: (preferences: Partial<User["preferences"]>) => void;
+  updateTrainingPreferences: (prefs: {
+    workoutDays?: number;
+    equipment?: string[];
+    goals?: string[];
+    fitnessLevel?: "beginner" | "intermediate" | "advanced";
+  }) => void;
 
-  // פעולות סטטיסטיקות
-  // Statistics actions
+  // פעולות סטטיסטיקות מורחבות
+  // Extended statistics actions
   updateTrainingStats: (stats: Partial<User["trainingStats"]>) => void;
 
-  // שמירה ידנית
-  // Manual save
+  // פעולות שמירה ובדיקה
+  // Save and validation actions
   saveToStorage: () => Promise<void>;
+  validateUserData: () => boolean;
+  getCompletionStatus: () => {
+    hasBasicInfo: boolean;
+    hasSmartQuestionnaire: boolean;
+    hasOldQuestionnaire: boolean;
+    isFullySetup: boolean;
+  };
 }
 
 export const useUserStore = create<UserStore>()(
@@ -128,19 +233,189 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
-      // התנתקות
-      // Logout
+      // התנתקות מורחבת
+      // Extended logout
       logout: async () => {
-        // ניקוי כל הנתונים
-        // Clear all data
+        // ניקוי כל הנתונים כולל נתוני השאלון החכם
+        // Clear all data including smart questionnaire data
         await AsyncStorage.multiRemove([
           "user-storage",
           "questionnaire_metadata",
           "questionnaire_draft",
           "workout_preferences",
+          "smart_questionnaire_results",
+          "user_gender_preference",
+          "selected_equipment",
+          "gender_adaptation_data",
         ]);
         set({ user: null });
       },
+
+      // === פונקציות השאלון החכם החדש ===
+      // === New Smart Questionnaire Functions ===
+
+      // הגדרת נתוני השאלון החכם
+      // Set smart questionnaire data
+      setSmartQuestionnaireData: (data) => {
+        console.log("💾 userStore.setSmartQuestionnaireData נקרא עם:", data);
+
+        set((state) => ({
+          user: {
+            ...(state.user || {}),
+            smartQuestionnaireData: data,
+            // עדכון העדפות בהתאם לתשובות
+            preferences: {
+              ...state.user?.preferences,
+              gender: data.answers.gender,
+              rtlPreference: true, // תמיד נכון לעברית
+            },
+            // עדכון נתוני אימון
+            trainingStats: {
+              ...state.user?.trainingStats,
+              preferredWorkoutDays: data.answers.availability?.length || 3,
+              selectedEquipment: data.answers.equipment || [],
+              fitnessGoals: data.answers.goals || [],
+              currentFitnessLevel: data.answers.fitnessLevel,
+            },
+          },
+        }));
+
+        // שמירה ב-AsyncStorage
+        AsyncStorage.setItem(
+          "smart_questionnaire_results",
+          JSON.stringify(data)
+        )
+          .then(() => console.log("✅ smart_questionnaire_results נשמר"))
+          .catch((err) => console.error("❌ שגיאה בשמירת השאלון החכם:", err));
+
+        // שמירת העדפת מגדר בנפרד
+        if (data.answers.gender) {
+          AsyncStorage.setItem("user_gender_preference", data.answers.gender);
+        }
+
+        // שמירת ציוד נבחר
+        if (data.answers.equipment) {
+          AsyncStorage.setItem(
+            "selected_equipment",
+            JSON.stringify(data.answers.equipment)
+          );
+        }
+      },
+
+      // עדכון חלקי של נתוני השאלון החכם
+      // Partial update of smart questionnaire data
+      updateSmartQuestionnaireData: (updates) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                smartQuestionnaireData: state.user.smartQuestionnaireData
+                  ? {
+                      ...state.user.smartQuestionnaireData,
+                      ...updates,
+                      answers: {
+                        ...state.user.smartQuestionnaireData.answers,
+                        ...updates.answers,
+                      },
+                      metadata: {
+                        ...state.user.smartQuestionnaireData.metadata,
+                        ...updates.metadata,
+                      },
+                    }
+                  : undefined,
+              }
+            : null,
+        }));
+      },
+
+      // קבלת תשובות השאלון החכם
+      // Get smart questionnaire answers
+      getSmartQuestionnaireAnswers: () => {
+        const state = get();
+        return state.user?.smartQuestionnaireData?.answers || null;
+      },
+
+      // איפוס השאלון החכם
+      // Reset smart questionnaire
+      resetSmartQuestionnaire: () => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                smartQuestionnaireData: undefined,
+                genderProfile: undefined,
+              }
+            : null,
+        }));
+
+        // ניקוי מ-AsyncStorage
+        AsyncStorage.multiRemove([
+          "smart_questionnaire_results",
+          "user_gender_preference",
+          "selected_equipment",
+          "gender_adaptation_data",
+        ]);
+      },
+
+      // === פונקציות התאמת מגדר ===
+      // === Gender Adaptation Functions ===
+
+      // הגדרת מגדר משתמש
+      // Set user gender
+      setUserGender: (gender) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                preferences: {
+                  ...state.user.preferences,
+                  gender,
+                },
+                genderProfile: {
+                  ...state.user.genderProfile,
+                  selectedGender: gender,
+                },
+              }
+            : null,
+        }));
+
+        // שמירה ב-AsyncStorage
+        AsyncStorage.setItem("user_gender_preference", gender);
+      },
+
+      // עדכון פרופיל מגדר
+      // Update gender profile
+      updateGenderProfile: (profile) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                genderProfile: {
+                  selectedGender:
+                    state.user.genderProfile?.selectedGender || "other",
+                  ...state.user.genderProfile,
+                  ...profile,
+                },
+              }
+            : null,
+        }));
+      },
+
+      // קבלת שם אימון מותאם
+      // Get adapted workout name
+      getAdaptedWorkoutName: (originalName) => {
+        const state = get();
+        const genderProfile = state.user?.genderProfile;
+
+        if (genderProfile?.adaptedWorkoutNames?.[originalName]) {
+          return genderProfile.adaptedWorkoutNames[originalName];
+        }
+
+        return originalName;
+      },
+
+      // === פונקציות שאלון ישן (לתאימות לאחור) ===
+      // === Old Questionnaire Functions (Backward Compatibility) ===
 
       // הגדרת תשובות שאלון (פורמט ישן)
       // Set questionnaire answers (old format)
@@ -169,7 +444,6 @@ export const useUserStore = create<UserStore>()(
         }));
 
         // שמירה גם ב-AsyncStorage הנפרד לתאימות
-        // Also save in separate AsyncStorage for compatibility
         AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers))
           .then(() =>
             console.log("✅ questionnaire_answers נשמר ב-AsyncStorage")
@@ -188,22 +462,21 @@ export const useUserStore = create<UserStore>()(
           );
       },
 
-      // הגדרת נתוני שאלון מורחבים
-      // Set extended questionnaire data
+      // הגדרת נתוני שאלון מורחבים (ישן)
+      // Set extended questionnaire data (old)
       setQuestionnaireData: (data) => {
         set((state) => ({
           user: {
             ...(state.user || {}),
             questionnaireData: data,
             // שמירת תאימות לאחור
-            // Maintain backward compatibility
             questionnaire: data.answers,
           },
         }));
       },
 
-      // איפוס שאלון
-      // Reset questionnaire
+      // איפוס שאלון ישן
+      // Reset old questionnaire
       resetQuestionnaire: () => {
         set((state) => ({
           user: {
@@ -214,7 +487,6 @@ export const useUserStore = create<UserStore>()(
         }));
 
         // ניקוי מ-AsyncStorage
-        // Clear from AsyncStorage
         AsyncStorage.multiRemove([
           "questionnaire_metadata",
           "questionnaire_draft",
@@ -222,8 +494,11 @@ export const useUserStore = create<UserStore>()(
         ]);
       },
 
-      // עדכון העדפות
-      // Update preferences
+      // === פונקציות העדפות מורחבות ===
+      // === Extended Preferences Functions ===
+
+      // עדכון העדפות כללי
+      // Update general preferences
       updatePreferences: (preferences) => {
         set((state) => ({
           user: state.user
@@ -232,6 +507,25 @@ export const useUserStore = create<UserStore>()(
                 preferences: {
                   ...state.user.preferences,
                   ...preferences,
+                },
+              }
+            : null,
+        }));
+      },
+
+      // עדכון העדפות אימון
+      // Update training preferences
+      updateTrainingPreferences: (prefs) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                trainingStats: {
+                  ...state.user.trainingStats,
+                  preferredWorkoutDays: prefs.workoutDays,
+                  selectedEquipment: prefs.equipment,
+                  fitnessGoals: prefs.goals,
+                  currentFitnessLevel: prefs.fitnessLevel,
                 },
               }
             : null,
@@ -254,6 +548,9 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
+      // === פונקציות בדיקה ושמירה ===
+      // === Validation and Save Functions ===
+
       // שמירה ידנית ל-AsyncStorage
       // Manual save to AsyncStorage
       saveToStorage: async () => {
@@ -261,6 +558,46 @@ export const useUserStore = create<UserStore>()(
         if (state.user) {
           await AsyncStorage.setItem("user-storage", JSON.stringify(state));
         }
+      },
+
+      // בדיקת תקינות נתוני משתמש
+      // Validate user data
+      validateUserData: () => {
+        const state = get();
+        const user = state.user;
+
+        if (!user) return false;
+
+        // בדיקות בסיסיות
+        const hasBasicInfo = !!(user.id || user.email || user.name);
+        const hasSmartQuestionnaire = !!user.smartQuestionnaireData?.answers;
+        const hasOldQuestionnaire = !!(
+          user.questionnaire || user.questionnaireData
+        );
+
+        return hasBasicInfo && (hasSmartQuestionnaire || hasOldQuestionnaire);
+      },
+
+      // קבלת סטטוס השלמה
+      // Get completion status
+      getCompletionStatus: () => {
+        const state = get();
+        const user = state.user;
+
+        const hasBasicInfo = !!(user?.id || user?.email || user?.name);
+        const hasSmartQuestionnaire = !!user?.smartQuestionnaireData?.answers;
+        const hasOldQuestionnaire = !!(
+          user?.questionnaire || user?.questionnaireData
+        );
+        const isFullySetup =
+          hasBasicInfo && (hasSmartQuestionnaire || hasOldQuestionnaire);
+
+        return {
+          hasBasicInfo,
+          hasSmartQuestionnaire,
+          hasOldQuestionnaire,
+          isFullySetup,
+        };
       },
     }),
     {

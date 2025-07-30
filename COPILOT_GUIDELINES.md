@@ -23,7 +23,7 @@
 - **טכנולוגיות:** React Native + Expo
 - **אינטגרציה:** WGER API לתרגילי כושר באנגלית + בסיס נתונים מקומי בעברית (131 תרגילים)
 - **מטרה:** לספק תוכניות אימון מותאמות אישית עם מערכת AI חכמה
-- **מצב נוכחי:** 22 מסכים מחוברים, 6 קטגוריות רכיבים, 5 שירותים פעילים
+- **מצב נוכחי:** 22+ מסכים מחוברים, 6+ קטגוריות רכיבים, 13+ שירותים פעילים
 
 ## 🔧 הערות טכניות חשובות
 
@@ -31,21 +31,44 @@
 - **מאגר תרגילים:** 131 תרגילים מקומיים בעברית + תרגילי WGER באנגלית
 - **WGER Integration:** עובד עם wgerService.ts (לא wgerApiService.ts)
 - **מטרו:** זקוק לפעמים לניקוי cache עם `--clear --reset-cache`
-- **RTL Support:** תמיכה בעברית עם בעיות RTL שנפתרו
+- **RTL Support:** תמיכה מלאה בעברית עם תיקוני RTL מקיפים
+- **מערכת שאלון:** 7 שאלות דינמיות עם התאמת מגדר ותמיכת RTL מלאה
+
+## 🌍 תמיכת RTL והתאמת מגדר
+
+### עקרונות חשובים:
+
+- **כל הטקסטים בעברית:** `textAlign: "right"` + `writingDirection: "rtl"`
+- **סימני בחירה:** תמיד בצד ימין (`right: theme.spacing.md`)
+- **ריווחים:** `paddingRight` במקום `paddingLeft` לאלמנטים עבריים
+- **התאמת מגדר:** שאלה ראשונה קובעת את התאמת כל השאלון
+- **נייטרליות:** טקסטים קבועים נוסחו בצורה נייטרלית
+
+### פונקציות מרכזיות:
+
+```typescript
+// התאמת טקסט לפי מגדר
+adaptTextToGender(text: string, gender: string): string
+
+// התאמת אפשרויות מלאה
+adaptOptionToGender(option: SmartOption, gender: string): SmartOption
+```
 
 ## 🏗️ ארכיטקטורה מרכזית
 
 - **ניווט:** AppNavigator.tsx (Stack) + BottomNavigation.tsx (Tabs)
 - **AI System:** workoutDataService.ts עם אלגוריתם חכם לבחירת תרגילים
-- **שאלון:** מערכת דו-שלבית עם 3 קבצי נתונים (questionnaireData.ts, twoStageQuestionnaireData.ts, simplifiedQuestionnaireData.ts)
+- **שאלון חכם:** SmartQuestionnaireManager עם 7 שאלות דינמיות + התאמת מגדר
 - **Hook מרכזי:** useWgerExercises.ts למשיכת תרגילים מ-WGER
+- **מאגר ציוד:** 100+ פריטי ציוד עם קטגוריזציה חכמה
 
 ## ⚠️ בעיות ידועות וטעויות נפוצות
 
 - **אל תשתמש ב-`npm run start`** - השתמש ב-`npx expo start`
 - שים לב לקונפליקטים בין wgerService.ts ו-wgerApiService.ts
-- מעבר אוטומטי מהיר בשאלון (תוקן ל-800ms)
-- יש 3 קבצי שאלון שונים - שים לב לעקביות
+- **RTL חובה:** כל טקסט עברי חייב `textAlign: "right"` + `writingDirection: "rtl"`
+- **מגדר:** שאלת מגדר תמיד ראשונה, ואחריה התאמה דינמית
+- יש מספר קבצי שאלון - השתמש ב-smartQuestionnaireData.ts החדש
 
 ## 🚨 לקחים קריטיים מהפרויקט
 

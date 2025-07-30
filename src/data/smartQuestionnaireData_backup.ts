@@ -94,9 +94,9 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
   // שאלה 1: גיל
   {
     id: "age",
-    title: "מה הגיל שלך?",
+    title: "בן/בת כמה את/ה?",
     subtitle: "הגיל עוזר לנו להתאים את התוכנית בצורה מיטבית",
-    question: "מה הגיל שלך?",
+    question: "בן/בת כמה את/ה?",
     type: "single",
     icon: "👤",
     category: "essential",
@@ -106,7 +106,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "18-25",
         label: "18-25",
-        description: "בתחילת הדרך עם המון מוטיבציה",
+        description: "צעיר ומלא אנרגיה",
         metadata: {
           intensity: "high",
           muscleGroups: ["legs", "core", "upper"],
@@ -136,7 +136,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "46-55",
         label: "46-55",
-        description: "עם ניסיון ומוטיבציה",
+        description: "בוגר ונמרץ",
         metadata: {
           intensity: "medium",
           muscleGroups: ["core", "balance", "flexibility"],
@@ -146,7 +146,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "56+",
         label: "56+",
-        description: "מנוסה ופעיל",
+        description: "חכם ופעיל",
         metadata: {
           intensity: "low",
           muscleGroups: ["balance", "flexibility", "functional"],
@@ -185,8 +185,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
           duration: 45,
           muscleGroups: ["cardio", "full_body"],
         },
-        aiInsight:
-          "נשלב אימוני קרדיו עם אימוני כוח לשריפת קלוריות מקסימלית - מותאם במיוחד עבורך",
+        aiInsight: "נשלב אימוני קרדיו עם אימוני כוח לשריפת קלוריות מקסימלית",
       },
       {
         id: "muscle_gain",
@@ -197,8 +196,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
           duration: 60,
           muscleGroups: ["upper", "lower", "core"],
         },
-        aiInsight:
-          "נתמקד באימוני כוח פרוגרסיביים עם מנוחה מותאמת - תרצה לראות תוצאות מהירות",
+        aiInsight: "נתמקד באימוני כוח פרוגרסיביים עם מנוחה מותאמת",
       },
       {
         id: "fitness_general",
@@ -259,7 +257,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "beginner",
         label: "מתחיל (0-6 חודשים)",
-        description: "בתחילת הדרך בעולם הכושר",
+        description: "חדש בעולם הכושר",
         metadata: {
           intensity: "low",
           duration: 30,
@@ -269,7 +267,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "intermediate",
         label: "בינוני (6 חודשים - 2 שנים)",
-        description: "יש בסיס, מעוניין להתקדם",
+        description: "יש בסיס, רוצה להתקדם",
         metadata: {
           intensity: "medium",
           duration: 45,
@@ -279,7 +277,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "advanced",
         label: "מתקדם (2+ שנים)",
-        description: "ניסיון רב, מעוניין באתגרים",
+        description: "ניסיון רב, מחפש אתגרים",
         metadata: {
           intensity: "high",
           duration: 60,
@@ -302,7 +300,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
     id: "frequency",
     title: "כמה פעמים בשבוע תרצה להתאמן?",
     subtitle: "תדירות האימונים חשובה לבניית תוכנית מתאימה",
-    question: "כמה פעמים בשבוע תרצה להתאמן?",
+    question: "כמה פעמים בשבוע את/ה יכול/ה להתאמן?",
     type: "single",
     icon: "📅",
     category: "essential",
@@ -344,7 +342,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
         label: "5+ פעמים בשבוע",
         description: "מחויב ומתמסר",
         metadata: {
-          intensity: "medium",
+          intensity: "varied",
           duration: 35,
         },
         aiInsight: "נגוון את האימונים ונשמור על איזון בין עומס ומנוחה",
@@ -366,7 +364,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
     id: "duration",
     title: "כמה זמן יש לך לאימון?",
     subtitle: "משך האימון יקבע את תכנון התרגילים",
-    question: "כמה זמן תרצה להקדיש לאימון?",
+    question: "כמה זמן את/ה יכול/ה להקדיש לאימון?",
     type: "single",
     icon: "⏱️",
     category: "essential",
@@ -408,7 +406,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
         label: "60+ דקות",
         description: "אין מגבלת זמן",
         metadata: {
-          intensity: "medium",
+          intensity: "varied",
           duration: 75,
         },
         aiInsight: "נבנה אימון מקיף עם חלקים מיוחדים ומגוונים",
@@ -474,7 +472,7 @@ export const SMART_QUESTIONNAIRE: SmartQuestion[] = [
       {
         id: "gym_access",
         label: "גישה לחדר כושר",
-        description: "יש גישה לחדר כושר",
+        description: "יכול להגיע לחדר כושר",
         metadata: {
           equipment: ["gym_equipment"],
         },
@@ -508,7 +506,7 @@ export class SmartQuestionnaireManager {
     "equipment_availability",
   ];
 
-  // פונקציה להתאמת טקסט לפי מגדר (עכשיו פשוטה יותר)
+  // פונקציה להתאמת טקסט לפי מגדר
   private adaptTextToGender(text: string): string {
     const gender = this.answers.get("gender");
 
@@ -518,43 +516,26 @@ export class SmartQuestionnaireManager {
     }
 
     if (gender.id === "male") {
-      // לשון זכר - רק תיקונים קטנים
+      // לשון זכר
       return text
+        .replace(/את\/ה/g, "אתה")
+        .replace(/יכול\/ה/g, "יכול")
+        .replace(/רוצה/g, "רוצה")
         .replace(/תרצה/g, "תרצה")
-        .replace(/תרצי/g, "תרצה")
-        .replace(/מעוניין\/ת/g, "מעוניין")
-        .replace(/מעוניינת/g, "מעוניין");
+        .replace(/מעוניין\/ת/g, "מעוניין");
     }
 
     if (gender.id === "female") {
-      // לשון נקבה - רק תיקונים קטנים
+      // לשון נקבה
       return text
+        .replace(/את\/ה/g, "את")
+        .replace(/יכול\/ה/g, "יכולה")
+        .replace(/רוצה/g, "רוצה")
         .replace(/תרצה/g, "תרצי")
-        .replace(/מעוניין\/ת/g, "מעוניינת")
-        .replace(/מעוניין/g, "מעוניינת");
+        .replace(/מעוניין\/ת/g, "מעוניינת");
     }
 
     return text;
-  }
-
-  // פונקציה להתאמת אפשרות לפי מגדר
-  private adaptOptionToGender(option: SmartOption): SmartOption {
-    const gender = this.answers.get("gender");
-
-    if (!gender || gender.id === "other") {
-      return option;
-    }
-
-    return {
-      ...option,
-      label: this.adaptTextToGender(option.label),
-      description: option.description
-        ? this.adaptTextToGender(option.description)
-        : undefined,
-      aiInsight: option.aiInsight
-        ? this.adaptTextToGender(option.aiInsight)
-        : undefined,
-    };
   }
 
   getCurrentQuestion(): SmartQuestion | null {
@@ -583,11 +564,6 @@ export class SmartQuestionnaireManager {
       question: this.adaptTextToGender(originalQuestion.question),
       helpText: originalQuestion.helpText
         ? this.adaptTextToGender(originalQuestion.helpText)
-        : undefined,
-      options: originalQuestion.options
-        ? originalQuestion.options.map((option) =>
-            this.adaptOptionToGender(option)
-          )
         : undefined,
     };
   }

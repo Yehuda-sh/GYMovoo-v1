@@ -144,13 +144,28 @@ GYMovoo/
 - התחברות עם Google
 - שחזור סיסמה
 
-### 3. שאלון אישי (Questionnaire)
+### 3. שאלון אישי חכם (Smart Questionnaire)
 
-- פרטים אישיים (גיל, משקל, גובה)
-- רמת כושר נוכחית
-- מטרות אימון
-- ציוד זמין
-- העדפות אימון
+#### 🔥 תכונות חדשות - מערכת שאלון מתקדמת:
+
+- **7 שאלות דינמיות** עם בחירת מגדר כשאלה ראשונה
+- **בחירה מרובה** - אפשרות לבחור כמה תשובות בשאלה אחת
+- **מאגר ציוד מקיף** - מעל 100 פריטי ציוד מקטלגים לבית וחדר כושר
+- **הסתגלות דינמית** - השאלון משתנה בהתאם לתשובות הקודמות
+- **תמיכה מלאה ב-RTL** - טקסט מימין, אייקונים ומיקום נכון
+- **התאמה למגדר** - השאלות והתשובות מתאימות למגדר הנבחר
+- **כפתור צף** - ממשק משתמש מודרני עם אנימציות
+- **סטטיסטיקות מתקדמות** - מעקב אחרי הפעולות במהלך השאלון
+
+#### שאלות הליבה:
+
+1. **מגדר** - בחירת זהות מגדרית עבור התאמת השפה
+2. **רמת כושר** - מתחיל, בינוני, מתקדם
+3. **מטרות אימון** - עלייה במסה, ירידה במשקל, סיבולת, וכוח
+4. **זמינות לאימון** - תדירות ומשך אימונים
+5. **עדיפויות אימון** - חלקי גוף מועדפים ומגבלות
+6. **ציוד זמין** - בחירה ממאגר מקיף של 100+ פריטי ציוד
+7. **העדפות תזונה** - דיאטות מיוחדות ומגבלות תזונתיות
 
 ### 4. מסך ראשי (Dashboard)
 
@@ -228,7 +243,29 @@ GYMovoo/
 - אייקונים מותאמים לכיוון RTL
 - מיקום נכון של כפתורי פעולה
 
-## 🔧 פיתוח
+#### 🆕 מערכת RTL ו-Gender Adaptation המתקדמת:
+
+- **יישור טקסט מלא** - `textAlign: "right"` ו-`writingDirection: "rtl"` לכל הטקסטים
+- **מיקום מדויק** - `alignItems: "flex-end"` ו-`paddingRight` במקום `paddingLeft`
+- **רכיבי בחירה מותאמים** - מיקום נכון של אינדיקטורים וכפתורים
+- **התאמה דינמית למגדר** - טקסט מתאים אוטומטית למגדר הנבחר
+- **המרת טקסט דו-כיוונית** - מערכת המרה חכמה בין צורות זכר/נקבה/נייטרלי
+- **אופטימיזציה לעברית** - כל הממשקים מותאמים לכתיבה מימין לשמאל
+
+למידע טכני מפורט, ראה: `docs/RTL_GENDER_ADAPTATION_IMPLEMENTATION.md`
+
+## � תיעוד מקיף
+
+הפרויקט כולל תיעוד מפורט:
+
+- 📖 **מדריך ניווט** - `docs/NAVIGATION_GUIDE.md`
+- 🧩 **מדריך רכיבים משותפים** - `docs/SHARED_COMPONENTS_GUIDE.md`
+- 🔧 **מדריך יישום טכני** - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md`
+- 📋 **יומן התקדמות** - `docs/PROGRESS_LOG.md`
+- 📝 **הנחיות פיתוח** - `COPILOT_GUIDELINES.md`
+- 🌐 **יישום RTL והתאמת מגדר** - `docs/RTL_GENDER_ADAPTATION_IMPLEMENTATION.md`
+
+## �🔧 פיתוח
 
 ### סקריפטים זמינים
 
@@ -293,14 +330,28 @@ eas build -p ios
 
 ### ✨ Key Features
 
-- 📋 **Smart Personal Questionnaire** - Build a custom training profile
-- 🎯 **Personalized Workout Plans** - Based on goals, experience, and available equipment
+- 📋 **Smart Personal Questionnaire** - Build a custom training profile with 7 dynamic questions
+- � **Advanced RTL & Gender Adaptation** - Full Hebrew support with gender-adaptive language
+- �🎯 **Personalized Workout Plans** - Based on goals, experience, and available equipment
 - ⏱️ **Real-time Workout Tracking** - Timer, sets, and weight tracking
 - 📊 **Advanced Dashboard** - Statistics, history, and progress tracking
 - 🌙 **Dark/Light Mode** - Full support for both themes
-- 🔄 **Cloud Sync** - Automatic backup and restore
-- 🏋️ **Rich Exercise Database** - Over 100 exercises with instructions
-- 📱 **Full RTL Interface** - Complete Hebrew support
+- 🔄 **Local Sync** - AsyncStorage persistence with seamless experience
+- 🏋️ **Rich Exercise Database** - Over 100 exercises with smart selection
+- 📱 **Complete RTL Interface** - Full Hebrew support with proper text alignment
+- 🤖 **AI-Powered Insights** - Smart workout recommendations and feedback
+- 🏆 **Personal Records** - Automatic detection of weight, volume, and repetition records
+- ⭐ **Advanced Feedback System** - Star ratings, difficulty levels, and emoji feedback
+
+#### 🆕 Latest Features (July 2025)
+
+- **Advanced Smart Questionnaire System** - 6-7 dynamic questions with multiple selection
+- **Comprehensive Equipment Database** - 100+ equipment items categorized (home, gym, both)
+- **Perfect Synchronization** - Profile screen automatically updates with selected equipment
+- **Demo System** - Demo button on main screen for testing different scenarios
+- **Dynamic Questions** - Questionnaire adapts based on previous answers
+- **Gender-First Approach** - Gender selection as first question for language adaptation
+- **RTL & Gender Adaptation** - Complete system for Hebrew RTL and gender-adaptive text
 
 ## 🚀 Quick Start
 
@@ -351,6 +402,17 @@ npx expo start
 ## 📄 License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+## 📚 Documentation
+
+For comprehensive documentation, please refer to:
+
+- 📖 **Navigation Guide** - `docs/NAVIGATION_GUIDE.md`
+- 🧩 **Shared Components Guide** - `docs/SHARED_COMPONENTS_GUIDE.md`
+- 🔧 **Technical Implementation Guide** - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md`
+- 📋 **Progress Log** - `docs/PROGRESS_LOG.md`
+- 📝 **Development Guidelines** - `COPILOT_GUIDELINES.md`
+- 🌐 **RTL & Gender Adaptation Implementation** - `docs/RTL_GENDER_ADAPTATION_IMPLEMENTATION.md`
 
 ## 🤝 Contributing
 
