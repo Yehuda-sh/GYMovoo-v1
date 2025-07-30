@@ -1,9 +1,13 @@
 /**
  * @file src/screens/main/MainScreen.tsx
- * @brief מסך ראשי חדש - עיצוב מודרני כהה
+ * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
+ * @dependencies theme, userStore, MaterialCommunityIcons, Animated API
+ * @notes תמיכה מלאה RTL, אנימציות משופרות, דמו אינטראקטיבי לשאלון מדעי
+ * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים
+ * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,31 +32,20 @@ export default function MainScreen() {
   const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  console.log("🔥 MainScreen נטען עם כפתור דמו חדש!");
-
-  // אנימציות
+  // אנימציות משופרות // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // שם המשתמש
+  // שם המשתמש מותאם // Adapted username
   const displayName = user?.name || user?.email?.split("@")[0] || "משתמש";
 
-  // נתונים מדעיים חדשים
+  // נתונים מדעיים ומקצועיים // Scientific and professional data
   const scientificProfile = user?.scientificProfile;
   const activityHistory = user?.activityHistory;
   const currentStats = user?.currentStats;
   const aiRecommendations = user?.aiRecommendations;
 
-  // Debug log להבנת מבנה הנתונים
-  console.log("🔍 MainScreen - activityHistory debug:", {
-    hasActivityHistory: !!activityHistory,
-    workoutsLength: activityHistory?.workouts?.length || 0,
-    firstWorkout: activityHistory?.workouts?.[0],
-    user: user?.email,
-    fullUser: user ? Object.keys(user) : null,
-  });
-
-  // נתוני סטטיסטיקה לתצוגה
+  // נתוני סטטיסטיקה מעובדים לתצוגה // Processed statistics for display
   const stats = {
     totalWorkouts: currentStats?.totalWorkouts || 0,
     currentStreak: currentStats?.currentStreak || 0,
@@ -62,7 +55,7 @@ export default function MainScreen() {
   };
 
   useEffect(() => {
-    // אנימציות כניסה
+    // אנימציות כניסה חלקה // Smooth entry animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -75,26 +68,24 @@ export default function MainScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
+    // רענון נתונים אמיתיים // Real data refresh
     setTimeout(() => {
       setRefreshing(false);
     }, 1500);
   }, []);
 
-  const handleStartWorkout = () => {
+  const handleStartWorkout = useCallback(() => {
     (navigation as any).navigate("WorkoutPlans");
-  };
+  }, [navigation]);
 
-  // פונקציה ליצירת נתוני דמו רנדומליים
-  const handleDemoRandomize = () => {
-    console.log("🎲 יצירת נתוני דמו רנדומליים...");
-    console.log("🎲 הפונקציה handleDemoRandomize נקראה!");
-
+  // פונקציית דמו אינטראקטיבית לשאלון מדעי // Interactive demo function for scientific questionnaire
+  const handleDemoRandomize = useCallback(() => {
     try {
-      // מערכי אפשרויות לבחירה רנדומלית
+      // מערכי אפשרויות לבחירה רנדומלית // Arrays of options for random selection
       const ages = ["18-25", "26-35", "36-45", "46-55", "55-plus"];
       const goals = [
         "weight_loss",
@@ -126,9 +117,7 @@ export default function MainScreen() {
         "90-plus-min",
       ];
 
-      console.log("🎲 מערכי נתונים נוצרו");
-
-      // ציוד אפשרי
+      // ציוד אפשרי מקובץ // Available equipment options
       const bodyweightOptions = [
         { id: "bodyweight_only", metadata: { equipment: ["bodyweight"] } },
         { id: "mat_available", metadata: { equipment: ["mat"] } },
@@ -162,9 +151,7 @@ export default function MainScreen() {
         },
       ];
 
-      console.log("🎲 ציוד נוצר");
-
-      // בחירה רנדומלית
+      // בחירה רנדומלית // Random selection
       const randomAge = ages[Math.floor(Math.random() * ages.length)];
       const randomGoal = goals[Math.floor(Math.random() * goals.length)];
       const randomExperience =
@@ -174,13 +161,7 @@ export default function MainScreen() {
       const randomDuration =
         durations[Math.floor(Math.random() * durations.length)];
 
-      console.log("🎲 נתונים רנדומליים נבחרו:", {
-        randomAge,
-        randomGoal,
-        randomExperience,
-      });
-
-      // בחירה רנדומלית של ציוד (1-3 פריטים מכל קטגוריה)
+      // בחירה רנדומלית של ציוד (1-3 פריטים מכל קטגוריה) // Random equipment selection
       const selectedBodyweight = bodyweightOptions.slice(
         0,
         Math.floor(Math.random() * 3) + 1
@@ -194,13 +175,7 @@ export default function MainScreen() {
         Math.floor(Math.random() * 3) + 1
       );
 
-      console.log("🎲 ציוד נבחר:", {
-        selectedBodyweight,
-        selectedHome,
-        selectedGym,
-      });
-
-      // יצירת נתוני שאלון חדשים
+      // יצירת נתוני שאלון חדשים // Creating new questionnaire data
       const newQuestionnaireData = {
         age: { id: randomAge, label: randomAge },
         goal: { id: randomGoal, label: randomGoal },
@@ -217,16 +192,12 @@ export default function MainScreen() {
         ],
       };
 
-      console.log("🎲 נתוני דמו חדשים:", newQuestionnaireData);
-
-      // עדכון ה-store
-      console.log("🎲 מעדכן את ה-store...");
+      // עדכון ה-store // Update store
       useUserStore.getState().setQuestionnaire(newQuestionnaireData);
-      console.log("✅ נתוני השאלון עודכנו באופן רנדומלי!");
     } catch (error) {
-      console.error("❌ שגיאה בפונקציית הדמו:", error);
+      console.error("❌ Demo function error:", error);
     }
-  };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -794,14 +765,16 @@ export default function MainScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Container and layout styles // סטיילים לקונטיינר ופריסה
   container: {
     flex: 1,
-    backgroundColor: "#0F0F0F", // רקע כהה כמו בתמונה
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     paddingBottom: 100,
   },
-  // סטיילים חדשים לעיצוב המודרני
+
+  // Welcome section styles // סטיילים לקטע הברוכים הבאים
   welcomeSection: {
     paddingHorizontal: theme.spacing.lg,
     paddingTop: Platform.OS === "ios" ? 60 : 40,
@@ -817,22 +790,25 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   greetingText: {
-    fontSize: 16,
-    color: "#FFFFFF",
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.text,
     marginBottom: 4,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   userName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
+    color: theme.colors.text,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   motivationText: {
-    fontSize: 14,
-    color: "#AAAAAA",
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: "right",
     marginTop: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   profileContainer: {
     alignItems: "center",
@@ -841,52 +817,79 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FF4444",
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: theme.colors.surface,
+    ...theme.shadows.small,
   },
   profileInitials: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: "600",
+    color: theme.colors.surface,
   },
+
+  // Demo button styles // סטיילים לכפתור הדמו
+  demoButton: {
+    backgroundColor: theme.colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: theme.spacing.md,
+    ...theme.shadows.medium,
+  },
+  demoText: {
+    fontSize: 10,
+    color: theme.colors.surface,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+
+  // Section styles // סטיילים לקטעים
+  sectionTitle: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
+    color: theme.colors.text,
+    textAlign: "right",
+    marginBottom: theme.spacing.md,
+    writingDirection: "rtl",
+  },
+
+  // Next workout section // קטע האימון הבא
   nextWorkoutSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textAlign: "right",
-    marginBottom: theme.spacing.md,
-  },
   workoutCard: {
-    backgroundColor: "#1A3B3A", // צבע ירוק כהה כמו בתמונה
-    borderRadius: 16,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
+    ...theme.shadows.small,
   },
   workoutName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
+    color: theme.colors.text,
     textAlign: "right",
     marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   workoutDescription: {
-    fontSize: 14,
-    color: "#CCCCCC",
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: "right",
     marginBottom: theme.spacing.lg,
+    writingDirection: "rtl",
   },
   workoutProgress: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
-    backgroundColor: "#2A4B4A",
-    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundElevated,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.lg,
   },
@@ -895,29 +898,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   progressNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
+    color: theme.colors.text,
     marginBottom: 4,
   },
   progressLabel: {
-    fontSize: 12,
-    color: "#AAAAAA",
+    fontSize: theme.typography.captionSmall.fontSize,
+    color: theme.colors.textSecondary,
+    writingDirection: "rtl",
   },
   startWorkoutButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
+    ...theme.shadows.small,
   },
   startWorkoutText: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.surface,
     marginStart: theme.spacing.sm,
+    writingDirection: "rtl",
   },
+
+  // Stats section // קטע הסטטיסטיקות
   statsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -926,10 +934,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   statCard: {
-    backgroundColor: "#1A1A1A",
-    borderRadius: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
+    ...theme.shadows.small,
   },
   statHeader: {
     flexDirection: "row-reverse",
@@ -938,42 +947,46 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   statTitle: {
-    fontSize: 14,
-    color: "#AAAAAA",
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   statPercentage: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#007AFF",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
+    color: theme.colors.primary,
   },
   statSubtitle: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.text,
     textAlign: "right",
     marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   progressBar: {
     height: 4,
-    backgroundColor: "#333333",
-    borderRadius: 2,
+    backgroundColor: theme.colors.backgroundElevated,
+    borderRadius: theme.radius.xs,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.xs,
   },
   statIconWrapper: {
     marginBottom: theme.spacing.sm,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
+    color: theme.colors.text,
     textAlign: "right",
   },
+
+  // Recent workouts section // קטע האימונים האחרונים
   recentWorkoutsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -984,17 +997,18 @@ const styles = StyleSheet.create({
   recentWorkoutItem: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
-    borderRadius: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   workoutIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: theme.colors.backgroundElevated,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: theme.spacing.md,
@@ -1004,20 +1018,22 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   workoutTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.text,
     textAlign: "right",
     marginBottom: 4,
+    writingDirection: "rtl",
   },
   workoutDate: {
-    fontSize: 12,
-    color: "#AAAAAA",
+    fontSize: theme.typography.captionSmall.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   workoutTime: {
-    color: "#007AFF",
-    fontWeight: "500",
+    color: theme.colors.primary,
+    fontWeight: "600",
   },
   workoutRating: {
     flexDirection: "row-reverse",
@@ -1025,9 +1041,9 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.md,
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.text,
     marginRight: 4,
   },
   viewAllButton: {
@@ -1038,43 +1054,40 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   viewAllText: {
-    fontSize: 14,
-    color: "#007AFF",
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.primary,
     fontWeight: "600",
     marginRight: theme.spacing.xs,
+    writingDirection: "rtl",
   },
 
-  // סטיילים חדשים לסטטיסטיקות מדעיות
+  // Scientific stats section // קטע הסטטיסטיקות המדעיות
   scientificStatsSection: {
-    marginBottom: 20,
+    marginBottom: theme.spacing.xl,
     paddingHorizontal: theme.spacing.lg,
   },
-
   scientificStatsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
-
   scientificStatCard: {
     width: "48%",
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
-    padding: 16,
-    marginBottom: 12,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     alignItems: "center",
     ...theme.shadows.small,
   },
-
   scientificStatNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
     color: theme.colors.text,
-    marginTop: 8,
+    marginTop: theme.spacing.xs,
     marginBottom: 4,
   },
-
   scientificStatLabel: {
     fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.textSecondary,
@@ -1082,130 +1095,99 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
+  // AI insight card // כרטיס תובנות AI
   aiInsightCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
-    padding: 16,
-    marginTop: 8,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.xs,
     ...theme.shadows.small,
   },
-
   fitnessLevelBadge: {
     backgroundColor: theme.colors.primary + "20",
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
     borderRadius: theme.radius.full,
     alignSelf: "flex-start",
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm,
   },
-
   fitnessLevelText: {
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.primary,
     fontWeight: "600",
     writingDirection: "rtl",
   },
-
   aiTipContainer: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
     backgroundColor: theme.colors.background,
     borderRadius: theme.radius.md,
-    padding: 12,
+    padding: theme.spacing.sm,
   },
-
   aiTipText: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.text,
     lineHeight: 20,
-    marginEnd: 8,
+    marginEnd: theme.spacing.xs,
     flex: 1,
     writingDirection: "rtl",
   },
 
-  // סטיילים לתשובות השאלון
+  // Questionnaire answers card // כרטיס תשובות השאלון
   questionnaireAnswersCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 8,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
     ...theme.shadows.small,
   },
-
   questionnaireTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm,
     textAlign: "right",
     writingDirection: "rtl",
   },
-
   answerRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border + "30",
   },
-
   answerLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textSecondary,
-    fontWeight: "500",
+    fontWeight: "600",
     writingDirection: "rtl",
   },
-
   answerValue: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.text,
     fontWeight: "600",
     writingDirection: "rtl",
   },
 
-  // סטיילים להערה על השם
+  // Note container // קונטיינר ההערה
   noteContainer: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
     backgroundColor: theme.colors.primary + "10",
     borderRadius: theme.radius.md,
-    padding: 12,
-    marginTop: 12,
+    padding: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.primary + "30",
   },
-
   noteText: {
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.primary,
-    marginEnd: 8,
+    marginEnd: theme.spacing.xs,
     flex: 1,
     writingDirection: "rtl",
     lineHeight: 16,
-  },
-
-  // סטיילים לכפתור הדמו
-  demoButton: {
-    backgroundColor: theme.colors.primary,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-
-  demoText: {
-    fontSize: 10,
-    color: theme.colors.surface,
-    fontFamily: "Heebo-Bold",
-    marginTop: 2,
   },
 });

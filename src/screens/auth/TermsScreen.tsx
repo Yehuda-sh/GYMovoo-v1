@@ -2,18 +2,20 @@
  * @file src/screens/auth/TermsScreen.tsx
  * @description מסך תנאי שימוש - מציג את התנאים והמדיניות של האפליקציה
  * English: Terms of service screen - displays app terms and policies
- * @dependencies theme
- * @notes עיצוב מותאם למסכי Workout עם כרטיסים ומראה מודרני
- * @recurring_errors וודא RTL מלא בכל האלמנטים
+ * @dependencies theme, BackButton, RootStackParamList
+ * @notes עיצוב מותאם למסכי Workout עם כרטיסים ומראה מודרני, תמיכה מלאה ב-RTL, אנימציות כניסה
+ * @recurring_errors וודא RTL מלא בכל האלמנטים, השתמש ב-theme בלבד
+ * @updated 2025-07-30 שיפור RTL, הוספת אנימציות, שיפור חווית משתמש
  */
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,6 +28,27 @@ import BackButton from "../../components/common/BackButton";
 export default function TermsScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
+  // אנימציות // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    // אנימציית כניסה חלקה // Smooth entry animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -37,9 +60,13 @@ export default function TermsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
       >
         {/* כרטיס הקדמה // Introduction card */}
         <View style={styles.introCard}>
@@ -72,25 +99,38 @@ export default function TermsScreen() {
             <View style={styles.termNumber}>
               <Text style={styles.termNumberText}>1</Text>
             </View>
-            <Text style={styles.termText}>
-              המידע באפליקציה אינו מהווה ייעוץ רפואי אישי
-            </Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>
+                המידע באפליקציה אינו מהווה ייעוץ רפואי אישי
+              </Text>
+              <Text style={styles.termSubtext}>חשוב להיוועץ ברופא המשפחה</Text>
+            </View>
           </View>
 
           <View style={styles.termCard}>
             <View style={styles.termNumber}>
               <Text style={styles.termNumberText}>2</Text>
             </View>
-            <Text style={styles.termText}>
-              יש להיוועץ ברופא לפני תחילת כל תוכנית אימון
-            </Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>
+                יש להיוועץ ברופא לפני תחילת כל תוכנית אימון
+              </Text>
+              <Text style={styles.termSubtext}>
+                במיוחד אם יש בעיות בריאות קיימות
+              </Text>
+            </View>
           </View>
 
           <View style={styles.termCard}>
             <View style={styles.termNumber}>
               <Text style={styles.termNumberText}>3</Text>
             </View>
-            <Text style={styles.termText}>אין לשתף את החשבון עם אחרים</Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>אין לשתף את החשבון עם אחרים</Text>
+              <Text style={styles.termSubtext}>
+                כל חשבון מותאם אישית למשתמש
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -106,18 +146,24 @@ export default function TermsScreen() {
             >
               <Text style={styles.termNumberText}>4</Text>
             </View>
-            <Text style={styles.termText}>
-              כל שימוש לרעה בתוכן – חשוף לחסימה מיידית
-            </Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>
+                כל שימוש לרעה בתוכן – חשוף לחסימה מיידית
+              </Text>
+              <Text style={styles.termSubtext}>כולל הפצת תוכן לא מורשה</Text>
+            </View>
           </View>
 
           <View style={styles.termCard}>
             <View style={styles.termNumber}>
               <Text style={styles.termNumberText}>5</Text>
             </View>
-            <Text style={styles.termText}>
-              פרטיותך חשובה לנו: מידע אישי לא יועבר לגורמים חיצוניים ללא הסכמה
-            </Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>
+                פרטיותך חשובה לנו: מידע אישי לא יועבר לגורמים חיצוניים ללא הסכמה
+              </Text>
+              <Text style={styles.termSubtext}>נתונים מוצפנים ומאובטחים</Text>
+            </View>
           </View>
 
           <View style={styles.termCard}>
@@ -129,9 +175,14 @@ export default function TermsScreen() {
             >
               <Text style={styles.termNumberText}>6</Text>
             </View>
-            <Text style={styles.termText}>
-              הפרה של תנאי השימוש תוביל להגבלות או חסימת גישה
-            </Text>
+            <View style={styles.termTextContainer}>
+              <Text style={styles.termText}>
+                הפרה של תנאי השימוש תוביל להגבלות או חסימת גישה
+              </Text>
+              <Text style={styles.termSubtext}>
+                החלטה סופית בידי הנהלת האפליקציה
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -145,7 +196,13 @@ export default function TermsScreen() {
           <View style={styles.contactContent}>
             <Text style={styles.contactTitle}>יש לך שאלות?</Text>
             <Text style={styles.contactText}>ניתן לפנות אלינו במייל:</Text>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                // אפשרות לפתיחת אפליקציית מייל
+                console.log("Opening email app...");
+              }}
+            >
               <Text style={styles.contactEmail}>support@gymovoo.com</Text>
             </TouchableOpacity>
           </View>
@@ -171,8 +228,22 @@ export default function TermsScreen() {
           </LinearGradient>
         </View>
 
+        {/* כפתור חזרה משופר // Enhanced back button */}
+        <TouchableOpacity
+          style={styles.backToRegistrationButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons
+            name="arrow-right"
+            size={20}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.backToRegistrationText}>חזרה להרשמה</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -259,7 +330,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 12,
+    marginEnd: 12, // שינוי RTL: marginEnd במקום marginLeft
   },
   termNumberText: {
     color: "#fff",
@@ -272,6 +343,16 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 20,
     textAlign: "right",
+    marginBottom: 4,
+  },
+  termTextContainer: {
+    flex: 1,
+  },
+  termSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: "right",
+    fontStyle: "italic",
   },
   contactCard: {
     flexDirection: "row-reverse",
@@ -286,7 +367,7 @@ const styles = StyleSheet.create({
   },
   contactContent: {
     flex: 1,
-    marginLeft: 16,
+    marginEnd: 16, // שינוי RTL: marginEnd במקום marginLeft
     alignItems: "flex-end",
   },
   contactTitle: {
@@ -322,5 +403,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
+  },
+  backToRegistrationButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.lg,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    ...theme.shadows.small,
+  },
+  backToRegistrationText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
   },
 });

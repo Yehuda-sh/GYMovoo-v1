@@ -2,9 +2,10 @@
  * @file src/screens/auth/LoginScreen.tsx
  * @description מסך התחברות משודרג - אימות מתקדם, אנימציות, זכור אותי, שחזור סיסמה
  * English: Enhanced login screen with advanced validation, animations, remember me, password recovery
- * @dependencies BackButton, theme, authService, userStore
- * @notes כולל אנימציות shake, fade ו-scale, טיפול ב-route params לאוטומציה
- * @recurring_errors וודא שה-navigation ו-route types תואמים
+ * @dependencies BackButton, theme, authService, userStore, RootStackParamList
+ * @notes כולל אנימציות shake, fade ו-scale, טיפול ב-route params לאוטומציה, תמיכה מלאה ב-RTL
+ * @recurring_errors וודא שה-navigation ו-route types תואמים, השתמש ב-theme בלבד
+ * @updated 2025-07-30 שיפור RTL, אנימציות מתקדמות, תמיכה ב-global navigation types
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -94,16 +95,17 @@ export default function LoginScreen() {
     console.log("🔐 LoginScreen - useEffect triggered");
     loadSavedCredentials();
 
-    // אנימציית כניסה // Entry animation
+    // אנימציית כניסה משופרת // Enhanced entry animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 800, // זמן ארוך יותר לחוויה חלקה
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 500,
+        tension: 50,
+        friction: 8,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -188,10 +190,6 @@ export default function LoginScreen() {
     return true;
   };
 
-  /**
-   * מטפל בתהליך ההתחברות
-   * Handles login process
-   */
   const handleLogin = async () => {
     console.log("🔐 LoginScreen - Login attempt started");
     console.log("🔐 LoginScreen - Email:", email);
@@ -206,7 +204,7 @@ export default function LoginScreen() {
     setError(null);
     setFieldErrors({});
 
-    // אנימציית לחיצה // Press animation
+    // אנימציית לחיצה משופרת // Enhanced press animation
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.95,
@@ -230,7 +228,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem("savedEmail");
       }
 
-      // סימולציית התחברות // Login simulation
+      // סימולציית התחברות משופרת // Enhanced login simulation
       setTimeout(async () => {
         setLoading(false);
         if (email === "test@example.com" && password === "123456") {
@@ -262,7 +260,7 @@ export default function LoginScreen() {
           }
         } else {
           console.log("🔐 LoginScreen - Login failed - invalid credentials ❌");
-          setError("כתובת האימייל או הסיסמה שגויים");
+          setError("פרטי ההתחברות שגויים. אנא בדוק את האימייל והסיסמה.");
           createShakeAnimation(shakeAnim).start();
         }
       }, 1200);
@@ -273,10 +271,6 @@ export default function LoginScreen() {
     }
   };
 
-  /**
-   * מטפל בהתחברות עם Google
-   * Handles Google authentication
-   */
   const handleGoogleAuth = async () => {
     console.log("🔐 LoginScreen - Google auth started");
     setLoading(true);
@@ -317,10 +311,6 @@ export default function LoginScreen() {
     }
   };
 
-  /**
-   * מטפל בשחזור סיסמה
-   * Handles password recovery
-   */
   const handleForgotPassword = () => {
     console.log("🔐 LoginScreen - Forgot password clicked");
     Alert.alert(
@@ -415,7 +405,7 @@ export default function LoginScreen() {
                       ? theme.colors.error
                       : theme.colors.textSecondary
                   }
-                  style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
+                  style={{ marginEnd: 8 }} // שינוי RTL: marginEnd במקום marginStart
                 />
                 <TextInput
                   style={styles.input}
@@ -545,7 +535,10 @@ export default function LoginScreen() {
                 style={styles.gradientButton}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text style={styles.loadingText}>מתחבר...</Text>
+                  </View>
                 ) : (
                   <Text style={styles.loginButtonText}>התחבר</Text>
                 )}
@@ -569,8 +562,14 @@ export default function LoginScreen() {
               disabled={loading}
               activeOpacity={0.8}
             >
-              <Ionicons name="logo-google" size={20} color="#DB4437" />
-              <Text style={styles.googleButtonText}>התחבר עם Google</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#DB4437" />
+              ) : (
+                <Ionicons name="logo-google" size={20} color="#DB4437" />
+              )}
+              <Text style={styles.googleButtonText}>
+                {loading ? "מתחבר עם Google..." : "התחבר עם Google"}
+              </Text>
             </TouchableOpacity>
 
             {/* קישור להרשמה // Registration link */}
@@ -663,7 +662,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     paddingVertical: 0,
     marginHorizontal: 0,
-    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginStart
   },
   passwordToggle: {
     padding: 4,
@@ -684,14 +683,15 @@ const styles = StyleSheet.create({
   rememberMe: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    // gap: 8, // השתמש ב-margin אם צריך לתמוך באנדרואיד
-    marginStart: 0, // שינוי RTL: marginStart במקום marginLeft
-    marginEnd: 8, // שינוי RTL: marginEnd במקום marginRight
+    marginEnd: 8, // שינוי RTL: marginEnd במקום marginStart
   },
   rememberMeText: {
     color: theme.colors.textSecondary,
     fontSize: 14,
     fontWeight: "500",
+  },
+  forgotPasswordButton: {
+    padding: 4, // אזור מגע גדול יותר
   },
   forgotPassword: {
     color: theme.colors.primary,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
-    // gap: 8, // עדיף margin אם רוצים תאימות מלאה
+    gap: 8, // מתקדם - gap מתוך theme
   },
   errorText: {
     color: theme.colors.error,
@@ -727,6 +727,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   loginButtonText: {
     color: "#fff",

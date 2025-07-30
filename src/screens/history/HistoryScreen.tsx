@@ -1,16 +1,13 @@
 /**
- * @file src/screens/history/HistoryScreen.tsx    console.log('📚 HistoryScreen - Checking user activityHistory...');
-    console.log('📚 user?.activityHistory exists:', !!user?.activityHistory);
-    console.log('📚 user?.activityHistory is array:', Array.isArray(user?.activityHistory));
-    console.log('📚 user?.activityHistory type:', typeof user?.activityHistory);
-    console.log('📚 user?.activityHistory value:', user?.activityHistory);
-    console.log('📚 user?.activityHistory length:', user?.activityHistory?.length || 0);
-    console.log('📚 user?.activityHistory sample:', user?.activityHistory?.[0]);brief מסך היסטוריית אימונים - עם תמיכה במשוב והתאמת מגדר
+ * @file src/screens/history/HistoryScreen.tsx
+ * @brief מסך היסטוריית אימונים - עם תמיכה במשוב והתאמת מגדר
  * @brief Workout history screen - with feedback support and gender adaptation
- * @updated 2025-07-30 הוספת תמיכה בהתאמת מגדר ותכונות מתקדמות
+ * @dependencies theme, userStore, workoutHistoryService, MaterialCommunityIcons
+ * @notes תמיכה מלאה RTL, אנימציות משופרות, סטטיסטיקות מותאמות מגדר
+ * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -19,6 +16,8 @@ import {
   RefreshControl,
   ScrollView,
   Alert,
+  Animated,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -30,98 +29,152 @@ import {
 
 export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
+  const [allWorkouts, setAllWorkouts] = useState<WorkoutWithFeedback[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [statistics, setStatistics] = useState<any>(null);
   const [congratulationMessage, setCongratulationMessage] = useState<
     string | null
   >(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreData, setHasMoreData] = useState(true);
   const { user } = useUserStore();
 
+  // Constants for pagination
+  const ITEMS_PER_PAGE = 10;
+
+  // אנימציות משופרות // Enhanced animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
   useEffect(() => {
-    console.log("🚀 HistoryScreen - Component mounted, loading data...");
-    loadHistory();
+    loadHistory(true);
     loadStatistics();
     loadLatestCongratulation();
+
+    // אנימציית כניסה חלקה // Smooth entry animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
-  const loadHistory = async () => {
+  const loadHistory = async (reset: boolean = false) => {
     try {
-      setLoading(true);
-      console.log("📚 HistoryScreen - טוען היסטוריה מעודכנת");
+      if (reset) {
+        setLoading(true);
+        setCurrentPage(1);
+        setHasMoreData(true);
+      } else {
+        setLoadingMore(true);
+      }
 
       // תחילה ננסה לטעון מההיסטוריה הישירה של המשתמש (דמו)
-      let historyData: WorkoutWithFeedback[] = [];
+      let allHistoryData: WorkoutWithFeedback[] = [];
 
       if (
         user?.activityHistory?.workouts &&
         Array.isArray(user.activityHistory.workouts) &&
         user.activityHistory.workouts.length > 0
       ) {
-        console.log(
-          "📚 HistoryScreen - 🎯 משתמש בהיסטוריה מהדמו! נמצאו",
-          user.activityHistory.workouts.length,
-          "אימונים"
-        );
-        historyData = user.activityHistory.workouts.map((workout: any) => ({
-          id: workout.id,
-          workout: workout,
-          feedback: workout.feedback || {
-            completedAt: workout.endTime || workout.startTime,
-            difficulty: workout.feedback?.overallRating || 3,
-            feeling: workout.feedback?.mood || "😐",
-            readyForMore: null,
-          },
-          stats: {
-            duration: workout.duration || 0,
-            personalRecords: workout.plannedVsActual?.personalRecords || 0,
-            totalSets: workout.plannedVsActual?.totalSetsCompleted || 0,
-            totalPlannedSets: workout.plannedVsActual?.totalSetsPlanned || 0,
-            totalVolume: workout.totalVolume || 0,
-          },
-          metadata: {
-            userGender: getUserGender(),
-            deviceInfo: {
-              platform: "unknown",
-              screenWidth: 375,
-              screenHeight: 667,
+        allHistoryData = user.activityHistory.workouts
+          .map((workout: any) => ({
+            id: workout.id,
+            workout: workout,
+            feedback: workout.feedback || {
+              completedAt: workout.endTime || workout.startTime,
+              difficulty: workout.feedback?.overallRating || 3,
+              feeling: workout.feedback?.mood || "😐",
+              readyForMore: null,
             },
-            version: "1.0.0",
-            workoutSource: "demo" as const,
-          },
-        })) as WorkoutWithFeedback[];
+            stats: {
+              duration: workout.duration || 0,
+              personalRecords: workout.plannedVsActual?.personalRecords || 0,
+              totalSets: workout.plannedVsActual?.totalSetsCompleted || 0,
+              totalPlannedSets: workout.plannedVsActual?.totalSetsPlanned || 0,
+              totalVolume: workout.totalVolume || 0,
+            },
+            metadata: {
+              userGender: getUserGender(),
+              deviceInfo: {
+                platform: "unknown",
+                screenWidth: 375,
+                screenHeight: 667,
+              },
+              version: "1.0.0",
+              workoutSource: "demo" as const,
+            },
+          }))
+          .filter(
+            (workout: any, index: number, array: any[]) =>
+              // הסר כפילויות לפי ID ותאריך
+              array.findIndex(
+                (w: any) =>
+                  w.id === workout.id &&
+                  w.feedback.completedAt === workout.feedback.completedAt
+              ) === index
+          )
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.feedback.completedAt).getTime() -
+              new Date(a.feedback.completedAt).getTime()
+          ) as WorkoutWithFeedback[];
       } else {
         // אם אין היסטוריה ישירה, נשתמש בשירות
-        console.log("📚 HistoryScreen - משתמש בשירות ההיסטוריה");
-        historyData = await workoutHistoryService.getWorkoutHistory();
+        allHistoryData = await workoutHistoryService.getWorkoutHistory();
       }
 
-      console.log("📚 HistoryScreen - נמצאו", historyData.length, "אימונים");
-      console.log("📚 HistoryScreen - Sample workout:", historyData[0]);
-      setWorkouts(historyData);
+      if (reset) {
+        setAllWorkouts(allHistoryData);
+        const initialData = allHistoryData.slice(0, ITEMS_PER_PAGE);
+        setWorkouts(initialData);
+        setHasMoreData(allHistoryData.length > ITEMS_PER_PAGE);
+        setCurrentPage(2); // עדכון לעמוד הבא
+      } else {
+        // Load more data - וודא שלא טוענים נתונים כפולים
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const newData = allWorkouts.slice(startIndex, endIndex);
+
+        if (newData.length > 0) {
+          // וודא שלא מוסיפים נתונים כפולים
+          setWorkouts((prev) => {
+            const existingIds = new Set(prev.map((w) => w.id));
+            const uniqueNewData = newData.filter((w) => !existingIds.has(w.id));
+            return [...prev, ...uniqueNewData];
+          });
+          setCurrentPage((prev) => prev + 1);
+          setHasMoreData(endIndex < allWorkouts.length);
+        } else {
+          setHasMoreData(false);
+        }
+      }
     } catch (error) {
       console.error("❌ Error loading history:", error);
       Alert.alert("שגיאה", "לא ניתן לטעון את היסטוריית האימונים");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   const loadStatistics = async () => {
     try {
-      console.log("📊 HistoryScreen - טוען סטטיסטיקות...");
-
       // אם יש היסטוריה ישירה של המשתמש, נחשב סטטיסטיקות מהיא
       if (
         user?.activityHistory?.workouts &&
         Array.isArray(user.activityHistory.workouts) &&
         user.activityHistory.workouts.length > 0
       ) {
-        console.log(
-          "📊 HistoryScreen - מחשב סטטיסטיקות מהיסטוריה ישירה מהדמו:",
-          user.activityHistory.workouts.length,
-          "אימונים"
-        );
         const userGender = getUserGender();
 
         const totalWorkouts = user.activityHistory.workouts.length;
@@ -168,16 +221,11 @@ export default function HistoryScreen() {
         };
 
         setStatistics(stats);
-        console.log("📊 Statistics calculated from user history:", stats);
       } else {
         // אחרת, נשתמש בשירות
-        console.log("📊 HistoryScreen - מחשב סטטיסטיקות מהשירות");
         const stats = await workoutHistoryService.getGenderGroupedStatistics();
         setStatistics(stats);
-        console.log("📊 Statistics loaded from service:", stats);
       }
-
-      console.log("📊 Total workouts:", statistics?.total?.totalWorkouts || 0);
     } catch (error) {
       console.error("❌ Error loading statistics:", error);
     }
@@ -196,12 +244,18 @@ export default function HistoryScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
-      loadHistory(),
+      loadHistory(true),
       loadStatistics(),
       loadLatestCongratulation(),
     ]);
     setRefreshing(false);
   }, []);
+
+  const loadMoreWorkouts = useCallback(() => {
+    if (!loadingMore && hasMoreData && !loading) {
+      loadHistory(false);
+    }
+  }, [loadingMore, hasMoreData, currentPage, loading]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -247,29 +301,13 @@ export default function HistoryScreen() {
     const smartData = user?.smartQuestionnaireData;
     const regularData = user?.questionnaire;
 
-    console.log("👤 getUserGender - Smart data:", !!smartData);
-    console.log("👤 getUserGender - Regular data:", !!regularData);
-    console.log("👤 getUserGender - Smart answers:", smartData?.answers);
-    console.log(
-      "👤 getUserGender - Regular questionnaire keys:",
-      regularData ? Object.keys(regularData) : "none"
-    );
-
     if (smartData?.answers?.gender) {
-      console.log(
-        "👤 getUserGender - Found gender in smart data:",
-        smartData.answers.gender
-      );
       return smartData.answers.gender;
     }
 
     // לשאלון הישן - מגדר בדרך כלל נמצא בשאלה 1
     if (regularData && regularData[1]) {
       const genderAnswer = regularData[1] as string;
-      console.log(
-        "👤 getUserGender - Found answer in question 1:",
-        genderAnswer
-      );
       if (
         genderAnswer === "male" ||
         genderAnswer === "female" ||
@@ -279,7 +317,6 @@ export default function HistoryScreen() {
       }
     }
 
-    console.log("👤 getUserGender - Returning default: other");
     return "other";
   };
 
@@ -290,23 +327,57 @@ export default function HistoryScreen() {
     const currentGenderStats = statistics.byGender[userGender];
 
     return (
-      <View style={styles.statisticsCard}>
+      <Animated.View
+        style={[
+          styles.statisticsCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         <Text style={styles.statisticsTitle}>📊 סטטיסטיקות</Text>
         <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
+          <Animated.View
+            style={[
+              styles.statBox,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: fadeAnim }],
+              },
+            ]}
+          >
             <Text style={styles.statNumber}>
               {statistics.total.totalWorkouts}
             </Text>
             <Text style={styles.statLabel}>סה"כ אימונים</Text>
-          </View>
-          <View style={styles.statBox}>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.statBox,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: fadeAnim }],
+              },
+            ]}
+          >
             <Text style={styles.statNumber}>
               {Math.round(statistics.total.averageDifficulty * 10) / 10}
             </Text>
             <Text style={styles.statLabel}>קושי ממוצע</Text>
-          </View>
+          </Animated.View>
+
           {currentGenderStats && currentGenderStats.count > 0 && (
-            <View style={styles.statBox}>
+            <Animated.View
+              style={[
+                styles.statBox,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: fadeAnim }],
+                },
+              ]}
+            >
               <MaterialCommunityIcons
                 name={getGenderIcon(userGender)}
                 size={16}
@@ -314,10 +385,10 @@ export default function HistoryScreen() {
               />
               <Text style={styles.statNumber}>{currentGenderStats.count}</Text>
               <Text style={styles.statLabel}>האימונים שלי</Text>
-            </View>
+            </Animated.View>
           )}
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -325,22 +396,56 @@ export default function HistoryScreen() {
     if (!congratulationMessage) return null;
 
     return (
-      <View style={styles.congratulationCard}>
+      <Animated.View
+        style={[
+          styles.congratulationCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateX: slideAnim }],
+          },
+        ]}
+      >
         <MaterialCommunityIcons
           name="trophy"
           size={24}
           color={theme.colors.primary}
         />
         <Text style={styles.congratulationText}>{congratulationMessage}</Text>
-      </View>
+      </Animated.View>
     );
   };
 
-  const renderWorkoutItem = ({ item }: { item: WorkoutWithFeedback }) => {
+  const renderWorkoutItem = ({
+    item,
+    index,
+  }: {
+    item: WorkoutWithFeedback;
+    index: number;
+  }) => {
     const userGender = item.metadata?.userGender;
 
+    // בדיקה אם יש נתונים תקינים // Check if data is valid
+    if (!item || !item.workout) {
+      return null;
+    }
+
     return (
-      <View style={styles.workoutCard}>
+      <Animated.View
+        style={[
+          styles.workoutCard,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 50],
+                  outputRange: [30, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <View style={styles.workoutHeader}>
           <View style={styles.workoutTitleRow}>
             <Text style={styles.workoutName}>
@@ -376,7 +481,7 @@ export default function HistoryScreen() {
               color={theme.colors.textSecondary}
             />
             <Text style={styles.statText}>
-              {item.workout.exercises.length} תרגילים
+              {item.workout.exercises?.length || 0} תרגילים
             </Text>
           </View>
 
@@ -438,6 +543,35 @@ export default function HistoryScreen() {
             </Text>
           </View>
         )}
+      </Animated.View>
+    );
+  };
+
+  const renderLoadingFooter = () => {
+    if (!loadingMore && hasMoreData) {
+      // הצגת אחוזים של נתונים שנטענו
+      const percentage = Math.round(
+        (workouts.length / allWorkouts.length) * 100
+      );
+      return (
+        <View style={styles.progressFooter}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+          </View>
+          <Text style={styles.progressText}>
+            נטענו {workouts.length} מתוך {allWorkouts.length} אימונים (
+            {percentage}%)
+          </Text>
+        </View>
+      );
+    }
+
+    if (!loadingMore) return null;
+
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <Text style={styles.loadingFooterText}>טוען עוד...</Text>
       </View>
     );
   };
@@ -445,65 +579,135 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <MaterialCommunityIcons
-            name="loading"
-            size={50}
-            color={theme.colors.primary}
-          />
+        <Animated.View
+          style={[
+            styles.loadingContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: fadeAnim }],
+            },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>טוען היסטוריה...</Text>
-        </View>
+          <Text style={styles.loadingSubtext}>מאחזר נתוני אימונים קודמים</Text>
+        </Animated.View>
       </View>
     );
   }
 
-  if (workouts.length === 0) {
+  if (workouts.length === 0 && !loading) {
     return (
-      <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons
-            name="history"
-            size={80}
-            color={theme.colors.textSecondary}
-          />
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ scale: fadeAnim }],
+            }}
+          >
+            <MaterialCommunityIcons
+              name="history"
+              size={100}
+              color={theme.colors.textSecondary}
+            />
+          </Animated.View>
           <Text style={styles.emptyTitle}>אין עדיין אימונים שמורים</Text>
           <Text style={styles.emptySubtitle}>
             לאחר סיום אימון, לחץ על "שמור אימון ומשוב"
           </Text>
+          <Text style={styles.emptyHint}>
+            האימונים הבאים שלך יופיעו כאן עם פרטים מלאים וסטטיסטיקות
+          </Text>
+
+          {/* הוספת כפתור לחזרה למסך הראשי */}
+          <Animated.View
+            style={[
+              styles.emptyAction,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={24}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.emptyActionText}>בואו נתחיל לאמן!</Text>
+          </Animated.View>
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      {/* רשימת אימונים עם pagination */}
+      <FlatList
+        data={workouts}
+        renderItem={renderWorkoutItem}
+        keyExtractor={(item, index) =>
+          `${item.id}_${index}_${item.feedback.completedAt}`
+        }
+        onEndReached={loadMoreWorkouts}
+        onEndReachedThreshold={0.3}
+        ListHeaderComponent={() => (
+          <View>
+            {/* הודעת ברכה אחרונה */}
+            {renderCongratulationMessage()}
+
+            {/* סטטיסטיקות */}
+            {renderStatistics()}
+
+            {/* כותרת היסטוריה */}
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }}
+            >
+              <View style={styles.sectionTitleContainer}>
+                <Text style={styles.sectionTitle}>היסטוריית אימונים</Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {workouts.length}/{allWorkouts.length}
+                  </Text>
+                </View>
+              </View>
+              {hasMoreData && (
+                <Text style={styles.loadMoreHint}>
+                  גלול למטה לראות עוד אימונים
+                </Text>
+              )}
+            </Animated.View>
+          </View>
+        )}
+        ListFooterComponent={renderLoadingFooter}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* הודעת ברכה אחרונה */}
-        {renderCongratulationMessage()}
-
-        {/* סטטיסטיקות */}
-        {renderStatistics()}
-
-        {/* כותרת היסטוריה */}
-        <Text style={styles.sectionTitle}>
-          היסטוריית אימונים ({workouts.length})
-        </Text>
-
-        {/* רשימת אימונים */}
-        <FlatList
-          data={workouts}
-          renderItem={renderWorkoutItem}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-        />
-      </ScrollView>
-    </View>
+      />
+    </Animated.View>
   );
 }
 
@@ -522,6 +726,13 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
+    textAlign: "center", // שיפור RTL: יישור מרכז
+  },
+  loadingSubtext: {
+    marginTop: theme.spacing.sm,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textTertiary,
+    textAlign: "center", // שיפור RTL: יישור מרכז
   },
   emptyContainer: {
     flex: 1,
@@ -544,13 +755,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
   },
+  emptyHint: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textTertiary,
+    textAlign: "center",
+    marginTop: theme.spacing.md,
+    fontStyle: "italic",
+  },
+  emptyAction: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: theme.spacing.xl,
+    backgroundColor: theme.colors.primary + "10",
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  emptyActionText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.primary,
+    fontWeight: "600",
+    marginEnd: theme.spacing.sm,
+  },
   congratulationCard: {
     backgroundColor: theme.colors.primary + "10",
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון שמאל לימין
     alignItems: "center",
     borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
@@ -559,8 +793,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.primary,
     fontWeight: "600",
-    marginLeft: theme.spacing.sm,
+    marginEnd: theme.spacing.sm, // שיפור RTL: marginEnd במקום marginLeft
     flex: 1,
+    textAlign: "right", // שיפור RTL: יישור לימין
   },
   statisticsCard: {
     backgroundColor: theme.colors.card,
@@ -568,6 +803,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
     ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "10",
   },
   statisticsTitle: {
     fontSize: theme.typography.h4.fontSize,
@@ -577,7 +814,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   statsGrid: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון משמאל לימין
     justifyContent: "space-around",
   },
   statBox: {
@@ -599,20 +836,47 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.h3.fontSize,
     fontWeight: "600",
     color: theme.colors.text,
+    textAlign: "right", // שיפור RTL: יישור לימין
+  },
+  sectionTitleContainer: {
+    flexDirection: "row-reverse", // RTL
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  countBadge: {
+    backgroundColor: theme.colors.primary + "20",
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  countBadgeText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  loadMoreHint: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    fontStyle: "italic",
     marginBottom: theme.spacing.md,
   },
   workoutCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
+    marginVertical: theme.spacing.sm,
+    marginHorizontal: theme.spacing.xs,
     ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.textSecondary + "10",
   },
   workoutHeader: {
     marginBottom: theme.spacing.md,
   },
   workoutTitleRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון משמאל לימין
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: theme.spacing.xs,
@@ -628,26 +892,29 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   workoutStats: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון משמאל לימין
     justifyContent: "space-around",
     marginBottom: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.background + "80",
+    borderRadius: theme.radius.md,
     flexWrap: "wrap",
+    borderWidth: 1,
+    borderColor: theme.colors.textSecondary + "10",
   },
   statItem: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון משמאל לימין
     alignItems: "center",
     marginBottom: theme.spacing.xs,
   },
   statText: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
+    marginEnd: theme.spacing.xs, // שיפור RTL: marginEnd במקום marginLeft
+    textAlign: "right", // שיפור RTL: יישור לימין
   },
   workoutFeedback: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // שיפור RTL: כיוון משמאל לימין
     justifyContent: "space-around",
     paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
@@ -660,9 +927,11 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
+    textAlign: "center", // שיפור RTL: יישור מרכז
   },
   feedbackValue: {
     fontSize: theme.typography.body.fontSize,
+    textAlign: "center", // שיפור RTL: יישור מרכז
   },
   congratulationInCard: {
     backgroundColor: theme.colors.primary + "08",
@@ -688,5 +957,43 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     fontStyle: "italic",
+  },
+  loadingFooter: {
+    paddingVertical: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  loadingFooterText: {
+    marginStart: theme.spacing.sm,
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+  },
+  listContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+  },
+  progressFooter: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+  },
+  progressBar: {
+    width: "100%",
+    height: 4,
+    backgroundColor: theme.colors.textSecondary + "20",
+    borderRadius: 2,
+    marginBottom: theme.spacing.sm,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
   },
 });

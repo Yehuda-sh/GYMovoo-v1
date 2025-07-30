@@ -270,10 +270,6 @@ class WorkoutHistoryService {
         workoutWithFeedback.workout,
         userGender
       );
-
-      console.log(
-        "💾 Workout saved to history successfully with gender adaptations"
-      );
     } catch (error) {
       console.error("Error saving workout to history:", error);
       throw error;
@@ -287,7 +283,6 @@ class WorkoutHistoryService {
     try {
       const startTime = new Date().toISOString();
       await AsyncStorage.setItem(`workout_start_${workoutId}`, startTime);
-      console.log(`🚀 Workout ${workoutId} started at ${startTime}`);
     } catch (error) {
       console.error("Error recording workout start time:", error);
     }
@@ -431,33 +426,13 @@ class WorkoutHistoryService {
    */
   async getWorkoutHistory(): Promise<WorkoutWithFeedback[]> {
     try {
-      console.log("🔍 workoutHistoryService.getWorkoutHistory - Starting...");
       const historyJson = await AsyncStorage.getItem(WORKOUT_HISTORY_KEY);
-      console.log(
-        "🔍 workoutHistoryService - Raw history data:",
-        !!historyJson
-      );
-      console.log(
-        "🔍 workoutHistoryService - History length:",
-        historyJson?.length || 0
-      );
 
       if (!historyJson) {
-        console.log(
-          "🔍 workoutHistoryService - No history found, returning empty array"
-        );
         return [];
       }
 
       const parsed = JSON.parse(historyJson);
-      console.log(
-        "🔍 workoutHistoryService - Parsed history count:",
-        parsed?.length || 0
-      );
-      console.log(
-        "🔍 workoutHistoryService - Sample item:",
-        parsed?.[0] ? Object.keys(parsed[0]) : "none"
-      );
 
       return parsed;
     } catch (error) {
@@ -737,9 +712,7 @@ class WorkoutHistoryService {
     };
   }> {
     try {
-      console.log("📊 getGenderGroupedStatistics - Starting...");
       const history = await this.getWorkoutHistory();
-      console.log("📊 History length for stats:", history.length);
 
       // קיבוץ לפי מגדר
       const byGender = {
@@ -756,7 +729,6 @@ class WorkoutHistoryService {
 
       history.forEach((workout) => {
         const gender = workout.metadata?.userGender || "other";
-        console.log("📊 Processing workout with gender:", gender);
         byGender[gender].count++;
         totalDifficultyByGender[gender] += workout.feedback.difficulty;
       });
@@ -770,11 +742,8 @@ class WorkoutHistoryService {
         }
       });
 
-      console.log("📊 Gender stats:", byGender);
-
       // סטטיסטיקות כלליות
       const totalStats = await this.getWorkoutStatistics();
-      console.log("📊 Total stats:", totalStats);
 
       return {
         byGender,

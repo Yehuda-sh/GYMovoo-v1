@@ -1,12 +1,19 @@
 /**
  * @file src/screens/profile/ProfileScreen.tsx
- * @brief מסך פרופיל משתמש משודרג - כולל בחירת אווטאר, הישגים, התקדמות ועוד
- * @dependencies userStore (Zustand), DefaultAvatar, ImagePicker
- * @notes עיצוב נקי ומינימליסטי בהתאם לשאר המסכים
- * @recurring_errors בעיות RTL בסידור אלמנטים, כיווניות לא נכונה ב-flexDirection
+ * @brief מסך פרופיל משתמש מתקדם - דשבורד אישי עם הישגים, התקדמות וניהול ציוד
+ * @dependencies userStore, theme, MaterialCommunityIcons, ImagePicker, DefaultAvatar
+ * @notes תמיכה מלאה RTL, אנימציות משופרות, ניהול אווטאר אינטראקטיבי
+ * @features פרופיל אישי, סטטיסטיקות מתקדמות, מערכת הישגים, ניהול ציוד, הגדרות
+ * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
  */
 
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -52,7 +59,7 @@ type Achievement = {
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// פונקציה לחישוב הישגים מהנתונים המדעיים
+// פונקציה לחישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
 const calculateAchievements = (user: any): Achievement[] => {
   const achievements: Achievement[] = [
     {
@@ -85,7 +92,7 @@ const calculateAchievements = (user: any): Achievement[] => {
     },
   ];
 
-  // אם יש נתונים מדעיים, חשב הישגים אמיתיים
+  // אם יש נתונים מדעיים, חשב הישגים אמיתיים // If scientific data exists, calculate real achievements
   if (user?.activityHistory?.workouts) {
     const workouts = user.activityHistory.workouts;
     const workoutCount = workouts.length;
@@ -167,22 +174,22 @@ const PRESET_AVATARS = [
 ];
 
 export default function ProfileScreen() {
-  // נביגציה ומשתמש
+  // נביגציה ומשתמש // Navigation and user
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, updateUser, logout: userLogout } = useUserStore();
 
-  // מצב מקומי
+  // מצב מקומי // Local state
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
   const [refreshing, setRefreshing] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // אנימציות
+  // אנימציות משופרות // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // בדיקת השלמת השאלון - פשוטה ומאוחדת
+  // בדיקת השלמת השאלון - פשוטה ומאוחדת // Simple and unified questionnaire completion check
   const hasTrainingStage =
     !!user?.questionnaire &&
     (user.questionnaire as any).age &&
@@ -191,23 +198,25 @@ export default function ProfileScreen() {
     !!user?.questionnaire && (user.questionnaire as any).gender;
   const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
 
-  // חישוב הישגים מהנתונים המדעיים
+  // חישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
   const achievements = useMemo(() => calculateAchievements(user), [user]);
 
   useEffect(() => {
+    // אנימציות כניסה חלקה // Smooth entry animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 300,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 500,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
 
+    // אנימציית פולס לכפתור עריכת אווטאר // Pulse animation for avatar edit button
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -231,16 +240,16 @@ export default function ProfileScreen() {
     }
   }, [user?.avatar, selectedAvatar]);
 
-  // רענון הנתונים
-  const onRefresh = React.useCallback(() => {
+  // רענון הנתונים // Data refresh
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
 
-    // עדכון selectedAvatar מ-user
+    // עדכון selectedAvatar מ-user // Update selectedAvatar from user
     if (user?.avatar) {
       setSelectedAvatar(user.avatar);
     }
 
-    // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI
+    // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI // Data refresh simulation
     setTimeout(() => {
       setRefreshing(false);
     }, 1500);
@@ -389,17 +398,17 @@ export default function ProfileScreen() {
     };
   }, [user]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setShowLogoutModal(true);
-  };
+  }, []);
 
-  const confirmLogout = () => {
+  const confirmLogout = useCallback(() => {
     userLogout();
     navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
-  };
+  }, [userLogout, navigation]);
 
-  // בחר מהגלריה
-  const pickImageFromGallery = async () => {
+  // בחר מהגלריה // Pick from gallery
+  const pickImageFromGallery = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -412,10 +421,10 @@ export default function ProfileScreen() {
       updateUser({ avatar: newAvatar });
       setShowAvatarModal(false);
     }
-  };
+  }, [updateUser]);
 
-  // בחר מהמצלמה
-  const takePhoto = async () => {
+  // בחר מהמצלמה // Take photo
+  const takePhoto = useCallback(async () => {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -427,14 +436,17 @@ export default function ProfileScreen() {
       updateUser({ avatar: newAvatar });
       setShowAvatarModal(false);
     }
-  };
+  }, [updateUser]);
 
-  // בחר אימוג'י
-  const selectPresetAvatar = (avatar: string) => {
-    setSelectedAvatar(avatar);
-    updateUser({ avatar });
-    setShowAvatarModal(false);
-  };
+  // בחר אימוג'י // Select emoji
+  const selectPresetAvatar = useCallback(
+    (avatar: string) => {
+      setSelectedAvatar(avatar);
+      updateUser({ avatar });
+      setShowAvatarModal(false);
+    },
+    [updateUser]
+  );
 
   return (
     <LinearGradient
@@ -811,14 +823,8 @@ export default function ProfileScreen() {
                     }
                   }
 
-                  // הסרת כפילויות
+                  // הסרת כפילויות // Remove duplicates
                   allEquipment = [...new Set(allEquipment)];
-
-                  // דיבוג ציוד
-                  console.log("🔧 ProfileScreen - ציוד נמצא:", {
-                    allEquipment,
-                    dynamicQuestions,
-                  });
 
                   if (allEquipment.length === 0) {
                     return (
@@ -838,12 +844,10 @@ export default function ProfileScreen() {
 
                   return allEquipment
                     .map((equipmentId: string) => {
-                      // חיפוש ישיר לפי השם מהשאלון
+                      // חיפוש ישיר לפי השם מהשאלון // Direct search by name from questionnaire
                       const equipment = ALL_EQUIPMENT.find(
                         (eq) => eq.id === equipmentId
                       );
-
-                      console.log(`🔧 מחפש ציוד: ${equipmentId}`, equipment);
 
                       if (!equipment) return null;
 
@@ -1079,6 +1083,7 @@ export default function ProfileScreen() {
 // שים את ה־styles שלך כאן (אותו דבר כמו הדוגמה שלך)
 
 const styles = StyleSheet.create({
+  // Container and layout styles // סטיילים לקונטיינר ופריסה
   gradient: {
     flex: 1,
   },
@@ -1091,6 +1096,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
+  // Header styles // סטיילים לכותרת
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1109,25 +1116,28 @@ const styles = StyleSheet.create({
   },
   headerQuestionnaireButton: {
     padding: theme.spacing.sm,
-    backgroundColor: theme.colors.primaryLight + "20",
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary + "20",
+    borderRadius: theme.radius.sm,
   },
   settingsButton: {
     padding: theme.spacing.sm,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
   },
+
+  // Profile card styles // סטיילים לכרטיס פרופיל
   profileCard: {
     alignItems: "center",
     marginBottom: theme.spacing.lg,
     paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     marginHorizontal: theme.spacing.lg,
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
     padding: theme.spacing.xl,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
@@ -1153,7 +1163,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: theme.colors.primaryGradientStart + "20",
+    backgroundColor: theme.colors.primary + "20",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
@@ -1167,10 +1177,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: theme.colors.primary,
-    borderRadius: 20,
-    padding: 8,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xs,
     borderWidth: 2,
     borderColor: theme.colors.card,
+    ...theme.shadows.small,
   },
   levelContainer: {
     width: "100%",
@@ -1178,15 +1189,16 @@ const styles = StyleSheet.create({
   },
   levelText: {
     color: theme.colors.primary,
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   xpBar: {
     width: 200,
     height: 8,
-    backgroundColor: theme.colors.divider,
-    borderRadius: 4,
+    backgroundColor: theme.colors.backgroundElevated,
+    borderRadius: theme.radius.xs,
     overflow: "hidden",
     marginBottom: 4,
   },
@@ -1196,18 +1208,20 @@ const styles = StyleSheet.create({
   },
   xpText: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
   },
   username: {
-    fontSize: 22,
-    fontWeight: "600",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
     color: theme.colors.text,
     marginBottom: 4,
+    writingDirection: "rtl",
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
+    writingDirection: "rtl",
   },
   badgesContainer: {
     flexDirection: "row-reverse",
@@ -1217,62 +1231,66 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundElevated,
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: theme.radius.md,
     gap: 4,
   },
   badgeText: {
     color: theme.colors.text,
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
     fontWeight: "500",
+    writingDirection: "rtl",
   },
 
-  // שאלון
+  // Questionnaire styles // סטיילים לשאלון
   questionnaireCard: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     ...theme.shadows.medium,
   },
   questionnaireButton: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
   },
   questionnaireGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
   },
   questionnaireTextContainer: {
     flex: 1,
     marginHorizontal: theme.spacing.md,
   },
   questionnaireTitle: {
-    color: theme.colors.white,
-    fontSize: 18,
-    fontWeight: "700",
+    color: theme.colors.surface,
+    fontSize: theme.typography.h4.fontSize,
+    fontWeight: theme.typography.h4.fontWeight as any,
     marginBottom: 4,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   questionnaireSubtitle: {
-    color: theme.colors.white,
-    fontSize: 14,
+    color: theme.colors.surface,
+    fontSize: theme.typography.bodySmall.fontSize,
     opacity: 0.9,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   questionnaireButtonText: {
-    color: theme.colors.white,
-    fontSize: 16,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
+    writingDirection: "rtl",
   },
 
-  // מידע אישי
+  // Info section styles // סטיילים למידע אישי
   infoContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -1285,37 +1303,41 @@ const styles = StyleSheet.create({
   infoItem: {
     width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.md) / 2,
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     alignItems: "center",
+    ...theme.shadows.small,
   },
   infoLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   infoValue: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.text,
     fontWeight: "600",
     marginTop: 2,
     textAlign: "center",
+    writingDirection: "rtl",
   },
 
-  // סטטיסטיקות
+  // Stats section styles // סטיילים לסטטיסטיקות
   statsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   statsGrid: {
     flexDirection: "row-reverse",
@@ -1324,26 +1346,28 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
+    ...theme.shadows.small,
   },
   statGradient: {
     padding: theme.spacing.md,
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-    marginTop: 8,
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: theme.typography.h2.fontWeight as any,
+    color: theme.colors.surface,
+    marginTop: theme.spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: "#fff",
+    fontSize: theme.typography.captionSmall.fontSize,
+    color: theme.colors.surface,
     opacity: 0.8,
+    writingDirection: "rtl",
   },
 
-  // הישגים
+  // Achievements styles // סטיילים להישגים
   achievementsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -1356,7 +1380,8 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     color: theme.colors.primary,
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
+    writingDirection: "rtl",
   },
   achievementsGrid: {
     flexDirection: "row-reverse",
@@ -1367,34 +1392,37 @@ const styles = StyleSheet.create({
     width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.md * 3) / 4,
     aspectRatio: 1,
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   lockedBadge: {
     opacity: 0.5,
   },
   achievementTitle: {
-    fontSize: 10,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.text,
     textAlign: "center",
     marginTop: 4,
+    writingDirection: "rtl",
   },
   lockedText: {
     color: theme.colors.textTertiary,
   },
 
-  // הגדרות
+  // Settings styles // סטיילים להגדרות
   settingsContainer: {
     backgroundColor: theme.colors.card,
     marginHorizontal: theme.spacing.lg,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     marginBottom: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    ...theme.shadows.small,
   },
   settingItem: {
     flexDirection: "row-reverse",
@@ -1403,7 +1431,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    borderBottomColor: theme.colors.backgroundElevated,
   },
   settingLeft: {
     flexDirection: "row-reverse",
@@ -1411,32 +1439,34 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   settingText: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.text,
+    writingDirection: "rtl",
   },
 
-  // התנתקות
+  // Logout styles // סטיילים להתנתקות
   logoutButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.error + "15",
     marginHorizontal: theme.spacing.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radius.md,
+    gap: theme.spacing.xs,
     borderWidth: 1,
     borderColor: theme.colors.error + "30",
     marginTop: theme.spacing.md,
   },
   logoutText: {
     color: theme.colors.error,
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
+    writingDirection: "rtl",
   },
 
-  // סגנונות מודל
+  // Modal styles // סטיילים למודלים
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1444,8 +1474,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: theme.colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
     padding: theme.spacing.xl,
     paddingBottom: theme.spacing.xl + 20,
     maxHeight: "80%",
@@ -1457,12 +1487,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   closeButton: {
-    padding: 8,
+    padding: theme.spacing.xs,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: theme.typography.h3.fontWeight as any,
     color: theme.colors.text,
+    writingDirection: "rtl",
   },
   uploadOptions: {
     flexDirection: "row-reverse",
@@ -1473,23 +1504,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     width: "45%",
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.backgroundElevated,
   },
   uploadOptionText: {
     color: theme.colors.text,
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: theme.spacing.xs,
+    fontSize: theme.typography.bodySmall.fontSize,
     fontWeight: "500",
+    writingDirection: "rtl",
   },
   presetsTitle: {
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
     marginBottom: theme.spacing.md,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   avatarGrid: {
     alignItems: "center",
@@ -1497,7 +1530,7 @@ const styles = StyleSheet.create({
   presetAvatar: {
     width: 70,
     height: 70,
-    margin: 8,
+    margin: theme.spacing.xs,
     borderRadius: 35,
     backgroundColor: theme.colors.backgroundAlt,
     justifyContent: "center",
@@ -1512,16 +1545,17 @@ const styles = StyleSheet.create({
     fontSize: 35,
   },
 
-  // סגנונות ציוד
+  // Equipment styles // סטיילים לציוד
   equipmentContainer: {
     backgroundColor: theme.colors.card,
     marginHorizontal: theme.spacing.lg,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
     marginBottom: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     paddingVertical: theme.spacing.md,
+    ...theme.shadows.small,
   },
   equipmentScroll: {
     paddingHorizontal: theme.spacing.lg,
@@ -1536,17 +1570,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   noEquipmentText: {
-    fontSize: 16,
+    fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     fontWeight: "500",
     marginTop: theme.spacing.sm,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   noEquipmentSubtext: {
-    fontSize: 14,
+    fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.textTertiary,
     marginTop: theme.spacing.xs,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   equipmentItem: {
     alignItems: "center",
@@ -1558,12 +1594,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: theme.spacing.xs,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.backgroundElevated,
   },
   equipmentImage: {
     width: 40,
@@ -1574,30 +1610,32 @@ const styles = StyleSheet.create({
     top: -4,
     right: -4,
     backgroundColor: theme.colors.warning,
-    borderRadius: 8,
+    borderRadius: theme.radius.xs,
     width: 16,
     height: 16,
     justifyContent: "center",
     alignItems: "center",
   },
   equipmentLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.captionSmall.fontSize,
     color: theme.colors.text,
     textAlign: "center",
     fontWeight: "500",
     marginBottom: theme.spacing.xs,
     lineHeight: 16,
+    writingDirection: "rtl",
   },
   equipmentCategoryBadge: {
     backgroundColor: theme.colors.primary + "20",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: theme.radius.xs,
   },
   equipmentCategoryText: {
-    fontSize: 10,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.colors.primary,
     fontWeight: "500",
     textAlign: "center",
+    writingDirection: "rtl",
   },
 });

@@ -2,9 +2,11 @@
  * @file src/screens/auth/RegisterScreen.tsx
  * @description מסך הרשמה משודרג - אימות מתקדם, אנימציות, חוזק סיסמה, תנאי שימוש
  * English: Enhanced registration screen with advanced validation, animations, password strength, terms
- * @dependencies BackButton, theme, authService, userStore
- * @notes כולל מד חוזק סיסמה, אישור גיל 16+, קישור לתנאי שימוש, ולידציה חזותית, אנימציות הצלחה
+ * @dependencies BackButton, theme, authService, userStore, RootStackParamList
+ * @notes כולל מד חוזק סיסמה, אישור גיל 16+, קישור לתנאי שימוש, ולידציה חזותית, אנימציות הצלחה, תמיכה מלאה ב-RTL
  * @enhancements אינדיקטורי ולידציה בזמן אמת, שיפורי חווית הקלדה, אנימציית הצלחה, תמיכה ב-Biometric
+ * @recurring_errors השתמש ב-theme בלבד, וודא RTL נכון, השתמש ב-global navigation types
+ * @updated 2025-07-30 שיפור RTL, אנימציות מתקדמות, תמיכה ב-global navigation types, אינדיקטורי טעינה חכמים
  *
  * === DEBUG MODE ENABLED ===
  * כל פעולה עיקרית מתועדת ב-console.log ו-console.group. ראה לוגים לכל שינוי state, הולידציה, try/catch, אנימציה, ניווט, ואירועי משתמש.
@@ -24,17 +26,14 @@ import {
   Animated,
   ScrollView,
 } from "react-native";
-import {
-  useNavigation,
-  NavigationProp,
-  ParamListBase,
-} from "@react-navigation/native";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
+import type { RootStackParamList } from "../../navigation/types";
 
 /**
  * מחשב את חוזק הסיסמה ומחזיר נתונים לתצוגה
@@ -118,7 +117,7 @@ const ValidationIndicator = ({
 };
 
 export default function RegisterScreen() {
-  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   // ----------- DEBUG: MOUNT -----------
   useEffect(() => {
@@ -203,9 +202,10 @@ export default function RegisterScreen() {
 
   // --- DEBUG: Animations ---
   useEffect(() => {
+    // אנימציית כניסה משופרת // Enhanced entry animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
+      duration: 800, // זמן ארוך יותר לחוויה חלקה
       useNativeDriver: true,
     }).start(() => {
       console.log("[ANIMATION] Entry animation finished");
@@ -287,13 +287,13 @@ export default function RegisterScreen() {
     return Animated.parallel([
       Animated.spring(successScaleAnim, {
         toValue: 1,
-        friction: 4,
-        tension: 40,
+        friction: 6, // פחות חלק לאפקט דרמטי יותר
+        tension: 60,
         useNativeDriver: true,
       }),
       Animated.timing(successRotateAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 800, // זמן ארוך יותר לסיבוב
         useNativeDriver: true,
       }),
     ]);
@@ -513,11 +513,11 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
+                style={{ marginEnd: 8 }} // שינוי RTL: marginEnd במקום marginStart
               />
               <TextInput
                 style={styles.input}
-                placeholder="שם מלא"
+                placeholder="שם מלא (לפחות 2 תווים)"
                 placeholderTextColor={theme.colors.textSecondary}
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -558,7 +558,7 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
+                style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
               />
               <TextInput
                 ref={emailRef}
@@ -609,13 +609,13 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
+                  style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
                 />
               </TouchableOpacity>
               <TextInput
                 ref={passwordRef}
                 style={styles.input}
-                placeholder="סיסמה"
+                placeholder="סיסמה (לפחות 6 תווים)"
                 placeholderTextColor={theme.colors.textSecondary}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -688,7 +688,7 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginStart: 6 }} // שינוי RTL: marginStart במקום marginLeft
+                  style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
                 />
               </TouchableOpacity>
               <TextInput
@@ -735,7 +735,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
+              style={{ marginStart: 8 }} // RTL: שמירה על marginStart כי זה Switch
             />
           </View>
           {/* --- אישור תנאים --- */}
@@ -758,7 +758,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginStart: 8 }} // שינוי RTL: marginStart במקום marginLeft
+              style={{ marginStart: 8 }} // RTL: שמירה על marginStart כי זה Switch
             />
           </View>
 
@@ -783,7 +783,10 @@ export default function RegisterScreen() {
               style={styles.gradientButton}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.registerLoadingText}>יוצר חשבון...</Text>
+                </View>
               ) : (
                 <Text style={styles.registerButtonText}>צור חשבון</Text>
               )}
@@ -807,15 +810,24 @@ export default function RegisterScreen() {
             disabled={loading}
             activeOpacity={0.8}
           >
-            <Text style={styles.googleButtonText}>הרשמה עם Google</Text>
-            <Ionicons name="logo-google" size={22} color="#ea4335" />
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#ea4335" />
+                <Text style={styles.googleLoadingText}>נרשם עם Google...</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.googleButtonText}>הרשמה עם Google</Text>
+                <Ionicons name="logo-google" size={22} color="#ea4335" />
+              </>
+            )}
           </TouchableOpacity>
 
           {/* --- קישור להתחברות --- */}
           <View style={styles.linkRow}>
             <Text style={styles.linkText}>כבר יש לך חשבון?</Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate("Login")}
+              onPress={() => navigation.navigate("Login", {})}
               disabled={loading}
             >
               <Text style={styles.loginLink}>התחבר עכשיו</Text>
@@ -941,7 +953,8 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     fontSize: 13,
     textDecorationLine: "underline",
-    marginEnd: 4, // שינוי RTL: marginEnd במקום marginRight - כדי לשמור על ריווח בין הטקסט לקישור
+    marginEnd: 4,
+    padding: 2, // אזור מגע גדול יותר
   },
   errorText: {
     color: theme.colors.error,
@@ -967,6 +980,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.5,
+  },
+  registerLoadingText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   dividerContainer: {
     flexDirection: "row",
@@ -1004,15 +1022,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.5,
   },
+  loadingContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+  },
+  googleLoadingText: {
+    color: "#ea4335",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   linkRow: {
     flexDirection: "row-reverse", // קבוע לעברית, בלי תנאי
     justifyContent: "center",
     alignItems: "center",
-    // gap: 4,
+    gap: 6,
   },
   linkText: {
     color: theme.colors.textSecondary,
     fontSize: 14,
+    marginEnd: 4, // רווח בין הטקסט לקישור
   },
   loginLink: {
     color: theme.colors.accent,
@@ -1023,7 +1052,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginStart: -50, // שינוי RTL: marginStart במקום marginLeft
+    marginStart: -50, // RTL: שמירה על marginStart למיקום מרכזי
     marginTop: -50,
     zIndex: 1000,
   },
