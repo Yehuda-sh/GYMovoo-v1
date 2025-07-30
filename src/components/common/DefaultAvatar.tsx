@@ -52,6 +52,11 @@ function DefaultAvatar({
   const iconSize = size * 0.6;
   const borderRadius = size / 2;
 
+  // יצירת תווית נגישות מותאמת
+  const accessibilityLabel = name
+    ? `תמונת פרופיל של ${name}`
+    : "תמונת פרופיל ברירת מחדל";
+
   return (
     <View
       style={[
@@ -63,11 +68,18 @@ function DefaultAvatar({
           backgroundColor: backgroundColor || theme.colors.backgroundAlt,
         },
       ]}
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={
+        name ? "אווטאר עם ראשי תיבות של השם" : "אייקון אווטאר כללי"
+      }
     >
       {name && initials ? (
         <Text
           style={[styles.initials, { fontSize }]}
           allowFontScaling={false} // מניעת שינוי גודל אוטומטי
+          accessible={false} // האב כבר נגיש
         >
           {initials}
         </Text>
@@ -76,6 +88,7 @@ function DefaultAvatar({
           name="person"
           size={iconSize}
           color={theme.colors.text}
+          accessible={false} // האב כבר נגיש
         />
       )}
     </View>

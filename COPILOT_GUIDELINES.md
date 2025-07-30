@@ -66,6 +66,12 @@
 - **הפעלת הפרויקט:** השתמש ב-`npx expo start` (לא `npm run start`)
 - **מאגר תרגילים:** מאגר עשיר של תרגילים בעברית + תרגילי WGER באנגלית
 - **WGER Integration:** עובד עם wgerService.ts (לא wgerApiService.ts)
+- **🔄 BackButton מרכזי:** תמיד import BackButton from "../../components/common/BackButton"
+  - **Variants זמינים:** default, minimal, large
+  - **Props:** absolute={false/true}, variant, size, style, onPress
+  - **נגישות מובנית:** accessibilityLabel="חזור", accessibilityRole="button"
+  - **RTL נכון:** אייקון chevron-forward (לא chevron-back)
+- **איסור כפתורי חזרה ידניים:** אל תיצור TouchableOpacity עם navigation.goBack() ישירות
 
 ## 📊 סטטיסטיקות הפרויקט המעודכנות
 
@@ -108,6 +114,123 @@ wgerService.ts - שירות WGER ראשי (הנכון לשימוש)
 wgerApiService.ts - שירות WGER משני (למקרי גיבוי)
 ```
 
+### דוגמת שימוש נכון ב-BackButton:
+
+```typescript
+// ✅ שימוש נכון
+import BackButton from "../../components/common/BackButton";
+
+// במסך רגיל
+<BackButton absolute={false} />
+
+// במסך עם header minimal
+<BackButton absolute={false} variant="minimal" />
+
+// במסך עם header גדול
+<BackButton absolute={false} variant="large" />
+
+// עם פונקציה מותאמת אישית
+<BackButton absolute={false} onPress={handleCustomBack} />
+
+// ❌ שימוש שגוי - אל תעשה כך!
+<TouchableOpacity onPress={() => navigation.goBack()}>
+  <Ionicons name="chevron-forward" size={24} />
+</TouchableOpacity>
+```
+
+### 🔔 ConfirmationModal - תחליף נגיש ל-Alert.alert
+
+במקום להשתמש ב-`Alert.alert` שאינו תומך ב-RTL ונגישות מלאה, השתמש ב-`ConfirmationModal`:
+
+```tsx
+// ❌ הימנע מכך
+Alert.alert("כותרת", "הודעה", [
+  { text: "ביטול", style: "cancel" },
+  { text: "אישור", onPress: () => doAction() },
+]);
+
+// ✅ השתמש בזה במקום
+import ConfirmationModal from "../../components/common/ConfirmationModal";
+
+// הגדרת state
+const [showModal, setShowModal] = useState(false);
+const [modalConfig, setModalConfig] = useState({
+  title: "",
+  message: "",
+  onConfirm: () => {},
+  confirmText: "אישור",
+  destructive: false,
+});
+
+// שימוש
+const handleAction = () => {
+  setModalConfig({
+    title: "אישור פעולה",
+    message: "האם אתה בטוח שברצונך לבצע פעולה זו?",
+    onConfirm: () => doAction(),
+    confirmText: "כן, בצע",
+    destructive: true, // למחיקות או פעולות מסוכנות
+  });
+  setShowModal(true);
+};
+
+// ב-JSX
+<ConfirmationModal
+  visible={showModal}
+  title={modalConfig.title}
+  message={modalConfig.message}
+  onClose={() => setShowModal(false)}
+  onConfirm={() => {
+    setShowModal(false);
+    modalConfig.onConfirm();
+  }}
+  onCancel={() => setShowModal(false)}
+  confirmText={modalConfig.confirmText}
+  cancelText="ביטול"
+  destructive={modalConfig.destructive}
+/>;
+```
+
+### ♿ קומפוננטי UI נגישים
+
+כל הקומפוננטים הבסיסיים כעת תומכים בנגישות מלאה:
+
+```tsx
+// IconButton עם נגישות
+<IconButton
+  icon="settings"
+  onPress={handleSettings}
+  accessibilityLabel="הגדרות"
+  accessibilityHint="פתח את מסך ההגדרות"
+/>
+
+// UniversalButton עם נגישות
+<UniversalButton
+  title="שמור"
+  variant="primary"
+  onPress={handleSave}
+  loading={isSaving}
+  accessibilityLabel="שמור שינויים"
+  accessibilityHint="שמור את כל השינויים שביצעת"
+/>
+
+// InputField עם נגישות (אוטומטית)
+<InputField
+  label="שם מלא"
+  placeholder="הכנס את שמך המלא"
+  value={name}
+  onChangeText={setName}
+  // accessibility labels נוצרים אוטומטית מה-label ו-placeholder
+/>
+
+// DefaultAvatar עם נגישות (אוטומטית)
+<DefaultAvatar
+  name="יוסי כהן"
+  size={90}
+  // accessibility label נוצר אוטומטית: "תמונת פרופיל של יוסי כהן"
+/>
+```
+
 ## 🏗️ ארכיטקטורה מרכזית
 
 - **ניווט:** AppNavigator.tsx (Stack) + BottomNavigation.tsx (Tabs)
@@ -123,6 +246,9 @@ wgerApiService.ts - שירות WGER משני (למקרי גיבוי)
 - **אל תשתמש ב-`npm run start`** - השתמש ב-`npx expo start`
 - **אל תפתח טרמינל חדש לרענון Expo** - בקש מהמשתמש ללחוץ `r` בטרמינל הקיים
 - **אל תכלול נתונים דינמיים בתיעוד** - כמו מספרי אימונים ספציפיים או זמנים
+- **🚫 אל תיצור כפתורי חזרה ידניים** - תמיד השתמש ב-BackButton המרכזי
+- **🚫 אל תשתמש ב-chevron-back** - תמיד chevron-forward (RTL)
+- **🚫 אל תשכח accessibilityLabel** - בכל TouchableOpacity
 - שים לב לקונפליקטים בין wgerService.ts (הנכון) ו-wgerApiService.ts (גיבוי)
 - **RTL חובה:** כל טקסט עברי חייב `textAlign: "right"` + `writingDirection: "rtl"`
 - **מגדר:** שאלת מגדר תמיד ראשונה, ואחריה התאמה דינמית
@@ -137,6 +263,7 @@ wgerApiService.ts - שירות WGER משני (למקרי גיבוי)
 - **עבודה עם Expo:** אם Expo פועל - תמיד עבוד בטרמינל הקיים, לא תפתח חדש
 - **מבנה נתונים:** תמיד בדוק את המבנה האמיתי (object.key, לא array ישירות)
 - **אינטגרציה:** HistoryScreen עובד עם נתוני דמו דרך user.activityHistory.workouts
+- **🔄 BackButton חובה:** כל מסך חדש חייב לכלול BackButton מ-components/common - אל תיצור כפתורי חזרה ידניים
 
 ### 🏗️ כללי פיתוח יסודיים:
 
@@ -148,6 +275,8 @@ wgerApiService.ts - שירות WGER משני (למקרי גיבוי)
 - **הערות:** תמיד דו-לשוניות (עברית + אנגלית)
 - **קבצים:** מקסימום 500 שורות - לפצל לcomponents/hooks/utils
 - **ניווט:** כל route חדש = 3 עדכונים (screen + types.ts + AppNavigator.tsx)
+- **כפתור חזרה:** תמיד להשתמש ב-BackButton מ-components/common עם variants מתאימים
+- **נגישות:** כל TouchableOpacity חייב accessibilityLabel, accessibilityRole, accessibilityHint
 - **בדיקות:** להריץ תמיד לפני commit: checkNavigation.js, checkMissingComponents.js, projectHealthCheck.js
 
 ## 📝 כללי תיעוד חובה

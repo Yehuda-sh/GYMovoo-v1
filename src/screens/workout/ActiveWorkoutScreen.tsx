@@ -19,6 +19,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import BackButton from "../../components/common/BackButton";
 
 // ממשק לתרגיל פעיל
 interface ActiveExercise {
@@ -120,6 +121,7 @@ export default function ActiveWorkoutScreen() {
 
   return (
     <View style={styles.container}>
+      <BackButton />
       <Text style={styles.header}>אימון A - רגליים</Text>
 
       <View style={styles.exerciseCard}>

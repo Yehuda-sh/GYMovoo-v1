@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
+import BackButton from "../../../components/common/BackButton";
 
 interface WorkoutHeaderProps {
   workoutName: string;
@@ -75,13 +76,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   if (variant === "minimal") {
     return (
       <View style={styles.minimalContainer}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.minimalButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name={backIconName} size={28} color={theme.colors.text} />
-        </TouchableOpacity>
+        <BackButton absolute={false} variant="minimal" />
 
         <View style={styles.minimalCenter}>
           <TouchableOpacity onPress={onNamePress} activeOpacity={0.7}>
@@ -114,13 +109,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         style={styles.gradientContainer}
       >
         <View style={styles.gradientContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.gradientButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name={backIconName} size={30} color={theme.colors.text} />
-          </TouchableOpacity>
+          <BackButton absolute={false} variant="large" />
 
           <View style={styles.gradientCenter}>
             <TouchableOpacity
@@ -178,13 +167,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         {/* שורה עליונה */}
         {/* Top row */}
         <View style={styles.integratedTop}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.iconButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name={backIconName} size={30} color={theme.colors.text} />
-          </TouchableOpacity>
+          <BackButton absolute={false} variant="large" />
 
           <TouchableOpacity
             onPress={onNamePress}
@@ -327,13 +310,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 
       {/* כפתור חזרה - בצד שמאל */}
       {/* Back button - left side */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.iconButton}
-        activeOpacity={0.7}
-      >
-        <Ionicons name={backIconName} size={32} color={theme.colors.text} />
-      </TouchableOpacity>
+      <BackButton absolute={false} variant="large" />
     </View>
   );
 };

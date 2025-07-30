@@ -16,11 +16,12 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { RootStackParamList } from "../../navigation/types";
 import { NavigationProp } from "@react-navigation/native";
+import BackButton from "../../components/common/BackButton";
 
 export default function TermsScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -29,16 +30,7 @@ export default function TermsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons
-            name="chevron-forward"
-            size={28}
-            color={theme.colors.text}
-          />
-        </TouchableOpacity>
+        <BackButton absolute={false} />
 
         <Text style={styles.title}>תנאי שימוש</Text>
 

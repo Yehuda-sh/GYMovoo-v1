@@ -15,6 +15,8 @@ interface IconButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   hitSlop?: { top: number; bottom: number; left: number; right: number };
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 const IconButton: React.FC<IconButtonProps> = ({
@@ -28,7 +30,12 @@ const IconButton: React.FC<IconButtonProps> = ({
   disabled = false,
   style,
   hitSlop = { top: 10, bottom: 10, left: 10, right: 10 },
+  accessibilityLabel,
+  accessibilityHint,
 }) => {
+  // יצירת תווית נגישות ברירת מחדל
+  const defaultAccessibilityLabel = accessibilityLabel || `כפתור ${icon}`;
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -45,11 +52,19 @@ const IconButton: React.FC<IconButtonProps> = ({
         style,
       ]}
       activeOpacity={0.7}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={defaultAccessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled,
+      }}
     >
       <Ionicons
         name={icon}
         size={size}
         color={disabled ? theme.colors.textSecondary : color}
+        accessible={false} // האב כבר נגיש
       />
     </TouchableOpacity>
   );

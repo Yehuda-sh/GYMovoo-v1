@@ -15,11 +15,17 @@ import { theme } from "../../styles/theme";
 interface BackButtonProps {
   absolute?: boolean;
   onPress?: () => void; // אפשרות לפונקציה מותאמת אישית
+  size?: number; // גודל האייקון
+  variant?: "default" | "minimal" | "large"; // סגנונות שונים
+  style?: any; // סגנון מותאם אישית
 }
 
 export default function BackButton({
   absolute = true,
   onPress,
+  size = 24,
+  variant = "default",
+  style,
 }: BackButtonProps) {
   const navigation = useNavigation();
 
@@ -31,10 +37,43 @@ export default function BackButton({
     }
   };
 
+  // בחירת סגנון לפי variant
+  const getButtonStyle = () => {
+    switch (variant) {
+      case "minimal":
+        return [
+          styles.button,
+          styles.minimal,
+          absolute && styles.absolute,
+          style,
+        ];
+      case "large":
+        return [
+          styles.button,
+          styles.large,
+          absolute && styles.absolute,
+          style,
+        ];
+      default:
+        return [styles.button, absolute && styles.absolute, style];
+    }
+  };
+
+  const getIconSize = () => {
+    switch (variant) {
+      case "large":
+        return size + 4;
+      case "minimal":
+        return size - 2;
+      default:
+        return size;
+    }
+  };
+
   return (
     <TouchableOpacity
       onPress={handlePress}
-      style={[styles.button, absolute && styles.absolute]}
+      style={getButtonStyle()}
       activeOpacity={0.7}
       accessibilityLabel="חזור"
       accessibilityRole="button"
@@ -42,7 +81,7 @@ export default function BackButton({
     >
       <Ionicons
         name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
-        size={24}
+        size={getIconSize()}
         color={theme.colors.text}
       />
     </TouchableOpacity>
@@ -59,6 +98,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...theme.shadows.medium,
     zIndex: 99,
+  },
+  minimal: {
+    backgroundColor: "transparent",
+    width: 36,
+    height: 36,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  large: {
+    width: 48,
+    height: 48,
+    borderRadius: 28,
   },
   absolute: {
     position: "absolute",

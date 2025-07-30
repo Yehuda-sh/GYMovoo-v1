@@ -122,17 +122,28 @@ const InputField: React.FC<InputFieldProps> = ({
           maxLength={maxLength}
           editable={editable}
           textAlign={theme.isRTL ? "right" : "left"}
+          accessible={true}
+          accessibilityLabel={label || placeholder || "שדה קלט"}
+          accessibilityHint={hasError ? `שגיאה: ${error}` : undefined}
+          accessibilityState={{
+            disabled: !editable,
+          }}
         />
 
         {showPasswordToggle && (
           <TouchableOpacity
             onPress={togglePasswordVisibility}
             style={styles.rightIcon}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={isPasswordVisible ? "הסתר סיסמה" : "הצג סיסמה"}
+            accessibilityHint="מחליף בין הצגה להסתרה של הסיסמה"
           >
             <Ionicons
               name={isPasswordVisible ? "eye-outline" : "eye-off-outline"}
               size={20}
               color={theme.colors.textSecondary}
+              accessible={false}
             />
           </TouchableOpacity>
         )}
@@ -142,11 +153,15 @@ const InputField: React.FC<InputFieldProps> = ({
             onPress={onRightIconPress}
             style={styles.rightIcon}
             disabled={!onRightIconPress}
+            accessible={!!onRightIconPress}
+            accessibilityRole="button"
+            accessibilityLabel={`כפתור ${rightIcon}`}
           >
             <Ionicons
               name={rightIcon}
               size={20}
               color={theme.colors.textSecondary}
+              accessible={false}
             />
           </TouchableOpacity>
         )}

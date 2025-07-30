@@ -26,6 +26,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { generateQuickWorkout } from "../../services/quickWorkoutGenerator";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
 
@@ -301,6 +302,15 @@ const QuickWorkoutScreen: React.FC = () => {
     exerciseTips: false,
   });
 
+  // Confirmation modals
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [showNoSetsModal, setShowNoSetsModal] = useState(false);
+  const [showStartSetModal, setShowStartSetModal] = useState(false);
+  const [nextSetData, setNextSetData] = useState<{
+    exercise: Exercise;
+    set: any;
+  } | null>(null);
+
   const [modalData] = useState<{
     plateCalculatorWeight?: number;
     selectedExercise?: Exercise;
@@ -411,17 +421,7 @@ const QuickWorkoutScreen: React.FC = () => {
             "🚨 QuickWorkout - מציג אלרט השלמת שאלון (נתונים נטענו במלואם)"
           );
           setTimeout(() => {
-            Alert.alert(
-              "אימון מותאם אישית",
-              "השלם את השאלון כדי לקבל אימונים מותאמים אישית לפי המטרות והיכולות שלך",
-              [
-                { text: "אחר כך", style: "cancel" },
-                {
-                  text: "לשאלון",
-                  onPress: () => navigation.navigate("Questionnaire" as never),
-                },
-              ]
-            );
+            setShowQuestionnaireModal(true);
           }, 1000);
         } else {
           console.log("🔄 QuickWorkout - דילוג על אלרט - נתונים עדיין נטענים");
@@ -542,10 +542,7 @@ const QuickWorkoutScreen: React.FC = () => {
 
   const handleFinishWorkout = useCallback(() => {
     if (stats.completedSets === 0) {
-      Alert.alert(
-        "אין סטים שהושלמו",
-        "יש להשלים לפחות סט אחד לפני סיום האימון"
-      );
+      setShowNoSetsModal(true);
       return;
     }
 
@@ -821,19 +818,8 @@ const QuickWorkoutScreen: React.FC = () => {
               .find(({ set }) => !set.completed);
 
             if (nextSet) {
-              Alert.alert(
-                "התחל סט",
-                `${nextSet.exercise.name} - ${nextSet.set.targetReps} חזרות`,
-                [
-                  { text: "ביטול", style: "cancel" },
-                  {
-                    text: "התחל",
-                    onPress: () => {
-                      // מתחיל סט חדש
-                    },
-                  },
-                ]
-              );
+              setNextSetData(nextSet);
+              setShowStartSetModal(true);
             }
           }}
         />
@@ -908,6 +894,50 @@ const QuickWorkoutScreen: React.FC = () => {
           }}
         />
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        visible={showQuestionnaireModal}
+        onClose={() => setShowQuestionnaireModal(false)}
+        onConfirm={() => {
+          setShowQuestionnaireModal(false);
+          navigation.navigate("Questionnaire" as never);
+        }}
+        title="אימון מותאם אישית"
+        message="השלם את השאלון כדי לקבל אימונים מותאמים אישית לפי המטרות והיכולות שלך"
+        confirmText="לשאלון"
+        cancelText="אחר כך"
+        icon="clipboard-outline"
+      />
+
+      <ConfirmationModal
+        visible={showNoSetsModal}
+        onClose={() => setShowNoSetsModal(false)}
+        onConfirm={() => setShowNoSetsModal(false)}
+        title="אין סטים שהושלמו"
+        message="יש להשלים לפחות סט אחד לפני סיום האימון"
+        confirmText="בסדר"
+        icon="alert-circle-outline"
+        iconColor={theme.colors.warning}
+      />
+
+      <ConfirmationModal
+        visible={showStartSetModal}
+        onClose={() => setShowStartSetModal(false)}
+        onConfirm={() => {
+          setShowStartSetModal(false);
+          // מתחיל סט חדש
+        }}
+        title="התחל סט"
+        message={
+          nextSetData
+            ? `${nextSetData.exercise.name} - ${nextSetData.set.targetReps} חזרות`
+            : ""
+        }
+        confirmText="התחל"
+        cancelText="ביטול"
+        icon="play-circle-outline"
+      />
     </>
   );
 };

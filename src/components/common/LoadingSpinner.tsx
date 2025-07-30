@@ -31,9 +31,26 @@ export default function LoadingSpinner({
   ];
 
   return (
-    <View style={containerStyle}>
-      <ActivityIndicator size={size} color={color} />
-      {text && <Text style={styles.loadingText}>{text}</Text>}
+    <View
+      style={containerStyle}
+      accessible={true}
+      accessibilityRole="progressbar"
+      accessibilityLabel={text || "טוען"}
+      accessibilityHint="האפליקציה טוענת, אנא המתן"
+    >
+      <ActivityIndicator
+        size={size}
+        color={color}
+        accessible={false} // האב כבר נגיש
+      />
+      {text && (
+        <Text
+          style={styles.loadingText}
+          accessible={false} // האב כבר נגיש
+        >
+          {text}
+        </Text>
+      )}
     </View>
   );
 }

@@ -22,15 +22,34 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   children,
 }) => {
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={`${title}${description ? `. ${description}` : ""}`}
+      accessibilityHint="מסך ריק - אין תוכן להצגה"
+    >
       <Ionicons
         name={icon}
         size={iconSize}
         color={iconColor}
         style={styles.icon}
+        accessible={false} // האב כבר נגיש
       />
-      <Text style={styles.title}>{title}</Text>
-      {description && <Text style={styles.description}>{description}</Text>}
+      <Text
+        style={styles.title}
+        accessible={false} // האב כבר נגיש
+      >
+        {title}
+      </Text>
+      {description && (
+        <Text
+          style={styles.description}
+          accessible={false} // האב כבר נגיש
+        >
+          {description}
+        </Text>
+      )}
       {children && <View style={styles.actions}>{children}</View>}
     </View>
   );

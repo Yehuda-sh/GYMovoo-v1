@@ -29,6 +29,8 @@ interface UniversalButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
   fullWidth?: boolean;
   onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export const UniversalButton: React.FC<UniversalButtonProps> = ({
@@ -42,9 +44,25 @@ export const UniversalButton: React.FC<UniversalButtonProps> = ({
   fullWidth = false,
   onPress,
   style,
+  accessibilityLabel,
+  accessibilityHint,
   ...props
 }) => {
   const isDisabled = disabled || loading;
+
+  // יצירת תווית נגישות מותאמת
+  const getAccessibilityLabel = () => {
+    if (accessibilityLabel) return accessibilityLabel;
+    if (loading) return `${title}, טוען`;
+    return title;
+  };
+
+  const getAccessibilityHint = () => {
+    if (accessibilityHint) return accessibilityHint;
+    if (loading) return "הכפתור טוען, אנא המתן";
+    if (disabled) return "כפתור לא זמין";
+    return "הקש כדי להפעיל";
+  };
 
   // גדלים דינמיים // Dynamic sizes
   const getSizeStyles = () => {
@@ -161,6 +179,14 @@ export const UniversalButton: React.FC<UniversalButtonProps> = ({
         onPress={onPress}
         disabled={isDisabled}
         style={[fullWidth && styles.fullWidth, style]}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={getAccessibilityLabel()}
+        accessibilityHint={getAccessibilityHint()}
+        accessibilityState={{
+          disabled: isDisabled,
+          busy: loading,
+        }}
         {...props}
       >
         <LinearGradient
@@ -200,6 +226,14 @@ export const UniversalButton: React.FC<UniversalButtonProps> = ({
         fullWidth && styles.fullWidth,
         style,
       ]}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={getAccessibilityLabel()}
+      accessibilityHint={getAccessibilityHint()}
+      accessibilityState={{
+        disabled: isDisabled,
+        busy: loading,
+      }}
       {...props}
     >
       {renderContent()}

@@ -1,6 +1,11 @@
-/* 
- src\components\common\ConfirmationModal.tsx
-*/
+/**
+ * @file src/components/common/ConfirmationModal.tsx
+ * @brief מודל אישור פעולות עם תמיכה מלאה ב-RTL ונגישות
+ * @dependencies React Native Modal, Ionicons, theme
+ * @notes תומך במצב destructive, אייקונים מותאמים אישית, ונגישות מלאה
+ * @recurring_errors וודא accessibility labels, RTL בכפתורים, theme colors
+ */
+
 import React from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,9 +67,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityViewIsModal={true}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View
+          style={styles.modal}
+          accessibilityRole="alert"
+          accessibilityLabel={`דיאלוג אישור: ${title}`}
+        >
           {icon && (
             <View style={styles.iconContainer}>
               <Ionicons
@@ -87,6 +97,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 { backgroundColor: cancelButtonColor || theme.colors.surface },
               ]}
               onPress={handleCancel}
+              accessibilityRole="button"
+              accessibilityLabel={`כפתור ${cancelText}`}
+              accessibilityHint="לחץ כדי לבטל את הפעולה"
             >
               <Text style={[styles.buttonText, styles.cancelButtonText]}>
                 {cancelText}
@@ -100,6 +113,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 { backgroundColor: confirmButtonColor || defaultConfirmColor },
               ]}
               onPress={handleConfirm}
+              accessibilityRole="button"
+              accessibilityLabel={`כפתור ${confirmText}`}
+              accessibilityHint={
+                destructive
+                  ? "זהירות! פעולה זו אינה הפיכה"
+                  : "לחץ כדי לאשר את הפעולה"
+              }
             >
               <Text style={styles.buttonText}>{confirmText}</Text>
             </TouchableOpacity>
@@ -134,12 +154,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl", // RTL תמיכה מלאה
     marginBottom: theme.spacing.md,
   },
   message: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl", // RTL תמיכה מלאה
     lineHeight: 20,
     marginBottom: theme.spacing.lg,
   },

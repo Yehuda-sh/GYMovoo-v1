@@ -26,6 +26,8 @@ import {
 } from "../../services/exerciseService";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import MuscleBar from "./MuscleBar";
+import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -54,6 +56,7 @@ export default function ExerciseListScreen() {
   const [allMuscles, setAllMuscles] = useState<Muscle[]>([]);
   const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [showNoSelectionModal, setShowNoSelectionModal] = useState(false);
 
   // Toast
   const [showToast, setShowToast] = useState(false);
@@ -129,7 +132,7 @@ export default function ExerciseListScreen() {
   // סיום בחירת תרגילים
   const handleFinishSelection = () => {
     if (selectedExercises.length === 0) {
-      Alert.alert("לא נבחרו תרגילים", "בחר לפחות תרגיל אחד להוספה לאימון");
+      setShowNoSelectionModal(true);
       return;
     }
     navigation.goBack();
@@ -244,18 +247,7 @@ export default function ExerciseListScreen() {
     <View style={styles.container}>
       {/* כותרת */}
       <View style={styles.header}>
-        {isSelectionMode && (
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={24}
-              color={theme.colors.text}
-            />
-          </TouchableOpacity>
-        )}
+        {isSelectionMode && <BackButton absolute={false} variant="minimal" />}
         <Text style={styles.headerTitle}>
           {isSelectionMode ? "בחר תרגילים להוספה" : "ספריית תרגילים"}
         </Text>
@@ -326,6 +318,18 @@ export default function ExerciseListScreen() {
           onClose={() => setSelected(null)}
         />
       )}
+
+      {/* No Selection Confirmation Modal */}
+      <ConfirmationModal
+        visible={showNoSelectionModal}
+        onClose={() => setShowNoSelectionModal(false)}
+        onConfirm={() => setShowNoSelectionModal(false)}
+        title="לא נבחרו תרגילים"
+        message="בחר לפחות תרגיל אחד להוספה לאימון"
+        confirmText="בסדר"
+        icon="alert-circle-outline"
+        iconColor={theme.colors.warning}
+      />
     </View>
   );
 }

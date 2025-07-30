@@ -28,6 +28,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../navigation/types";
+import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 // Removed problematic twoStageQuestionnaireData imports - using simple questionnaire validation
@@ -173,6 +175,7 @@ export default function ProfileScreen() {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // אנימציות
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -387,17 +390,12 @@ export default function ProfileScreen() {
   }, [user]);
 
   const handleLogout = () => {
-    Alert.alert("התנתקות", "האם אתה בטוח שברצונך להתנתק?", [
-      { text: "ביטול", style: "cancel" },
-      {
-        text: "התנתק",
-        style: "destructive",
-        onPress: () => {
-          userLogout();
-          navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
-        },
-      },
-    ]);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    userLogout();
+    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
   };
 
   // בחר מהגלריה
@@ -464,17 +462,7 @@ export default function ProfileScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={28}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
+            <BackButton absolute={false} />
             <Text style={styles.headerTitle}>הפרופיל שלי</Text>
             <View style={styles.headerRight}>
               {/* כפתור השלמת שאלון אם לא הושלם */}
@@ -1071,6 +1059,19 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+        title="התנתקות"
+        message="האם אתה בטוח שברצונך להתנתק?"
+        confirmText="התנתק"
+        cancelText="ביטול"
+        destructive={true}
+        icon="log-out-outline"
+      />
     </LinearGradient>
   );
 }

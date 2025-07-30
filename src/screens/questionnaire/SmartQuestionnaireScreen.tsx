@@ -26,6 +26,7 @@ import {
 } from "../../data/smartQuestionnaireData";
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
+import BackButton from "../../components/common/BackButton";
 
 // קומפוננטת משוב AI מנימה
 const AIFeedbackComponent: React.FC<{
@@ -395,16 +396,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
       >
         {/* Header מעוצב */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left" // תמיד arrow-left בעברית (חזרה למסך הקודם)
-              size={24}
-              color={theme.colors.text}
-            />
-          </TouchableOpacity>
+          <BackButton absolute={false} variant="minimal" />
           <Text style={styles.headerTitle}>שאלון חכם</Text>
           <View style={styles.headerSpacer} />
         </View>

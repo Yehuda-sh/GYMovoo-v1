@@ -28,6 +28,8 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { questionnaireService } from "../../services/questionnaireService";
 import { WorkoutDataService } from "../../services/workoutDataService"; // 🤖 AI Service
+import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import {
   WorkoutPlan,
   WorkoutTemplate,
@@ -126,6 +128,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
+
+  // Modal states for accessibility improvements
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "אישור",
+    destructive: false,
+  });
 
   // WGER API Integration
   // WGER Integration
@@ -297,17 +312,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     if (workoutId) {
       console.log(`✅ Workout completed: ${workoutId}`);
 
-      Alert.alert(
-        "אימון הושלם! 🎉",
-        "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
-        [
-          { text: "הישאר כאן", style: "cancel" },
-          {
-            text: "צור תוכנית חדשה",
-            onPress: () => generateWorkoutPlan(true),
-          },
-        ]
-      );
+      setModalConfig({
+        title: "אימון הושלם! 🎉",
+        message: "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
+        onConfirm: () => generateWorkoutPlan(true),
+        confirmText: "צור תוכנית חדשה",
+        destructive: false,
+      });
+      setShowConfirmModal(true);
     } else {
       generateWorkoutPlan();
     }
@@ -372,15 +384,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         );
 
         if (forceRegenerate) {
-          Alert.alert(
-            "🤖 תוכנית AI חדשה נוצרה!",
-            `נוצרה תוכנית חכמה: "${aiPlan.name}"\n\n` +
+          setModalConfig({
+            title: "🤖 תוכנית AI חדשה נוצרה!",
+            message:
+              `נוצרה תוכנית חכמה: "${aiPlan.name}"\n\n` +
               `📊 ציון התאמה: ${aiPlan.aiScore?.toFixed(0)}/100\n` +
               `🎯 רמה: ${aiPlan.personalizationLevel === "basic" ? "בסיסית" : aiPlan.personalizationLevel === "advanced" ? "מתקדמת" : "מומחה"}\n` +
               `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0)}%\n\n` +
               `✨ התוכנית תתאים את עצמה לפי הביצועים שלך!`,
-            [{ text: "בואו נתחיל! 💪", style: "default" }]
-          );
+            onConfirm: () => {},
+            confirmText: "בואו נתחיל! 💪",
+            destructive: false,
+          });
+          setShowSuccessModal(true);
         }
       } else {
         throw new Error("AI failed to generate plan");
@@ -388,20 +404,17 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     } catch (error: unknown) {
       console.error("❌ AI Plan Generation Error:", error);
 
-      Alert.alert(
-        "שגיאה ביצירת תוכנית AI",
-        error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
-          ? "אנא השלם את השאלון תחילה"
-          : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
-        [
-          { text: "אישור", style: "default" },
-          {
-            text: "נסה שוב",
-            style: "default",
-            onPress: () => generateAIWorkoutPlan(true),
-          },
-        ]
-      );
+      setModalConfig({
+        title: "שגיאה ביצירת תוכנית AI",
+        message:
+          error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
+            ? "אנא השלם את השאלון תחילה"
+            : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
+        onConfirm: () => generateAIWorkoutPlan(true),
+        confirmText: "נסה שוב",
+        destructive: false,
+      });
+      setShowErrorModal(true);
 
       // fallback לתוכנית רגילה
       generateWorkoutPlan(forceRegenerate);
@@ -570,17 +583,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         Object.keys(userQuestionnaireData).length === 0
       ) {
         console.error(`Missing required fields: ${missingFields.join(", ")}`);
-        Alert.alert(
-          "נתונים חסרים 📋",
-          "יש להשלים את השאלון כדי לקבל תוכנית מותאמת אישית",
-          [
-            { text: "ביטול", style: "cancel" },
-            {
-              text: "לשאלון",
-              onPress: () => navigation.navigate("Questionnaire" as never),
-            },
-          ]
-        );
+        setModalConfig({
+          title: "נתונים חסרים 📋",
+          message: "יש להשלים את השאלון כדי לקבל תוכנית מותאמת אישית",
+          onConfirm: () => navigation.navigate("Questionnaire" as never),
+          confirmText: "לשאלון",
+          destructive: false,
+        });
+        setShowErrorModal(true);
         return;
       }
 
@@ -697,7 +707,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // הודעת הצלחה אם זה חידוש
       if (forceRegenerate && !refreshing) {
-        Alert.alert("✨ תוכנית חדשה נוצרה!", "התוכנית עודכנה בהתאם להעדפותיך");
+        setModalConfig({
+          title: "✨ תוכנית חדשה נוצרה!",
+          message: "התוכנית עודכנה בהתאם להעדפותיך",
+          onConfirm: () => {},
+          confirmText: "אישור",
+          destructive: false,
+        });
+        setShowSuccessModal(true);
       }
 
       console.log(
@@ -705,7 +722,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
     } catch (error) {
       console.error("Error generating workout plan:", error);
-      Alert.alert("שגיאה", "לא הצלחנו ליצור תוכנית אימון. נסה שוב.");
+      setModalConfig({
+        title: "שגיאה",
+        message: "לא הצלחנו ליצור תוכנית אימון. נסה שוב.",
+        onConfirm: () => {},
+        confirmText: "אישור",
+        destructive: false,
+      });
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1859,7 +1883,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       if (activeExercises.length === 0) {
-        Alert.alert("שגיאה", "לא נמצאו תרגילים מתאימים לאימון זה.");
+        setModalConfig({
+          title: "שגיאה",
+          message: "לא נמצאו תרגילים מתאימים לאימון זה.",
+          onConfirm: () => {},
+          confirmText: "אישור",
+          destructive: false,
+        });
+        setShowErrorModal(true);
         return;
       }
 
@@ -1883,7 +1914,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.log("✅ Navigation completed successfully");
     } catch (error) {
       console.error("Error starting workout:", error);
-      Alert.alert("שגיאה", "לא הצלחנו להתחיל את האימון. נסה שוב.");
+      setModalConfig({
+        title: "שגיאה",
+        message: "לא הצלחנו להתחיל את האימון. נסה שוב.",
+        onConfirm: () => {},
+        confirmText: "אישור",
+        destructive: false,
+      });
+      setShowErrorModal(true);
     }
   };
 
@@ -1904,17 +1942,25 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Replace exercise
    */
   const replaceExercise = (exerciseId: string, _dayIndex: number) => {
-    Alert.alert("החלפת תרגיל", "האם ברצונך להחליף את התרגיל הנוכחי?", [
-      { text: "ביטול", style: "cancel" },
-      {
-        text: "החלף",
-        onPress: () => {
-          // לוגיקה להחלפת תרגיל
-          console.log("Replace exercise:", exerciseId);
-          Alert.alert("בקרוב", "אפשרות החלפת תרגילים תהיה זמינה בקרוב");
-        },
+    setModalConfig({
+      title: "החלפת תרגיל",
+      message: "האם ברצונך להחליף את התרגיל הנוכחי?",
+      onConfirm: () => {
+        // לוגיקה להחלפת תרגיל
+        console.log("Replace exercise:", exerciseId);
+        setModalConfig({
+          title: "בקרוב",
+          message: "אפשרות החלפת תרגילים תהיה זמינה בקרוב",
+          onConfirm: () => {},
+          confirmText: "אישור",
+          destructive: false,
+        });
+        setShowComingSoonModal(true);
       },
-    ]);
+      confirmText: "החלף",
+      destructive: false,
+    });
+    setShowConfirmModal(true);
   };
 
   // מסך טעינה
@@ -1989,16 +2035,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={28}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
+            <BackButton absolute={false} variant="minimal" />
 
             <View style={styles.titleContainer}>
               <View style={styles.titleRow}>
@@ -2610,9 +2647,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() =>
-                Alert.alert("בקרוב", "שמירת תוכניות תהיה זמינה בקרוב")
-              }
+              onPress={() => {
+                setModalConfig({
+                  title: "בקרוב",
+                  message: "שמירת תוכניות תהיה זמינה בקרוב",
+                  onConfirm: () => {},
+                  confirmText: "אישור",
+                  destructive: false,
+                });
+                setShowComingSoonModal(true);
+              }}
               activeOpacity={0.7}
             >
               <LinearGradient
@@ -2633,6 +2677,70 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           </View>
         </ScrollView>
       </Animated.View>
+
+      {/* Success Modal */}
+      <ConfirmationModal
+        visible={showSuccessModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          modalConfig.onConfirm();
+        }}
+        onCancel={() => setShowSuccessModal(false)}
+        confirmText={modalConfig.confirmText}
+        cancelText="אישור"
+        destructive={modalConfig.destructive}
+      />
+
+      {/* Error Modal */}
+      <ConfirmationModal
+        visible={showErrorModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => {
+          setShowErrorModal(false);
+          modalConfig.onConfirm();
+        }}
+        onCancel={() => setShowErrorModal(false)}
+        confirmText={modalConfig.confirmText}
+        cancelText="ביטול"
+        destructive={modalConfig.destructive}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={showConfirmModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          setShowConfirmModal(false);
+          modalConfig.onConfirm();
+        }}
+        onCancel={() => setShowConfirmModal(false)}
+        confirmText={modalConfig.confirmText}
+        cancelText="ביטול"
+        destructive={modalConfig.destructive}
+      />
+
+      {/* Coming Soon Modal */}
+      <ConfirmationModal
+        visible={showComingSoonModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setShowComingSoonModal(false)}
+        onConfirm={() => {
+          setShowComingSoonModal(false);
+          modalConfig.onConfirm();
+        }}
+        onCancel={() => setShowComingSoonModal(false)}
+        confirmText={modalConfig.confirmText}
+        cancelText="אישור"
+        destructive={modalConfig.destructive}
+      />
     </LinearGradient>
   );
 }
