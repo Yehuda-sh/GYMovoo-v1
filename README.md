@@ -39,7 +39,7 @@
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
-- **שירותים חדשים** - workoutHistoryService, workoutSimulationService, scientificAIService ועוד
+- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר), scientificAIService ועוד
 
 ## 🚀 התחלה מהירה
 
@@ -65,7 +65,7 @@ npm install
 yarn install
 
 # הפעל את האפליקציה בפיתוח
-npx expo start
+npx expo start --android
 
 # הפעל עם ניקוי קאש (אם יש בעיות)
 npx expo start --clear
