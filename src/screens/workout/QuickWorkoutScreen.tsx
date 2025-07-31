@@ -1,7 +1,77 @@
 /**
  * @file src/screens/workout/QuickWorkoutScreen.tsx
- * @description מסך אימון מהיר עם עיצוב משופר וקומפקטי
- * English: Quick workout screen with improved and compact design
+ * @brief מסך אימון מהיר מתקדם עם AI אישי וממשק אינטראקטיבי מלא
+ * @version 3.0.0
+ * @author GYMovoo Development Team
+ * @created 2024-12-15
+ * @modified 2025-07-31
+ *
+ * @description
+ * מסך אימון מהיר מתקדם המספק חוויית אימון מלאה עם:
+ * - יצירת אימונים מותאמים אישית על בסיס שאלון המשתמש
+ * - ממשק אינטראקטיבי עם טיימרים, דשבורד, וסטטיסטיקות חיות
+ * - מעקב התקדמות בזמן אמת עם חישוב שיאים אישיים
+ * - מערכת מנוחה אוטומטית ופקדי זמן מתקדמים
+ * - שמירה אוטומטית ויכולות backup מתקדמות
+ *
+ * @features
+ * - ✅ יצירת אימונים מותאמים אישית עם generateQuickWorkout
+ * - ✅ ממשק מתקדם עם WorkoutHeader, Dashboard, StatusBar
+ * - ✅ מעקב זמן בזמן אמת עם useWorkoutTimer & useRestTimer
+ * - ✅ חישוב שיאים אישיים מהיסטוריית המשתמש
+ * - ✅ שמירה אוטומטית עם autoSaveService
+ * - ✅ FAB דינמי עם הסתרה/הצגה בגלילה
+ * - ✅ מודלים מתקדמים (PlateCalculator, ExerciseTips, Summary)
+ * - ✅ תמיכת RTL מלאה עם אנימציות מתקדמות
+ * - ✅ נגישות מקיפה לכל הרכיבים
+ *
+ * @performance
+ * אופטימיזציה מתקדמת עם useMemo לחישובי סטטיסטיקות,
+ * useCallback למניעת re-renders מיותרים, FlatList אופטימלי,
+ * ואנימציות עם native driver לביצועים מיטביים
+ *
+ * @rtl
+ * תמיכה מלאה בעברית עם פריסת רכיבים מימין לשמאל,
+ * FAB ממוקם נכון, ואנימציות מותאמות לכיוון קריאה
+ *
+ * @accessibility
+ * תמיכה מלאה ב-Screen Readers עם accessibilityLabel, accessibilityRole,
+ * accessibilityHint מפורטים לכל רכיב אינטרקטיבי, טיימר, וסטטיסטיקה
+ *
+ * @algorithm
+ * חישוב שיאים אישיים: השוואת ביצועים נוכחיים לקודמים מההיסטוריה
+ * חישוב קצב: elapsedTime / totalReps
+ * חישוב נפח: Σ(weight × reps) לכל הסטים המושלמים
+ *
+ * @hooks
+ * - useWorkoutTimer: מעקב זמן אימון עם start/pause/resume
+ * - useRestTimer: טיימר מנוחה אוטומטי עם פקדים
+ * - useUserPreferences: נתוני משתמש ומטרות אימון
+ * - useUserStore: גישה למידע המשתמש וההיסטוריה
+ *
+ * @services
+ * - autoSaveService: שמירה אוטומטית של מצב האימון
+ * - generateQuickWorkout: יצירת אימונים מותאמים אישית
+ *
+ * @dependencies
+ * React Navigation, MaterialCommunityIcons, Animated, FlatList,
+ * WorkoutHeader, WorkoutDashboard, ExerciseCard, FloatingActionButton
+ *
+ * @exports QuickWorkoutScreen (default)
+ *
+ * @example
+ * ```tsx
+ * // בשימוש עם preset exercises
+ * navigation.navigate('QuickWorkout', {
+ *   exercises: customExercises,
+ *   workoutName: 'אימון חזה וכתפיים',
+ *   source: 'WorkoutPlansScreen'
+ * });
+ * ```
+ *
+ * @notes
+ * מסך מרכזי באפליקציה - מטפל בלוגיקה מורכבת של אימונים,
+ * טיימרים, שמירת נתונים, ואינטראקציה עם המשתמש
  */
 // cspell:ignore קומפוננטות, קומפוננטה, סקוואט, במודאלים, לדשבורד, הדשבורד, Subviews, אלרט, uick
 
@@ -49,9 +119,44 @@ import autoSaveService from "./services/autoSaveService";
 import { Exercise, WorkoutData, Set } from "./types/workout.types";
 import { useUserStore } from "../../stores/userStore";
 
+// TypeScript interfaces for better type safety
+interface HistoricalWorkout {
+  exercises?: HistoricalExercise[];
+  [key: string]: unknown;
+}
+
+interface HistoricalExercise {
+  name?: string;
+  exerciseName?: string;
+  sets?: HistoricalSet[];
+  weight?: number;
+  reps?: number;
+  [key: string]: unknown;
+}
+
+interface HistoricalSet {
+  weight?: number;
+  actualWeight?: number;
+  reps?: number;
+  actualReps?: number;
+  [key: string]: unknown;
+}
+
+interface UserData {
+  activityHistory?: {
+    workouts?: HistoricalWorkout[];
+  };
+  [key: string]: unknown;
+}
+
+interface NextSetData {
+  exercise: Exercise;
+  set: Set;
+}
+
 // פונקציה לחישוב שיאים אישיים מהיסטוריית המשתמש
 const calculatePersonalRecords = (
-  user: any,
+  user: UserData | null,
   currentExercises: Exercise[]
 ): number => {
   if (!user?.activityHistory?.workouts) return 0;
@@ -73,12 +178,15 @@ const calculatePersonalRecords = (
 };
 
 // פונקציה למציאת הביצוע הטוב ביותר בהיסטוריה
-const findBestPerformance = (workouts: any[], exerciseName: string): number => {
+const findBestPerformance = (
+  workouts: HistoricalWorkout[],
+  exerciseName: string
+): number => {
   let best = 0;
 
   workouts.forEach((workout) => {
     if (workout.exercises) {
-      workout.exercises.forEach((ex: any) => {
+      workout.exercises.forEach((ex: HistoricalExercise) => {
         if (ex.name === exerciseName || ex.exerciseName === exerciseName) {
           const performance = calculatePerformanceScore(ex);
           if (performance > best) {
@@ -109,10 +217,10 @@ const findCurrentBest = (exercise: Exercise): number => {
 };
 
 // פונקציה לחישוב ציון ביצוע (משקל * חזרות)
-const calculatePerformanceScore = (exercise: any): number => {
+const calculatePerformanceScore = (exercise: HistoricalExercise): number => {
   if (exercise.sets && exercise.sets.length > 0) {
     let maxScore = 0;
-    exercise.sets.forEach((set: any) => {
+    exercise.sets.forEach((set: HistoricalSet) => {
       const score =
         (set.weight || set.actualWeight || 0) *
         (set.reps || set.actualReps || 0);
@@ -261,6 +369,8 @@ const FAB_CONFIG = {
 };
 
 const QuickWorkoutScreen: React.FC = () => {
+  console.log("🎬 QuickWorkoutScreen component rendered");
+
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -292,6 +402,14 @@ const QuickWorkoutScreen: React.FC = () => {
 
   const { user } = useUserStore();
 
+  console.log("📊 QuickWorkout - User data:", {
+    userGoal,
+    preferredDuration,
+    hasCompletedQuestionnaire,
+    isInitialized,
+    presetExercises: presetExercises?.length || 0,
+  });
+
   // מצב FAB
   const [fabVisible, setFabVisible] = useState(true);
   const [fabLabelVisible, setFabLabelVisible] = useState(true);
@@ -306,10 +424,7 @@ const QuickWorkoutScreen: React.FC = () => {
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [showNoSetsModal, setShowNoSetsModal] = useState(false);
   const [showStartSetModal, setShowStartSetModal] = useState(false);
-  const [nextSetData, setNextSetData] = useState<{
-    exercise: Exercise;
-    set: any;
-  } | null>(null);
+  const [nextSetData, setNextSetData] = useState<NextSetData | null>(null);
 
   const [modalData] = useState<{
     plateCalculatorWeight?: number;
@@ -340,13 +455,19 @@ const QuickWorkoutScreen: React.FC = () => {
   // טעינת אימון מותאם אישית - רק פעם אחת
   // Load personalized workout - only once
   useEffect(() => {
-    if (isInitialized && isLoadingWorkout) {
+    console.log("🔄 QuickWorkout useEffect triggered:", {
+      isInitialized,
+      isLoadingWorkout,
+    });
+
+    if (isLoadingWorkout) {
       loadPersonalizedWorkout();
     }
   }, [isInitialized, isLoadingWorkout]);
 
   const loadPersonalizedWorkout = async () => {
     try {
+      console.log("🚀 QuickWorkout - מתחיל טעינת אימון מותאם אישית...");
       setIsLoadingWorkout(true);
 
       // אם יש תרגילים מוכנים מהתוכנית - השתמש בהם!
@@ -363,14 +484,18 @@ const QuickWorkoutScreen: React.FC = () => {
         return;
       }
 
-      // חכה עד שהנתונים נטענים
-      // Wait until data is loaded
+      // אם הנתונים לא נטענו עדיין - חכה או השתמש בברירת מחדל
+      // If data not loaded yet - wait or use default
       if (!isInitialized) {
-        console.log("� QuickWorkout - ממתין לטעינת נתוני משתמש...");
+        console.log(
+          "⏳ QuickWorkout - נתונים לא נטענו עדיין, משתמש בברירת מחדל"
+        );
+        setExercises(initialExercises);
+        setIsLoadingWorkout(false);
         return;
       }
 
-      console.log("�🔍 QuickWorkout - בדיקת השלמת שאלון:", {
+      console.log("🔍 QuickWorkout - בדיקת השלמת שאלון:", {
         hasCompletedQuestionnaire,
         userGoal,
         preferredDuration,
@@ -381,24 +506,35 @@ const QuickWorkoutScreen: React.FC = () => {
       // If user completed questionnaire, create personalized workout
       if (hasCompletedQuestionnaire) {
         console.log("✅ QuickWorkout - משתמש השלים שאלון, יוצר אימון מותאם");
-        const personalizedExercises = await generateQuickWorkout();
-        if (personalizedExercises.length > 0) {
-          setExercises(personalizedExercises);
+        try {
+          const personalizedExercises = await generateQuickWorkout();
+          if (personalizedExercises.length > 0) {
+            setExercises(personalizedExercises);
 
-          // עדכון שם האימון לפי המטרה
-          // Update workout name by goal
-          const workoutNames: { [key: string]: string } = {
-            "ירידה במשקל": "אימון קרדיו לירידה במשקל",
-            "עליה במסת שריר": "אימון בניית שריר",
-            "שיפור כוח": "אימון כוח",
-            "שיפור סיבולת": "אימון סיבולת",
-            "בריאות כללית": "אימון מאוזן",
-            "שיקום מפציעה": "אימון שיקומי",
-          };
-          setWorkoutName(workoutNames[userGoal] || "אימון מותאם אישית");
-        } else {
-          // אם אין תרגילים מתאימים, השתמש בברירת מחדל
-          // If no suitable exercises, use default
+            // עדכון שם האימון לפי המטרה
+            // Update workout name by goal
+            const workoutNames: { [key: string]: string } = {
+              "ירידה במשקל": "אימון קרדיו לירידה במשקל",
+              "עליה במסת שריר": "אימון בניית שריר",
+              "שיפור כוח": "אימון כוח",
+              "שיפור סיבולת": "אימון סיבולת",
+              "בריאות כללית": "אימון מאוזן",
+              "שיקום מפציעה": "אימון שיקומי",
+            };
+            setWorkoutName(workoutNames[userGoal] || "אימון מותאם אישית");
+          } else {
+            // אם אין תרגילים מתאימים, השתמש בברירת מחדל
+            // If no suitable exercises, use default
+            console.log(
+              "⚠️ QuickWorkout - לא נמצאו תרגילים מותאמים, משתמש בברירת מחדל"
+            );
+            setExercises(initialExercises);
+          }
+        } catch (exerciseError) {
+          console.error(
+            "Error generating personalized exercises:",
+            exerciseError
+          );
           setExercises(initialExercises);
         }
       } else {
@@ -431,6 +567,7 @@ const QuickWorkoutScreen: React.FC = () => {
       console.error("Error loading personalized workout:", error);
       setExercises(initialExercises);
     } finally {
+      console.log("✅ QuickWorkout - סיום טעינת אימון");
       setIsLoadingWorkout(false);
     }
   };
@@ -577,11 +714,19 @@ const QuickWorkoutScreen: React.FC = () => {
   // Render screen
   if (isLoadingWorkout) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <View
+        style={[styles.container, styles.loadingContainer]}
+        accessible={true}
+        accessibilityLabel="טוען אימון מותאם אישית"
+        accessibilityRole="none"
+      >
         <MaterialCommunityIcons
           name="dumbbell"
           size={80}
           color={theme.colors.primary}
+          accessible={true}
+          accessibilityRole="image"
+          accessibilityLabel="אייקון משקולת - טוען אימון"
         />
         <Text style={styles.loadingText}>יוצר אימון מותאם אישית...</Text>
         <Text style={styles.loadingSubtext}>
@@ -599,6 +744,9 @@ const QuickWorkoutScreen: React.FC = () => {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+        accessible={true}
+        accessibilityLabel="מסך אימון מהיר"
+        accessibilityRole="none"
       >
         {/* Header קומפקטי */}
         <WorkoutHeader
@@ -642,6 +790,9 @@ const QuickWorkoutScreen: React.FC = () => {
           data={exercises}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={null}
+          accessible={true}
+          accessibilityLabel="רשימת תרגילי האימון"
+          accessibilityRole="list"
           renderItem={({ item, index }) => (
             <ExerciseCard
               exercise={item}
@@ -787,20 +938,25 @@ const QuickWorkoutScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.finishButton}
               onPress={handleFinishWorkout}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="סיים אימון"
+              accessibilityHint={`סיים את האימון עם ${stats.completedSets} סטים שהושלמו`}
             >
               <Text style={styles.finishButtonText}>סיים אימון</Text>
             </TouchableOpacity>
           }
           showsVerticalScrollIndicator={false}
           onScroll={(event) => {
-            // הסתרת/הצגת FAB בגלילה
+            // הסתרת/הצגת FAB בגלילה - שיפור לוגיקה
             const velocity = event.nativeEvent.velocity?.y || 0;
+            const contentOffset = event.nativeEvent.contentOffset.y;
 
-            if (velocity > 0.5) {
-              // גלילה למטה - הסתר FAB
+            // הסתר FAB בגלילה מהירה למטה או כשמגיעים לתחתית
+            if (velocity > 0.8 || contentOffset > 100) {
               setFabVisible(false);
-            } else if (velocity < -0.5) {
-              // גלילה למעלה - הצג FAB
+            } else if (velocity < -0.3 || contentOffset < 50) {
+              // הצג FAB בגלילה למעלה או כשקרוב לראש הרשימה
               setFabVisible(true);
             }
           }}
@@ -812,7 +968,7 @@ const QuickWorkoutScreen: React.FC = () => {
           visible={fabVisible}
           label={fabLabelVisible ? "התחל עכשיו" : undefined}
           accessibilityLabel="התחל את הסט הבא"
-          accessibilityHint="הקש כדי להתחיל את הסט הבא באימון"
+          accessibilityHint={`הקש כדי להתחיל את הסט הבא באימון. ${nextExercise ? `התרגיל הבא: ${nextExercise.name}` : "אין תרגילים נוספים"}`}
           onPress={() => {
             // מצא את הסט הבא שלא הושלם
             const nextSet = exercises
@@ -843,13 +999,18 @@ const QuickWorkoutScreen: React.FC = () => {
           },
         ]}
         pointerEvents={dashboardVisible ? "auto" : "none"}
+        accessible={dashboardVisible}
+        accessibilityLabel="דשבורד אימון"
       >
         <WorkoutDashboard
           totalVolume={stats.totalVolume}
           completedSets={stats.completedSets}
           totalSets={stats.totalSets}
           pace={stats.currentPace}
-          personalRecords={calculatePersonalRecords(user, exercises)}
+          personalRecords={calculatePersonalRecords(
+            user as UserData | null,
+            exercises
+          )}
           elapsedTime={formattedTime}
           onHide={toggleDashboard}
         />
@@ -958,11 +1119,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginTop: theme.spacing.lg,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   loadingSubtext: {
     fontSize: 16,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   listStyle: {
     flex: 1,
@@ -980,11 +1145,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     alignItems: "center",
     ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.success + "30",
   },
   finishButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+    writingDirection: "rtl",
   },
   dashboardDrawer: {
     position: "absolute",
@@ -995,6 +1163,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     ...theme.shadows.large,
+    zIndex: 1000,
   },
 });
 

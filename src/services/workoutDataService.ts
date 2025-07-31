@@ -501,6 +501,13 @@ export class WorkoutDataService {
       "5_times": 5,
       "6_times": 6,
       daily: 7,
+      // 🔧 FIX: פורמט אנגלי עם רווחים מהשאלון החדש
+      "2 times per week": 2,
+      "3 times per week": 3,
+      "4 times per week": 4, // 🔧 התיקון העיקרי לבעיה!
+      "5 times per week": 5,
+      "6 times per week": 6,
+      "7 times per week": 7,
     };
     return frequencyMap[frequency] || 3;
   }

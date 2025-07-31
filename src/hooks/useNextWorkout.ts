@@ -114,6 +114,20 @@ export const useNextWorkout = (workoutPlan?: any) => {
     } else if (frequency === "5-plus" || frequency === "5_times") {
       daysPerWeek = 5;
     }
+    // 🔧 FIX: פורמט אנגלי עם רווחים מהשאלון החדש
+    else if (frequency === "2 times per week") {
+      daysPerWeek = 2;
+    } else if (frequency === "3 times per week") {
+      daysPerWeek = 3;
+    } else if (frequency === "4 times per week") {
+      daysPerWeek = 4; // 🔧 התיקון העיקרי!
+    } else if (frequency === "5 times per week") {
+      daysPerWeek = 5;
+    } else if (frequency === "6 times per week") {
+      daysPerWeek = 6;
+    } else if (frequency === "7 times per week") {
+      daysPerWeek = 7;
+    }
     // פורמט מהשאלון המורחב
     else if (frequency === "1-2 פעמים") {
       daysPerWeek = 2;

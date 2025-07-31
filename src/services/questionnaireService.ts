@@ -39,6 +39,7 @@ export interface QuestionnaireMetadata {
   injury_type?: string;
 
   // Advanced training data with equipment flexibility
+  equipment?: string[]; // Primary equipment field from questionnaire
   home_equipment?: string[];
   gym_equipment?: string[];
   available_equipment?: string[]; // Scientific user support
@@ -260,6 +261,11 @@ class QuestionnaireService {
     const prefs = await this.getUserPreferences();
     console.log("🔍 prefs מתוך getUserPreferences:", prefs);
 
+    // 🔧 FIX: Primary equipment field check - this is the main field from questionnaire
+    // בדיקת שדה הציוד הראשי - זה השדה העיקרי מהשאלון
+    const primaryEquipment = prefs?.equipment || [];
+    console.log("🔍 primaryEquipment (main field):", primaryEquipment);
+
     const homeEquipment = prefs?.home_equipment || [];
     const gymEquipment = prefs?.gym_equipment || [];
     console.log("🔍 homeEquipment:", homeEquipment);
@@ -277,10 +283,11 @@ class QuestionnaireService {
       : [];
     console.log("🔍 dynamicEquipment:", dynamicEquipment);
 
-    // מיזוג רשימות ללא כפילויות
-    // Merge lists without duplicates
+    // מיזוג רשימות ללא כפילויות - כולל שדה הציוד הראשי
+    // Merge lists without duplicates - including primary equipment field
     const mergedEquipment = [
       ...new Set([
+        ...primaryEquipment, // Add primary equipment field first
         ...homeEquipment,
         ...gymEquipment,
         ...availableEquipment,
