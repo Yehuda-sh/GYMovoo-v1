@@ -1,5 +1,14 @@
 /**
- * @file src/screens/exercise/ExerciseListScreen.tsx
+ *import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";screens/exercise/ExerciseListScreen.tsx
  * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים ומצב בחירה
  * @dependencies MuscleBar, ExerciseDetailsModal, exerciseService
  * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי ומצב בחירה לאימון
@@ -14,7 +23,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";

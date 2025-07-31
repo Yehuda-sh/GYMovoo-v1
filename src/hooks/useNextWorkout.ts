@@ -41,7 +41,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     useState<NextWorkoutRecommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true); // התחל עם true
   const [error, setError] = useState<string | null>(null);
-  const [cycleStats, setCycleStats] = useState<unknown>(null);
+  const [cycleStats, setCycleStats] = useState<{
+    currentWeek: number;
+    totalWorkouts: number;
+    daysInProgram: number;
+    consistency: number;
+  } | null>(null);
 
   /**
    * יצירת תוכנית שבועית מהנתונים עם תמיכה במערכת החדשה
@@ -69,18 +74,23 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       let frequency = "";
 
       // תמיכה במערכת החדשה (אם תתווסף בעתיד)
-      if ((user as any)?.smartQuestionnaireData?.frequency) {
-        const freq = (user as any).smartQuestionnaireData.frequency;
-        frequency = freq.id || freq;
+      if (user?.smartQuestionnaireData?.answers?.availability) {
+        const availability = user.smartQuestionnaireData.answers.availability;
+        frequency = Array.isArray(availability)
+          ? availability[0]
+          : availability;
       }
       // תמיכה בשאלון המורחב (אם יתווסף בעתיד)
-      else if ((user as any)?.extendedQuestionnaireData?.weekly_commitment) {
-        frequency = (user as any).extendedQuestionnaireData.weekly_commitment;
+      else if (user?.trainingStats?.preferredWorkoutDays) {
+        frequency = user.trainingStats.preferredWorkoutDays.toString();
       }
       // תמיכה במערכת הנוכחית
       else if (user?.questionnaireData?.answers) {
-        const answers = user.questionnaireData.answers as any;
-        frequency = answers.frequency || "";
+        const answers = user.questionnaireData.answers as Record<
+          string,
+          unknown
+        >;
+        frequency = (answers.frequency as string) || "";
       }
       // תמיכה בפורמט הישן
       else if (user?.questionnaire) {
@@ -179,8 +189,8 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       console.log("👤 User data available:", {
         hasQuestionnaireData: !!user?.questionnaireData,
         hasQuestionnaire: !!user?.questionnaire,
-        hasSmartData: !!(user as any)?.smartQuestionnaireData,
-        hasExtendedData: !!(user as any)?.extendedQuestionnaireData,
+        hasSmartData: !!user?.smartQuestionnaireData,
+        hasExtendedData: !!user?.trainingStats,
       });
 
       // בדיקת בטיחות מתקדמת - וידוא שהשירות קיים
