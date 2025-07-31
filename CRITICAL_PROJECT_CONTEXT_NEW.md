@@ -40,6 +40,8 @@
 - ייבוא יחסי בלבד (./) – לא src/...
 - אין שימוש ב-any ב-TypeScript – כל טיפוס ו-prop חייב להיות מוגדר במדויק.
 - כל שינוי ב-prop או interface – לעדכן בכל הממשקים/קבצים התלויים.
+- **🚨 CRITICAL: Multi-File Synchronization** - נתונים זהים (mappings, constants) בקבצים שונים חייבים להיות מסונכרנים!
+- **🚨 CRITICAL: Interface-Data Consistency** - ממשקי TypeScript חייבים לתאום מדויק עם מבנה הנתונים בפועל!
 - אין להשאיר קבצים מעל 500 שורות – חובה לפצל ל-components, hooks, utils.
 - אין לקנן FlatList בתוך ScrollView – רק FlatList כרכיב ראשי.
 - להעדיף פשטות על פני אפקטים, להוסיף גרדיאנט/אנימציה רק בדרישה אמיתית.
@@ -1622,7 +1624,93 @@ _חובה לקרוא לפני כל שינוי קוד!_
 
 **אם תשובה אחת היא "כן" - אל תכלול! ❗**
 
-### 3. **🔍 בדיקת מבנה נתונים - לקח חדש קריטי!**
+### 2. **🔗 Multi-File Data Synchronization - לקח חדש קריטי!**
+
+**תאריך:** 31/07/2025 | **הקשר:** תיקון באג frequency mapping
+
+**❌ הבעיה שהתגלתה:**
+`"4 times per week"` מופה ל-4 ימים ב-`workoutDataService.ts` אבל חסר ב-`WorkoutPlansScreen.tsx`
+
+**🔍 למה זה בעיה חמורה:**
+
+- נתונים זהים בקבצים שונים לא מסונכרנים
+- יוצר התנהגות לא עקבית בין חלקי המערכת
+- קשה לאתר ולתקן - הבעיה לא תמיד נראית
+- עלול לגרום לחישובים שגויים וממשק משתמש מבלבל
+
+**✅ הפתרון הנכון:**
+
+```typescript
+// במקום לשכפל מיפוי בכל קובץ:
+// WorkoutPlansScreen.tsx
+const frequencyMap = { "4 times per week": 4 };
+
+// workoutDataService.ts
+const frequencyMap = { "4 times per week": 4 };
+
+// ✅ יצירת קובץ constants משותף:
+// src/constants/frequencyMappings.ts
+export const FREQUENCY_MAPPINGS = {
+  "4 times per week": 4,
+  // ...
+};
+
+// ייבוא בכל קובץ:
+import { FREQUENCY_MAPPINGS } from "../constants/frequencyMappings";
+```
+
+**🎯 כלל זהב חדש:**
+**נתונים זהים = קובץ משותף!**
+
+### 3. **🔧 Interface-Data Consistency - לקח חדש קריטי!**
+
+**תאריך:** 31/07/2025 | **הקשר:** תיקון באג equipment extraction
+
+**❌ הבעיה שהתגלתה:**
+ממשק `QuestionnaireMetadata` חסר שדה `equipment` למרות שהנתונים כוללים אותו
+
+**🔍 למה זה בעיה חמורה:**
+
+- TypeScript לא מזהיר על חוסר התאמה
+- קוד נראה תקין אבל לא עובד
+- שדות בנתונים לא נגישים דרך הממשק
+- יוצר באגים קשים לזיהוי - הקוד לא קורס אבל מחזיר undefined
+
+**✅ הפתרון הנכון:**
+
+```typescript
+// ❌ לא נכון - ממשק לא תואם נתונים:
+interface QuestionnaireMetadata {
+  age?: string;
+  goal?: string;
+  // equipment?: string[]; <- חסר!
+}
+
+// בנתונים בפועל:
+const userData = {
+  age: "26-35",
+  goal: "build_muscle",
+  equipment: ["dumbbells", "barbell"], // קיים בנתונים!
+};
+
+// ✅ נכון - ממשק תואם נתונים:
+interface QuestionnaireMetadata {
+  age?: string;
+  goal?: string;
+  equipment?: string[]; // ← נוסף!
+}
+```
+
+**🎯 כלל זהב חדש:**
+**כל שדה בנתונים = שדה בממשק!**
+
+**📋 בדיקה לפני כל ממשק חדש:**
+
+1. האם כל השדות בנתונים מיוצגים בממשק?
+2. האם שמות השדות זהים במדויק?
+3. האם טיפוסי הנתונים תואמים?
+
+### 4. **🔍 בדיקת מבנה נתונים - לקח חדש קריטי!**
 
 **תאריך:** 30/07/2025 | **הקשר:** דיבוג HistoryScreen שהציג 1 אימון במקום 69
 

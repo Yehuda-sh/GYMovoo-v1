@@ -6,7 +6,91 @@
 
 מדריך זה מתעד את המימוש הטכני של מערכת השאלון החכמה החדשה עם תמיכת RTL מלאה והתאמת מגדר דינמית, מאגר הציוד המקיף, מערכת הדמו, וכן את מערכת סיום האימונים, מעקב שיאים ורכיבים משותפים.
 
-## 📊 עדכון אחרון: 30 יולי 2025
+## 📊 עדכון אחרון: 31 יולי 2025
+
+### 🚨 תיקון באגים קריטיים בניתוח נתונים ומיפוי
+
+#### 🔧 **באג Equipment Extraction - תוקן מלא**
+
+**הבעיה שהתגלתה:**
+
+```typescript
+// questionnaireService.ts - הבעיה:
+getAvailableEquipment() {
+  // חיפוש בשדות שלא קיימים:
+  const homeEquipment = prefs.homeEquipment || [];      // undefined!
+  const gymEquipment = prefs.gymEquipment || [];        // undefined!
+  const availableEquipment = prefs.availableEquipment || []; // undefined!
+
+  // התוצאה: []
+}
+```
+
+**הפתרון שיושם:**
+
+```typescript
+// הוספת השדה החסר:
+interface QuestionnaireMetadata {
+  equipment?: string[];  // ← נוסף!
+  // ...
+}
+
+// תיקון הפונקציה:
+getAvailableEquipment() {
+  const primaryEquipment = prefs.equipment || [];  // ← נתיב נכון!
+  // עכשיו: ["dumbbells", "barbell", "cable_machine"] ✅
+}
+```
+
+#### 🔧 **באג Frequency Mapping - תוקן בכל הקבצים**
+
+**הבעיה שהתגלתה:**
+
+```typescript
+// בעיה: "4 times per week" לא מופה ל-4 ימים
+const frequencyMap = {
+  "3 times per week": 3,
+  "5 times per week": 5,
+  // "4 times per week": 4,  ← חסר ב-3 קבצים!
+};
+// תוצאה: 4 פעמים בשבוע → 3 ימים (ברירת מחדל שגויה)
+```
+
+**הפתרון שיושם - 4 קבצים סונכרנו:**
+
+```typescript
+// WorkoutPlansScreen.tsx, workoutDataService.ts, useNextWorkout.ts
+const frequencyMap = {
+  "1-2 פעמים בשבוע": 2,
+  "3-4 פעמים בשבוע": 4,
+  "4 times per week": 4, // ← נוסף בכל הקבצים!
+  "5 times per week": 5,
+  // ...
+};
+// תוצאה: 4 פעמים בשבוע → 4 ימים ✅
+```
+
+#### 🔧 **באג Infinite Loading - תוקן ב-QuickWorkoutScreen**
+
+**הבעיה שהתגלתה:**
+
+```typescript
+// useEffect עם dependencies שגויים גורם ללופ אינסופי:
+useEffect(() => {
+  loadPersonalizedWorkout(); // רץ ללא הפסקה!
+}, [isInitialized]); // חסר isLoadingWorkout condition
+```
+
+**הפתרון שיושם:**
+
+```typescript
+useEffect(() => {
+  if (isLoadingWorkout) {
+    // תנאי למניעת לופ!
+    loadPersonalizedWorkout();
+  }
+}, [isInitialized, isLoadingWorkout]); // dependencies נכונים
+```
 
 ### 🎯 אינטגרציה מוצלחת: HistoryScreen עם מערכת הדמו
 

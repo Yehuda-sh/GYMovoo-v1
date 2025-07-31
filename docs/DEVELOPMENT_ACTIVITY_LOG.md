@@ -9,6 +9,28 @@
 ✅ התוצאה: מערכת AI מושלמת עם עברית נטיבית
 ```
 
+### 📅 Day 31 יולי - תיקון באגים קריטיים
+
+```
+🚨 בעיות שזוהו:
+1. Equipment extraction מחזיר רשימה ריקה []
+2. תדירות "4 times per week" מתורגמת ל-3 ימים במקום 4
+3. מסך טעינה אינסופי ב-QuickWorkoutScreen
+
+🔧 התיקונים שיושמו:
+✅ questionnaireService.ts - הוסף שדה equipment לממשק
+✅ WorkoutPlansScreen.tsx - הוסף מיפוי "4 times per week" → 4
+✅ workoutDataService.ts - מיפוי תדירות מורחב
+✅ useNextWorkout.ts - סנכרון מיפוי תדירות
+✅ QuickWorkoutScreen.tsx - תיקון useEffect dependencies
+
+🎯 תוצאות:
+- ציוד מתקבל נכון: ["dumbbells", "barbell", "cable_machine"]
+- תדירות נכונה: "4 times per week" → 4 ימי אימון
+- תוכנית אימונים: 4 ימים × 5 תרגילים כל יום
+- אין עוד מסכי טעינה אינסופיים
+```
+
 ## 🚀 השלבים המרכזיים שביצענו
 
 ### 🔧 Phase 1: בסיס נתונים חכם (22-24 יולי)

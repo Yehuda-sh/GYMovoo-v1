@@ -2,7 +2,7 @@
 🚦 GYMovoo - יומן התקדמות
 תיעוד התקדמות מפורט לפי שלבים ו-Checkpoints.
 
-## 📊 **Quick Stats** (עדכון אחרון: 30/07/2025)
+## 📊 **Quick Stats** (עדכון אחרון: 31/07/2025)
 
 - 🏥 **בריאות פרויקט:** 100/100
 - 📱 **מסכים:** 22+ מסכים מחוברים לניווט
@@ -18,12 +18,122 @@
 - 🎯 **מאגר ציוד מקיף:** 100+ פריטי ציוד עם קטגוריות ותיאורים
 - 🎲 **מערכת דמו:** כפתור דמו במסך הראשי לבדיקת נתונים רנדומליים
 - 🌍 **תמיכת RTL מלאה:** יישור נכון לימין בכל הטקסטים העבריים
+- 🔧 **תיקוני באגים קריטיים:** ציוד + תדירות + מסכי טעינה אינסופיים - הכל תוקן ומאומת
 - 👥 **התאמת מגדר דינמית:** שאלות ותשובות משתנות לפי המגדר שנבחר
 - **🆕 ניהול מצב מתקדם:** userStore מורחב עם 15+ פונקציות חדשות לשאלון חכם ומגדר
 - **🎯 אינטגרציה מושלמת:** HistoryScreen מציג נתוני דמו ריאליסטיים עם סטטיסטיקות מלאות\*\*
 - **📚 ארגון תיעוד מושלם:** צמצום מ-18 ל-17 מסמכים מאורגנים, איחוד 3 מסמכים, מחיקת 5 מסמכים מיושנים\*\*
 - **🔄 סנכרון מלא:** כל המסמכים מעודכנים עם מידע אחיד ועקבי, הוסרו נתונים דינמיים (5 מסמכי שורש + 10 מסמכי docs)\*\*
 - **📋 לקחים מתועדים:** 2 לקחים קריטיים נוספו למניעת טעיות עתידיות (נתונים דינמיים + עבודה עם Expo)\*\*
+
+## 🔖 Checkpoint #051 - תיקון באגים קריטיים במערכת השאלון והאימונים
+
+**תאריך:** 31/07/2025  
+**מטרה:** פתרון בעיות נתון ומיפוי שהמנעו מהמערכת לעבוד כצפוי
+
+### 🚨 **הבעיות הקריטיות שזוהו:**
+
+#### 1. **Equipment Extraction Bug**
+
+```log
+🔍 availableEquipment: [] <- רשימה ריקה!
+🔍 primaryEquipment (main field): ["dumbbells", "barbell", "cable_machine"] <- נתונים קיימים!
+```
+
+**הבעיה:** שירות questionnaireService.ts חיפש בשדות לא נכונים  
+**הפתרון:** הוספת שדה `equipment` לממשק QuestionnaireMetadata + עדכון getAvailableEquipment
+
+#### 2. **Frequency Mapping Bug**
+
+```log
+🔍 DEBUG: Raw frequency: "4 times per week"
+🔍 DEBUG: Days per week: 3 (לא נכון!) <- צריך להיות 4
+```
+
+**הבעיה:** מיפוי התדירות חסר את הפורמט "4 times per week"  
+**הפתרון:** הוספת מיפוי מסונכרן ב-4 קבצים שונים
+
+#### 3. **Infinite Loading Screen Bug**
+
+```log
+⏳ QuickWorkout - נתונים לא נטענו עדיין, משתמש בברירת מחדל
+🔄 QuickWorkout useEffect triggered -> אינסוף לופ!
+```
+
+**הבעיה:** useEffect dependencies לא נכונים + תנאי loading שגויים  
+**הפתרון:** תיקון dependencies ומניעת re-renders מיותרים
+
+### 🔧 **הקבצים שתוקנו:**
+
+#### ✅ `questionnaireService.ts`
+
+```typescript
+// לפני:
+interface QuestionnaireMetadata {
+  age?: string;
+  goal?: string;
+  // ... חסר שדה equipment!
+}
+
+// אחרי:
+interface QuestionnaireMetadata {
+  age?: string;
+  goal?: string;
+  equipment?: string[]; // ← הוספת השדה החסר!
+}
+
+// עדכון הפונקציה:
+const primaryEquipment = prefs.equipment || []; // ← חיפוש בשדה הנכון!
+```
+
+#### ✅ `WorkoutPlansScreen.tsx`, `workoutDataService.ts`, `useNextWorkout.ts`
+
+```typescript
+// הוספת מיפוי חסר:
+const frequencyMap = {
+  "1-2 פעמים בשבוע": 2,
+  "3-4 פעמים בשבוע": 4,
+  "4 times per week": 4, // ← הוספת הפורמט החסר!
+  "5 times per week": 5,
+  // ...
+};
+```
+
+#### ✅ `QuickWorkoutScreen.tsx`
+
+```typescript
+// תיקון useEffect:
+useEffect(() => {
+  if (isLoadingWorkout) {
+    // ← תנאי נכון למניעת לופ
+    loadPersonalizedWorkout();
+  }
+}, [isInitialized, isLoadingWorkout]); // ← dependencies נכונים
+```
+
+### 🎯 **התוצאות המדודות:**
+
+```log
+✅ 🔍 primaryEquipment: ["dumbbells", "barbell", "cable_machine"]
+✅ 🔍 mergedEquipment final: ["dumbbells", "barbell", "cable_machine"]
+✅ 🔍 DEBUG: Days per week: 4 (type: number)
+✅ 🏗️ DEBUG: Final workout plan created with 4 days
+✅ Android Bundled 16452ms index.ts (1378 modules) - ללא שגיאות!
+```
+
+### 📚 **הלקחים שנלמדו:**
+
+#### 🎯 **לקח #3: Multi-File Data Synchronization**
+
+**הבעיה:** נתונים זהים (כמו frequency mapping) מתועדים בקבצים שונים  
+**הפתרון:** כאשר מוסיפים ערך חדש, יש לבדוק ולעדכן בכל הקבצים הרלוונטיים  
+**מניעה:** יצירת קובץ constants משותף לערכים המשותפים
+
+#### 🎯 **לקח #4: Interface Field Naming Consistency**
+
+**הבעיה:** שדות בממשקים לא תואמים לשדות בנתונים האמיתיים  
+**הפתרון:** בדיקה קפדנית של שמות שדות בממשקי TypeScript מול הנתונים בפועל  
+**מניעה:** unit tests לוולידציית התאמת ממשקים לנתונים
 
 ## 🔖 Checkpoint #050 - השלמת מערכת ניווט מתקדמת עם RTL ואופטימיזציות
 
