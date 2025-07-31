@@ -463,7 +463,7 @@ const QuickWorkoutScreen: React.FC = () => {
     if (isLoadingWorkout) {
       loadPersonalizedWorkout();
     }
-  }, [isInitialized, isLoadingWorkout]);
+  }, [isInitialized]); // הסרת isLoadingWorkout כדי למנוע לולאה אינסופית
 
   const loadPersonalizedWorkout = async () => {
     try {
