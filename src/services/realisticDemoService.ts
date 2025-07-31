@@ -9,7 +9,11 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUserStore } from "../stores/userStore";
+import {
+  adaptExerciseNameToGender,
+  generateSingleGenderAdaptedNote,
+  UserGender,
+} from "../utils/genderAdaptation";
 
 // Core workout session interface with comprehensive tracking capabilities
 // ממשק מרכזי לאימון בודד עם יכולות מעקב מקיפות
@@ -82,6 +86,34 @@ export interface PerformanceAnalysis {
   recommendations: WorkoutRecommendation[];
 }
 
+// Workout metrics interface for type safety
+// ממשק מדדי אימון לבטיחות טיפוסים
+interface WorkoutMetrics {
+  averageVolume: number;
+  averageIntensity: number;
+  averageDuration: number;
+  completionRate: number;
+  averageRating: number;
+}
+
+// Personal record interface for structured tracking
+// ממשק שיא אישי למעקב מובנה
+interface PersonalRecord {
+  exercise: string;
+  type: "weight" | "reps" | "volume";
+  value: number;
+  date: string;
+}
+
+// Workout adjustment interface for intelligent planning
+// ממשק התאמת אימון לתכנון חכם
+interface WorkoutAdjustment {
+  type: "weight_increase" | "rep_increase" | "intensity_reduction";
+  exercise: string;
+  adjustment: string;
+  reason: string;
+}
+
 // Intelligent workout recommendations based on performance data
 // המלצות אימון חכמות מבוססות נתוני ביצועים
 export interface WorkoutRecommendation {
@@ -110,30 +142,34 @@ class RealisticDemoService {
    * Create new demo user with essential questionnaire data only - simulates real user onboarding
    * יצירת משתמש דמו חדש עם נתוני שאלון חיוניים בלבד - מדמה תהליך הכרות אמיתי של משתמש
    */
-  async createRealisticDemoUser(): Promise<void> {
+  async createRealisticDemoUser(gender?: UserGender): Promise<void> {
     // Create realistic demo user with minimal logging // יצירת משתמש דמו מציאותי עם לוגים מינימליים
 
     // Clear existing data // מחיקת נתונים קיימים
     await AsyncStorage.removeItem(this.DEMO_USER_KEY);
     await AsyncStorage.removeItem(this.DEMO_WORKOUTS_KEY);
 
+    // Generate gender-based demo data // יצירת נתוני דמו מבוססי מגדר
+    const selectedGender = gender || (Math.random() > 0.5 ? "male" : "female");
+    const genderBasedData = this.generateGenderBasedDemoData(selectedGender);
+
     // Essential questionnaire data only - exactly like a real user would provide
     // רק נתוני שאלון חיוניים - בדיוק כמו שמשתמש אמיתי היה מספק
     const basicUserData = {
       id: "demo_user_realistic",
-      email: "yoni.cohen.fit@gmail.com",
-      name: "יוני כהן",
+      email: genderBasedData.email,
+      name: genderBasedData.name,
       provider: "demo",
       createdAt: new Date().toISOString(),
-      avatar: "🏋️‍♂️",
+      avatar: genderBasedData.avatar,
 
       // Core questionnaire data - baseline user profile // נתוני שאלון מרכזיים - פרופיל משתמש בסיסי
       questionnaireData: {
         // Personal details // פרטים אישיים
         age_range: "26-35",
-        gender: "male",
-        height: 175,
-        weight: 75,
+        gender: selectedGender,
+        height: genderBasedData.height,
+        weight: genderBasedData.weight,
 
         // Fitness level - self-assessment only // רמת כושר - הערכה עצמית בלבד
         fitness_experience: "some_experience",
@@ -169,9 +205,9 @@ class RealisticDemoService {
         frequency: "4 times per week",
         duration: "45-60",
         equipment: ["dumbbells", "barbell", "cable_machine"],
-        gender: "male",
-        height: 175,
-        weight: 75,
+        gender: selectedGender,
+        height: genderBasedData.height,
+        weight: genderBasedData.weight,
       },
 
       // Starting from zero - authentic new user experience // התחלה מאפס - חוויית משתמש חדש אמיתית
@@ -212,6 +248,14 @@ class RealisticDemoService {
    */
   async addWorkoutSession(workout: WorkoutSession): Promise<void> {
     try {
+      // Get user data for gender adaptation // קבלת נתוני משתמש להתאמת מגדר
+      const user = await this.getDemoUser();
+      const userGender: UserGender =
+        (user?.questionnaireData?.gender as UserGender) || "other";
+
+      // Apply gender adaptation to exercise names // התאמת שמות תרגילים למגדר
+      const adaptedWorkout = this.adaptWorkoutToGender(workout, userGender);
+
       // Get current workout history // קבלת היסטוריה נוכחית
       const workoutsJson = await AsyncStorage.getItem(this.DEMO_WORKOUTS_KEY);
       const workouts: WorkoutSession[] = workoutsJson
@@ -219,7 +263,7 @@ class RealisticDemoService {
         : [];
 
       // Add new workout // הוספת האימון החדש
-      workouts.push(workout);
+      workouts.push(adaptedWorkout);
 
       // Save updated history // שמירת היסטוריה מעודכנת
       await AsyncStorage.setItem(
@@ -239,6 +283,112 @@ class RealisticDemoService {
       }
     } catch (error) {
       console.error("Error adding workout session:", error);
+    }
+  }
+
+  /**
+   * Adapt workout session to user gender preferences
+   * התאמת אימון להעדפות מגדר המשתמש
+   */
+  private adaptWorkoutToGender(
+    workout: WorkoutSession,
+    gender: UserGender
+  ): WorkoutSession {
+    const adaptedWorkout = { ...workout };
+
+    // Adapt exercise names to gender // התאמת שמות תרגילים למגדר
+    adaptedWorkout.exercises = workout.exercises.map((exercise) => ({
+      ...exercise,
+      name: adaptExerciseNameToGender(exercise.name, gender),
+    }));
+
+    // Adapt feedback notes to gender // התאמת הערות פידבק למגדר
+    const averageRPE =
+      workout.exercises.reduce((sum, ex) => {
+        const setsRPE = ex.actualSets.reduce(
+          (setSum, set) => setSum + set.perceivedExertion,
+          0
+        );
+        return sum + setsRPE / Math.max(ex.actualSets.length, 1);
+      }, 0) / workout.exercises.length;
+
+    adaptedWorkout.feedback = {
+      ...workout.feedback,
+      notes: generateSingleGenderAdaptedNote(gender, averageRPE > 6 ? 4 : 3),
+    };
+
+    return adaptedWorkout;
+  }
+
+  /**
+   * Generate gender-based demo data for realistic user profiles
+   * יצירת נתוני דמו מבוססי מגדר לפרופילי משתמש מציאותיים
+   */
+  private generateGenderBasedDemoData(gender: UserGender) {
+    const maleProfiles = [
+      {
+        name: "יוני כהן",
+        email: "yoni.cohen.fit@gmail.com",
+        avatar: "🏋️‍♂️",
+        height: 175,
+        weight: 75,
+      },
+      {
+        name: "דני לוי",
+        email: "dani.levi.workout@gmail.com",
+        avatar: "💪",
+        height: 180,
+        weight: 82,
+      },
+      {
+        name: "רון ישראלי",
+        email: "ron.israeli.gym@gmail.com",
+        avatar: "🤸‍♂️",
+        height: 172,
+        weight: 70,
+      },
+    ];
+
+    const femaleProfiles = [
+      {
+        name: "מיכל כהן",
+        email: "michal.cohen.fit@gmail.com",
+        avatar: "🏋️‍♀️",
+        height: 165,
+        weight: 60,
+      },
+      {
+        name: "נועה לוי",
+        email: "noa.levi.workout@gmail.com",
+        avatar: "💃",
+        height: 170,
+        weight: 65,
+      },
+      {
+        name: "שירה ישראלי",
+        email: "shira.israeli.gym@gmail.com",
+        avatar: "🤸‍♀️",
+        height: 162,
+        weight: 55,
+      },
+    ];
+
+    const otherProfiles = [
+      {
+        name: "אלכס דמו",
+        email: "alex.demo.fit@gmail.com",
+        avatar: "🌟",
+        height: 168,
+        weight: 68,
+      },
+    ];
+
+    if (gender === "male") {
+      return maleProfiles[Math.floor(Math.random() * maleProfiles.length)];
+    } else if (gender === "female") {
+      return femaleProfiles[Math.floor(Math.random() * femaleProfiles.length)];
+    } else {
+      return otherProfiles[0];
     }
   }
 
@@ -393,8 +543,8 @@ class RealisticDemoService {
    * יצירת המלצות מבוססות נתונים על בסיס ניתוח ביצועים
    */
   private generateRecommendations(
-    recent: any,
-    previous: any,
+    recent: WorkoutMetrics,
+    previous: WorkoutMetrics,
     trend: string
   ): WorkoutRecommendation[] {
     const recommendations: WorkoutRecommendation[] = [];
@@ -605,7 +755,7 @@ class RealisticDemoService {
    * חילוץ שיאים אישיים מהיסטוריית אימונים עם מעקב מקיף
    */
   private extractPersonalRecords(workouts: WorkoutSession[]) {
-    const records: any[] = [];
+    const records: PersonalRecord[] = [];
     // Track multiple record types for each exercise // מעקב אחר סוגי שיאים מרובים לכל תרגיל
     const exerciseRecords: {
       [key: string]: { weight: number; reps: number; volume: number };
@@ -692,7 +842,7 @@ class RealisticDemoService {
    * יצירת התאמות חכמות לתוכנית אימון על בסיס ניתוח ביצועים
    */
   private createNextWorkoutAdjustments(analysis: PerformanceAnalysis) {
-    const adjustments: any[] = [];
+    const adjustments: WorkoutAdjustment[] = [];
 
     // Create specific workout adjustments based on recommendation type
     // יצירת התאמות ספציפיות לאימון על בסיס סוג ההמלצה

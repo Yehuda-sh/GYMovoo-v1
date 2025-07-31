@@ -26,8 +26,8 @@ This directory contains all main application services, including API services, b
 
 ### 📊 Simulation & Demo Services / שירותי סימולציה ודמו
 
-- **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים / Realistic demo data generation
-- **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים / Realistic workout simulation
+- **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים עם התאמת מגדר וניתוח ביצועים / Realistic demo data generation with gender adaptation and performance analysis
+- **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים עם התאמות חכמות / Realistic workout simulation with smart adaptations
 - **`realisticDemoService.ts`** - שירות דמו חכם עם ניתוח ביצועים / Smart demo service with performance analysis
 
 ### 📝 Questionnaire Services / שירותי שאלונים
@@ -58,10 +58,16 @@ This directory contains all main application services, including API services, b
 - **📊 Enhanced Parameters** - פרמטרים מורחבים עם תמיכה במגדר ומטרות אישיות
 - **🔄 Realistic Behavior** - סימולציה מציאותית של התנהגות משתמש
 - **📈 6-Month History** - יצירה אוטומטית של 6 חודשי היסטוריית אימונים
+- **⏰ Smart Timing** - התאמת זמני אימון לפי מגדר ורמת ניסיון
+- **🎯 Progressive Logic** - מוטיבציה דינמית ומתקדמת לפי ביצועים
+- **💪 Experience-Based Training** - התאמת משך ועצימות לפי רמת המשתמש
 
 #### 🛠️ Key Functions / פונקציות מרכזיות:
 
 - `simulateRealisticWorkoutHistory()` - סימולציה מלאה של היסטוריית אימונים
+- `generateRealisticStartTime()` - זמני אימון מותאמים אישית לפי מגדר
+- `updateSimulationParameters()` - התקדמות דינמית במוטיבציה וביצועים
+- `calculateActualDuration()` - חישוב משך אימון לפי רמת ניסיון
 - ~~`adaptExerciseNameToGender()` - **הועבר ל-genderAdaptation.ts**~~
 - ~~`generateGenderAdaptedNotes()` - **הועבר ל-genderAdaptation.ts**~~
 
@@ -70,9 +76,38 @@ This directory contains all main application services, including API services, b
 - ~~See **`workoutSimulationService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
 - השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
 
-### 🏆 WorkoutHistoryService Enhancements / שיפורי שירות ההיסטוריה
+### 📊 RealisticDemoService Enhancements / שיפורי שירות הדמו
 
-**Last Updated: 2025-07-30**
+**Last Updated: 2025-07-31**
+
+#### ✨ New Capabilities / יכולות חדשות:
+
+- **🎭 Multi-Gender Demo Profiles** - 3 פרופילי גברים, 3 פרופילי נשים ופרופיל נייטרלי
+- **🏋️ Smart Exercise Adaptation** - התאמת שמות תרגילים אוטומטית לפי מגדר
+- **📝 Adaptive Feedback** - הודעות פידבק מותאמות למגדר
+- **🔧 Enhanced Type Safety** - טיפוסי TypeScript מוגדרים במקום any
+- **📊 Performance Analysis** - ניתוח ביצועים חכם עם זיהוי מגמות
+- **🎯 Intelligent Recommendations** - המלצות מבוססות נתונים לשיפור
+
+#### 🛠️ Key Functions / פונקציות מרכזיות:
+
+- `createRealisticDemoUser(gender?: UserGender)` - יצירת משתמש דמו עם אפשרות בחירת מגדר
+- `adaptWorkoutToGender()` - התאמת אימון למגדר המשתמש
+- `generateGenderBasedDemoData()` - יצירת נתוני דמו מבוססי מגדר
+- `analyzePerformance()` - ניתוח ביצועים מתקדם עם אלגוריתמים חכמים
+- `calculateConsistencyScore()` - חישוב ציון עקביות אימונים
+
+#### 📚 Usage Examples / דוגמאות שימוש:
+
+```typescript
+// Create gender-specific demo user
+await realisticDemoService.createRealisticDemoUser("female");
+
+// Add workout with automatic gender adaptation
+await realisticDemoService.addWorkoutSession(workoutData);
+```
+
+---
 
 #### ✨ New Capabilities / יכולות חדשות:
 

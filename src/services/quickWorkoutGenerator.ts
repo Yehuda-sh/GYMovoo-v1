@@ -7,12 +7,12 @@
  * @notes Creates dynamic workouts based on user data
  */
 
-import { questionnaireService } from "./questionnaireService";
-import { Exercise, Set } from "../screens/workout/types/workout.types";
 import {
-  EXTENDED_EXERCISE_DATABASE,
-  getExercisesByEquipment,
-} from "../data/exerciseDatabase";
+  questionnaireService,
+  QuestionnaireMetadata,
+} from "./questionnaireService";
+import { Exercise, Set } from "../screens/workout/types/workout.types";
+import { getExercisesByEquipment } from "../data/exerciseDatabase";
 
 // טיפוסים
 // Types
@@ -28,8 +28,8 @@ export interface ExerciseTemplate {
   tips?: string[];
 }
 
-// מאגר תרגילים בסיסי
-// Basic exercise database
+// מאגר תרגילים בסיסי - עדיין נשמר למקרה הצורך
+// Basic exercise database - kept for fallback needs
 const EXERCISE_DATABASE: ExerciseTemplate[] = [
   // תרגילי חזה
   // Chest exercises
@@ -250,7 +250,7 @@ export class QuickWorkoutGenerator {
     equipment: string[],
     experience: string,
     goal: string,
-    preferences: any
+    _preferences: QuestionnaireMetadata | null
   ): ExerciseTemplate[] {
     // סינון תרגילים לפי ציוד זמין
     // Filter exercises by available equipment
@@ -613,11 +613,14 @@ export class QuickWorkoutGenerator {
   private static groupByCategory(exercises: ExerciseTemplate[]): {
     [category: string]: ExerciseTemplate[];
   } {
-    return exercises.reduce((groups, ex) => {
-      if (!groups[ex.category]) groups[ex.category] = [];
-      groups[ex.category].push(ex);
-      return groups;
-    }, {} as { [category: string]: ExerciseTemplate[] });
+    return exercises.reduce(
+      (groups, ex) => {
+        if (!groups[ex.category]) groups[ex.category] = [];
+        groups[ex.category].push(ex);
+        return groups;
+      },
+      {} as { [category: string]: ExerciseTemplate[] }
+    );
   }
 
   private static shuffleAndTake<T>(array: T[], count: number): T[] {

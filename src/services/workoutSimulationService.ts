@@ -461,7 +461,7 @@ class WorkoutSimulationService {
   private updateSimulationParameters(
     params: SimulationParameters,
     weekNumber: number,
-    _totalWorkouts: number
+    totalWorkouts: number
   ): SimulationParameters {
     const newParams = { ...params };
 
@@ -472,6 +472,15 @@ class WorkoutSimulationService {
     } else if (weekNumber > 16 && params.userExperience === "intermediate") {
       newParams.userExperience = "advanced";
       console.log("📈 User progressed to advanced level");
+    }
+
+    // שיפור מוטיבציה בהתאם לביצועים
+    if (totalWorkouts > 0 && weekNumber % 4 === 0) {
+      // כל 4 שבועות - בדיקת מוטיבציה לפי ביצועים
+      const weeklyAverage = totalWorkouts / (weekNumber || 1);
+      if (weeklyAverage >= 3) {
+        newParams.motivation = Math.min(9, params.motivation + 0.5);
+      }
     }
 
     // שינויים במוטיבציה (מחזוריים)
@@ -563,6 +572,11 @@ class WorkoutSimulationService {
   ): string {
     const types = ["strength", "cardio", "flexibility"];
 
+    // וריאציה לפי שבוע - יותר קרדיו בתחילת תוכנית
+    if (weekNumber < 4 && params.userExperience === "beginner") {
+      return "cardio";
+    }
+
     // התפלגות בהתאם לניסיון
     if (params.userExperience === "beginner") {
       // מתחילים - יותר קרדיו וגמישות
@@ -596,6 +610,13 @@ class WorkoutSimulationService {
 
     totalTime += 5; // קירור
 
+    // התאמה לפי רמת ניסיון - מתחילים לוקחים יותר זמן
+    if (params.userExperience === "beginner") {
+      totalTime *= 1.2; // 20% יותר זמן
+    } else if (params.userExperience === "advanced") {
+      totalTime *= 0.9; // 10% פחות זמן
+    }
+
     // וריאציה מציאותית
     const variation = (Math.random() - 0.5) * 0.2; // ±10%
     return Math.max(15, Math.round(totalTime * (1 + variation)));
@@ -605,8 +626,21 @@ class WorkoutSimulationService {
     date: Date,
     params: SimulationParameters
   ): string {
-    // זמן אימון על פי העדפות (בינתיים ברירת מחדל לערב)
-    const baseHour = 18; // ערב
+    // זמן אימון על פי העדפות והרמת מגדר
+    let baseHour = 18; // ערב - ברירת מחדל
+
+    // התאמת זמן לפי מגדר ותכונות
+    if (params.gender === "female") {
+      baseHour = 17; // נשים נוטות להתאמן מוקדם יותר
+    } else if (params.gender === "male") {
+      baseHour = 19; // גברים נוטים להתאמן מאוחר יותר
+    }
+
+    // התאמת זמן לפי רמת ניסיון
+    if (params.userExperience === "advanced") {
+      baseHour -= 1; // מתקדמים מתאמנים מוקדם יותר
+    }
+
     const variation = Math.floor(Math.random() * 4) - 2; // ±2 שעות
     const actualHour = Math.max(6, Math.min(22, baseHour + variation));
     const minutes = Math.floor(Math.random() * 60);

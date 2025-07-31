@@ -614,7 +614,8 @@ const WorkoutComponent = () => {
 
 - **הגדרה:** כל חלק של מידע צריך להיות מיוצג במקום אחד במערכת
 - **יישום בפרויקט:**
-  - פונקציות התאמת מגדר מרוכזות ב-userStore ו-workoutSimulationService
+  - פונקציות התאמת מגדר מרוכזות ב-userStore ו-genderAdaptation utilities
+  - workoutSimulationService משתמש בכלים המרכזיים להתאמות חכמות
   - הסרת כפילויות קוד בין שירותים שונים
   - שימוש בפונקציות משותפות במקום יצירת העתקים
 

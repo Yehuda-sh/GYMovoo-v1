@@ -41,7 +41,7 @@
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט ותמיכה בנתוני דמו
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
-- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר), scientificAIService ועוד (15 שירותים פעילים)
+- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר וסימולציה חכמה), scientificAIService ועוד (15 שירותים פעילים)
 
 ## 🚀 התחלה מהירה
 
