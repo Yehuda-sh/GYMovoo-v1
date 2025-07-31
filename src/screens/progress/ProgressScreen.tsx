@@ -1,8 +1,58 @@
 /**
  * @file src/screens/progress/ProgressScreen.tsx
- * @brief מסך התקדמות - מעקב אחר התקדמות המשתמש
- * @dependencies React Native, MaterialCommunityIcons, Charts
- * @notes מסך לעתיד - כרגע מציג נתונים בסיסיים
+ * @brief מסך מעקב התקדמות מתקדם עם ניתוח נתונים חכם ויזואליזציה דינמית
+ * @version 2.0.0
+ * @author GYMovoo Development Team
+ * @created 2024-12-15
+ * @modified 2025-07-31
+ *
+ * @description
+ * מסך התקדמות מתקדם המציג ניתוח מעמיק של ביצועי המשתמש עם:
+ * - סטטיסטיקות שבועיות עם מטרות דינמיות
+ * - מעקב רצף אימונים עם חישובים מדויקים
+ * - ניתוח התקדמות כושר (כוח, סיבולת, גמישות)
+ * - נתונים כלליים עם visualization מתקדם
+ * מסך חכם המתאים את עצמו לנתונים המדעיים של המשתמש
+ *
+ * @features
+ * - ✅ חישוב אוטומטי של נתוני התקדמות מהיסטוריית אימונים
+ * - ✅ סטטיסטיקות שבועיות עם progress bars דינמיים
+ * - ✅ מעקב רצף אימונים עם לוגיקה מתקדמת
+ * - ✅ ניתוח התקדמות כושר עם קטגוריות מרובות
+ * - ✅ נתונים דמה חכמים כ-fallback
+ * - ✅ תמיכת RTL מלאה עם פריסה מימין לשמאל
+ * - ✅ נגישות מקיפה עם Screen Reader support
+ * - ✅ עיצוב מודרני עם גרדיאנטים וכרטיסים
+ *
+ * @performance
+ * אופטימיזציה מתקדמת עם useMemo לחישוב נתוני התקדמות,
+ * Dimensions.get('window') למדידות מסך, וחישובים מקומיים ללא re-renders מיותרים
+ *
+ * @rtl
+ * תמיכה מלאה בעברית עם flexDirection: row-reverse, marginStart/marginEnd,
+ * textAlign: right, ופריסת grid components מותאמת לכיוון קריאה מימין לשמאל
+ *
+ * @accessibility
+ * תמיכה מלאה ב-Screen Readers עם accessibilityLabel, accessibilityRole,
+ * accessibilityHint מפורטים לכל אלמנט אינטרקטיבי וסטטיסטיקה
+ *
+ * @algorithm
+ * חישוב התקדמות שבועית: (workoutsThisWeek / weeklyGoal) * 100
+ * חישוב רצף נוכחי: מעבר על אימונים ממוינים לפי תאריך
+ * ניתוח התקדמות כושר: בסיס על דירוגי המשתמש ומשך אימונים
+ *
+ * @dependencies React Native, MaterialCommunityIcons, LinearGradient, userStore, theme
+ * @exports ProgressScreen (default)
+ *
+ * @example
+ * ```tsx
+ * // בשימוש ב-navigation
+ * navigation.navigate('ProgressScreen');
+ * ```
+ *
+ * @notes
+ * מסך חכם המתאים את עצמו לנתוני המשתמש האמיתיים
+ * כולל fallback לנתונים דמה במקרה של משתמש חדש
  */
 
 import React, { useMemo } from "react";
@@ -15,8 +65,44 @@ import { useUserStore } from "../../stores/userStore";
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// Interfaces for TypeScript
+interface WorkoutData {
+  date?: string;
+  completedAt?: string;
+  duration?: number;
+  feedback?: {
+    rating?: number;
+  };
+  rating?: number;
+}
+
+interface UserData {
+  activityHistory?: {
+    workouts?: WorkoutData[];
+  };
+  scientificProfile?: {
+    goals?: {
+      weeklyWorkouts?: number;
+    };
+  };
+}
+
+interface ProgressData {
+  workoutsThisWeek: number;
+  workoutsLastWeek: number;
+  totalWorkouts: number;
+  currentStreak: number;
+  bestStreak: number;
+  weeklyGoal: number;
+  totalMinutes: number;
+  avgWorkoutDuration: number;
+  strengthProgress: number;
+  enduranceProgress: number;
+  flexibilityProgress: number;
+}
+
 // פונקציה לחישוב נתוני התקדמות מהנתונים המדעיים
-const calculateProgressData = (user: any) => {
+const calculateProgressData = (user: UserData | null): ProgressData => {
   // אם יש נתונים מדעיים, השתמש בהם
   if (user?.activityHistory?.workouts) {
     const workouts = user.activityHistory.workouts;
@@ -26,26 +112,26 @@ const calculateProgressData = (user: any) => {
 
     // חישוב אימונים השבוע
     const workoutsThisWeek = workouts.filter(
-      (w: any) => new Date(w.date || w.completedAt) >= oneWeekAgo
+      (w: WorkoutData) => new Date(w.date || w.completedAt || "") >= oneWeekAgo
     ).length;
 
     // חישוב אימונים השבוע שעבר
-    const workoutsLastWeek = workouts.filter((w: any) => {
-      const date = new Date(w.date || w.completedAt);
+    const workoutsLastWeek = workouts.filter((w: WorkoutData) => {
+      const date = new Date(w.date || w.completedAt || "");
       return date >= twoWeeksAgo && date < oneWeekAgo;
     }).length;
 
     // חישוב רצף נוכחי
     const sortedWorkouts = [...workouts].sort(
       (a, b) =>
-        new Date(b.date || b.completedAt).getTime() -
-        new Date(a.date || a.completedAt).getTime()
+        new Date(b.date || b.completedAt || "").getTime() -
+        new Date(a.date || a.completedAt || "").getTime()
     );
 
     let currentStreak = 0;
     let checkDate = new Date();
     for (const workout of sortedWorkouts) {
-      const workoutDate = new Date(workout.date || workout.completedAt);
+      const workoutDate = new Date(workout.date || workout.completedAt || "");
       const diffDays = Math.floor(
         (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -60,13 +146,13 @@ const calculateProgressData = (user: any) => {
 
     // חישוב דקות כוללות
     const totalMinutes = workouts.reduce(
-      (sum: number, w: any) => sum + (w.duration || 45),
+      (sum: number, w: WorkoutData) => sum + (w.duration || 45),
       0
     );
 
     // חישוב התקדמות לפי דירוגים
     const ratings = workouts.map(
-      (w: any) => w.feedback?.rating || w.rating || 4
+      (w: WorkoutData) => w.feedback?.rating || w.rating || 4
     );
     const avgRating =
       ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length;
@@ -103,22 +189,31 @@ const calculateProgressData = (user: any) => {
   };
 };
 
-export default function ProgressScreen() {
+export default function ProgressScreen(): JSX.Element {
   const { user } = useUserStore();
 
   // חישוב נתוני התקדמות מהנתונים המדעיים
-  const progressData = useMemo(() => calculateProgressData(user), [user]);
+  const progressData: ProgressData = useMemo(
+    () => calculateProgressData(user),
+    [user]
+  );
 
-  const weeklyProgress =
+  const weeklyProgress: number =
     (progressData.workoutsThisWeek / progressData.weeklyGoal) * 100;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityLabel="מסך מעקב התקדמות"
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        accessible={true}
+        accessibilityLabel="תוכן מסך התקדמות - גלול למעלה ומטה"
       >
-        <BackButton />
+        <BackButton absolute={false} variant="minimal" />
 
         {/* Header */}
         <View style={styles.header}>
@@ -126,6 +221,9 @@ export default function ProgressScreen() {
             name="trending-up"
             size={80}
             color={theme.colors.primary}
+            accessible={true}
+            accessibilityRole="image"
+            accessibilityLabel="אייקון התקדמות - גרף עולה"
           />
           <Text style={styles.title}>התקדמות</Text>
           <Text style={styles.subtitle}>
@@ -137,7 +235,13 @@ export default function ProgressScreen() {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>השבוע הנוכחי</Text>
 
-          <View style={styles.weeklyCard}>
+          <View
+            style={styles.weeklyCard}
+            accessible={true}
+            accessibilityRole="text"
+            accessibilityLabel={`מטרה שבועית: ${progressData.workoutsThisWeek} מתוך ${progressData.weeklyGoal} אימונים הושלמו, ${Math.round(weeklyProgress)} אחוז מהמטרה`}
+            accessibilityHint="התקדמות במטרה השבועית לאימונים"
+          >
             <LinearGradient
               colors={[
                 theme.colors.primary + "20",
@@ -175,41 +279,69 @@ export default function ProgressScreen() {
           <Text style={styles.sectionTitle}>נתונים כלליים</Text>
 
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
+            <View
+              style={styles.statCard}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`רצף נוכחי: ${progressData.currentStreak} ימים`}
+              accessibilityHint="מספר הימים הרצופים שאימנת"
+            >
               <MaterialCommunityIcons
                 name="fire"
                 size={32}
                 color={theme.colors.error}
+                accessible={false}
               />
               <Text style={styles.statValue}>{progressData.currentStreak}</Text>
               <Text style={styles.statLabel}>רצף נוכחי</Text>
             </View>
 
-            <View style={styles.statCard}>
+            <View
+              style={styles.statCard}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`סה״כ אימונים: ${progressData.totalWorkouts} אימונים`}
+              accessibilityHint="המספר הכולל של אימונים שביצעת"
+            >
               <MaterialCommunityIcons
                 name="dumbbell"
                 size={32}
                 color={theme.colors.primary}
+                accessible={false}
               />
               <Text style={styles.statValue}>{progressData.totalWorkouts}</Text>
               <Text style={styles.statLabel}>סה&quot;כ אימונים</Text>
             </View>
 
-            <View style={styles.statCard}>
+            <View
+              style={styles.statCard}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`דקות אימון: ${progressData.totalMinutes} דקות`}
+              accessibilityHint="המספר הכולל של דקות אימון"
+            >
               <MaterialCommunityIcons
                 name="clock"
                 size={32}
                 color={theme.colors.success}
+                accessible={false}
               />
               <Text style={styles.statValue}>{progressData.totalMinutes}</Text>
               <Text style={styles.statLabel}>דקות אימון</Text>
             </View>
 
-            <View style={styles.statCard}>
+            <View
+              style={styles.statCard}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`הרצף הטוב ביותר: ${progressData.bestStreak} ימים`}
+              accessibilityHint="הרצף הארוך ביותר של אימונים שביצעת"
+            >
               <MaterialCommunityIcons
                 name="trophy"
                 size={32}
                 color={theme.colors.warning}
+                accessible={false}
               />
               <Text style={styles.statValue}>{progressData.bestStreak}</Text>
               <Text style={styles.statLabel}>רצף הטוב</Text>
@@ -222,12 +354,19 @@ export default function ProgressScreen() {
           <Text style={styles.sectionTitle}>התקדמות כושר</Text>
 
           <View style={styles.fitnessCard}>
-            <View style={styles.fitnessItem}>
+            <View
+              style={styles.fitnessItem}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`התקדמות כוח: ${progressData.strengthProgress} אחוז שיפור`}
+              accessibilityHint="מדד שיפור בכוח הגוף"
+            >
               <View style={styles.fitnessLeft}>
                 <MaterialCommunityIcons
                   name="arm-flex"
                   size={24}
                   color={theme.colors.primary}
+                  accessible={false}
                 />
                 <Text style={styles.fitnessLabel}>כוח</Text>
               </View>
@@ -246,12 +385,19 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            <View style={styles.fitnessItem}>
+            <View
+              style={styles.fitnessItem}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`התקדמות סיבולת: ${progressData.enduranceProgress} אחוז שיפור`}
+              accessibilityHint="מדד שיפור בסיבולת הלב וכלי הדם"
+            >
               <View style={styles.fitnessLeft}>
                 <MaterialCommunityIcons
                   name="heart"
                   size={24}
                   color={theme.colors.error}
+                  accessible={false}
                 />
                 <Text style={styles.fitnessLabel}>סיבולת</Text>
               </View>
@@ -270,12 +416,19 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            <View style={styles.fitnessItem}>
+            <View
+              style={styles.fitnessItem}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={`התקדמות גמישות: ${progressData.flexibilityProgress} אחוז שיפור`}
+              accessibilityHint="מדד שיפור בגמישות הגוף"
+            >
               <View style={styles.fitnessLeft}>
                 <MaterialCommunityIcons
                   name="yoga"
                   size={24}
                   color={theme.colors.success}
+                  accessible={false}
                 />
                 <Text style={styles.fitnessLabel}>גמישות</Text>
               </View>
@@ -302,6 +455,9 @@ export default function ProgressScreen() {
             name="chart-line"
             size={48}
             color={theme.colors.textSecondary}
+            accessible={true}
+            accessibilityRole="image"
+            accessibilityLabel="אייקון גרף - תכונות בפיתוח"
           />
           <Text style={styles.comingSoonTitle}>בקרוב</Text>
           <Text style={styles.comingSoonText}>
@@ -350,10 +506,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   weeklyCard: {
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
+    ...theme.shadows.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "20",
   },
   weeklyGradient: {
     padding: theme.spacing.lg,
@@ -407,9 +567,12 @@ const styles = StyleSheet.create({
   statCard: {
     width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.sm) / 2,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     alignItems: "center",
+    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "30",
   },
   statValue: {
     fontSize: 24,
@@ -425,8 +588,11 @@ const styles = StyleSheet.create({
   },
   fitnessCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: theme.radius.md,
     padding: theme.spacing.md,
+    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "30",
   },
   fitnessItem: {
     flexDirection: "row-reverse",
@@ -472,12 +638,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xl,
     marginTop: theme.spacing.lg,
+    backgroundColor: theme.colors.surface + "50",
+    marginHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "30",
+    borderStyle: "dashed",
   },
   comingSoonTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
+    textAlign: "center",
   },
   comingSoonText: {
     fontSize: 16,
@@ -485,5 +658,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.sm,
     lineHeight: 24,
+    writingDirection: "rtl",
   },
 });
