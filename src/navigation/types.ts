@@ -19,6 +19,7 @@ export type RootStackParamList = {
     autoStart?: boolean;
     returnFromWorkout?: boolean;
     completedWorkoutId?: string;
+    preSelectedDay?: number;
   };
   MainApp: undefined;
   QuickWorkout: {
@@ -31,6 +32,18 @@ export type RootStackParamList = {
       estimatedDuration: number;
       equipment: string[];
     };
+  };
+  ActiveWorkout: {
+    exercise: Exercise;
+    exerciseIndex: number;
+    totalExercises: number;
+    workoutData?: {
+      name?: string;
+      startTime?: string;
+      exercises?: Exercise[];
+    };
+    onExerciseUpdate?: (exercise: Exercise) => void;
+    onNavigate?: (direction: "prev" | "next") => void;
   };
   ExerciseList: {
     fromScreen?: string;
@@ -50,6 +63,7 @@ export type RootStackParamList = {
     completedWorkoutId?: string;
     requestedWorkoutIndex?: number;
     requestedWorkoutName?: string;
+    preSelectedDay?: number;
   };
   Profile: undefined;
   History: undefined;

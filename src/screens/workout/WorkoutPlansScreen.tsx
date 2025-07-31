@@ -127,6 +127,7 @@ interface WorkoutPlanScreenProps {
       completedWorkoutId?: string;
       requestedWorkoutIndex?: number;
       requestedWorkoutName?: string;
+      preSelectedDay?: number;
     };
   };
 }
@@ -294,6 +295,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       });
     }
   }, [route?.params]);
+
+  // Handle pre-selected day when workout plan is loaded
+  useEffect(() => {
+    const preSelectedDay = route?.params?.preSelectedDay;
+    const autoStart = route?.params?.autoStart;
+
+    if (workoutPlan?.workouts && preSelectedDay !== undefined) {
+      if (preSelectedDay >= 0 && preSelectedDay < workoutPlan.workouts.length) {
+        setSelectedDay(preSelectedDay);
+        console.log(`🗓️ Pre-selected day: ${preSelectedDay + 1}`);
+
+        // אם יש גם autoStart, התחל את האימון של היום הנבחר
+        if (autoStart) {
+          const workoutToStart = workoutPlan.workouts[preSelectedDay];
+          console.log(
+            `🎯 Auto-starting pre-selected day ${preSelectedDay + 1}: ${workoutToStart.name}`
+          );
+          setTimeout(() => {
+            startWorkout(workoutToStart);
+          }, 1000);
+        }
+      }
+    }
+  }, [workoutPlan, route?.params?.preSelectedDay, route?.params?.autoStart]);
 
   // אנימציית כניסה
   // Entry animation

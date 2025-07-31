@@ -25,31 +25,9 @@ import {
   workoutHistoryService,
   WorkoutWithFeedback,
 } from "../../services/workoutHistoryService";
-import { WorkoutData } from "../workout/types/workout.types";
+import { WorkoutData, WorkoutStatistics } from "../workout/types/workout.types";
 
-// Interface for workout statistics
-interface WorkoutStatistics {
-  total: {
-    totalWorkouts: number;
-    totalDuration: number;
-    averageDifficulty: number;
-    workoutStreak: number;
-  };
-  byGender: {
-    male: {
-      count: number;
-      averageDifficulty: number;
-    };
-    female: {
-      count: number;
-      averageDifficulty: number;
-    };
-    other: {
-      count: number;
-      averageDifficulty: number;
-    };
-  };
-}
+// Note: WorkoutStatistics interface moved to workout.types.ts for consistency
 
 export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);

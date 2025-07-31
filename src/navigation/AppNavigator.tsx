@@ -19,6 +19,7 @@ import SmartQuestionnaireScreen from "../screens/questionnaire/SmartQuestionnair
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
+import ActiveWorkoutScreen from "../screens/workout/ActiveWorkoutScreen";
 
 // מסכים נוספים שלא ב-Bottom Tabs // Additional screens not in Bottom Tabs
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
@@ -117,6 +118,22 @@ export default function AppNavigator() {
             presentation: "card",
             headerShown: false,
             // אנימציה מיוחדת לכניסה לאימון
+            animationTypeForReplace: "push",
+            cardStyle: {
+              backgroundColor: "transparent", // רקע שקוף לאנימציות חלקות
+            },
+          }}
+        />
+
+        {/* מסך אימון יחיד פעיל - טיפול בתרגיל יחיד */}
+        <Stack.Screen
+          name="ActiveWorkout"
+          component={ActiveWorkoutScreen}
+          options={{
+            gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
+            presentation: "card",
+            headerShown: false,
+            // אנימציה מיוחדת לכניסה לתרגיל יחיד
             animationTypeForReplace: "push",
             cardStyle: {
               backgroundColor: "transparent", // רקע שקוף לאנימציות חלקות

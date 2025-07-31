@@ -1,7 +1,8 @@
 /**
  * @file src/screens/workout/types/workout.types.ts
- * @description טיפוסים עבור מסך האימון
- * English: Types for workout screen
+ * @description טיפוסים עבור מסך האימון - מעודכן לינואר 2025
+ * English: Types for workout screen - Updated January 2025
+ * @updated 2025-01-31 - הוספת interfaces חדשים מ-TypeScript Cleanup
  */
 
 // סט בודד
@@ -136,4 +137,126 @@ export interface WorkoutDraft {
   workout: WorkoutData;
   lastSaved: string;
   version: number;
+}
+
+// === TypeScript Cleanup Interfaces (ינואר 2025) ===
+// === TypeScript Cleanup Interfaces (January 2025) ===
+
+// סטטיסטיקות אימון מקיפות
+// Comprehensive workout statistics
+export interface WorkoutStatistics {
+  total: {
+    totalWorkouts: number;
+    totalDuration: number;
+    averageDifficulty: number;
+    workoutStreak: number;
+  };
+  byGender: {
+    male: {
+      count: number;
+      averageDifficulty: number;
+    };
+    female: {
+      count: number;
+      averageDifficulty: number;
+    };
+    other: {
+      count: number;
+      averageDifficulty: number;
+    };
+  };
+}
+
+// אימון עם משוב ומטא-דאטה מורחבת
+// Workout with feedback and extended metadata
+export interface WorkoutWithFeedback {
+  id: string;
+  workout: WorkoutData;
+  feedback: {
+    difficulty: number; // 1-5 stars
+    feeling: string; // emoji value
+    readyForMore: boolean | null;
+    completedAt: string; // ISO string
+    genderAdaptedNotes?: string; // הערות מותאמות למגדר המשתמש
+    congratulationMessage?: string; // הודעת ברכה מותאמת למגדר
+  };
+  stats: {
+    duration: number;
+    totalSets: number;
+    totalPlannedSets: number;
+    totalVolume: number;
+    personalRecords: number;
+  };
+  // זמנים מתקדמים
+  startTime?: string; // זמן התחלת האימון
+  endTime?: string; // זמן סיום האימון
+  actualStartTime?: string; // זמן התחלה אמיתי (יכול להיות שונה מהמתוכנן)
+  // מטא-דאטה מורחבת
+  metadata?: {
+    deviceInfo: {
+      platform: string;
+      screenWidth: number;
+      screenHeight: number;
+    };
+    userGender?: "male" | "female" | "other";
+    version: string;
+    workoutSource: "generated" | "manual" | "demo"; // מקור האימון
+  };
+}
+
+// ביצועים קודמים לתצוגה באימון הבא
+// Previous performance for display in next workout
+export interface PreviousPerformance {
+  exerciseName: string;
+  sets: Array<{
+    weight: number;
+    reps: number;
+  }>;
+  date: string;
+  // שיאים אישיים
+  personalRecords: {
+    maxWeight: number; // המשקל הגבוה ביותר שנרשם
+    maxVolume: number; // הנפח הגבוה ביותר (משקל × חזרות) בסט יחיד
+    maxReps: number; // מספר החזרות הגבוה ביותר
+    totalVolume: number; // נפח כולל של כל הסטים באימון זה
+  };
+}
+
+// שיא אישי
+// Personal record
+export interface PersonalRecord {
+  exerciseName: string;
+  type: "weight" | "volume" | "reps"; // סוג השיא
+  value: number;
+  previousValue: number;
+  date: string;
+  improvement: number; // שיפור באחוזים או בערך מוחלט
+}
+
+// נתוני אימון היסטוריים
+// Historical workout data
+export interface WorkoutHistoryItem {
+  id: string;
+  type?: string;
+  workoutName?: string;
+  date?: string;
+  completedAt?: string;
+  startTime?: string;
+  duration?: number;
+  icon?: string;
+  rating?: number;
+  feedback?: {
+    rating?: number;
+  };
+  [key: string]: unknown; // Allow additional properties
+}
+
+// תשובות שאלון בסיסיות
+// Basic questionnaire answers
+export interface QuestionnaireBasicData {
+  gender: "male" | "female" | "other";
+  experienceLevel: "beginner" | "intermediate" | "advanced";
+  mainGoals: string[];
+  availability: string;
+  [key: string]: unknown; // Allow additional properties
 }

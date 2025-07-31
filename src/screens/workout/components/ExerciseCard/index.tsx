@@ -70,6 +70,7 @@ interface ExerciseCardProps {
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onShowTips?: () => void;
+  onTitlePress?: () => void; // עבור מעבר לתרגיל יחיד
   isFirst?: boolean;
   isLast?: boolean;
   isPaused?: boolean;
@@ -96,6 +97,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onMoveUp,
   onMoveDown,
   // onShowTips, // לא בשימוש כרגע
+  onTitlePress, // עבור מעבר לתרגיל יחיד
   isFirst = false,
   isLast = false,
   // isPaused = false, // לא בשימוש כרגע
@@ -297,8 +299,31 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       >
         <View style={styles.headerContent}>
           <View style={styles.exerciseInfo}>
-            <View style={styles.titleRow}>
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
+            <TouchableOpacity
+              style={styles.titleRow}
+              onPress={onTitlePress}
+              disabled={!onTitlePress}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`לחץ לעבור לאימון ${exercise.name}`}
+              accessibilityHint="פותח את התרגיל במסך נפרד לפוקוס מלא"
+            >
+              <Text
+                style={[
+                  styles.exerciseName,
+                  onTitlePress && styles.exerciseNameClickable,
+                ]}
+              >
+                {exercise.name}
+              </Text>
+              {onTitlePress && (
+                <MaterialCommunityIcons
+                  name="arrow-left-circle-outline"
+                  size={16}
+                  color={theme.colors.primary}
+                  style={styles.focusIcon}
+                />
+              )}
               {isCompleted && (
                 <MaterialCommunityIcons
                   name="check-circle"
@@ -306,7 +331,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   color={theme.colors.success}
                 />
               )}
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.statsRow}>
               <View style={styles.stat}>
@@ -671,6 +696,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.textSecondary,
     textTransform: "uppercase",
+  },
+  // סגנונות לכותרת לחיצה
+  exerciseNameClickable: {
+    color: theme.colors.primary,
+    textDecorationLine: "underline",
+  },
+  focusIcon: {
+    marginHorizontal: theme.spacing.xs,
   },
 });
 

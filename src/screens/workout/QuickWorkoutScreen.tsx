@@ -1191,6 +1191,32 @@ const QuickWorkoutScreen: React.FC = () => {
                 ].sets.filter((s) => s.id !== setId);
                 setExercises(newExercises);
               }}
+              onTitlePress={() => {
+                // מעבר לתרגיל יחיד במסך ActiveWorkout
+                navigation.navigate(
+                  "ActiveWorkout" as never,
+                  {
+                    exercise: item,
+                    exerciseIndex: index,
+                    totalExercises: exercises.length,
+                    workoutData: {
+                      name: workoutName,
+                      startTime: new Date().toISOString(),
+                      exercises: exercises,
+                    },
+                    onExerciseUpdate: (updatedExercise: Exercise) => {
+                      const newExercises = [...exercises];
+                      const exerciseIndex = newExercises.findIndex(
+                        (ex) => ex.id === updatedExercise.id
+                      );
+                      if (exerciseIndex !== -1) {
+                        newExercises[exerciseIndex] = updatedExercise;
+                        setExercises(newExercises);
+                      }
+                    },
+                  } as never
+                );
+              }}
               isFirst={index === 0}
               isLast={index === exercises.length - 1}
             />

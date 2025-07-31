@@ -112,8 +112,23 @@ export default function MainScreen() {
   }, []);
 
   const handleStartWorkout = useCallback(() => {
-    navigation.navigate("WorkoutPlans", {});
+    console.log("🚀 MainScreen - התחל אימון נלחץ!");
+    navigation.navigate("QuickWorkout", {
+      source: "quick_start",
+    });
   }, [navigation]);
+
+  const handleDayWorkout = useCallback(
+    (dayNumber: number) => {
+      console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון!`);
+      // עבור למסך תוכניות AI עם יום נבחר
+      navigation.navigate("WorkoutPlans", {
+        preSelectedDay: dayNumber - 1, // המערך מתחיל מ-0
+        autoStart: true,
+      });
+    },
+    [navigation]
+  );
 
   // פונקציית דמו אינטראקטיבית לשאלון מדעי // Interactive demo function for scientific questionnaire
   const handleDemoRandomize = useCallback(() => {
@@ -617,8 +632,43 @@ export default function MainScreen() {
               onPress={handleStartWorkout}
             >
               <MaterialCommunityIcons name="play" size={16} color="white" />
-              <Text style={styles.startWorkoutText}>התחל אימון</Text>
+              <Text style={styles.startWorkoutText}>התחל אימון מהיר</Text>
             </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* בחירת יום אימון */}
+        <Animated.View
+          style={[
+            styles.daySelectionSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>בחר יום אימון ספציפי</Text>
+          <View style={styles.dayButtonsGrid}>
+            {[1, 2, 3, 4].map((dayNum) => (
+              <TouchableOpacity
+                key={dayNum}
+                style={styles.dayButton}
+                onPress={() => handleDayWorkout(dayNum)}
+              >
+                <MaterialCommunityIcons
+                  name="dumbbell"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.dayButtonText}>יום {dayNum}</Text>
+                <Text style={styles.dayButtonSubtext}>
+                  {dayNum === 1 && "חזה + טריצפס"}
+                  {dayNum === 2 && "גב + ביצפס"}
+                  {dayNum === 3 && "רגליים"}
+                  {dayNum === 4 && "כתפיים + ליבה"}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </Animated.View>
 
@@ -1258,5 +1308,40 @@ const styles = StyleSheet.create({
     flex: 1,
     writingDirection: "rtl",
     lineHeight: 16,
+  },
+
+  // Day selection section styles // סטיילים לקטע בחירת יום
+  daySelectionSection: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+  },
+  dayButtonsGrid: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  dayButton: {
+    flex: 1,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
+    alignItems: "center",
+    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "40",
+  },
+  dayButtonText: {
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginTop: theme.spacing.xs,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  dayButtonSubtext: {
+    fontSize: theme.typography.captionSmall.fontSize,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
 });

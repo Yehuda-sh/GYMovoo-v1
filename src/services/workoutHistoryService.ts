@@ -14,70 +14,13 @@ import {
   generateGenderAdaptedCongratulation,
   UserGender,
 } from "../utils/genderAdaptation";
+import {
+  WorkoutWithFeedback,
+  PreviousPerformance,
+  PersonalRecord,
+} from "../screens/workout/types/workout.types";
 
-// טיפוס לאימון עם משוב ומטא-דאטה מורחבת
-export interface WorkoutWithFeedback {
-  id: string;
-  workout: WorkoutData;
-  feedback: {
-    difficulty: number; // 1-5 stars
-    feeling: string; // emoji value
-    readyForMore: boolean | null;
-    completedAt: string; // ISO string
-    // הוספת משוב מותאם למגדר
-    genderAdaptedNotes?: string; // הערות מותאמות למגדר המשתמש
-    congratulationMessage?: string; // הודעת ברכה מותאמת למגדר
-  };
-  stats: {
-    duration: number;
-    totalSets: number;
-    totalPlannedSets: number;
-    totalVolume: number;
-    personalRecords: number;
-  };
-  // זמנים מתקדמים
-  startTime?: string; // זמן התחלת האימון
-  endTime?: string; // זמן סיום האימון
-  actualStartTime?: string; // זמן התחלה אמיתי (יכול להיות שונה מהמתוכנן)
-  // מטא-דאטה מורחבת
-  metadata?: {
-    deviceInfo: {
-      platform: string;
-      screenWidth: number;
-      screenHeight: number;
-    };
-    userGender?: "male" | "female" | "other";
-    version: string;
-    workoutSource: "generated" | "manual" | "demo"; // מקור האימון
-  };
-}
-
-// טיפוס לביצועים קודמים (לתצוגה באימון הבא)
-export interface PreviousPerformance {
-  exerciseName: string;
-  sets: Array<{
-    weight: number;
-    reps: number;
-  }>;
-  date: string;
-  // שיאים אישיים
-  personalRecords: {
-    maxWeight: number; // המשקל הגבוה ביותר שנרשם
-    maxVolume: number; // הנפח הגבוה ביותר (משקל × חזרות) בסט יחיד
-    maxReps: number; // מספר החזרות הגבוה ביותר
-    totalVolume: number; // הנפח הכולל של התרגיל באימון זה
-  };
-}
-
-// טיפוס לשיא אישי
-export interface PersonalRecord {
-  exerciseName: string;
-  type: "weight" | "volume" | "reps"; // סוג השיא
-  value: number;
-  previousValue: number;
-  date: string;
-  improvement: number; // שיפור באחוזים או בערך מוחלט
-}
+// Note: Interfaces moved to workout.types.ts to avoid duplication
 
 const WORKOUT_HISTORY_KEY = "workout_history";
 const PREVIOUS_PERFORMANCES_KEY = "previous_performances";

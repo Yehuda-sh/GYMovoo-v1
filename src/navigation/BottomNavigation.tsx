@@ -14,7 +14,6 @@ import { theme } from "../styles/theme";
 // מסכים // Screens
 import MainScreen from "../screens/main/MainScreen";
 import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen";
-import WorkoutRouterScreen from "../screens/workout/WorkoutRouterScreen";
 import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
 import ProfileScreen from "../screens/profile/ProfileScreen";
 
@@ -116,7 +115,7 @@ export default function BottomNavigation() {
       {/* אימון חכם */}
       <Tab.Screen
         name="QuickWorkout"
-        component={WorkoutRouterScreen}
+        component={WorkoutPlansScreen}
         options={{
           title: "אימון",
           tabBarIcon: ({ focused, color, size }) => (

@@ -74,7 +74,18 @@ class AutoSaveService {
         this.stopAutoSave();
         return;
       }
-      console.error("Error saving workout:", error);
+
+      // אם האחסון מלא, עצור גם
+      if (
+        errorObj?.message?.includes("storage full") ||
+        errorObj?.message?.includes("QUOTA_EXCEEDED")
+      ) {
+        console.warn("⚠️ Storage quota exceeded - stopping auto-save");
+        this.stopAutoSave();
+        return;
+      }
+
+      console.error("❌ Error saving workout draft:", error);
     }
   }
 

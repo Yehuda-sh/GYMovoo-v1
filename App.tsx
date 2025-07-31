@@ -16,20 +16,22 @@ export default function App() {
     // ניקוי אחסון בהפעלה עם הגנות נוספות
     const initStorageCleanup = async () => {
       try {
-        console.log("🧹 Starting storage cleanup...");
+        console.log("🧹 App.tsx - Starting storage cleanup...");
         const isFull = await StorageCleanup.isStorageFull();
         if (isFull) {
-          console.log("🗑️ Storage is full, running emergency cleanup...");
+          console.log(
+            "🗑️ App.tsx - Storage is full, running emergency cleanup..."
+          );
           await StorageCleanup.emergencyCleanup();
         } else {
-          console.log("🧽 Running regular cleanup...");
+          console.log("🧽 App.tsx - Running regular cleanup...");
           // ניקוי רגיל של נתונים ישנים
           await StorageCleanup.cleanOldData();
         }
-        console.log("✅ Storage cleanup completed successfully");
+        console.log("✅ App.tsx - Storage cleanup completed successfully");
       } catch (error) {
         console.warn(
-          "⚠️ Storage cleanup failed - continuing app startup:",
+          "⚠️ App.tsx - Storage cleanup failed - continuing app startup:",
           error
         );
         // האפליקציה תמשיך לעבוד גם אם הניקוי נכשל
