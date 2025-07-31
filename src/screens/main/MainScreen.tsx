@@ -17,6 +17,7 @@ import {
   Animated,
   RefreshControl,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -64,6 +65,8 @@ export default function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // אנימציות משופרות // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -103,16 +106,37 @@ export default function MainScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // רענון נתונים אמיתיים // Real data refresh
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      setLoading(true);
+      // רענון נתונים אמיתיים // Real data refresh
+      const userState = useUserStore.getState();
+
+      // סימולציית טעינת נתונים // Simulate data loading
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // בדיקה אם יש משתמש זמין // Check if user is available
+      if (!userState.user) {
+        throw new Error("לא נמצא משתמש פעיל");
+      }
+
+      console.log("✅ MainScreen - נתונים נטענו בהצלחה");
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "שגיאה בטעינת נתונים";
+      setError(errorMessage);
+      console.error("❌ MainScreen - שגיאה בטעינת נתונים:", errorMessage);
+    } finally {
+      setLoading(false);
       setRefreshing(false);
-    }, 1500);
+    }
   }, []);
 
   const handleStartWorkout = useCallback(() => {
-    console.log("🚀 MainScreen - התחל אימון נלחץ!");
+    console.log("🚀 MainScreen - התחל אימון מהיר נלחץ!");
     navigation.navigate("QuickWorkout", {
       source: "quick_start",
     });
@@ -120,11 +144,12 @@ export default function MainScreen() {
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
-      console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון!`);
-      // עבור למסך תוכניות AI עם יום נבחר
-      navigation.navigate("WorkoutPlans", {
-        preSelectedDay: dayNumber - 1, // המערך מתחיל מ-0
-        autoStart: true,
+      console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
+      // עבור ישירות למסך האימון עם יום ספציפי
+      navigation.navigate("QuickWorkout", {
+        source: "day_selection",
+        requestedDay: dayNumber,
+        workoutName: `יום ${dayNumber} - אימון`,
       });
     },
     [navigation]
@@ -249,6 +274,24 @@ export default function MainScreen() {
 
   return (
     <View style={styles.container}>
+      {/* מציג שגיאה אם יש */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+            <Text style={styles.retryButtonText}>נסה שוב</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* מציג אינדיקטור טעינה */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>טוען נתונים...</Text>
+        </View>
+      )}
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -1308,6 +1351,53 @@ const styles = StyleSheet.create({
     flex: 1,
     writingDirection: "rtl",
     lineHeight: 16,
+  },
+
+  // Error and loading styles // סגנונות שגיאות וטעינה
+  errorContainer: {
+    backgroundColor: theme.colors.error + "20",
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    margin: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.error + "40",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.error,
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
+  },
+  retryButton: {
+    backgroundColor: theme.colors.error,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  retryButtonText: {
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.surface,
+    fontWeight: "600",
+    writingDirection: "rtl",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.background + "90",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  loadingText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+    writingDirection: "rtl",
   },
 
   // Day selection section styles // סטיילים לקטע בחירת יום

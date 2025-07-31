@@ -527,7 +527,7 @@ class WorkoutSimulationService {
     planned: number,
     params: SimulationParameters
   ): number[] {
-    // const days = []; // הוסר כי לא בשימוש
+    // const days = []; // הוסר כי לא בשימוש - FIXED
     const possibleDays = [0, 1, 2, 3, 4, 5, 6]; // ימי השבוע
 
     // וריאציה מציאותית - לפעמים פחות ימים, לפעמים יותר

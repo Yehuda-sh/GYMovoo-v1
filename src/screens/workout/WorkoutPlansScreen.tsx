@@ -49,7 +49,6 @@ import {
   WorkoutTemplate,
   ExerciseTemplate,
 } from "./types/workout.types";
-import { Exercise } from "../../services/exerciseService";
 
 // Enhanced exercise database with comprehensive coverage
 // מאגר תרגילים משופר עם כיסוי מקיף
@@ -185,6 +184,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   // מצב ליבה עם אתחול מקצועי
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [aiMode, setAiMode] = useState(false); // Enhanced: Basic Mode as DEFAULT to prevent repetitions
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
@@ -378,6 +378,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         );
       } catch (error) {
         console.error("❌ Failed to load WGER exercises:", error);
+        setError(
+          error instanceof Error ? error.message : "שגיאה בטעינת תרגילים"
+        );
         // במקרה של שגיאה, נשתמש רק בתרגילים המקומיים
         setCombinedExercises([...ALL_EXERCISES]);
       }
@@ -492,13 +495,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     } catch (error: unknown) {
       console.error("❌ AI Plan Generation Error:", error);
 
+      setError(
+        error instanceof Error ? error.message : "שגיאה ביצירת תוכנית AI"
+      );
+
       setModalConfig({
         title: "שגיאה ביצירת תוכנית AI",
         message:
           error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
             ? "אנא השלם את השאלון תחילה"
             : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
-        onConfirm: () => generateAIWorkoutPlan(true),
+        onConfirm: () => {
+          setError(null);
+          generateAIWorkoutPlan(true);
+        },
         confirmText: "נסה שוב",
         destructive: false,
       });
@@ -515,6 +525,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const generateWorkoutPlan = async (forceRegenerate: boolean = false) => {
     try {
       setLoading(!refreshing);
+      setError(null);
       if (refreshing) setRefreshing(true);
       setAiMode(false); // Switch to basic mode
 
@@ -805,11 +816,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
     } catch (error) {
       console.error("Error generating workout plan:", error);
+
+      setError(
+        error instanceof Error ? error.message : "שגיאה ביצירת תוכנית אימון"
+      );
+
       setModalConfig({
         title: "שגיאה",
         message: "לא הצלחנו ליצור תוכנית אימון. נסה שוב.",
-        onConfirm: () => {},
-        confirmText: "אישור",
+        onConfirm: () => {
+          setError(null);
+          generateWorkoutPlan(true);
+        },
+        confirmText: "נסה שוב",
         destructive: false,
       });
       setShowErrorModal(true);
@@ -822,15 +841,23 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * רענון התוכנית
    * Refresh plan
    */
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     console.log(`🔄 DEBUG: handleRefresh called - starting refresh process`);
     console.log(
       `🔄 DEBUG: Current workout plan has ${workoutPlan?.workouts?.length || 0} days`
     );
 
-    setRefreshing(true);
-    // 🏠 Use basic workout plan on refresh to prevent repetitions
-    generateWorkoutPlan(true);
+    try {
+      setRefreshing(true);
+      setError(null);
+      // 🏠 Use basic workout plan on refresh to prevent repetitions
+      await generateWorkoutPlan(true);
+    } catch (error) {
+      console.error("Error during refresh:", error);
+      setError(error instanceof Error ? error.message : "שגיאה ברענון התוכנית");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   /**
@@ -1763,6 +1790,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       return equipment;
     } catch (error) {
       console.error("❌ Error getting equipment:", error);
+      setError(error instanceof Error ? error.message : "שגיאה בטעינת ציוד");
       // החזר ציוד דמה במקרה של שגיאה
       return ["barbell", "dumbbells", "cable_machine", "bench"];
     }
@@ -1981,7 +2009,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       navigation.navigate("QuickWorkout", {
-        exercises: validActiveExercises as unknown as Exercise[], // Compatible casting between ExerciseTemplate and Exercise
+        exercises: validActiveExercises, // הוסר casting מיותר - validActiveExercises כבר בפורמט הנכון
         workoutName: workout.name,
         workoutId: workout.id,
         source: "workout_plan",
@@ -1995,10 +2023,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.log("✅ Navigation completed successfully");
     } catch (error) {
       console.error("Error starting workout:", error);
+
+      setError(error instanceof Error ? error.message : "שגיאה בתחילת האימון");
+
       setModalConfig({
         title: "שגיאה",
         message: "לא הצלחנו להתחיל את האימון. נסה שוב.",
-        onConfirm: () => {},
+        onConfirm: () => setError(null),
         confirmText: "אישור",
         destructive: false,
       });
@@ -2079,10 +2110,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           size={64}
           color={theme.colors.error}
         />
-        <Text style={styles.errorText}>לא הצלחנו ליצור תוכנית אימון</Text>
+        <Text style={styles.errorText}>
+          {error || "לא הצלחנו ליצור תוכנית אימון"}
+        </Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => generateAIWorkoutPlan()}
+          onPress={() => {
+            setError(null);
+            generateAIWorkoutPlan();
+          }}
           accessibilityLabel="נסה שנית ליצור תוכנית אימון"
           accessibilityRole="button"
           accessibilityHint="ינסה שוב ליצור תוכנית אימון מותאמת אישית"

@@ -701,14 +701,6 @@ export const EXTENDED_EXERCISE_DATABASE: ExtendedExerciseTemplate[] = [
     equipment: "dumbbells",
     difficulty: "beginner",
   },
-  {
-    id: "db_kickback",
-    name: "בעיטה אחורית עם משקולת",
-    category: "ידיים",
-    primaryMuscles: ["טריצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
 
   // טריצפס - משקל גוף
   {
@@ -1252,7 +1244,7 @@ export const EXTENDED_EXERCISE_DATABASE: ExtendedExerciseTemplate[] = [
   {
     id: "db_kickback",
     name: "בעיטות טריצפס עם משקולת",
-    category: "טריצפס",
+    category: "ידיים",
     primaryMuscles: ["טריצפס"],
     equipment: "dumbbells",
     difficulty: "beginner",
@@ -1697,7 +1689,7 @@ export function getSmartExerciseRecommendations(userProfile: {
  */
 function calculateExerciseSmartScore(
   exercise: ExtendedExerciseTemplate,
-  userProfile: any
+  userProfile: Record<string, any>
 ): number {
   let score = exercise.algorithmScore || 5; // ציון בסיס
 

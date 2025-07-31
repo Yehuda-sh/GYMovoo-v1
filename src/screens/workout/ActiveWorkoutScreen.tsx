@@ -46,7 +46,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  FlatList,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -92,6 +91,44 @@ const ActiveWorkoutScreen: React.FC = () => {
   );
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(0);
 
+  // משתנים נגזרים
+  const exercise = exercises[currentExerciseIndex];
+  const exerciseIndex = currentExerciseIndex;
+  const totalExercises = exercises.length;
+
+  // סטטיסטיקות התרגיל הנוכחי
+  const exerciseStats = useMemo(() => {
+    if (!exercise?.sets) {
+      return {
+        completedSets: 0,
+        totalSets: 0,
+        totalVolume: 0,
+        totalReps: 0,
+      };
+    }
+
+    let completedSets = 0;
+    let totalVolume = 0;
+    let totalReps = 0;
+
+    exercise.sets.forEach((set: Set) => {
+      if (set.completed) {
+        completedSets++;
+        const reps = set.actualReps || set.targetReps || 0;
+        const weight = set.actualWeight || set.targetWeight || 0;
+        totalReps += reps;
+        totalVolume += reps * weight;
+      }
+    });
+
+    return {
+      completedSets,
+      totalSets: exercise.sets.length,
+      totalVolume,
+      totalReps,
+    };
+  }, [exercise]);
+
   // טיימרים
   const workoutId = `active-workout-${Date.now()}`;
   const { formattedTime, isRunning, startTimer, pauseTimer } =
@@ -117,62 +154,10 @@ const ActiveWorkoutScreen: React.FC = () => {
   }, []);
 
   // סטטיסטיקות האימון הכללי
-  const workoutStats = useMemo(() => {
-    if (!exercises || exercises.length === 0) {
-      return {
-        completedSets: 0,
-        totalSets: 0,
-        totalVolume: 0,
-        totalReps: 0,
-        completedExercises: 0,
-        totalExercises: 0,
-      };
-    }
-
-    let completedSets = 0;
-    let totalSets = 0;
-    let totalVolume = 0;
-    let totalReps = 0;
-    let completedExercises = 0;
-
-    exercises.forEach((exercise) => {
-      if (!exercise?.sets) return;
-
-      let exerciseHasCompletedSets = false;
-      exercise.sets.forEach((set: Set) => {
-        totalSets++;
-        if (set.completed) {
-          completedSets++;
-          exerciseHasCompletedSets = true;
-          const reps = set.actualReps || set.targetReps || 0;
-          const weight = set.actualWeight || set.targetWeight || 0;
-          totalReps += reps;
-          totalVolume += reps * weight;
-        }
-      });
-
-      if (exerciseHasCompletedSets) {
-        completedExercises++;
-      }
-    });
-
-    return {
-      completedSets,
-      totalSets,
-      totalVolume,
-      totalReps,
-      completedExercises,
-      totalExercises: exercises.length,
-    };
-  }, [exercises]);
+  // הוסר workoutStats כי לא בשימוש
 
   // עדכון תרגיל ברשימה
-  const updateExercise = useCallback((updatedExercise: Exercise) => {
-    console.log("🔄 ActiveWorkout - מעדכן תרגיל:", updatedExercise.name);
-    setExercises((prev) =>
-      prev.map((ex) => (ex.id === updatedExercise.id ? updatedExercise : ex))
-    );
-  }, []);
+  // הוסר updateExercise כי לא בשימוש
 
   // עדכון סט בתרגיל
   const handleUpdateSet = useCallback(
@@ -293,29 +278,20 @@ const ActiveWorkoutScreen: React.FC = () => {
   const handlePrevious = useCallback(() => {
     if (exerciseIndex > 0) {
       console.log(`🔙 מעבר לתרגיל הקודם: ${exerciseIndex - 1}`);
-      if (onNavigate) {
-        onNavigate("prev");
-      } else {
-        navigation.goBack();
-      }
+      setCurrentExerciseIndex(exerciseIndex - 1);
     }
-  }, [exerciseIndex, onNavigate, navigation]);
+  }, [exerciseIndex]);
 
   // ניווט לתרגיל הבא
   const handleNext = useCallback(() => {
     if (exerciseIndex < totalExercises - 1) {
       console.log(`🔄 מעבר לתרגיל הבא: ${exerciseIndex + 1}`);
-      if (onNavigate) {
-        onNavigate("next");
-      } else {
-        // TODO: ניווט לתרגיל הבא
-        console.log("ניווט לתרגיל הבא - יש לממש");
-      }
+      setCurrentExerciseIndex(exerciseIndex + 1);
     } else {
       console.log("✅ סיום האימון - כל התרגילים הושלמו");
       navigation.goBack();
     }
-  }, [exerciseIndex, totalExercises, onNavigate, navigation]);
+  }, [exerciseIndex, totalExercises, navigation]);
 
   // סיום תרגיל
   const handleFinishExercise = useCallback(() => {
@@ -423,10 +399,14 @@ const ActiveWorkoutScreen: React.FC = () => {
         <ExerciseCard
           exercise={exercise}
           sets={exercise.sets}
-          onUpdateSet={handleUpdateSet}
-          onAddSet={handleAddSet}
-          onCompleteSet={handleCompleteSet}
-          onDeleteSet={handleDeleteSet}
+          onUpdateSet={(setId: string, updates: Partial<Set>) =>
+            handleUpdateSet(exercise.id, setId, updates)
+          }
+          onAddSet={() => handleAddSet(exercise.id)}
+          onCompleteSet={(setId: string) =>
+            handleCompleteSet(exercise.id, setId)
+          }
+          onDeleteSet={(setId: string) => handleDeleteSet(exercise.id, setId)}
           onRemoveExercise={() => {
             Alert.alert(
               "מחיקת תרגיל",

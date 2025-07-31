@@ -5,7 +5,7 @@
  * @notes קובץ נפרד לטיפוסי ניווט כדי להימנע מ-namespace issues
  */
 
-import { Exercise } from "../services/exerciseService";
+import { Exercise } from "../screens/workout/types/workout.types";
 
 // טיפוסי ניווט מעודכנים // Updated navigation types
 export type RootStackParamList = {
@@ -26,7 +26,8 @@ export type RootStackParamList = {
     exercises?: Exercise[];
     workoutName?: string;
     workoutId?: string;
-    source?: "workout_plan" | "quick_start";
+    source?: "workout_plan" | "quick_start" | "day_selection";
+    requestedDay?: number;
     planData?: {
       targetMuscles: string[];
       estimatedDuration: number;

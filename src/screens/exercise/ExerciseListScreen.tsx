@@ -129,8 +129,32 @@ export default function ExerciseListScreen() {
       } else {
         setSelectedExercises((prev) => [...prev, exerciseId]);
         showToastMessage(`${item.name} נוסף לאימון! 💪`);
+
+        // המרת התרגיל מפורמט API לפורמט אימון
+        const workoutExercise = {
+          id: item.id.toString(),
+          name: item.name,
+          category: item.muscles?.[0]?.name || "כללי",
+          primaryMuscles: item.muscles?.map((m) => m.name) || [],
+          secondaryMuscles: item.muscles_secondary?.map((m) => m.name) || [],
+          equipment: "dumbbells", // ברירת מחדל - יכול להיות מותאם
+          sets: [
+            {
+              id: `${item.id}-set-1`,
+              type: "working" as const,
+              targetReps: 12,
+              targetWeight: 0,
+              completed: false,
+              restTime: 60,
+              isPR: false,
+            },
+          ],
+          restTime: 60,
+          notes: item.description || "",
+        };
+
         // הוספה לאימון דרך הפונקציה מה-params
-        onSelectExercise(item);
+        onSelectExercise(workoutExercise);
       }
     } else {
       setSelected(item);

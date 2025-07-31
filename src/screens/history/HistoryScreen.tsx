@@ -21,11 +21,12 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import { workoutHistoryService } from "../../services/workoutHistoryService";
 import {
-  workoutHistoryService,
+  WorkoutData,
+  WorkoutStatistics,
   WorkoutWithFeedback,
-} from "../../services/workoutHistoryService";
-import { WorkoutData, WorkoutStatistics } from "../workout/types/workout.types";
+} from "../workout/types/workout.types";
 
 // Note: WorkoutStatistics interface moved to workout.types.ts for consistency
 

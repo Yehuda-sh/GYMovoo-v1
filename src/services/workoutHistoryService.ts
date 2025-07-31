@@ -20,6 +20,9 @@ import {
   PersonalRecord,
 } from "../screens/workout/types/workout.types";
 
+// Export types for external use
+export type { PreviousPerformance, PersonalRecord };
+
 // Note: Interfaces moved to workout.types.ts to avoid duplication
 
 const WORKOUT_HISTORY_KEY = "workout_history";
@@ -300,6 +303,17 @@ class WorkoutHistoryService {
             });
           }
 
+          if (maxReps > 0) {
+            newRecords.push({
+              exerciseName: exercise.name,
+              type: "reps",
+              value: maxReps,
+              previousValue: 0,
+              date: new Date().toISOString(),
+              improvement: maxReps,
+            });
+          }
+
           if (maxVolume > 0) {
             newRecords.push({
               exerciseName: exercise.name,
@@ -428,18 +442,6 @@ class WorkoutHistoryService {
             exercise.name,
             userGender
           );
-
-          // חישוב שיפור לעומת ביצועים קודמים
-          const existingPerf = existingPerformances.find(
-            (p) =>
-              p.exerciseName === exercise.name ||
-              p.exerciseName === adaptedExerciseName
-          );
-          const previousMaxWeight =
-            existingPerf?.personalRecords.maxWeight || 0;
-          const previousMaxVolume =
-            existingPerf?.personalRecords.maxVolume || 0;
-          const previousMaxReps = existingPerf?.personalRecords.maxReps || 0;
 
           return {
             exerciseName: adaptedExerciseName, // שימוש בשם המותאם

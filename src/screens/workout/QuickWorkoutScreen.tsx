@@ -472,6 +472,8 @@ const QuickWorkoutScreen: React.FC = () => {
   const {
     exercises: presetExercises,
     workoutName: presetWorkoutName,
+    source,
+    requestedDay,
     mode = "full",
     exerciseName,
     singleExercise,
@@ -482,6 +484,7 @@ const QuickWorkoutScreen: React.FC = () => {
     exercises?: Exercise[];
     workoutName?: string;
     source?: string;
+    requestedDay?: number;
     mode?: "full" | "single-exercise" | "view-only";
     exerciseName?: string;
     singleExercise?: Exercise;
@@ -495,6 +498,8 @@ const QuickWorkoutScreen: React.FC = () => {
 
   console.log("🎬 QuickWorkoutScreen - מצב:", {
     mode,
+    source,
+    requestedDay,
     exerciseName,
     hasSingleExercise: !!singleExercise,
     hideAdvancedFeatures,
@@ -529,6 +534,12 @@ const QuickWorkoutScreen: React.FC = () => {
       return false;
     }
 
+    // אם זה מגיע מ-workout_plan - כמעט תמיד יש תרגילים תקינים
+    if (source === "workout_plan") {
+      console.log("🎯 QuickWorkout - מגיע מתוכנית אימון, לא טוען");
+      return false;
+    }
+
     const hasValidPresets =
       presetExercises &&
       presetExercises.length > 0 &&
@@ -536,6 +547,7 @@ const QuickWorkoutScreen: React.FC = () => {
 
     console.log("🔄 QuickWorkout - מצב טעינה ראשוני:", {
       mode,
+      source,
       hasPresets: !!presetExercises,
       presetsLength: presetExercises?.length || 0,
       hasValidPresets,
@@ -670,6 +682,7 @@ const QuickWorkoutScreen: React.FC = () => {
 
   const loadPersonalizedWorkout = async () => {
     try {
+      setIsLoadingWorkout(true);
       console.log("🚀 QuickWorkout - מתחיל טעינת אימון מותאם אישית...");
 
       // במצב תרגיל יחיד - טען מההיסטוריה או השתמש בנתונים שהועברו
@@ -729,7 +742,48 @@ const QuickWorkoutScreen: React.FC = () => {
         userGoal,
         preferredDuration,
         isInitialized,
+        requestedDay,
+        source,
       });
+
+      // אם זה בחירת יום ספציפי, צור אימון ליום הזה
+      // If it's a specific day selection, create workout for that day
+      if (source === "day_selection" && requestedDay) {
+        console.log(`✅ QuickWorkout - יוצר אימון ליום ${requestedDay}`);
+        try {
+          const dayWorkouts = {
+            1: "חזה + טריצפס",
+            2: "גב + ביצפס",
+            3: "רגליים",
+            4: "כתפיים + ליבה",
+          };
+
+          // יצירת אימון מותאם ליום הספציפי
+          const personalizedExercises = await generateQuickWorkout();
+
+          if (personalizedExercises.length > 0) {
+            setExercises(personalizedExercises);
+            setWorkoutName(
+              dayWorkouts[requestedDay as keyof typeof dayWorkouts] ||
+                `יום ${requestedDay} - אימון`
+            );
+            setIsLoadingWorkout(false);
+            return;
+          } else {
+            console.warn(
+              "⚠️ QuickWorkout - לא נוצרו תרגילים ליום, משתמש בברירת מחדל"
+            );
+            setExercises(initialExercises);
+            setIsLoadingWorkout(false);
+            return;
+          }
+        } catch (error) {
+          console.error("❌ QuickWorkout - שגיאה ביצירת אימון ליום:", error);
+          setExercises(initialExercises);
+          setIsLoadingWorkout(false);
+          return;
+        }
+      }
 
       // אם המשתמש השלים שאלון, צור אימון מותאם
       // If user completed questionnaire, create personalized workout
@@ -761,7 +815,7 @@ const QuickWorkoutScreen: React.FC = () => {
           }
         } catch (exerciseError) {
           console.error(
-            "Error generating personalized exercises:",
+            "❌ QuickWorkout - שגיאה ביצירת אימון מותאם:",
             exerciseError
           );
           setExercises(initialExercises);
@@ -1193,29 +1247,26 @@ const QuickWorkoutScreen: React.FC = () => {
               }}
               onTitlePress={() => {
                 // מעבר לתרגיל יחיד במסך ActiveWorkout
-                navigation.navigate(
-                  "ActiveWorkout" as never,
-                  {
-                    exercise: item,
-                    exerciseIndex: index,
-                    totalExercises: exercises.length,
-                    workoutData: {
-                      name: workoutName,
-                      startTime: new Date().toISOString(),
-                      exercises: exercises,
-                    },
-                    onExerciseUpdate: (updatedExercise: Exercise) => {
-                      const newExercises = [...exercises];
-                      const exerciseIndex = newExercises.findIndex(
-                        (ex) => ex.id === updatedExercise.id
-                      );
-                      if (exerciseIndex !== -1) {
-                        newExercises[exerciseIndex] = updatedExercise;
-                        setExercises(newExercises);
-                      }
-                    },
-                  } as never
-                );
+                navigation.navigate("ActiveWorkout", {
+                  exercise: item,
+                  exerciseIndex: index,
+                  totalExercises: exercises.length,
+                  workoutData: {
+                    name: workoutName,
+                    startTime: new Date().toISOString(),
+                    exercises: exercises,
+                  },
+                  onExerciseUpdate: (updatedExercise: Exercise) => {
+                    const newExercises = [...exercises];
+                    const exerciseIndex = newExercises.findIndex(
+                      (ex) => ex.id === updatedExercise.id
+                    );
+                    if (exerciseIndex !== -1) {
+                      newExercises[exerciseIndex] = updatedExercise;
+                      setExercises(newExercises);
+                    }
+                  },
+                });
               }}
               isFirst={index === 0}
               isLast={index === exercises.length - 1}

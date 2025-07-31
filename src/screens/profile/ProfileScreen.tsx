@@ -178,6 +178,7 @@ export default function ProfileScreen() {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // אנימציות משופרות // Enhanced animations
@@ -238,18 +239,24 @@ export default function ProfileScreen() {
   }, [user?.avatar, selectedAvatar]);
 
   // רענון הנתונים // Data refresh
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      setError(null);
 
-    // עדכון selectedAvatar מ-user // Update selectedAvatar from user
-    if (user?.avatar) {
-      setSelectedAvatar(user.avatar);
-    }
+      // עדכון selectedAvatar מ-user // Update selectedAvatar from user
+      if (user?.avatar) {
+        setSelectedAvatar(user.avatar);
+      }
 
-    // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI // Data refresh simulation
-    setTimeout(() => {
+      // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI // Data refresh simulation
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+      setError(error instanceof Error ? error.message : "שגיאה ברענון הפרופיל");
+    } finally {
       setRefreshing(false);
-    }, 1500);
+    }
   }, [user?.avatar]);
 
   // חישוב מידע נוסף מהשאלון
@@ -406,32 +413,48 @@ export default function ProfileScreen() {
 
   // בחר מהגלריה // Pick from gallery
   const pickImageFromGallery = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      const newAvatar = result.assets[0].uri;
-      setSelectedAvatar(newAvatar);
-      updateUser({ avatar: newAvatar });
-      setShowAvatarModal(false);
+    try {
+      setError(null);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        const newAvatar = result.assets[0].uri;
+        setSelectedAvatar(newAvatar);
+        updateUser({ avatar: newAvatar });
+        setShowAvatarModal(false);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      setError(error instanceof Error ? error.message : "שגיאה בבחירת תמונה");
     }
   }, [updateUser]);
 
   // בחר מהמצלמה // Take photo
   const takePhoto = useCallback(async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      const newAvatar = result.assets[0].uri;
-      setSelectedAvatar(newAvatar);
-      updateUser({ avatar: newAvatar });
-      setShowAvatarModal(false);
+    try {
+      setError(null);
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        const newAvatar = result.assets[0].uri;
+        setSelectedAvatar(newAvatar);
+        updateUser({ avatar: newAvatar });
+        setShowAvatarModal(false);
+      }
+    } catch (error) {
+      console.error("Error taking photo:", error);
+      setError(error instanceof Error ? error.message : "שגיאה בצילום תמונה");
     }
   }, [updateUser]);
 
@@ -492,6 +515,19 @@ export default function ProfileScreen() {
               )}
             </View>
           </View>
+
+          {/* הודעת שגיאה */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                style={styles.errorRetryButton}
+                onPress={() => setError(null)}
+              >
+                <Text style={styles.errorRetryText}>הבנתי</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* כרטיס שאלון אם לא הושלם */}
           {!isQuestionnaireComplete && (
@@ -1644,5 +1680,36 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textAlign: "center",
     writingDirection: "rtl",
+  },
+  errorContainer: {
+    backgroundColor: theme.colors.error + "10",
+    borderWidth: 1,
+    borderColor: theme.colors.error + "30",
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  errorText: {
+    flex: 1,
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.error,
+    fontWeight: "500",
+    writingDirection: "rtl",
+    marginRight: theme.spacing.sm,
+  },
+  errorRetryButton: {
+    backgroundColor: theme.colors.error,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.sm,
+  },
+  errorRetryText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.bodySmall.fontSize,
+    fontWeight: "600",
   },
 });
