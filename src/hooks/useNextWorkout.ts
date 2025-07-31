@@ -12,8 +12,6 @@ import {
   NextWorkoutRecommendation,
 } from "../services/nextWorkoutLogicService";
 import { useUserStore } from "../stores/userStore";
-import { ExtendedQuestionnaireAnswers } from "../data/extendedQuestionnaireData";
-import { NewQuestionnaireManager } from "../data/newSmartQuestionnaire";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;

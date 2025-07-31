@@ -9,7 +9,6 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
-import { useUserStore } from "../../stores/userStore";
 
 /**
  * מסך שמחליט איזה אימון להציג כשהמשתמש לוחץ על "אימון" בניווט
@@ -17,12 +16,11 @@ import { useUserStore } from "../../stores/userStore";
  */
 export default function WorkoutRouterScreen() {
   const navigation = useNavigation();
-  const { user } = useUserStore();
 
   useEffect(() => {
-    console.log("📍 WorkoutRouter - redirecting to WorkoutPlans tab");
+    console.log("📍 WorkoutRouter - navigating to WorkoutPlans");
     // נווט לטאב של תוכניות אימון במקום המסך הנוכחי
-    (navigation as any).navigate("WorkoutPlans");
+    navigation.navigate("WorkoutPlans" as never);
   }, [navigation]);
 
   return (
@@ -35,7 +33,7 @@ export default function WorkoutRouterScreen() {
           color={theme.colors.primary}
           style={styles.icon}
         />
-        <Text style={styles.loadingText}>עובר לתוכניות אימון...</Text>
+        <Text style={styles.loadingText}>טוען אימונים...</Text>
       </View>
     </View>
   );

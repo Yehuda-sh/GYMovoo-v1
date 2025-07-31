@@ -235,6 +235,100 @@ const calculatePerformanceScore = (exercise: HistoricalExercise): number => {
   return (exercise.weight || 0) * (exercise.reps || 0);
 };
 
+// פונקציה לקבלת תרגיל יחיד מההיסטוריה - נדרשת למצב single-exercise
+const getActiveExerciseFromHistory = (
+  user: UserData | null,
+  exerciseName?: string,
+  presetExercise?: Exercise
+): Exercise => {
+  // אם יש תרגיל מוגדר מראש מהפרמטרים, השתמש בו
+  if (presetExercise) {
+    console.log(
+      "✅ QuickWorkout - משתמש בתרגיל מוגדר מראש:",
+      presetExercise.name
+    );
+    return {
+      ...presetExercise,
+      sets: presetExercise.sets.map((set) => ({
+        ...set,
+        actualWeight: set.actualWeight || set.targetWeight || 50,
+        actualReps: set.actualReps || set.targetReps || 8,
+      })),
+    };
+  }
+
+  // אם יש שם תרגיל ספציפי, נחפש אותו בהיסטוריה
+  if (exerciseName && user?.activityHistory?.workouts) {
+    const recentWorkouts = user.activityHistory.workouts.slice(0, 5); // 5 אימונים אחרונים
+
+    for (const workout of recentWorkouts) {
+      if (workout.exercises) {
+        const exercise = workout.exercises.find(
+          (ex: HistoricalExercise) =>
+            ex.name?.includes(exerciseName) ||
+            ex.exerciseName?.includes(exerciseName)
+        );
+
+        if (exercise) {
+          return {
+            id: `history-${exerciseName}`,
+            name: exercise.name || exercise.exerciseName || exerciseName,
+            category: "היסטוריה",
+            primaryMuscles: ["כללי"],
+            equipment: "לא מוגדר",
+            sets: exercise.sets?.map((set, index) => ({
+              id: `${exercise.name}-${index + 1}`,
+              type: "working" as const,
+              targetWeight: set.weight || 50,
+              targetReps: set.reps || 8,
+              actualWeight: set.actualWeight || set.weight || 50,
+              actualReps: set.actualReps || set.reps || 8,
+              completed: false,
+              isPR: false,
+            })) || [
+              {
+                id: `${exerciseName}-1`,
+                type: "working" as const,
+                targetWeight: exercise.weight || 50,
+                targetReps: exercise.reps || 8,
+                actualWeight: exercise.weight || 50,
+                actualReps: exercise.reps || 8,
+                completed: false,
+                isPR: false,
+              },
+            ],
+            restTime: 90,
+            notes: `מבוסס על ביצוע קודם: ${exercise.reps || 8}x${exercise.weight || 50}kg`,
+          };
+        }
+      }
+    }
+  }
+
+  // נתוני דמו כגיבוי
+  return {
+    id: `demo-${exerciseName || "exercise"}`,
+    name: exerciseName || "תרגיל",
+    category: "דמו",
+    primaryMuscles: ["כללי"],
+    equipment: "לא מוגדר",
+    sets: [
+      {
+        id: `demo-${exerciseName || "exercise"}-1`,
+        type: "working" as const,
+        targetWeight: 50,
+        targetReps: 8,
+        actualWeight: 50,
+        actualReps: 8,
+        completed: false,
+        isPR: false,
+      },
+    ],
+    restTime: 90,
+    notes: "תרגיל דמו - עדכן את הערכים לפי יכולתך",
+  };
+};
+
 const initialExercises: Exercise[] = [
   {
     id: "1",
@@ -374,21 +468,83 @@ const QuickWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // קבלת פרמטרים מהניווט
-  const { exercises: presetExercises, workoutName: presetWorkoutName } =
-    (route.params as {
-      exercises?: Exercise[];
+  // קבלת פרמטרים מהניווט - תמיכה במצבים שונים
+  const {
+    exercises: presetExercises,
+    workoutName: presetWorkoutName,
+    mode = "full",
+    exerciseName,
+    singleExercise,
+    hideAdvancedFeatures = false,
+    currentExerciseIndex = 0,
+    workoutData,
+  } = (route.params as {
+    exercises?: Exercise[];
+    workoutName?: string;
+    source?: string;
+    mode?: "full" | "single-exercise" | "view-only";
+    exerciseName?: string;
+    singleExercise?: Exercise;
+    hideAdvancedFeatures?: boolean;
+    currentExerciseIndex?: number;
+    workoutData?: {
+      exercises: Exercise[];
       workoutName?: string;
-      source?: string;
-    }) || {};
+    };
+  }) || {};
 
-  const [workoutName, setWorkoutName] = useState(
-    presetWorkoutName || "אימון מהיר"
-  );
-  const [exercises, setExercises] = useState<Exercise[]>(presetExercises || []);
+  console.log("🎬 QuickWorkoutScreen - מצב:", {
+    mode,
+    exerciseName,
+    hasSingleExercise: !!singleExercise,
+    hideAdvancedFeatures,
+    currentExerciseIndex,
+  });
+
+  const [workoutName, setWorkoutName] = useState(() => {
+    if (mode === "single-exercise") {
+      return (
+        workoutData?.workoutName ||
+        singleExercise?.name ||
+        exerciseName ||
+        "תרגיל יחיד"
+      );
+    }
+    return presetWorkoutName || "אימון מהיר";
+  });
+
+  const [exercises, setExercises] = useState<Exercise[]>(() => {
+    if (mode === "single-exercise" && singleExercise) {
+      return [singleExercise];
+    }
+    return presetExercises || [];
+  });
   const [dashboardVisible, setDashboardVisible] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [isLoadingWorkout, setIsLoadingWorkout] = useState(true);
+
+  // מצב טעינה ראשוני - תלוי במצב
+  const [isLoadingWorkout, setIsLoadingWorkout] = useState(() => {
+    // במצב תרגיל יחיד - אף פעם לא טוען
+    if (mode === "single-exercise") {
+      return false;
+    }
+
+    const hasValidPresets =
+      presetExercises &&
+      presetExercises.length > 0 &&
+      presetExercises.some((ex) => ex && ex.sets && ex.sets.length > 0);
+
+    console.log("🔄 QuickWorkout - מצב טעינה ראשוני:", {
+      mode,
+      hasPresets: !!presetExercises,
+      presetsLength: presetExercises?.length || 0,
+      hasValidPresets,
+      shouldLoad: !hasValidPresets,
+    });
+
+    return !hasValidPresets; // טען רק אם אין תרגילים תקינים
+  });
+
   const [hasLoggedPresetUse, setHasLoggedPresetUse] = useState(false); // מניעת לוגים חוזרים
 
   // גישה לנתוני המשתמש
@@ -408,6 +564,10 @@ const QuickWorkoutScreen: React.FC = () => {
     hasCompletedQuestionnaire,
     isInitialized,
     presetExercises: presetExercises?.length || 0,
+    presetExercisesValid:
+      presetExercises?.every(
+        (ex) => ex && ex.id && ex.name && ex.sets?.length > 0
+      ) || false,
   });
 
   // מצב FAB
@@ -447,6 +607,31 @@ const QuickWorkoutScreen: React.FC = () => {
   // אנימציות
   const dashboardAnimation = useRef(new Animated.Value(0)).current;
 
+  // הגדרת מצב טעינה ראשוני - רק פעם אחת
+  useEffect(() => {
+    console.log("🔄 QuickWorkout - בדיקת תרגילים ראשונית");
+
+    // בדיקה מתקדמת אם יש תרגילים תקינים מהתוכנית
+    const hasValidPresetExercises =
+      presetExercises &&
+      presetExercises.length > 0 &&
+      presetExercises.some((ex) => ex && ex.sets && ex.sets.length > 0);
+
+    if (hasValidPresetExercises) {
+      console.log(
+        "🎯 QuickWorkout - יש תרגילים תקינים מהתוכנית, לא צריך לטעון"
+      );
+      setIsLoadingWorkout(false);
+    } else if (presetExercises && presetExercises.length > 0) {
+      console.warn("⚠️ QuickWorkout - יש תרגילים מהתוכנית אבל הם לא תקינים");
+      // גם במקרה זה, נעבור ללוגיקה הרגילה ולא נישאר תקועים
+    } else {
+      console.log(
+        "ℹ️ QuickWorkout - אין תרגילים מוגדרים מראש, מתחיל תהליך טעינה רגיל"
+      );
+    }
+  }, []); // רק פעם אחת בעת יצירת הקומפוננט
+
   // מעקב אחר שינויים בטיימר המנוחה
   useEffect(() => {
     // עדכון מצב הטיימר בצורה שקטה
@@ -460,32 +645,76 @@ const QuickWorkoutScreen: React.FC = () => {
       isLoadingWorkout,
     });
 
-    if (isLoadingWorkout) {
+    // רק אם אנחנו עדיין במצב טעינה ונתונים מוכנים
+    if (isLoadingWorkout && isInitialized) {
       loadPersonalizedWorkout();
     }
-  }, [isInitialized]); // הסרת isLoadingWorkout כדי למנוע לולאה אינסופית
+  }, [isInitialized, isLoadingWorkout]); // חזרה לשני התנאים עם לוגיקה מתוקנת
+
+  // Backup timer - אם הטעינה תקועה יותר מ-5 שניות, כבה אותה
+  useEffect(() => {
+    const backupTimer = setTimeout(() => {
+      if (isLoadingWorkout) {
+        console.warn("⏰ QuickWorkout - Backup timer: מכבה טעינה שתקועה");
+        setIsLoadingWorkout(false);
+        // אם אין תרגילים כלל, השתמש בברירת מחדל
+        if (!exercises || exercises.length === 0) {
+          console.log("🔧 QuickWorkout - Backup: משתמש בתרגילי ברירת מחדל");
+          setExercises(initialExercises);
+        }
+      }
+    }, 5000); // 5 שניות
+
+    return () => clearTimeout(backupTimer);
+  }, [isLoadingWorkout, exercises]);
 
   const loadPersonalizedWorkout = async () => {
     try {
       console.log("🚀 QuickWorkout - מתחיל טעינת אימון מותאם אישית...");
-      setIsLoadingWorkout(true);
 
-      // אם יש תרגילים מוכנים מהתוכנית - השתמש בהם!
-      if (presetExercises && presetExercises.length > 0) {
-        if (!hasLoggedPresetUse) {
-          console.log(
-            "✅ QuickWorkout - משתמש בתרגילים מהתוכנית:",
-            presetExercises.map((ex: Exercise) => ex.name)
+      // במצב תרגיל יחיד - טען מההיסטוריה או השתמש בנתונים שהועברו
+      if (mode === "single-exercise") {
+        if (!singleExercise && exerciseName) {
+          const historyExercise = getActiveExerciseFromHistory(
+            user as UserData | null,
+            exerciseName
           );
-          setHasLoggedPresetUse(true);
+          setExercises([historyExercise]);
         }
-        setExercises(presetExercises);
         setIsLoadingWorkout(false);
         return;
       }
 
-      // אם הנתונים לא נטענו עדיין - חכה או השתמש בברירת מחדל
-      // If data not loaded yet - wait or use default
+      // לא מגדירים setIsLoadingWorkout(true) כדי למנוע לולאה
+
+      // אם יש תרגילים מוכנים מהתוכנית - השתמש בהם!
+      // בדיקה מתקדמת שהתרگילים באמת תקינים ויש בהם sets
+      if (presetExercises && presetExercises.length > 0) {
+        // וידוא שהתרגילים תקינים ויש להם sets
+        const validExercises = presetExercises.filter(
+          (ex) => ex && ex.id && ex.name && ex.sets && ex.sets.length > 0
+        );
+
+        if (validExercises.length > 0) {
+          if (!hasLoggedPresetUse) {
+            console.log(
+              "✅ QuickWorkout - משתמש בתרגילים מהתוכנית:",
+              validExercises.map((ex: Exercise) => ex.name)
+            );
+            setHasLoggedPresetUse(true);
+          }
+          setExercises(validExercises);
+          setIsLoadingWorkout(false);
+          return;
+        } else {
+          console.warn(
+            "⚠️ QuickWorkout - תרגילי התוכנית לא תקינים, ממשיך ללוגיקה הרגילה"
+          );
+        }
+      }
+
+      // אם הנתונים לא נטענו עדיין - השתמש בברירת מחדל
+      // If data not loaded yet - use default
       if (!isInitialized) {
         console.log(
           "⏳ QuickWorkout - נתונים לא נטענו עדיין, משתמש בברירת מחדל"
@@ -569,6 +798,16 @@ const QuickWorkoutScreen: React.FC = () => {
     } finally {
       console.log("✅ QuickWorkout - סיום טעינת אימון");
       setIsLoadingWorkout(false);
+
+      // בדיקה סופית שיש תרגילים - אם לא, השתמש בברירת מחדל
+      setTimeout(() => {
+        if (!exercises || exercises.length === 0) {
+          console.warn(
+            "⚠️ QuickWorkout - לא נמצאו תרגילים בסוף הטעינה, משתמש בברירת מחדל"
+          );
+          setExercises(initialExercises);
+        }
+      }, 100);
     }
   };
 
@@ -618,28 +857,44 @@ const QuickWorkoutScreen: React.FC = () => {
 
   // חישובי סטטיסטיקות
   const stats = useMemo(() => {
+    // בדיקת בטיחות - אם אין תרגילים, החזר ערכי ברירת מחדל
+    if (!exercises || exercises.length === 0) {
+      return {
+        completedSets: 0,
+        totalSets: 0,
+        totalVolume: 0,
+        totalReps: 0,
+        currentPace: 0,
+      };
+    }
+
     let completedSets = 0;
     let totalVolume = 0;
     let totalReps = 0;
 
     exercises.forEach((exercise) => {
-      exercise.sets.forEach((set) => {
-        if (set.completed) {
-          completedSets++;
+      if (exercise && exercise.sets) {
+        exercise.sets.forEach((set) => {
+          if (set && set.completed) {
+            completedSets++;
 
-          // אם יש ערכים ממשיים, השתמש בהם. אחרת השתמש בערכי המטרה
-          const reps = set.actualReps || set.targetReps || 0;
-          const weight = set.actualWeight || set.targetWeight || 0;
+            // אם יש ערכים ממשיים, השתמש בהם. אחרת השתמש בערכי המטרה
+            const reps = set.actualReps || set.targetReps || 0;
+            const weight = set.actualWeight || set.targetWeight || 0;
 
-          totalReps += reps;
-          totalVolume += reps * weight;
-        }
-      });
+            totalReps += reps;
+            totalVolume += reps * weight;
+          }
+        });
+      }
     });
 
     const statsResult = {
       completedSets,
-      totalSets: exercises.reduce((acc, ex) => acc + ex.sets.length, 0),
+      totalSets: exercises.reduce(
+        (acc, ex) => acc + (ex?.sets?.length || 0),
+        0
+      ),
       totalVolume,
       totalReps,
       currentPace: totalReps > 0 ? Math.round(elapsedTime / totalReps) : 0,
@@ -650,8 +905,12 @@ const QuickWorkoutScreen: React.FC = () => {
 
   // התרגיל הבא
   const nextExercise = useMemo(() => {
-    const incompleteExercise = exercises.find((ex) =>
-      ex.sets.some((set) => !set.completed)
+    if (!exercises || exercises.length === 0) {
+      return null;
+    }
+
+    const incompleteExercise = exercises.find(
+      (ex) => ex && ex.sets && ex.sets.some((set) => set && !set.completed)
     );
     return incompleteExercise || null;
   }, [exercises]);
@@ -753,37 +1012,39 @@ const QuickWorkoutScreen: React.FC = () => {
           workoutName={workoutName}
           elapsedTime={formattedTime}
           onTimerPress={() => (isRunning ? pauseTimer() : startTimer())}
-          onNamePress={handleEditWorkoutName}
-          onMenuPress={toggleDashboard}
+          onNamePress={mode === "view-only" ? () => {} : handleEditWorkoutName}
+          onMenuPress={hideAdvancedFeatures ? () => {} : toggleDashboard}
         />
 
-        {/* Workout Status Bar - Combined Rest Timer + Next Exercise */}
-        <WorkoutStatusBar
-          isRestActive={isRestTimerActive}
-          restTimeLeft={restTimeRemaining}
-          onAddRestTime={addRestTime}
-          onSubtractRestTime={subtractRestTime}
-          onSkipRest={skipRestTimer}
-          nextExercise={!isRestTimerActive ? nextExercise : null}
-          onSkipToNext={() => {
-            // מציאת התרגיל הבא ומעבר אליו | Find and move to next exercise
-            const currentExerciseIndex = exercises.findIndex(
-              (ex) => ex.id === nextExercise?.id
-            );
-            if (
-              currentExerciseIndex !== -1 &&
-              currentExerciseIndex < exercises.length - 1
-            ) {
-              // גלילה לתרגיל הבא | Scroll to next exercise
-              const nextIndex = currentExerciseIndex + 1;
-              // TODO: יש להוסיף ref ל-FlatList ולגלול אליו
-              // For now, just log the action
-              console.log(
-                `Skipping to exercise: ${exercises[nextIndex]?.name}`
+        {/* Workout Status Bar - Combined Rest Timer + Next Exercise - מוסתר במצב view-only */}
+        {!hideAdvancedFeatures && (
+          <WorkoutStatusBar
+            isRestActive={isRestTimerActive}
+            restTimeLeft={restTimeRemaining}
+            onAddRestTime={addRestTime}
+            onSubtractRestTime={subtractRestTime}
+            onSkipRest={skipRestTimer}
+            nextExercise={!isRestTimerActive ? nextExercise : null}
+            onSkipToNext={() => {
+              // מציאת התרגיל הבא ומעבר אליו | Find and move to next exercise
+              const currentExerciseIndex = exercises.findIndex(
+                (ex) => ex.id === nextExercise?.id
               );
-            }
-          }}
-        />
+              if (
+                currentExerciseIndex !== -1 &&
+                currentExerciseIndex < exercises.length - 1
+              ) {
+                // גלילה לתרגיל הבא | Scroll to next exercise
+                const nextIndex = currentExerciseIndex + 1;
+                // TODO: יש להוסיף ref ל-FlatList ולגלול אליו
+                // For now, just log the action
+                console.log(
+                  `Skipping to exercise: ${exercises[nextIndex]?.name}`
+                );
+              }
+            }}
+          />
+        )}
         <FlatList
           style={styles.listStyle}
           contentContainerStyle={styles.listContent}
@@ -935,16 +1196,61 @@ const QuickWorkoutScreen: React.FC = () => {
             />
           )}
           ListFooterComponent={
-            <TouchableOpacity
-              style={styles.finishButton}
-              onPress={handleFinishWorkout}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="סיים אימון"
-              accessibilityHint={`סיים את האימון עם ${stats.completedSets} סטים שהושלמו`}
-            >
-              <Text style={styles.finishButtonText}>סיים אימון</Text>
-            </TouchableOpacity>
+            mode === "single-exercise" ? (
+              // כפתורי ניווט במצב תרגיל יחיד
+              <View style={styles.singleExerciseNavigation}>
+                <TouchableOpacity
+                  style={[styles.navButton, styles.prevButton]}
+                  onPress={() => {
+                    if (currentExerciseIndex > 0) {
+                      console.log(
+                        `🔙 חזרה לתרגיל הקודם: ${currentExerciseIndex - 1}`
+                      );
+                      // TODO: ניווט לתרגיל הקודם
+                    } else {
+                      console.log("ℹ️ זה התרגיל הראשון באימון");
+                    }
+                  }}
+                  disabled={currentExerciseIndex <= 0}
+                >
+                  <Text style={styles.navButtonText}>הקודם</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.navButton}
+                  onPress={() => {
+                    const totalExercises = workoutData?.exercises?.length || 1;
+                    if (currentExerciseIndex < totalExercises - 1) {
+                      console.log(
+                        `🔄 מעבר לתרגיל הבא: ${currentExerciseIndex + 1}/${totalExercises}`
+                      );
+                      // TODO: ניווט לתרגיל הבא
+                    } else {
+                      console.log("✅ סיום האימון - כל התרגילים הושלמו");
+                      navigation.goBack();
+                    }
+                  }}
+                >
+                  <Text style={styles.navButtonText}>
+                    {currentExerciseIndex >=
+                    (workoutData?.exercises?.length || 1) - 1
+                      ? "סיים"
+                      : "הבא"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.finishButton}
+                onPress={handleFinishWorkout}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="סיים אימון"
+                accessibilityHint={`סיים את האימון עם ${stats.completedSets} סטים שהושלמו`}
+              >
+                <Text style={styles.finishButtonText}>סיים אימון</Text>
+              </TouchableOpacity>
+            )
           }
           showsVerticalScrollIndicator={false}
           onScroll={(event) => {
@@ -963,24 +1269,36 @@ const QuickWorkoutScreen: React.FC = () => {
           scrollEventThrottle={16}
         />
 
-        {/* FAB */}
-        <FloatingActionButton
-          visible={fabVisible}
-          label={fabLabelVisible ? "התחל עכשיו" : undefined}
-          accessibilityLabel="התחל את הסט הבא"
-          accessibilityHint={`הקש כדי להתחיל את הסט הבא באימון. ${nextExercise ? `התרגיל הבא: ${nextExercise.name}` : "אין תרגילים נוספים"}`}
-          onPress={() => {
-            // מצא את הסט הבא שלא הושלם
-            const nextSet = exercises
-              .flatMap((ex) => ex.sets.map((set) => ({ exercise: ex, set })))
-              .find(({ set }) => !set.completed);
-
-            if (nextSet) {
-              setNextSetData(nextSet);
-              setShowStartSetModal(true);
+        {/* FAB - מוסתר במצבים מסוימים */}
+        {!hideAdvancedFeatures && (
+          <FloatingActionButton
+            visible={fabVisible}
+            label={
+              fabLabelVisible
+                ? mode === "single-exercise"
+                  ? "התחל סט"
+                  : "התחל עכשיו"
+                : undefined
             }
-          }}
-        />
+            accessibilityLabel={
+              mode === "single-exercise"
+                ? "התחל את הסט הבא בתרגיל"
+                : "התחל את הסט הבא"
+            }
+            accessibilityHint={`הקש כדי להתחיל את הסט הבא באימון. ${nextExercise ? `התרגיל הבא: ${nextExercise.name}` : "אין תרגילים נוספים"}`}
+            onPress={() => {
+              // מצא את הסט הבא שלא הושלם
+              const nextSet = exercises
+                .flatMap((ex) => ex.sets.map((set) => ({ exercise: ex, set })))
+                .find(({ set }) => !set.completed);
+
+              if (nextSet) {
+                setNextSetData(nextSet);
+                setShowStartSetModal(true);
+              }
+            }}
+          />
+        )}
       </KeyboardAvoidingView>
 
       {/* Dashboard Drawer */}
@@ -1164,6 +1482,33 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     ...theme.shadows.large,
     zIndex: 1000,
+  },
+  // סגנונות למצב תרגיל יחיד
+  singleExerciseNavigation: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  navButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    flex: 1,
+    alignItems: "center",
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  prevButton: {
+    backgroundColor: theme.colors.secondary,
+  },
+  navButtonText: {
+    color: theme.colors.card,
+    fontSize: theme.typography.button.fontSize,
+    fontWeight: theme.typography.button.fontWeight,
   },
 });
 

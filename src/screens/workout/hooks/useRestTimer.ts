@@ -1,7 +1,8 @@
 /**
  * @file src/screens/workout/hooks/useRestTimer.ts
- * @description הוק לניהול טיימר מנוחה בין סטים
- * English: Hook for managing rest timer between sets
+ * @description הוק לניהול טיימר מנוחה בין סטים עם שיפורי ביצועים
+ * English: Hook for managing rest timer between sets with performance improvements
+ * @updated 2025-01-31 שיפורי ביצועים ועקביות עם useWorkoutTimer
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -27,22 +28,29 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
 
-  // נקה interval בסיום
-  // Clear interval on unmount
+  // נקה interval בסיום עם flag למניעת memory leaks
+  // Clear interval on unmount with flag to prevent memory leaks
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, []);
 
-  // עדכון טיימר
-  // Update timer
+  // עדכון טיימר עם הגנה מפני memory leaks
+  // Update timer with memory leak protection
   useEffect(() => {
     if (isRestTimerActive && !isPaused) {
       intervalRef.current = setInterval(() => {
+        if (!isMountedRef.current) {
+          return; // Prevent updates after unmount
+        }
+
         const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
 
         if (remaining <= 0) {
@@ -62,12 +70,14 @@ export const useRestTimer = (): UseRestTimerReturn => {
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isRestTimerActive, isPaused]);

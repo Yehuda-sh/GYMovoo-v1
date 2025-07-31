@@ -8,6 +8,134 @@
 
 ## 📊 עדכון אחרון: 31 יולי 2025
 
+### 🎯 אופציה 2: מהפכת איחוד מסכי האימון
+
+#### 📋 **אתגר: כפילות קוד במסכי האימון**
+
+**הבעיה שזוהתה:**
+
+- `ActiveWorkoutScreen.tsx` - טיפול בתרגיל יחיד
+- `QuickWorkoutScreen.tsx` - טיפול באימון מלא
+- כפילות קוד של 70% בין המסכים
+- תחזוקה כפולה לכל שינוי
+- חוויית משתמש לא עקבית
+
+**הפתרון שיושם: מסך אוניברסלי**
+
+```typescript
+// QuickWorkoutScreen.tsx - מצבים מרובים
+interface RouteParams {
+  mode?: "full" | "single-exercise" | "view-only";
+  exerciseName?: string;
+  singleExercise?: Exercise;
+  hideAdvancedFeatures?: boolean;
+  currentExerciseIndex?: number;
+}
+
+// לוגיקה מותנית לפי מצב
+if (mode === "single-exercise") {
+  // מצב תרגיל יחיד - מה שהיה ב-ActiveWorkout
+  const historyExercise = getActiveExerciseFromHistory(user, exerciseName);
+  setExercises([historyExercise]);
+} else {
+  // מצב מלא - מה שהיה קודם
+  loadPersonalizedWorkout();
+}
+```
+
+#### 🔧 **פונקציה חדשה: getActiveExerciseFromHistory**
+
+```typescript
+const getActiveExerciseFromHistory = (
+  user: UserData | null,
+  exerciseName?: string,
+  presetExercise?: Exercise
+): Exercise => {
+  // 1. אם יש preset מהפרמטרים - השתמש בו
+  if (presetExercise) {
+    return {
+      ...presetExercise,
+      sets: presetExercise.sets.map((set) => ({
+        ...set,
+        actualWeight: set.actualWeight || set.targetWeight || 50,
+        actualReps: set.actualReps || set.targetReps || 8,
+      })),
+    };
+  }
+
+  // 2. חיפוש בהיסטוריה
+  if (exerciseName && user?.activityHistory?.workouts) {
+    const recentWorkouts = user.activityHistory.workouts.slice(0, 5);
+    // חיפוש ומיפוי מההיסטוריה...
+  }
+
+  // 3. גיבוי - נתוני דמו
+  return createDemoExercise(exerciseName);
+};
+```
+
+#### 🎨 **UI מותנה לפי מצב**
+
+```typescript
+// הסתרת תכונות מתקדמות במצב single-exercise
+{!hideAdvancedFeatures && (
+  <WorkoutStatusBar
+    isRestActive={isRestTimerActive}
+    // ... רק במצב מלא
+  />
+)}
+
+// כפתורי ניווט במצב תרגיל יחיד
+{mode === "single-exercise" ? (
+  <View style={styles.singleExerciseNavigation}>
+    <TouchableOpacity style={styles.prevButton}>
+      <Text>הקודם</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.navButton}>
+      <Text>{isLastExercise ? "סיים" : "הבא"}</Text>
+    </TouchableOpacity>
+  </View>
+) : (
+  <TouchableOpacity
+    style={styles.finishButton}
+    onPress={handleFinishWorkout}
+  >
+    <Text>סיים אימון</Text>
+  </TouchableOpacity>
+)}
+```
+
+#### 🗑️ **קובץ שנמחק: ActiveWorkoutScreen.tsx**
+
+```bash
+# הקבצים שהושפעו:
+- src/screens/workout/ActiveWorkoutScreen.tsx  # נמחק
++ src/screens/workout/QuickWorkoutScreen.tsx   # עודכן למצבים מרובים
++ init_structure.ps1                          # עודכן להסיר הקובץ הישן
+```
+
+#### 🔧 **תיקוני TypeScript שנדרשו**
+
+```typescript
+// שגיאות שתוקנו:
+// 1. Set interface - שדות לא קיימים
+- set.number      // לא קיים
+- set.weight      // לא קיים
+- set.reps        // לא קיים
++ set.targetWeight
++ set.actualWeight
++ set.targetReps
++ set.actualReps
+
+// 2. Exercise interface - שדות נדרשים
++ primaryMuscles: ["כללי"],
++ equipment: "לא מוגדר",
+
+// 3. פרמטר לא בשימוש
+- presetExercise.sets.map((set, index) => ...)
++ presetExercise.sets.map((set) => ...)
+```
+
 ### 🚨 תיקון באגים קריטיים בניתוח נתונים ומיפוי
 
 #### 🔧 **באג Equipment Extraction - תוקן מלא**

@@ -48,7 +48,7 @@ $files = @(
     "src/screens/plans/types.ts",
     "src/screens/plan-detail/PlanDetailScreen.tsx",
     "src/screens/plan-detail/types.ts",
-    "src/screens/workout/ActiveWorkoutScreen.tsx",
+    "src/screens/workout/QuickWorkoutScreen.tsx",
     "src/screens/workout/types.ts",
     "src/components/workout/ExerciseCard.tsx",
     "src/components/workout/SetRow.tsx",

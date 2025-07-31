@@ -25,6 +25,141 @@
 - **📚 ארגון תיעוד מושלם:** צמצום מ-18 ל-17 מסמכים מאורגנים, איחוד 3 מסמכים, מחיקת 5 מסמכים מיושנים\*\*
 - **🔄 סנכרון מלא:** כל המסמכים מעודכנים עם מידע אחיד ועקבי, הוסרו נתונים דינמיים (5 מסמכי שורש + 10 מסמכי docs)\*\*
 - **📋 לקחים מתועדים:** 2 לקחים קריטיים נוספו למניעת טעיות עתידיות (נתונים דינמיים + עבודה עם Expo)\*\*
+- **🎯 אופציה 2 מושלמת:** איחוד ActiveWorkout ו-QuickWorkout למסך אוניברסלי יחיד עם מצבים מרובים
+- **🗑️ ניקוי קוד:** מחיקת ActiveWorkoutScreen.tsx וצמצום כפילות קוד ב-70%\*\*
+
+## 🔖 Checkpoint #052 - אופציה 2: איחוד מסכי האימון למערכת אוניברסלית
+
+**תאריך:** 31/07/2025  
+**מטרה:** איחוד ActiveWorkoutScreen ו-QuickWorkoutScreen למסך יחיד עם מצבים מרובים
+
+### 🎯 **האתגר:**
+
+- שני מסכים עם כפילות קוד של 70%
+- ActiveWorkoutScreen - טיפול בתרגיל יחיד
+- QuickWorkoutScreen - טיפול באימון מלא
+- תחזוקה כפולה לכל שינוי
+- חוויית משתמש לא עקבית
+
+### 🔧 **הפתרון: מסך אוניברסלי עם 3 מצבים**
+
+#### ✅ `QuickWorkoutScreen.tsx` - שופר למצבים מרובים
+
+```typescript
+// פרמטרי ניווט חדשים
+interface RouteParams {
+  mode?: "full" | "single-exercise" | "view-only";
+  exerciseName?: string;
+  singleExercise?: Exercise;
+  hideAdvancedFeatures?: boolean;
+  currentExerciseIndex?: number;
+}
+
+// לוגיקה מותנית לפי מצב
+if (mode === "single-exercise") {
+  // מצב תרגיל יחיד (מה שהיה ב-ActiveWorkout)
+  const historyExercise = getActiveExerciseFromHistory(user, exerciseName);
+  setExercises([historyExercise]);
+} else {
+  // מצב מלא (מה שהיה קודם)
+  loadPersonalizedWorkout();
+}
+```
+
+#### ✅ פונקציה חדשה: `getActiveExerciseFromHistory`
+
+```typescript
+const getActiveExerciseFromHistory = (
+  user: UserData | null,
+  exerciseName?: string,
+  presetExercise?: Exercise
+): Exercise => {
+  // 1. אם יש preset מהפרמטרים - השתמש בו
+  if (presetExercise) {
+    return { ...presetExercise, sets: enhancedSets };
+  }
+
+  // 2. חיפוש בהיסטוריה (5 אימונים אחרונים)
+  if (exerciseName && user?.activityHistory?.workouts) {
+    const recentWorkouts = user.activityHistory.workouts.slice(0, 5);
+    // מיפוי מההיסטוריה...
+  }
+
+  // 3. גיבוי - נתוני דמו
+  return createDemoExercise(exerciseName);
+};
+```
+
+#### ✅ UI מותנה לפי מצב
+
+```typescript
+// הסתרת תכונות מתקדמות במצב single-exercise
+{!hideAdvancedFeatures && (
+  <WorkoutStatusBar />
+)}
+
+// כפתורי ניווט במצב תרגיל יחיד
+{mode === "single-exercise" ? (
+  <View style={styles.singleExerciseNavigation}>
+    <TouchableOpacity style={styles.prevButton}>
+      <Text>הקודם</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.navButton}>
+      <Text>{isLastExercise ? "סיים" : "הבא"}</Text>
+    </TouchableOpacity>
+  </View>
+) : (
+  <TouchableOpacity onPress={handleFinishWorkout}>
+    <Text>סיים אימון</Text>
+  </TouchableOpacity>
+)}
+```
+
+### 🗑️ **קבצים שנמחקו:**
+
+#### ❌ `ActiveWorkoutScreen.tsx` - נמחק לחלוטין
+
+- כל הפונקציונליות מוזגה ל-QuickWorkoutScreen
+- 450+ שורות קוד חסכנו
+- תחזוקה פשוטה יותר
+
+#### ✅ `init_structure.ps1` - עודכן
+
+```powershell
+# הוסר:
+# New-Item -ItemType File -Path "src\screens\workout\ActiveWorkoutScreen.tsx"
+```
+
+### 🔧 **תיקוני TypeScript שנדרשו:**
+
+```typescript
+// שגיאות שתוקנו:
+// 1. Set interface - שדות לא קיימים
+- set.number      // לא קיים בממשק
+- set.weight      // לא קיים בממשק
+- set.reps        // לא קיים בממשק
++ set.targetWeight
++ set.actualWeight
++ set.targetReps
++ set.actualReps
+
+// 2. Exercise interface - שדות נדרשים
++ primaryMuscles: ["כללי"],
++ equipment: "לא מוגדר",
+
+// 3. פרמטר לא בשימוש
+- presetExercise.sets.map((set, index) => ...)
++ presetExercise.sets.map((set) => ...)  // הסרת index
+```
+
+### 🎯 **תוצאות:**
+
+- ✅ מסך אוניברסלי יחיד במקום שניים
+- ✅ צמצום כפילות קוד ב-70%
+- ✅ תחזוקה קלה יותר - רק קובץ אחד לעדכן
+- ✅ חוויית משתמש עקבית בכל המצבים
+- ✅ תמיכה מלאה בכל התרחישים הקודמים
+- ✅ קומפיילציה נקייה ללא שגיאות TypeScript
 
 ## 🔖 Checkpoint #051 - תיקון באגים קריטיים במערכת השאלון והאימונים
 

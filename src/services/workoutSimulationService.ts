@@ -12,6 +12,11 @@ import {
   ExerciseSet,
   WorkoutFeedback,
 } from "./realisticDemoService";
+import {
+  adaptExerciseNameToGender,
+  generateSingleGenderAdaptedNote,
+  UserGender,
+} from "../utils/genderAdaptation";
 
 interface SimulationParameters {
   userExperience: "beginner" | "intermediate" | "advanced";
@@ -22,7 +27,7 @@ interface SimulationParameters {
   currentStreak: number;
   // הוספת תמיכה בהתאמת מגדר
   // Added gender adaptation support
-  gender?: "male" | "female" | "other";
+  gender?: UserGender;
   personalizedGoals?: string[];
 }
 
@@ -255,7 +260,7 @@ class WorkoutSimulationService {
 
     selectedExercises.forEach((exercise) => {
       // התאמת שם התרגיל למגדר
-      const adaptedName = this.adaptExerciseNameToGender(
+      const adaptedName = adaptExerciseNameToGender(
         exercise.name,
         params.gender
       );
@@ -327,7 +332,6 @@ class WorkoutSimulationService {
     params: SimulationParameters
   ): ExerciseSet {
     // וריאציות מציאותיות בביצועים
-    const fatigueMultiplier = 1 - setIndex * 0.1; // עייפות מצטברת
     const motivationEffect = params.motivation / 10;
     const energyEffect = params.energyLevel / 10;
 
@@ -433,9 +437,10 @@ class WorkoutSimulationService {
     const moodIndex = Math.min(3, Math.max(0, overallRating - 2));
 
     // הערות מציאותיות מותאמות למגדר
-    const genderAdaptedNotes = this.generateGenderAdaptedNotes(params.gender);
-    const selectedNote =
-      genderAdaptedNotes[Math.floor(Math.random() * genderAdaptedNotes.length)];
+    const selectedNote = generateSingleGenderAdaptedNote(
+      params.gender,
+      averageRPE > 6 ? 4 : 3
+    );
 
     return {
       overallRating,
@@ -443,7 +448,7 @@ class WorkoutSimulationService {
       enjoyment,
       energyLevel: params.energyLevel,
       fatigueLevel: Math.min(10, 11 - params.energyLevel + duration / 10),
-      mood: moods[moodIndex] as any,
+      mood: moods[moodIndex] as WorkoutFeedback["mood"],
       notes: selectedNote,
       timeConstraints: duration > params.availableTime,
       equipmentIssues: Math.random() < 0.05, // 5% סיכוי לבעיות ציוד
@@ -456,7 +461,7 @@ class WorkoutSimulationService {
   private updateSimulationParameters(
     params: SimulationParameters,
     weekNumber: number,
-    totalWorkouts: number
+    _totalWorkouts: number
   ): SimulationParameters {
     const newParams = { ...params };
 
@@ -513,7 +518,7 @@ class WorkoutSimulationService {
     planned: number,
     params: SimulationParameters
   ): number[] {
-    const days = [];
+    // const days = []; // הוסר כי לא בשימוש
     const possibleDays = [0, 1, 2, 3, 4, 5, 6]; // ימי השבוע
 
     // וריאציה מציאותית - לפעמים פחות ימים, לפעמים יותר
@@ -654,83 +659,6 @@ class WorkoutSimulationService {
     }
 
     return items[0]; // fallback
-  }
-
-  /**
-   * התאמת שמות תרגילים בסיסית לפי מגדר
-   * Basic exercise name adaptation by gender
-   */
-  private adaptExerciseNameToGender(
-    exerciseName: string,
-    gender?: "male" | "female" | "other"
-  ): string {
-    if (!gender) return exerciseName;
-
-    // התאמות בסיסיות לפי מגדר
-    if (gender === "female") {
-      const femaleAdaptations: { [key: string]: string } = {
-        "Push-ups": "שכיבות סמיכה מותאמות",
-        Squats: "כפיפות ברכיים נשיות",
-        Planks: "פלאנק מחזק",
-        Lunges: "צעדי נשים",
-        Burpees: "בורפי מותאם",
-      };
-      return femaleAdaptations[exerciseName] || exerciseName;
-    } else if (gender === "male") {
-      const maleAdaptations: { [key: string]: string } = {
-        "Push-ups": "שכיבות סמיכה חזקות",
-        "Pull-ups": "מתח לגברים",
-        Deadlift: "הרמת משקל כבד",
-        "Bench Press": "פרס חזה מתקדם",
-      };
-      return maleAdaptations[exerciseName] || exerciseName;
-    }
-
-    return exerciseName; // ללא התאמה למגדר אחר
-  }
-
-  /**
-   * יצירת הודעות פידבק מותאמות למגדר
-   * Generate gender-adapted feedback messages
-   */
-  private generateGenderAdaptedNotes(
-    gender?: "male" | "female" | "other"
-  ): string[] {
-    if (!gender) {
-      return [
-        "אימון מעולה!",
-        "הרגשתי טוב היום",
-        "התקדמתי יפה",
-        "אימון מאתגר ומספק",
-        "גאה בעצמי",
-      ];
-    }
-
-    if (gender === "male") {
-      return [
-        "אימון חזק! המשך כך!",
-        "הרגשתי כמו אריה היום",
-        "המשקלים היו כבדים אבל התמדתי",
-        "כוח וסיבולת בשיא",
-        "אימון גברי מעולה",
-      ];
-    } else if (gender === "female") {
-      return [
-        "אימון נפלא! הרגשתי חזקה",
-        "התמדתי למרות הקושי",
-        "הרגשתי כמו לוחמת",
-        "גאה בעצמי על ההישג",
-        "אימון מעצים ומחזק",
-      ];
-    }
-
-    return [
-      "אימון מעולה!",
-      "הרגשתי בטוב היום",
-      "התקדמתי יפה",
-      "אימון מאתגר ומספק",
-      "גאה בעצמי",
-    ];
   }
 }
 

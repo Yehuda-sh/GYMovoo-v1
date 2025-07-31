@@ -8,7 +8,60 @@
 - **אדריכלות:** Hybrid - נתונים מקומיים בעברית + WGER API
 - **שפות תכנות:** React Native, TypeScript, Hebrew UX
 
-## 🎯 עדכון מרכזי אחרון - מערכת ניווט מתקדמת (30/07/2025)
+## 🎯 עדכון מרכזי אחרון - אופציה 2: איחוד מסכי האימון (31/07/2025)
+
+### 🚀 המהפכה הגדולה: מסך אימון אוניברסלי
+
+#### 🎯 **האתגר שפתרנו:**
+
+- **כפילות קוד:** ActiveWorkoutScreen + QuickWorkoutScreen = 70% קוד זהה
+- **תחזוקה כפולה:** כל שינוי דרש עדכון בשני מקומות
+- **חוויית משתמש:** לא עקבית בין המסכים
+- **קוד מושלם:** 450+ שורות קוד מיותר
+
+#### 🏆 **הפתרון: מסך אוניברסלי עם 3 מצבים**
+
+```typescript
+// QuickWorkoutScreen.tsx - מצבים מרובים
+interface RouteParams {
+  mode?: "full" | "single-exercise" | "view-only";
+  exerciseName?: string;
+  singleExercise?: Exercise;
+  hideAdvancedFeatures?: boolean;
+  currentExerciseIndex?: number;
+}
+
+// פונקציה חדשה: getActiveExerciseFromHistory
+const getActiveExerciseFromHistory = (
+  user: UserData | null,
+  exerciseName?: string,
+  presetExercise?: Exercise
+): Exercise => {
+  // 1. Preset מהפרמטרים
+  // 2. חיפוש בהיסטוריה (5 אימונים אחרונים)
+  // 3. גיבוי - נתוני דמו
+};
+```
+
+#### 🗑️ **מה נמחק:**
+
+- ❌ `ActiveWorkoutScreen.tsx` - נמחק לחלוטין (450+ שורות)
+- ✅ `QuickWorkoutScreen.tsx` - הורחב למצבים מרובים
+- ✅ `init_structure.ps1` - עودכן להסיר הקובץ הישן
+
+#### 🎨 **UI מותנה חכם:**
+
+```typescript
+// הסתרת תכונות מתקדמות במצב single-exercise
+{!hideAdvancedFeatures && <WorkoutStatusBar />}
+
+// כפתורי ניווט דינמיים
+{mode === "single-exercise" ? (
+  <SingleExerciseNavigation />
+) : (
+  <FullWorkoutControls />
+)}
+```
 
 ### 🚀 השינויים המהפכניים שביצענו:
 

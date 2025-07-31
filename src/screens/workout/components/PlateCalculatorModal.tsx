@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
+import { PLATE_WEIGHTS } from "../utils/workoutConstants";
 
 interface PlateCalculatorModalProps {
   visible: boolean;
@@ -33,23 +34,14 @@ interface PlateCalculatorModalProps {
 
 // הגדרות המחשבון
 // Calculator settings
-const PLATE_WEIGHTS = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BAR_WEIGHT = 20;
 const WEIGHT_INCREMENT = 2.5;
 
 // פונקציית עזר לקבלת צבע הפלטה
 // Helper function to get plate color
 const getPlateColor = (weight: number): string => {
-  const colors: { [key: number]: string } = {
-    25: "#D92D20", // אדום
-    20: "#0A70D6", // כחול
-    15: "#FDB022", // צהוב
-    10: "#12B76A", // ירוק
-    5: theme.colors.text, // לבן/שחור
-    2.5: "#53389E", // סגול
-    1.25: "#667085", // אפור
-  };
-  return colors[weight] || theme.colors.primary;
+  const plateInfo = PLATE_WEIGHTS.find((plate) => plate.weight === weight);
+  return plateInfo?.color || theme.colors.primary;
 };
 
 export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
@@ -102,11 +94,11 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     let remaining = weightPerSide;
 
     for (const plate of PLATE_WEIGHTS) {
-      const count = Math.floor(remaining / plate);
+      const count = Math.floor(remaining / plate.weight);
       for (let i = 0; i < count; i++) {
-        plates.push(plate);
+        plates.push(plate.weight);
       }
-      remaining %= plate;
+      remaining %= plate.weight;
     }
     const calculatedWeight = BAR_WEIGHT + plates.reduce((a, b) => a + b, 0) * 2;
     return {

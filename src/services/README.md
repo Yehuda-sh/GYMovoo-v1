@@ -23,13 +23,12 @@ This directory contains all main application services, including API services, b
 - **`quickWorkoutGenerator.ts`** - יצירת אימונים מהירים / Quick workout generation
 - **`workoutDataService.ts`** - ניהול נתוני אימונים / Workout data management
 - **`workoutHistoryService.ts`** - ניהול היסטוריית אימונים עם התאמת מגדר / Workout history management with gender adaptation
-- **`workoutHistoryService.example.ts`** - 📘 **דוגמאות שימוש בשירות היסטוריה** / History service usage examples
 
 ### 📊 Simulation & Demo Services / שירותי סימולציה ודמו
 
 - **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים / Realistic demo data generation
 - **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים / Realistic workout simulation
-- **`workoutSimulationService.example.ts`** - 📘 **דוגמאות שימוש בשירות הסימולציה** / Simulation service usage examples
+- **`realisticDemoService.ts`** - שירות דמו חכם עם ניתוח ביצועים / Smart demo service with performance analysis
 
 ### 📝 Questionnaire Services / שירותי שאלונים
 
@@ -63,13 +62,13 @@ This directory contains all main application services, including API services, b
 #### 🛠️ Key Functions / פונקציות מרכזיות:
 
 - `simulateRealisticWorkoutHistory()` - סימולציה מלאה של היסטוריית אימונים
-- `adaptExerciseNameToGender()` - התאמת שמות תרגילים למגדר
-- `generateGenderAdaptedNotes()` - יצירת הודעות פידבק מותאמות למגדר
+- ~~`adaptExerciseNameToGender()` - **הועבר ל-genderAdaptation.ts**~~
+- ~~`generateGenderAdaptedNotes()` - **הועבר ל-genderAdaptation.ts**~~
 
 #### 📚 Usage Examples / דוגמאות שימוש:
 
-- See **`workoutSimulationService.example.ts`** for comprehensive usage examples
-- עיין ב-**`workoutSimulationService.example.ts`** לדוגמאות שימוש מקיפות
+- ~~See **`workoutSimulationService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
+- השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
 
 ### 🏆 WorkoutHistoryService Enhancements / שיפורי שירות ההיסטוריה
 
@@ -92,8 +91,8 @@ This directory contains all main application services, including API services, b
 
 #### 📚 Usage Examples / דוגמאות שימוש:
 
-- See **`workoutHistoryService.example.ts`** for comprehensive usage examples
-- עיין ב-**`workoutHistoryService.example.ts`** לדוגמאות שימוש מקיפות
+- ~~See **`workoutHistoryService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
+- השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
 
 ---
 

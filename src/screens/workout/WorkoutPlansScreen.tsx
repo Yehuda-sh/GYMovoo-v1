@@ -1866,6 +1866,32 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
           console.log(`✅ Converting exercise: ${exercise.name}`);
 
+          // בדיקה שהתבנית תקינה לפני יצירת התרגיל
+          const setsCount = template.sets || 3;
+          const targetReps = parseInt(
+            template.reps?.split("-")?.[1] || template.reps || "12"
+          );
+
+          if (isNaN(targetReps) || targetReps <= 0) {
+            console.warn(
+              `⚠️ Invalid reps for ${exercise.name}, using default 12`
+            );
+          }
+
+          const validSets = Array.from({ length: setsCount }, (_, i) => ({
+            id: `${template.exerciseId}-set-${i + 1}`,
+            type: i === 0 ? ("warmup" as const) : ("working" as const),
+            targetReps: isNaN(targetReps) || targetReps <= 0 ? 12 : targetReps,
+            targetWeight: 0,
+            completed: false,
+            restTime: template.restTime || 60,
+            isPR: false,
+          }));
+
+          console.log(
+            `🔧 Created ${validSets.length} sets for ${exercise.name}`
+          );
+
           return {
             id: template.exerciseId,
             name: exercise.name,
@@ -1875,17 +1901,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             equipment: exercise.equipment || "bodyweight",
             difficulty: exercise.difficulty || "beginner",
             instructions: exercise.instructions || [],
-            sets: Array.from({ length: template.sets }, (_, i) => ({
-              id: `${template.exerciseId}-set-${i + 1}`,
-              type: i === 0 ? "warmup" : ("working" as const),
-              targetReps: parseInt(
-                template.reps.split("-")[1] || template.reps || "12"
-              ),
-              targetWeight: 0,
-              completed: false,
-              restTime: template.restTime,
-              isPR: false,
-            })),
+            sets: validSets,
             restTime: template.restTime || 60,
             notes: template.notes || "",
           };
@@ -1898,10 +1914,21 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         activeExercises.map((ex) => ex?.name)
       );
 
-      if (activeExercises.length === 0) {
+      // בדיקה מתקדמת שהתרגילים תקינים לפני שליחה
+      const validActiveExercises = activeExercises.filter(
+        (ex) => ex && ex.id && ex.name && ex.sets && ex.sets.length > 0
+      );
+
+      console.log(
+        `🔍 Valid exercises after filtering: ${validActiveExercises.length}/${activeExercises.length}`
+      );
+
+      if (validActiveExercises.length === 0) {
+        console.error("❌ No valid exercises after filtering");
         setModalConfig({
           title: "שגיאה",
-          message: "לא נמצאו תרגילים מתאימים לאימון זה.",
+          message:
+            "לא נמצאו תרגילים תקינים לאימון זה. אנא בחר תוכנית אחרת או נסה שוב.",
           onConfirm: () => {},
           confirmText: "אישור",
           destructive: false,
@@ -1913,11 +1940,20 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       // Enhanced navigation to active workout screen with proper typing
       // ניווט משופר למסך אימון פעיל עם טיפוס נכון
       console.log(
-        `🚀 Enhanced navigation to QuickWorkout with ${activeExercises.length} exercises`
+        `🚀 Enhanced navigation to QuickWorkout with ${validActiveExercises.length} valid exercises`
       );
+      console.log(
+        "🎯 Final exercises being sent:",
+        validActiveExercises.map((ex) => ({
+          name: ex?.name,
+          setsCount: ex?.sets?.length,
+          validSets: ex?.sets?.every((set) => set.id && set.targetReps > 0),
+        }))
+      );
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (navigation as any).navigate("QuickWorkout", {
-        exercises: activeExercises,
+        exercises: validActiveExercises,
         workoutName: workout.name,
         workoutId: workout.id,
         source: "workout_plan",

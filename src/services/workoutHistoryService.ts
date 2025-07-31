@@ -8,6 +8,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WorkoutData } from "../screens/workout/types/workout.types";
 import { Platform, Dimensions } from "react-native";
+import {
+  adaptExerciseNameToGender,
+  generateSingleGenderAdaptedNote,
+  generateGenderAdaptedCongratulation,
+  UserGender,
+} from "../utils/genderAdaptation";
 
 // טיפוס לאימון עם משוב ומטא-דאטה מורחבת
 export interface WorkoutWithFeedback {
@@ -214,7 +220,7 @@ class WorkoutHistoryService {
    */
   async saveWorkoutWithFeedback(
     workoutWithFeedback: Omit<WorkoutWithFeedback, "id">,
-    userGender?: "male" | "female" | "other"
+    userGender?: UserGender
   ): Promise<void> {
     try {
       const id = Date.now().toString();
@@ -233,11 +239,11 @@ class WorkoutHistoryService {
 
       // יצירת משוב מותאם למגדר
       const personalRecordsCount = workoutWithFeedback.stats.personalRecords;
-      const genderAdaptedNotes = this.generateGenderAdaptedNotes(
+      const genderAdaptedNotes = generateSingleGenderAdaptedNote(
         userGender,
         workoutWithFeedback.feedback.difficulty
       );
-      const congratulationMessage = this.generateGenderAdaptedCongratulation(
+      const congratulationMessage = generateGenderAdaptedCongratulation(
         userGender,
         personalRecordsCount
       );
@@ -449,7 +455,7 @@ class WorkoutHistoryService {
    */
   private async savePreviousPerformances(
     workout: WorkoutData,
-    userGender?: "male" | "female" | "other"
+    userGender?: UserGender
   ): Promise<void> {
     try {
       const existingPerformances = await this.getPreviousPerformances();
@@ -475,7 +481,7 @@ class WorkoutHistoryService {
           );
 
           // התאמת שם התרגיל למגדר לשמירה בהיסטוריה
-          const adaptedExerciseName = this.adaptExerciseNameToGender(
+          const adaptedExerciseName = adaptExerciseNameToGender(
             exercise.name,
             userGender
           );
