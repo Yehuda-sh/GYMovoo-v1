@@ -10,10 +10,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { useNextWorkout } from "../../hooks/useNextWorkout";
+import { WorkoutPlan } from "../../screens/workout/types/workout.types";
 
 interface NextWorkoutCardProps {
   onStartWorkout: (workoutName: string, workoutIndex: number) => void;
-  workoutPlan?: any;
+  workoutPlan?: WorkoutPlan;
 }
 
 export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({

@@ -60,7 +60,7 @@ interface UseUserPreferencesReturn {
   // המלצות משופרות
   workoutRecommendations: WorkoutRecommendation[];
   quickWorkout: WorkoutRecommendation | null;
-  smartWorkoutPlan: any; // תוכנית מותאמת אישית
+  smartWorkoutPlan: unknown; // תוכנית מותאמת אישית
 
   // פונקציות חכמות נוספות
   refreshPreferences: () => Promise<void>;
@@ -105,17 +105,14 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   >([]);
   const [quickWorkout, setQuickWorkout] =
     useState<WorkoutRecommendation | null>(null);
-  const [smartWorkoutPlan, setSmartWorkoutPlan] = useState<any>(null);
+  const [smartWorkoutPlan, setSmartWorkoutPlan] = useState<unknown>(null);
 
   // גישה ל-store
   const user = useUserStore((state) => state.user);
 
   // פונקציה לחישוב אלגוריתם חכם מנתוני שאלון
   const calculateSmartAnalysis = useCallback(
-    (
-      rawData: QuestionnaireMetadata,
-      systemType: string
-    ): SmartUserPreferences => {
+    (rawData: QuestionnaireMetadata): SmartUserPreferences => {
       // חישוב ציון מוטיבציה (1-10)
       let motivationLevel = 5; // ברירת מחדל
       if (
@@ -286,7 +283,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       // אם אין נתונים, נסה מהסטור הישן
       if (!rawPreferences && user?.questionnaire) {
-        rawPreferences = convertOldStoreFormat(user.questionnaire as any);
+        rawPreferences = convertOldStoreFormat(user.questionnaire as unknown[]);
         console.log("📱 המר מפורמט store ישן");
       }
 
@@ -294,10 +291,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       if (rawPreferences) {
         // הפוך לנתונים חכמים
-        const smartPreferences = calculateSmartAnalysis(
-          rawPreferences,
-          currentSystemType
-        );
+        const smartPreferences = calculateSmartAnalysis(rawPreferences);
         setPreferences(smartPreferences);
 
         // חשב איכות השלמה
@@ -326,7 +320,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
   // פונקציות המרה
   const convertOldStoreFormat = (
-    questionnaire: any[]
+    questionnaire: unknown[]
   ): QuestionnaireMetadata => {
     return {
       age: typeof questionnaire[0] === "string" ? questionnaire[0] : undefined,

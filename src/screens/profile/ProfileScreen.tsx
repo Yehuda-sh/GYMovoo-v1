@@ -43,6 +43,7 @@ import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
+import { User } from "../../stores/userStore";
 
 // טיפוס לאייקון
 type MaterialCommunityIconName = ComponentProps<
@@ -57,10 +58,30 @@ type Achievement = {
   unlocked: boolean;
 };
 
+// טיפוס עבור workout עם רייטינג או feedback
+interface WorkoutWithRating {
+  id: string;
+  date?: string;
+  completedAt?: string;
+  duration?: number;
+  rating?: number;
+  feedback?: {
+    rating?: number;
+  };
+}
+
+// טיפוס עבור שאלון עם הנתונים הבסיסיים שאנחנו צריכים
+interface QuestionnaireBasicData {
+  age?: string | number;
+  goal?: string;
+  gender?: string;
+  [key: string]: unknown; // Allow additional properties
+}
+
 const { width: screenWidth } = Dimensions.get("window");
 
 // פונקציה לחישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
-const calculateAchievements = (user: any): Achievement[] => {
+const calculateAchievements = (user: User | null): Achievement[] => {
   const achievements: Achievement[] = [
     {
       id: 1,
@@ -106,7 +127,8 @@ const calculateAchievements = (user: any): Achievement[] => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const recentWorkouts = workouts.filter(
-      (w: any) => new Date(w.date || w.completedAt) >= oneWeekAgo
+      (w: WorkoutWithRating) =>
+        new Date(w.date || w.completedAt || "") >= oneWeekAgo
     );
 
     if (recentWorkouts.length >= 5) {
@@ -116,7 +138,7 @@ const calculateAchievements = (user: any): Achievement[] => {
 
     // גיבור כושר - אם יש יותר מ-50 אימונים עם דירוג גבוה
     const highRatedWorkouts = workouts.filter(
-      (w: any) => (w.feedback?.rating || w.rating || 0) >= 4
+      (w: WorkoutWithRating) => (w.feedback?.rating || w.rating || 0) >= 4
     );
 
     if (workoutCount >= 50 && highRatedWorkouts.length >= workoutCount * 0.8) {
@@ -126,32 +148,6 @@ const calculateAchievements = (user: any): Achievement[] => {
 
   return achievements;
 };
-
-// דמו הישגים מקוריים (גיבוי)
-const ORIGINAL_ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 1,
-    title: "מתחיל נלהב",
-    icon: "star",
-    color: "#FFD700",
-    unlocked: true,
-  },
-  { id: 2, title: "7 ימי רצף", icon: "fire", color: "#FF6347", unlocked: true },
-  {
-    id: 3,
-    title: "30 אימונים",
-    icon: "medal",
-    color: "#C0C0C0",
-    unlocked: false,
-  },
-  {
-    id: 4,
-    title: "גיבור כושר",
-    icon: "trophy",
-    color: "#FFD700",
-    unlocked: false,
-  },
-];
 
 // דמו אווטארים (אימוג'ים)
 const PRESET_AVATARS = [
@@ -192,10 +188,11 @@ export default function ProfileScreen() {
   // בדיקת השלמת השאלון - פשוטה ומאוחדת // Simple and unified questionnaire completion check
   const hasTrainingStage =
     !!user?.questionnaire &&
-    (user.questionnaire as any).age &&
-    (user.questionnaire as any).goal;
+    (user.questionnaire as QuestionnaireBasicData).age &&
+    (user.questionnaire as QuestionnaireBasicData).goal;
   const hasProfileStage =
-    !!user?.questionnaire && (user.questionnaire as any).gender;
+    !!user?.questionnaire &&
+    (user.questionnaire as QuestionnaireBasicData).gender;
   const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
 
   // חישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
@@ -367,7 +364,7 @@ export default function ProfileScreen() {
 
       // חישוב זמן כולל (בשעות)
       const totalMinutes = workouts.reduce(
-        (sum: number, w: any) => sum + (w.duration || 45),
+        (sum: number, w: WorkoutWithRating) => sum + (w.duration || 45),
         0
       );
       const totalHours = Math.floor(totalMinutes / 60);
@@ -761,8 +758,8 @@ export default function ProfileScreen() {
               >
                 {(() => {
                   // חילוץ הציוד מהשאלון החדש - תמיכה בשאלון החכם המעודכן
-                  const questionnaire: Record<string, any> =
-                    user.questionnaire as Record<string, any>;
+                  const questionnaire: Record<string, unknown> =
+                    user.questionnaire as Record<string, unknown>;
 
                   let allEquipment: string[] = [];
 
@@ -776,9 +773,19 @@ export default function ProfileScreen() {
                   dynamicQuestions.forEach((questionId) => {
                     const answer = questionnaire?.[questionId];
                     if (Array.isArray(answer)) {
-                      answer.forEach((option: any) => {
-                        if (option?.metadata?.equipment) {
-                          allEquipment.push(...option.metadata.equipment);
+                      answer.forEach((option: unknown) => {
+                        if (
+                          option &&
+                          typeof option === "object" &&
+                          "metadata" in option &&
+                          option.metadata &&
+                          typeof option.metadata === "object" &&
+                          "equipment" in option.metadata &&
+                          Array.isArray(option.metadata.equipment)
+                        ) {
+                          allEquipment.push(
+                            ...(option.metadata.equipment as string[])
+                          );
                         }
                       });
                     }
@@ -1124,7 +1131,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "center",
     writingDirection: "rtl",
@@ -1212,7 +1219,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: 4,
     writingDirection: "rtl",
@@ -1271,7 +1278,7 @@ const styles = StyleSheet.create({
   questionnaireTitle: {
     color: theme.colors.surface,
     fontSize: theme.typography.h4.fontSize,
-    fontWeight: theme.typography.h4.fontWeight as any,
+    fontWeight: theme.typography.h4.fontWeight,
     marginBottom: 4,
     textAlign: "right",
     writingDirection: "rtl",
@@ -1333,7 +1340,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "right",
@@ -1356,7 +1363,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.surface,
     marginTop: theme.spacing.xs,
   },
@@ -1491,7 +1498,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     writingDirection: "rtl",
   },

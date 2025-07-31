@@ -16,10 +16,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { WorkoutData } from "../types/workout.types";
-import { workoutHistoryService } from "../../../services/workoutHistoryService";
+import {
+  workoutHistoryService,
+  PersonalRecord,
+} from "../../../services/workoutHistoryService";
 import { nextWorkoutLogicService } from "../../../services/nextWorkoutLogicService";
 import { getWorkoutIndexByName } from "../../../utils/workoutNamesSync";
+
 const isRTL = theme.isRTL; // תמיכה ב-RTL
+
 interface WorkoutSummaryProps {
   workout: WorkoutData;
   onClose: () => void;
@@ -35,7 +40,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
   const [difficulty, setDifficulty] = useState<number>(0); // 1-5 stars
   const [feeling, setFeeling] = useState<string>(""); // emoji
   const [readyForMore, setReadyForMore] = useState<boolean | null>(null);
-  const [personalRecords, setPersonalRecords] = useState<any[]>([]);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
 
   // Optimized handlers with useCallback
   const handleDifficultyChange = useCallback((star: number) => {

@@ -18,6 +18,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 
 // =======================================
 // 🎯 Core System Imports
@@ -26,6 +27,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import { RootStackParamList } from "../../navigation/types";
 import { questionnaireService } from "../../services/questionnaireService";
 import { WorkoutDataService } from "../../services/workoutDataService"; // Enhanced AI Service
 
@@ -47,6 +49,7 @@ import {
   WorkoutTemplate,
   ExerciseTemplate,
 } from "./types/workout.types";
+import { Exercise } from "../../services/exerciseService";
 
 // Enhanced exercise database with comprehensive coverage
 // מאגר תרגילים משופר עם כיסוי מקיף
@@ -174,7 +177,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   // ניהול מצב רכיב משופר
   // =======================================
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
 
   // Core state with professional initialization
@@ -1916,7 +1919,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // בדיקה מתקדמת שהתרגילים תקינים לפני שליחה
       const validActiveExercises = activeExercises.filter(
-        (ex) => ex && ex.id && ex.name && ex.sets && ex.sets.length > 0
+        (ex): ex is NonNullable<typeof ex> =>
+          Boolean(ex && ex.id && ex.name && ex.sets && ex.sets.length > 0)
       );
 
       console.log(
@@ -1951,9 +1955,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         }))
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (navigation as any).navigate("QuickWorkout", {
-        exercises: validActiveExercises,
+      navigation.navigate("QuickWorkout", {
+        exercises: validActiveExercises as unknown as Exercise[], // Compatible casting between ExerciseTemplate and Exercise
         workoutName: workout.name,
         workoutId: workout.id,
         source: "workout_plan",

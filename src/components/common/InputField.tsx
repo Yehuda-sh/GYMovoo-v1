@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -30,7 +31,7 @@ interface InputFieldProps {
   onRightIconPress?: () => void;
   showPasswordToggle?: boolean;
   required?: boolean;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const InputField: React.FC<InputFieldProps> = ({

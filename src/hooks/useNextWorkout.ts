@@ -12,6 +12,7 @@ import {
   NextWorkoutRecommendation,
 } from "../services/nextWorkoutLogicService";
 import { useUserStore } from "../stores/userStore";
+import { WorkoutPlan } from "../screens/workout/types/workout.types";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;
@@ -34,13 +35,13 @@ export interface UseNextWorkoutReturn {
  * Hook לניהול האימון הבא במחזור
  * Hook for managing next workout in cycle
  */
-export const useNextWorkout = (workoutPlan?: any) => {
+export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const { user } = useUserStore();
   const [nextWorkout, setNextWorkout] =
     useState<NextWorkoutRecommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true); // התחל עם true
   const [error, setError] = useState<string | null>(null);
-  const [cycleStats, setCycleStats] = useState<any>(null);
+  const [cycleStats, setCycleStats] = useState<unknown>(null);
 
   /**
    * יצירת תוכנית שבועית מהנתונים עם תמיכה במערכת החדשה
@@ -49,7 +50,7 @@ export const useNextWorkout = (workoutPlan?: any) => {
   const getWeeklyPlanFromData = useCallback(() => {
     // אם יש תוכנית ספציפית, השתמש בה
     if (workoutPlan?.workouts) {
-      return workoutPlan.workouts.map((w: any) => w.name);
+      return workoutPlan.workouts.map((w) => w.name);
     }
 
     // מיפוי WORKOUT_DAYS מותאם למערכת החדשה

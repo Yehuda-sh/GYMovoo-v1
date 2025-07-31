@@ -1,4 +1,4 @@
-# 📚 אינדקס תיעוד GYMovoo - מסמכים מרכזיים
+# 📚 אינדקס תיעוד GYMovoo - מסמכים מרכזיים (עדכון 31/01/2025)
 
 ## 🗂️ מבנה התיעוד החדש והמסודר
 
@@ -8,7 +8,10 @@
 
 ```
 מה יש כאן:
-✅ עדכון אופציה 2: איחוד מסכי האימון (31/07/2025)
+✅ עדכון מרכזי: TypeScript Cleanup מלא (31/01/2025)
+✅ 50+ `any` types הוחלפו בטיפוסים נכונים ב-7 מסכי Screen
+✅ interfaces חדשים: WorkoutStatistics, QuestionnaireBasicData, WorkoutHistoryItem
+✅ עדכון קודם: איחוד מסכי האימון למערכת אוניברסלית (31/07/2025)
 ✅ המהפכה: מסך אוניברסלי עם 3 מצבים
 ✅ חיסכון 450+ שורות קוד (כפילות 70%)
 ✅ פונקציה חדשה: getActiveExerciseFromHistory
@@ -25,7 +28,11 @@
 
 ```
 מה יש כאן:
-✅ עדכון 31/07: אופציה 2 - איחוד מסכי האימון
+✅ עדכון 31/01: TypeScript Cleanup מסכי Screen מרכזיים
+✅ 50+ `any` types הוסרו מ-HistoryScreen, ProfileScreen, MainScreen ועוד
+✅ interfaces חדשים עם פרטים טכניים מלאים
+✅ השפעות: 100% type safety, enhanced maintainability
+✅ עדכון קודם 31/07: אופציה 2 - איחוד מסכי האימון
 ✅ תיעוד מפורט של המעבר למסך אוניברסלי
 ✅ תיקוני TypeScript והשגיאות שנפתרו
 ✅ Timeline מפורט של כל השלבים (22-31 יולי)
@@ -40,6 +47,10 @@
 
 ```
 מה יש כאן:
+✅ עדכון מרכזי: TypeScript Cleanup במסכי Screen (31/01/2025)
+✅ דוגמאות קוד לפני ואחרי עם interfaces מלאים
+✅ פרטים טכניים: WorkoutStatistics, QuestionnaireBasicData, וכו'
+✅ השפעות טכניות: 50+ תיקונים, 0 שגיאות קריטיות
 ✅ מהפכת איחוד מסכי האימון - תיעוד טכני מלא
 ✅ אתגר כפילות הקוד והפתרון האוניברסלי
 ✅ פונקציה חדשה getActiveExerciseFromHistory
@@ -60,7 +71,7 @@
 מה יש כאן:
 ✅ עקרונות פיתוח מרכזיים (Hebrew-First, Smart Algorithms, RTL)
 ✅ כללי ארכיטקטורה וקוד חובה
-✅ TypeScript guidelines ו-Performance standards
+✅ TypeScript guidelines ו-Performance standards (עודכן עם הלקחי הcleanup)
 ✅ UI/UX Guidelines לעברית נטיבית
 ✅ Smart Features חובה בכל פיצ'ר
 ✅ Testing Strategy ו-Code Quality

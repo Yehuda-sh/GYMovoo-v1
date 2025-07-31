@@ -44,7 +44,7 @@ const TabIcon: React.FC<TabIconProps> = ({
   return (
     <View style={styles.iconContainer}>
       <IconComponent
-        name={iconName as any}
+        name={iconName as IconName & MaterialIconName}
         size={focused ? size + 2 : size}
         color={color}
       />

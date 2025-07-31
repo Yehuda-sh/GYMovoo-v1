@@ -513,7 +513,7 @@ export const styles = StyleSheet.create({
   },
   appName: {
     fontSize: theme.typography.h1.fontSize,
-    fontWeight: theme.typography.h1.fontWeight as any,
+    fontWeight: theme.typography.h1.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
     textAlign: "center",
@@ -612,7 +612,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: theme.typography.buttonLarge.fontSize,
-    fontWeight: theme.typography.buttonLarge.fontWeight as any,
+    fontWeight: theme.typography.buttonLarge.fontWeight,
     color: "#fff",
     marginHorizontal: 0,
     marginStart: theme.spacing.xs,

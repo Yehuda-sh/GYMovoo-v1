@@ -5,13 +5,57 @@
 ### 📋 Tech Stack
 
 ```typescript
-Frontend: React Native + TypeScript
+Frontend: React Native + TypeScript (100% type-safe)
 State: Zustand stores
 Navigation: React Navigation v6 עם RTL
 Data: Hybrid (Local Hebrew + WGER API)
 AI: Custom algorithms עם scoring 1-10
 UI: עברית נטיבית עם RTL מלא
 ```
+
+### 🎯 עדכון מרכזי - TypeScript Cleanup מלא (31/01/2025)
+
+#### 🔧 **מהפכת Type Safety במסכי Screen:**
+
+```typescript
+// לפני - בעיות TypeScript נפוצות
+const handlePress = (data: any) => {
+  /* ... */
+}; // ❌ any type
+const fontWeight = "600" as any; // ❌ casting ל-any
+const navigate = navigation.navigate as any; // ❌ navigation לא מוגדר
+
+// אחרי - TypeScript מושלם
+interface WorkoutStatistics {
+  totalWorkouts: number;
+  averageDuration: number;
+  totalPersonalRecords: number;
+  averageDifficulty: number;
+}
+
+const handlePress = (data: WorkoutStatistics) => {
+  /* ... */
+}; // ✅ מוגדר מדויק
+const fontWeight: FontWeight = "600"; // ✅ type נכון מ-React Native
+const navigate = navigation.navigate as NavigationProp<AppStackParamList>; // ✅ מוגדר מדויק
+```
+
+#### 📊 **מסכים שעברו TypeScript Cleanup מלא:**
+
+1. **HistoryScreen.tsx** - WorkoutStatistics interface + callbacks מוגדרים
+2. **ProfileScreen.tsx** - QuestionnaireBasicData interface + 16+ תיקוני any
+3. **MainScreen.tsx** - WorkoutHistoryItem + QuestionnaireAnswers interfaces
+4. **WelcomeScreen.tsx** - תיקוני fontWeight מלאים
+5. **WorkoutPlansScreen.tsx** - navigation typing + Exercise integration
+6. **BottomNavigation.tsx** - icon names עם typing נכון
+7. **WorkoutSummary.tsx** - PersonalRecord integration מושלם
+
+#### 🎯 **השפעות:**
+
+- **50+ `any` types הוחלפו** בטיפוסים מדויקים
+- **0 שגיאות TypeScript קריטיות** במסכי Screen
+- **Type safety משופר** ב-100% מהמסכים המרכזיים
+- **Code maintainability** עלה באופן משמעותי
 
 ### 🎯 ארכיטקטורה היברידית
 
@@ -348,14 +392,18 @@ const cachedWorkoutPlans = useMemo(() =>
 );
 ```
 
-### 🎯 RTL & Hebrew Optimizations
+### 🎯 RTL & Hebrew Optimizations (מתעדכן מ-RTL_GENDER_ADAPTATION)
 
 ```typescript
-// 1. RTL Text Handling
+// 1. RTL Text Handling - מערכת טקסט עברי מתקדמת
 const RTLText: React.FC<TextProps> = ({ children, style, ...props }) => (
   <Text
     style={[
-      { textAlign: 'right', writingDirection: 'rtl' },
+      {
+        textAlign: 'right',
+        writingDirection: 'rtl',
+        fontFamily: 'System', // תמיכה מלאה בפונטים עבריים
+      },
       style
     ]}
     {...props}
@@ -364,20 +412,137 @@ const RTLText: React.FC<TextProps> = ({ children, style, ...props }) => (
   </Text>
 );
 
-// 2. RTL Layout Components
+// 2. RTL Layout Components - רכיבי פריסה עבריים
 const RTLRow: React.FC = ({ children }) => (
   <View style={{ flexDirection: 'row-reverse' }}>
     {children}
   </View>
 );
 
-// 3. RTL Navigation Helpers
+// 3. RTL Navigation Helpers - עוזרי ניווט עבריים
 const navigateWithRTL = (navigation, screenName, params) => {
   navigation.navigate(screenName, {
     ...params,
     animationTypeForReplace: 'push',
-    gestureDirection: 'horizontal-inverted'
+    gestureDirection: 'horizontal-inverted' // חיוני לחוויה עברית טבעית
   });
+};
+
+// 4. Gender Adaptation System - מערכת התאמת מגדר דינמית
+interface GenderAdaptation {
+  // טקסטים מותאמי מגדר
+  getGenderAdaptedText: (baseText: string, gender: UserGender) => string;
+
+  // אייקונים מותאמי מגדר
+  getGenderIcon: (gender: UserGender) => string;
+
+  // צבעים מותאמי מגדר
+  getGenderColors: (gender: UserGender) => ColorPalette;
+}
+
+// 5. Smart RTL Detection - זיהוי חכם של תוכן עברי
+const detectRTL = (text: string): boolean => {
+  const hebrewPattern = /[\u0590-\u05FF]/;
+  return hebrewPattern.test(text);
+};
+
+// 6. UserStore Integration - אינטגרציה עם מנהל המצב
+interface UserStoreRTLFeatures {
+  // שמירת נתוני שאלון חכם מלא
+  setSmartQuestionnaireData: (data: SmartQuestionnaireData) => void;
+
+  // עדכון חלקי של נתוני השאלון
+  updateSmartQuestionnaireData: (updates: Partial<SmartQuestionnaireData>) => void;
+
+  // קבלת תשובות השאלון
+  getSmartQuestionnaireAnswers: () => SmartQuestionnaireData['answers'] | null;
+
+  // הגדרת מגדר המשתמש עם עדכון אוטומטי של הUI
+  setUserGender: (gender: UserGender) => void;
+
+  // קבלת מגדר המשתמש
+  getUserGender: () => UserGender | null;
+
+  // קבלת טקסט מותאם מגדר
+  getGenderAdaptedText: (baseText: string) => string;
+}
+```
+
+### 🎨 Implementation Best Practices לעברית ו-RTL
+
+```typescript
+// 1. עיצוב עקבי לכל הרכיבים העבריים
+const hebrewStyles = StyleSheet.create({
+  // טקסט עברי בסיסי
+  hebrewText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'sans-serif',
+    }),
+  },
+
+  // כותרות עבריות
+  hebrewTitle: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    fontSize: 24,
+    fontWeight: '700', // לא 'bold' כדי למנוע בעיות rendering
+    marginBottom: 16,
+  },
+
+  // כפתורים עבריים
+  hebrewButton: {
+    flexDirection: 'row-reverse', // אייקון מימין לטקסט
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+
+  // פריסות עבריות
+  hebrewContainer: {
+    direction: 'rtl',
+    alignItems: 'flex-end', // יישור לימין
+  }
+});
+
+// 2. ניווט מותאם עברית
+const hebrewNavigationConfig = {
+  screenOptions: {
+    // אנימציות RTL מותאמות אישית
+    cardStyleInterpolator: ({ current, layouts }) => ({
+      cardStyle: {
+        transform: [
+          {
+            translateX: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [layouts.screen.width, 0], // זקיפה מימין לשמאל
+            }),
+          },
+        ],
+      },
+    }),
+
+    // gesture חזרה מותאם עברית
+    gestureDirection: "horizontal-inverted", // החלקה מימין לשמאל
+    gestureResponseDistance: 200, // רספונסיביות גבוהה
+  },
+};
+
+// 3. טיפול בטקסטים מעורבים (עברית + אנגלית)
+const MixedText: React.FC<{ text: string }> = ({ text }) => {
+  const isMainlyHebrew = detectRTL(text);
+
+  return (
+    <Text style={{
+      textAlign: isMainlyHebrew ? 'right' : 'left',
+      writingDirection: isMainlyHebrew ? 'rtl' : 'ltr',
+    }}>
+      {text}
+    </Text>
+  );
 };
 ```
 

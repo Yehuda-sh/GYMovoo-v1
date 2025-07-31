@@ -48,6 +48,34 @@ export interface WgerCategory {
   name: string;
 }
 
+// Interface for converted exercise data
+export interface ConvertedExercise {
+  id: string;
+  name: string;
+  category: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  equipment: string;
+  difficulty: string;
+  instructions: string[];
+  images: string[];
+  source: string;
+  wgerId: number;
+}
+
+// Interface compatible with useWgerExercises hook
+export interface WgerExerciseInfo {
+  id: number;
+  name: string;
+  category: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  equipment: string[];
+  description: string;
+  difficulty: string;
+  instructions: string[];
+}
+
 class WgerApiService {
   private baseUrl = "https://wger.de/api/v2";
 
@@ -270,7 +298,7 @@ class WgerApiService {
    */
   async convertWgerExerciseToInternal(
     wgerExercise: WgerExercise
-  ): Promise<any> {
+  ): Promise<ConvertedExercise | null> {
     try {
       // Get muscles and equipment data for conversion
       const [musclesData, equipmentData] = await Promise.all([
@@ -320,6 +348,57 @@ class WgerApiService {
     } catch (error) {
       console.error("❌ Error converting WGER exercise:", error);
       return null;
+    }
+  }
+
+  /**
+   * Get exercises by equipment names - compatible with useWgerExercises
+   */
+  async getExercisesByEquipment(
+    equipmentNames: string[]
+  ): Promise<WgerExerciseInfo[]> {
+    try {
+      const wgerExercises =
+        await this.searchExercisesByEquipment(equipmentNames);
+
+      // Get reference data for conversion
+      const [musclesData, equipmentData] = await Promise.all([
+        this.getMuscles(),
+        this.getEquipment(),
+      ]);
+
+      // Create mappings
+      const muscleMap = new Map<number, string>();
+      musclesData.results.forEach((muscle) => {
+        muscleMap.set(muscle.id, muscle.name);
+      });
+
+      const equipmentMap = new Map<number, string>();
+      equipmentData.results.forEach((eq) => {
+        equipmentMap.set(eq.id, eq.name);
+      });
+
+      // Convert to WgerExerciseInfo format
+      return wgerExercises.map((exercise) => ({
+        id: exercise.id,
+        name: exercise.name,
+        category: exercise.category.name,
+        primaryMuscles: exercise.muscles
+          .map((id) => muscleMap.get(id) || "Unknown")
+          .filter((name) => name !== "Unknown"),
+        secondaryMuscles: exercise.muscles_secondary
+          .map((id) => muscleMap.get(id) || "Unknown")
+          .filter((name) => name !== "Unknown"),
+        equipment: exercise.equipment
+          .map((id) => equipmentMap.get(id) || "bodyweight")
+          .filter(Boolean),
+        description: exercise.description || "",
+        difficulty: "intermediate",
+        instructions: exercise.description ? [exercise.description] : [],
+      }));
+    } catch (error) {
+      console.error("❌ Error in getExercisesByEquipment:", error);
+      return [];
     }
   }
 }

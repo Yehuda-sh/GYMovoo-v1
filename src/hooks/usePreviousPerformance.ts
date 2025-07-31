@@ -51,9 +51,15 @@ export const usePreviousPerformance = (
   const calculateSmartProgression = useCallback(
     (rawPerformance: PreviousPerformance): SmartPreviousPerformance => {
       // נניח שיש history או נבנה אותו מהנתונים הזמינים
-      const history = (rawPerformance as any).history || [rawPerformance];
-      const lastWorkout = history[history.length - 1] || rawPerformance;
-      const previousWorkout = history[history.length - 2];
+      const history = ((rawPerformance as unknown as Record<string, unknown>)
+        ?.history as unknown[]) || [rawPerformance];
+      const lastWorkout =
+        (history[history.length - 1] as Record<string, unknown>) ||
+        rawPerformance;
+      const previousWorkout = history[history.length - 2] as Record<
+        string,
+        unknown
+      >;
 
       // חישוב מגמת התקדמות
       let progressionTrend: SmartPreviousPerformance["progressionTrend"] =
@@ -62,13 +68,13 @@ export const usePreviousPerformance = (
 
       if (history.length >= 2 && lastWorkout && previousWorkout) {
         const lastVolume =
-          (lastWorkout.weight || 0) *
-          (lastWorkout.reps || 0) *
-          (lastWorkout.sets || 1);
+          (Number(lastWorkout.weight) || 0) *
+          (Number(lastWorkout.reps) || 0) *
+          (Number(lastWorkout.sets) || 1);
         const prevVolume =
-          (previousWorkout.weight || 0) *
-          (previousWorkout.reps || 0) *
-          (previousWorkout.sets || 1);
+          (Number(previousWorkout.weight) || 0) *
+          (Number(previousWorkout.reps) || 0) *
+          (Number(previousWorkout.sets) || 1);
 
         strengthGain =
           prevVolume > 0 ? ((lastVolume - prevVolume) / prevVolume) * 100 : 0;
@@ -91,7 +97,7 @@ export const usePreviousPerformance = (
       // חישוב רווח זמן מהאימון האחרון
       const lastWorkoutGap = lastWorkout?.date
         ? Math.floor(
-            (Date.now() - new Date(lastWorkout.date).getTime()) /
+            (Date.now() - new Date(String(lastWorkout.date)).getTime()) /
               (1000 * 60 * 60 * 24)
           )
         : 0;
@@ -127,7 +133,7 @@ export const usePreviousPerformance = (
 
   // פונקציה לחישוב המלצות התקדמות
   const calculateRecommendedProgression = (
-    lastWorkout: any,
+    lastWorkout: unknown,
     trend: SmartPreviousPerformance["progressionTrend"],
     consistency: number,
     daysSince: number
@@ -138,9 +144,18 @@ export const usePreviousPerformance = (
       };
     }
 
-    const baseWeight = lastWorkout.weight || 0;
-    const baseReps = lastWorkout.reps || 8;
-    const baseSets = lastWorkout.sets || 3;
+    const baseWeight =
+      lastWorkout && typeof lastWorkout === "object" && "weight" in lastWorkout
+        ? Number(lastWorkout.weight) || 0
+        : 0;
+    const baseReps =
+      lastWorkout && typeof lastWorkout === "object" && "reps" in lastWorkout
+        ? Number(lastWorkout.reps) || 8
+        : 8;
+    const baseSets =
+      lastWorkout && typeof lastWorkout === "object" && "sets" in lastWorkout
+        ? Number(lastWorkout.sets) || 3
+        : 3;
 
     // אלגוריתם התקדמות מותאם אישית
     if (trend === "improving" && consistency >= 8) {

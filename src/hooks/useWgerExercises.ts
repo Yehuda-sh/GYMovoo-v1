@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { wgerService, WgerExerciseInfo } from "../services/wgerService";
+import { wgerApiService, WgerExerciseInfo } from "../services/wgerApiService";
 
 export interface WgerExerciseFormatted {
   id: string;
@@ -34,12 +34,14 @@ export function useWgerExercises() {
   const loadBasicData = async () => {
     try {
       const [musclesData, equipmentData] = await Promise.all([
-        wgerService.getMuscles(),
-        wgerService.getEquipment(),
+        wgerApiService.getMuscles(),
+        wgerApiService.getEquipment(),
       ]);
 
-      setMuscles(musclesData.map((m) => ({ id: m.id, name: m.name })));
-      setEquipment(equipmentData.map((e) => ({ id: e.id, name: e.name })));
+      setMuscles(musclesData.results.map((m) => ({ id: m.id, name: m.name })));
+      setEquipment(
+        equipmentData.results.map((e) => ({ id: e.id, name: e.name }))
+      );
 
       console.log("📚 WGER Basic data loaded");
     } catch (err) {
@@ -78,7 +80,7 @@ export function useWgerExercises() {
         );
 
         const wgerExercises =
-          await wgerService.getExercisesByEquipment(equipmentNames);
+          await wgerApiService.getExercisesByEquipment(equipmentNames);
         console.log(`📊 Found ${wgerExercises.length} WGER exercises`);
 
         // Convert to our internal format
@@ -114,7 +116,8 @@ export function useWgerExercises() {
         // For muscle-based search, we'll use the basic exercises and filter
         console.log("🎯 Searching for muscles:", muscleNames);
 
-        const allExercises = await wgerService.getExercises({ limit: 100 });
+        const exercisesData = await wgerApiService.getExercises({ limit: 100 });
+        const allExercises = exercisesData.results;
 
         // Filter by muscle names (basic text matching)
         const filtered = allExercises.filter((ex) =>
@@ -129,7 +132,7 @@ export function useWgerExercises() {
         const wgerInfoExercises: WgerExerciseInfo[] = filtered.map((ex) => ({
           id: ex.id,
           name: ex.name,
-          category: "General",
+          category: ex.category.name,
           primaryMuscles: [],
           secondaryMuscles: [],
           equipment: [],
@@ -163,13 +166,14 @@ export function useWgerExercises() {
     setError(null);
 
     try {
-      const allExercises = await wgerService.getExercises({ limit: 100 });
+      const exercisesData = await wgerApiService.getExercises({ limit: 100 });
+      const allExercises = exercisesData.results;
 
       // Convert the basic format to WgerExerciseInfo format for consistency
       const wgerInfoExercises: WgerExerciseInfo[] = allExercises.map((ex) => ({
         id: ex.id,
         name: ex.name,
-        category: "General",
+        category: ex.category.name,
         primaryMuscles: [],
         secondaryMuscles: [],
         equipment: [],

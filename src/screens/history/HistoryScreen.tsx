@@ -14,7 +14,6 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  ScrollView,
   Alert,
   Animated,
   ActivityIndicator,
@@ -26,6 +25,31 @@ import {
   workoutHistoryService,
   WorkoutWithFeedback,
 } from "../../services/workoutHistoryService";
+import { WorkoutData } from "../workout/types/workout.types";
+
+// Interface for workout statistics
+interface WorkoutStatistics {
+  total: {
+    totalWorkouts: number;
+    totalDuration: number;
+    averageDifficulty: number;
+    workoutStreak: number;
+  };
+  byGender: {
+    male: {
+      count: number;
+      averageDifficulty: number;
+    };
+    female: {
+      count: number;
+      averageDifficulty: number;
+    };
+    other: {
+      count: number;
+      averageDifficulty: number;
+    };
+  };
+}
 
 export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
@@ -33,7 +57,7 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [statistics, setStatistics] = useState<any>(null);
+  const [statistics, setStatistics] = useState<WorkoutStatistics | null>(null);
   const [congratulationMessage, setCongratulationMessage] = useState<
     string | null
   >(null);
@@ -87,20 +111,31 @@ export default function HistoryScreen() {
         user.activityHistory.workouts.length > 0
       ) {
         allHistoryData = user.activityHistory.workouts
-          .map((workout: any) => ({
-            id: workout.id,
-            workout: workout,
-            feedback: workout.feedback || {
-              completedAt: workout.endTime || workout.startTime,
-              difficulty: workout.feedback?.overallRating || 3,
-              feeling: workout.feedback?.mood || "😐",
+          .map((workout: Record<string, unknown>) => ({
+            id: workout.id as string,
+            workout: workout as unknown as WorkoutData,
+            feedback: (workout.feedback as Record<string, unknown>) || {
+              completedAt:
+                (workout.endTime as string) || (workout.startTime as string),
+              difficulty:
+                ((workout.feedback as Record<string, unknown>)
+                  ?.overallRating as number) || 3,
+              feeling:
+                ((workout.feedback as Record<string, unknown>)
+                  ?.mood as string) || "😐",
               readyForMore: null,
             },
             stats: {
-              duration: workout.duration || 0,
-              personalRecords: workout.plannedVsActual?.personalRecords || 0,
-              totalSets: workout.plannedVsActual?.totalSetsCompleted || 0,
-              totalPlannedSets: workout.plannedVsActual?.totalSetsPlanned || 0,
+              duration: (workout.duration as number) || 0,
+              personalRecords:
+                ((workout.plannedVsActual as Record<string, unknown>)
+                  ?.personalRecords as number) || 0,
+              totalSets:
+                ((workout.plannedVsActual as Record<string, unknown>)
+                  ?.totalSetsCompleted as number) || 0,
+              totalPlannedSets:
+                ((workout.plannedVsActual as Record<string, unknown>)
+                  ?.totalSetsPlanned as number) || 0,
               totalVolume: workout.totalVolume || 0,
             },
             metadata: {
@@ -115,16 +150,20 @@ export default function HistoryScreen() {
             },
           }))
           .filter(
-            (workout: any, index: number, array: any[]) =>
+            (
+              workout: WorkoutWithFeedback,
+              index: number,
+              array: WorkoutWithFeedback[]
+            ) =>
               // הסר כפילויות לפי ID ותאריך
               array.findIndex(
-                (w: any) =>
+                (w: WorkoutWithFeedback) =>
                   w.id === workout.id &&
                   w.feedback.completedAt === workout.feedback.completedAt
               ) === index
           )
           .sort(
-            (a: any, b: any) =>
+            (a: WorkoutWithFeedback, b: WorkoutWithFeedback) =>
               new Date(b.feedback.completedAt).getTime() -
               new Date(a.feedback.completedAt).getTime()
           ) as WorkoutWithFeedback[];
@@ -179,19 +218,26 @@ export default function HistoryScreen() {
 
         const totalWorkouts = user.activityHistory.workouts.length;
         const totalDuration = user.activityHistory.workouts.reduce(
-          (sum: number, w: any) => sum + (w.duration || 0),
+          (sum: number, w: Record<string, unknown>) =>
+            sum + ((w.duration as number) || 0),
           0
         );
 
         // חישוב ציון קושי ממוצע - נבדוק אם יש ציון בפידבק
         const workoutsWithDifficulty = user.activityHistory.workouts.filter(
-          (w: any) =>
-            w.feedback?.overallRating && !isNaN(w.feedback.overallRating)
+          (w: Record<string, unknown>) =>
+            (w.feedback as Record<string, unknown>)?.overallRating &&
+            !isNaN(
+              (w.feedback as Record<string, unknown>).overallRating as number
+            )
         );
         const averageDifficulty =
           workoutsWithDifficulty.length > 0
             ? workoutsWithDifficulty.reduce(
-                (sum: number, w: any) => sum + (w.feedback.overallRating || 4),
+                (sum: number, w: Record<string, unknown>) =>
+                  sum +
+                  (((w.feedback as Record<string, unknown>)
+                    .overallRating as number) || 4),
                 0
               ) / workoutsWithDifficulty.length
             : 4; // ברירת מחדל
@@ -417,7 +463,6 @@ export default function HistoryScreen() {
 
   const renderWorkoutItem = ({
     item,
-    index,
   }: {
     item: WorkoutWithFeedback;
     index: number;

@@ -46,11 +46,60 @@ interface AIWorkoutPlan extends WorkoutPlan {
 
 // ממשקים נוספים לפונקציות AI
 interface WorkoutMatrix {
-  intensityLevel: "low" | "medium" | "high";
   targetMuscleGroups: string[];
-  workoutDuration: number;
-  exercisesPerWorkout: number;
-  workoutFrequency: number;
+  workoutSplit: string;
+  intensityLevel: "low" | "medium" | "high";
+  exerciseVariety: {
+    totalVariations: number;
+    cardioOptions: number;
+    strengthOptions: number;
+    functionalOptions: number;
+  };
+  progressionPlan: {
+    totalWeeks: number;
+    progressionType: string;
+    milestones: Array<{
+      week: number;
+      focus: string;
+    }>;
+  };
+}
+
+// ממשק לפרופיל משתמש מתקדם
+interface UserProfile {
+  fitnessLevel: number; // 0-100
+  goalType: {
+    type:
+      | "fat_loss"
+      | "muscle_gain"
+      | "fitness"
+      | "maintenance"
+      | "rehabilitation";
+    intensity: "low" | "medium" | "high";
+    cardio: number;
+    strength: number;
+  };
+  timeCommitment: {
+    frequency: number;
+    duration: number;
+    totalWeeklyMinutes: number;
+    commitment: "low" | "medium" | "high";
+  };
+  physicalLimitations: {
+    hasLimitations: boolean;
+    limitations: string[];
+  };
+  preferenceScore: number; // 0-100
+}
+
+// ממשק לניתוח ציוד
+interface EquipmentAnalysis {
+  totalEquipment: string[];
+  equipmentLevel: "basic" | "intermediate" | "advanced";
+  canDoCardio: boolean;
+  canDoStrength: boolean;
+  canDoFunctional: boolean;
+  varietyScore: number;
 }
 
 // מחלקת נתוני אימון פשוטה
@@ -277,8 +326,8 @@ export class WorkoutDataService {
    * Build smart workout matrix based on user data
    */
   private static buildSmartWorkoutMatrix(
-    userProfile: any,
-    equipmentAnalysis: any
+    userProfile: UserProfile,
+    equipmentAnalysis: EquipmentAnalysis
   ) {
     const matrix = {
       targetMuscleGroups: this.selectTargetMuscleGroups(userProfile.goalType),
@@ -297,9 +346,9 @@ export class WorkoutDataService {
    */
   private static createPersonalizedPlan(
     metadata: WorkoutMetadata,
-    userProfile: any,
-    equipmentAnalysis: any,
-    workoutMatrix: any
+    userProfile: UserProfile,
+    equipmentAnalysis: EquipmentAnalysis,
+    workoutMatrix: WorkoutMatrix
   ): AIWorkoutPlan {
     const daysPerWeek = this.parseFrequency(metadata.frequency || "3");
     const sessionDuration = this.parseDuration(metadata.duration || "45");
@@ -313,11 +362,7 @@ export class WorkoutDataService {
     );
 
     // חישוב ציונים
-    const aiScore = this.calculateAIScore(
-      userProfile,
-      equipmentAnalysis,
-      workoutMatrix
-    );
+    const aiScore = this.calculateAIScore(userProfile, equipmentAnalysis);
     const personalizationLevel = this.determinePersonalizationLevel(aiScore);
 
     return {
@@ -602,35 +647,35 @@ export class WorkoutDataService {
   /**
    * ניתוח סוג המטרה
    */
-  private static analyzeGoalType(goal?: string) {
+  private static analyzeGoalType(goal?: string): UserProfile["goalType"] {
     const goalTypes = {
       "הרזיה ושריפת שומן": {
-        type: "fat_loss",
-        intensity: "high",
+        type: "fat_loss" as const,
+        intensity: "high" as const,
         cardio: 0.6,
         strength: 0.4,
       },
       "בניית שריר": {
-        type: "muscle_gain",
-        intensity: "high",
+        type: "muscle_gain" as const,
+        intensity: "high" as const,
         cardio: 0.2,
         strength: 0.8,
       },
       "שיפור כושר": {
-        type: "fitness",
-        intensity: "medium",
+        type: "fitness" as const,
+        intensity: "medium" as const,
         cardio: 0.5,
         strength: 0.5,
       },
       "החזקת מצב": {
-        type: "maintenance",
-        intensity: "medium",
+        type: "maintenance" as const,
+        intensity: "medium" as const,
         cardio: 0.4,
         strength: 0.6,
       },
       שיקום: {
-        type: "rehabilitation",
-        intensity: "low",
+        type: "rehabilitation" as const,
+        intensity: "low" as const,
         cardio: 0.3,
         strength: 0.7,
       },
@@ -642,7 +687,10 @@ export class WorkoutDataService {
   /**
    * ניתוח מחויבות זמן
    */
-  private static analyzeTimeCommitment(frequency?: string, duration?: string) {
+  private static analyzeTimeCommitment(
+    frequency?: string,
+    duration?: string
+  ): UserProfile["timeCommitment"] {
     const freq = this.parseFrequency(frequency || "3");
     const dur = this.parseDuration(duration || "45");
 
@@ -654,17 +702,19 @@ export class WorkoutDataService {
       totalWeeklyMinutes: totalMinutesPerWeek,
       commitment:
         totalMinutesPerWeek > 300
-          ? "high"
+          ? ("high" as const)
           : totalMinutesPerWeek > 150
-            ? "medium"
-            : "low",
+            ? ("medium" as const)
+            : ("low" as const),
     };
   }
 
   /**
    * הערכת מגבלות פיזיות
    */
-  private static assessPhysicalLimitations(metadata: WorkoutMetadata) {
+  private static assessPhysicalLimitations(
+    metadata: WorkoutMetadata
+  ): UserProfile["physicalLimitations"] {
     const limitations = [];
 
     if (metadata.health_conditions && metadata.health_conditions.length > 0) {
@@ -678,8 +728,7 @@ export class WorkoutDataService {
 
     return {
       hasLimitations: limitations.length > 0,
-      conditions: limitations,
-      adaptationsNeeded: limitations.length > 0,
+      limitations: limitations,
     };
   }
 
@@ -776,7 +825,7 @@ export class WorkoutDataService {
   /**
    * בחירת קבוצות שרירים ליעד
    */
-  private static selectTargetMuscleGroups(goalType: any) {
+  private static selectTargetMuscleGroups(goalType: UserProfile["goalType"]) {
     const muscleGroups = {
       fat_loss: ["גוף מלא", "קרדיו", "פונקציונלי"],
       muscle_gain: ["חזה", "גב", "רגליים", "כתפיים", "ידיים"],
@@ -794,7 +843,9 @@ export class WorkoutDataService {
   /**
    * קביעת פיצול אימון אופטימלי
    */
-  private static determineOptimalSplit(timeCommitment: any) {
+  private static determineOptimalSplit(
+    timeCommitment: UserProfile["timeCommitment"]
+  ) {
     if (timeCommitment.frequency <= 2) {
       return "full_body"; // גוף מלא
     } else if (timeCommitment.frequency <= 4) {
@@ -818,7 +869,7 @@ export class WorkoutDataService {
   /**
    * תכנון מגוון תרגילים
    */
-  private static planExerciseVariety(equipmentAnalysis: any) {
+  private static planExerciseVariety(equipmentAnalysis: EquipmentAnalysis) {
     return {
       totalVariations: equipmentAnalysis.totalEquipment.length * 2,
       cardioOptions: equipmentAnalysis.canDoCardio ? 5 : 2,
@@ -861,7 +912,7 @@ export class WorkoutDataService {
     daysPerWeek: number,
     sessionDuration: number,
     equipment: string[],
-    workoutMatrix: any
+    workoutMatrix: WorkoutMatrix
   ): WorkoutTemplate[] {
     const workouts: WorkoutTemplate[] = [];
     const workoutNames = this.getWorkoutNames(daysPerWeek);
@@ -1432,9 +1483,8 @@ export class WorkoutDataService {
    * חישוב ציון AI
    */
   private static calculateAIScore(
-    userProfile: any,
-    equipmentAnalysis: any,
-    workoutMatrix: any
+    userProfile: UserProfile,
+    equipmentAnalysis: EquipmentAnalysis
   ): number {
     let score = 0;
 
@@ -1466,11 +1516,18 @@ export class WorkoutDataService {
    */
   private static generateAIDescription(
     metadata: WorkoutMetadata,
-    userProfile: any,
-    equipmentAnalysis: any
+    userProfile: UserProfile,
+    equipmentAnalysis: EquipmentAnalysis
   ): string {
     const goal = metadata.goal || "שיפור כושר";
     const location = metadata.location === "home" ? "🏠 בית" : "🏋️ חדר כושר";
+    const fitnessLevel =
+      userProfile.fitnessLevel < 40
+        ? "מתחיל"
+        : userProfile.fitnessLevel < 70
+          ? "בינוני"
+          : "מתקדם";
+    const equipmentCount = equipmentAnalysis.totalEquipment.length;
 
     // אייקונים לפי מטרה
     const goalIcons = {
@@ -1483,7 +1540,7 @@ export class WorkoutDataService {
 
     const goalIcon = goalIcons[goal as keyof typeof goalIcons] || "🎯";
 
-    return `${goalIcon} ${goal} • ${location} • AI מתקדם ומתאים לך`;
+    return `${goalIcon} ${goal} • ${location} • רמה ${fitnessLevel} • ${equipmentCount} ציוד • AI מתקדם ומתאים לך`;
   }
 
   /**
@@ -1491,7 +1548,7 @@ export class WorkoutDataService {
    */
   private static generateSmartTags(
     metadata: WorkoutMetadata,
-    equipmentAnalysis: any
+    equipmentAnalysis: EquipmentAnalysis
   ): string[] {
     const tags = ["🤖 AI"];
 
@@ -1527,8 +1584,8 @@ export class WorkoutDataService {
    * יצירת התאמות
    */
   private static generateAdaptations(
-    userProfile: any,
-    equipmentAnalysis: any
+    userProfile: UserProfile,
+    equipmentAnalysis: EquipmentAnalysis
   ): string[] {
     const adaptations = [];
 

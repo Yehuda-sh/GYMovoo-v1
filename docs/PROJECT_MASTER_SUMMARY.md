@@ -8,7 +8,56 @@
 - **אדריכלות:** Hybrid - נתונים מקומיים בעברית + WGER API
 - **שפות תכנות:** React Native, TypeScript, Hebrew UX
 
-## 🎯 עדכון מרכזי אחרון - אופציה 2: איחוד מסכי האימון (31/07/2025)
+## 🎯 עדכון מרכזי אחרון - TypeScript Cleanup מלא (31/01/2025)
+
+### 🔧 מהפכת Type Safety: מסכי Screen ללא `any` types
+
+#### 🎯 **השינוי הטכני שביצענו:**
+
+- **הסרת `any` types:** 50+ מקומות במסכי Screen מרכזיים
+- **יצירת interfaces מותאמים:** עבור כל סוג נתון באפליקציה
+- **שיפור navigation typing:** עם StackNavigationProp מדויק
+- **תיקון style issues:** במיוחד fontWeight ו-icon names
+
+#### 🏆 **המסכים שקיבלו עדכון מלא:**
+
+```typescript
+// HistoryScreen.tsx - נוספה WorkoutStatistics interface
+interface WorkoutStatistics {
+  totalWorkouts: number;
+  averageDuration: number;
+  totalPersonalRecords: number;
+  averageDifficulty: number;
+}
+
+// ProfileScreen.tsx - נוספה QuestionnaireBasicData interface
+interface QuestionnaireBasicData {
+  gender: UserGender;
+  experienceLevel: ExperienceLevel;
+  mainGoals: string[];
+  availability: string;
+}
+
+// MainScreen.tsx - interfaces מרובים
+interface WorkoutHistoryItem {
+  /* ... */
+}
+interface QuestionnaireAnswers {
+  /* ... */
+}
+```
+
+#### ✅ **7 מסכים עודכנו לחלוטין:**
+
+- ✅ `HistoryScreen.tsx` - TypeScript מלא עם WorkoutStatistics
+- ✅ `ProfileScreen.tsx` - הסרת 16+ `any` types + QuestionnaireBasicData
+- ✅ `MainScreen.tsx` - שיפור גדול עם 25+ תיקונים
+- ✅ `WelcomeScreen.tsx` - תיקוני fontWeight מלאים
+- ✅ `WorkoutPlansScreen.tsx` - navigation typing + Exercise integration
+- ✅ `BottomNavigation.tsx` - icon names עם typing נכון
+- ✅ `WorkoutSummary.tsx` - PersonalRecord integration מושלם
+
+## 🎯 עדכון קודם - אופציה 2: איחוד מסכי האימון (31/07/2025)
 
 ### 🚀 המהפכה הגדולה: מסך אימון אוניברסלי
 

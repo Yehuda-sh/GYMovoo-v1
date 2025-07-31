@@ -15,20 +15,53 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  Dimensions,
   RefreshControl,
   Platform,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import { RootStackParamList } from "../../navigation/types";
 
-const { width: screenWidth } = Dimensions.get("window");
+import type { ComponentProps } from "react";
+
+// טיפוס לאייקון MaterialCommunityIcons
+type MaterialCommunityIconName = ComponentProps<
+  typeof MaterialCommunityIcons
+>["name"];
+
+// טיפוס עבור workout בהיסטוריה
+interface WorkoutHistoryItem {
+  id: string;
+  type?: string;
+  workoutName?: string;
+  date?: string;
+  completedAt?: string;
+  startTime?: string;
+  duration?: number;
+  icon?: string;
+  rating?: number;
+  feedback?: {
+    rating?: number;
+  };
+  [key: string]: unknown; // Allow additional properties
+}
+
+// טיפוס עבור תשובות שאלון עם השדות הנפוצים
+interface QuestionnaireAnswers {
+  age_range?: string;
+  gender?: string;
+  primary_goal?: string;
+  experience_level?: string;
+  workout_location?: string;
+  available_equipment?: string[];
+  [key: string]: unknown; // Allow additional properties
+}
 
 export default function MainScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -79,7 +112,7 @@ export default function MainScreen() {
   }, []);
 
   const handleStartWorkout = useCallback(() => {
-    (navigation as any).navigate("WorkoutPlans");
+    navigation.navigate("WorkoutPlans", {});
   }, [navigation]);
 
   // פונקציית דמו אינטראקטיבית לשאלון מדעי // Interactive demo function for scientific questionnaire
@@ -324,19 +357,21 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>גיל:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)?.age_range ||
-                      "לא צוין"}
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.age_range || "לא צוין"}
                   </Text>
                 </View>
 
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>מין:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)?.gender ===
-                    "male"
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.gender === "male"
                       ? "גבר"
-                      : (user?.questionnaireData?.answers as any)?.gender ===
-                          "female"
+                      : (
+                            user?.questionnaireData
+                              ?.answers as QuestionnaireAnswers
+                          )?.gender === "female"
                         ? "אישה"
                         : "לא צוין"}
                   </Text>
@@ -345,20 +380,28 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>מטרה עיקרית:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)?.primary_goal ===
-                    "lose_weight"
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.primary_goal === "lose_weight"
                       ? "הורדת משקל"
-                      : (user?.questionnaireData?.answers as any)
-                            ?.primary_goal === "build_muscle"
+                      : (
+                            user?.questionnaireData
+                              ?.answers as QuestionnaireAnswers
+                          )?.primary_goal === "build_muscle"
                         ? "בניית שריר"
-                        : (user?.questionnaireData?.answers as any)
-                              ?.primary_goal === "improve_health"
+                        : (
+                              user?.questionnaireData
+                                ?.answers as QuestionnaireAnswers
+                            )?.primary_goal === "improve_health"
                           ? "שיפור בריאות"
-                          : (user?.questionnaireData?.answers as any)
-                                ?.primary_goal === "feel_stronger"
+                          : (
+                                user?.questionnaireData
+                                  ?.answers as QuestionnaireAnswers
+                              )?.primary_goal === "feel_stronger"
                             ? "הרגשה חזקה יותר"
-                            : (user?.questionnaireData?.answers as any)
-                                  ?.primary_goal === "improve_fitness"
+                            : (
+                                  user?.questionnaireData
+                                    ?.answers as QuestionnaireAnswers
+                                )?.primary_goal === "improve_fitness"
                               ? "שיפור כושר"
                               : "לא צוין"}
                   </Text>
@@ -367,20 +410,28 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>ניסיון באימונים:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
                       ?.fitness_experience === "complete_beginner"
                       ? "מתחיל לחלוטין"
-                      : (user?.questionnaireData?.answers as any)
-                            ?.fitness_experience === "some_experience"
+                      : (
+                            user?.questionnaireData
+                              ?.answers as QuestionnaireAnswers
+                          )?.fitness_experience === "some_experience"
                         ? "קצת ניסיון"
-                        : (user?.questionnaireData?.answers as any)
-                              ?.fitness_experience === "intermediate"
+                        : (
+                              user?.questionnaireData
+                                ?.answers as QuestionnaireAnswers
+                            )?.fitness_experience === "intermediate"
                           ? "בינוני"
-                          : (user?.questionnaireData?.answers as any)
-                                ?.fitness_experience === "advanced"
+                          : (
+                                user?.questionnaireData
+                                  ?.answers as QuestionnaireAnswers
+                              )?.fitness_experience === "advanced"
                             ? "מתקדם"
-                            : (user?.questionnaireData?.answers as any)
-                                  ?.fitness_experience === "athlete"
+                            : (
+                                  user?.questionnaireData
+                                    ?.answers as QuestionnaireAnswers
+                                )?.fitness_experience === "athlete"
                               ? "ספורטאי"
                               : "לא צוין"}
                   </Text>
@@ -389,17 +440,23 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>מיקום אימון:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
                       ?.workout_location === "home_only"
                       ? "בית בלבד"
-                      : (user?.questionnaireData?.answers as any)
-                            ?.workout_location === "gym_only"
+                      : (
+                            user?.questionnaireData
+                              ?.answers as QuestionnaireAnswers
+                          )?.workout_location === "gym_only"
                         ? "חדר כושר בלבד"
-                        : (user?.questionnaireData?.answers as any)
-                              ?.workout_location === "both"
+                        : (
+                              user?.questionnaireData
+                                ?.answers as QuestionnaireAnswers
+                            )?.workout_location === "both"
                           ? "שניהם"
-                          : (user?.questionnaireData?.answers as any)
-                                ?.workout_location === "outdoor"
+                          : (
+                                user?.questionnaireData
+                                  ?.answers as QuestionnaireAnswers
+                              )?.workout_location === "outdoor"
                             ? "חוץ"
                             : "לא צוין"}
                   </Text>
@@ -408,8 +465,9 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>זמן לאימון:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)?.session_duration
-                      ? `${(user?.questionnaireData?.answers as any)?.session_duration} דקות`
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.session_duration
+                      ? `${(user?.questionnaireData?.answers as QuestionnaireAnswers)?.session_duration} דקות`
                       : "לא צוין"}
                   </Text>
                 </View>
@@ -417,8 +475,9 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>תדירות:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)?.available_days
-                      ? `${(user?.questionnaireData?.answers as any)?.available_days} ימים בשבוע`
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.available_days
+                      ? `${(user?.questionnaireData?.answers as QuestionnaireAnswers)?.available_days} ימים בשבוע`
                       : "לא צוין"}
                   </Text>
                 </View>
@@ -426,12 +485,15 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>ציוד זמין:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)
-                      ?.available_equipment?.length > 0
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      ?.available_equipment &&
+                    (user?.questionnaireData?.answers as QuestionnaireAnswers)
+                      .available_equipment!.length > 0
                       ? (
-                          user?.questionnaireData?.answers as any
-                        ).available_equipment
-                          .map((eq: string) =>
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )
+                          .available_equipment!.map((eq: string) =>
                             eq === "full_gym"
                               ? "חדר כושר מלא"
                               : eq === "dumbbells"
@@ -452,17 +514,23 @@ export default function MainScreen() {
                 <View style={styles.answerRow}>
                   <Text style={styles.answerLabel}>מצב בריאותי:</Text>
                   <Text style={styles.answerValue}>
-                    {(user?.questionnaireData?.answers as any)
+                    {(user?.questionnaireData?.answers as QuestionnaireAnswers)
                       ?.health_status === "excellent"
                       ? "מעולה"
-                      : (user?.questionnaireData?.answers as any)
-                            ?.health_status === "good"
+                      : (
+                            user?.questionnaireData
+                              ?.answers as QuestionnaireAnswers
+                          )?.health_status === "good"
                         ? "טוב"
-                        : (user?.questionnaireData?.answers as any)
-                              ?.health_status === "some_issues"
+                        : (
+                              user?.questionnaireData
+                                ?.answers as QuestionnaireAnswers
+                            )?.health_status === "some_issues"
                           ? "יש כמה בעיות"
-                          : (user?.questionnaireData?.answers as any)
-                                ?.health_status === "serious_issues"
+                          : (
+                                user?.questionnaireData
+                                  ?.answers as QuestionnaireAnswers
+                              )?.health_status === "serious_issues"
                             ? "בעיות רציניות"
                             : "לא צוין"}
                   </Text>
@@ -639,7 +707,7 @@ export default function MainScreen() {
             {activityHistory?.workouts && activityHistory.workouts.length > 0
               ? activityHistory.workouts
                   .slice(0, 3)
-                  .map((workout: any, index: number) => (
+                  .map((workout: WorkoutHistoryItem, index: number) => (
                     <View
                       key={workout.id || `workout-${index}`}
                       style={styles.recentWorkoutItem}
@@ -671,13 +739,14 @@ export default function MainScreen() {
                           {workout.date
                             ? new Date(workout.date).toLocaleDateString("he-IL")
                             : new Date(
-                                workout.completedAt || Date.now()
+                                (workout.completedAt as string) || Date.now()
                               ).toLocaleDateString("he-IL")}
                           {(workout.completedAt || workout.startTime) && (
                             <Text style={styles.workoutTime}>
                               {" • "}
                               {new Date(
-                                workout.completedAt || workout.startTime
+                                (workout.completedAt ||
+                                  workout.startTime) as string
                               ).toLocaleTimeString("he-IL", {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -726,7 +795,7 @@ export default function MainScreen() {
                   <View key={`demo-${index}`} style={styles.recentWorkoutItem}>
                     <View style={styles.workoutIcon}>
                       <MaterialCommunityIcons
-                        name={workout.icon as any}
+                        name={workout.icon as MaterialCommunityIconName}
                         size={24}
                         color="#007AFF"
                       />
@@ -749,7 +818,7 @@ export default function MainScreen() {
 
           <TouchableOpacity
             style={styles.viewAllButton}
-            onPress={() => (navigation as any).navigate("History")}
+            onPress={() => navigation.navigate("History")}
           >
             <Text style={styles.viewAllText}>צפה בכל ההיסטוריה</Text>
             <MaterialCommunityIcons
@@ -798,7 +867,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
     writingDirection: "rtl",
@@ -851,7 +920,7 @@ const styles = StyleSheet.create({
   // Section styles // סטיילים לקטעים
   sectionTitle: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
     marginBottom: theme.spacing.md,
@@ -872,7 +941,7 @@ const styles = StyleSheet.create({
   },
   workoutName: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
     marginBottom: theme.spacing.sm,
@@ -899,7 +968,7 @@ const styles = StyleSheet.create({
   },
   progressNumber: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: 4,
   },
@@ -954,7 +1023,7 @@ const styles = StyleSheet.create({
   },
   statPercentage: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.primary,
   },
   statSubtitle: {
@@ -981,7 +1050,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight as any,
+    fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
   },
@@ -1083,7 +1152,7 @@ const styles = StyleSheet.create({
   },
   scientificStatNumber: {
     fontSize: theme.typography.h2.fontSize,
-    fontWeight: theme.typography.h2.fontWeight as any,
+    fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     marginTop: theme.spacing.xs,
     marginBottom: 4,

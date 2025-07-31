@@ -7,7 +7,12 @@
  */
 
 import React from "react";
-import { TouchableOpacity, StyleSheet, Platform } from "react-native";
+import {
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  ViewStyle,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -17,7 +22,7 @@ interface BackButtonProps {
   onPress?: () => void; // אפשרות לפונקציה מותאמת אישית
   size?: number; // גודל האייקון
   variant?: "default" | "minimal" | "large"; // סגנונות שונים
-  style?: any; // סגנון מותאם אישית
+  style?: ViewStyle; // סגנון מותאם אישית
 }
 
 export default function BackButton({

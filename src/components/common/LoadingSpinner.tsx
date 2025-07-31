@@ -6,7 +6,13 @@
  */
 
 import React from "react";
-import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
+import {
+  View,
+  ActivityIndicator,
+  Text,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
 import { theme } from "../../styles/theme";
 
 interface LoadingSpinnerProps {
@@ -14,7 +20,7 @@ interface LoadingSpinnerProps {
   color?: string;
   text?: string;
   fullScreen?: boolean;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export default function LoadingSpinner({
