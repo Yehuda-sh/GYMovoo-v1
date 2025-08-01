@@ -293,12 +293,10 @@ export default function LoginScreen() {
         {
           text: "ביטול",
           style: "cancel",
-          onPress: () => console.log("Password reset cancelled"),
         },
         {
           text: "שלח",
           onPress: () => {
-            console.log("🔐 LoginScreen - Password reset requested");
             if (!email) {
               setFieldErrors({ email: "אנא הזן כתובת אימייל לשחזור" });
               return;
