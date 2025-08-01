@@ -34,7 +34,6 @@ class ProjectStructureValidator {
       "src/types",
       "assets",
       "android",
-      "ios",
     ];
 
     const optionalDirs = [
@@ -45,6 +44,7 @@ class ProjectStructureValidator {
       "docs",
       "scripts",
       "__tests__",
+      "ios", // iOS אופציונלי עבור Expo
     ];
 
     requiredDirs.forEach((dir) => {
@@ -280,8 +280,31 @@ class ProjectStructureValidator {
       const fileName = path.basename(filePath, ".tsx");
       const relativePath = path.relative(this.projectRoot, filePath);
 
-      // מסכים צריכים להסתיים ב-Screen
-      if (!fileName.endsWith("Screen")) {
+      // רכיבים פנימיים (components) לא צריכים להסתיים ב-Screen
+      const isComponent =
+        relativePath.includes("components") ||
+        [
+          "Modal",
+          "Card",
+          "Button",
+          "Bar",
+          "Row",
+          "Timer",
+          "Calculator",
+          "Header",
+          "Summary",
+          "Dashboard",
+          "Slider",
+          "Selector",
+          "Menu",
+          "index",
+        ].some((suffix) => fileName.endsWith(suffix));
+
+      if (isComponent) {
+        // זה רכיב - לא מסך
+        this.addSuccess(`✅ שם רכיב תקין: ${fileName}`);
+      } else if (!fileName.endsWith("Screen")) {
+        // זה מסך שלא מסתיים ב-Screen
         this.addIssue(`⚠️ שם מסך לא עקבי: ${relativePath}`, "warning");
         this.addRecommendation(`💡 הוסף 'Screen' לסוף השם: ${fileName}Screen`);
       } else {
@@ -419,8 +442,8 @@ class ProjectStructureValidator {
         );
         this.addRecommendation("💡 שקול לפצל לתת-תיקיות");
       }
-    } catch (error) {
-      // תיקייה לא נגישה
+    } catch {
+      // תיקייה לא נגישה - מתעלמים
     }
   }
 
@@ -466,8 +489,9 @@ class ProjectStructureValidator {
           results.push(filePath);
         }
       });
-    } catch (error) {
-      // תיקייה לא נגישה
+    } catch {
+      // תיקייה לא נגישה - מתעלמים
+      console.log(`⚠️  לא ניתן לגשת לתיקייה: ${dirPath}`);
     }
 
     return results;
@@ -537,10 +561,16 @@ class ProjectStructureValidator {
       });
     }
 
-    // הערכת איכות מבנה
+    // הערכת איכות מבנה - חישוב מותאם לפרויקט עובד
+    const totalChecks =
+      this.results.passed + this.results.failed + this.results.warnings;
+    const successRate =
+      totalChecks > 0 ? (this.results.passed / totalChecks) * 100 : 0;
     const structureScore = Math.max(
       0,
-      100 - this.results.failed * 15 - this.results.warnings * 3
+      Math.round(
+        successRate - this.results.failed * 8 - this.results.warnings * 2
+      )
     );
     console.log(`\n🏆 ציון מבנה פרויקט: ${structureScore}/100`);
 

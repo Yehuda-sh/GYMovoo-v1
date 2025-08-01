@@ -1,6 +1,6 @@
-// docs/SHARED_COMPONENTS_GUIDE.md
-
 # מדריך רכיבים משותפים - GYMovoo
+
+**עדכון אחרון:** 01/08/2025
 
 ## סקירה כללית
 
@@ -49,7 +49,7 @@ import EmptyState from "../components/common/EmptyState";
 
 **Props:**
 
-- `icon: string` - שם אייקון MaterialCommunityIcons
+- `icon: string` - שם אייקון Ionicons
 - `title: string` - כותרת המצב הריק
 - `description: string` - תיאור המצב
 - `children?: ReactNode` - כפתורי פעולה אופציונליים
@@ -71,7 +71,7 @@ import IconButton from "../components/common/IconButton";
 
 **Props:**
 
-- `icon: string` - שם אייקון MaterialCommunityIcons
+- `icon: string` - שם אייקון Ionicons
 - `onPress: () => void` - פונקציית לחיצה
 - `size?: number` - גודל האייקון (ברירת מחדל: 24)
 - `color?: string` - צבע האייקון
@@ -218,4 +218,4 @@ import InputField from '../components/common/InputField';
 
 ---
 
-_מסמך זה מעודכן ב-29/07/2025_
+_מסמך זה מעודכן ב-01/08/2025_

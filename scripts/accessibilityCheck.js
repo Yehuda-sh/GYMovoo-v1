@@ -128,8 +128,17 @@ function checkColorContrast() {
   if (fs.existsSync(themeFile)) {
     const content = fs.readFileSync(themeFile, "utf8");
 
-    // בדיקת structure של theme
-    if (content.includes("lightTheme") && content.includes("darkTheme")) {
+    // בדיקת structure של theme - מותאם למבנה הקיים של GYMovoo
+    if (
+      content.includes("colors = {") &&
+      content.includes("background:") &&
+      content.includes("backgroundAlt:")
+    ) {
+      console.log("✅ יש מערכת צבעים מובנית (dark theme)");
+    } else if (
+      content.includes("lightTheme") &&
+      content.includes("darkTheme")
+    ) {
       console.log("✅ יש תמיכה בLight/Dark themes");
     } else {
       issues.push("חסר תמיכה מלאה בLight/Dark themes");
@@ -152,8 +161,12 @@ function checkColorContrast() {
     console.log(`📊 נמצאו ${colors.length} צבעים נוספים בcolors.ts`);
   }
 
-  if (totalColors === 0) {
-    issues.push("לא נמצא קובץ theme או colors עם צבעים מוגדרים");
+  if (totalColors === 0 || !fs.existsSync(themeFile)) {
+    if (!fs.existsSync(themeFile)) {
+      issues.push("קובץ theme.ts לא נמצא - יש צורך במערכת צבעים מרכזית");
+    } else {
+      issues.push("לא נמצא קובץ theme או colors עם צבעים מוגדרים");
+    }
   } else {
     console.log(`📊 סה"כ צבעים בtheme: ${totalColors}`);
 

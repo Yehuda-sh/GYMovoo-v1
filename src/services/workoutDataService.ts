@@ -1220,7 +1220,6 @@ export class WorkoutDataService {
     console.log(
       `🔍 DEBUG selectOptimalExercises: day ${dayIndex}, need ${exerciseCount} exercises`
     );
-    console.log(`🔍 Available exercises: ${suitableExercises.length}`);
 
     // יצירת זרע לערבוב השרירים לפי היום
     const muscleOrderSeed = dayIndex * 555 + 2468;

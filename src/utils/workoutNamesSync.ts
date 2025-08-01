@@ -162,7 +162,6 @@ export const getWorkoutIndexByName = (
 export const validateWorkoutNamesSync = (
   userGender?: "male" | "female" | "other"
 ) => {
-  console.log("🔍 Validating workout names synchronization...");
 
   if (userGender) {
     console.log(`👤 User gender: ${userGender}`);

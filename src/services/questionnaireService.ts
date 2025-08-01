@@ -257,31 +257,24 @@ class QuestionnaireService {
    * Get available equipment list
    */
   async getAvailableEquipment(): Promise<string[]> {
-    console.log("🔍 questionnaireService.getAvailableEquipment - מתחיל...");
     const prefs = await this.getUserPreferences();
-    console.log("🔍 prefs מתוך getUserPreferences:", prefs);
 
     // 🔧 FIX: Primary equipment field check - this is the main field from questionnaire
     // בדיקת שדה הציוד הראשי - זה השדה העיקרי מהשאלון
     const primaryEquipment = prefs?.equipment || [];
-    console.log("🔍 primaryEquipment (main field):", primaryEquipment);
 
     const homeEquipment = prefs?.home_equipment || [];
     const gymEquipment = prefs?.gym_equipment || [];
-    console.log("🔍 homeEquipment:", homeEquipment);
-    console.log("🔍 gymEquipment:", gymEquipment);
 
     // 🔧 FIX: תמיכה במשתמש מדעי - בדיקת available_equipment
     // Enhanced support for scientific user - check available_equipment
     const availableEquipment = prefs?.available_equipment || [];
-    console.log("🔍 availableEquipment:", availableEquipment);
 
     // Enhanced support for new dynamic equipment questions
     // תמיכה משופרת בשאלות ציוד דינמיות חדשות
     const dynamicEquipment = prefs
       ? QuestionnaireService.extractEquipmentFromQuestionnaire(prefs)
       : [];
-    console.log("🔍 dynamicEquipment:", dynamicEquipment);
 
     // מיזוג רשימות ללא כפילויות - כולל שדה הציוד הראשי
     // Merge lists without duplicates - including primary equipment field
@@ -295,7 +288,6 @@ class QuestionnaireService {
       ]),
     ];
 
-    console.log("🔍 mergedEquipment final:", mergedEquipment);
     return mergedEquipment;
   }
 
@@ -354,11 +346,9 @@ class QuestionnaireService {
 
     dynamicQuestions.forEach((questionId) => {
       const answer = (prefs as Record<string, unknown>)?.[questionId];
-      console.log(`🔍 Professional equipment check for ${questionId}:`, answer);
 
       if (Array.isArray(answer)) {
         answer.forEach((option: EquipmentOption) => {
-          console.log(`🔍 Equipment option processing:`, option);
           if (option?.metadata?.equipment) {
             console.log(
               `🔍 Adding equipment array:`,
@@ -370,9 +360,7 @@ class QuestionnaireService {
       }
     });
 
-    console.log("🔍 Raw equipment before deduplication:", equipment);
     const result = [...new Set(equipment)]; // Professional deduplication
-    console.log("🔍 Final deduplicated equipment array:", result);
     return result;
   }
 
@@ -412,7 +400,6 @@ class QuestionnaireService {
     const prefs = await this.getUserPreferences();
     const hasCompleted = prefs !== null && prefs.completedAt !== undefined;
 
-    console.log("🔍 hasCompletedQuestionnaire בדיקה:", {
       prefs,
       hasCompleted,
       completedAt: prefs?.completedAt,

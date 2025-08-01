@@ -1,8 +1,6 @@
-// docs/NAVIGATION_GUIDE.md
-
 # מדריך ניווט מתקדם - GYMovoo Smart Navigation System
 
-## � עדכון מרכזי: מערכת ניווט חכמה (30/07/2025)
+## 🚀 עדכון מרכזי: מערכת ניווט חכמה (1 באוגוסט 2025)
 
 ### 💪 המערכת החדשה - AppNavigator.tsx מתקדם
 
@@ -13,7 +11,7 @@
 - 🎯 **גסטורות חכמות** עם רספונסיביות מירבית
 - 🎪 **אפקטים ויזואליים מתקדמים** למודלים ומסכים
 
-## �📱 מבנה הניווט המתקדם
+## 📱 מבנה הניווט המתקדם
 
 ### Stack Navigator (ראשי) - עם אנימציות RTL חכמות
 
@@ -27,6 +25,7 @@ AppNavigator.tsx - ניווט ראשי מתקדם עם אלגוריתמים חכ
 ├── WorkoutPlan - תוכנית אימון AI (RTL optimized)
 ├── MainApp - אפליקציה ראשית (Bottom Tabs עם הגנה)
 ├── QuickWorkout - אימון פעיל (הגנה מפני יציאה בטעות)
+├── ActiveWorkout - מסך תרגיל פעיל (ניווט בין תרגילים)
 ├── ExerciseList - רשימת תרגילים (מודל עם רקע כהה)
 ├── Notifications - התראות (RTL animations)
 ├── Progress - מסך התקדמות (אופטימיזציה לגרפים)
@@ -168,6 +167,9 @@ Exercises: {
   autoStart?: boolean;
   returnFromWorkout?: boolean;
   completedWorkoutId?: string;
+  preSelectedDay?: number;
+  requestedWorkoutIndex?: number;
+  requestedWorkoutName?: string;
 }
 ```
 
@@ -178,7 +180,8 @@ Exercises: {
   exercises?: Exercise[];
   workoutName?: string;
   workoutId?: string;
-  source?: "workout_plan" | "quick_start";
+  source?: "workout_plan" | "quick_start" | "day_selection";
+  requestedDay?: number;
   planData?: {
     targetMuscles: string[];
     estimatedDuration: number;
@@ -194,6 +197,24 @@ Exercises: {
   fromScreen?: string;
   mode?: "view" | "selection";
   onSelectExercise?: (exercise: Exercise) => void;
+  selectedMuscleGroup?: string;
+}
+```
+
+### ActiveWorkout
+
+```typescript
+{
+  exercise: Exercise;
+  exerciseIndex: number;
+  totalExercises: number;
+  workoutData?: {
+    name?: string;
+    startTime?: string;
+    exercises?: Exercise[];
+  };
+  onExerciseUpdate?: (exercise: Exercise) => void;
+  onNavigate?: (direction: "prev" | "next") => void;
 }
 ```
 
@@ -213,6 +234,7 @@ export type RootStackParamList = {
   WorkoutPlan: { ... };
   MainApp: undefined;
   QuickWorkout: { ... };
+  ActiveWorkout: { ... };
   ExerciseList: { ... };
   Notifications: undefined;
   Progress: undefined;
@@ -237,18 +259,6 @@ node scripts/checkNavigation.js
 - התאמה בין routes לcomponents
 - קישורי ניווט תקינים
 - imports של מסכים
-
-### סקריפט checkMissingComponents.js
-
-```bash
-node scripts/checkMissingComponents.js
-```
-
-בודק:
-
-- imports חסרים
-- קבצים שלא קיימים
-- קישורים שבורים
 
 ## 📁 מבנה קבצים
 
@@ -296,9 +306,6 @@ npx eslint src/
 
 # בדיקת ניווט
 node scripts/checkNavigation.js
-
-# בדיקת רכיבים
-node scripts/checkMissingComponents.js
 ```
 
 ## 🔧 פתרון בעיות נפוצות

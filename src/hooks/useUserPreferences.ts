@@ -273,7 +273,6 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       setIsLoading(true);
       setError(null);
 
-      console.log("🔍 useUserPreferences - מתחיל טעינה חכמה");
 
       // טען נתונים בסיסיים
       const preferencesData = await questionnaireService.getUserPreferences();

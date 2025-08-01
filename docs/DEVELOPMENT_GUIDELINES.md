@@ -1,5 +1,8 @@
 # 📋 כללים והנחיות פיתוח - GYMovoo Development Guidelines
 
+> **📅 עדכון אחרון:** 1 באוגוסט 2025  
+> **⚠️ הערה:** מדריך זה משלים את [`DEVELOPMENT.md`](../DEVELOPMENT.md) - עיין בשני הקבצים
+
 ## 🎯 עקרונות פיתוח מרכזיים
 
 ### 🇮🇱 עברית First - לא Hebrew Support
@@ -253,7 +256,7 @@ interface SmartData {
 // ✅ ארכיטקטורה היברידית נכונה
 const getExerciseData = async (exerciseId: string) => {
   // 1. נתונים מקומיים בעברית (מהיר)
-  const localData = hebrewExerciseDatabase.find((ex) => ex.id === exerciseId);
+  const localData = exerciseDatabase.find((ex) => ex.id === exerciseId);
 
   // 2. נתונים מ-WGER API (עשיר)
   const apiData = await wgerAPI.getExercise(exerciseId);
@@ -390,7 +393,8 @@ const Component = () => {
 run_in_terminal('npx expo start'); // כש-Expo כבר פועל
 
 // ✅ תמיד בקש מהמשתמש ללחוץ 'r' בטרמינל הקיים
-console.log('לחץ r בטרמינל הקיים לרענון');
+// הודעה למשתמש במקום console.log
+userFeedback.show('לחץ r בטרמינל הקיים לרענון');
 
 // 2. אל תשכח RTL בכל רכיב עברי
 // ❌ ייראה מוזר
@@ -430,3 +434,9 @@ const saveSmartData = (data) => {
 ---
 
 _📝 מסמך זה מתעדכן עם כל שינוי בסטנדרטים הפיתוח_
+
+## 📖 מדריכים קשורים
+
+- **מדריך מהיר:** [`DEVELOPMENT.md`](../DEVELOPMENT.md) - פקודות ועדכונים אחרונים
+- **חוקי זהב:** [`CRITICAL_PROJECT_CONTEXT_NEW.md`](../CRITICAL_PROJECT_CONTEXT_NEW.md) - כללים קריטיים
+- **מדריך טכני:** [`TECHNICAL_ARCHITECTURE_GUIDE.md`](./TECHNICAL_ARCHITECTURE_GUIDE.md) - ארכיטקטורה מפורטת

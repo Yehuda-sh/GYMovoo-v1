@@ -171,24 +171,12 @@ export default function RegisterScreen() {
   const successRotateAnim = useRef(new Animated.Value(0)).current;
 
   // --- DEBUG: STATE CHANGE LOGGING ---
-  useEffect(() => {
-    if (fullName !== "") console.log("[FIELD] fullName:", fullName);
-  }, [fullName]);
-  useEffect(() => {
-    if (email !== "") console.log("[FIELD] email:", email);
-  }, [email]);
-  useEffect(() => {
-    if (password !== "") console.log("[FIELD] password changed (hidden)");
-  }, [password]);
-  useEffect(() => {
-    if (confirmPassword !== "") console.log("[FIELD] confirmPassword changed");
-  }, [confirmPassword]);
-  useEffect(() => {
-    console.log("[FIELD] is16Plus:", is16Plus);
-  }, [is16Plus]);
-  useEffect(() => {
-    console.log("[FIELD] acceptTerms:", acceptTerms);
-  }, [acceptTerms]);
+  useEffect(() => {}, [fullName]);
+  useEffect(() => {}, [email]);
+  useEffect(() => {}, [password]);
+  useEffect(() => {}, [confirmPassword]);
+  useEffect(() => {}, [is16Plus]);
+  useEffect(() => {}, [acceptTerms]);
   useEffect(() => {
     if (error) console.warn("[ERROR] error:", error);
   }, [error]);
@@ -207,21 +195,14 @@ export default function RegisterScreen() {
       toValue: 1,
       duration: 800, // זמן ארוך יותר לחוויה חלקה
       useNativeDriver: true,
-    }).start(() => {
-      console.log("[ANIMATION] Entry animation finished");
-    });
+    }).start(() => {});
   }, []);
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: passwordStrength.score / 5,
       duration: 300,
       useNativeDriver: false,
-    }).start(() => {
-      console.log(
-        "[ANIMATION] Password strength animation to",
-        passwordStrength.score
-      );
-    });
+    }).start();
   }, [passwordStrength.score]);
 
   // --- DEBUG: Real-time field validation ---
@@ -229,28 +210,24 @@ export default function RegisterScreen() {
     if (fullName.length > 0) {
       const valid = fullName.length >= 2;
       setFieldValidation((prev) => ({ ...prev, fullName: valid }));
-      console.log("[VALIDATE] fullName valid:", valid);
     }
   }, [fullName]);
   useEffect(() => {
     if (email.length > 0) {
       const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       setFieldValidation((prev) => ({ ...prev, email: valid }));
-      console.log("[VALIDATE] email valid:", valid);
     }
   }, [email]);
   useEffect(() => {
     if (password.length > 0) {
       const valid = password.length >= 6;
       setFieldValidation((prev) => ({ ...prev, password: valid }));
-      console.log("[VALIDATE] password valid:", valid);
     }
   }, [password]);
   useEffect(() => {
     if (confirmPassword.length > 0) {
       const valid = password === confirmPassword;
       setFieldValidation((prev) => ({ ...prev, confirmPassword: valid }));
-      console.log("[VALIDATE] confirmPassword valid:", valid);
     }
   }, [confirmPassword, password]);
 
@@ -337,11 +314,11 @@ export default function RegisterScreen() {
       "%c[REGISTER] handleRegister()",
       "color: #00aa00; font-weight: bold;"
     );
-    console.log("Inputs:", {
-      fullName,
-      email,
-      password,
-      confirmPassword,
+    console.log("Form validation status:", {
+      fullName: fullName ? "✓" : "✗",
+      email: email ? "✓" : "✗",
+      passwordEntered: password ? "✓" : "✗",
+      confirmPasswordEntered: confirmPassword ? "✓" : "✗",
       is16Plus,
       acceptTerms,
     });

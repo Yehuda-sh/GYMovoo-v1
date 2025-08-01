@@ -6,9 +6,13 @@
 
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 console.log("🔒 GYMovoo Security Check");
 console.log("=========================\n");
+
+let securityIssues = 0;
+let warnings = 0;
 
 // בדיקת חשיפת מידע רגיש
 function checkSensitiveData() {
@@ -24,7 +28,10 @@ function checkSensitiveData() {
     },
     { pattern: /secret\s*[:=]\s*["'][\w\d]{6,}/gi, type: "Secret חשוף" },
     { pattern: /token\s*[:=]\s*["'][\w\d.-]{20,}/gi, type: "Token חשוף" },
-    { pattern: /console\.log\([^)]*password/gi, type: "סיסמה ב-console.log" },
+    {
+      pattern: /console\.log\([^)]*password\s*[,:]\s*[^)]*\)/gi,
+      type: "סיסמה ב-console.log",
+    },
     { pattern: /console\.log\([^)]*token/gi, type: "token ב-console.log" },
   ];
 
@@ -66,6 +73,7 @@ function checkSensitiveData() {
     console.log("✅ לא נמצא מידע רגיש חשוף");
   } else {
     console.log(`🚨 נמצאו ${issues.length} בעיות אבטחה:`);
+    securityIssues += issues.length;
     issues.forEach((issue) => {
       console.log(`  📁 ${issue.file}`);
       console.log(`     🚨 ${issue.type}: ${issue.preview}`);
@@ -105,6 +113,7 @@ function checkDangerousPermissions() {
       console.log("✅ לא נמצאו הרשאות מסוכנות");
     } else {
       console.log(`⚠️  נמצאו ${foundDangerous.length} הרשאות רגישות:`);
+      warnings += foundDangerous.length;
       foundDangerous.forEach((perm) => {
         console.log(`  🔓 ${perm}`);
       });
@@ -131,19 +140,84 @@ function checkKnownVulnerabilities() {
       ...packageJson.devDependencies,
     };
 
-    // רשימה של packages עם בעיות אבטחה ידועות (דוגמאות)
-    const knownVulnerable = [
-      "lodash@4.17.19",
-      "serialize-javascript@3.1.0",
-      "yargs-parser@18.1.2",
-    ];
+    // בדיקת npm audit
+    console.log("🔍 רץ npm audit...");
+    try {
+      const auditResult = execSync("npm audit --json", {
+        encoding: "utf8",
+        cwd: path.join(__dirname, ".."),
+      });
 
+      const audit = JSON.parse(auditResult);
+      const vulnerabilities = audit.metadata?.vulnerabilities || {};
+      const totalVulns = Object.values(vulnerabilities).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+
+      if (totalVulns > 0) {
+        console.log(`🚨 נמצאו ${totalVulns} פגיעויות אבטחה ב-dependencies`);
+        securityIssues += totalVulns;
+
+        Object.entries(vulnerabilities).forEach(([severity, count]) => {
+          if (count > 0) {
+            console.log(`  ${severity}: ${count}`);
+          }
+        });
+
+        console.log("💡 הרץ 'npm audit fix' לתיקון אוטומטי");
+      } else {
+        console.log("✅ לא נמצאו פגיעויות אבטחה ב-dependencies");
+      }
+    } catch (auditError) {
+      // npm audit מחזיר exit code > 0 כשיש vulnerabilities
+      if (auditError.stdout) {
+        try {
+          const audit = JSON.parse(auditError.stdout);
+          const vulnerabilities = audit.metadata?.vulnerabilities || {};
+          const totalVulns = Object.values(vulnerabilities).reduce(
+            (sum, count) => sum + count,
+            0
+          );
+
+          if (totalVulns > 0) {
+            console.log(`🚨 נמצאו ${totalVulns} פגיעויות אבטחה ב-dependencies`);
+            securityIssues += totalVulns;
+
+            Object.entries(vulnerabilities).forEach(([severity, count]) => {
+              if (count > 0) {
+                console.log(`  ${severity}: ${count}`);
+              }
+            });
+
+            console.log("💡 הרץ 'npm audit fix' לתיקון אוטומטי");
+          }
+        } catch {
+          console.log("⚠️  לא ניתן לבדוק npm audit - הרץ ידנית: npm audit");
+          warnings++;
+        }
+      } else {
+        console.log("⚠️  לא ניתן לבדוק npm audit - הרץ ידנית: npm audit");
+        warnings++;
+      }
+    }
+
+    // בדיקה של packages שכדאי לעדכן (רק אלה שבאמת מיושנים)
     const outdatedPackages = [];
 
     Object.entries(dependencies).forEach(([name, version]) => {
-      // בדיקה בסיסית של גרסאות ישנות
-      if (version.startsWith("^0.") || version.startsWith("~0.")) {
-        outdatedPackages.push(`${name}@${version} (גרסה 0.x)`);
+      // דילוג על React Native packages שהם לגיטימיים ב-0.x
+      const isReactNativePackage =
+        name.includes("react-native") ||
+        name.includes("@react-native") ||
+        name.includes("@types/react-native");
+
+      // רק packages שבאמת מיושנים ולא React Native
+      if (
+        !isReactNativePackage &&
+        (version.startsWith("^0.0.") || version.startsWith("~0.0."))
+      ) {
+        outdatedPackages.push(`${name}@${version} (גרסה 0.0.x מיושנת)`);
       }
     });
 
@@ -219,7 +293,19 @@ try {
   console.log("==========================================");
   console.log("📊 סיכום בדיקת אבטחה");
   console.log("==========================================");
-  console.log("💡 המלצות אבטחה:");
+
+  console.log(`🚨 בעיות אבטחה: ${securityIssues}`);
+  console.log(`⚠️  אזהרות: ${warnings}`);
+
+  if (securityIssues > 0) {
+    console.log("\n🔴 נמצאו בעיות אבטחה שדורשות תשומת לב מידית!");
+  } else if (warnings > 0) {
+    console.log("\n🟡 נמצאו אזהרות - מומלץ לטפל");
+  } else {
+    console.log("\n🟢 לא נמצאו בעיות אבטחה!");
+  }
+
+  console.log("\n💡 המלצות אבטחה:");
   console.log("  1. אל תשמור sensitive data בקוד");
   console.log("  2. השתמש במשתני סביבה (.env)");
   console.log("  3. עדכן dependencies באופן קבוע");
@@ -227,6 +313,14 @@ try {
   console.log("  5. הגדר proper error handling");
   console.log("");
   console.log("🔒 לביטחון מלא הרץ: npm audit");
+
+  // Exit code מתאים
+  if (securityIssues > 0) {
+    process.exit(1); // יש בעיות אבטחה
+  } else {
+    process.exit(0); // הכל בסדר
+  }
 } catch (error) {
   console.error("❌ שגיאה בבדיקת אבטחה:", error.message);
+  process.exit(1);
 }

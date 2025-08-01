@@ -139,6 +139,34 @@ function checkMemoryLeaks(content) {
   return issues;
 }
 
+// בדיקת potential duplicated code patterns
+function checkCodeDuplication(content, filePath) {
+  const issues = [];
+
+  // בדיקת פונקציות דומות (מעל 10 שורות זהות)
+  const functionsWithSimilarLogic = content.match(
+    /(function\s+\w+.*\{[\s\S]{200,}?\})/g
+  );
+
+  if (functionsWithSimilarLogic && functionsWithSimilarLogic.length > 3) {
+    const relativePath = path.relative(process.cwd(), filePath);
+    if (relativePath.includes("Service") || relativePath.includes("service")) {
+      issues.push(
+        `יותר מדי פונקציות דומות: ${functionsWithSimilarLogic.length} (שקול refactoring)`
+      );
+    }
+  }
+
+  // בדיקת imports כפולים
+  const imports = content.match(/import.*from\s+['"][^'"]+['"]/g) || [];
+  const uniqueImports = new Set(imports);
+  if (imports.length > uniqueImports.size) {
+    issues.push(`imports כפולים: ${imports.length - uniqueImports.size}`);
+  }
+
+  return issues;
+}
+
 // בדיקת React best practices
 function checkReactBestPractices(content) {
   const issues = [];
@@ -154,11 +182,27 @@ function checkReactBestPractices(content) {
     issues.push(`שימוש ב-any type: ${anyCount} פעמים`);
   }
 
-  // בדיקת console.log
+  // בדיקת console statements - נדיר יותר עבור production
   const consoleCount = (content.match(/console\.(log|warn|error)/g) || [])
     .length;
-  if (consoleCount > 5) {
-    issues.push(`יותר מדי console statements: ${consoleCount}`);
+  if (consoleCount > 10) {
+    issues.push(
+      `יותר מדי console statements: ${consoleCount} (מומלץ פחות מ-10)`
+    );
+  }
+
+  // בדיקת inline styles מופרזות
+  const inlineStyleCount = (content.match(/style=\{\{[^}]+\}\}/g) || []).length;
+  if (inlineStyleCount > 5) {
+    issues.push(
+      `יותר מדי inline styles: ${inlineStyleCount} (השתמש ב-StyleSheet)`
+    );
+  }
+
+  // בדיקת צמצומים של if-else מורכבים
+  const ternaryCount = (content.match(/\?[^:]*:[^;}]*/g) || []).length;
+  if (ternaryCount > 8) {
+    issues.push(`יותר מדי ternary operators: ${ternaryCount} (מומלץ פחות מ-8)`);
   }
 
   return issues;
@@ -187,12 +231,14 @@ function scanDirectory(dir) {
       const complexity = checkComplexity(content);
       const memoryLeaks = checkMemoryLeaks(content);
       const reactIssues = checkReactBestPractices(content);
+      const duplicationIssues = checkCodeDuplication(content, itemPath);
 
       const allIssues = [
         ...unusedVars,
         ...complexity,
         ...memoryLeaks,
         ...reactIssues,
+        ...duplicationIssues,
       ];
 
       if (allIssues.length > 0) {

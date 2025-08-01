@@ -70,8 +70,6 @@ export default function LoginScreen() {
     useNavigation<NavigationProp<RootStackParamList, "Login">>();
   const route = useRoute<RouteProp<RootStackParamList, "Login">>();
 
-  console.log("🔐 LoginScreen - Component mounted");
-
   // States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -92,7 +90,6 @@ export default function LoginScreen() {
 
   useEffect(() => {
     // טעינת פרטים שמורים // Load saved credentials
-    console.log("🔐 LoginScreen - useEffect triggered");
     loadSavedCredentials();
 
     // אנימציית כניסה משופרת // Enhanced entry animation
@@ -108,9 +105,7 @@ export default function LoginScreen() {
         friction: 8,
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      console.log("🔐 LoginScreen - Entry animation completed");
-    });
+    ]).start(() => {});
 
     // הפעלת Google אוטומטי אם הגיע עם google: true
     if (route?.params?.google) {
@@ -127,14 +122,11 @@ export default function LoginScreen() {
    */
   const loadSavedCredentials = async () => {
     try {
-      console.log("🔐 LoginScreen - Loading saved credentials...");
       const savedEmail = await AsyncStorage.getItem("savedEmail");
       if (savedEmail) {
-        console.log("🔐 LoginScreen - Found saved email:", savedEmail);
         setEmail(savedEmail);
         setRememberMe(true);
       } else {
-        console.log("🔐 LoginScreen - No saved credentials found");
       }
     } catch (error) {
       console.error("🔐 LoginScreen - Failed to load saved email:", error);
@@ -163,7 +155,6 @@ export default function LoginScreen() {
    * Validates entire form
    */
   const validateForm = (): boolean => {
-    console.log("🔐 LoginScreen - Validating form...");
     const errors: typeof fieldErrors = {};
 
     if (!email) {
@@ -181,21 +172,14 @@ export default function LoginScreen() {
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      console.log("🔐 LoginScreen - Validation failed:", errors);
       createShakeAnimation(shakeAnim).start();
       return false;
     }
 
-    console.log("🔐 LoginScreen - Validation passed ✅");
     return true;
   };
 
   const handleLogin = async () => {
-    console.log("🔐 LoginScreen - Login attempt started");
-    console.log("🔐 LoginScreen - Email:", email);
-    console.log("🔐 LoginScreen - Password length:", password.length);
-    console.log("🔐 LoginScreen - Remember me:", rememberMe);
-
     if (!validateForm()) {
       return;
     }
@@ -221,10 +205,8 @@ export default function LoginScreen() {
     try {
       // שמירת אימייל אם נבחר "זכור אותי" // Save email if remember me
       if (rememberMe) {
-        console.log("🔐 LoginScreen - Saving email to AsyncStorage");
         await AsyncStorage.setItem("savedEmail", email);
       } else {
-        console.log("🔐 LoginScreen - Removing saved email from AsyncStorage");
         await AsyncStorage.removeItem("savedEmail");
       }
 
@@ -232,7 +214,6 @@ export default function LoginScreen() {
       setTimeout(async () => {
         setLoading(false);
         if (email === "test@example.com" && password === "123456") {
-          console.log("🔐 LoginScreen - Login successful! ✅");
           const user = {
             email,
             name: "משתמש לדוגמה",
@@ -241,7 +222,6 @@ export default function LoginScreen() {
           };
 
           // שמירה ב-Zustand // Save to Zustand
-          console.log("🔐 LoginScreen - Saving user to Zustand store");
           useUserStore.getState().setUser(user);
 
           // בדיקה אם יש שאלון // Check if questionnaire exists
@@ -252,14 +232,11 @@ export default function LoginScreen() {
           );
 
           if (!hasQuestionnaire) {
-            console.log("🔐 LoginScreen - Navigating to Questionnaire");
             navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
           } else {
-            console.log("🔐 LoginScreen - Navigating to Main");
             navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
           }
         } else {
-          console.log("🔐 LoginScreen - Login failed - invalid credentials ❌");
           setError("פרטי ההתחברות שגויים. אנא בדוק את האימייל והסיסמה.");
           createShakeAnimation(shakeAnim).start();
         }
@@ -272,14 +249,11 @@ export default function LoginScreen() {
   };
 
   const handleGoogleAuth = async () => {
-    console.log("🔐 LoginScreen - Google auth started");
     setLoading(true);
     setError(null);
 
     try {
-      console.log("🔐 LoginScreen - Calling fakeGoogleSignIn...");
       const googleUser = await fakeGoogleSignIn();
-      console.log("🔐 LoginScreen - Google user received:", googleUser);
 
       useUserStore.getState().setUser(googleUser);
 
@@ -312,7 +286,6 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    console.log("🔐 LoginScreen - Forgot password clicked");
     Alert.alert(
       "שחזור סיסמה",
       "נשלח לך קישור לאיפוס הסיסמה לכתובת האימייל שלך",
@@ -320,16 +293,12 @@ export default function LoginScreen() {
         {
           text: "ביטול",
           style: "cancel",
-          onPress: () =>
-            console.log("🔐 LoginScreen - Password reset cancelled"),
+          onPress: () => console.log("Password reset cancelled"),
         },
         {
           text: "שלח",
           onPress: () => {
-            console.log(
-              "🔐 LoginScreen - Password reset requested for:",
-              email
-            );
+            console.log("🔐 LoginScreen - Password reset requested");
             if (!email) {
               setFieldErrors({ email: "אנא הזן כתובת אימייל לשחזור" });
               return;
@@ -338,7 +307,6 @@ export default function LoginScreen() {
               setFieldErrors({ email: "כתובת אימייל לא תקינה" });
               return;
             }
-            console.log("🔐 LoginScreen - Password reset email sent! ✅");
             Alert.alert("נשלח!", "קישור לאיפוס סיסמה נשלח לאימייל שלך");
           },
         },

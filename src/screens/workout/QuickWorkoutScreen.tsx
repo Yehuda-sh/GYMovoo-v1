@@ -737,7 +737,6 @@ const QuickWorkoutScreen: React.FC = () => {
         return;
       }
 
-      console.log("🔍 QuickWorkout - בדיקת השלמת שאלון:", {
         hasCompletedQuestionnaire,
         userGoal,
         preferredDuration,
@@ -830,7 +829,6 @@ const QuickWorkoutScreen: React.FC = () => {
 
         // הצג הודעה למשתמש רק אם באמת לא השלים שאלון ולא אם הנתונים עדיין נטענים
         // Show message to user only if truly didn't complete questionnaire and not during data loading
-        console.log("🔍 QuickWorkout - בדיקת תנאי הצגת אלרט:", {
           isInitialized,
           hasCompletedQuestionnaire,
           shouldShowAlert: isInitialized && !hasCompletedQuestionnaire,

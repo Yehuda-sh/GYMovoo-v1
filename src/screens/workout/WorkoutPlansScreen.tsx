@@ -93,7 +93,6 @@ const WORKOUT_DAYS = {
 };
 
 // דיבוג - הצגת אפשרויות הימים
-console.log(`🔍 DEBUG: WORKOUT_DAYS options:`, WORKOUT_DAYS);
 
 // מיפוי אייקונים לימי אימון
 // Icons mapping for workout days
@@ -532,7 +531,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.log(
         `🧠 Generating basic workout plan${forceRegenerate ? " (forced)" : ""}...`
       );
-      console.log("🔄 DEBUG: generateWorkoutPlan (FALLBACK) called");
 
       // Enhanced fallback exercise cache initialization
       // איפוס משופר למטמון התרגילים במצב חלופי
@@ -550,18 +548,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       >;
 
       // 🔍 DEBUG: בדיקת נתוני השאלון
-      console.log(`🔍 DEBUG: Raw questionnaire data:`, userQuestionnaireData);
       console.log(
         `🔍 DEBUG: Available keys:`,
         Object.keys(userQuestionnaireData)
       );
-      console.log(`🔍 DEBUG: questData[0]:`, questData[0]);
-      console.log(`🔍 DEBUG: questData[1]:`, questData[1]);
-      console.log(`🔍 DEBUG: questData[2]:`, questData[2]);
-      console.log(`🔍 DEBUG: questData[3]:`, questData[3]);
-      console.log(`🔍 DEBUG: questData[4]:`, questData[4]);
-      console.log(`🔍 DEBUG: questData[5]:`, questData[5]);
-      console.log(`🔍 DEBUG: questData[6]:`, questData[6]);
 
       // המרת נתונים לפורמט שה-WorkoutPlanScreen מצפה לו
       const metadata = {
@@ -580,10 +570,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       };
 
       // 🔍 DEBUG: בדיקת מטא-דטה
-      console.log(`🔍 DEBUG: Parsed metadata:`, metadata);
-      console.log(`🔍 DEBUG: metadata.experience:`, metadata.experience);
-      console.log(`🔍 DEBUG: metadata.duration:`, metadata.duration);
-      console.log(`🔍 DEBUG: metadata.frequency:`, metadata.frequency);
 
       // 🔧 FIX: Apply smart defaults for invalid data
       if (
@@ -642,17 +628,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       }
 
       if (!metadata.goal || typeof metadata.goal !== "string") {
-        console.log(`🔧 DEBUG: Invalid goal "${metadata.goal}", using default`);
         metadata.goal = "בריאות כללית";
       } else if (metadata.goal === "endurance") {
         // 🔧 FIX: המרת פורמט אנגלי לעברי
-        console.log(`🔧 DEBUG: Converting goal "endurance" → "שיפור סיבולת"`);
         metadata.goal = "שיפור סיבולת";
       } else if (metadata.goal === "strength") {
-        console.log(`🔧 DEBUG: Converting goal "strength" → "שיפור כוח"`);
         metadata.goal = "שיפור כוח";
       } else if (metadata.goal === "weight_loss") {
-        console.log(`🔧 DEBUG: Converting goal "weight_loss" → "ירידה במשקל"`);
         metadata.goal = "ירידה במשקל";
       } else if (metadata.goal === "muscle_gain") {
         console.log(
@@ -666,7 +648,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         metadata.goal = "בריאות כללית";
       }
 
-      console.log(`🔧 DEBUG: Final metadata after fixes:`, {
         experience: metadata.experience,
         duration: metadata.duration,
         frequency: metadata.frequency,
@@ -732,9 +713,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         frequencyMap[frequencyValue as keyof typeof frequencyMap] || 3;
 
       // 🔍 DEBUG: בדיקות מקיפות לתדירות אימונים
-      console.log(`🔍 DEBUG: === FREQUENCY MAPPING DEBUG ===`);
-      console.log(`🔍 DEBUG: Raw frequency:`, metadata.frequency);
-      console.log(`🔍 DEBUG: Raw frequency type:`, typeof metadata.frequency);
       console.log(
         `🔍 DEBUG: Raw frequency stringified:`,
         JSON.stringify(metadata.frequency)
@@ -743,7 +721,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         `🔍 DEBUG: Frequency value after extraction:`,
         frequencyValue
       );
-      console.log(`🔍 DEBUG: Frequency value type:`, typeof frequencyValue);
       console.log(
         `🔍 DEBUG: Days per week:`,
         daysPerWeek,
@@ -842,7 +819,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Refresh plan
    */
   const handleRefresh = async () => {
-    console.log(`🔄 DEBUG: handleRefresh called - starting refresh process`);
     console.log(
       `🔄 DEBUG: Current workout plan has ${workoutPlan?.workouts?.length || 0} days`
     );
@@ -885,7 +861,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       WORKOUT_DAYS[daysPerWeek as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3];
 
     // 🔍 DEBUG: בדיקות מקיפות לימי אימון
-    console.log(`🏗️ DEBUG: === WORKOUT DAYS SELECTION DEBUG ===`);
     console.log(
       `🏗️ DEBUG: Requested daysPerWeek: ${daysPerWeek} (type: ${typeof daysPerWeek})`
     );
@@ -896,8 +871,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       `🏗️ DEBUG: Available WORKOUT_DAYS keys:`,
       Object.keys(WORKOUT_DAYS)
     );
-    console.log(`🏗️ DEBUG: Selected dayNames:`, dayNames);
-    console.log(`🏗️ DEBUG: Will create ${dayNames?.length || 0} workout days`);
 
     // 🚨 אזהרה אם dayNames לא תקין
     if (!dayNames || dayNames.length === 0) {
@@ -909,13 +882,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     console.log(
       `🏗️ DEBUG: Creating workout plan for ${daysPerWeek} days per week`
     );
-    console.log(`🏗️ DEBUG: Day names array:`, dayNames);
-    console.log(`🏗️ DEBUG: Will create ${dayNames.length} workout days`);
 
     // יצירת אימונים לכל יום
     // Create workouts for each day
     dayNames.forEach((dayName, index) => {
-      console.log(`🏗️ DEBUG: Processing day ${index + 1}: ${dayName}`);
 
       const experienceValue = getString(
         metadata.experience,
@@ -924,7 +894,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const durationValue = getString(metadata.duration, "45");
 
       // 🔍 DEBUG: בדיקת ערכי קלט מקיפה
-      console.log(`🔍 DEBUG: === INPUT VALUES DEBUG ===`);
       console.log(
         `🔍 DEBUG: experienceValue: "${experienceValue}" (type: ${typeof experienceValue})`
       );
@@ -1227,7 +1196,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     // Split to compound and isolation (only if supported in database)
 
     // ✅ SAFETY CHECK: וידוא ש-exerciseCount תקין
-    console.log(`🔍 [Day ${dayIndex}] === EXERCISE COUNT VALIDATION ===`);
     console.log(
       `🔍 [Day ${dayIndex}] exerciseCount: ${exerciseCount} (type: ${typeof exerciseCount})`
     );
@@ -1776,9 +1744,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    */
   const getAvailableEquipment = async (): Promise<string[]> => {
     try {
-      console.log("🔍 getAvailableEquipment - מתחיל לטעון ציוד...");
       const equipment = await questionnaireService.getAvailableEquipment();
-      console.log("🔍 getAvailableEquipment - ציוד שהתקבל:", equipment);
 
       // אם אין ציוד זמין, נחזיר ציוד דמה למטרות דיבוג
       if (!equipment || equipment.length === 0) {
@@ -1889,7 +1855,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const startWorkout = (workout: WorkoutTemplate) => {
     try {
       console.log(`🏋️ Starting workout: ${workout.name}`);
-      console.log(`🔍 Workout template:`, JSON.stringify(workout, null, 2));
       console.log(
         "🔄 DEBUG: startWorkout called with exercises:",
         workout.exercises.map((e) => e.exerciseId)
@@ -1899,7 +1864,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       // Convert template to active workout
       const activeExercises = workout.exercises
         .map((template: ExerciseTemplate) => {
-          console.log(`🔍 Processing exercise template:`, template);
 
           // קודם נחפש בתרגילים הרגילים
           let exercise = exerciseMap[template.exerciseId];
@@ -1911,7 +1875,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             );
             if (foundExercise) {
               exercise = foundExercise;
-              console.log(`🔍 Found exercise in ALL_EXERCISES:`, exercise.name);
             }
           }
 

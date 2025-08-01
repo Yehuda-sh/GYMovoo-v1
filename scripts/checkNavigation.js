@@ -17,23 +17,60 @@ const appNavigatorPath = path.join(
 );
 const appNavigatorContent = fs.readFileSync(appNavigatorPath, "utf8");
 
+// קריאת קובץ types.ts לחילוץ RootStackParamList
+const typesPath = path.join(__dirname, "../src/navigation/types.ts");
+let typesContent = "";
+if (fs.existsSync(typesPath)) {
+  typesContent = fs.readFileSync(typesPath, "utf8");
+}
+
 // חילוץ כל ה-routes מה-RootStackParamList
-const routesMatch = appNavigatorContent.match(
+let routesMatch = appNavigatorContent.match(
   /export type RootStackParamList = \{([\s\S]*?)\};/
 );
+
+// אם לא נמצא ב-AppNavigator, חפש ב-types.ts
+if (!routesMatch && typesContent) {
+  // חילוץ מתקדם יותר לRootStackParamList עם nested objects
+  const startMatch = typesContent.match(/export type RootStackParamList = \{/);
+  if (startMatch) {
+    const startIndex = startMatch.index + startMatch[0].length;
+    let braceCount = 1;
+    let endIndex = startIndex;
+
+    // חיפוש הסוגר המתאים
+    for (let i = startIndex; i < typesContent.length && braceCount > 0; i++) {
+      if (typesContent[i] === "{") braceCount++;
+      if (typesContent[i] === "}") braceCount--;
+      endIndex = i;
+    }
+
+    const content = typesContent.substring(startIndex, endIndex);
+    routesMatch = [null, content]; // מחקה את התוצאה של regex match
+  }
+}
+let routes = [];
+
 if (!routesMatch) {
-  console.error("❌ לא ניתן למצוא RootStackParamList");
-  process.exit(1);
-}
+  console.error("❌ לא ניתן למצוא RootStackParamList בשני הקבצים");
+  console.log("בדיקה רק של Screen components ב-AppNavigator...\n");
 
-const routesContent = routesMatch[1];
-const routes = [];
-const routeMatches = routesContent.matchAll(/^\s*(\w+):/gm);
-for (const match of routeMatches) {
-  routes.push(match[1]);
-}
+  // אם לא נמצא RootStackParamList, רק נבדוק את הScreen components
+} else {
+  const routesContent = routesMatch[1];
+  // חילוץ מתקדם יותר שמתמודד עם objects מורכבים
+  const lines = routesContent.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // רק שורות שמתחילות עם אות גדולה ואחריה : (routes אמיתיים)
+    const match = trimmed.match(/^([A-Z]\w*):/);
+    if (match) {
+      routes.push(match[1]);
+    }
+  }
 
-console.log("📱 Routes שנמצאו:", routes.join(", "));
+  console.log("📱 Routes שנמצאו:", routes.join(", "));
+}
 
 // חילוץ כל ה-Screen components
 const screenMatches = appNavigatorContent.matchAll(
@@ -122,11 +159,16 @@ for (const match of importMatches) {
 }
 
 screenImports.forEach((imp) => {
-  const fullPath = path.join(__dirname, "..", imp.path + ".tsx");
+  // מסיר את ../ מתחילת הנתיב ומוסיף src/
+  let cleanPath = imp.path.replace(/^\.\.\//, "");
+  if (!cleanPath.startsWith("src/")) {
+    cleanPath = "src/" + cleanPath;
+  }
+  const fullPath = path.join(__dirname, "..", cleanPath + ".tsx");
   if (fs.existsSync(fullPath)) {
     console.log(`✅ ${imp.name} - קובץ קיים`);
   } else {
-    console.error(`❌ ${imp.name} - קובץ לא קיים: ${imp.path}.tsx`);
+    console.error(`❌ ${imp.name} - קובץ לא קיים: ${cleanPath}.tsx`);
     hasErrors = true;
   }
 });

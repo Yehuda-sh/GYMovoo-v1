@@ -3,11 +3,13 @@
  * @brief כלי בדיקה לזרימת הניווט החדשה - מהמסך הראשי ישירות לאימון
  * @description בודק שהשינויים שנעשו ב-MainScreen ו-QuickWorkout עובדים כמו שצריך
  * @created 2025-07-31
+ * @updated 2025-08-01
  * @author GitHub Copilot
  */
 
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 class NavigationFlowTester {
   constructor() {
@@ -19,7 +21,50 @@ class NavigationFlowTester {
     };
 
     this.projectRoot = path.resolve(__dirname, "..");
-    console.log("🔍 Navigation Flow Tester - התחלת הבדיקה...\n");
+    console.log("🔍 Navigation Flow Tester v2.0 - Enhanced");
+    console.log("התחלת הבדיקה המשופרת...\n");
+  }
+
+  // בדיקת קומפילציה של הקבצים הרלוונטיים
+  checkCompilation() {
+    console.log("🔨 בודק קומפילציה של קבצי הניווט...");
+
+    const filesToCheck = [
+      "src/screens/main/MainScreen.tsx",
+      "src/screens/workout/QuickWorkoutScreen.tsx",
+      "src/navigation/types.ts",
+    ];
+
+    try {
+      // בדיקה מהירה עם TypeScript רק על הקבצים שלנו
+      const filesString = filesToCheck.join(" ");
+      execSync(`npx tsc --noEmit --skipLibCheck ${filesString}`, {
+        stdio: "pipe",
+        cwd: this.projectRoot,
+      });
+      this.addSuccess("✅ קבצי הניווט מתקמפלים בהצלחה");
+    } catch (error) {
+      // בדוק אם השגיאות הן רק בקבצי הניווט שלנו
+      const errorOutput = error.stderr ? error.stderr.toString() : "";
+
+      // אם יש שגיאות ספציפיות לקבצי הניווט שלנו
+      const hasOurErrors = filesToCheck.some((file) =>
+        errorOutput.includes(file)
+      );
+
+      if (hasOurErrors) {
+        this.addIssue("❌ יש שגיאות קומפילציה בקבצי הניווט!", "error");
+        console.log("   💡 הרץ: npx tsc --noEmit כדי לראות את השגיאות");
+      } else {
+        // אם אין שגיאות בקבצי הניווט שלנו, זה בסדר
+        this.addSuccess("✅ קבצי הניווט מתקמפלים בהצלחה");
+        console.log(
+          "   💡 יש שגיאות קומפילציה אחרות בפרויקט אבל לא בקבצי הניווט"
+        );
+      }
+    }
+
+    console.log("✅ סיום בדיקת קומפילציה\n");
   }
 
   // בדיקת קובץ MainScreen.tsx
@@ -39,9 +84,13 @@ class NavigationFlowTester {
     const content = fs.readFileSync(mainScreenPath, "utf8");
 
     // בדיקה 1: האם handleStartWorkout מנווט ל-QuickWorkout
+    const handleStartWorkoutRegex =
+      /handleStartWorkout[^}]*navigation\.navigate\(\s*["']QuickWorkout["']/s;
+    const quickStartSourceRegex = /source:\s*["']quick_start["']/;
+
     if (
-      content.includes('navigation.navigate("QuickWorkout"') &&
-      content.includes('source: "quick_start"')
+      handleStartWorkoutRegex.test(content) &&
+      quickStartSourceRegex.test(content)
     ) {
       this.addSuccess('✅ כפתור "התחל אימון מהיר" מנווט נכון ל-QuickWorkout');
     } else {
@@ -52,10 +101,16 @@ class NavigationFlowTester {
     }
 
     // בדיקה 2: האם handleDayWorkout מנווט ל-QuickWorkout עם פרמטרים נכונים
+    const handleDayWorkoutRegex =
+      /handleDayWorkout[\s\S]*?navigation\.navigate\(\s*["']QuickWorkout["'][\s\S]*?\}/;
+    const daySelectionSourceRegex = /source:\s*["']day_selection["']/;
+    const requestedDayRegex = /requestedDay:\s*dayNumber/;
+
+    const dayWorkoutMatch = content.match(handleDayWorkoutRegex);
     if (
-      content.includes('navigation.navigate("QuickWorkout"') &&
-      content.includes('source: "day_selection"') &&
-      content.includes("requestedDay: dayNumber")
+      dayWorkoutMatch &&
+      daySelectionSourceRegex.test(dayWorkoutMatch[0]) &&
+      requestedDayRegex.test(dayWorkoutMatch[0])
     ) {
       this.addSuccess("✅ כפתורי הימים מנווטים נכון ל-QuickWorkout עם פרמטרים");
     } else {
@@ -232,27 +287,32 @@ class NavigationFlowTester {
 
   // הרצת כל הבדיקות
   runAllTests() {
-    console.log("🧪 Navigation Flow Tester v1.0");
+    const startTime = Date.now();
+
+    console.log("🧪 Navigation Flow Tester v2.0 - Enhanced");
     console.log("═".repeat(50));
     console.log("בודק שהניווט החדש עובד נכון:\n");
 
     // הרץ את כל הבדיקות
+    this.checkCompilation();
     this.checkMainScreen();
     this.checkQuickWorkoutScreen();
     this.checkNavigationTypes();
     this.checkTerminalLogs();
 
     // הצג תוצאות
-    this.showResults();
+    const duration = Date.now() - startTime;
+    this.showResults(duration);
   }
 
   // הצגת תוצאות
-  showResults() {
+  showResults(duration = 0) {
     console.log("\n📊 תוצאות הבדיקה:");
     console.log("═".repeat(30));
     console.log(`✅ עבר: ${this.results.passed}`);
     console.log(`⚠️  אזהרות: ${this.results.warnings}`);
     console.log(`❌ נכשל: ${this.results.failed}`);
+    console.log(`⏱️  זמן: ${duration}ms`);
 
     if (this.results.issues.length > 0) {
       console.log("\n🔍 בעיות שנמצאו:");
@@ -281,6 +341,11 @@ class NavigationFlowTester {
 
     console.log("\n🚀 להרצת הבדיקה שוב: node scripts/testNavigationFlow.js");
     console.log("═".repeat(50));
+
+    // Exit code לשימוש ב-CI/CD
+    if (this.results.failed > 0) {
+      process.exit(1);
+    }
   }
 }
 

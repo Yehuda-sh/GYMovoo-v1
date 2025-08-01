@@ -25,8 +25,12 @@ const requiredDirs = [
   "src/hooks",
   "src/stores",
   "src/data",
+  "src/types",
+  "src/utils",
   "docs",
   "scripts",
+  "assets",
+  "android",
 ];
 
 const requiredFiles = [
@@ -34,6 +38,8 @@ const requiredFiles = [
   "tsconfig.json",
   "app.json",
   "App.tsx",
+  ".gitignore",
+  "README.md",
   "src/navigation/AppNavigator.tsx",
   "src/navigation/BottomNavigation.tsx",
   "src/navigation/types.ts",
@@ -99,8 +105,21 @@ try {
       score -= 2;
     }
   });
+
+  // בדיקת scripts חשובים
+  const recommendedScripts = ["start", "build", "test"];
+  console.log("\n📝 בדיקת scripts:");
+  recommendedScripts.forEach((script) => {
+    if (packageJson.scripts && packageJson.scripts[script]) {
+      console.log(`✅ ${script} script קיים`);
+    } else {
+      console.log(`⚠️  ${script} script חסר`);
+      suggestions.push(`הוסף ${script} script ל-package.json`);
+      score -= 3;
+    }
+  });
 } catch (error) {
-  console.log("❌ שגיאה בקריאת package.json");
+  console.log("❌ שגיאה בקריאת package.json:", error.message);
   issues.push("שגיאה בקריאת package.json");
   score -= 20;
 }
@@ -127,8 +146,27 @@ try {
     suggestions.push("הפעל esModuleInterop");
     score -= 2;
   }
+
+  // בדיקת הגדרות נוספות
+  const recommendedOptions = {
+    target: "target version",
+    module: "module system",
+    skipLibCheck: "skip lib check",
+    allowSyntheticDefaultImports: "synthetic imports",
+  };
+
+  Object.keys(recommendedOptions).forEach((option) => {
+    if (
+      !tsConfig.compilerOptions ||
+      tsConfig.compilerOptions[option] === undefined
+    ) {
+      console.log(`⚠️  ${recommendedOptions[option]} לא מוגדר: ${option}`);
+      suggestions.push(`הגדר ${option} ב-tsconfig.json`);
+      score -= 1;
+    }
+  });
 } catch (error) {
-  console.log("❌ שגיאה בקריאת tsconfig.json");
+  console.log("❌ שגיאה בקריאת tsconfig.json:", error.message);
   issues.push("שגיאה בקריאת tsconfig.json");
   score -= 10;
 }
@@ -210,6 +248,76 @@ requiredServices.forEach((service) => {
 
 console.log(`📊 סה"כ שירותים: ${serviceCount}/${requiredServices.length}`);
 
+// בדיקת קונבנציות שמות
+console.log("\n🏷️  בדיקת קונבנציות שמות:");
+let namingIssues = 0;
+
+// בדיקת שמות קבצים במסכים
+const checkNamingConventions = (dir, expectedSuffix) => {
+  try {
+    const files = fs.readdirSync(path.join(__dirname, "..", dir));
+    files.forEach((file) => {
+      if (
+        file.endsWith(".tsx") &&
+        !file.includes("index") &&
+        !file.includes("types")
+      ) {
+        const baseName = file.replace(".tsx", "");
+        if (
+          !baseName.endsWith(expectedSuffix) &&
+          ![
+            "Modal",
+            "Card",
+            "Button",
+            "Bar",
+            "Row",
+            "Timer",
+            "Calculator",
+            "Header",
+            "Summary",
+            "Dashboard",
+            "Slider",
+            "Selector",
+          ].some((suffix) => baseName.endsWith(suffix))
+        ) {
+          console.log(
+            `⚠️  שם לא עקבי: ${file} (צריך להסתיים ב-${expectedSuffix})`
+          );
+          suggestions.push(`שנה שם ל-${baseName}${expectedSuffix}.tsx`);
+          namingIssues++;
+          score -= 1;
+        }
+      }
+    });
+  } catch {
+    // תיקייה לא קיימת או לא נגישה - מתעלמים
+    console.log(`⚠️  לא ניתן לבדוק תיקייה: ${dir}`);
+  }
+};
+
+// בדיקת מסכים
+[
+  "src/screens/auth",
+  "src/screens/main",
+  "src/screens/profile",
+  "src/screens/workout",
+  "src/screens/exercise",
+  "src/screens/exercises",
+  "src/screens/questionnaire",
+  "src/screens/history",
+  "src/screens/progress",
+  "src/screens/notifications",
+  "src/screens/welcome",
+].forEach((dir) => {
+  checkNamingConventions(dir, "Screen");
+});
+
+if (namingIssues === 0) {
+  console.log("✅ קונבנציות שמות תקינות");
+} else {
+  console.log(`⚠️  ${namingIssues} בעיות בקונבנציות שמות`);
+}
+
 // בדיקת תיעוד
 console.log("\n📚 בדיקת תיעוד:");
 const docFiles = ["NAVIGATION_GUIDE.md", "PROGRESS_LOG.md"];
@@ -230,6 +338,30 @@ docFiles.forEach((doc) => {
 });
 
 console.log(`📊 סה"כ קבצי תיעוד: ${docCount}/${docFiles.length}`);
+
+// בדיקת קבצי index.ts
+console.log("\n📋 בדיקת קבצי index.ts:");
+const indexDirs = [
+  "src/components",
+  "src/screens",
+  "src/services",
+  "src/utils",
+];
+let indexCount = 0;
+
+indexDirs.forEach((dir) => {
+  const indexPath = path.join(__dirname, "..", dir, "index.ts");
+  if (fs.existsSync(indexPath)) {
+    console.log(`✅ ${dir}/index.ts קיים`);
+    indexCount++;
+  } else {
+    console.log(`⚠️  ${dir}/index.ts חסר`);
+    suggestions.push(`צור קובץ index.ts ב-${dir}`);
+    score -= 2;
+  }
+});
+
+console.log(`📊 סה"כ קבצי index: ${indexCount}/${indexDirs.length}`);
 
 // בדיקת גיט
 console.log("\n📋 בדיקת Git:");

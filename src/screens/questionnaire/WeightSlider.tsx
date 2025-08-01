@@ -121,7 +121,6 @@ export default function WeightSlider({
         }
 
         setCurrentWeight(newWeight);
-        console.log(`🔍 WeightSlider - משקל עודכן ל: ${newWeight}`);
       },
 
       onPanResponderRelease: () => {

@@ -10,6 +10,9 @@ const path = require("path");
 console.log("🔧 Quick Compile Check - בדיקה מהירה");
 console.log("═".repeat(40));
 
+let hasErrors = false;
+let hasWarnings = false;
+
 try {
   console.log("📦 בודק TypeScript compilation...");
 
@@ -22,50 +25,82 @@ try {
     console.log("✅ TypeScript compilation - תקין");
   } catch (tscError) {
     console.log("❌ שגיאות TypeScript:");
-    console.log(tscError.stdout?.toString() || "שגיאה לא ידועה");
+    console.log(
+      tscError.stdout?.toString() ||
+        tscError.stderr?.toString() ||
+        "שגיאה לא ידועה"
+    );
+    hasErrors = true;
   }
 
   console.log("\n🧪 בודק ESLint...");
 
-  // בדיקת ESLint (רק על הקבצים שהשתנו)
+  // בדיקת ESLint - דינמית על קבצים חשובים
   try {
+    const importantPaths = ["src/**/*.{ts,tsx}", "App.tsx"];
+
     const result = execSync(
-      "npx eslint src/screens/main/MainScreen.tsx src/screens/workout/QuickWorkoutScreen.tsx src/navigation/types.ts --format=compact",
+      `npx eslint ${importantPaths.join(" ")} --max-warnings=10`,
       {
         cwd: path.resolve(__dirname, ".."),
         stdio: "pipe",
+        encoding: "utf8",
       }
     );
 
-    if (result.toString().trim()) {
+    if (result.trim()) {
       console.log("⚠️ ESLint warnings/errors:");
-      console.log(result.toString());
+      console.log(result);
+      hasWarnings = true;
     } else {
       console.log("✅ ESLint - נקי");
     }
   } catch (eslintError) {
-    console.log("⚠️ ESLint issues:");
-    console.log(eslintError.stdout?.toString() || "בעיה ב-ESLint");
+    // ESLint מחזיר exit code > 0 כשיש שגיאות, זה נורמלי
+    if (eslintError.stdout && eslintError.stdout.trim()) {
+      console.log("⚠️ ESLint issues:");
+      console.log(eslintError.stdout);
+      hasWarnings = true;
+    } else {
+      console.log("⚠️ ESLint לא זמין או שגיאת הגדרה");
+      hasWarnings = true;
+    }
   }
 
   console.log("\n📱 הנחיות לבדיקה באפליקציה:");
   console.log("─".repeat(30));
   console.log("1. npm start או expo start");
-  console.log("2. פתח את האפליקציה");
-  console.log('3. לחץ על "התחל אימון מהיר" - אמור להיכנס ישירות לאימון');
-  console.log(
-    '4. חזור ולחץ על "יום 1" - אמור להיכנס לאימון עם השם "חזה + טריצפס"'
-  );
-  console.log('5. בדוק שלא מופיע מסך "תוכנית AI"');
+  console.log("2. פתח את האפליקציה בסימולטור/מכשיר");
+  console.log("3. בדוק שהמסך הראשי נטען כהלכה");
+  console.log("4. בדוק ניווט בין המסכים השונים");
+  console.log("5. וודא שאין crash או שגיאות JavaScript");
 
   console.log("\n🔍 איך לראות לוגים:");
   console.log("─".repeat(20));
   console.log("• פתח Chrome DevTools (לחץ j במטרו)");
   console.log("• או בטרמינל תראה לוגים");
-  console.log('• חפש "🚀 MainScreen" ו-"✅ QuickWorkout"');
+  console.log("• חפש שגיאות או אזהרות בצבע אדום");
+
+  console.log("\n✅ כלים נוספים מומלצים:");
+  console.log("─".repeat(25));
+  console.log("• node scripts/checkNavigation.js - בדיקת ניווט");
+  console.log("• node scripts/projectHealthCheck.js - בדיקה כללית");
+  console.log("• node scripts/codeQualityCheck.js - איכות קוד");
 } catch (error) {
   console.error("❌ שגיאה כללית:", error.message);
+  hasErrors = true;
 }
 
 console.log("\n═".repeat(40));
-console.log("🚀 סיים! רוץ עכשיו: node scripts/testNavigationFlow.js");
+
+// Exit code לפי תוצאות
+if (hasErrors) {
+  console.log("� יש שגיאות שדורשות תשומת לב");
+  process.exit(1);
+} else if (hasWarnings) {
+  console.log("🟡 יש אזהרות - מומלץ לטפל");
+  process.exit(0);
+} else {
+  console.log("🟢 הכל נראה תקין!");
+  process.exit(0);
+}
