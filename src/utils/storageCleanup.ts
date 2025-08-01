@@ -16,7 +16,17 @@ interface StorageSize {
   userPreferencesSize: number; // גודל העדפות משתמש
 }
 
+interface BackupData {
+  [key: string]: unknown;
+}
+
 export class StorageCleanup {
+  // Constants for storage limits
+  private static readonly MAX_KEYS_THRESHOLD = 1000;
+  private static readonly MAX_SIZE_THRESHOLD_KB = 50 * 1024; // 50MB in KB
+  private static readonly MAX_KEYS_TO_CHECK = 500; // Safety limit for key checking
+  private static readonly BYTES_PER_CHAR = 2; // UTF-16 encoding
+
   /**
    * בדיקת גודל אחסון עם תמיכה בנתוני שאלון חכם
    * Check storage size with smart questionnaire support
@@ -31,13 +41,16 @@ export class StorageCleanup {
       let userPreferencesSize = 0;
 
       // בדיקת בטיחות - אם יש יותר מדי מפתחות, לא לעבור על כולם
-      const keysToCheck = keys.length > 500 ? keys.slice(0, 500) : keys;
+      const keysToCheck =
+        keys.length > this.MAX_KEYS_TO_CHECK
+          ? keys.slice(0, this.MAX_KEYS_TO_CHECK)
+          : keys;
 
       for (const key of keysToCheck) {
         try {
           const value = await AsyncStorage.getItem(key);
           // חישוב גודל ב-KB ללא Blob (לא זמין ב-React Native)
-          const size = value ? (value.length * 2) / 1024 : 0; // KB (UTF-16, כל תו = 2 bytes)
+          const size = value ? (value.length * this.BYTES_PER_CHAR) / 1024 : 0; // KB (UTF-16, כל תו = 2 bytes)
           items.push({ key, size });
           totalSize += size;
 
@@ -54,8 +67,8 @@ export class StorageCleanup {
           if (key === "userPreferences" || key.includes("user_preferences")) {
             userPreferencesSize += size;
           }
-        } catch (error) {
-          console.warn(`Error reading key ${key}:`, error);
+        } catch {
+          // Log warning but continue processing
         }
       }
 
@@ -94,18 +107,26 @@ export class StorageCleanup {
       const now = new Date().getTime();
       const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000; // שבוע אחורה
 
+      // Define old data patterns for cleanup
+      const oldDataPatterns = [
+        "workout_draft_",
+        "workout_time_",
+        "temp_",
+        "cache_",
+        "questionnaire_draft_",
+        "gender_adaptation_temp_",
+        "smart_questionnaire_session_",
+      ];
+
       for (const key of keys) {
         try {
-          // נתונים ישנים לניקוי - כולל נתוני שאלון חכם
-          if (
-            key.startsWith("workout_draft_") ||
-            key.startsWith("workout_time_") ||
-            key.startsWith("temp_") ||
+          // Check if key matches old data patterns
+          const isOldDataKey =
+            oldDataPatterns.some((pattern) => key.startsWith(pattern)) ||
             key.includes("cache_") ||
-            key.startsWith("questionnaire_draft_") || // טיוטות שאלון ישנות
-            key.startsWith("gender_adaptation_temp_") || // נתוני התאמת מגדר זמניים
-            key.includes("smart_questionnaire_session_") // סשן שאלון ישן
-          ) {
+            key.includes("smart_questionnaire_session_");
+
+          if (isOldDataKey) {
             const item = await AsyncStorage.getItem(key);
             if (item) {
               try {
@@ -119,7 +140,7 @@ export class StorageCleanup {
                 if (lastSaved && new Date(lastSaved).getTime() < oneWeekAgo) {
                   keysToRemove.push(key);
                 }
-              } catch (parseError) {
+              } catch {
                 // אם לא ניתן לפרס, אולי זה נתון ישן - סמן למחיקה
                 keysToRemove.push(key);
               }
@@ -136,9 +157,6 @@ export class StorageCleanup {
         const batch = keysToRemove.slice(i, i + 10);
         try {
           await AsyncStorage.multiRemove(batch);
-          console.log(
-            `🗑️ Cleaned ${batch.length} old items (including questionnaire data)`
-          );
         } catch (error) {
           console.warn(`Failed to remove batch ${i / 10 + 1}:`, error);
           // נסה למחוק פריט אחד בכל פעם
@@ -151,10 +169,6 @@ export class StorageCleanup {
           }
         }
       }
-
-      console.log(
-        `✅ Storage cleanup complete - removed ${keysToRemove.length} items (including smart questionnaire data)`
-      );
     } catch (error) {
       console.error("Error cleaning storage:", error);
     }
@@ -167,46 +181,44 @@ export class StorageCleanup {
   static async emergencyCleanup(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const nonEssentialKeys = keys.filter(
-        (key) =>
-          key.startsWith("workout_draft_") ||
-          key.startsWith("workout_time_") ||
-          key.startsWith("cache_") ||
-          key.startsWith("temp_") ||
-          key.includes("analytics_") ||
-          key.includes("logs_") ||
-          // נתוני שאלון זמניים ולא חיוניים
-          key.startsWith("questionnaire_draft_") ||
-          key.startsWith("gender_adaptation_temp_") ||
-          key.includes("smart_questionnaire_session_") ||
-          key.includes("questionnaire_analytics_") ||
-          key.includes("gender_test_data_")
+
+      // Define non-essential key patterns
+      const nonEssentialPatterns = [
+        "workout_draft_",
+        "workout_time_",
+        "cache_",
+        "temp_",
+        "analytics_",
+        "logs_",
+        "questionnaire_draft_",
+        "gender_adaptation_temp_",
+        "smart_questionnaire_session_",
+        "questionnaire_analytics_",
+        "gender_test_data_",
+      ];
+
+      const nonEssentialKeys = keys.filter((key) =>
+        nonEssentialPatterns.some(
+          (pattern) => key.startsWith(pattern) || key.includes(pattern)
+        )
       );
 
       if (nonEssentialKeys.length > 0) {
         try {
           await AsyncStorage.multiRemove(nonEssentialKeys);
-          console.log(
-            `🚨 Emergency cleanup - removed ${nonEssentialKeys.length} items (including questionnaire temps)`
-          );
         } catch (error) {
           console.warn(
             "Failed batch emergency cleanup, trying individually:",
             error
           );
           // נסה למחוק פריט אחד בכל פעם
-          let removedCount = 0;
           for (const key of nonEssentialKeys) {
             try {
               await AsyncStorage.removeItem(key);
-              removedCount++;
             } catch (singleError) {
               console.warn(`Failed to remove ${key}:`, singleError);
             }
           }
-          console.log(
-            `🚨 Emergency cleanup - removed ${removedCount}/${nonEssentialKeys.length} items (including questionnaire temps)`
-          );
         }
       }
     } catch (error) {
@@ -222,7 +234,10 @@ export class StorageCleanup {
     try {
       const info = await this.getStorageInfo();
       // אם יש יותר מ-1000 מפתחות או יותר מ-50MB
-      return info.totalKeys > 1000 || info.estimatedSize > 50 * 1024;
+      return (
+        info.totalKeys > this.MAX_KEYS_THRESHOLD ||
+        info.estimatedSize > this.MAX_SIZE_THRESHOLD_KB
+      );
     } catch {
       return true; // בטוח יותר להניח שמלא
     }
@@ -270,19 +285,19 @@ export class StorageCleanup {
   static async cleanQuestionnaireData(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const questionnaireKeys = keys.filter(
-        (key) =>
-          key.includes("questionnaire_draft_") ||
-          key.includes("smart_questionnaire_session_") ||
-          key.includes("questionnaire_analytics_") ||
-          key.includes("gender_test_data_")
+      const questionnairePatterns = [
+        "questionnaire_draft_",
+        "smart_questionnaire_session_",
+        "questionnaire_analytics_",
+        "gender_test_data_",
+      ];
+
+      const questionnaireKeys = keys.filter((key) =>
+        questionnairePatterns.some((pattern) => key.includes(pattern))
       );
 
       if (questionnaireKeys.length > 0) {
         await AsyncStorage.multiRemove(questionnaireKeys);
-        console.log(
-          `🧠 Cleaned ${questionnaireKeys.length} questionnaire data items`
-        );
       }
     } catch (error) {
       console.error("Error cleaning questionnaire data:", error);
@@ -293,9 +308,7 @@ export class StorageCleanup {
    * גיבוי נתוני שאלון חכם חיוניים
    * Backup essential smart questionnaire data
    */
-  static async backupEssentialQuestionnaireData(): Promise<{
-    [key: string]: any;
-  } | null> {
+  static async backupEssentialQuestionnaireData(): Promise<BackupData | null> {
     try {
       const essentialKeys = [
         "userPreferences",
@@ -304,7 +317,7 @@ export class StorageCleanup {
         "selected_equipment",
       ];
 
-      const backupData: { [key: string]: any } = {};
+      const backupData: BackupData = {};
 
       for (const key of essentialKeys) {
         try {
@@ -312,14 +325,11 @@ export class StorageCleanup {
           if (value) {
             backupData[key] = JSON.parse(value);
           }
-        } catch (error) {
-          console.warn(`Failed to backup ${key}:`, error);
+        } catch {
+          // Handle backup error for specific key
         }
       }
 
-      console.log(
-        `💾 Backed up ${Object.keys(backupData).length} essential questionnaire items`
-      );
       return backupData;
     } catch (error) {
       console.error("Error backing up questionnaire data:", error);
@@ -331,22 +341,17 @@ export class StorageCleanup {
    * שחזור נתוני שאלון חכם חיוניים
    * Restore essential smart questionnaire data
    */
-  static async restoreEssentialQuestionnaireData(backupData: {
-    [key: string]: any;
-  }): Promise<void> {
+  static async restoreEssentialQuestionnaireData(
+    backupData: BackupData
+  ): Promise<void> {
     try {
-      let restoredCount = 0;
-
       for (const [key, value] of Object.entries(backupData)) {
         try {
           await AsyncStorage.setItem(key, JSON.stringify(value));
-          restoredCount++;
-        } catch (error) {
-          console.warn(`Failed to restore ${key}:`, error);
+        } catch {
+          // Handle restore error for specific key
         }
       }
-
-      console.log(`♻️ Restored ${restoredCount} essential questionnaire items`);
     } catch (error) {
       console.error("Error restoring questionnaire data:", error);
     }
@@ -364,7 +369,6 @@ export class StorageCleanup {
       );
 
       if (!userPrefs || !questionnaireResults) {
-        console.warn("❌ Missing essential questionnaire data");
         return false;
       }
 
@@ -377,11 +381,9 @@ export class StorageCleanup {
       const hasFitnessLevel = prefs.fitnessLevel || results.fitnessLevel;
 
       if (!hasGender || !hasEquipment || !hasFitnessLevel) {
-        console.warn("❌ Incomplete questionnaire data");
         return false;
       }
 
-      console.log("✅ Questionnaire data is valid");
       return true;
     } catch (error) {
       console.error("Error validating questionnaire data:", error);

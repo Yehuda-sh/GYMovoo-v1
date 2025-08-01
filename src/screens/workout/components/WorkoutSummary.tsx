@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -535,6 +536,84 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
 
           {/* כפתור שמירה */}
           <View style={styles.saveButtonContainer}>
+            {/* 🧪 כפתור בדיקה להישגים */}
+            <TouchableOpacity
+              style={styles.testAchievementButton}
+              onPress={() => {
+                // בחירת הישג רנדומלי
+                const achievements = [
+                  {
+                    title: "צאצא ביום הראשון",
+                    description: "השלמת האימון הראשון! כל הכבוד!",
+                    icon: "baby-face-outline",
+                    color: "#4CAF50",
+                  },
+                  {
+                    title: "מתמיד שבועי",
+                    description: "5 אימונים ברצף! אתה מתמיד אמיתי!",
+                    icon: "fire",
+                    color: "#FF5722",
+                  },
+                  {
+                    title: "מלך הכוח",
+                    description: "הרמת משקל מעל 100 ק״ג! כוח נורא!",
+                    icon: "dumbbell",
+                    color: "#9C27B0",
+                  },
+                  {
+                    title: "מרתון כושר",
+                    description: "26 שעות של אימונים! זה מרתון אמיתי!",
+                    icon: "run",
+                    color: "#2196F3",
+                  },
+                  {
+                    title: "כושר בוקר",
+                    description: "15 אימוני בוקר! תתחיל את היום נכון!",
+                    icon: "weather-sunny",
+                    color: "#FFA500",
+                  },
+                ];
+                const randomAchievement =
+                  achievements[Math.floor(Math.random() * achievements.length)];
+
+                // אלרט עם אפשרויות
+                Alert.alert("בדיקת מערכת הישגים", "בחר איך לסיים את האימון:", [
+                  {
+                    text: "רגיל",
+                    onPress: () => handleSaveWorkoutWithFeedback(),
+                    style: "default",
+                  },
+                  {
+                    text: `עם הישג פייק`,
+                    onPress: () => {
+                      // הצגת הישג פייק בלי שמירה
+                      Alert.alert(
+                        `🎉 הישג חדש!`,
+                        `🏆 ${randomAchievement.title}\n\n${randomAchievement.description}\n\n⚠️ זהו הישג לבדיקה בלבד - לא נשמר!`,
+                        [{ text: "מעולה! 🎯", style: "default" }]
+                      );
+                    },
+                    style: "default",
+                  },
+                  {
+                    text: "ביטול",
+                    style: "cancel",
+                  },
+                ]);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="בדיקת מערכת הישגים"
+            >
+              <MaterialCommunityIcons
+                name="test-tube"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.testAchievementButtonText}>
+                🧪 בדיקת הישגים
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.mainSaveButton}
               onPress={handleSaveWorkoutWithFeedback}
@@ -1060,7 +1139,31 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.textSecondary + "20",
     backgroundColor: theme.colors.background,
+    gap: theme.spacing.md, // רווח בין הכפתורים
   },
+
+  // 🧪 סטיילים לכפתור בדיקת הישגים
+  testAchievementButton: {
+    backgroundColor: theme.colors.backgroundAlt,
+    flexDirection: isRTL ? "row-reverse" : "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primary + "30",
+    marginBottom: theme.spacing.sm,
+  },
+
+  testAchievementButtonText: {
+    fontSize: theme.typography.body.fontSize - 1,
+    fontWeight: "500",
+    color: theme.colors.primary,
+    marginLeft: isRTL ? 0 : theme.spacing.sm,
+    marginRight: isRTL ? theme.spacing.sm : 0,
+  },
+
   mainSaveButton: {
     backgroundColor: theme.colors.primary,
     flexDirection: isRTL ? "row-reverse" : "row",

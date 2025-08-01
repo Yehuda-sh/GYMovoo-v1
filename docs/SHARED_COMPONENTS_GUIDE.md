@@ -1,6 +1,6 @@
 # מדריך רכיבים משותפים - GYMovoo
 
-**עדכון אחרון:** 01/08/2025
+**עדכון אחרון:** 02/08/2025
 
 ## סקירה כללית
 
@@ -8,7 +8,117 @@
 
 ## 🧩 רשימת רכיבים
 
-### 1. LoadingSpinner
+### 1. SetRow - רכיב עריכת סטים מתקדם
+
+רכיב מתקדם לעריכת סטי אימון עם מצב עריכה מלא, חצי מעלית וקלט מקלדת מיועל.
+
+**מיקום:** `src/screens/workout/components/ExerciseCard/SetRow.tsx`
+
+#### 🎯 תכונות עיקריות:
+
+1. **מצב עריכה מתקדם** - הסתרת כפתור השלמה במצב עריכה
+2. **חצי מעלית** - העברת סטים למעלה/למטה בעיצוב אלגנטי
+3. **קלט מקלדת מיועל** - פתרון לבעיות Android עם פוקוס יציב
+4. **ביטול השלמת סט** - לחיצה נוספת מבטלת השלמה
+5. **אנימציות חלקות** - מעברים ויזואליים מלוטשים
+
+#### 📋 Interface:
+
+```typescript
+interface SetRowProps {
+  set: ExtendedSet;
+  setNumber: number;
+  onUpdate: (updates: Partial<ExtendedSet>) => void;
+  onDelete: () => void;
+  onComplete: () => void;
+  onLongPress: () => void;
+  isActive?: boolean;
+  exercise: Exercise;
+  // מצב עריכה
+  isEditMode?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onDuplicate?: () => void;
+  // מידע על מיקום הסט
+  isFirst?: boolean;
+  isLast?: boolean;
+}
+```
+
+#### 🎨 חצי מעלית (Elevator Buttons):
+
+```typescript
+// עיצוב מעלית עם משולשים מסתובבים
+<View style={styles.elevatorButtonsContainer}>
+  {!isFirst && (
+    <TouchableOpacity onPress={onMoveUp}>
+      <MaterialCommunityIcons
+        name="triangle"
+        style={{ transform: [{ rotate: '0deg' }] }}
+      />
+    </TouchableOpacity>
+  )}
+  {!isLast && (
+    <TouchableOpacity onPress={onMoveDown}>
+      <MaterialCommunityIcons
+        name="triangle"
+        style={{ transform: [{ rotate: '180deg' }] }}
+      />
+    </TouchableOpacity>
+  )}
+</View>
+```
+
+#### 🔧 אופטימיזציה לקלט מקלדת:
+
+```typescript
+// פתרון לבעיות Android - TouchableOpacity עטיפה עם פוקוס מפורש
+<TouchableOpacity
+  activeOpacity={1}
+  onPress={() => {
+    const input = inputRef.current;
+    if (input) {
+      input.focus();
+    }
+  }}
+>
+  <TextInput
+    ref={inputRef}
+    keyboardType="numeric"
+    selectTextOnFocus={true}
+    blurOnSubmit={false}
+    showSoftInputOnFocus={true}
+    autoCorrect={false}
+    spellCheck={false}
+  />
+</TouchableOpacity>
+```
+
+#### ✨ סגנונות מפתח:
+
+```typescript
+// חצי מעלית
+elevatorButtonsContainer: {
+  flexDirection: "column",
+  backgroundColor: theme.colors.card,
+  borderRadius: 6,
+  borderWidth: 1,
+  borderColor: theme.colors.cardBorder,
+  padding: 2,
+  marginHorizontal: 4,
+},
+elevatorButton: {
+  width: 20,
+  height: 16,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: theme.colors.background,
+  borderRadius: 3,
+  marginVertical: 1,
+}
+```
+
+### 2. LoadingSpinner
 
 רכיב טעינה אוניברסלי עם תמיכה בטקסט אופציונלי.
 

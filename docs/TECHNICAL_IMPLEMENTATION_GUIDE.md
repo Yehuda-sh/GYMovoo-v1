@@ -1,10 +1,206 @@
 # 🔧 מדריך טכני - מערכת שאלון חכמה עם תמיכת RTL והתאמת מגדר
 
-**עדכון אחרון:** 01/08/2025
+**עדכון אחרון:** 02/08/2025  
+**תיקון אחרון:** ממשק עריכה מתקדם לסטים עם חצי מעלית וקלט מקלדת
 
 ## 🎯 סקירה כללית
 
 מדריך זה מתמקד ברכיבים הטכניים המרכזיים של מערכת השאלון החכם עם תמיכה מלאה ב-RTL והתאמת מגדר.
+
+## 🚀 **תיקונים חדשים - אוגוסט 2025**
+
+### ✅ **ממשק עריכה מתקדם לסטים - SetRow Component**
+
+#### 🎯 אתגרים טכניים שנפתרו:
+
+**1. קונפליקט TouchableOpacity ו-TextInput ב-Android:**
+
+```typescript
+// בעיה: TouchableOpacity חיצוני חוטף אירועי פוקוס
+// פתרון: עטיפה ספציפית לכל TextInput
+<TouchableOpacity
+  activeOpacity={1}
+  onPress={() => inputRef.current?.focus()}
+>
+  <TextInput ref={inputRef} />
+</TouchableOpacity>
+```
+
+**2. אופטימיזציית TextInput ל-Android:**
+
+```typescript
+<TextInput
+  keyboardType="numeric"
+  selectTextOnFocus={true}
+  editable={true}
+  returnKeyType="done"
+  blurOnSubmit={false}          // מפתח - מונע סגירת מקלדת
+  showSoftInputOnFocus={true}   // מאלץ הצגת מקלדת
+  autoCorrect={false}
+  autoCapitalize="none"
+  spellCheck={false}
+  textContentType="none"
+  caretHidden={false}
+  contextMenuHidden={false}
+/>
+```
+
+**3. ניהול State עם useRef:**
+
+```typescript
+// רפרנסים לשליטה ישירה
+const weightInputRef = useRef<TextInput>(null);
+const repsInputRef = useRef<TextInput>(null);
+
+// מניעת re-renders מיותרים
+const weightValue = React.useMemo(
+  () => set.actualWeight?.toString() || "",
+  [set.actualWeight]
+);
+```
+
+**4. עיצוב חצי מעלית:**
+
+```typescript
+// עיצוב מעלית עם משולשים מסתובבים
+elevatorButtonsContainer: {
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: theme.colors.card,
+  borderRadius: 6,
+  borderWidth: 1,
+  borderColor: theme.colors.cardBorder,
+  padding: 2,
+  marginHorizontal: 4,
+},
+elevatorButton: {
+  width: 20,
+  height: 16,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: theme.colors.background,
+  borderRadius: 3,
+  marginVertical: 1,
+}
+```
+
+#### 🎨 הרכבה מתקדמת של הרכיב:
+
+```typescript
+// רכיב SetRow עם כל התכונות המתקדמות
+const SetRow: React.FC<SetRowProps> = ({
+  set,
+  setNumber,
+  onUpdate,
+  onDelete,
+  onComplete,
+  onLongPress,
+  isActive,
+  isEditMode = false,
+  onMoveUp,
+  onMoveDown,
+  onDuplicate,
+  isFirst = false,
+  isLast = false,
+}) => {
+  // רפרנסים לשדות קלט
+  const weightInputRef = useRef<TextInput>(null);
+  const repsInputRef = useRef<TextInput>(null);
+
+  // אנימציות
+  const checkAnim = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prBounceAnim = useRef(new Animated.Value(0)).current;
+
+  // ממשק עריכה מותנה
+  return (
+    <View style={{ marginBottom: 8 }}>
+      <Animated.View style={[styles.container, /* אנימציות */]}>
+        {/* חצי מעלית - רק במצב עריכה */}
+        {isEditMode && (
+          <View style={styles.elevatorButtonsContainer}>
+            {!isFirst && (
+              <TouchableOpacity onPress={onMoveUp}>
+                <MaterialCommunityIcons
+                  name="triangle"
+                  style={{ transform: [{ rotate: '0deg' }] }}
+                />
+              </TouchableOpacity>
+            )}
+            {!isLast && (
+              <TouchableOpacity onPress={onMoveDown}>
+                <MaterialCommunityIcons
+                  name="triangle"
+                  style={{ transform: [{ rotate: '180deg' }] }}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* כפתור השלמה - מוסתר במצב עריכה */}
+        {!isEditMode && (
+          <TouchableOpacity onPress={handleComplete}>
+            {/* כפתור השלמה עם אנימציה */}
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    </View>
+  );
+};
+```
+
+#### 🔄 ביטול השלמת סט:
+
+```typescript
+const handleComplete = () => {
+  // אם הסט כבר מושלם - בטל את ההשלמה
+  if (set.completed) {
+    onUpdate({ completed: false });
+    return;
+  }
+
+  // אם הסט לא מושלם - השלם אותו
+  if (!set.actualWeight && set.targetWeight) {
+    onUpdate({ actualWeight: set.targetWeight });
+  }
+  if (!set.actualReps && set.targetReps) {
+    onUpdate({ actualReps: set.targetReps });
+  }
+
+  onComplete();
+};
+```
+
+### ✅ **מערכת התחברות אוטומטית - תיקון קודם**
+
+מערכת מושלמת הכוללת:
+
+- **WelcomeScreen** עם בדיקה אוטומטית של מצב התחברות
+- **BottomNavigation** עם `initialRouteName="Main"`
+- **זיהוי חכם** של משתמש מחובר מ-AsyncStorage
+- **ניווט ישיר** למסך הבית ללא עצירות
+
+```typescript
+// WelcomeScreen.tsx - הלוגיקה המרכזית
+const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+useEffect(() => {
+  const checkAuthStatus = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500)); // זמן להתחזרות
+
+    if (isLoggedIn() && user) {
+      navigation.navigate("MainApp"); // ניווט ישיר
+      return;
+    }
+
+    setIsCheckingAuth(false); // הצגת מסך ברוכים הבאים
+  };
+
+  checkAuthStatus();
+}, [user, isLoggedIn, navigation]);
+```
 
 ### 📋 רכיבים מרכזיים
 
@@ -13,6 +209,13 @@ src/screens/workout/
 ├── QuickWorkoutScreen.tsx        # מסך אימון מהיר (מחליף ActiveWorkout)
 └── components/
     └── WorkoutSummary.tsx        # רכיב סיכום עם שמירה
+
+src/navigation/
+├── AppNavigator.tsx              # ניווט ראשי
+└── BottomNavigation.tsx          # טאבים עם initialRouteName="Main"
+
+src/screens/welcome/
+└── WelcomeScreen.tsx             # מסך כניסה עם בדיקה אוטומטית
 ```
 
 ## 🔧 מימוש טכני - WorkoutSummary.tsx

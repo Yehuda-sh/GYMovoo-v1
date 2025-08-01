@@ -75,30 +75,20 @@ let musclesCache: Muscle[] = [];
 export async function fetchMuscles(): Promise<Muscle[]> {
   // Return cached data if available for optimal performance
   if (musclesCache.length > 0) {
-    console.log("🔥 ExerciseService: Using cached muscle data");
     return musclesCache;
   }
 
   try {
-    console.log("🌐 ExerciseService: Fetching muscles from Wger API...");
     const response = await axios.get(`${BASE_URL}/muscle/`, {
       params: { language: 2 }, // English for consistency
       timeout: 8000, // 8 second timeout
     });
 
     const muscleData = response.data.results || [];
-    console.log(
-      `✅ ExerciseService: Successfully fetched ${muscleData.length} muscles`
-    );
-
     musclesCache = muscleData;
     return musclesCache;
-  } catch (error) {
-    console.error(
-      "❌ ExerciseService: Error fetching muscles from API:",
-      error
-    );
-    console.log("🔄 ExerciseService: Falling back to empty muscle data");
+  } catch {
+    // Handle error silently in production
     return [];
   }
 }
@@ -107,24 +97,18 @@ export async function fetchMuscles(): Promise<Muscle[]> {
  * Enhanced exercise fetching with comprehensive mock data system
  * שליפת תרגילים משופרת עם מערכת נתוני דמה מקיפה
  *
- * @param count - Number of exercises to fetch (currently uses mock data)
  * @returns {Promise<Exercise[]>} Array of exercise data with muscle mappings
  * @performance Optimized with muscle data integration and structured mock system
  * @usage Used by ExerciseListScreen and other exercise-related components
  */
-export async function fetchExercisesSimple(count = 30): Promise<Exercise[]> {
+export async function fetchExercisesSimple(): Promise<Exercise[]> {
   try {
-    console.log(`🏋️ ExerciseService: Fetching ${count} exercises...`);
-
     // Get muscles first for proper exercise-muscle mapping
     const muscles = await fetchMuscles();
     const muscleMap = new Map(muscles.map((muscle) => [muscle.id, muscle]));
 
-    console.log("📊 ExerciseService: Using enhanced mock exercise data system");
     return createEnhancedMockExercises(muscleMap);
-  } catch (error) {
-    console.error("❌ ExerciseService: Error in fetchExercisesSimple:", error);
-    console.log("🔄 ExerciseService: Falling back to basic mock data");
+  } catch {
     return createEnhancedMockExercises(new Map());
   }
 }
@@ -146,65 +130,25 @@ export async function fetchExercisesSimple(count = 30): Promise<Exercise[]> {
 function createEnhancedMockExercises(
   muscleMap: Map<number, Muscle>
 ): Exercise[] {
-  // Enhanced muscle mapping with realistic fallbacks
-  const chest = muscleMap.get(4) || {
-    id: 4,
-    name: "Pectoralis major",
-    is_front: true,
-  };
-  const biceps = muscleMap.get(1) || {
-    id: 1,
-    name: "Biceps brachii",
-    is_front: true,
-  };
-  const quads = muscleMap.get(10) || {
-    id: 10,
-    name: "Quadriceps femoris",
-    is_front: true,
-  };
-  const shoulders = muscleMap.get(2) || {
-    id: 2,
-    name: "Anterior deltoid",
-    is_front: true,
-  };
-  const triceps = muscleMap.get(5) || {
-    id: 5,
-    name: "Triceps brachii",
-    is_front: false,
-  };
-  const back = muscleMap.get(12) || {
-    id: 12,
-    name: "Latissimus dorsi",
-    is_front: false,
-  };
-  const hamstrings = muscleMap.get(11) || {
-    id: 11,
-    name: "Hamstrings",
-    is_front: false,
-  };
-  const glutes = muscleMap.get(8) || {
-    id: 8,
-    name: "Gluteus maximus",
-    is_front: false,
-  };
-  const abs = muscleMap.get(6) || {
-    id: 6,
-    name: "Rectus abdominis",
-    is_front: true,
-  };
-  const calves = muscleMap.get(7) || { id: 7, name: "Calves", is_front: false };
+  // Helper function to get muscle with fallback
+  const getMuscle = (
+    id: number,
+    fallbackName: string,
+    isFront: boolean
+  ): Muscle =>
+    muscleMap.get(id) || { id, name: fallbackName, is_front: isFront };
 
-  console.log(
-    "🎯 ExerciseService: Creating enhanced mock exercises with muscle mapping:",
-    {
-      primaryMuscles: {
-        chest: chest.name,
-        biceps: biceps.name,
-        quads: quads.name,
-      },
-      muscleMapSize: muscleMap.size,
-    }
-  );
+  // Enhanced muscle mapping with realistic fallbacks
+  const chest = getMuscle(4, "Pectoralis major", true);
+  const biceps = getMuscle(1, "Biceps brachii", true);
+  const quads = getMuscle(10, "Quadriceps femoris", true);
+  const shoulders = getMuscle(2, "Anterior deltoid", true);
+  const triceps = getMuscle(5, "Triceps brachii", false);
+  const back = getMuscle(12, "Latissimus dorsi", false);
+  const hamstrings = getMuscle(11, "Hamstrings", false);
+  const glutes = getMuscle(8, "Gluteus maximus", false);
+  const abs = getMuscle(6, "Rectus abdominis", true);
+  const calves = getMuscle(7, "Calves", false);
 
   return [
     // Upper Body Exercises - Enhanced descriptions and categorization

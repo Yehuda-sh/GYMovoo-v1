@@ -1,14 +1,5 @@
 /**
- *import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-} from "react-native";screens/exercise/ExerciseListScreen.tsx
+ * @file src/screens/exercise/ExerciseListScreen.tsx
  * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים ומצב בחירה
  * @dependencies MuscleBar, ExerciseDetailsModal, exerciseService
  * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי ומצב בחירה לאימון
@@ -81,7 +72,7 @@ export default function ExerciseListScreen() {
     try {
       const muscles = await fetchMuscles();
       setAllMuscles(muscles);
-      const data = await fetchExercisesSimple(30);
+      const data = await fetchExercisesSimple(); // הסרת הפרמטר הלא נדרש
       if (data.length === 0) {
         setError("לא נמצאו תרגילים. אנא בדוק את חיבור האינטרנט שלך.");
       } else {
@@ -96,21 +87,24 @@ export default function ExerciseListScreen() {
     }
   };
 
-  // סינון תרגילים לפי שריר
+  // סינון תרגילים לפי שריר - אופטימיזציה עם useMemo
   const filteredExercises = React.useMemo(() => {
     if (selectedMuscle === "all") return exercises;
     return exercises.filter(
       (ex) =>
-        ex.muscles.some((m) => m.id === selectedMuscle) ||
-        ex.muscles_secondary.some((m) => m.id === selectedMuscle)
+        ex.muscles?.some((m) => m.id === selectedMuscle) ||
+        ex.muscles_secondary?.some((m) => m.id === selectedMuscle)
     );
   }, [exercises, selectedMuscle]);
 
-  // עוזר להצגת שמות שרירים
-  const getMuscleName = (muscles?: Muscle[]): string =>
-    !muscles || !muscles.length
-      ? "לא זמין"
-      : muscles.map((m) => m.name).join(", ");
+  // עוזר להצגת שמות שרירים - אופטימיזציה עם useCallback
+  const getMuscleName = useCallback(
+    (muscles?: Muscle[]): string =>
+      !muscles || !muscles.length
+        ? "לא זמין"
+        : muscles.map((m) => m.name).join(", "),
+    []
+  );
 
   // Toast הצגת
   const showToastMessage = useCallback((message: string) => {
@@ -119,132 +113,142 @@ export default function ExerciseListScreen() {
     setTimeout(() => setShowToast(false), 2000);
   }, []);
 
-  // בעת לחיצה על תרגיל
-  const handleExercisePress = (item: Exercise) => {
-    if (isSelectionMode && onSelectExercise) {
-      const exerciseId = item.id.toString();
-      if (selectedExercises.includes(exerciseId)) {
-        setSelectedExercises((prev) => prev.filter((id) => id !== exerciseId));
-        showToastMessage(`${item.name} הוסר מהרשימה`);
+  // בעת לחיצה על תרגיל - אופטימיזציה עם useCallback
+  const handleExercisePress = useCallback(
+    (item: Exercise) => {
+      if (isSelectionMode && onSelectExercise) {
+        const exerciseId = item.id.toString();
+        if (selectedExercises.includes(exerciseId)) {
+          setSelectedExercises((prev) =>
+            prev.filter((id) => id !== exerciseId)
+          );
+          showToastMessage(`${item.name} הוסר מהרשימה`);
+        } else {
+          setSelectedExercises((prev) => [...prev, exerciseId]);
+          showToastMessage(`${item.name} נוסף לאימון! 💪`);
+
+          // המרת התרגיל מפורמט API לפורמט אימון
+          const workoutExercise = {
+            id: item.id.toString(),
+            name: item.name,
+            category: item.muscles?.[0]?.name || "כללי",
+            primaryMuscles: item.muscles?.map((m) => m.name) || [],
+            secondaryMuscles: item.muscles_secondary?.map((m) => m.name) || [],
+            equipment: "dumbbells", // ברירת מחדל - יכול להיות מותאם
+            sets: [
+              {
+                id: `${item.id}-set-1`,
+                type: "working" as const,
+                targetReps: 12,
+                targetWeight: 0,
+                completed: false,
+                restTime: 60,
+                isPR: false,
+              },
+            ],
+            restTime: 60,
+            notes: item.description || "",
+          };
+
+          // הוספה לאימון דרך הפונקציה מה-params
+          onSelectExercise(workoutExercise);
+        }
       } else {
-        setSelectedExercises((prev) => [...prev, exerciseId]);
-        showToastMessage(`${item.name} נוסף לאימון! 💪`);
-
-        // המרת התרגיל מפורמט API לפורמט אימון
-        const workoutExercise = {
-          id: item.id.toString(),
-          name: item.name,
-          category: item.muscles?.[0]?.name || "כללי",
-          primaryMuscles: item.muscles?.map((m) => m.name) || [],
-          secondaryMuscles: item.muscles_secondary?.map((m) => m.name) || [],
-          equipment: "dumbbells", // ברירת מחדל - יכול להיות מותאם
-          sets: [
-            {
-              id: `${item.id}-set-1`,
-              type: "working" as const,
-              targetReps: 12,
-              targetWeight: 0,
-              completed: false,
-              restTime: 60,
-              isPR: false,
-            },
-          ],
-          restTime: 60,
-          notes: item.description || "",
-        };
-
-        // הוספה לאימון דרך הפונקציה מה-params
-        onSelectExercise(workoutExercise);
+        setSelected(item);
       }
-    } else {
-      setSelected(item);
-    }
-  };
+    },
+    [isSelectionMode, onSelectExercise, selectedExercises, showToastMessage]
+  );
 
-  // סיום בחירת תרגילים
-  const handleFinishSelection = () => {
+  // סיום בחירת תרגילים - אופטימיזציה עם useCallback
+  const handleFinishSelection = useCallback(() => {
     if (selectedExercises.length === 0) {
       setShowNoSelectionModal(true);
       return;
     }
     navigation.goBack();
-  };
+  }, [selectedExercises.length, navigation]);
 
-  // רכיב כרטיס תרגיל
-  const renderExerciseItem = ({ item }: { item: Exercise }) => (
-    <TouchableOpacity
-      style={styles.exerciseCard}
-      onPress={() => handleExercisePress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.exerciseContent}>
-        <View style={styles.exerciseHeader}>
-          <Text style={styles.exerciseName} numberOfLines={2}>
-            {item.name}
-          </Text>
-          {item.muscles?.length > 0 && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{item.muscles[0].name}</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.muscleInfo}>
-          <View style={styles.muscleRow}>
-            <MaterialCommunityIcons
-              name="arm-flex"
-              size={16}
-              color={theme.colors.accent}
-            />
-            <Text style={styles.muscleText}>{getMuscleName(item.muscles)}</Text>
+  // רכיב כרטיס תרגיל - אופטימיזציה עם useCallback
+  const renderExerciseItem = useCallback(
+    ({ item }: { item: Exercise }) => (
+      <TouchableOpacity
+        style={styles.exerciseCard}
+        onPress={() => handleExercisePress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.exerciseContent}>
+          <View style={styles.exerciseHeader}>
+            <Text style={styles.exerciseName} numberOfLines={2}>
+              {item.name}
+            </Text>
+            {item.muscles?.length > 0 && (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{item.muscles[0].name}</Text>
+              </View>
+            )}
           </View>
-          {item.muscles_secondary.length > 0 && (
+          <View style={styles.muscleInfo}>
             <View style={styles.muscleRow}>
               <MaterialCommunityIcons
-                name="arm-flex-outline"
+                name="arm-flex"
                 size={16}
-                color={theme.colors.textSecondary}
+                color={theme.colors.accent}
               />
-              <Text style={styles.muscleSecondaryText}>
-                {getMuscleName(item.muscles_secondary)}
+              <Text style={styles.muscleText}>
+                {getMuscleName(item.muscles)}
               </Text>
             </View>
-          )}
+            {item.muscles_secondary?.length > 0 && (
+              <View style={styles.muscleRow}>
+                <MaterialCommunityIcons
+                  name="arm-flex-outline"
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.muscleSecondaryText}>
+                  {getMuscleName(item.muscles_secondary)}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-      {item.image ? (
-        <Image
-          source={{ uri: item.image }}
-          style={styles.exerciseImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.exerciseImage, styles.placeholderImage]}>
-          <MaterialCommunityIcons
-            name="dumbbell"
-            size={24}
-            color={theme.colors.textSecondary}
+        {item.image ? (
+          <Image
+            source={{ uri: item.image }}
+            style={styles.exerciseImage}
+            resizeMode="cover"
           />
-        </View>
-      )}
-      <MaterialCommunityIcons
-        name={
-          isSelectionMode
-            ? selectedExercises.includes(item.id.toString())
-              ? "check-circle"
-              : "plus-circle"
-            : "chevron-left"
-        }
-        size={24}
-        color={
-          isSelectionMode
-            ? selectedExercises.includes(item.id.toString())
-              ? theme.colors.success
-              : theme.colors.primary
-            : theme.colors.textSecondary
-        }
-        style={styles.chevron}
-      />
-    </TouchableOpacity>
+        ) : (
+          <View style={[styles.exerciseImage, styles.placeholderImage]}>
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={24}
+              color={theme.colors.textSecondary}
+            />
+          </View>
+        )}
+        <MaterialCommunityIcons
+          name={
+            isSelectionMode
+              ? selectedExercises.includes(item.id.toString())
+                ? "check-circle"
+                : "plus-circle"
+              : "chevron-left"
+          }
+          size={24}
+          color={
+            isSelectionMode
+              ? selectedExercises.includes(item.id.toString())
+                ? theme.colors.success
+                : theme.colors.primary
+              : theme.colors.textSecondary
+          }
+          style={styles.chevron}
+        />
+      </TouchableOpacity>
+    ),
+    [handleExercisePress, getMuscleName, isSelectionMode, selectedExercises]
   );
 
   // Loading/Error
@@ -310,6 +314,16 @@ export default function ExerciseListScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderExerciseItem}
         contentContainerStyle={styles.listContent}
+        removeClippedSubviews={true} // אופטימיזציה לביצועים
+        maxToRenderPerBatch={10} // מגבלת רינדור לאצווה
+        windowSize={10} // גודל חלון לאופטימיזציה
+        initialNumToRender={8} // מספר אלמנטים ראשוני לרינדור
+        getItemLayout={(data, index) => ({
+          length: 92,
+          offset: 92 * index,
+          index,
+        }) // אופטימיזציה לגלילה
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <MaterialCommunityIcons

@@ -400,6 +400,7 @@ class QuestionnaireService {
     const prefs = await this.getUserPreferences();
     const hasCompleted = prefs !== null && prefs.completedAt !== undefined;
 
+    console.log("Questionnaire completion status:", {
       prefs,
       hasCompleted,
       completedAt: prefs?.completedAt,

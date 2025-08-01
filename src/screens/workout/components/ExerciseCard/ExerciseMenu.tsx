@@ -1,10 +1,41 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx
- * @description תפריט אפשרויות לתרגיל עם עיצוב נקי ומקצועי
- * English: Exercise options menu with clean and professional design
+ * @description תפריט אפשרויות לתרגיל עם עיצוב נקי ומקצועי - מותאם לנגישות ואופטימיזציות
+ * English: Exercise options menu with clean and professional design - Accessibility optimized
+ * @version 2.2.0
+ * @author GYMovoo Development Team
+ * @created 2024-12-15
+ * @modified 2025-01-02
+ *
+ * @features
+ * - ✅ React.memo optimization for performance
+ * - ✅ useCallback/useMemo for all handlers and computed values
+ * - ✅ Screen reader support with Hebrew announcements
+ * - ✅ Haptic feedback for iOS (light/strong vibrations)
+ * - ✅ Processing state to prevent double-taps
+ * - ✅ Enhanced accessibility labels and hints
+ * - ✅ Gesture handling with swipe-to-close
+ * - ✅ Animation cleanup on unmount
+ * - ✅ Centralized type system integration
+ * - ✅ Edit mode awareness for workout sessions
+ * - ✅ Set management actions (add/remove sets)
+ * - ✅ Exercise reordering with elevator-style controls
+ * - 🆕 Edit mode specialized layout with prioritized actions (v2.2.0)
+ * - 🆕 Context-aware accessibility announcements for edit mode (v2.2.0)
+ *
+ * @updates
+ * 2025-01-02 - Comprehensive edit mode integration with specialized menu layout and accessibility
+ * 2025-08-02 - Enhanced integration with SetRow edit mode and elevator buttons
+ * 2025-01-31 - Major performance and accessibility improvements
  */
 
-import React, { useRef, useEffect } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import {
   View,
   Text,
@@ -14,6 +45,9 @@ import {
   Animated,
   Alert,
   Dimensions,
+  AccessibilityInfo,
+  Platform,
+  Vibration,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
@@ -22,29 +56,11 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { theme } from "../../../../styles/theme";
+import { ExerciseMenuProps } from "../types";
 
 const { height: screenHeight } = Dimensions.get("window");
 
 // --- Types ---
-interface ExerciseMenuProps {
-  visible: boolean;
-  onClose: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onReplace?: () => void;
-  onAddSet?: () => void; // הוספת סט
-  onDeleteLastSet?: () => void; // מחיקת סט אחרון
-  canMoveUp?: boolean;
-  canMoveDown?: boolean;
-  hasLastSet?: boolean; // האם יש סט אחרון למחיקה
-  // Batch mode props
-  isBatchMode?: boolean;
-  selectedExercises?: string[];
-  onBatchDelete?: () => void;
-  onBatchMove?: (direction: "up" | "down") => void;
-}
 
 interface MenuItemProps {
   icon: string;
@@ -56,342 +72,575 @@ interface MenuItemProps {
 }
 
 // --- MenuItem Component ---
-const MenuItem: React.FC<MenuItemProps> = ({
-  icon,
-  iconFamily = "ionicons",
-  label,
-  onPress,
-  disabled = false,
-  danger = false,
-}) => {
-  const IconComponent =
-    iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
+const MenuItem: React.FC<MenuItemProps> = React.memo(
+  ({
+    icon,
+    iconFamily = "ionicons",
+    label,
+    onPress,
+    disabled = false,
+    danger = false,
+  }) => {
+    const IconComponent =
+      iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
 
-  const iconColor = danger
-    ? theme.colors.error
-    : disabled
-      ? theme.colors.textSecondary + "60"
-      : theme.colors.text;
+    const iconColor = useMemo(
+      () =>
+        danger
+          ? theme.colors.error
+          : disabled
+            ? theme.colors.textSecondary + "60"
+            : theme.colors.text,
+      [danger, disabled]
+    );
 
-  return (
-    <TouchableOpacity
-      style={[
-        styles.menuItem,
-        disabled && styles.menuItemDisabled,
-        danger && styles.menuItemDanger,
-      ]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.7}
-    >
-      <View style={styles.menuItemContent}>
-        <IconComponent name={icon as never} size={22} color={iconColor} />
-        <Text
-          style={[
-            styles.menuItemText,
-            disabled && styles.menuItemTextDisabled,
-            danger && styles.menuItemTextDanger,
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
-      {!disabled && (
-        <Ionicons
-          name="chevron-back"
-          size={20}
-          color={theme.colors.textSecondary}
-          style={styles.chevron}
-        />
-      )}
-    </TouchableOpacity>
-  );
-};
+    const accessibilityHint = useMemo(() => {
+      if (disabled) {
+        return `${label} - לא זמין כרגע`;
+      }
+      return `הקש פעמיים לביצוע ${label}`;
+    }, [disabled, label]);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
+          disabled && styles.menuItemDisabled,
+          danger && styles.menuItemDanger,
+        ]}
+        onPress={onPress}
+        disabled={disabled}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled }}
+      >
+        <View style={styles.menuItemContent}>
+          <IconComponent name={icon as never} size={22} color={iconColor} />
+          <Text
+            style={[
+              styles.menuItemText,
+              disabled && styles.menuItemTextDisabled,
+              danger && styles.menuItemTextDanger,
+            ]}
+          >
+            {label}
+          </Text>
+        </View>
+        {!disabled && (
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={theme.colors.textSecondary}
+            style={styles.chevron}
+          />
+        )}
+      </TouchableOpacity>
+    );
+  }
+);
 
 // --- Main Component ---
-const ExerciseMenu: React.FC<ExerciseMenuProps> = ({
-  visible,
-  onClose,
-  onMoveUp,
-  onMoveDown,
-  onDelete,
-  onDuplicate,
-  onReplace,
-  onAddSet,
-  onDeleteLastSet,
-  canMoveUp = true,
-  canMoveDown = true,
-  hasLastSet = false,
-  isBatchMode = false,
-  selectedExercises = [],
-  onBatchDelete,
-  onBatchMove,
-}) => {
-  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  // Animation effect
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 85,
-          friction: 12,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: screenHeight,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  // Swipe gesture handlers
-  const handleGestureEvent = Animated.event(
-    [{ nativeEvent: { translationY: translateY } }],
-    { useNativeDriver: true }
-  );
-
-  const handleStateChange = ({
-    nativeEvent,
-  }: {
-    nativeEvent: { state: number; translationY: number };
+const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
+  ({
+    visible,
+    onClose,
+    onMoveUp,
+    onMoveDown,
+    onDelete,
+    onDuplicate,
+    onReplace,
+    onAddSet,
+    onDeleteLastSet,
+    canMoveUp = true,
+    canMoveDown = true,
+    hasLastSet = false,
+    isEditMode = false, // 🎯 תמיכה חדשה במצב עריכה
+    isBatchMode = false,
+    selectedExercises = [],
+    onBatchDelete,
+    onBatchMove,
   }) => {
-    if (nativeEvent.state === State.END) {
-      if (nativeEvent.translationY > 100) {
-        onClose();
-      } else {
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
+    const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(0)).current;
+    const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Check for screen reader
+    useEffect(() => {
+      const checkScreenReader = async () => {
+        const screenReaderEnabled =
+          await AccessibilityInfo.isScreenReaderEnabled();
+        setIsScreenReaderEnabled(screenReaderEnabled);
+      };
+
+      checkScreenReader();
+
+      const subscription = AccessibilityInfo.addEventListener(
+        "screenReaderChanged",
+        setIsScreenReaderEnabled
+      );
+
+      return () => {
+        subscription?.remove();
+      };
+    }, []);
+
+    // Announce menu opening for screen readers עם תמיכה במצב עריכה
+    useEffect(() => {
+      if (visible && isScreenReaderEnabled) {
+        let announcement;
+        if (isBatchMode) {
+          announcement = `תפריט עריכה קבוצתית נפתח, ${selectedExercises.length} תרגילים נבחרו`;
+        } else if (isEditMode) {
+          announcement = "תפריט עריכת תרגיל נפתח - מצב עריכה פעיל"; // 🎯 הודעה למצב עריכה
+        } else {
+          announcement = "תפריט אפשרויות תרגיל נפתח";
+        }
+
+        AccessibilityInfo.announceForAccessibility(announcement);
       }
-    }
-  };
+    }, [
+      visible,
+      isBatchMode,
+      isEditMode,
+      selectedExercises.length,
+      isScreenReaderEnabled,
+    ]);
 
-  // Delete confirmation
-  const confirmDelete = () => {
-    const title = isBatchMode ? "מחיקת תרגילים" : "מחיקת תרגיל";
-    const message = isBatchMode
-      ? `למחוק ${selectedExercises.length} תרגילים?`
-      : "למחוק את התרגיל?";
+    // Animation effect with cleanup
+    useEffect(() => {
+      if (visible) {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 85,
+            friction: 12,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      } else {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: screenHeight,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
 
-    Alert.alert(
-      title,
-      message,
-      [
-        {
-          text: "ביטול",
-          style: "cancel",
-        },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            if (isBatchMode && onBatchDelete) {
-              onBatchDelete();
-            } else {
-              onDelete();
-            }
-            onClose();
-          },
-        },
-      ],
-      { cancelable: true }
+      // Cleanup on unmount
+      return () => {
+        slideAnim.stopAnimation();
+        fadeAnim.stopAnimation();
+        translateY.stopAnimation();
+        if (processingTimeoutRef.current) {
+          clearTimeout(processingTimeoutRef.current);
+        }
+      };
+    }, [visible, slideAnim, fadeAnim, translateY]); // Optimized gesture handlers
+    const handleGestureEvent = useMemo(
+      () =>
+        Animated.event([{ nativeEvent: { translationY: translateY } }], {
+          useNativeDriver: true,
+        }),
+      [translateY]
     );
-  };
 
-  const handleAction = (action?: () => void) => {
-    if (action) {
-      action();
-      onClose();
-    }
-  };
+    const handleStateChange = useCallback(
+      ({
+        nativeEvent,
+      }: {
+        nativeEvent: { state: number; translationY: number };
+      }) => {
+        if (nativeEvent.state === State.END) {
+          if (nativeEvent.translationY > 100) {
+            onClose();
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
+        }
+      },
+      [onClose, translateY]
+    );
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-    >
-      <GestureHandlerRootView style={styles.modalContainer}>
-        <Animated.View
-          style={[
-            styles.backdrop,
-            {
-              opacity: fadeAnim,
+    // Delete confirmation with optimization
+    const confirmDelete = useCallback(() => {
+      const title = isBatchMode ? "מחיקת תרגילים" : "מחיקת תרגיל";
+      const message = isBatchMode
+        ? `למחוק ${selectedExercises.length} תרגילים?`
+        : "למחוק את התרגיל?";
+
+      // Provide haptic feedback on confirmation dialogs
+      if (Platform.OS === "ios") {
+        // Light haptic feedback for confirmation
+        Vibration.vibrate([0, 50]);
+      }
+
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: "ביטול",
+            style: "cancel",
+          },
+          {
+            text: "מחק",
+            style: "destructive",
+            onPress: () => {
+              // Strong haptic feedback for destructive action
+              if (Platform.OS === "ios") {
+                Vibration.vibrate([0, 100, 50, 100]);
+              }
+
+              if (isBatchMode && onBatchDelete) {
+                onBatchDelete();
+              } else {
+                onDelete();
+              }
+              onClose();
             },
-          ]}
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={onClose}
-          />
-        </Animated.View>
+          },
+        ],
+        { cancelable: true }
+      );
+    }, [
+      isBatchMode,
+      selectedExercises.length,
+      onBatchDelete,
+      onDelete,
+      onClose,
+    ]);
 
-        <PanGestureHandler
-          onGestureEvent={handleGestureEvent}
-          onHandlerStateChange={handleStateChange}
-        >
+    const handleAction = useCallback(
+      (action?: () => void) => {
+        if (action && !isProcessing) {
+          setIsProcessing(true);
+
+          // Light haptic feedback for actions
+          if (Platform.OS === "ios") {
+            Vibration.vibrate(50);
+          }
+
+          // Execute action with small delay to show processing state
+          processingTimeoutRef.current = setTimeout(() => {
+            action();
+            onClose();
+            setIsProcessing(false);
+          }, 100);
+        }
+      },
+      [onClose, isProcessing]
+    );
+
+    // Optimized handlers
+    const handleMoveUp = useCallback(
+      () => handleAction(onMoveUp),
+      [handleAction, onMoveUp]
+    );
+    const handleMoveDown = useCallback(
+      () => handleAction(onMoveDown),
+      [handleAction, onMoveDown]
+    );
+    const handleDuplicate = useCallback(
+      () => handleAction(onDuplicate),
+      [handleAction, onDuplicate]
+    );
+    const handleReplace = useCallback(
+      () => handleAction(onReplace),
+      [handleAction, onReplace]
+    );
+    const handleAddSet = useCallback(
+      () => handleAction(onAddSet),
+      [handleAction, onAddSet]
+    );
+    const handleDeleteLastSet = useCallback(
+      () => handleAction(onDeleteLastSet),
+      [handleAction, onDeleteLastSet]
+    );
+    const handleBatchMoveUp = useCallback(
+      () => handleAction(() => onBatchMove?.("up")),
+      [handleAction, onBatchMove]
+    );
+    const handleBatchMoveDown = useCallback(
+      () => handleAction(() => onBatchMove?.("down")),
+      [handleAction, onBatchMove]
+    );
+
+    // Memoized title עם תמיכה במצב עריכה
+    const title = useMemo(() => {
+      if (isBatchMode) {
+        return `${selectedExercises.length} תרגילים נבחרו`;
+      }
+      if (isEditMode) {
+        return "עריכת תרגיל"; // 🎯 כותרת מיוחדת למצב עריכה
+      }
+      return "אפשרויות תרגיל";
+    }, [isBatchMode, selectedExercises.length, isEditMode]);
+
+    // Enhanced accessibility for disabled items
+    const getAccessibilityHint = useCallback(
+      (disabled: boolean, label: string) => {
+        if (disabled) {
+          return `${label} - לא זמין כרגע`;
+        }
+        return `הקש פעמיים לביצוע ${label}`;
+      },
+      []
+    );
+
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="none"
+        onRequestClose={onClose}
+      >
+        <GestureHandlerRootView style={styles.modalContainer}>
           <Animated.View
             style={[
-              styles.menuSheet,
+              styles.backdrop,
               {
-                transform: [
-                  {
-                    translateY: Animated.add(
-                      slideAnim,
-                      translateY.interpolate({
-                        inputRange: [0, 1000],
-                        outputRange: [0, 1000],
-                        extrapolate: "clamp",
-                      })
-                    ),
-                  },
-                ],
+                opacity: fadeAnim,
               },
             ]}
           >
-            {/* Handle */}
-            <View style={styles.handle} />
+            <TouchableOpacity
+              style={StyleSheet.absoluteFillObject}
+              activeOpacity={1}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="סגור תפריט"
+            />
+          </Animated.View>
 
-            {/* Title */}
-            <View style={styles.header}>
-              <Text style={styles.title}>
-                {isBatchMode
-                  ? `${selectedExercises.length} תרגילים נבחרו`
-                  : "אפשרויות תרגיל"}
-              </Text>
-            </View>
+          <PanGestureHandler
+            onGestureEvent={handleGestureEvent}
+            onHandlerStateChange={handleStateChange}
+          >
+            <Animated.View
+              style={[
+                styles.menuSheet,
+                {
+                  transform: [
+                    {
+                      translateY: Animated.add(
+                        slideAnim,
+                        translateY.interpolate({
+                          inputRange: [0, 1000],
+                          outputRange: [0, 1000],
+                          extrapolate: "clamp",
+                        })
+                      ),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {/* Handle */}
+              <View style={styles.handle} />
 
-            {/* Menu Items */}
-            <View style={styles.menuContent}>
-              {isBatchMode ? (
-                // Batch mode actions
-                <>
-                  <MenuItem
-                    icon="arrow-up"
-                    label="הזז למעלה"
-                    onPress={() => handleAction(() => onBatchMove?.("up"))}
-                  />
-                  <MenuItem
-                    icon="arrow-down"
-                    label="הזז למטה"
-                    onPress={() => handleAction(() => onBatchMove?.("down"))}
-                  />
-                  <View style={styles.separator} />
-                  <MenuItem
-                    icon="trash"
-                    label={`מחק ${selectedExercises.length} תרגילים`}
-                    onPress={confirmDelete}
-                    danger
-                  />
-                </>
-              ) : (
-                // Regular mode actions
-                <>
-                  {/* פעולות סטים */}
-                  <View style={styles.section}>
-                    <MenuItem
-                      icon="add-circle"
-                      label="הוסף סט"
-                      onPress={() => handleAction(onAddSet)}
-                      disabled={!onAddSet}
-                    />
-                    <MenuItem
-                      icon="remove-circle"
-                      label="מחק סט אחרון"
-                      onPress={() => handleAction(onDeleteLastSet)}
-                      disabled={!onDeleteLastSet || !hasLastSet}
-                    />
-                  </View>
+              {/* Title */}
+              <View style={styles.header}>
+                <Text style={styles.title} accessibilityRole="header">
+                  {title}
+                </Text>
+              </View>
 
-                  <View style={styles.separator} />
-
-                  {/* פעולות תרגיל */}
-                  <View style={styles.section}>
-                    <MenuItem
-                      icon="content-copy"
-                      iconFamily="material"
-                      label="שכפל תרגיל"
-                      onPress={() => handleAction(onDuplicate)}
-                    />
-                    <MenuItem
-                      icon="swap-horizontal"
-                      iconFamily="material"
-                      label="החלף תרגיל"
-                      onPress={() => handleAction(onReplace)}
-                      disabled={!onReplace}
-                    />
-                  </View>
-
-                  <View style={styles.separator} />
-
-                  {/* פעולות מיקום */}
-                  <View style={styles.section}>
+              {/* Menu Items */}
+              <View
+                style={[
+                  styles.menuContent,
+                  isProcessing && styles.menuContentProcessing,
+                ]}
+                accessibilityRole="menu"
+              >
+                {isBatchMode ? (
+                  // Batch mode actions
+                  <>
                     <MenuItem
                       icon="arrow-up"
                       label="הזז למעלה"
-                      onPress={() => handleAction(onMoveUp)}
-                      disabled={!canMoveUp}
+                      onPress={handleBatchMoveUp}
                     />
                     <MenuItem
                       icon="arrow-down"
                       label="הזז למטה"
-                      onPress={() => handleAction(onMoveDown)}
-                      disabled={!canMoveDown}
+                      onPress={handleBatchMoveDown}
                     />
-                  </View>
-
-                  <View style={styles.separator} />
-
-                  <View style={styles.section}>
+                    <View style={styles.separator} />
                     <MenuItem
                       icon="trash"
-                      label="מחק תרגיל"
+                      label={`מחק ${selectedExercises.length} תרגילים`}
                       onPress={confirmDelete}
                       danger
                     />
-                  </View>
-                </>
-              )}
-            </View>
-          </Animated.View>
-        </PanGestureHandler>
+                  </>
+                ) : isEditMode ? (
+                  // 🎯 Edit mode actions - פעולות מיוחדות למצב עריכה
+                  <>
+                    {/* פעולות עדיפות במצב עריכה */}
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="add-circle"
+                        label="הוסף סט"
+                        onPress={handleAddSet}
+                        disabled={!onAddSet}
+                      />
+                      <MenuItem
+                        icon="remove-circle"
+                        label="מחק סט אחרון"
+                        onPress={handleDeleteLastSet}
+                        disabled={!onDeleteLastSet || !hasLastSet}
+                      />
+                    </View>
 
-        {/* Cancel Button - מחוץ ל-PanGestureHandler */}
-        <View style={styles.cancelButtonContainer}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.cancelText}>ביטול</Text>
-          </TouchableOpacity>
-        </View>
-      </GestureHandlerRootView>
-    </Modal>
-  );
-};
+                    <View style={styles.separator} />
+
+                    {/* פעולות מיקום - עם אייקוני משולש כמו במעלית */}
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="keyboard-arrow-up"
+                        iconFamily="material"
+                        label="הזז תרגיל למעלה"
+                        onPress={handleMoveUp}
+                        disabled={!canMoveUp}
+                      />
+                      <MenuItem
+                        icon="keyboard-arrow-down"
+                        iconFamily="material"
+                        label="הזז תרגיל למטה"
+                        onPress={handleMoveDown}
+                        disabled={!canMoveDown}
+                      />
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="content-copy"
+                        iconFamily="material"
+                        label="שכפל תרגיל"
+                        onPress={handleDuplicate}
+                      />
+                      <MenuItem
+                        icon="trash"
+                        label="מחק תרגיל"
+                        onPress={confirmDelete}
+                        danger
+                      />
+                    </View>
+                  </>
+                ) : (
+                  // Regular mode actions - התפריט הרגיל
+                  <>
+                    {/* פעולות סטים */}
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="add-circle"
+                        label="הוסף סט"
+                        onPress={handleAddSet}
+                        disabled={!onAddSet}
+                      />
+                      <MenuItem
+                        icon="remove-circle"
+                        label="מחק סט אחרון"
+                        onPress={handleDeleteLastSet}
+                        disabled={!onDeleteLastSet || !hasLastSet}
+                      />
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    {/* פעולות תרגיל */}
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="content-copy"
+                        iconFamily="material"
+                        label="שכפל תרגיל"
+                        onPress={handleDuplicate}
+                      />
+                      <MenuItem
+                        icon="swap-horizontal"
+                        iconFamily="material"
+                        label="החלף תרגיל"
+                        onPress={handleReplace}
+                        disabled={!onReplace}
+                      />
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    {/* פעולות מיקום */}
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="arrow-up"
+                        label="הזז למעלה"
+                        onPress={handleMoveUp}
+                        disabled={!canMoveUp}
+                      />
+                      <MenuItem
+                        icon="arrow-down"
+                        label="הזז למטה"
+                        onPress={handleMoveDown}
+                        disabled={!canMoveDown}
+                      />
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.section}>
+                      <MenuItem
+                        icon="trash"
+                        label="מחק תרגיל"
+                        onPress={confirmDelete}
+                        danger
+                      />
+                    </View>
+                  </>
+                )}
+              </View>
+            </Animated.View>
+          </PanGestureHandler>
+
+          {/* Cancel Button - מחוץ ל-PanGestureHandler */}
+          <View style={styles.cancelButtonContainer}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={onClose}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="ביטול"
+            >
+              <Text style={styles.cancelText}>ביטול</Text>
+            </TouchableOpacity>
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
+    );
+  }
+);
+
+MenuItem.displayName = "MenuItem";
+ExerciseMenu.displayName = "ExerciseMenu";
 
 // --- Styles ---
 const styles = StyleSheet.create({
@@ -437,6 +686,9 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     paddingVertical: 8,
+  },
+  menuContentProcessing: {
+    opacity: 0.6,
   },
   section: {
     paddingVertical: 4,

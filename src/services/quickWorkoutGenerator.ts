@@ -1,21 +1,14 @@
 /**
  * @file src/services/quickWorkoutGenerator.ts
  * @brief שירות ליצירת אימונים מהירים מותאמים אישית
- * @brief Service for generating personalized quick workouts
  * @dependencies questionnaireService, exerciseDatabase
  * @notes יוצר אימונים דינמיים על בסיס נתוני המשתמש
- * @notes Creates dynamic workouts based on user data
  */
 
-import {
-  questionnaireService,
-  QuestionnaireMetadata,
-} from "./questionnaireService";
+import { questionnaireService } from "./questionnaireService";
 import { Exercise, Set } from "../screens/workout/types/workout.types";
 import { getExercisesByEquipment } from "../data/exerciseDatabase";
 
-// טיפוסים
-// Types
 export interface ExerciseTemplate {
   id: string;
   name: string;
@@ -28,214 +21,31 @@ export interface ExerciseTemplate {
   tips?: string[];
 }
 
-// מאגר תרגילים בסיסי - עדיין נשמר למקרה הצורך
-// Basic exercise database - kept for fallback needs
-const EXERCISE_DATABASE: ExerciseTemplate[] = [
-  // תרגילי חזה
-  // Chest exercises
-  {
-    id: "bench_press",
-    name: "לחיצת חזה במוט",
-    category: "חזה",
-    primaryMuscles: ["חזה"],
-    secondaryMuscles: ["כתפיים", "טריצפס"],
-    equipment: "barbell",
-    difficulty: "intermediate",
-  },
-  {
-    id: "db_bench_press",
-    name: "לחיצת חזה עם משקולות",
-    category: "חזה",
-    primaryMuscles: ["חזה"],
-    secondaryMuscles: ["כתפיים", "טריצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-  {
-    id: "pushups",
-    name: "שכיבות סמיכה",
-    category: "חזה",
-    primaryMuscles: ["חזה"],
-    secondaryMuscles: ["כתפיים", "טריצפס"],
-    equipment: "bodyweight",
-    difficulty: "beginner",
-  },
-  {
-    id: "incline_db_press",
-    name: "לחיצת חזה עליון עם משקולות",
-    category: "חזה",
-    primaryMuscles: ["חזה עליון"],
-    secondaryMuscles: ["כתפיים"],
-    equipment: "dumbbells",
-    difficulty: "intermediate",
-  },
-
-  // תרגילי גב
-  // Back exercises
-  {
-    id: "pullups",
-    name: "מתח",
-    category: "גב",
-    primaryMuscles: ["גב"],
-    secondaryMuscles: ["ביצפס"],
-    equipment: "pull_up_bar",
-    difficulty: "intermediate",
-  },
-  {
-    id: "bent_over_row",
-    name: "חתירה בשיפוע",
-    category: "גב",
-    primaryMuscles: ["גב"],
-    secondaryMuscles: ["ביצפס"],
-    equipment: "barbell",
-    difficulty: "intermediate",
-  },
-  {
-    id: "db_row",
-    name: "חתירת משקולת",
-    category: "גב",
-    primaryMuscles: ["גב"],
-    secondaryMuscles: ["ביצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-
-  // תרגילי רגליים
-  // Leg exercises
-  {
-    id: "squat",
-    name: "סקוואט",
-    category: "רגליים",
-    primaryMuscles: ["רגליים", "ישבן"],
-    secondaryMuscles: ["core"],
-    equipment: "barbell",
-    difficulty: "intermediate",
-  },
-  {
-    id: "bodyweight_squat",
-    name: "סקוואט משקל גוף",
-    category: "רגליים",
-    primaryMuscles: ["רגליים", "ישבן"],
-    equipment: "bodyweight",
-    difficulty: "beginner",
-  },
-  {
-    id: "lunges",
-    name: "מספריים",
-    category: "רגליים",
-    primaryMuscles: ["רגליים", "ישבן"],
-    equipment: "bodyweight",
-    difficulty: "beginner",
-  },
-  {
-    id: "deadlift",
-    name: "דדליפט",
-    category: "רגליים",
-    primaryMuscles: ["גב תחתון", "רגליים", "ישבן"],
-    secondaryMuscles: ["גב", "core"],
-    equipment: "barbell",
-    difficulty: "advanced",
-  },
-
-  // תרגילי כתפיים
-  // Shoulder exercises
-  {
-    id: "shoulder_press",
-    name: "לחיצת כתפיים",
-    category: "כתפיים",
-    primaryMuscles: ["כתפיים"],
-    secondaryMuscles: ["טריצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-  {
-    id: "lateral_raise",
-    name: "הרמות צד",
-    category: "כתפיים",
-    primaryMuscles: ["כתפיים צד"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-
-  // תרגילי ידיים
-  // Arm exercises
-  {
-    id: "bicep_curl",
-    name: "כפיפת ביצפס",
-    category: "ידיים",
-    primaryMuscles: ["ביצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-  {
-    id: "tricep_extension",
-    name: "פשיטת טריצפס",
-    category: "ידיים",
-    primaryMuscles: ["טריצפס"],
-    equipment: "dumbbells",
-    difficulty: "beginner",
-  },
-
-  // תרגילי בטן
-  // Core exercises
-  {
-    id: "plank",
-    name: "פלאנק",
-    category: "בטן",
-    primaryMuscles: ["core"],
-    equipment: "bodyweight",
-    difficulty: "beginner",
-  },
-  {
-    id: "crunches",
-    name: "כפיפות בטן",
-    category: "בטן",
-    primaryMuscles: ["בטן"],
-    equipment: "bodyweight",
-    difficulty: "beginner",
-  },
-  {
-    id: "russian_twist",
-    name: "סיבובים רוסיים",
-    category: "בטן",
-    primaryMuscles: ["אלכסונים"],
-    equipment: "bodyweight",
-    difficulty: "intermediate",
-  },
-];
-
 /**
  * מחלקה ליצירת אימונים מהירים
- * Quick workout generator class
  */
 export class QuickWorkoutGenerator {
   /**
    * יצירת אימון מהיר מותאם אישית
-   * Generate personalized quick workout
    */
   static async generateQuickWorkout(): Promise<Exercise[]> {
-    const preferences = await questionnaireService.getUserPreferences();
     const equipment = await questionnaireService.getAvailableEquipment();
     const duration = await questionnaireService.getPreferredDuration();
     const experience = await questionnaireService.getUserExperience();
     const goal = await questionnaireService.getUserGoal();
 
-    // חישוב מספר תרגילים לפי משך האימון
-    // Calculate number of exercises based on duration
-    const exerciseCount = Math.floor(duration / 10); // ~10 דקות לתרגיל
+    // חישוב מספר תרגילים לפי משך האימון (~10 דקות לתרגיל)
+    const exerciseCount = Math.floor(duration / 10);
 
     // בחירת תרגילים מתאימים
-    // Select appropriate exercises
     const exercises = this.selectExercises(
       exerciseCount,
       equipment,
       experience,
-      goal,
-      preferences
+      goal
     );
 
     // יצירת סטים לכל תרגיל
-    // Create sets for each exercise
     return exercises.map((template, index) =>
       this.createExerciseWithSets(template, index, experience, goal)
     );
@@ -243,21 +53,17 @@ export class QuickWorkoutGenerator {
 
   /**
    * בחירת תרגילים מתאימים
-   * Select appropriate exercises
    */
   private static selectExercises(
     count: number,
     equipment: string[],
     experience: string,
-    goal: string,
-    _preferences: QuestionnaireMetadata | null
+    goal: string
   ): ExerciseTemplate[] {
     // סינון תרגילים לפי ציוד זמין
-    // Filter exercises by available equipment
     let availableExercises = getExercisesByEquipment(equipment);
 
     // סינון לפי רמת קושי
-    // Filter by difficulty level
     const difficulty = this.getDifficultyLevel(experience);
     availableExercises = availableExercises.filter((ex) => {
       if (difficulty === "beginner") return ex.difficulty === "beginner";
@@ -266,13 +72,11 @@ export class QuickWorkoutGenerator {
     });
 
     // בחירה לפי מטרה
-    // Select by goal
     const selectedExercises: ExerciseTemplate[] = [];
 
     switch (goal) {
       case "ירידה במשקל":
         // דגש על תרגילים מורכבים וקרדיו
-        // Focus on compound exercises and cardio
         selectedExercises.push(
           ...this.selectCompoundExercises(availableExercises, count)
         );
@@ -280,7 +84,6 @@ export class QuickWorkoutGenerator {
 
       case "עליה במסת שריר":
         // דגש על תרגילי כוח
-        // Focus on strength exercises
         selectedExercises.push(
           ...this.selectMuscleBuilding(availableExercises, count)
         );
@@ -288,7 +91,6 @@ export class QuickWorkoutGenerator {
 
       case "שיפור כוח":
         // דגש על תרגילים כבדים
-        // Focus on heavy exercises
         selectedExercises.push(
           ...this.selectStrengthExercises(availableExercises, count)
         );
@@ -296,7 +98,6 @@ export class QuickWorkoutGenerator {
 
       case "שיפור סיבולת":
         // דגש על חזרות גבוהות
-        // Focus on high reps
         selectedExercises.push(
           ...this.selectEnduranceExercises(availableExercises, count)
         );
@@ -304,7 +105,6 @@ export class QuickWorkoutGenerator {
 
       default:
         // אימון מאוזן
-        // Balanced workout
         selectedExercises.push(
           ...this.selectBalancedExercises(availableExercises, count)
         );
@@ -315,7 +115,6 @@ export class QuickWorkoutGenerator {
 
   /**
    * יצירת תרגיל עם סטים
-   * Create exercise with sets
    */
   private static createExerciseWithSets(
     template: ExerciseTemplate,
@@ -340,7 +139,6 @@ export class QuickWorkoutGenerator {
 
   /**
    * יצירת סטים לתרגיל
-   * Generate sets for exercise
    */
   private static generateSets(
     template: ExerciseTemplate,
@@ -353,7 +151,6 @@ export class QuickWorkoutGenerator {
     const sets: Set[] = [];
 
     // סט חימום אם צריך
-    // Warmup set if needed
     if (template.equipment !== "bodyweight" && weight > 40) {
       sets.push({
         id: `${template.id}_warmup`,
@@ -366,7 +163,6 @@ export class QuickWorkoutGenerator {
     }
 
     // סטים רגילים
-    // Regular sets
     for (let i = 0; i < setCount; i++) {
       sets.push({
         id: `${template.id}_set_${i + 1}`,
@@ -383,7 +179,6 @@ export class QuickWorkoutGenerator {
 
   /**
    * חישוב מספר סטים
-   * Calculate number of sets
    */
   private static getSetCount(goal: string, experience: string): number {
     const baseCount =
@@ -396,7 +191,6 @@ export class QuickWorkoutGenerator {
       }[goal] || 3;
 
     // התאמה לניסיון
-    // Adjust for experience
     if (experience === "מתחיל (0-6 חודשים)") return Math.min(baseCount, 3);
     if (experience === "מקצועי (5+ שנים)") return baseCount + 1;
 
@@ -405,7 +199,6 @@ export class QuickWorkoutGenerator {
 
   /**
    * חישוב חזרות ומשקל
-   * Calculate reps and weight
    */
   private static getRepsAndWeight(
     template: ExerciseTemplate,
@@ -413,7 +206,6 @@ export class QuickWorkoutGenerator {
     experience: string
   ): { reps: number; weight: number } {
     // חזרות לפי מטרה
-    // Reps by goal
     const repsMap: { [key: string]: number } = {
       "ירידה במשקל": 15,
       "עליה במסת שריר": 10,
@@ -425,11 +217,9 @@ export class QuickWorkoutGenerator {
     const reps = repsMap[goal] || 12;
 
     // משקל לפי תרגיל וניסיון
-    // Weight by exercise and experience
     if (template.equipment === "bodyweight") return { reps, weight: 0 };
 
     // משקלים התחלתיים משוערים
-    // Estimated starting weights
     const weightMap: { [key: string]: { [key: string]: number } } = {
       bench_press: { מתחיל: 40, בינוני: 60, מתקדם: 80 },
       db_bench_press: { מתחיל: 15, בינוני: 25, מתקדם: 35 },
@@ -447,7 +237,6 @@ export class QuickWorkoutGenerator {
     const baseWeight = weightMap[template.id]?.[expLevel] || 10;
 
     // התאמה למטרה
-    // Adjust for goal
     let weight = baseWeight;
     if (goal === "שיפור כוח") weight *= 1.2;
     if (goal === "שיפור סיבולת") weight *= 0.7;
@@ -457,7 +246,6 @@ export class QuickWorkoutGenerator {
 
   /**
    * חישוב זמן מנוחה
-   * Calculate rest time
    */
   private static calculateRestTime(goal: string, difficulty: string): number {
     const baseRest: { [key: string]: number } = {
@@ -471,7 +259,6 @@ export class QuickWorkoutGenerator {
     const rest = baseRest[goal] || 60;
 
     // התאמה לקושי
-    // Adjust for difficulty
     if (difficulty === "advanced") return rest * 1.2;
     if (difficulty === "beginner") return rest * 0.8;
 
@@ -479,7 +266,6 @@ export class QuickWorkoutGenerator {
   }
 
   // פונקציות עזר לבחירת תרגילים
-  // Helper functions for exercise selection
 
   private static selectCompoundExercises(
     exercises: ExerciseTemplate[],
@@ -501,7 +287,6 @@ export class QuickWorkoutGenerator {
     const selected: ExerciseTemplate[] = [];
 
     // בחר לפחות תרגיל אחד מכל קבוצת שרירים
-    // Select at least one exercise from each muscle group
     Object.values(groups).forEach((group) => {
       if (selected.length < count && group.length > 0) {
         selected.push(group[Math.floor(Math.random() * group.length)]);
@@ -509,7 +294,6 @@ export class QuickWorkoutGenerator {
     });
 
     // השלם את המספר הנדרש
-    // Complete the required number
     while (selected.length < count && exercises.length > selected.length) {
       const remaining = exercises.filter((ex) => !selected.includes(ex));
       if (remaining.length > 0) {
@@ -527,7 +311,6 @@ export class QuickWorkoutGenerator {
     count: number
   ): ExerciseTemplate[] {
     // העדף תרגילים עם מוט
-    // Prefer barbell exercises
     const barbell = exercises.filter((ex) => ex.equipment === "barbell");
     const others = exercises.filter((ex) => ex.equipment !== "barbell");
 
@@ -546,7 +329,6 @@ export class QuickWorkoutGenerator {
     count: number
   ): ExerciseTemplate[] {
     // העדף תרגילי משקל גוף
-    // Prefer bodyweight exercises
     const bodyweight = exercises.filter((ex) => ex.equipment === "bodyweight");
     const others = exercises.filter((ex) => ex.equipment !== "bodyweight");
 
@@ -571,7 +353,6 @@ export class QuickWorkoutGenerator {
     const categories = Object.keys(groups);
 
     // בחר תרגילים מקטגוריות שונות
-    // Select exercises from different categories
     let i = 0;
     while (selected.length < count && categories.length > 0) {
       const category = categories[i % categories.length];
@@ -590,7 +371,6 @@ export class QuickWorkoutGenerator {
   }
 
   // פונקציות עזר כלליות
-  // General helper functions
 
   private static getDifficultyLevel(
     experience: string
@@ -630,7 +410,6 @@ export class QuickWorkoutGenerator {
 }
 
 // יצוא פונקציה נוחה
-// Export convenience function
 export async function generateQuickWorkout(): Promise<Exercise[]> {
   return QuickWorkoutGenerator.generateQuickWorkout();
 }

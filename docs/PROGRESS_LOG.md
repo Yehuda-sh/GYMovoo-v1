@@ -1,7 +1,8 @@
 # 🚦 GYMovoo - יומן התקדמות עדכני
 
-> **📅 עדכון אחרון:** 1 באוגוסט 2025  
-> **📊 סטטוס פרויקט:** 100/100 - מוכן לפיתוח נוסף
+> **📅 עדכון אחרון:** 2 באוגוסט 2025  
+> **📊 סטטוס פרויקט:** 100/100 - מוכן לפיתוח נוסף  
+> **🎯 תיקון אחרון:** ממשק עריכה מתקדם לסטים עם חצי מעלית וקלט מקלדת
 
 ## 📊 **מצב נוכחי - אוגוסט 2025**
 
@@ -10,9 +11,178 @@
 - 🧩 **רכיבים:** 6+ קטגוריות רכיבים משותפים
 - 🔧 **שירותים:** 13 שירותים פעילים ומתקדמים
 - 📚 **תיעוד:** 14 מסמכים מאורגנים ועדכניים
-- 🔍 **איכות קוד:** TypeScript מנוקה עם תמיכת RTL מלאה
+- 🔍 **איכות קוד:** TypeScript מנוקה עם תמיכת RTL מלא
 - 🤖 **AI מערכת:** פעילה עם שאלון חכם דינמי
 - 🏆 **תכונות:** מערכת שיאים אישיים ותיעוד אימונים מלא
+- ✅ **אותנטיקציה:** מערכת התחברות אוטומטית פעילה מלא
+- 🎯 **עריכת סטים:** ממשק עריכה מתקדם עם חצי מעלית וקלט מקלדת מיועל
+
+---
+
+## 🚀 **תיקונים חדשים - 2 באוגוסט 2025**
+
+### ✅ **ממשק עריכה מתקדם לסטים במהלך אימון**
+
+#### 🎯 **בעיות שנפתרו:**
+
+1. **כפתור השלמה במצב עריכה** - הוסתר בהצלחה
+2. **חצי מעלית חסרים** - נוספו עם עיצוב אלגנטי בסגנון מעלית
+3. **קושי בקלט מקלדת ב-Android** - נפתר עם טכניקות אופטימיזציה מתקדמות
+4. **בלבול בין placeholder לערך אמיתי** - נפתר עם הבהרת טקסט
+
+#### 🎨 **שיפורי UI/UX שבוצעו:**
+
+**1. חצי מעלית (Elevator Buttons):**
+
+```typescript
+// עיצוב מעלית עם משולשים
+<View style={styles.elevatorButtonsContainer}>
+  <TouchableOpacity style={styles.elevatorButton}>
+    <MaterialCommunityIcons
+      name="triangle"
+      size={12}
+      color={theme.colors.primary}
+      style={{ transform: [{ rotate: '0deg' }] }} // למעלה
+    />
+  </TouchableOpacity>
+  <TouchableOpacity style={styles.elevatorButton}>
+    <MaterialCommunityIcons
+      name="triangle"
+      size={12}
+      color={theme.colors.primary}
+      style={{ transform: [{ rotate: '180deg' }] }} // למטה
+    />
+  </TouchableOpacity>
+</View>
+```
+
+**2. הסתרת כפתור השלמה במצב עריכה:**
+
+```typescript
+{!isEditMode && (
+  <TouchableOpacity onPress={handleComplete}>
+    {/* כפתור השלמה */}
+  </TouchableOpacity>
+)}
+```
+
+**3. שיפור placeholder להבחנה טובה יותר:**
+
+```typescript
+const repsPlaceholder = set.targetReps ? `יעד: ${set.targetReps}` : "-";
+// במקום רק "8", עכשיו "יעד: 8"
+```
+
+#### 🔧 **פתרונות טכניים לקלט מקלדת ב-Android:**
+
+**בעיה מקורית:** המקלדת נעלמת מיד אחרי הופעה באמולטור Android
+
+**פתרון 1 - אופטימיזציות TextInput:**
+
+```typescript
+<TextInput
+  keyboardType="numeric"
+  selectTextOnFocus={true}
+  editable={true}
+  returnKeyType="done"
+  blurOnSubmit={false}  // מפתח - מונע סגירת מקלדת
+  showSoftInputOnFocus={true}
+  autoCorrect={false}
+  autoCapitalize="none"
+  spellCheck={false}
+  textContentType="none"
+/>
+```
+
+**פתרון 2 - TouchableOpacity עטיפה עם פוקוס מפורש:**
+
+```typescript
+// הסרת TouchableOpacity עטיפה כללית שהפריעה
+<TouchableOpacity
+  activeOpacity={1}
+  onPress={() => {
+    const input = inputRef.current;
+    if (input) {
+      input.focus(); // פוקוס מפורש
+    }
+  }}
+>
+  <TextInput ref={inputRef} />
+</TouchableOpacity>
+```
+
+**פתרון 3 - שימוש ב-useRef לשליטה ישירה:**
+
+```typescript
+const weightInputRef = useRef<TextInput>(null);
+const repsInputRef = useRef<TextInput>(null);
+```
+
+#### 🎛️ **תכונות עריכה חדשות:**
+
+1. **חצי מעלית:** העברת סטים למעלה/למטה
+2. **שכפול סט:** כפתור copy לשכפול מהיר
+3. **מחיקת סט:** כפתור מחיקה עם סגנון אדום
+4. **עריכת משקל וחזרות:** קלט מקלדת יציב וחלק
+5. **ביטול השלמת סט:** לחיצה נוספת על השלמה מבטלת
+
+#### ✨ **שיפורי חוויית משתמש:**
+
+- **אנימציות חלקות** לפוקוס ושינוי קנה מידה
+- **צבעים דינמיים** המשתנים לפי מצב (מושלם/פעיל/עריכה)
+- **RTL מלא** עם תמיכה בעברית
+- **Accessibility** עם תויות נגישות
+- **הפרדה ויזואלית** בין placeholder לערך אמיתי
+- **גישה מהירה** ללחיצה ארוכה על הביצוע הקודם
+
+---
+
+## 🚀 **תיקונים קודמים - 1 באוגוסט 2025**
+
+### ✅ **מערכת התחברות אוטומטית מושלמת**
+
+- **WelcomeScreen** עכשיו בודק אוטומטית אם יש משתמש מחובר
+- **ניווט חכם:** משתמש מחובר עובר ישירות למסך הבית
+- **מסך טעינה:** הודעה "בודק מצב התחברות..." בזמן הבדיקה
+- **BottomNavigation** מתחיל תמיד במסך הבית (`initialRouteName="Main"`)
+
+### 🔧 **שינויים טכניים שבוצעו**
+
+```typescript
+// WelcomeScreen.tsx - בדיקת התחברות אוטומטית
+const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+useEffect(() => {
+  const checkAuthStatus = async () => {
+    if (isLoggedIn() && user) {
+      console.log(
+        "✅ WelcomeScreen - משתמש מחובר נמצא! מנווט למסך הבית:",
+        user.email
+      );
+      navigation.navigate("MainApp");
+      return;
+    }
+    setIsCheckingAuth(false);
+  };
+  checkAuthStatus();
+}, [user, isLoggedIn, navigation]);
+```
+
+```typescript
+// BottomNavigation.tsx - התחלה במסך הבית
+<Tab.Navigator
+  initialRouteName="Main" // מתחיל תמיד במסך הבית
+  screenOptions={{...}}
+>
+```
+
+### 📋 **תהליך ההתחברות המושלם**
+
+1. **פתיחת האפליקציה** → WelcomeScreen טוען
+2. **בדיקה אוטומטית** → "בודק מצב התחברות..."
+3. **משתמש נמצא** → ניווט ישיר ל-MainApp
+4. **מסך הבית** → הגעה ישירה למסך הבית (לא פרופיל)
+5. **לוגים מפורטים** → "User store rehydrated" + "משתמש מחובר נמצא"
 
 ---
 

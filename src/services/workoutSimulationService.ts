@@ -36,7 +36,7 @@ class WorkoutSimulationService {
    * סימולציה של 6 חודשי אימונים מציאותיים
    */
   async simulateRealisticWorkoutHistory(): Promise<void> {
-    // Create 6-month realistic workout simulation with minimal logging // יצירת סימולציית אימונים מציאותית של 6 חודשים עם לוגים מינימליים
+    // יצירת סימולציית אימונים מציאותית של 6 חודשים
     const user = await realisticDemoService.getDemoUser();
     if (!user) {
       console.error("No demo user found for workout simulation");
@@ -54,7 +54,6 @@ class WorkoutSimulationService {
       equipmentAvailable: user.questionnaireData.available_equipment,
       currentStreak: 0,
       // הוספת נתוני מגדר בסיסיים
-      // Add basic gender data
       gender: user.questionnaireData.gender || "other",
       personalizedGoals: user.questionnaireData.goals || [],
     };
@@ -66,9 +65,9 @@ class WorkoutSimulationService {
     let totalWorkouts = 0;
     let missedWorkouts = 0;
 
-    // Simulate 26 weeks (6 months) with minimal logging // סימולציה של 26 שבועות (6 חודשים) עם לוגים מינימליים
+    // סימולציה של 26 שבועות (6 חודשים)
     for (let week = 0; week < 26; week++) {
-      // Update parameters based on progression // התאמת פרמטרים לפי התקדמות
+      // התאמת פרמטרים לפי התקדמות
       currentParams = this.updateSimulationParameters(
         currentParams,
         week,
@@ -93,14 +92,14 @@ class WorkoutSimulationService {
         currentParams.currentStreak = 0;
       }
 
-      // Recovery/deload weeks with minimal logging // הפסקה קצרה כל 8 שבועות עם לוגים מינימליים
+      // הפסקה קצרה כל 8 שבועות
       if (week === 7 || week === 15) {
         currentParams.motivation = Math.max(currentParams.motivation - 1, 4);
         currentParams.energyLevel = Math.max(currentParams.energyLevel - 1, 5);
       }
     }
 
-    // Final summary with essential statistics only // סיכום סופי עם סטטיסטיקות חיוניות בלבד
+    // סיכום סופי עם סטטיסטיקות חיוניות
     const completionRate = Math.round(
       (totalWorkouts / (totalWorkouts + missedWorkouts)) * 100
     );
@@ -142,15 +141,8 @@ class WorkoutSimulationService {
         );
         await realisticDemoService.addWorkoutSession(workout);
         completed++;
-
-        console.log(
-          `✅ Day ${actualDays[dayIndex]}: ${workout.type} workout (${workout.duration}min, rating: ${workout.feedback.overallRating})`
-        );
       } else {
         missed++;
-        console.log(
-          `❌ Day ${actualDays[dayIndex]}: Skipped workout (motivation: ${params.motivation}, energy: ${params.energyLevel})`
-        );
       }
     }
 
@@ -303,7 +295,6 @@ class WorkoutSimulationService {
             setIndex >= exercise.targetSets - 1 ? 0.1 : 0.03;
 
           if (Math.random() < skipProbability && params.energyLevel < 5) {
-            console.log(`⏭️ Skipped set ${setIndex + 1} of ${exercise.name}`);
             continue;
           }
 
@@ -468,10 +459,8 @@ class WorkoutSimulationService {
     // התקדמות בניסיון
     if (weekNumber > 8 && params.userExperience === "beginner") {
       newParams.userExperience = "intermediate";
-      console.log("📈 User progressed to intermediate level");
     } else if (weekNumber > 16 && params.userExperience === "intermediate") {
       newParams.userExperience = "advanced";
-      console.log("📈 User progressed to advanced level");
     }
 
     // שיפור מוטיבציה בהתאם לביצועים
@@ -517,17 +506,22 @@ class WorkoutSimulationService {
 
   // פונקציות עזר
   private parseSessionDuration(duration: string): number {
-    if (duration.includes("45-60")) return 52;
-    if (duration.includes("30-45")) return 37;
-    if (duration.includes("60+")) return 70;
-    return 45;
+    const durationMap: Record<string, number> = {
+      "45-60": 52,
+      "30-45": 37,
+      "60+": 70,
+    };
+
+    const match = Object.keys(durationMap).find((key) =>
+      duration.includes(key)
+    );
+    return match ? durationMap[match] : 45;
   }
 
   private determineActualWorkoutDays(
     planned: number,
     params: SimulationParameters
   ): number[] {
-    // const days = []; // הוסר כי לא בשימוש - FIXED
     const possibleDays = [0, 1, 2, 3, 4, 5, 6]; // ימי השבוע
 
     // וריאציה מציאותית - לפעמים פחות ימים, לפעמים יותר

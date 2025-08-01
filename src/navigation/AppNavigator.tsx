@@ -41,22 +41,6 @@ export default function AppNavigator() {
           gestureEnabled: true,
           gestureDirection: "horizontal-inverted", // RTL תמיכה
           animationTypeForReplace: "push",
-          // אנימציות חלקות יותר
-          cardStyleInterpolator: ({ current, layouts }) => {
-            return {
-              cardStyle: {
-                transform: [
-                  {
-                    translateX: current.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [layouts.screen.width, 0],
-                    }),
-                  },
-                ],
-              },
-            };
-          },
-          // אופטימיזציית ביצועים
           detachPreviousScreen: false,
         }}
       >
@@ -87,16 +71,7 @@ export default function AppNavigator() {
         />
 
         {/* מסך תוכנית אימון חכמה עם AI */}
-        <Stack.Screen
-          name="WorkoutPlan"
-          component={WorkoutPlanScreen}
-          options={{
-            presentation: "card",
-            gestureDirection: "horizontal-inverted", // RTL
-            animationTypeForReplace: "push",
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="WorkoutPlan" component={WorkoutPlanScreen} />
 
         {/* אפליקציה ראשית עם Bottom Tabs - ניווט מתקדם */}
         <Stack.Screen
@@ -104,8 +79,6 @@ export default function AppNavigator() {
           component={BottomNavigation}
           options={{
             gestureEnabled: false, // מונע יציאה מהאפליקציה הראשית
-            // אנימציה מיוחדת לכניסה לאפליקציה
-            animationTypeForReplace: "pop",
           }}
         />
 
@@ -115,10 +88,6 @@ export default function AppNavigator() {
           component={QuickWorkoutScreen}
           options={{
             gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
-            presentation: "card",
-            headerShown: false,
-            // אנימציה מיוחדת לכניסה לאימון
-            animationTypeForReplace: "push",
             cardStyle: {
               backgroundColor: "transparent", // רקע שקוף לאנימציות חלקות
             },
@@ -131,10 +100,6 @@ export default function AppNavigator() {
           component={ActiveWorkoutScreen}
           options={{
             gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
-            presentation: "card",
-            headerShown: false,
-            // אנימציה מיוחדת לכניסה לתרגיל יחיד
-            animationTypeForReplace: "push",
             cardStyle: {
               backgroundColor: "transparent", // רקע שקוף לאנימציות חלקות
             },
@@ -148,8 +113,6 @@ export default function AppNavigator() {
           options={{
             presentation: "modal", // פתיחה כמודל
             gestureDirection: "vertical", // סגירה למטה
-            headerShown: false,
-            // אנימציה חלקה למעלה
             cardStyle: {
               backgroundColor: "rgba(0,0,0,0.5)", // רקע כהה למודל
             },
@@ -157,26 +120,12 @@ export default function AppNavigator() {
         />
 
         {/* מסכים נוספים משופרים עם חוויית משתמש מתקדמת */}
-        <Stack.Screen
-          name="Notifications"
-          component={NotificationsScreen}
-          options={{
-            presentation: "card",
-            gestureDirection: "horizontal-inverted", // RTL
-            headerShown: false,
-            // אנימציה חלקה
-            animationTypeForReplace: "push",
-          }}
-        />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
 
         <Stack.Screen
           name="Progress"
           component={ProgressScreen}
           options={{
-            presentation: "card",
-            gestureDirection: "horizontal-inverted", // RTL
-            headerShown: false,
-            // רקע מותאם לגרפים
             cardStyle: {
               backgroundColor: "rgba(248, 250, 252, 1)", // רקע בהיר לחוויה טובה יותר
             },
@@ -187,10 +136,6 @@ export default function AppNavigator() {
           name="Exercises"
           component={ExercisesScreen}
           options={{
-            presentation: "card",
-            gestureDirection: "horizontal-inverted", // RTL
-            headerShown: false,
-            // אופטימיזציה לרשימות גדולות
             freezeOnBlur: true, // חיסכון בביצועים
           }}
         />

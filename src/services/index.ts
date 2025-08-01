@@ -5,12 +5,23 @@
  * @notes מאפשר ייבוא נוח של שירותים מחוץ לתיקיה
  */
 
-// Core services - עצור איבוא עד לבדיקת המבנה
-// export * from './authService';
-// export * from './exerciseService';
-// export * from './questionnaireService';
-// export * from './workoutDataService';
+// Core services
+export * from "./authService";
+export * from "./exerciseService";
+export * from "./questionnaireService";
+export * from "./workoutDataService";
 
-// Placeholder to avoid empty file
-export const SERVICES_INDEX_PLACEHOLDER =
-  "Services index placeholder - needs proper export configuration";
+// Specialized services
+export { workoutHistoryService } from "./workoutHistoryService";
+export { workoutSimulationService } from "./workoutSimulationService";
+export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
+export { realisticDemoService } from "./realisticDemoService";
+export { scientificAIService } from "./scientificAIService";
+export { wgerApiService } from "./wgerApiService";
+
+// Quick workout generator
+export {
+  QuickWorkoutGenerator,
+  generateQuickWorkout,
+} from "./quickWorkoutGenerator";
+export type { ExerciseTemplate } from "./quickWorkoutGenerator";

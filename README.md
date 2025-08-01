@@ -105,6 +105,14 @@ npx expo start --tunnel
 2. סרוק את ה-QR code שמופיע בטרמינל
 3. האפליקציה תיפתח במכשירך
 
+### 🔄 הגדרת RTL (חשוב!)
+
+האפליקציה מוגדרת ל-RTL מאולץ לתמיכה מלאה בעברית. אם RTL לא עובד:
+
+⚠️ **פתרון מהיר**: הפעל מחדש את האפליקציה (Ctrl+R או reload)
+
+📚 **מידע מפורט**: ראה [מדריך RTL](docs/RTL_SETUP_GUIDE.md)
+
 ## 🏗️ ארכיטקטורה
 
 ### 📊 סטטיסטיקות הפרויקט
@@ -424,6 +432,14 @@ npx expo start
 1. Download **Expo Go** from App Store or Google Play
 2. Scan the QR code displayed in terminal
 3. The app will open on your device
+
+### 🔄 RTL Configuration
+
+The app is configured for forced RTL to support Hebrew interface. If RTL doesn't work:
+
+⚠️ **Quick Fix**: Restart the app (Ctrl+R or reload)
+
+📚 **Detailed Guide**: See [RTL Setup Guide](docs/RTL_SETUP_GUIDE.md)
 
 ## 🏗️ Architecture
 

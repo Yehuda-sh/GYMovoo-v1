@@ -42,6 +42,14 @@ const firstNamesEnglish = [
   "yael",
   "asaf",
   "hila",
+  "ben",
+  "eden",
+  "ori",
+  "roni",
+  "gal",
+  "liora",
+  "eran",
+  "sigal",
 ];
 
 /**
@@ -65,6 +73,8 @@ const lastNamesEnglish = [
   "shimon",
   "gabay",
   "nissim",
+  "katz",
+  "goldberg",
 ];
 
 /**
@@ -99,12 +109,13 @@ const generateRandomUser = () => {
   const lastName =
     lastNamesEnglish[Math.floor(Math.random() * lastNamesEnglish.length)];
   const domain = domains[Math.floor(Math.random() * domains.length)];
-  const randomNum = Math.floor(Math.random() * 9999);
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(Math.random() * 9999);
 
-  // Professional email generation with proper formatting
-  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${randomNum}@${domain}`;
+  // Professional email generation with timestamp for uniqueness
+  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${randomSuffix}@${domain}`;
   const fullName = `${firstName} ${lastName}`;
-  const userId = `google_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const userId = `google_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Enhanced avatar generation with Google-compatible colors
   const colors = ["4285F4", "DB4437", "F4B400", "0F9D58", "AB47BC", "FF7043"];
@@ -119,7 +130,7 @@ const generateRandomUser = () => {
     metadata: {
       createdAt: new Date().toISOString(),
       isRandom: true,
-      sessionId: `session_${Date.now()}`,
+      sessionId: `session_${timestamp}`,
     },
   };
 };
@@ -130,21 +141,18 @@ const generateRandomUser = () => {
 // =======================================
 
 /**
- * Enhanced Google Sign In simulation with realistic delay and logging
- * סימולציית התחברות Google משופרת עם השהייה מציאותית ולוגים
+ * Enhanced Google Sign In simulation with realistic delay
+ * סימולציית התחברות Google משופרת עם השהייה מציאותית
  *
  * @returns {Promise<Object>} New random user without questionnaire
  * @performance Simulates realistic server response time (800ms)
  * @usage Used by LoginScreen and WelcomeScreen for authentication flow
  */
 export const fakeGoogleSignIn = async () => {
-  console.log("🎲 AuthService: Generating new random user for Google Sign In");
-
   // Realistic server delay simulation for better UX testing
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const randomUser = generateRandomUser();
-  console.log("🎲 AuthService: New random user created -", randomUser.email);
 
   // Return new user without questionnaire to trigger onboarding flow
   return {
@@ -154,29 +162,14 @@ export const fakeGoogleSignIn = async () => {
 };
 
 /**
- * Enhanced Google Registration simulation with comprehensive logging
- * סימולציית הרשמה Google משופרת עם לוגים מקיפים
+ * Enhanced Google Registration simulation - alias for fakeGoogleSignIn
+ * סימולציית הרשמה Google משופרת - כינוי לפונקציית ההתחברות
  *
  * @returns {Promise<Object>} New random user for registration flow
  * @performance Optimized for quick registration experience
  * @usage Used by RegisterScreen for new user creation
  */
-export const fakeGoogleRegister = async () => {
-  console.log(
-    "🎲 AuthService: Generating new random user for Google Registration"
-  );
-
-  // Simulate registration processing time
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const randomUser = generateRandomUser();
-  console.log("🎲 AuthService: New random user registered -", randomUser.email);
-
-  return {
-    ...randomUser,
-    questionnaire: undefined,
-  };
-};
+export const fakeGoogleRegister = fakeGoogleSignIn;
 
 // =======================================
 // 🔄 Export Utilities

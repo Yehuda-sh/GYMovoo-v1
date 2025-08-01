@@ -117,7 +117,6 @@ class WgerApiService {
         searchParams.append("offset", params.offset.toString());
 
       const url = `${this.baseUrl}/exercise/?${searchParams.toString()}`;
-      console.log("🔗 WGER API Request:", url);
 
       const response = await fetch(url);
 
@@ -128,10 +127,6 @@ class WgerApiService {
       }
 
       const data = await response.json();
-      console.log(
-        "📊 WGER API Response:",
-        `${data.results.length} exercises found`
-      );
 
       return data;
     } catch (error) {
@@ -174,7 +169,6 @@ class WgerApiService {
       }
 
       const data = await response.json();
-      console.log("💪 WGER Muscles loaded:", data.results.length);
 
       return data;
     } catch (error) {
@@ -197,7 +191,6 @@ class WgerApiService {
       }
 
       const data = await response.json();
-      console.log("⚙️ WGER Equipment loaded:", data.results.length);
 
       return data;
     } catch (error) {
@@ -222,7 +215,6 @@ class WgerApiService {
       }
 
       const data = await response.json();
-      console.log("📂 WGER Categories loaded:", data.results.length);
 
       return data;
     } catch (error) {
@@ -259,8 +251,6 @@ class WgerApiService {
           equipmentMap.set("bodyweight", eq.id);
       });
 
-      console.log("🗺️ Equipment mapping:", Object.fromEntries(equipmentMap));
-
       // Find equipment IDs for our equipment names
       const equipmentIds: number[] = [];
       equipmentNames.forEach((name) => {
@@ -272,10 +262,7 @@ class WgerApiService {
         }
       });
 
-      console.log("🎯 Found equipment IDs:", equipmentIds);
-
       if (equipmentIds.length === 0) {
-        console.warn("⚠️ No matching equipment found in WGER");
         return [];
       }
 
@@ -294,6 +281,31 @@ class WgerApiService {
   }
 
   /**
+   * Get muscle and equipment mappings
+   */
+  private async getMappings(): Promise<{
+    muscleMap: Map<number, string>;
+    equipmentMap: Map<number, string>;
+  }> {
+    const [musclesData, equipmentData] = await Promise.all([
+      this.getMuscles(),
+      this.getEquipment(),
+    ]);
+
+    const muscleMap = new Map<number, string>();
+    musclesData.results.forEach((muscle) => {
+      muscleMap.set(muscle.id, muscle.name);
+    });
+
+    const equipmentMap = new Map<number, string>();
+    equipmentData.results.forEach((eq) => {
+      equipmentMap.set(eq.id, eq.name);
+    });
+
+    return { muscleMap, equipmentMap };
+  }
+
+  /**
    * Convert WGER exercise to our internal format
    */
   async convertWgerExerciseToInternal(
@@ -301,22 +313,7 @@ class WgerApiService {
   ): Promise<ConvertedExercise | null> {
     try {
       // Get muscles and equipment data for conversion
-      const [musclesData, equipmentData] = await Promise.all([
-        this.getMuscles(),
-        this.getEquipment(),
-      ]);
-
-      // Create muscle name mapping
-      const muscleMap = new Map<number, string>();
-      musclesData.results.forEach((muscle) => {
-        muscleMap.set(muscle.id, muscle.name);
-      });
-
-      // Create equipment name mapping
-      const equipmentMap = new Map<number, string>();
-      equipmentData.results.forEach((eq) => {
-        equipmentMap.set(eq.id, eq.name);
-      });
+      const { muscleMap, equipmentMap } = await this.getMappings();
 
       // Convert to our internal format
       const primaryMuscles = wgerExercise.muscles
@@ -362,21 +359,7 @@ class WgerApiService {
         await this.searchExercisesByEquipment(equipmentNames);
 
       // Get reference data for conversion
-      const [musclesData, equipmentData] = await Promise.all([
-        this.getMuscles(),
-        this.getEquipment(),
-      ]);
-
-      // Create mappings
-      const muscleMap = new Map<number, string>();
-      musclesData.results.forEach((muscle) => {
-        muscleMap.set(muscle.id, muscle.name);
-      });
-
-      const equipmentMap = new Map<number, string>();
-      equipmentData.results.forEach((eq) => {
-        equipmentMap.set(eq.id, eq.name);
-      });
+      const { muscleMap, equipmentMap } = await this.getMappings();
 
       // Convert to WgerExerciseInfo format
       return wgerExercises.map((exercise) => ({

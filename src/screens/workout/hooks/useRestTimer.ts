@@ -5,7 +5,7 @@
  * @updated 2025-01-31 שיפורי ביצועים ועקביות עם useWorkoutTimer
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Vibration } from "react-native";
 
 export interface UseRestTimerReturn {
@@ -29,6 +29,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
+  const lastVibrationRef = useRef<number>(0); // למניעת רטט חוזר
 
   // נקה interval בסיום עם flag למניעת memory leaks
   // Clear interval on unmount with flag to prevent memory leaks
@@ -42,8 +43,22 @@ export const useRestTimer = (): UseRestTimerReturn => {
     };
   }, []);
 
-  // עדכון טיימר עם הגנה מפני memory leaks
-  // Update timer with memory leak protection
+  // סיום טיימר - הגדרה מוקדמת עם useCallback
+  // Complete timer - early definition with useCallback
+  const completeRestTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsRestTimerActive(false);
+    setRestTimeRemaining(0);
+    setIsPaused(false);
+    setCurrentExerciseName(undefined);
+
+    // רטט ארוך בסיום
+    // Long vibration at end
+    Vibration.vibrate([0, 300, 100, 300]);
+  }, []);
   useEffect(() => {
     if (isRestTimerActive && !isPaused) {
       intervalRef.current = setInterval(() => {
@@ -60,9 +75,10 @@ export const useRestTimer = (): UseRestTimerReturn => {
         } else {
           setRestTimeRemaining(remaining);
 
-          // רטט בשניות האחרונות
-          // Vibrate in last seconds
-          if (remaining <= 3) {
+          // רטט בשניות האחרונות - אבל לא בכל iteration
+          // Vibrate in last seconds - but not every iteration
+          if (remaining <= 3 && remaining !== lastVibrationRef.current) {
+            lastVibrationRef.current = remaining;
             Vibration.vibrate(100);
           }
         }
@@ -80,7 +96,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
         intervalRef.current = null;
       }
     };
-  }, [isRestTimerActive, isPaused]);
+  }, [isRestTimerActive, isPaused, completeRestTimer]);
 
   // התחל טיימר מנוחה
   // Start rest timer
@@ -91,6 +107,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
       setIsRestTimerActive(true);
       setIsPaused(false);
       setCurrentExerciseName(exerciseName);
+      lastVibrationRef.current = 0; // איפוס רטט
 
       // רטט בהתחלה
       // Vibrate at start
@@ -133,22 +150,6 @@ export const useRestTimer = (): UseRestTimerReturn => {
     setCurrentExerciseName(undefined);
   }, []);
 
-  // סיום טיימר
-  // Complete timer
-  const completeRestTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    setIsRestTimerActive(false);
-    setRestTimeRemaining(0);
-    setIsPaused(false);
-    setCurrentExerciseName(undefined);
-
-    // רטט ארוך בסיום
-    // Long vibration at end
-    Vibration.vibrate([0, 300, 100, 300]);
-  }, []);
-
   // הוסף זמן לטיימר
   // Add time to timer
   const addRestTime = useCallback(
@@ -180,18 +181,31 @@ export const useRestTimer = (): UseRestTimerReturn => {
         }
       }
     },
-    [isRestTimerActive]
+    [isRestTimerActive, completeRestTimer]
   );
 
-  return {
-    isRestTimerActive,
-    restTimeRemaining,
-    startRestTimer,
-    pauseRestTimer,
-    resumeRestTimer,
-    skipRestTimer,
-    addRestTime,
-    subtractRestTime,
-    currentExerciseName,
-  };
+  return useMemo(
+    () => ({
+      isRestTimerActive,
+      restTimeRemaining,
+      startRestTimer,
+      pauseRestTimer,
+      resumeRestTimer,
+      skipRestTimer,
+      addRestTime,
+      subtractRestTime,
+      currentExerciseName,
+    }),
+    [
+      isRestTimerActive,
+      restTimeRemaining,
+      startRestTimer,
+      pauseRestTimer,
+      resumeRestTimer,
+      skipRestTimer,
+      addRestTime,
+      subtractRestTime,
+      currentExerciseName,
+    ]
+  );
 };

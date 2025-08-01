@@ -6,7 +6,7 @@
  */
 // cspell:ignore אימון, עריכת, תפריט, חזרה
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,20 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
 import BackButton from "../../../components/common/BackButton";
-
-interface WorkoutHeaderProps {
-  workoutName: string;
-  elapsedTime: string;
-  onTimerPress: () => void;
-  onNamePress: () => void;
-  onMenuPress?: () => void;
-  variant?: "default" | "minimal" | "gradient" | "integrated";
-  // Props לסגנון integrated
-  // Props for integrated style
-  completedSets?: number;
-  totalSets?: number;
-  totalVolume?: number;
-}
+import type { WorkoutHeaderProps } from "./types";
 
 export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   workoutName,
@@ -45,31 +32,74 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   completedSets = 0,
   totalSets = 0,
   totalVolume = 0,
+  personalRecords = 0,
 }) => {
   const navigation = useNavigation();
-  const backIconName = I18nManager.isRTL ? "chevron-forward" : "chevron-back";
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // אנימציית דופק לטיימר
-  // Pulse animation for timer
+  // אופטימיזציה של RTL direction עם useMemo
+  const backIconName = useMemo(
+    () => (I18nManager.isRTL ? "chevron-forward" : "chevron-back"),
+    []
+  );
+
+  // אופטימיזציה של handlers עם useCallback
+  const handleNamePress = useCallback(() => {
+    onNamePress();
+  }, [onNamePress]);
+
+  const handleTimerPress = useCallback(() => {
+    onTimerPress();
+  }, [onTimerPress]);
+
+  const handleMenuPress = useCallback(() => {
+    onMenuPress?.();
+  }, [onMenuPress]);
+
+  // חישוב אחוז השלמה ואופטימיזציות
+  const completionPercentage = useMemo(
+    () => (totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0),
+    [completedSets, totalSets]
+  );
+
+  // אופטימיזציה של התקדמות בר style עם useMemo
+  const progressBarStyle = useMemo(
+    () => ({
+      ...styles.integratedProgressFill,
+      width: `${completionPercentage}%` as const,
+    }),
+    [completionPercentage]
+  );
+
+  // אופטימיזציה עם useMemo עבור מחשובים כבדים
+  const formattedVolume = useMemo(() => Math.round(totalVolume), [totalVolume]);
+
+  const showPersonalRecords = useMemo(
+    () => personalRecords > 0,
+    [personalRecords]
+  );
+
+  // אנימציית דופק לטיימר - רק כשצריך
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, []);
+    if (variant === "gradient") {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.05,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+      return () => animation.stop();
+    }
+  }, [variant]);
 
   // סגנון מינימלי
   // Minimal style
@@ -79,16 +109,28 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         <BackButton absolute={false} variant="minimal" />
 
         <View style={styles.minimalCenter}>
-          <TouchableOpacity onPress={onNamePress} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={handleNamePress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`ערוך שם אימון: ${workoutName}`}
+          >
             <Text style={styles.minimalTitle}>{workoutName}</Text>
           </TouchableOpacity>
-          <Text style={styles.minimalTimer}>{elapsedTime}</Text>
+          <Text
+            style={styles.minimalTimer}
+            accessibilityLabel={`זמן אימון: ${elapsedTime}`}
+          >
+            {elapsedTime}
+          </Text>
         </View>
 
         <TouchableOpacity
-          onPress={onMenuPress}
+          onPress={handleMenuPress}
           style={styles.minimalButton}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="פתח תפריט אימון"
         >
           <Ionicons
             name="ellipsis-horizontal"
@@ -113,9 +155,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 
           <View style={styles.gradientCenter}>
             <TouchableOpacity
-              onPress={onNamePress}
+              onPress={handleNamePress}
               style={styles.gradientNameContainer}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`ערוך שם אימון: ${workoutName}`}
             >
               <Text style={styles.gradientName}>{workoutName}</Text>
               <MaterialCommunityIcons
@@ -136,14 +180,21 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                 size={20}
                 color={theme.colors.primary}
               />
-              <Text style={styles.gradientTimer}>{elapsedTime}</Text>
+              <Text
+                style={styles.gradientTimer}
+                accessibilityLabel={`זמן אימון: ${elapsedTime}`}
+              >
+                {elapsedTime}
+              </Text>
             </Animated.View>
           </View>
 
           <TouchableOpacity
-            onPress={onMenuPress}
+            onPress={handleMenuPress}
             style={styles.gradientButton}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="פתח תפריט אימון"
           >
             <MaterialCommunityIcons
               name="dots-vertical"
@@ -159,9 +210,6 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   // סגנון משולב עם סטטיסטיקות
   // Integrated style with stats
   if (variant === "integrated") {
-    const completionPercentage =
-      totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
-
     return (
       <View style={styles.integratedContainer}>
         {/* שורה עליונה */}
@@ -170,9 +218,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
           <BackButton absolute={false} variant="large" />
 
           <TouchableOpacity
-            onPress={onNamePress}
+            onPress={handleNamePress}
             style={styles.integratedNameContainer}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`ערוך שם אימון: ${workoutName}`}
           >
             <Text style={styles.integratedName}>{workoutName}</Text>
             <Ionicons
@@ -183,9 +233,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={onMenuPress}
+            onPress={handleMenuPress}
             style={styles.iconButton}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="פתח תפריט אימון"
           >
             <Ionicons
               name="ellipsis-horizontal"
@@ -198,9 +250,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         {/* שורת סטטיסטיקות */}
         {/* Stats row */}
         <TouchableOpacity
-          onPress={onTimerPress}
+          onPress={handleTimerPress}
           style={styles.integratedStats}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`סטטיסטיקות אימון: זמן ${elapsedTime}, ${completedSets} מתוך ${totalSets} סטים, ${Math.round(totalVolume)} קילוגרם`}
         >
           <View style={styles.integratedStatItem}>
             <Ionicons
@@ -232,27 +286,36 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
               size={16}
               color={theme.colors.warning}
             />
-            <Text style={styles.integratedStatText}>
-              {Math.round(totalVolume)} ק"ג
-            </Text>
+            <Text style={styles.integratedStatText}>{formattedVolume} ק"ג</Text>
           </View>
+
+          {showPersonalRecords && (
+            <>
+              <View style={styles.integratedDivider} />
+              <View style={styles.integratedStatItem}>
+                <MaterialCommunityIcons
+                  name="trophy"
+                  size={16}
+                  color={theme.colors.accent}
+                />
+                <Text style={styles.integratedStatText}>
+                  {personalRecords} שיאים
+                </Text>
+              </View>
+            </>
+          )}
 
           <MaterialCommunityIcons
             name="chevron-down"
             size={20}
             color={theme.colors.textSecondary}
-            style={{ marginStart: theme.spacing.xs }} // שינוי RTL: marginStart במקום marginLeft
+            style={{ marginStart: theme.spacing.xs }}
           />
         </TouchableOpacity>
 
         {/* Progress bar */}
         <View style={styles.integratedProgress}>
-          <View
-            style={[
-              styles.integratedProgressFill,
-              { width: `${completionPercentage}%` },
-            ]}
-          />
+          <View style={progressBarStyle} />
         </View>
       </View>
     );
@@ -265,9 +328,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
       {/* כפתור תפריט - בצד ימין */}
       {/* Menu button - right side */}
       <TouchableOpacity
-        onPress={onMenuPress || (() => {})}
+        onPress={handleMenuPress}
         style={styles.iconButton}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="פתח תפריט אימון"
       >
         <Ionicons
           name="ellipsis-horizontal"
@@ -280,9 +345,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
       {/* Center content */}
       <View style={styles.centerContainer}>
         <TouchableOpacity
-          onPress={onNamePress}
+          onPress={handleNamePress}
           style={styles.nameContainer}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`ערוך שם אימון: ${workoutName}`}
         >
           <Text style={styles.workoutName} numberOfLines={1}>
             {workoutName}
@@ -295,9 +362,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={onTimerPress}
+          onPress={handleTimerPress}
           style={styles.timerContainer}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`זמן אימון: ${elapsedTime}`}
         >
           <Text style={styles.timerText}>{elapsedTime}</Text>
           <Ionicons

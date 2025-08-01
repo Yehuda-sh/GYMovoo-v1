@@ -35,16 +35,12 @@ export type RootStackParamList = {
     };
   };
   ActiveWorkout: {
-    exercise: Exercise;
-    exerciseIndex: number;
-    totalExercises: number;
-    workoutData?: {
-      name?: string;
-      startTime?: string;
-      exercises?: Exercise[];
+    workoutData: {
+      name: string;
+      dayName: string;
+      startTime: string;
+      exercises: Exercise[];
     };
-    onExerciseUpdate?: (exercise: Exercise) => void;
-    onNavigate?: (direction: "prev" | "next") => void;
   };
   ExerciseList: {
     fromScreen?: string;

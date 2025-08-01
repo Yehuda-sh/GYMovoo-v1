@@ -41,26 +41,28 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   onAddTime,
   onSubtractTime,
 }) => {
-  // הסרת הלוגים וקצת ניקוי
-  const slideAnim = useRef(new Animated.Value(0)).current; // שינוי: מתחיל מ-0 במקום -300
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const countdownScaleAnim = useRef(new Animated.Value(1)).current;
+  // אנימציות מאופטמות - קיבוץ ערכי useRef
+  const animValues = useRef({
+    slide: new Animated.Value(0), // מתחיל מ-0 במקום -300
+    pulse: new Animated.Value(1),
+    progress: new Animated.Value(0),
+    glow: new Animated.Value(0),
+    rotate: new Animated.Value(0),
+    scale: new Animated.Value(0.9),
+    countdownScale: new Animated.Value(1),
+  }).current;
 
   // אנימציית כניסה משופרת
   // Enhanced entry animation
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(slideAnim, {
+      Animated.spring(animValues.slide, {
         toValue: 0,
         tension: 50,
         friction: 8,
         useNativeDriver: true,
       }),
-      Animated.timing(scaleAnim, {
+      Animated.timing(animValues.scale, {
         toValue: 1,
         duration: 400,
         useNativeDriver: true,
@@ -71,12 +73,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     // Continuous glow animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, {
+        Animated.timing(animValues.glow, {
           toValue: 1,
           duration: 2000,
           useNativeDriver: true,
         }),
-        Animated.timing(glowAnim, {
+        Animated.timing(animValues.glow, {
           toValue: 0,
           duration: 2000,
           useNativeDriver: true,
@@ -88,7 +90,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   // אנימציית התקדמות
   // Progress animation
   useEffect(() => {
-    Animated.timing(progressAnim, {
+    Animated.timing(animValues.progress, {
       toValue: progress,
       duration: 1000,
       useNativeDriver: false,
@@ -100,14 +102,14 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   useEffect(() => {
     if (!isPaused) {
       Animated.loop(
-        Animated.timing(rotateAnim, {
+        Animated.timing(animValues.rotate, {
           toValue: 1,
           duration: 60000, // סיבוב איטי
           useNativeDriver: true,
         })
       ).start();
     } else {
-      rotateAnim.stopAnimation();
+      animValues.rotate.stopAnimation();
     }
   }, [isPaused]);
 
@@ -119,12 +121,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     if (timeLeft > 0 && timeLeft <= 5 && !isPaused) {
       // אנימציית ספירה לאחור דרמטית
       Animated.sequence([
-        Animated.timing(countdownScaleAnim, {
+        Animated.timing(animValues.countdownScale, {
           toValue: 1.2,
           duration: 200,
           useNativeDriver: true,
         }),
-        Animated.timing(countdownScaleAnim, {
+        Animated.timing(animValues.countdownScale, {
           toValue: 1,
           duration: 800,
           useNativeDriver: true,
@@ -133,12 +135,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
       pulseAnimation = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
+          Animated.timing(animValues.pulse, {
             toValue: 1.08,
             duration: 400,
             useNativeDriver: true,
           }),
-          Animated.timing(pulseAnim, {
+          Animated.timing(animValues.pulse, {
             toValue: 1,
             duration: 400,
             useNativeDriver: true,
@@ -150,8 +152,8 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
     return () => {
       pulseAnimation?.stop();
-      pulseAnim.setValue(1);
-      countdownScaleAnim.setValue(1);
+      animValues.pulse.setValue(1);
+      animValues.countdownScale.setValue(1);
     };
   }, [timeLeft, isPaused]);
 
@@ -161,8 +163,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // אופטימיזציה של מידע הסט הבא
   const nextSetInfo = useMemo(() => {
-    if (!nextExercise) return null;
+    if (!nextExercise?.sets) return null;
     const nextSet = nextExercise.sets.find((s) => !s.completed);
     if (!nextSet) return null;
     return {
@@ -170,13 +173,23 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       weight: nextSet.targetWeight || 0,
       reps: nextSet.targetReps || 0,
     };
-  }, [nextExercise]);
-  const rotateInterpolate = rotateAnim.interpolate({
+  }, [nextExercise?.name, nextExercise?.sets]);
+
+  // ניקוי אנימציות בעת יציאה מהקומפוננטה
+  useEffect(() => {
+    return () => {
+      // עצירת כל האנימציות הפעילות
+      Object.values(animValues).forEach((animValue) => {
+        animValue.stopAnimation();
+      });
+    };
+  }, []);
+  const rotateInterpolate = animValues.rotate.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
 
-  const glowOpacity = glowAnim.interpolate({
+  const glowOpacity = animValues.glow.interpolate({
     inputRange: [0, 1],
     outputRange: [0.3, 0.8],
   });
@@ -186,13 +199,13 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       style={[
         styles.container,
         {
-          transform: [{ scale: scaleAnim }],
+          transform: [{ scale: animValues.scale }],
         },
       ]}
     >
       <View style={styles.compactCard}>
         <LinearGradient
-          colors={[`${theme.colors.card}F8`, `${theme.colors.background}F0`]}
+          colors={[theme.colors.card, theme.colors.background]}
           style={styles.gradientBackground}
         >
           <View style={styles.compactContent}>
@@ -278,6 +291,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               transform: [{ scale: 1.1 }],
             },
           ]}
+          pointerEvents="none" // מונע חסימת אינטראקציות
         >
           <LinearGradient
             colors={[theme.colors.primary + "40", theme.colors.primary + "00"]}
@@ -294,6 +308,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               transform: [{ rotate: rotateInterpolate }],
             },
           ]}
+          pointerEvents="none" // מונע חסימת אינטראקציות
         >
           <LinearGradient
             colors={[
@@ -307,7 +322,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         </Animated.View>
 
         <LinearGradient
-          colors={[`${theme.colors.card}F5`, `${theme.colors.background}F5`]}
+          colors={[theme.colors.card, theme.colors.background]}
           style={styles.gradientBackground}
         >
           <View style={styles.header}>
@@ -381,8 +396,8 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                 styles.timerWrapper,
                 {
                   transform: [
-                    { scale: pulseAnim },
-                    { scale: countdownScaleAnim },
+                    { scale: animValues.pulse },
+                    { scale: animValues.countdownScale },
                   ],
                 },
               ]}
@@ -468,7 +483,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               style={[
                 styles.nextSetInfo,
                 {
-                  opacity: progressAnim.interpolate({
+                  opacity: animValues.progress.interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: [1, 0.8, 0.6],
                   }),
@@ -530,7 +545,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                 style={[
                   styles.progressFill,
                   {
-                    width: progressAnim.interpolate({
+                    width: animValues.progress.interpolate({
                       inputRange: [0, 1],
                       outputRange: ["0%", "100%"],
                     }),
@@ -575,7 +590,7 @@ const styles = StyleSheet.create({
     // הסרת position absolute - הקונטיינר ההורה כבר מטפל בזה
     left: 0,
     right: 0,
-    zIndex: 1000,
+    zIndex: 10, // הפחתת z-index כדי לא לחסום כפתורים חשובים
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -650,18 +665,20 @@ const styles = StyleSheet.create({
   },
   glowEffect: {
     position: "absolute",
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
-    borderRadius: 40,
+    top: -10, // הקטנה מ-20 ל-10
+    left: -10, // הקטנה מ-20 ל-10
+    right: -10, // הקטנה מ-20 ל-10
+    bottom: -10, // הקטנה מ-20 ל-10
+    borderRadius: 30, // התאמה לגודל החדש
+    zIndex: -1, // וידוא שהגלו נמצא מאחורי התוכן
   },
   rotatingBackground: {
     position: "absolute",
-    width: screenWidth * 2,
-    height: screenWidth * 2,
-    left: -(screenWidth * 0.5),
-    top: -(screenWidth * 0.8),
+    width: screenWidth * 1.2, // הקטנה מ-2 ל-1.2 כדי לא לחסום אלמנטים
+    height: screenWidth * 1.2, // הקטנה מ-2 ל-1.2
+    left: -(screenWidth * 0.1), // התאמה לגודל החדש
+    top: -(screenWidth * 0.3), // התאמה לגודל החדש
+    zIndex: -1, // וידוא שהרקע נמצא מאחורי כל האלמנטים
   },
   gradientBackground: {
     borderRadius: 24,

@@ -1,10 +1,8 @@
 /**
  * @file src/services/workoutDataService.ts
  * @brief שירות פשוט לניהול נתוני אימון - גרסה בסיסית שעובדת
- * @brief Simple workout data management service - basic working version
  * @dependencies questionnaireService, userStore
  * @notes גרסה פשוטה ויציבה לניהול נתוני אימון
- * @notes Simple and stable version for workout data management
  */
 
 import { questionnaireService } from "./questionnaireService";
@@ -103,11 +101,9 @@ interface EquipmentAnalysis {
 }
 
 // מחלקת נתוני אימון פשוטה
-// Simple workout data class
 export class WorkoutDataService {
   /**
    * ערבוב מערך עם זרע קבוע
-   * Shuffle array with fixed seed
    */
   private static shuffleArray<T>(array: T[], seed: number): T[] {
     const shuffled = [...array];
@@ -120,7 +116,6 @@ export class WorkoutDataService {
 
   /**
    * רנדום עם זרע קבוע לעקביות - גרסה משופרת
-   * Seeded random for consistency - improved version
    */
   private static seededRandom(seed: number): number {
     // שימוש באלגוריתם משופר יותר
@@ -136,7 +131,6 @@ export class WorkoutDataService {
 
   /**
    * קבלת נתוני משתמש מאוחדים מכל המקורות
-   * Get unified user data from all sources
    */
   static async getUserWorkoutData() {
     const { user } = useUserStore.getState();
@@ -189,7 +183,6 @@ export class WorkoutDataService {
 
   /**
    * המרת נתונים מפורמט ישן לחדש
-   * Convert data from old to new format
    */
   private static convertOldFormat(oldAnswers: {
     [key: number]: string | string[];
@@ -207,7 +200,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת תוכנית אימון AI מתקדמת - האלגוריתם החדש!
-   * Generate advanced AI workout plan - The new algorithm!
    */
   static async generateAIWorkoutPlan(): Promise<AIWorkoutPlan | null> {
     const userDataResult = await this.getUserWorkoutData();
@@ -219,23 +211,17 @@ export class WorkoutDataService {
     const metadata = userDataResult.data as WorkoutMetadata;
 
     try {
-      console.log("🤖 AI Algorithm: בונה תוכנית מותאמת אישית...");
-      console.log("📊 User Data:", metadata);
-
       // שלב 1: איסוף והערכת נתוני משתמש
       const userProfile = this.analyzeUserProfile(metadata);
-      console.log("👤 User Profile Analysis:", userProfile);
 
       // שלב 2: ניתוח ציוד זמין
       const equipmentAnalysis = await this.analyzeEquipment(metadata);
-      console.log("🏋️ Equipment Analysis:", equipmentAnalysis);
 
       // שלב 3: בניית מטריקס אימון חכם
       const workoutMatrix = this.buildSmartWorkoutMatrix(
         userProfile,
         equipmentAnalysis
       );
-      console.log("🧠 Workout Matrix:", workoutMatrix);
 
       // שלב 4: יצירת תוכנית מותאמת
       const aiPlan = this.createPersonalizedPlan(
@@ -245,7 +231,6 @@ export class WorkoutDataService {
         workoutMatrix
       );
 
-      console.log("✅ AI Plan Generated:", aiPlan?.name);
       return aiPlan;
     } catch (error) {
       console.error("❌ AI Algorithm Error:", error);
@@ -255,7 +240,6 @@ export class WorkoutDataService {
 
   /**
    * ניתוח פרופיל משתמש מתקדם
-   * Advanced user profile analysis
    */
   private static analyzeUserProfile(metadata: WorkoutMetadata) {
     const profile = {
@@ -274,7 +258,6 @@ export class WorkoutDataService {
 
   /**
    * ניתוח ציוד זמין ויצירת אסטרטגיית שימוש
-   * Equipment analysis and usage strategy
    */
   private static async analyzeEquipment(metadata: WorkoutMetadata) {
     // קודם ננסה לקבל את הציוד מהשירות - זה הנתון המעודכן ביותר
@@ -300,16 +283,7 @@ export class WorkoutDataService {
         location === "gym"
           ? [...homeEquipment, ...gymEquipment]
           : homeEquipment;
-
-      console.log("📦 ציוד מ-metadata (fallback):", {
-        homeEquipment,
-        gymEquipment,
-        location,
-        availableEquipment,
-      });
     }
-
-    console.log("🎯 ציוד סופי לשימוש:", availableEquipment);
 
     return {
       totalEquipment: availableEquipment,
@@ -323,7 +297,6 @@ export class WorkoutDataService {
 
   /**
    * בניית מטריקס אימון חכם על בסיס נתוני המשתמש
-   * Build smart workout matrix based on user data
    */
   private static buildSmartWorkoutMatrix(
     userProfile: UserProfile,
@@ -342,7 +315,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת תוכנית מותאמת אישית עם אלגוריתם AI
-   * Create personalized plan with AI algorithm
    */
   private static createPersonalizedPlan(
     metadata: WorkoutMetadata,
@@ -395,7 +367,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת תוכנית אימון בסיסית (הפונקציה הישנה)
-   * Generate basic workout plan (legacy function)
    */
   static async generateBasicWorkoutPlan(): Promise<WorkoutPlan | null> {
     const userDataResult = await this.getUserWorkoutData();
@@ -447,7 +418,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת אימונים בסיסיים
-   * Create basic workouts
    */
   private static createBasicWorkouts(
     daysPerWeek: number,
@@ -476,7 +446,6 @@ export class WorkoutDataService {
 
   /**
    * בחירת תרגילים בסיסיים
-   * Select basic exercises
    */
   private static selectBasicExercises(
     workoutName: string,
@@ -513,7 +482,6 @@ export class WorkoutDataService {
 
   /**
    * קבלת שמות אימונים לפי מספר ימים
-   * Get workout names by number of days
    */
   private static getWorkoutNames(days: number): string[] {
     const WORKOUT_DAYS = {
@@ -945,7 +913,6 @@ export class WorkoutDataService {
 
   /**
    * קביעת שרירי יעד ליום אימון
-   * Determine target muscles for workout day
    */
   private static getTargetMusclesForDay(workoutName: string): string[] {
     const muscleMap: { [key: string]: string[] } = {
@@ -1005,7 +972,6 @@ export class WorkoutDataService {
 
   /**
    * בחירת תרגילים עם AI - אלגוריתם מתקדם
-   * Advanced AI exercise selection algorithm
    */
   private static selectAIExercises(
     workoutName: string,
@@ -1015,9 +981,6 @@ export class WorkoutDataService {
     dayIndex: number = 0
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
-
-    console.log(`🎯 DEBUG selectAIExercises: ${workoutName} (day ${dayIndex})`);
-    console.log(`🎯 Target muscles:`, targetMuscles);
 
     // שלב 1: סינון תרגילים מתאימים לציוד ושרירים
     const suitableExercises = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
@@ -1045,7 +1008,6 @@ export class WorkoutDataService {
     });
 
     if (suitableExercises.length === 0) {
-      console.warn(`⚠️ לא נמצאו תרגילים מתאימים עבור ${workoutName}`);
       return this.createFallbackExercises(
         exerciseCount,
         workoutMatrix.intensityLevel
@@ -1066,17 +1028,11 @@ export class WorkoutDataService {
       this.createAIExerciseTemplate(exercise, workoutMatrix, index)
     );
 
-    console.log(
-      `✅ Selected ${selectedExercises.length} exercises for ${workoutName}:`,
-      selectedExercises.map((ex) => ex.name)
-    );
-
     return exerciseTemplates;
   }
 
   /**
    * בדיקה אם ציוד זמין
-   * Check if equipment is available
    */
   private static isEquipmentAvailable(
     exerciseEquipment: string,
@@ -1183,7 +1139,6 @@ export class WorkoutDataService {
 
   /**
    * בדיקה אם רמת הקושי מתאימה
-   * Check if difficulty level is appropriate
    */
   private static isDifficultyAppropriate(
     exerciseDifficulty: string | undefined,
@@ -1205,7 +1160,6 @@ export class WorkoutDataService {
 
   /**
    * בחירת תרגילים אופטימליים
-   * Select optimal exercises
    */
   private static selectOptimalExercises(
     suitableExercises: ExerciseFromDB[],
@@ -1217,20 +1171,11 @@ export class WorkoutDataService {
     const selected: ExerciseFromDB[] = [];
     const usedExercises = new Set<string>();
 
-    console.log(
-      `🔍 DEBUG selectOptimalExercises: day ${dayIndex}, need ${exerciseCount} exercises`
-    );
-
     // יצירת זרע לערבוב השרירים לפי היום
     const muscleOrderSeed = dayIndex * 555 + 2468;
     const shuffledMuscles = this.shuffleArray(
       [...targetMuscles],
       muscleOrderSeed
-    );
-
-    console.log(
-      `🎯 Target muscles order for day ${dayIndex}:`,
-      shuffledMuscles
     );
 
     // שלב 1: ודא כיסוי של כל שריר יעד בסדר מעורבב
@@ -1251,11 +1196,6 @@ export class WorkoutDataService {
         );
         selected.push(bestExercise);
         usedExercises.add(bestExercise.id);
-        console.log(
-          `💪 Selected for ${muscle}: ${bestExercise.name} (seed base: ${dayIndex * 500 + selected.length * 100})`
-        );
-      } else {
-        console.log(`⚠️ No exercises found for muscle: ${muscle}`);
       }
     }
 
@@ -1277,24 +1217,15 @@ export class WorkoutDataService {
       );
       const additionalExercise = remainingExercises[randomIndex];
 
-      console.log(
-        `🎲 Additional exercise for day ${dayIndex}: ${additionalExercise.name} (seed: ${seed}, index: ${randomIndex}/${remainingExercises.length})`
-      );
-
       selected.push(additionalExercise);
       usedExercises.add(additionalExercise.id);
     }
 
-    console.log(
-      `✅ נבחרו ${selected.length} תרגילים:`,
-      selected.map((ex) => ex.name)
-    );
     return selected.slice(0, exerciseCount);
   }
 
   /**
    * בחירת התרגיל הטוב ביותר לשריר
-   * Select best exercise for muscle
    */
   private static selectBestExerciseForMuscle(
     exercises: ExerciseFromDB[],
@@ -1325,7 +1256,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת תבנית תרגיל AI מותאמת
-   * Create AI exercise template
    */
   private static createAIExerciseTemplate(
     exercise: ExerciseFromDB,
@@ -1423,7 +1353,6 @@ export class WorkoutDataService {
 
   /**
    * יצירת תרגילים חלופיים במקרה של חוסר
-   * Create fallback exercises when no suitable exercises found
    */
   private static createFallbackExercises(
     exerciseCount: number,

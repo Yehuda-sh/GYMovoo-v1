@@ -4,7 +4,7 @@
  * @version 2.0.0
  * @author GYMovoo Development Team
  * @created 2024-12-15
- * @modified 2025-07-30
+ * @modified 2025-08-02
  *
  * @description
  * רכיב דשבורד מתקדם המציג סטטיסטיקות אימון בזמן אמת עם תמיכה ב-4 ווריאנטים:
@@ -22,6 +22,7 @@
  * - ✅ 4 ווריאנטי תצוגה שונים
  * - ✅ כפתור סגירה דינמי
  * - ✅ גרדיאנטים וצללים מתקדמים
+ * - ✅ תמיכה במצב עריכה עם הצגה מותאמת
  *
  * @performance
  * אופטימיזציה מתקדמת עם useRef לאנימציות, memo optimization עבור StatItem,
@@ -52,6 +53,7 @@
  *   personalRecords={2}
  *   elapsedTime="25:30"
  *   variant="default"
+ *   isEditMode={false}
  *   onHide={() => setShowDashboard(false)}
  * />
  * ```
@@ -90,6 +92,8 @@ interface WorkoutDashboardProps {
   variant?: "default" | "compact" | "bar" | "floating";
   onHide?: () => void; // פונקציה להעלמת הדשבורד
   // English: Function to hide dashboard
+  isEditMode?: boolean; // מצב עריכה - להצגת מידע שונה
+  // English: Edit mode - for showing different information
 }
 
 // קומפוננטת סטטיסטיקה בודדת - ממוחזרת עם React.memo לביצועים
@@ -168,6 +172,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   elapsedTime,
   variant = "default",
   onHide,
+  isEditMode = false,
 }) => {
   // חישוב אחוז השלמה
   // Calculate completion percentage
@@ -183,12 +188,12 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
       color: theme.colors.primary,
     },
     {
-      label: "סטים",
-      value: `${completedSets}/${totalSets}`,
-      icon: "format-list-checks",
+      label: isEditMode ? "עריכה" : "סטים",
+      value: isEditMode ? "✏️" : `${completedSets}/${totalSets}`,
+      icon: isEditMode ? "pencil" : "format-list-checks",
       iconFamily: "material",
-      color: theme.colors.success,
-      animate: true,
+      color: isEditMode ? theme.colors.warning : theme.colors.success,
+      animate: !isEditMode,
     },
     {
       label: "קצב",
@@ -203,7 +208,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
       icon: "trophy",
       iconFamily: "material",
       color: theme.colors.secondary,
-      animate: personalRecords > 0,
+      animate: personalRecords > 0 && !isEditMode,
     },
   ];
 

@@ -7,17 +7,19 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gymovoo.app"
     },
     "android": {
       "package": "com.gymovoo.app",
-      "supportsRtl": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,8 +31,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "האפליקציה צריכה גישה לתמונות שלך כדי לאפשר בחירת תמונת פרופיל",
-          "cameraPermission": "האפליקציה צריכה גישה למצלמה כדי לצלם תמונת פרופיל"
+          "photosPermission": "האפליקציה צריכה גישה לתמונות שלך כדי לאפשר בחירת תמונת פרופיל | The app needs access to your photos to allow profile picture selection",
+          "cameraPermission": "האפליקציה צריכה גישה למצלמה כדי לצלם תמונת פרופיל | The app needs access to your camera to take profile pictures"
         }
       ]
     ],

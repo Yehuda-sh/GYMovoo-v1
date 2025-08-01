@@ -26,9 +26,11 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { fakeGoogleSignIn } from "../../services/authService";
-import { realisticDemoService } from "../../services/realisticDemoService";
-import { workoutSimulationService } from "../../services/workoutSimulationService";
+import {
+  fakeGoogleSignIn,
+  realisticDemoService,
+  workoutSimulationService,
+} from "../../services";
 import { RootStackParamList } from "../../navigation/types";
 
 // Skeleton loading component for Google authentication button during async operations
@@ -132,10 +134,13 @@ const TouchableButton = ({
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser } = useUserStore();
+  const { setUser, user, isLoggedIn } = useUserStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isDevLoading, setIsDevLoading] = useState(false);
-  const [activeUsers] = useState(Math.floor(Math.random() * 2000) + 8000);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Generate active users count only once
+  const [activeUsers] = useState(() => Math.floor(Math.random() * 2000) + 8000);
 
   // Animation references for enhanced UI transitions // רפרנסי אנימציה למעברי UI משופרים
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -144,7 +149,44 @@ export default function WelcomeScreen() {
   const buttonSlide = useRef(new Animated.Value(50)).current;
   const pulseAnimation = useRef(new Animated.Value(0.3)).current;
 
+  // בדיקת מצב התחברות קיים - ניווט אוטומטי למשתמש מחובר
+  // Check existing authentication state - auto-navigate for logged-in user
   useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        console.log("🔍 WelcomeScreen - בודק מצב התחברות:", {
+          hasUser: !!user,
+          userEmail: user?.email,
+          isLoggedInResult: isLoggedIn(),
+        });
+
+        // נתן זמן קצר ל-store להתחזר מ-AsyncStorage
+        // Give store time to rehydrate from AsyncStorage
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (isLoggedIn() && user) {
+          console.log(
+            "✅ WelcomeScreen - משתמש מחובר נמצא! מנווט למסך הבית:",
+            user.email
+          );
+          navigation.navigate("MainApp");
+          return;
+        }
+
+        console.log("ℹ️ WelcomeScreen - משתמש לא מחובר, מציג מסך ברוכים הבאים");
+        setIsCheckingAuth(false);
+      } catch (error) {
+        console.error("❌ WelcomeScreen - שגיאה בבדיקת מצב התחברות:", error);
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, [user, isLoggedIn, navigation]);
+
+  useEffect(() => {
+    if (isCheckingAuth) return; // לא להתחיל אנימציות בזמן בדיקת התחברות
+
     // Coordinated entrance animations with optimized timing // אנימציות כניסה מתואמות עם זמנים מותאמים
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -187,7 +229,14 @@ export default function WelcomeScreen() {
         }),
       ])
     ).start();
-  }, [fadeAnim, logoScale, counterAnimation, buttonSlide, pulseAnimation]);
+  }, [
+    fadeAnim,
+    logoScale,
+    counterAnimation,
+    buttonSlide,
+    pulseAnimation,
+    isCheckingAuth,
+  ]);
 
   // Google Sign-In with randomized user simulation for demo purposes
   // התחברות עם Google עם סימולציית משתמש רנדומלי למטרות הדגמה
@@ -203,8 +252,8 @@ export default function WelcomeScreen() {
 
       // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
       navigation.navigate("Questionnaire", { stage: "profile" });
-    } catch (error) {
-      console.error("Google sign-in failed:", error);
+    } catch {
+      // Handle error silently in production
     } finally {
       setIsGoogleLoading(false);
     }
@@ -234,12 +283,38 @@ export default function WelcomeScreen() {
 
       // Navigate to main application interface // ניווט לממשק האפליקציה הראשי
       navigation.navigate("MainApp");
-    } catch (error) {
-      console.error("Realistic demo creation failed:", error);
+    } catch {
+      // Handle error silently in production
     } finally {
       setIsDevLoading(false);
     }
   }, [setUser, navigation]);
+
+  // מסך טעינה בזמן בדיקת מצב התחברות
+  // Loading screen while checking authentication status
+  if (isCheckingAuth) {
+    return (
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.backgroundAlt]}
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <MaterialCommunityIcons
+          name="weight-lifter"
+          size={80}
+          color={theme.colors.primary}
+        />
+        <Text style={[styles.appName, { marginTop: 16 }]}>GYMovoo</Text>
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+          style={{ marginTop: 24 }}
+        />
+        <Text style={[styles.tagline, { marginTop: 16 }]}>
+          בודק מצב התחברות...
+        </Text>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -417,7 +492,6 @@ export default function WelcomeScreen() {
                   }}
                   style={styles.googleLogo}
                   resizeMode="contain"
-                  onError={() => console.warn("Google logo loading failed")}
                 />
                 <Text style={styles.googleButtonText}>המשך עם Google</Text>
               </TouchableButton>
@@ -542,7 +616,6 @@ export const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   liveIndicator: {
-    marginHorizontal: 0,
     marginStart: theme.spacing.xs,
     position: "relative",
   },
@@ -614,7 +687,6 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.buttonLarge.fontSize,
     fontWeight: theme.typography.buttonLarge.fontWeight,
     color: "#fff",
-    marginHorizontal: 0,
     marginStart: theme.spacing.xs,
     textAlign: "center",
     writingDirection: "rtl",
@@ -633,7 +705,6 @@ export const styles = StyleSheet.create({
   trialText: {
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.warning,
-    marginHorizontal: 0,
     marginEnd: theme.spacing.xs,
     fontWeight: "500",
     writingDirection: "rtl",
@@ -678,7 +749,6 @@ export const styles = StyleSheet.create({
   googleLogo: {
     width: 60,
     height: 20,
-    marginHorizontal: 0,
     marginStart: theme.spacing.xs,
   },
   googleButtonText: {
@@ -703,7 +773,6 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.button.fontSize,
     color: theme.colors.primary,
     fontWeight: "500",
-    marginHorizontal: 0,
     marginEnd: theme.spacing.xs,
     writingDirection: "rtl",
   },
@@ -725,7 +794,6 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.button.fontSize,
     color: theme.colors.warning,
     fontWeight: "600",
-    marginHorizontal: 0,
     marginEnd: theme.spacing.xs,
     writingDirection: "rtl",
   },

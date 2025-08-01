@@ -1,6 +1,7 @@
 {
   "name": "gymovoo",
   "version": "1.0.0",
+  "description": "GYMovoo - Smart Fitness App | אפליקציית כושר חכמה",
   "main": "index.ts",
   "scripts": {
     "start": "npx expo start",
@@ -25,8 +26,14 @@
     "check:data-flow": "node scripts/testDataFlow.js",
     "check:all": "npm run check:health && npm run check:quality && npm run check:performance && npm run check:security && npm run check:accessibility",
     "lint": "npx eslint src/ --fix",
+    "lint:check": "npx eslint src/",
     "type-check": "npx tsc --noEmit",
-    "audit": "npm audit"
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
+    "clean": "rmdir /s /q node_modules && npm install",
+    "clean:unix": "rm -rf node_modules && npm install",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
@@ -37,8 +44,6 @@
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.3.29",
-    "@testing-library/jest-native": "^5.4.3",
-    "@testing-library/react-native": "^13.2.0",
     "axios": "^1.11.0",
     "expo": "~52.0.0",
     "expo-av": "~15.0.2",
@@ -72,6 +77,8 @@
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@eslint/js": "^9.32.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.2.0",
     "@types/react": "~18.3.0",
     "@types/react-native": "~0.73.0",
     "@types/react-native-vector-icons": "^6.4.18",
@@ -91,6 +98,32 @@
     "prettier": "^3.3.2",
     "typescript": "^5.3.0",
     "typescript-eslint": "^8.38.0"
+  },
+  "keywords": [
+    "fitness",
+    "workout",
+    "gym",
+    "exercise",
+    "health",
+    "react-native",
+    "expo",
+    "mobile-app",
+    "hebrew",
+    "rtl"
+  ],
+  "author": "GYMovoo Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Yehuda-sh/GYMovoo-v1.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Yehuda-sh/GYMovoo-v1/issues"
+  },
+  "homepage": "https://github.com/Yehuda-sh/GYMovoo-v1#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "private": true
 }

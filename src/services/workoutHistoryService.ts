@@ -23,144 +23,10 @@ import {
 // Export types for external use
 export type { PreviousPerformance, PersonalRecord };
 
-// Note: Interfaces moved to workout.types.ts to avoid duplication
-
 const WORKOUT_HISTORY_KEY = "workout_history";
 const PREVIOUS_PERFORMANCES_KEY = "previous_performances";
 
 class WorkoutHistoryService {
-  /**
-   * יצירת הודעת ברכה מותאמת למגדר
-   * Generate gender-adapted congratulation message
-   */
-  private generateGenderAdaptedCongratulation(
-    gender?: "male" | "female" | "other",
-    personalRecords: number = 0
-  ): string {
-    if (!gender) {
-      return personalRecords > 0
-        ? `אימון מעולה! השגת ${personalRecords} שיאים אישיים חדשים!`
-        : "אימון מעולה! כל הכבוד על ההתמדה!";
-    }
-
-    if (gender === "male") {
-      const maleMessages = [
-        personalRecords > 0
-          ? `כל הכבוד גבר! ${personalRecords} שיאים חדשים - חזק ממך!`
-          : "אימון חזק! המשך כך והמשיך לפרוח!",
-        personalRecords > 0
-          ? `אלוף! השגת ${personalRecords} שיאים - אתה בדרך הנכונה!`
-          : "כוח וסיבולת! אתה משתפר בכל אימון!",
-        "אימון גברי מעולה! הרגשת את הכוח שלך היום!",
-      ];
-      return maleMessages[Math.floor(Math.random() * maleMessages.length)];
-    } else if (gender === "female") {
-      const femaleMessages = [
-        personalRecords > 0
-          ? `כל הכבוד גיבורה! ${personalRecords} שיאים חדשים - את בוערת!`
-          : "אימון נפלא! את חזקה ומדהימה!",
-        personalRecords > 0
-          ? `מלכה! השגת ${personalRecords} שיאים - המשיכי לכבוש!`
-          : "כוח נשי מדהים! את מתקדמת בכל אימון!",
-        "אימון מעצים! הרגשתי את הכוח שלך היום!",
-      ];
-      return femaleMessages[Math.floor(Math.random() * femaleMessages.length)];
-    }
-
-    // מגדר אחר או לא מוגדר - מסרים ניטרליים
-    return personalRecords > 0
-      ? `מדהים! השגת ${personalRecords} שיאים אישיים חדשים!`
-      : "אימון מעולה! המשך בדרך הנכונה!";
-  }
-
-  /**
-   * יצירת הערות מותאמות למגדר
-   * Generate gender-adapted workout notes
-   */
-  private generateGenderAdaptedNotes(
-    gender?: "male" | "female" | "other",
-    difficulty: number = 3
-  ): string {
-    if (!gender) {
-      return difficulty >= 4
-        ? "אימון מאתגר שהעלה אותי לרמה הבאה"
-        : "אימון טוב, הרגשתי חזק/ה היום";
-    }
-
-    if (gender === "male") {
-      if (difficulty >= 4) {
-        const hardMessages = [
-          "אימון קשה אבל הרגשתי כמו אריה!",
-          "המשקלים היו כבדים אבל התמדתי כמו גבר אמיתי",
-          "אימון אתגרי שהעלה אותי לרמה הבאה",
-          "דחפתי את הגבולות היום - הרגשתי את הכוח שלי",
-        ];
-        return hardMessages[Math.floor(Math.random() * hardMessages.length)];
-      } else {
-        const easyMessages = [
-          "אימון נעים, הרגשתי חזק ובשליטה",
-          "זרימה טובה היום, הכל הלך חלק",
-          "אימון מוצלח, בניתי על הבסיס החזק שלי",
-        ];
-        return easyMessages[Math.floor(Math.random() * easyMessages.length)];
-      }
-    } else if (gender === "female") {
-      if (difficulty >= 4) {
-        const hardMessages = [
-          "אימון מאתגר אבל הרגשתי כמו לוחמת!",
-          "התמדתי למרות הקושי - הרגשתי את הכוח הפנימי שלי",
-          "אימון קשה שהעלה אותי לרמה הבאה",
-          "דחפתי את הגבולות היום - גאה בעצמי!",
-        ];
-        return hardMessages[Math.floor(Math.random() * hardMessages.length)];
-      } else {
-        const easyMessages = [
-          "אימון נעים, הרגשתי חזקה ובטוחה",
-          "זרימה מדהימה היום, הכל הלך בקלות",
-          "אימון מוצלח, מרגישה שאני משתפרת",
-        ];
-        return easyMessages[Math.floor(Math.random() * easyMessages.length)];
-      }
-    }
-
-    // מגדר אחר - מסרים ניטרליים
-    return difficulty >= 4
-      ? "אימון מאתגר שהעלה אותי לרמה הבאה"
-      : "אימון מוצלח, מרגיש/ה שאני מתקדמ/ת";
-  }
-
-  /**
-   * התאמת שמות תרגילים למגדר (מותאם מ-workoutSimulationService)
-   * Adapt exercise names to user gender (adapted from workoutSimulationService)
-   */
-  private adaptExerciseNameToGender(
-    exerciseName: string,
-    gender?: "male" | "female" | "other"
-  ): string {
-    if (!gender) return exerciseName;
-
-    // התאמות בסיסיות לפי מגדר - קטן יותר מ-workoutSimulationService
-    if (gender === "female") {
-      const femaleAdaptations: { [key: string]: string } = {
-        "Push-ups": "שכיבות סמיכה מותאמות",
-        Squats: "כפיפות ברכיים נשיות",
-        Planks: "פלאנק מחזק",
-        Lunges: "צעדי נשים",
-      };
-      return femaleAdaptations[exerciseName] || exerciseName;
-    } else if (gender === "male") {
-      const maleAdaptations: { [key: string]: string } = {
-        "Push-ups": "שכיבות סמיכה חזקות",
-        "Pull-ups": "מתח לגברים",
-        Deadlift: "הרמת משקל כבד",
-        "Bench Press": "פרס חזה מתקדם",
-      };
-      return maleAdaptations[exerciseName] || exerciseName;
-    }
-
-    return exerciseName; // ללא התאמה למגדר אחר
-  }
-
   /**
    * שמירת אימון עם משוב להיסטוריה (משופר עם תמיכה בהתאמת מגדר)
    */
@@ -522,7 +388,6 @@ class WorkoutHistoryService {
     try {
       await AsyncStorage.removeItem(WORKOUT_HISTORY_KEY);
       await AsyncStorage.removeItem(PREVIOUS_PERFORMANCES_KEY);
-      console.log("Workout history cleared");
     } catch (error) {
       console.error("Error clearing workout history:", error);
       throw error;
@@ -585,7 +450,7 @@ class WorkoutHistoryService {
     if (history.length === 0) return 0;
 
     // מיון לפי תאריך (החדש ביותר ראשון)
-    const sortedHistory = history.sort(
+    const sortedHistory = [...history].sort(
       (a, b) =>
         new Date(b.feedback.completedAt).getTime() -
         new Date(a.feedback.completedAt).getTime()
@@ -685,13 +550,14 @@ class WorkoutHistoryService {
       });
 
       // חישוב ממוצעים
-      Object.keys(byGender).forEach((gender) => {
-        const key = gender as keyof typeof byGender;
-        if (byGender[key].count > 0) {
-          byGender[key].averageDifficulty =
-            totalDifficultyByGender[key] / byGender[key].count;
+      (Object.keys(byGender) as Array<keyof typeof byGender>).forEach(
+        (gender) => {
+          if (byGender[gender].count > 0) {
+            byGender[gender].averageDifficulty =
+              totalDifficultyByGender[gender] / byGender[gender].count;
+          }
         }
-      });
+      );
 
       // סטטיסטיקות כלליות
       const totalStats = await this.getWorkoutStatistics();

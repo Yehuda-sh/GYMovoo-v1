@@ -4,7 +4,7 @@
  * English: Combined component showing rest timer or next exercise based on workout state
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,22 +17,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
-import { Exercise } from "../types/workout.types";
-
-interface WorkoutStatusBarProps {
-  // Rest Timer Props
-  isRestActive: boolean;
-  restTimeLeft?: number;
-  onAddRestTime?: (seconds: number) => void;
-  onSubtractRestTime?: (seconds: number) => void;
-  onSkipRest?: () => void;
-
-  // Next Exercise Props
-  nextExercise?: Exercise | null;
-  onSkipToNext?: () => void;
-
-  // Common Props
-}
+import type { WorkoutStatusBarProps } from "./types";
 
 // פורמט זמן | Format time
 const formatTime = (seconds: number): string => {
@@ -49,6 +34,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
   onSkipRest,
   nextExercise,
   onSkipToNext,
+  variant = "default",
 }) => {
   const slideAnim = useRef(new Animated.Value(100)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -57,27 +43,97 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
   // קביעת מה להציג | Determine what to show
   const shouldShow = isRestActive || (nextExercise && !isRestActive);
 
+  // קביעת סגנון לפי variant | Determine style by variant
+  const getContainerStyle = useCallback(() => {
+    const baseStyle = styles.container;
+    switch (variant) {
+      case "minimal":
+        return [baseStyle, styles.containerMinimal];
+      case "floating":
+        return [baseStyle, styles.containerFloating];
+      default:
+        return baseStyle;
+    }
+  }, [variant]);
+
+  const getGradientColors = useCallback(
+    (isRest: boolean): [string, string, ...string[]] => {
+      if (variant === "minimal") {
+        return [theme.colors.card, theme.colors.card];
+      }
+
+      if (isRest) {
+        return [
+          theme.colors.success + "25",
+          theme.colors.success + "15",
+          theme.colors.card + "F0",
+        ];
+      } else {
+        return [
+          theme.colors.primary + "25",
+          theme.colors.primaryGradientEnd + "25",
+          theme.colors.card + "F0",
+        ];
+      }
+    },
+    [variant]
+  );
+
+  // אופטימיזציה של handleVibrate עם useCallback
+  const handleVibrate = useCallback(() => {
+    if (Platform.OS !== "web") {
+      Vibration.vibrate(50);
+    }
+  }, []);
+
+  // אופטימיזציה של כפתורי זמן עם useCallback
+  const handleAddTime = useCallback(() => {
+    handleVibrate();
+    onAddRestTime?.(10);
+  }, [onAddRestTime, handleVibrate]);
+
+  const handleSubtractTime = useCallback(() => {
+    handleVibrate();
+    onSubtractRestTime?.(10);
+  }, [onSubtractRestTime, handleVibrate]);
+
+  const handleSkipRest = useCallback(() => {
+    handleVibrate();
+    onSkipRest?.();
+  }, [onSkipRest, handleVibrate]);
+
+  const handleSkipToNext = useCallback(() => {
+    handleVibrate();
+    onSkipToNext?.();
+  }, [onSkipToNext, handleVibrate]);
+
   useEffect(() => {
-    // אנימציית כניסה/יציאה | Entry/exit animation
+    // אנימציית כניסה/יציאה משופרת | Enhanced entry/exit animation
+    const animationConfig = {
+      friction: variant === "floating" ? 8 : 10,
+      tension: variant === "floating" ? 50 : 40,
+      useNativeDriver: true,
+    };
+
     Animated.spring(slideAnim, {
       toValue: shouldShow ? 0 : 100,
-      friction: 10,
-      tension: 40,
-      useNativeDriver: true,
+      ...animationConfig,
     }).start();
 
     // אנימציית פעימה לכפתור פעיל | Pulse animation for active button
     const hasActiveButton =
       (isRestActive && onSkipRest) || (!isRestActive && onSkipToNext);
 
-    if (shouldShow && hasActiveButton) {
+    if (shouldShow && hasActiveButton && variant !== "minimal") {
+      const pulseConfig = {
+        toValue: variant === "floating" ? 1.08 : 1.05,
+        duration: 1000,
+        useNativeDriver: true,
+      };
+
       pulseAnimationRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, pulseConfig),
           Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 1000,
@@ -94,30 +150,23 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
     return () => {
       pulseAnimationRef.current?.stop();
     };
-  }, [shouldShow, isRestActive, onSkipRest, onSkipToNext]);
+  }, [shouldShow, isRestActive, onSkipRest, onSkipToNext, variant]);
 
   if (!shouldShow) {
     return null;
   }
 
-  const handleVibrate = () => {
-    if (Platform.OS !== "web") {
-      Vibration.vibrate(50);
-    }
-  };
-
   // מצב טיימר מנוחה | Rest timer mode
   if (isRestActive) {
     return (
       <Animated.View
-        style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+        style={[
+          getContainerStyle(),
+          { transform: [{ translateY: slideAnim }] },
+        ]}
       >
         <LinearGradient
-          colors={[
-            theme.colors.success + "25", // ירוק לטיימר | Green for timer
-            theme.colors.success + "15", // גרדיאנט ירוק | Green gradient
-            theme.colors.card + "F0",
-          ]}
+          colors={getGradientColors(true)}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
@@ -127,11 +176,10 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
             {onSubtractRestTime && (
               <TouchableOpacity
                 style={styles.timeButton}
-                onPress={() => {
-                  handleVibrate();
-                  onSubtractRestTime(10);
-                }}
+                onPress={handleSubtractTime}
                 activeOpacity={0.7}
+                accessibilityLabel="הפחת 10 שניות מהטיימר"
+                accessibilityRole="button"
               >
                 <Text style={styles.timeButtonText}>-10</Text>
               </TouchableOpacity>
@@ -152,11 +200,10 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
             {onAddRestTime && (
               <TouchableOpacity
                 style={styles.timeButton}
-                onPress={() => {
-                  handleVibrate();
-                  onAddRestTime(10);
-                }}
+                onPress={handleAddTime}
                 activeOpacity={0.7}
+                accessibilityLabel="הוסף 10 שניות לטיימר"
+                accessibilityRole="button"
               >
                 <Text style={styles.timeButtonText}>+10</Text>
               </TouchableOpacity>
@@ -167,11 +214,10 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <TouchableOpacity
                   style={styles.skipButton}
-                  onPress={() => {
-                    handleVibrate();
-                    onSkipRest();
-                  }}
+                  onPress={handleSkipRest}
                   activeOpacity={0.7}
+                  accessibilityLabel="דלג על זמן המנוחה"
+                  accessibilityRole="button"
                 >
                   <LinearGradient
                     colors={[theme.colors.success, theme.colors.success + "DD"]} // גרדיאנט ירוק | Green gradient
@@ -196,14 +242,13 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
   if (nextExercise) {
     return (
       <Animated.View
-        style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+        style={[
+          getContainerStyle(),
+          { transform: [{ translateY: slideAnim }] },
+        ]}
       >
         <LinearGradient
-          colors={[
-            theme.colors.primary + "25", // כחול לתרגיל הבא | Blue for next exercise
-            theme.colors.primaryGradientEnd + "25",
-            theme.colors.card + "F0",
-          ]}
+          colors={getGradientColors(false)}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
@@ -229,11 +274,10 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <TouchableOpacity
                   style={styles.skipButton}
-                  onPress={() => {
-                    handleVibrate();
-                    onSkipToNext();
-                  }}
+                  onPress={handleSkipToNext}
                   activeOpacity={0.7}
+                  accessibilityLabel={`מעבר לתרגיל הבא: ${nextExercise.name}`}
+                  accessibilityRole="button"
                 >
                   <LinearGradient
                     colors={[theme.colors.primary, theme.colors.primary + "DD"]} // גרדיאנט כחול | Blue gradient
@@ -265,6 +309,17 @@ const styles = StyleSheet.create({
     right: 0,
     paddingBottom: 20,
     zIndex: 100,
+  },
+  containerMinimal: {
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+  },
+  containerFloating: {
+    bottom: 20,
+    left: 16,
+    right: 16,
+    borderRadius: theme.radius.xl,
+    paddingBottom: 0,
   },
   gradientBackground: {
     borderTopLeftRadius: theme.radius.xl,

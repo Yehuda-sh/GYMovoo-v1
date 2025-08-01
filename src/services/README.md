@@ -1,68 +1,65 @@
 # 🔧 Services Directory - GYMovoo
 
-מדריך שירותי האפליקציה השונים / Application Services Guide
+מדריך שירותי האפליקציה השונים
 
-## 📋 Overview / סקירה כללית
+## 📋 סקירה כללית
 
 תיקייה זו מכילה את כל השירותים הראשיים של האפליקציה, כולל שירותי API, לוגיקה עסקית, וניהול נתונים.
 
-This directory contains all main application services, including API services, business logic, and data management.
+---
+
+## 🗂️ קבצי שירותים
+
+### 🔐 שירותי אימות
+
+- **`authService.ts`** - שירות אימות משתמשים
+
+### 🏋️ שירותי תרגילים ואימונים
+
+- **`exerciseService.ts`** - ניהול מאגר התרגילים
+- **`nextWorkoutLogicService.ts`** - לוגיקה לקביעת האימון הבא
+- **`quickWorkoutGenerator.ts`** - יצירת אימונים מהירים
+- **`workoutDataService.ts`** - ניהול נתוני אימונים
+- **`workoutHistoryService.ts`** - ניהול היסטוריית אימונים עם התאמת מגדר
+
+### 📊 שירותי סימולציה ודמו
+
+- **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים עם התאמת מגדר וניתוח ביצועים
+- **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים עם התאמות חכמות
+
+### 📝 שירותי שאלונים
+
+- **`questionnaireService.ts`** - ניהול שאלונים
+- **`scientificUserGenerator.ts`** - יצירת משתמשים לפי נתונים מדעיים
+
+### 🤖 שירותי AI ומדעיים
+
+- **`scientificAIService.ts`** - שירות AI מבוסס מחקר מדעי
+
+### 🌐 שירותי API חיצוניים
+
+- **`wgerApiService.ts`** - שירות API של Wger
+- **`wgerService.ts`** - שירות משופר ל-Wger
 
 ---
 
-## 🗂️ Service Files / קבצי שירותים
+## 🆕 תכונות חדשות
 
-### 🔐 Authentication Services / שירותי אימות
+### 🎯 שיפורי שירות הסימולציה WorkoutSimulationService
 
-- **`authService.ts`** - שירות אימות משתמשים / User authentication service
+**עודכן לאחרונה: 2025-07-30**
 
-### 🏋️ Exercise & Workout Services / שירותי תרגילים ואימונים
+#### ✨ יכולות חדשות:
 
-- **`exerciseService.ts`** - ניהול מאגר התרגילים / Exercise database management
-- **`nextWorkoutLogicService.ts`** - לוגיקה לקביעת האימון הבא / Next workout determination logic
-- **`quickWorkoutGenerator.ts`** - יצירת אימונים מהירים / Quick workout generation
-- **`workoutDataService.ts`** - ניהול נתוני אימונים / Workout data management
-- **`workoutHistoryService.ts`** - ניהול היסטוריית אימונים עם התאמת מגדר / Workout history management with gender adaptation
+- **🏃‍♂️ התאמת מגדר** - התאמת שמות תרגילים והודעות פידבק למגדר
+- **📊 פרמטרים מורחבים** - פרמטרים מורחבים עם תמיכה במגדר ומטרות אישיות
+- **🔄 התנהגות מציאותית** - סימולציה מציאותית של התנהגות משתמש
+- **📈 היסטוריה של 6 חודשים** - יצירה אוטומטית של 6 חודשי היסטוריית אימונים
+- **⏰ תזמון חכם** - התאמת זמני אימון לפי מגדר ורמת ניסיון
+- **🎯 לוגיקה מתקדמת** - מוטיבציה דינמית ומתקדמת לפי ביצועים
+- **💪 אימון מבוסס ניסיון** - התאמת משך ועצימות לפי רמת המשתמש
 
-### 📊 Simulation & Demo Services / שירותי סימולציה ודמו
-
-- **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים עם התאמת מגדר וניתוח ביצועים / Realistic demo data generation with gender adaptation and performance analysis
-- **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים עם התאמות חכמות / Realistic workout simulation with smart adaptations
-- **`realisticDemoService.ts`** - שירות דמו חכם עם ניתוח ביצועים / Smart demo service with performance analysis
-
-### 📝 Questionnaire Services / שירותי שאלונים
-
-- **`questionnaireService.ts`** - ניהול שאלונים / Questionnaire management
-- **`scientificUserGenerator.ts`** - יצירת משתמשים לפי נתונים מדעיים / Scientific user data generation
-
-### 🤖 AI & Scientific Services / שירותי AI ומדעיים
-
-- **`scientificAIService.ts`** - שירות AI מבוסס מחקר מדעי / Scientific research-based AI service
-
-### 🌐 External API Services / שירותי API חיצוניים
-
-- **`wgerApiService.ts`** - שירות API של Wger / Wger API service
-- **`wgerService.ts`** - שירות משופר ל-Wger / Enhanced Wger service
-
----
-
-## 🆕 New Features / תכונות חדשות
-
-### 🎯 WorkoutSimulationService Enhancements / שיפורי שירות הסימולציה
-
-**Last Updated: 2025-07-30**
-
-#### ✨ New Capabilities / יכולות חדשות:
-
-- **🏃‍♂️ Gender Adaptation** - התאמת שמות תרגילים והודעות פידבק למגדר
-- **📊 Enhanced Parameters** - פרמטרים מורחבים עם תמיכה במגדר ומטרות אישיות
-- **🔄 Realistic Behavior** - סימולציה מציאותית של התנהגות משתמש
-- **📈 6-Month History** - יצירה אוטומטית של 6 חודשי היסטוריית אימונים
-- **⏰ Smart Timing** - התאמת זמני אימון לפי מגדר ורמת ניסיון
-- **🎯 Progressive Logic** - מוטיבציה דינמית ומתקדמת לפי ביצועים
-- **💪 Experience-Based Training** - התאמת משך ועצימות לפי רמת המשתמש
-
-#### 🛠️ Key Functions / פונקציות מרכזיות:
+#### 🛠️ פונקציות מרכזיות:
 
 - `simulateRealisticWorkoutHistory()` - סימולציה מלאה של היסטוריית אימונים
 - `generateRealisticStartTime()` - זמני אימון מותאמים אישית לפי מגדר
@@ -71,25 +68,25 @@ This directory contains all main application services, including API services, b
 - ~~`adaptExerciseNameToGender()` - **הועבר ל-genderAdaptation.ts**~~
 - ~~`generateGenderAdaptedNotes()` - **הועבר ל-genderAdaptation.ts**~~
 
-#### 📚 Usage Examples / דוגמאות שימוש:
+#### 📚 דוגמאות שימוש:
 
 - ~~See **`workoutSimulationService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
 - השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
 
-### 📊 RealisticDemoService Enhancements / שיפורי שירות הדמו
+### 📊 שיפורי שירות הדמו RealisticDemoService
 
-**Last Updated: 2025-07-31**
+**עודכן לאחרונה: 2025-07-31**
 
-#### ✨ New Capabilities / יכולות חדשות:
+#### ✨ יכולות חדשות:
 
-- **🎭 Multi-Gender Demo Profiles** - 3 פרופילי גברים, 3 פרופילי נשים ופרופיל נייטרלי
-- **🏋️ Smart Exercise Adaptation** - התאמת שמות תרגילים אוטומטית לפי מגדר
-- **📝 Adaptive Feedback** - הודעות פידבק מותאמות למגדר
-- **🔧 Enhanced Type Safety** - טיפוסי TypeScript מוגדרים במקום any
-- **📊 Performance Analysis** - ניתוח ביצועים חכם עם זיהוי מגמות
-- **🎯 Intelligent Recommendations** - המלצות מבוססות נתונים לשיפור
+- **🎭 פרופילי דמו מרובי מגדר** - 3 פרופילי גברים, 3 פרופילי נשים ופרופיל נייטרלי
+- **🏋️ התאמת תרגילים חכמה** - התאמת שמות תרגילים אוטומטית לפי מגדר
+- **📝 פידבק אדפטיבי** - הודעות פידבק מותאמות למגדר
+- **🔧 בטיחות טיפוסים משופרת** - טיפוסי TypeScript מוגדרים במקום any
+- **📊 ניתוח ביצועים** - ניתוח ביצועים חכם עם זיהוי מגמות
+- **🎯 המלצות חכמות** - המלצות מבוססות נתונים לשיפור
 
-#### 🛠️ Key Functions / פונקציות מרכזיות:
+#### 🛠️ פונקציות מרכזיות:
 
 - `createRealisticDemoUser(gender?: UserGender)` - יצירת משתמש דמו עם אפשרות בחירת מגדר
 - `adaptWorkoutToGender()` - התאמת אימון למגדר המשתמש
@@ -97,50 +94,50 @@ This directory contains all main application services, including API services, b
 - `analyzePerformance()` - ניתוח ביצועים מתקדם עם אלגוריתמים חכמים
 - `calculateConsistencyScore()` - חישוב ציון עקביות אימונים
 
-#### 📚 Usage Examples / דוגמאות שימוש:
+#### 📚 דוגמאות שימוש:
 
 ```typescript
-// Create gender-specific demo user
+// יצירת משתמש דמו ספציפי למגדר
 await realisticDemoService.createRealisticDemoUser("female");
 
-// Add workout with automatic gender adaptation
+// הוספת אימון עם התאמת מגדר אוטומטית
 await realisticDemoService.addWorkoutSession(workoutData);
 ```
 
 ---
 
-#### ✨ New Capabilities / יכולות חדשות:
+#### ✨ יכולות חדשות:
 
-- **👥 Gender-Adapted Messages** - הודעות ברכה והערות מותאמות למגדר המשתמש
-- **📱 Enhanced Metadata** - מידע מורחב על מכשיר, גרסה ומקור האימון
-- **🏋️ Exercise Name Adaptation** - התאמת שמות תרגילים למגדר בהיסטוריה
-- **📊 Gender-Grouped Statistics** - סטטיסטיקות מקובצות לפי מגדר
-- **🔍 Data Validation** - בדיקות תקינות מקיפות לנתוני היסטוריה
+- **👥 הודעות מותאמות למגדר** - הודעות ברכה והערות מותאמות למגדר המשתמש
+- **📱 מטאדאטה מורחבת** - מידע מורחב על מכשיר, גרסה ומקור האימון
+- **🏋️ התאמת שמות תרגילים** - התאמת שמות תרגילים למגדר בהיסטוריה
+- **📊 סטטיסטיקות לפי מגדר** - סטטיסטיקות מקובצות לפי מגדר
+- **🔍 בדיקת תקינות נתונים** - בדיקות תקינות מקיפות לנתוני היסטוריה
 
-#### 🛠️ Key Functions / פונקציות מרכזיות:
+#### 🛠️ פונקציות מרכזיות:
 
 - `saveWorkoutWithFeedback()` - שמירת אימון עם התאמת מגדר
 - `getLatestCongratulationMessage()` - קבלת הודעות ברכה מותאמות
 - `getGenderGroupedStatistics()` - סטטיסטיקות לפי מגדר
 - `validateHistoryData()` - בדיקת תקינות נתונים
 
-#### 📚 Usage Examples / דוגמאות שימוש:
+#### 📚 דוגמאות שימוש:
 
 - ~~See **`workoutHistoryService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
 - השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
 
 ---
 
-## 🔄 Service Integration / אינטגרציה בין שירותים
+## 🔄 אינטגרציה בין שירותים
 
-### 📊 Data Flow / זרימת נתונים
+### 📊 זרימת נתונים
 
 ```
 Questionnaire → UserStore → Simulation → Demo → History
 שאלון → חנות משתמש → סימולציה → דמו → היסטוריה
 ```
 
-### 🤝 Service Dependencies / תלויות בין שירותים
+### 🤝 תלויות בין שירותים
 
 - **QuestionnaireService** → **UserStore** (user preferences)
 - **WorkoutSimulationService** → **RealisticDemoService** (data storage)
@@ -149,9 +146,9 @@ Questionnaire → UserStore → Simulation → Demo → History
 
 ---
 
-## 🏗️ Architecture Patterns / דפוסי ארכיטקטורה
+## 🏗️ דפוסי ארכיטקטורה
 
-### 🎯 Service Layer Principles / עקרונות שכבת השירותים
+### 🎯 עקרונות שכבת השירותים
 
 1. **Single Responsibility** - כל שירות אחראי על תחום אחד
 2. **Dependency Injection** - הזרקת תלויות באמצעות hooks
@@ -159,7 +156,7 @@ Questionnaire → UserStore → Simulation → Demo → History
 4. **Error Handling** - טיפול מקיף בשגיאות
 5. **RTL Support** - תמיכה מלאה בעברית וכיוון מימין לשמאל
 
-### 📋 Code Quality Standards / תקני איכות קוד
+### 📋 תקני איכות קוד
 
 - ✅ TypeScript strict mode enabled
 - ✅ Comprehensive error handling
@@ -171,11 +168,11 @@ Questionnaire → UserStore → Simulation → Demo → History
 
 ---
 
-## 🚀 Usage Guidelines / הנחיות שימוש
+## 🚀 הנחיות שימוש
 
-### 💡 Best Practices / שיטות עבודה מומלצות
+### 💡 שיטות עבודה מומלצות
 
-1. **Import Services Properly** / ייבוא שירותים נכון:
+1. **ייבוא שירותים נכון**:
 
 ```typescript
 import { workoutSimulationService } from "@/services/workoutSimulationService";
@@ -255,7 +252,7 @@ import type { SimulationParameters } from "@/services/workoutSimulationService";
 - See `/docs/PROGRESS_LOG.md` for development history
 - See `workoutSimulationService.example.ts` for usage examples
 
-### 🔗 External APIs / APIs חיצוניים
+### 🔗 External APIs
 
 - **Wger Exercise Database**: https://wger.de/api/v2/
 - **Exercise Data**: Comprehensive exercise database with categories

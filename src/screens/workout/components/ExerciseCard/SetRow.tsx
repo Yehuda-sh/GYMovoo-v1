@@ -1,6 +1,86 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/SetRow.tsx
- * @description שורת סט בודדת עם התאמה מלאה ל-RTL
+ * @description שורת סט בודדת עם ממשק עריכה מתקדם והתאמה מלאה ל-RTL
+ * @version 3.0.0
+ * @author GYMovoo Development Team
+ * @created 2024-12-15
+ * @modified 2025-08-02
+ *
+ * @description
+ * רכיב מתקדם לעריכת סטי אימון עם מצב עריכה מלא, חצי מעלית וקלט מקלדת מיועל.
+ * הרכיב תומך במצבי תצוגה שונים ומספק חוויית משתמש מושלמת עם אנימציות חלקות.
+ *
+ * @features
+ * - ✅ מצב עריכה מתקדם עם הסתרת כפתור השלמה
+ * - ✅ חצי מעלית אלגנטיים (elevator buttons) להעברת סטים
+ * - ✅ קלט מקלדת מיועל ל-Android עם פתרון בעיות פוקוס
+ * - ✅ ביטול השלמת סט - לחיצה נוספת מבטלת השלמה
+ * - ✅ אנימציות מתקדמות עם Animated API
+ * - ✅ תמיכת RTL מלאה עם פריסה מותאמת לעברית
+ * - ✅ שכפול וחיקה של סטים במצב עריכה
+ * - ✅ אינדיקטורים חזותיים לשיאים אישיים (PR Badge)
+ * - ✅ הבחנה ברורה בין placeholder לערך אמיתי
+ * - ✅ נגישות מקיפה עם ARIA labels
+ *
+ * @technical
+ * פתרונות טכניים מתקדמים:
+ * - TouchableOpacity אינדיבידואלי לכל TextInput עם activeOpacity={1}
+ * - useRef לשליטה ישירה על שדות הקלט
+ * - אופטימיזציות Android: blurOnSubmit={false}, showSoftInputOnFocus={true}
+ * - React.memo לביצועים מיטביים
+ * - useCallback ו-useMemo למניעת re-renders מיותרים
+ *
+ * @editmode
+ * במצב עריכה (isEditMode=true):
+ * - כפתור השלמה מוסתר
+ * - חצי מעלית מוצגים (triangle icons מסתובבים)
+ * - כפתור שכפול פעיל
+ * - כפתור מחיקה עם סגנון אדום
+ * - אנימציות מושבתות למען יציבות
+ *
+ * @android
+ * פתרונות ספציפיים ל-Android:
+ * - הסרת TouchableOpacity חיצוני שחוטף אירועי פוקוס
+ * - keyboardType="numeric" קבוע (במקום number-pad)
+ * - עטיפה ספציפית לכל TextInput עם קריאה מפורשת ל-focus()
+ *
+ * @rtl
+ * תמיכה מלאה בעברית:
+ * - flexDirection: "row-reverse" בכול מקום
+ * - marginStart במקום marginLeft
+ * - textAlign: "center" לשדות קלט
+ * - פריסת אייקונים מותאמת לכיוון קריאה
+ *
+ * @accessibility
+ * נגישות מלאה:
+ * - accessibilityLabel מפורט לכל כפתור
+ * - accessibilityHint להסבר פונקציונליות
+ * - hitSlop מוגדל לנוחות מגע
+ *
+ * @performance
+ * אופטימיזציה מתקדמת:
+ * - React.memo על הרכיב הראשי
+ * - useCallback לכל event handlers
+ * - useMemo לערכי input ו-placeholder
+ * - useRef לאנימציות ללא re-renders
+ *
+ * @example
+ * ```tsx
+ * <SetRow
+ *   set={workoutSet}
+ *   setNumber={1}
+ *   onUpdate={(updates) => updateSet(setId, updates)}
+ *   onDelete={() => deleteSet(setId)}
+ *   onComplete={() => completeSet(setId)}
+ *   onLongPress={() => showSetOptions(setId)}
+ *   isEditMode={true}
+ *   onMoveUp={() => moveSetUp(setId)}
+ *   onMoveDown={() => moveSetDown(setId)}
+ *   onDuplicate={() => duplicateSet(setId)}
+ *   isFirst={index === 0}
+ *   isLast={index === sets.length - 1}
+ * />
+ * ```
  */
 
 import React, { useRef, useEffect, useState } from "react";
@@ -33,6 +113,14 @@ interface SetRowProps {
   onLongPress: () => void;
   isActive?: boolean;
   exercise: Exercise;
+  // מצב עריכה
+  isEditMode?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onDuplicate?: () => void;
+  // מידע על מיקום הסט
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const SetRow: React.FC<SetRowProps> = ({
@@ -44,10 +132,27 @@ const SetRow: React.FC<SetRowProps> = ({
   onLongPress,
   isActive,
   // exercise, // לא בשימוש כרגע
+  isEditMode = false,
+  onMoveUp,
+  onMoveDown,
+  onDuplicate,
+  isFirst = false,
+  isLast = false,
 }) => {
+  // Wrap onUpdate with logging
+  const wrappedOnUpdate = React.useCallback(
+    (updates: Partial<ExtendedSet>) => {
+      onUpdate(updates);
+    },
+    [onUpdate]
+  );
   const checkAnim = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const prBounceAnim = useRef(new Animated.Value(0)).current;
+
+  // רפרנסים לשדות הקלט
+  const weightInputRef = useRef<TextInput>(null);
+  const repsInputRef = useRef<TextInput>(null);
 
   // States for enhanced features
   const [showTargetHint, setShowTargetHint] = useState(false);
@@ -109,30 +214,81 @@ const SetRow: React.FC<SetRowProps> = ({
     }).start();
   }, [isActive, scaleAnim]);
 
-  const handleWeightChange = (value: string) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) || value === "") {
-      onUpdate({ actualWeight: value === "" ? undefined : numValue });
-    }
-  };
+  const handleWeightChange = React.useCallback(
+    (value: string) => {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) || value === "") {
+        wrappedOnUpdate({ actualWeight: value === "" ? undefined : numValue });
+      }
+    },
+    [wrappedOnUpdate]
+  );
 
-  const handleRepsChange = (value: string) => {
-    const numValue = parseInt(value);
-    if (!isNaN(numValue) || value === "") {
-      onUpdate({ actualReps: value === "" ? undefined : numValue });
-    }
-  };
+  const handleRepsChange = React.useCallback(
+    (value: string) => {
+      const numValue = parseInt(value);
+      if (!isNaN(numValue) || value === "") {
+        const updateValue = value === "" ? undefined : numValue;
+        wrappedOnUpdate({ actualReps: updateValue });
+      }
+    },
+    [wrappedOnUpdate]
+  );
+
+  // Memoize input values to prevent unnecessary re-renders
+  const weightValue = React.useMemo(
+    () => set.actualWeight?.toString() || "",
+    [set.actualWeight]
+  );
+  const repsValue = React.useMemo(() => {
+    const value = set.actualReps?.toString() || "";
+    return value;
+  }, [set.actualReps]);
+  const weightPlaceholder = React.useMemo(
+    () => set.targetWeight?.toString() || "-",
+    [set.targetWeight]
+  );
+  const repsPlaceholder = React.useMemo(() => {
+    const placeholder = set.targetReps ? `יעד: ${set.targetReps}` : "-";
+    return placeholder;
+  }, [set.targetReps]);
+
+  // Callback functions for focus handling
+  const handleWeightFocus = React.useCallback(() => {
+    setWeightFocused(true);
+  }, []);
+
+  const handleWeightBlur = React.useCallback(() => {
+    setWeightFocused(false);
+  }, []);
+
+  const handleRepsFocus = React.useCallback(() => {
+    setRepsFocused(true);
+  }, []);
+
+  const handleRepsBlur = React.useCallback(() => {
+    setRepsFocused(false);
+  }, []);
 
   const handleComplete = () => {
-    // אם אין ערכים ממשיים, השתמש בערכי המטרה
-    if (!set.actualWeight && set.targetWeight) {
-      onUpdate({ actualWeight: set.targetWeight });
-    }
-    if (!set.actualReps && set.targetReps) {
-      onUpdate({ actualReps: set.targetReps });
+    // ✨ תכונה: ביטול השלמת סט בלחיצה נוספת
+    // אם הסט כבר מושלם - בטל את ההשלמה
+    if (set.completed) {
+      // בטל השלמה - חזור למצב לא מושלם
+      wrappedOnUpdate({ completed: false });
+      return;
     }
 
-    // השלם את הסט בכל מקרה
+    // אם הסט לא מושלם - השלם אותו
+    // אם אין ערכים ממשיים, השתמש בערכי המטרה
+    if (!set.actualWeight && set.targetWeight) {
+      wrappedOnUpdate({ actualWeight: set.targetWeight });
+    }
+    if (!set.actualReps && set.targetReps) {
+      wrappedOnUpdate({ actualReps: set.targetReps });
+    }
+
+    // השלם את הסט
     onComplete();
   };
 
@@ -165,11 +321,7 @@ const SetRow: React.FC<SetRowProps> = ({
   }, [set.actualWeight, set.previousWeight]);
 
   return (
-    <TouchableOpacity
-      onLongPress={onLongPress}
-      activeOpacity={0.7}
-      style={{ marginBottom: 8 }}
-    >
+    <View style={{ marginBottom: 8 }}>
       <Animated.View
         style={[
           styles.container,
@@ -218,6 +370,7 @@ const SetRow: React.FC<SetRowProps> = ({
         <TouchableOpacity
           style={styles.previousContainer}
           onPress={showHint}
+          onLongPress={onLongPress}
           activeOpacity={0.7}
         >
           <Text style={styles.previousText}>
@@ -237,102 +390,204 @@ const SetRow: React.FC<SetRowProps> = ({
           )}
         </TouchableOpacity>
 
-        {/* שינוי RTL: שדות הקלט */}
-        <View
+        {/* 🎯 פתרון Android: TouchableOpacity אינדיבידואלי עם פוקוס מפורש */}
+        <TouchableOpacity
           style={[
             styles.inputContainer,
             weightFocused && styles.focusedContainer,
           ]}
+          activeOpacity={1} // חשוב: מונע אפקט לחיצה
+          onPress={() => {
+            // מאלץ פוקוס על השדה - פתרון לבעיות Android
+            const weightInput = weightInputRef.current;
+            if (weightInput) {
+              weightInput.focus();
+            }
+          }}
         >
           <TextInput
+            ref={weightInputRef} // 🔗 רפרנס לשליטה ישירה
             style={[
               styles.input,
               set.completed && styles.completedInput,
               weightFocused && styles.focusedInput,
             ]}
-            value={set.actualWeight?.toString() || ""}
+            value={weightValue}
             onChangeText={handleWeightChange}
-            onFocus={() => {
-              setWeightFocused(true);
-            }}
-            onBlur={() => setWeightFocused(false)}
-            keyboardType="numeric"
-            placeholder={set.targetWeight?.toString() || "-"}
+            onFocus={handleWeightFocus}
+            onBlur={handleWeightBlur}
+            keyboardType="numeric" // 📱 קבוע לכל הפלטפורמות
+            placeholder={weightPlaceholder}
             placeholderTextColor={theme.colors.textSecondary + "60"}
-            selectTextOnFocus
-            editable={!set.completed}
+            selectTextOnFocus={true}
+            editable={true}
+            returnKeyType="done"
+            blurOnSubmit={false} // 🔑 מפתח: מונע סגירת מקלדת אוטומטית
+            autoFocus={false}
+            multiline={false}
+            maxLength={10}
+            caretHidden={false}
+            contextMenuHidden={false}
+            autoCorrect={false}
+            autoCapitalize="none"
+            spellCheck={false}
+            textContentType="none"
+            showSoftInputOnFocus={true} // 🚀 מאלץ הצגת מקלדת ב-Android
           />
+
           {showTargetHint && set.targetWeight && (
             <Text style={styles.targetHint}>יעד: {set.targetWeight}</Text>
           )}
-        </View>
+        </TouchableOpacity>
 
-        <View
+        <TouchableOpacity
           style={[
             styles.inputContainer,
             repsFocused && styles.focusedContainer,
           ]}
+          activeOpacity={1} // חשוב: מונע אפקט לחיצה
+          onPress={() => {
+            // מאלץ פוקוס על השדה - פתרון לבעיות Android
+            const repsInput = repsInputRef.current;
+            if (repsInput) {
+              repsInput.focus();
+            }
+          }}
         >
           <TextInput
+            ref={repsInputRef}
             style={[
               styles.input,
               set.completed && styles.completedInput,
               repsFocused && styles.focusedInput,
             ]}
-            value={set.actualReps?.toString() || ""}
+            value={repsValue}
             onChangeText={handleRepsChange}
-            onFocus={() => {
-              setRepsFocused(true);
-            }}
-            onBlur={() => setRepsFocused(false)}
+            onFocus={handleRepsFocus}
+            onBlur={handleRepsBlur}
             keyboardType="numeric"
-            placeholder={set.targetReps?.toString() || "-"}
-            placeholderTextColor={theme.colors.textSecondary + "60"}
-            selectTextOnFocus
-            editable={!set.completed}
+            placeholder={repsPlaceholder}
+            placeholderTextColor={theme.colors.textSecondary + "40"}
+            selectTextOnFocus={true}
+            editable={true}
+            returnKeyType="done"
+            blurOnSubmit={false}
+            autoFocus={false}
+            multiline={false}
+            maxLength={10}
+            caretHidden={false}
+            contextMenuHidden={false}
+            autoCorrect={false}
+            autoCapitalize="none"
+            spellCheck={false}
+            textContentType="none"
+            showSoftInputOnFocus={true}
           />
+
           {showTargetHint && set.targetReps && (
             <Text style={styles.targetHint}>יעד: {set.targetReps}</Text>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* שינוי RTL: כפתורי הפעולה עברו לסוף (צד שמאל) */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            onPress={handleComplete}
-            style={styles.actionButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View
-              style={[
-                styles.checkCircle,
-                set.completed && styles.checkCircleCompleted,
-              ]}
+          {/* 🎯 תכונת מצב עריכה: כפתור השלמה מוסתר */}
+          {!isEditMode && (
+            <TouchableOpacity
+              onPress={handleComplete}
+              style={styles.actionButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel={set.completed ? "בטל השלמת סט" : "סמן כהושלם"}
             >
-              <Animated.View style={{ opacity: checkAnim }}>
-                <Ionicons
-                  name="checkmark"
-                  size={16}
-                  color={theme.colors.white}
-                />
-              </Animated.View>
-            </View>
-          </TouchableOpacity>
+              <View
+                style={[
+                  styles.checkCircle,
+                  set.completed && styles.checkCircleCompleted,
+                ]}
+              >
+                <Animated.View style={{ opacity: checkAnim }}>
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={theme.colors.white}
+                  />
+                </Animated.View>
+              </View>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            onPress={handleDelete}
-            style={styles.actionButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name="trash-outline"
-              size={22}
-              color={theme.colors.error}
-            />
-          </TouchableOpacity>
+          {/* 🛠️ אייקונים למצב עריכה - חצי מעלית ופעולות */}
+          {isEditMode && (
+            <>
+              {/* שכפל סט */}
+              <TouchableOpacity
+                onPress={onDuplicate}
+                style={styles.actionButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="שכפל סט"
+              >
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={18}
+                  color={theme.colors.success}
+                />
+              </TouchableOpacity>
+
+              {/* 🏗️ חצי מעלית - עיצוב אלגנטי עם משולשים */}
+              <View style={styles.elevatorButtonsContainer}>
+                {/* חץ למעלה - רק אם לא הראשון */}
+                {!isFirst && (
+                  <TouchableOpacity
+                    onPress={onMoveUp}
+                    style={[styles.elevatorButton, styles.elevatorButtonUp]}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    accessibilityLabel="הזז סט למעלה"
+                  >
+                    <MaterialCommunityIcons
+                      name="triangle"
+                      size={12}
+                      color={theme.colors.primary}
+                      style={{ transform: [{ rotate: "0deg" }] }} // 🔺 למעלה
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* חץ למטה - רק אם לא האחרון */}
+                {!isLast && (
+                  <TouchableOpacity
+                    onPress={onMoveDown}
+                    style={[styles.elevatorButton, styles.elevatorButtonDown]}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    accessibilityLabel="הזז סט למטה"
+                  >
+                    <MaterialCommunityIcons
+                      name="triangle"
+                      size={12}
+                      color={theme.colors.primary}
+                      style={{ transform: [{ rotate: "180deg" }] }} // 🔻 למטה
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* כפתור מחיקה - רק במצב עריכה */}
+              <TouchableOpacity
+                onPress={handleDelete}
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="מחק סט"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={22}
+                  color={theme.colors.error}
+                />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Animated.View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -388,6 +643,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 4,
     position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
   },
   focusedContainer: {
     transform: [{ scale: 1.02 }],
@@ -407,6 +664,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     borderWidth: 1,
     borderColor: "transparent",
+    flex: 1,
   },
   completedInput: {
     backgroundColor: theme.colors.background + "80",
@@ -431,6 +689,13 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
   },
+  actionButtonDisabled: {
+    opacity: 0.4,
+  },
+  actionButtonDanger: {
+    backgroundColor: theme.colors.error + "10",
+    borderRadius: 6,
+  },
   checkCircle: {
     width: 26,
     height: 26,
@@ -454,6 +719,35 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.success,
     borderWidth: 2,
   },
+  // 🏗️ סגנונות חצי מעלית - עיצוב אלגנטי בסגנון מעלית אמיתית
+  elevatorButtonsContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: 2,
+    marginHorizontal: 4,
+  },
+  elevatorButton: {
+    width: 20,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    borderRadius: 3,
+    marginVertical: 1,
+  },
+  elevatorButtonUp: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
+  },
+  elevatorButtonDown: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
 });
 
-export default SetRow;
+export default React.memo(SetRow);

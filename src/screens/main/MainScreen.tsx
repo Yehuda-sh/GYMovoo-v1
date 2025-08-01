@@ -145,7 +145,6 @@ export default function MainScreen() {
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
       console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
-      // עבור ישירות למסך האימון עם יום ספציפי
       navigation.navigate("QuickWorkout", {
         source: "day_selection",
         requestedDay: dayNumber,
@@ -154,6 +153,16 @@ export default function MainScreen() {
     },
     [navigation]
   );
+
+  const handleProfilePress = useCallback(() => {
+    console.log("👤 MainScreen - כפתור פרופיל נלחץ!");
+    navigation.navigate("Profile");
+  }, [navigation]);
+
+  const handleHistoryPress = useCallback(() => {
+    console.log("📊 MainScreen - צפייה בהיסטוריה נלחצה!");
+    navigation.navigate("History");
+  }, [navigation]);
 
   // פונקציית דמו אינטראקטיבית לשאלון מדעי // Interactive demo function for scientific questionnaire
   const handleDemoRandomize = useCallback(() => {
@@ -272,6 +281,11 @@ export default function MainScreen() {
     }
   }, []);
 
+  const handleDemoPress = useCallback(() => {
+    console.log("🎯 MainScreen - כפתור דמו נלחץ!");
+    handleDemoRandomize();
+  }, [handleDemoRandomize]);
+
   return (
     <View style={styles.container}>
       {/* מציג שגיאה אם יש */}
@@ -322,7 +336,7 @@ export default function MainScreen() {
             <View style={styles.profileContainer}>
               <TouchableOpacity
                 style={styles.profileButton}
-                onPress={() => navigation.navigate("Profile")}
+                onPress={handleProfilePress}
               >
                 <Text style={styles.profileInitials}>
                   {displayName.charAt(0).toUpperCase()}
@@ -332,7 +346,7 @@ export default function MainScreen() {
               {/* כפתור דמו לשינוי תוצאות השאלון */}
               <TouchableOpacity
                 style={styles.demoButton}
-                onPress={handleDemoRandomize}
+                onPress={handleDemoPress}
               >
                 <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
                 <Text style={styles.demoText}>דמו</Text>
@@ -911,7 +925,7 @@ export default function MainScreen() {
 
           <TouchableOpacity
             style={styles.viewAllButton}
-            onPress={() => navigation.navigate("History")}
+            onPress={handleHistoryPress}
           >
             <Text style={styles.viewAllText}>צפה בכל ההיסטוריה</Text>
             <MaterialCommunityIcons
@@ -952,21 +966,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   greetingText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר במכשיר אמיתי
     color: theme.colors.text,
     marginBottom: 4,
     textAlign: "right",
     writingDirection: "rtl",
   },
   userName: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 28, // הוגדל מ-24 לבולטות במסך הנייד
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
     writingDirection: "rtl",
   },
   motivationText: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "right",
     marginTop: theme.spacing.sm,
@@ -987,7 +1001,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   profileInitials: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לבולטות במסך הנייד
     fontWeight: "600",
     color: theme.colors.surface,
   },
@@ -1004,7 +1018,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   demoText: {
-    fontSize: 10,
+    fontSize: 12, // הוגדל מ-10 לקריאות טובה יותר
     color: theme.colors.surface,
     fontWeight: "600",
     marginTop: 2,
@@ -1012,7 +1026,7 @@ const styles = StyleSheet.create({
 
   // Section styles // סטיילים לקטעים
   sectionTitle: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 22, // הוגדל מ-20 לבולטות במסך הנייד
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
@@ -1033,7 +1047,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   workoutName: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 24, // הוגדל מ-20 לבולטות במסך הנייד
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
@@ -1041,7 +1055,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   workoutDescription: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "right",
     marginBottom: theme.spacing.lg,
@@ -1060,13 +1074,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   progressNumber: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 20, // הוגדל מ-18 לבולטות במסך הנייד
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: 4,
   },
   progressLabel: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הוגדל מ-11 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     writingDirection: "rtl",
   },
@@ -1080,7 +1094,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   startWorkoutText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לבולטות במסך הנייד
     fontWeight: "600",
     color: theme.colors.surface,
     marginStart: theme.spacing.sm,
@@ -1109,18 +1123,18 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   statTitle: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "right",
     writingDirection: "rtl",
   },
   statPercentage: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 24, // הוגדל מ-20 לבולטות במסך הנייד
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.primary,
   },
   statSubtitle: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "right",
@@ -1142,7 +1156,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   statValue: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 20, // הוגדל מ-18 לבולטות במסך הנייד
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     textAlign: "right",
@@ -1180,7 +1194,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   workoutTitle: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "right",
@@ -1188,7 +1202,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   workoutDate: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 14, // הוגדל מ-12 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "right",
     writingDirection: "rtl",
@@ -1203,7 +1217,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.md,
   },
   ratingText: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
     marginRight: 4,
@@ -1216,7 +1230,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   viewAllText: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.primary,
     fontWeight: "600",
     marginRight: theme.spacing.xs,
@@ -1244,14 +1258,14 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   scientificStatNumber: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 24, // הוגדל מ-20 לבולטות במסך הנייד
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     marginTop: theme.spacing.xs,
     marginBottom: 4,
   },
   scientificStatLabel: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הוגדל מ-11 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",
@@ -1274,7 +1288,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   fitnessLevelText: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.primary,
     fontWeight: "600",
     writingDirection: "rtl",
@@ -1287,7 +1301,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
   },
   aiTipText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.text,
     lineHeight: 20,
     marginEnd: theme.spacing.xs,
@@ -1305,7 +1319,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   questionnaireTitle: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
@@ -1321,13 +1335,13 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border + "30",
   },
   answerLabel: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     fontWeight: "600",
     writingDirection: "rtl",
   },
   answerValue: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.text,
     fontWeight: "600",
     writingDirection: "rtl",
@@ -1345,7 +1359,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary + "30",
   },
   noteText: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הוגדל מ-11 לקריאות טובה יותר
     color: theme.colors.primary,
     marginEnd: theme.spacing.xs,
     flex: 1,
@@ -1364,7 +1378,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   errorText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.error,
     textAlign: "center",
     marginBottom: theme.spacing.sm,
@@ -1377,7 +1391,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   retryButtonText: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.surface,
     fontWeight: "600",
     writingDirection: "rtl",
@@ -1394,7 +1408,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   loadingText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.text,
     marginTop: theme.spacing.sm,
     writingDirection: "rtl",
@@ -1421,7 +1435,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border + "40",
   },
   dayButtonText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
     marginTop: theme.spacing.xs,
@@ -1429,7 +1443,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   dayButtonSubtext: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הוגדל מ-11 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",

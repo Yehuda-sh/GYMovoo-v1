@@ -167,6 +167,11 @@ interface UserStore {
   updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 
+  // בדיקות מצב התחברות
+  // Authentication state checks
+  isLoggedIn: () => boolean;
+  clearAllUserData: () => Promise<void>;
+
   // פעולות שאלון חכם חדשות
   // New smart questionnaire actions
   setSmartQuestionnaireData: (data: SmartQuestionnaireData) => void;
@@ -233,22 +238,83 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
-      // התנתקות מורחבת
-      // Extended logout
+      // התנתקות מורחבת עם ניקוי מלא
+      // Extended logout with complete data clearing
       logout: async () => {
-        // ניקוי כל הנתונים כולל נתוני השאלון החכם
-        // Clear all data including smart questionnaire data
-        await AsyncStorage.multiRemove([
-          "user-storage",
-          "questionnaire_metadata",
-          "questionnaire_draft",
-          "workout_preferences",
-          "smart_questionnaire_results",
-          "user_gender_preference",
-          "selected_equipment",
-          "gender_adaptation_data",
-        ]);
-        set({ user: null });
+        try {
+          console.log("🚪 userStore.logout - מתחיל התנתקות מלאה");
+
+          // רשימה מקיפה של כל המפתחות שצריך למחוק
+          const keysToRemove = [
+            // נתוני משתמש בסיסיים
+            "user-storage",
+            "user_data",
+            "user_preferences",
+
+            // נתוני שאלון
+            "questionnaire_metadata",
+            "questionnaire_draft",
+            "questionnaire_answers",
+            "smart_questionnaire_results",
+            "questionnaire_completion_data",
+
+            // נתוני אימון
+            "workout_preferences",
+            "workout_history",
+            "active_workout_data",
+            "workout_plans",
+            "workout_statistics",
+            "workout_session_data",
+
+            // העדפות אישיות
+            "user_gender_preference",
+            "selected_equipment",
+            "gender_adaptation_data",
+            "rtl_preferences",
+            "theme_preferences",
+
+            // נתוני AI
+            "ai_workout_data",
+            "ai_recommendations",
+            "ai_insights",
+
+            // נתוני סשן
+            "session_data",
+            "login_timestamp",
+            "last_activity",
+
+            // נתוני מטמון
+            "cached_exercises",
+            "cached_workout_data",
+            "offline_data",
+
+            // נתוני התקדמות
+            "progress_photos",
+            "body_measurements",
+            "performance_records",
+
+            // הגדרות מתקדמות
+            "notification_settings",
+            "privacy_settings",
+            "app_settings",
+          ];
+
+          // מחיקה מרובה של כל המפתחות
+          await AsyncStorage.multiRemove(keysToRemove);
+
+          // איפוס מלא של ה-store
+          set({ user: null });
+
+          console.log("✅ userStore.logout - התנתקות הושלמה בהצלחה");
+          console.log(`🗑️ נמחקו ${keysToRemove.length} מפתחות מ-AsyncStorage`);
+        } catch (error) {
+          console.error("❌ userStore.logout - שגיאה בהתנתקות:", error);
+
+          // גם אם יש שגיאה, איפוס ה-store
+          set({ user: null });
+
+          throw error;
+        }
       },
 
       // === פונקציות השאלון החכם החדש ===
@@ -599,6 +665,36 @@ export const useUserStore = create<UserStore>()(
           isFullySetup,
         };
       },
+
+      // בדיקת מצב התחברות
+      // Check login status
+      isLoggedIn: () => {
+        const state = get();
+        return state.user !== null;
+      },
+
+      // ניקוי מלא של כל נתוני המשתמש (כולל AsyncStorage)
+      // Complete clearing of all user data (including AsyncStorage)
+      clearAllUserData: async () => {
+        try {
+          console.log("🧹 userStore.clearAllUserData - מתחיל ניקוי מלא");
+
+          // קבלת כל המפתחות מ-AsyncStorage
+          const allKeys = await AsyncStorage.getAllKeys();
+          console.log(`📋 נמצאו ${allKeys.length} מפתחות ב-AsyncStorage`);
+
+          // מחיקת כל המפתחות
+          await AsyncStorage.multiRemove(allKeys);
+
+          // איפוס ה-store
+          set({ user: null });
+
+          console.log("✅ userStore.clearAllUserData - ניקוי הושלם בהצלחה");
+        } catch (error) {
+          console.error("❌ userStore.clearAllUserData - שגיאה בניקוי:", error);
+          throw error;
+        }
+      },
     }),
     {
       name: "user-storage",
@@ -628,3 +724,25 @@ export const useQuestionnaireCompleted = () =>
       state.user?.questionnaire !== undefined ||
       state.user?.questionnaireData?.completedAt !== undefined
   );
+
+// Hook מתקדם לבדיקת מצב התחברות
+// Advanced hook for checking login status
+export const useAuthState = () => {
+  const user = useUserStore((state) => state.user);
+  const isLoggedIn = useUserStore((state) => state.isLoggedIn());
+  const logout = useUserStore((state) => state.logout);
+  const clearAllData = useUserStore((state) => state.clearAllUserData);
+
+  return {
+    user,
+    isLoggedIn,
+    logout,
+    clearAllData,
+    hasBasicInfo: !!(user?.id || user?.email || user?.name),
+    hasQuestionnaire: !!(
+      user?.questionnaire ||
+      user?.questionnaireData ||
+      user?.smartQuestionnaireData
+    ),
+  };
+};

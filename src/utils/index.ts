@@ -1,17 +1,31 @@
 /**
  * @file src/utils/index.ts
- * @brief נקודת כניסה מרכזית לכלי העזר
- * @description ייצוא של כל כלי העזר מקום אחד לנוחות השימוש
+ * @description נקודת כניסה מרכזית לכלי העזר של GYMovoo
+ * English: Central entry point for GYMovoo utility functions
+ * @exports Gender adaptation, RTL helpers, Storage management, Workout naming
+ * @usage import { StorageCleanup, genderAdaptation } from '@/utils'
  */
 
-// Gender adaptation utilities
+// =======================================
+// 👥 Gender Adaptation Utilities
+// כלי התאמת מגדר
+// =======================================
 export * from "./genderAdaptation";
 
-// RTL and localization helpers
+// =======================================
+// 🌐 RTL and Localization Helpers
+// עוזרי RTL ולוקליזציה
+// =======================================
 export * from "./rtlHelpers";
 
-// Storage management utilities
+// =======================================
+// 💾 Storage Management Utilities
+// כלי ניהול אחסון
+// =======================================
 export * from "./storageCleanup";
 
-// Workout naming synchronization
+// =======================================
+// 🏋️ Workout Naming Synchronization
+// סנכרון שמות אימונים
+// =======================================
 export * from "./workoutNamesSync";

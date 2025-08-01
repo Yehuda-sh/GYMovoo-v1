@@ -1,10 +1,12 @@
 /**
  * @file src/screens/profile/ProfileScreen.tsx
  * @brief מסך פרופיל משתמש מתקדם - דשבורד אישי עם הישגים, התקדמות וניהול ציוד
+ * English: Advanced user profile screen - personal dashboard with achievements, progress, and equipment management
  * @dependencies userStore, theme, MaterialCommunityIcons, ImagePicker, DefaultAvatar
- * @notes תמיכה מלאה RTL, אנימציות משופרות, ניהול אווטאר אינטראקטיבי
+ * @notes תמיכה מלאה RTL, אנימציות משופרות, ניהול אווטאר אינטראקטיבי, גדלי טקסט מותאמים למכשירים
  * @features פרופיל אישי, סטטיסטיקות מתקדמות, מערכת הישגים, ניהול ציוד, הגדרות
- * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
+ * @performance Optimized with useMemo, useCallback, and efficient data calculations
+ * @accessibility Full RTL support, screen reader compatibility, and improved text readability
  */
 
 import React, {
@@ -28,6 +30,8 @@ import {
   Alert,
   Dimensions,
   RefreshControl,
+  TextInput,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
@@ -39,26 +43,41 @@ import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
-// Removed problematic twoStageQuestionnaireData imports - using simple questionnaire validation
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
 import { User } from "../../stores/userStore";
 
-// טיפוס לאייקון
+// =======================================
+// 🎯 TypeScript Interfaces & Types
+// ממשקי טייפסקריפט וטיפוסים
+// =======================================
+
+/**
+ * Material Community Icon name type for type safety
+ * טיפוס לשם אייקון מ-Material Community עבור בטיחות טיפוסים
+ */
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
+/**
+ * Achievement interface with Hebrew and English support
+ * ממשק הישג עם תמיכה בעברית ואנגלית
+ */
 type Achievement = {
   id: number;
   title: string;
+  description: string; // 🆕 תיאור ההישג
   icon: MaterialCommunityIconName;
   color: string;
   unlocked: boolean;
 };
 
-// טיפוס עבור workout עם רייטינג או feedback
+/**
+ * Workout interface with rating and feedback support
+ * ממשק אימון עם תמיכה בדירוג ומשוב
+ */
 interface WorkoutWithRating {
   id: string;
   date?: string;
@@ -70,12 +89,15 @@ interface WorkoutWithRating {
   };
 }
 
-// טיפוס עבור שאלון עם הנתונים הבסיסיים שאנחנו צריכים
+/**
+ * Basic questionnaire data interface
+ * ממשק נתוני שאלון בסיסי
+ */
 interface QuestionnaireBasicData {
   age?: string | number;
   goal?: string;
   gender?: string;
-  [key: string]: unknown; // Allow additional properties
+  [key: string]: unknown;
 }
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -83,67 +105,290 @@ const { width: screenWidth } = Dimensions.get("window");
 // פונקציה לחישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
 const calculateAchievements = (user: User | null): Achievement[] => {
   const achievements: Achievement[] = [
+    // 🎯 הישגים בסיסיים - תמיד זמינים
     {
       id: 1,
       title: "מתחיל נלהב",
+      description:
+        "השלמת ההרשמה והתחלת המסע שלך לכושר! כל מסע גדול מתחיל בצעד ראשון.",
       icon: "star",
       color: "#FFD700",
-      unlocked: !!user?.scientificProfile, // אם יש פרופיל מדעי
+      unlocked: !!user?.scientificProfile || !!user?.questionnaire,
     },
     {
       id: 2,
-      title: "7 ימי רצף",
+      title: "השלמת שאלון",
+      description:
+        "מילאת את השאלון בהצלחה וקיבלת תוכנית מותאמת אישית. עכשיו אפשר להתחיל לאמן!",
+      icon: "clipboard-check",
+      color: "#4CAF50",
+      unlocked:
+        !!user?.questionnaire && Object.keys(user.questionnaire).length > 5,
+    },
+
+    // 🔥 הישגים מבוססי רצף
+    {
+      id: 3,
+      title: "רצף שבועי",
+      description:
+        "7 ימים ברציפות של אימונים! אתה מתחיל להכניס את הכושר לשגרה היומית.",
       icon: "fire",
       color: "#FF6347",
       unlocked: false,
     },
     {
-      id: 3,
-      title: "30 אימונים",
-      icon: "medal",
-      color: "#C0C0C0",
+      id: 4,
+      title: "רצף דו-שבועי",
+      description: "14 ימים ברציפות! הרגלי הכושר שלך מתחזקים. המשך כך!",
+      icon: "fire-circle",
+      color: "#FF4500",
       unlocked: false,
     },
     {
-      id: 4,
-      title: "גיבור כושר",
+      id: 5,
+      title: "רצף חודשי",
+      description: "חודש שלם של אימונים ברציפות! אתה כבר ממכר לכושר. מדהים!",
+      icon: "fire-truck",
+      color: "#DC143C",
+      unlocked: false,
+    },
+
+    // 💪 הישגים מבוססי כמות
+    {
+      id: 6,
+      title: "10 אימונים",
+      description: "השלמת 10 אימונים! התחלה מצוינת למסע הכושר שלך.",
+      icon: "medal-outline",
+      color: "#CD7F32", // ברונזה
+      unlocked: false,
+    },
+    {
+      id: 7,
+      title: "25 אימונים",
+      description: "25 אימונים בכיס! אתה מתחיל לראות שינויים בגוף ובכוח שלך.",
+      icon: "medal",
+      color: "#C0C0C0", // כסף
+      unlocked: false,
+    },
+    {
+      id: 8,
+      title: "50 אימונים",
+      description:
+        "50 אימונים! אתה כבר חבר ותיק במועדון הכושר הווירטואלי שלנו!",
+      icon: "trophy-award",
+      color: "#FFD700", // זהב
+      unlocked: false,
+    },
+    {
+      id: 9,
+      title: "100 אימונים",
+      description:
+        "מאה אימונים! אתה גיבור כושר אמיתי. רמת המחויבות שלך מדהימה!",
       icon: "trophy",
-      color: "#FFD700",
+      color: "#9932CC", // יהלום
+      unlocked: false,
+    },
+
+    // ⏰ הישגים מבוססי זמן
+    {
+      id: 10,
+      title: "שעה של כושר",
+      description: "צברת שעה שלמה של פעילות גופנית! כל דקה נחשבת.",
+      icon: "clock-check",
+      color: "#1E90FF",
+      unlocked: false,
+    },
+    {
+      id: 11,
+      title: "10 שעות אימון",
+      description: "10 שעות של אימונים! הגוף שלך מתחזק עם כל תרגיל.",
+      icon: "clock-check-outline",
+      color: "#0080FF",
+      unlocked: false,
+    },
+    {
+      id: 12,
+      title: "מרתון כושר",
+      description: "26 שעות של אימונים - כמו מרתון אמיתי! אתה אתלט של ממש!",
+      icon: "run",
+      color: "#FF69B4",
+      unlocked: false,
+    },
+
+    // 📅 הישגים מבוססי ותק
+    {
+      id: 13,
+      title: "שבוע עם GYMovoo",
+      description: "שבוע שלם איתנו! ברוך הבא למשפחת GYMovoo.",
+      icon: "calendar-week",
+      color: "#32CD32",
+      unlocked: false,
+    },
+    {
+      id: 14,
+      title: "חודש עם GYMovoo",
+      description: "חודש מלא של אימונים! אתה כבר חלק מהקהילה שלנו.",
+      icon: "calendar-month",
+      color: "#228B22",
+      unlocked: false,
+    },
+    {
+      id: 15,
+      title: "ותיק GYMovoo",
+      description: "3 חודשים איתנו! אתה ותיק אמיתי וחבר יקר של הקהילה.",
+      icon: "account-star",
+      color: "#8B4513",
+      unlocked: false,
+    },
+
+    // 🎯 הישגים מבוססי ביצועים
+    {
+      id: 16,
+      title: "מדרג מעולה",
+      description: "ממוצע של 4+ כוכבים! האימונים שלך מעולים ואתה נהנה מהתהליך.",
+      icon: "star-four-points",
+      color: "#FF8C00",
+      unlocked: false,
+    },
+    {
+      id: 17,
+      title: "מושלם!",
+      description: "10 אימונים עם 5 כוכבים! אתה פרפקציוניסט של הכושר!",
+      icon: "star-check",
+      color: "#FF1493",
+      unlocked: false,
+    },
+
+    // 💯 הישגים מיוחדים
+    {
+      id: 18,
+      title: "לוחם סוף השבוע",
+      description: "10 אימונים בסופי שבוע! גם בזמן הפנוי אתה לא שוכח את הכושר.",
+      icon: "sword-cross",
+      color: "#4B0082",
+      unlocked: false,
+    },
+    {
+      id: 19,
+      title: "חובב בוקר",
+      description: "15 אימוני בוקר! אתה מתחיל את היום עם אנרגיה חיובית.",
+      icon: "weather-sunny",
+      color: "#FFA500",
+      unlocked: false,
+    },
+    {
+      id: 20,
+      title: "ינשוף לילה",
+      description: "10 אימונים בלילה! גם כשהעולם ישן, אתה מתאמן.",
+      icon: "owl",
+      color: "#483D8B",
       unlocked: false,
     },
   ];
 
-  // אם יש נתונים מדעיים, חשב הישגים אמיתיים // If scientific data exists, calculate real achievements
+  // חישוב הישגים מנתונים אמיתיים
   if (user?.activityHistory?.workouts) {
     const workouts = user.activityHistory.workouts;
     const workoutCount = workouts.length;
-
-    // 30 אימונים
-    if (workoutCount >= 30) {
-      achievements[2].unlocked = true;
-    }
-
-    // 7 ימי רצף - בדיקה פשוטה
     const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentWorkouts = workouts.filter(
-      (w: WorkoutWithRating) =>
-        new Date(w.date || w.completedAt || "") >= oneWeekAgo
+
+    // 💪 הישגים מבוססי כמות
+    if (workoutCount >= 10) achievements[5].unlocked = true; // 10 אימונים
+    if (workoutCount >= 25) achievements[6].unlocked = true; // 25 אימונים
+    if (workoutCount >= 50) achievements[7].unlocked = true; // 50 אימונים
+    if (workoutCount >= 100) achievements[8].unlocked = true; // 100 אימונים
+
+    // 🔥 חישוב רצף מתקדם
+    const sortedWorkouts = [...workouts].sort(
+      (a, b) =>
+        new Date(b.date || b.completedAt).getTime() -
+        new Date(a.date || a.completedAt).getTime()
     );
 
-    if (recentWorkouts.length >= 5) {
-      // אם יש לפחות 5 אימונים בשבוע
-      achievements[1].unlocked = true;
+    let currentStreak = 0;
+    let checkDate = new Date(now);
+    for (const workout of sortedWorkouts) {
+      const workoutDate = new Date(workout.date || workout.completedAt);
+      const diffDays = Math.floor(
+        (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (diffDays <= 2) {
+        currentStreak++;
+        checkDate = workoutDate;
+      } else {
+        break;
+      }
     }
 
-    // גיבור כושר - אם יש יותר מ-50 אימונים עם דירוג גבוה
-    const highRatedWorkouts = workouts.filter(
-      (w: WorkoutWithRating) => (w.feedback?.rating || w.rating || 0) >= 4
+    if (currentStreak >= 7) achievements[2].unlocked = true; // רצף שבועי
+    if (currentStreak >= 14) achievements[3].unlocked = true; // רצף דו-שבועי
+    if (currentStreak >= 30) achievements[4].unlocked = true; // רצף חודשי
+
+    // ⏰ הישגים מבוססי זמן כולל
+    const totalMinutes = workouts.reduce(
+      (sum: number, w: WorkoutWithRating) => sum + (w.duration || 45),
+      0
+    );
+    const totalHours = totalMinutes / 60;
+
+    if (totalHours >= 1) achievements[9].unlocked = true; // שעה של כושר
+    if (totalHours >= 10) achievements[10].unlocked = true; // 10 שעות
+    if (totalHours >= 26) achievements[11].unlocked = true; // מרתון כושר
+
+    // 📅 הישגים מבוססי ותק - נשתמש בתאריך הראשון אימון
+    const firstWorkoutDate =
+      workouts.length > 0
+        ? new Date(
+            Math.min(
+              ...workouts.map((w: WorkoutWithRating) =>
+                new Date(w.date || w.completedAt || Date.now()).getTime()
+              )
+            )
+          )
+        : new Date();
+    const daysSinceFirstWorkout = Math.floor(
+      (now.getTime() - firstWorkoutDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (workoutCount >= 50 && highRatedWorkouts.length >= workoutCount * 0.8) {
-      achievements[3].unlocked = true;
-    }
+    if (daysSinceFirstWorkout >= 7) achievements[12].unlocked = true; // שבוע
+    if (daysSinceFirstWorkout >= 30) achievements[13].unlocked = true; // חודש
+    if (daysSinceFirstWorkout >= 90) achievements[14].unlocked = true; // ותיק
+
+    // 🎯 הישגים מבוססי ביצועים
+    const ratingsSum = workouts.reduce((sum: number, w: WorkoutWithRating) => {
+      const rating = w.feedback?.rating || w.rating || 0;
+      return sum + rating;
+    }, 0);
+    const avgRating = workoutCount > 0 ? ratingsSum / workoutCount : 0;
+
+    if (avgRating >= 4 && workoutCount >= 10) achievements[15].unlocked = true; // מדרג מעולה
+
+    const perfectRatings = workouts.filter(
+      (w: WorkoutWithRating) => (w.feedback?.rating || w.rating || 0) === 5
+    ).length;
+    if (perfectRatings >= 10) achievements[16].unlocked = true; // מושלם!
+
+    // 💯 הישגים מיוחדים מבוססי זמן/יום
+    const weekendWorkouts = workouts.filter((w: WorkoutWithRating) => {
+      const date = new Date(w.date || w.completedAt || Date.now());
+      const day = date.getDay();
+      return day === 0 || day === 6; // ראשון או שבת
+    }).length;
+    if (weekendWorkouts >= 10) achievements[17].unlocked = true; // לוחם סוף השבוע
+
+    const morningWorkouts = workouts.filter((w: WorkoutWithRating) => {
+      const date = new Date(w.date || w.completedAt || Date.now());
+      const hour = date.getHours();
+      return hour >= 5 && hour <= 10; // 5:00-10:00
+    }).length;
+    if (morningWorkouts >= 15) achievements[18].unlocked = true; // חובב בוקר
+
+    const nightWorkouts = workouts.filter((w: WorkoutWithRating) => {
+      const date = new Date(w.date || w.completedAt || Date.now());
+      const hour = date.getHours();
+      return hour >= 22 || hour <= 5; // 22:00-5:00
+    }).length;
+    if (nightWorkouts >= 10) achievements[19].unlocked = true; // ינשוף לילה
   }
 
   return achievements;
@@ -178,13 +423,35 @@ export default function ProfileScreen() {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // 🆕 מצבים חדשים לעריכת שם
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || "");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [lastNameEdit, setLastNameEdit] = useState<number>(0);
+
+  // 🎉 מצבים להתראות הישגים
+  const [showAchievementModal, setShowAchievementModal] = useState(false);
+  const [newAchievement, setNewAchievement] = useState<Achievement | null>(
+    null
+  );
+  const [achievementTooltip, setAchievementTooltip] = useState<{
+    achievement: Achievement;
+    visible: boolean;
+  } | null>(null);
 
   // אנימציות משופרות // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const achievementPulseAnim = useRef(new Animated.Value(1)).current;
+
+  // 🎆 אנימציות זיקוקים להישגים
+  const fireworksOpacity = useRef(new Animated.Value(0)).current;
+  const fireworksScale = useRef(new Animated.Value(0.5)).current;
 
   // בדיקת השלמת השאלון - פשוטה ומאוחדת // Simple and unified questionnaire completion check
   const hasTrainingStage =
@@ -231,6 +498,27 @@ export default function ProfileScreen() {
     ).start();
   }, [fadeAnim, slideAnim, pulseAnim]);
 
+  // אנימציית פולס להישגים חדשים // Pulse animation for new achievements
+  useEffect(() => {
+    const unlockedAchievements = achievements.filter((a) => a.unlocked);
+    if (unlockedAchievements.length > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(achievementPulseAnim, {
+            toValue: 1.1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(achievementPulseAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [achievements, achievementPulseAnim]);
+
   // עדכון avatar כאשר user משתנה
   useEffect(() => {
     if (user?.avatar && user.avatar !== selectedAvatar) {
@@ -259,6 +547,179 @@ export default function ProfileScreen() {
     }
   }, [user?.avatar]);
 
+  // 🧮 מערכת XP חכמה
+  const calculateXP = (
+    workouts: number,
+    streak: number,
+    achievements: number
+  ): number => {
+    let totalXP = 0;
+
+    // XP בסיסי מאימונים (50 XP לכל אימון)
+    totalXP += workouts * 50;
+
+    // בונוס רצף (10 XP לכל יום רצף)
+    totalXP += streak * 10;
+
+    // בונוס הישגים (100 XP לכל הישג)
+    totalXP += achievements * 100;
+
+    // בונוס מיוחד לרצפים ארוכים
+    if (streak >= 30) totalXP += 500; // בונוס חודש
+    if (streak >= 14) totalXP += 200; // בונוס שבועיים
+    if (streak >= 7) totalXP += 100; // בונוס שבוע
+
+    return totalXP;
+  };
+
+  // 🔒 וולידציה לשם משתמש
+  const validateName = (name: string): string | null => {
+    const trimmedName = name.trim();
+
+    // בדיקת אורך
+    if (trimmedName.length < 2) {
+      return "השם חייב להכיל לפחות 2 תווים";
+    }
+    if (trimmedName.length > 30) {
+      return "השם לא יכול להכיל יותר מ-30 תווים";
+    }
+
+    // בדיקת תווים חוקיים (עברית, אנגלית, מספרים, רווחים)
+    const validPattern = /^[\u0590-\u05FFa-zA-Z0-9\s\-']+$/;
+    if (!validPattern.test(trimmedName)) {
+      return "השם יכול להכיל רק אותיות עברית/אנגלית, מספרים, רווחים ומקפים";
+    }
+
+    // בדיקת מילים אסורות בסיסית
+    const bannedWords = ["admin", "test", "null", "undefined", "fuck", "shit"];
+    const lowerName = trimmedName.toLowerCase();
+    for (const word of bannedWords) {
+      if (lowerName.includes(word)) {
+        return "השם מכיל מילים לא מתאימות";
+      }
+    }
+
+    return null; // תקין
+  };
+
+  // ⏰ בדיקת הגבלת זמן לעריכת שם (פעם בשבוע)
+  const canEditName = (): boolean => {
+    const now = Date.now();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000; // שבוע במילישניות
+    return now - lastNameEdit >= oneWeek;
+  };
+
+  // 🎉 פונקציה להצגת הישג חדש עם אנימציות
+  const showNewAchievement = useCallback(
+    (achievement: Achievement) => {
+      console.log("ProfileScreen: 🎉 הישג חדש נפתח:", achievement.title);
+
+      setNewAchievement(achievement);
+
+      // אנימציית זיקוקים
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(fireworksOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.delay(2000),
+          Animated.timing(fireworksOpacity, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(fireworksScale, {
+            toValue: 1.2,
+            duration: 400,
+            easing: Easing.out(Easing.back(1.7)),
+            useNativeDriver: true,
+          }),
+          Animated.timing(fireworksScale, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        // הצגת מודל ההישג אחרי האנימציה
+        setTimeout(() => {
+          setShowAchievementModal(true);
+        }, 500);
+      });
+    },
+    [fireworksOpacity, fireworksScale]
+  );
+
+  // 🔍 טיפול בלחיצה ארוכה על הישג (Tooltip)
+  const handleAchievementLongPress = useCallback((achievement: Achievement) => {
+    console.log("ProfileScreen: הצגת תיאור הישג:", achievement.title);
+    setAchievementTooltip({ achievement, visible: true });
+
+    // סגירה אוטומטית אחרי 3 שניות
+    setTimeout(() => {
+      setAchievementTooltip(null);
+    }, 3000);
+  }, []);
+
+  // 🎯 בדיקה והשוואה של הישגים חדשים
+  const checkForNewAchievements = useCallback(
+    (oldAchievements: Achievement[], newAchievements: Achievement[]) => {
+      const newUnlocked = newAchievements.filter(
+        (newAch) =>
+          newAch.unlocked &&
+          !oldAchievements.find(
+            (oldAch) => oldAch.id === newAch.id && oldAch.unlocked
+          )
+      );
+
+      // הצגת הישג חדש אם יש
+      if (newUnlocked.length > 0) {
+        // הצגת ההישג הראשון (אפשר לשנות להצגת כולם)
+        showNewAchievement(newUnlocked[0]);
+      }
+    },
+    [showNewAchievement]
+  );
+
+  // 💾 שמירת שם חדש
+  const handleSaveName = useCallback(async () => {
+    const error = validateName(editedName);
+    if (error) {
+      setNameError(error);
+      return;
+    }
+
+    if (!canEditName()) {
+      setNameError("ניתן לשנות שם פעם בשבוע בלבד");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setNameError(null);
+
+      // עדכון המשתמש
+      await updateUser({ name: editedName.trim() });
+
+      // עדכון זמן העריכה האחרונה
+      setLastNameEdit(Date.now());
+
+      // סגירת המודל
+      setShowNameModal(false);
+
+      Alert.alert("הצלחה", "השם עודכן בהצלחה!");
+    } catch (error) {
+      console.error("Error updating name:", error);
+      setNameError("שגיאה בעדכון השם. נסה שוב.");
+    } finally {
+      setLoading(false);
+    }
+  }, [editedName, lastNameEdit, updateUser]);
+
   // חישוב מידע נוסף מהשאלון
   // פונקציה להמרת מזהים לטקסטים בעברית
   const formatQuestionnaireValue = (key: string, value: string): string => {
@@ -271,6 +732,13 @@ export default function ProfileScreen() {
         "36-45": "36-45",
         "46-55": "46-55",
         "56+": "56+",
+        // תרגומים נוספים
+        under_18: "מתחת ל-18",
+        "18_25": "18-25",
+        "26_35": "26-35",
+        "36_45": "36-45",
+        "46_55": "46-55",
+        over_55: "מעל 55",
       },
       goal: {
         weight_loss: "ירידה במשקל",
@@ -279,6 +747,15 @@ export default function ProfileScreen() {
         endurance_improvement: "שיפור סיבולת",
         general_health: "בריאות כללית",
         injury_rehab: "שיקום מפציעה",
+        // תרגומים נוספים
+        lose_weight: "ירידה במשקל",
+        build_muscle: "בניית שריר",
+        improve_strength: "שיפור כוח",
+        improve_endurance: "שיפור סיבולת",
+        general_fitness: "כושר כללי",
+        rehabilitation: "שיקום",
+        maintain_fitness: "שמירה על כושר",
+        sport_performance: "ביצועים ספורטיביים",
       },
       experience: {
         beginner: "מתחיל (0-6 חודשים)",
@@ -286,6 +763,36 @@ export default function ProfileScreen() {
         advanced: "מתקדם (2-5 שנים)",
         expert: "מקצועי (5+ שנים)",
         athlete: "ספורטאי תחרותי",
+        // תרגומים נוספים - פורמטים שונים מהשאלון
+        never_exercised: "מעולם לא התאמנתי",
+        rarely_exercise: "מתאמן לעיתים רחוקות",
+        sometimes_exercise: "מתאמן לפעמים",
+        regularly_exercise: "מתאמן בקביעות",
+        very_experienced: "מאוד מנוסה",
+        // פורמטים נוספים אפשריים
+        no_experience: "ללא ניסיון",
+        little_experience: "מעט ניסיון",
+        some_experience: "קצת ניסיון",
+        good_experience: "ניסיון טוב",
+        lots_of_experience: "הרבה ניסיון",
+        professional: "מקצועי",
+        competitive: "תחרותי",
+        // רמות כושר
+        fitness_beginner: "מתחיל בכושר",
+        fitness_intermediate: "בינוני בכושר",
+        fitness_advanced: "מתקדם בכושר",
+        fitness_expert: "מומחה כושר",
+        // פורמטים עם קווים תחתונים
+        beginner_level: "רמת מתחיל",
+        intermediate_level: "רמה בינונית",
+        advanced_level: "רמה מתקדמת",
+        expert_level: "רמת מומחה",
+        // פורמטים מספריים
+        level_1: "רמה 1 - מתחיל",
+        level_2: "רמה 2 - בינוני",
+        level_3: "רמה 3 - מתקדם",
+        level_4: "רמה 4 - מומחה",
+        level_5: "רמה 5 - פרו",
       },
       frequency: {
         "2-times": "2 פעמים בשבוע",
@@ -293,6 +800,67 @@ export default function ProfileScreen() {
         "4-times": "4 פעמים בשבוע",
         "5-times": "5 פעמים בשבוע",
         "6-7-times": "6-7 פעמים בשבוע",
+        // תרגומים נוספים - פורמטים שונים
+        "1_time": "פעם אחת בשבוע",
+        "2_times": "2 פעמים בשבוע",
+        "3_times": "3 פעמים בשבוע",
+        "4_times": "4 פעמים בשבוע",
+        "5_times": "5 פעמים בשבוע",
+        "6_times": "6 פעמים בשבוע",
+        "7_times": "7 פעמים בשבוע",
+        daily: "כל יום",
+        // פורמטים עם מילים
+        once_a_week: "פעם בשבוע",
+        twice_a_week: "פעמיים בשבוע",
+        three_times_a_week: "3 פעמים בשבוע",
+        four_times_a_week: "4 פעמים בשבוע",
+        five_times_a_week: "5 פעמים בשבוע",
+        six_times_a_week: "6 פעמים בשבוע",
+        seven_times_a_week: "7 פעמים בשבוע",
+        every_day: "כל יום",
+        // פורמטים עם "times per week"
+        "1 time per week": "פעם בשבוע",
+        "2 times per week": "פעמיים בשבוע",
+        "3 times per week": "3 פעמים בשבוע",
+        "4 times per week": "4 פעמים בשבוע",
+        "5 times per week": "5 פעמים בשבוע",
+        "6 times per week": "6 פעמים בשבוע",
+        "7 times per week": "7 פעמים בשבוע",
+        // תדירות כללית
+        rarely: "לעיתים רחוקות",
+        sometimes: "לפעמים",
+        often: "לעיתים קרובות",
+        very_often: "לעיתים קרובות מאוד",
+        always: "תמיד",
+        // פורמטים נוספים שראיתי בלוגים
+        "once per week": "פעם בשבוע",
+        "twice per week": "פעמיים בשבוע",
+        "three times per week": "3 פעמים בשבוע",
+        "four times per week": "4 פעמים בשבוע",
+        "five times per week": "5 פעמים בשבוע",
+        "six times per week": "6 פעמים בשבוע",
+        "seven times per week": "7 פעמים בשבוע",
+        // פורמטים מהשאלון החכם
+        low_frequency: "תדירות נמוכה",
+        medium_frequency: "תדירות בינונית",
+        high_frequency: "תדירות גבוהה",
+        very_high_frequency: "תדירות גבוהה מאוד",
+        // פורמטים מספריים
+        "1x_week": "פעם בשבוע",
+        "2x_week": "פעמיים בשבוע",
+        "3x_week": "3 פעמים בשבוע",
+        "4x_week": "4 פעמים בשבוע",
+        "5x_week": "5 פעמים בשבוע",
+        "6x_week": "6 פעמים בשבוע",
+        "7x_week": "7 פעמים בשבוע",
+        // פורמטים עם קווים מקפיים
+        "1-per-week": "פעם בשבוע",
+        "2-per-week": "פעמיים בשבוע",
+        "3-per-week": "3 פעמים בשבוע",
+        "4-per-week": "4 פעמים בשבוע",
+        "5-per-week": "5 פעמים בשבוע",
+        "6-per-week": "6 פעמים בשבוע",
+        "7-per-week": "7 פעמים בשבוע",
       },
       duration: {
         "20-30-min": "20-30 דקות",
@@ -300,6 +868,139 @@ export default function ProfileScreen() {
         "45-60-min": "45-60 דקות",
         "60-90-min": "60-90 דקות",
         "90-plus-min": "90+ דקות",
+        // תרגומים נוספים
+        "15_min": "15 דקות",
+        "20_min": "20 דקות",
+        "30_min": "30 דקות",
+        "45_min": "45 דקות",
+        "60_min": "60 דקות",
+        "90_min": "90 דקות",
+        "120_min": "120 דקות",
+        short: "קצר (15-30 דקות)",
+        medium: "בינוני (30-60 דקות)",
+        long: "ארוך (60+ דקות)",
+      },
+      gender: {
+        male: "זכר",
+        female: "נקבה",
+        other: "אחר",
+        prefer_not_to_say: "מעדיף לא לומר",
+      },
+      location: {
+        home: "אימונים בבית",
+        gym: "אימונים בחדר כושר",
+        both: "בית וחדר כושר",
+        outdoor: "אימונים בחוץ",
+      },
+      diet: {
+        none: "לא צוין",
+        vegetarian: "צמחוני",
+        vegan: "טבעוני",
+        keto: "קטוגנית",
+        paleo: "פליאו",
+        mediterranean: "ים תיכונית",
+        balanced: "מאוזנת",
+        no_diet: "ללא דיאטה מיוחדת",
+      },
+      activity_level: {
+        sedentary: "בישיבה רוב הזמן",
+        light: "פעילות קלה",
+        moderate: "פעילות בינונית",
+        active: "פעיל",
+        very_active: "פעיל מאוד",
+      },
+      workout_time: {
+        morning: "בוקר",
+        afternoon: "אחר הצהריים",
+        evening: "ערב",
+        night: "לילה",
+        flexible: "גמיש",
+      },
+      motivation: {
+        health: "בריאות",
+        appearance: "מראה חיצוני",
+        strength: "כוח",
+        competition: "תחרות",
+        stress_relief: "הפגת לחץ",
+        social: "חברתי",
+      },
+      body_type: {
+        ectomorph: "אקטומורף (רזה)",
+        mesomorph: "מזומורף (שרירי)",
+        endomorph: "אנדומורף (עגול)",
+      },
+      sleep_hours: {
+        less_than_6: "פחות מ-6 שעות",
+        "6_7": "6-7 שעות",
+        "7_8": "7-8 שעות",
+        "8_9": "8-9 שעות",
+        more_than_9: "יותר מ-9 שעות",
+      },
+      stress_level: {
+        low: "נמוך",
+        moderate: "בינוני",
+        high: "גבוה",
+        very_high: "גבוה מאוד",
+      },
+      session_duration: {
+        "15": "15 דקות",
+        "20": "20 דקות",
+        "30": "30 דקות",
+        "45": "45 דקות",
+        "60": "60 דקות",
+        "90": "90 דקות",
+        "15-30": "15-30 דקות",
+        "30-45": "30-45 דקות",
+        "45-60": "45-60 דקות",
+        "60-90": "60-90 דקות",
+        "15_minutes": "15 דקות",
+        "30_minutes": "30 דקות",
+        "45_minutes": "45 דקות",
+        "60_minutes": "60 דקות",
+        "90_minutes": "90 דקות",
+        short: "קצר (15-30 דקות)",
+        medium: "בינוני (30-60 דקות)",
+        long: "ארוך (60-90 דקות)",
+        very_short: "קצר מאוד (10-15 דקות)",
+        extended: "ממושך (90+ דקות)",
+      },
+      health_conditions: {
+        none: "אין",
+        back_pain: "כאבי גב",
+        knee_problems: "בעיות ברכיים",
+        shoulder_issues: "בעיות כתפיים",
+        heart_condition: "בעיות לב",
+        diabetes: "סוכרת",
+        high_blood_pressure: "לחץ דם גבוה",
+        arthritis: "דלקת פרקים",
+        asthma: "אסתמה",
+        previous_injury: "פציעה קודמת",
+        chronic_pain: "כאב כרוני",
+        joint_problems: "בעיות פרקים",
+        muscle_weakness: "חולשת שרירים",
+        balance_issues: "בעיות איזון",
+        mobility_limitations: "מגבלות ניידות",
+        no_limitations: "ללא מגבלות",
+        minor_limitations: "מגבלות קלות",
+        moderate_limitations: "מגבלות בינוניות",
+        significant_limitations: "מגבלות משמעותיות",
+      },
+      availability: {
+        sunday: "יום ראשון",
+        monday: "יום שני",
+        tuesday: "יום שלישי",
+        wednesday: "יום רביעי",
+        thursday: "יום חמישי",
+        friday: "יום שישי",
+        saturday: "יום שבת",
+        weekdays: "ימי חול",
+        weekends: "סופי שבוע",
+        daily: "מדי יום",
+        "3_days": "3 ימים בשבוע",
+        "4_days": "4 ימים בשבוע",
+        "5_days": "5 ימים בשבוע",
+        "6_days": "6 ימים בשבוע",
+        flexible: "גמיש",
       },
     };
 
@@ -312,34 +1013,278 @@ export default function ProfileScreen() {
       unknown
     >;
 
+    // תמיכה גם בשאלון החכם החדש
+    const smartData = user?.smartQuestionnaireData?.answers;
+
+    // לוג לדיבוג תרגומים
+    console.log("ProfileScreen: נתוני משתמש לתרגום:", {
+      age: questionnaire.age,
+      goal: questionnaire.goal || smartData?.goals?.[0],
+      experience:
+        questionnaire.experience ||
+        questionnaire.fitness_level ||
+        smartData?.fitnessLevel,
+      frequency: questionnaire.frequency || questionnaire.workout_frequency,
+      duration: questionnaire.duration || questionnaire.workout_duration,
+      location: questionnaire.location || questionnaire.workout_location,
+      gender:
+        questionnaire.gender || smartData?.gender || user?.preferences?.gender,
+      diet:
+        questionnaire.diet_type ||
+        questionnaire.diet ||
+        smartData?.nutrition?.[0],
+    });
+
     return {
       age: formatQuestionnaireValue("age", questionnaire.age as string),
-      goal: formatQuestionnaireValue("goal", questionnaire.goal as string),
+      goal: formatQuestionnaireValue(
+        "goal",
+        (questionnaire.goal || smartData?.goals?.[0]) as string
+      ),
       experience: formatQuestionnaireValue(
         "experience",
-        questionnaire.experience as string
+        (questionnaire.experience ||
+          questionnaire.fitness_level ||
+          smartData?.fitnessLevel) as string
       ),
       frequency: formatQuestionnaireValue(
         "frequency",
-        questionnaire.frequency as string
+        (questionnaire.frequency || questionnaire.workout_frequency) as string
       ),
       duration: formatQuestionnaireValue(
         "duration",
-        questionnaire.duration as string
+        (questionnaire.duration || questionnaire.workout_duration) as string
       ),
-      location:
-        questionnaire.location === "home"
-          ? "אימונים בבית"
-          : questionnaire.location === "gym"
-            ? "אימונים בחדר כושר"
-            : "לא צוין",
+      location: formatQuestionnaireValue(
+        "location",
+        (questionnaire.location || questionnaire.workout_location) as string
+      ),
+      gender: formatQuestionnaireValue(
+        "gender",
+        (questionnaire.gender ||
+          smartData?.gender ||
+          user?.preferences?.gender) as string
+      ),
       height: questionnaire.height ? `${questionnaire.height} ס"מ` : "לא צוין",
       weight: questionnaire.weight ? `${questionnaire.weight} ק"ג` : "לא צוין",
-      diet: (questionnaire.diet_type as string) || "לא צוין",
+      diet: formatQuestionnaireValue(
+        "diet",
+        (questionnaire.diet_type ||
+          questionnaire.diet ||
+          smartData?.nutrition?.[0]) as string
+      ),
+      // שדות נוספים אפשריים
+      activity_level: formatQuestionnaireValue(
+        "activity_level",
+        questionnaire.activity_level as string
+      ),
+      workout_time: formatQuestionnaireValue(
+        "workout_time",
+        (questionnaire.workout_time || questionnaire.preferred_time) as string
+      ),
+      motivation: formatQuestionnaireValue(
+        "motivation",
+        questionnaire.motivation as string
+      ),
+      body_type: formatQuestionnaireValue(
+        "body_type",
+        questionnaire.body_type as string
+      ),
+      sleep_hours: formatQuestionnaireValue(
+        "sleep_hours",
+        questionnaire.sleep_hours as string
+      ),
+      stress_level: formatQuestionnaireValue(
+        "stress_level",
+        questionnaire.stress_level as string
+      ),
+      session_duration: formatQuestionnaireValue(
+        "session_duration",
+        (questionnaire.session_duration ||
+          questionnaire.duration ||
+          questionnaire.workout_duration) as string
+      ),
+      health_conditions: questionnaire.health_conditions
+        ? Array.isArray(questionnaire.health_conditions)
+          ? questionnaire.health_conditions
+              .map((condition) =>
+                formatQuestionnaireValue("health_conditions", condition)
+              )
+              .join(", ")
+          : formatQuestionnaireValue(
+              "health_conditions",
+              questionnaire.health_conditions as string
+            )
+        : "לא צוין",
+      availability: (() => {
+        const availabilityData =
+          questionnaire.availability || smartData?.availability;
+        if (!availabilityData) return "לא צוין";
+        if (Array.isArray(availabilityData)) {
+          return availabilityData
+            .map((day: string) => formatQuestionnaireValue("availability", day))
+            .join(", ");
+        }
+        return formatQuestionnaireValue(
+          "availability",
+          availabilityData as string
+        );
+      })(),
     };
   };
 
   const userInfo = getUserInfo();
+
+  // פונקציה למניעת כפילויות בתצוגת המידע - כל השדות דינמיים
+  const getDisplayFields = (userInfo: ReturnType<typeof getUserInfo>) => {
+    const fields = [];
+
+    // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
+    const basicFields = [
+      { key: "goal", icon: "target", label: "מטרה", value: userInfo.goal },
+      { key: "age", icon: "calendar", label: "גיל", value: userInfo.age },
+      {
+        key: "experience",
+        icon: "arm-flex",
+        label: "ניסיון",
+        value: userInfo.experience,
+      },
+      {
+        key: "location",
+        icon: "map-marker",
+        label: "מיקום",
+        value: userInfo.location,
+      },
+    ];
+
+    // הוספת שדות בסיסיים
+    basicFields.forEach((field) => {
+      if (field.value !== "לא צוין") {
+        fields.push(field);
+      }
+    });
+
+    // בדיקת כפילויות משך אימון - עדיפות ל-duration על פני session_duration
+    if (userInfo.duration !== "לא צוין") {
+      fields.push({
+        key: "duration",
+        icon: "clock-outline",
+        label: "משך אימון",
+        value: userInfo.duration,
+      });
+    } else if (userInfo.session_duration !== "לא צוין") {
+      fields.push({
+        key: "session_duration",
+        icon: "timer",
+        label: "משך מועדף",
+        value: userInfo.session_duration,
+      });
+    }
+
+    // בדיקת כפילויות תדירות - יכול להיות frequency או availability
+    if (userInfo.frequency !== "לא צוין") {
+      fields.push({
+        key: "frequency",
+        icon: "calendar-week",
+        label: "תדירות",
+        value: userInfo.frequency,
+      });
+    } else if (userInfo.availability !== "לא צוין") {
+      fields.push({
+        key: "availability",
+        icon: "calendar-check",
+        label: "זמינות לאימונים",
+        value: userInfo.availability,
+      });
+    }
+
+    // שדות פיזיים אופציונליים
+    const physicalFields = [
+      {
+        key: "height",
+        icon: "human-male-height",
+        label: "גובה",
+        value: userInfo.height,
+      },
+      { key: "weight", icon: "weight", label: "משקל", value: userInfo.weight },
+      { key: "gender", icon: "human", label: "מגדר", value: userInfo.gender },
+    ];
+
+    physicalFields.forEach((field) => {
+      if (field.value !== "לא צוין") {
+        fields.push(field);
+      }
+    });
+
+    // שדות תזונה ואורח חיים
+    const lifestyleFields = [
+      { key: "diet", icon: "food-apple", label: "תזונה", value: userInfo.diet },
+      {
+        key: "activity_level",
+        icon: "run",
+        label: "רמת פעילות",
+        value: userInfo.activity_level,
+      },
+      {
+        key: "workout_time",
+        icon: "clock-time-four",
+        label: "שעת אימון",
+        value: userInfo.workout_time,
+      },
+      {
+        key: "motivation",
+        icon: "heart-pulse",
+        label: "מוטיבציה",
+        value: userInfo.motivation,
+      },
+      {
+        key: "body_type",
+        icon: "human-male-board",
+        label: "סוג גוף",
+        value: userInfo.body_type,
+      },
+      {
+        key: "sleep_hours",
+        icon: "sleep",
+        label: "שעות שינה",
+        value: userInfo.sleep_hours,
+      },
+      {
+        key: "stress_level",
+        icon: "alert-circle",
+        label: "רמת לחץ",
+        value: userInfo.stress_level,
+      },
+      {
+        key: "health_conditions",
+        icon: "medical-bag",
+        label: "מגבלות רפואיות",
+        value: userInfo.health_conditions,
+      },
+    ];
+
+    lifestyleFields.forEach((field) => {
+      if (field.value !== "לא צוין") {
+        fields.push(field);
+      }
+    });
+
+    console.log(
+      'ProfileScreen: כל השדות דינמיים - סה"כ:',
+      fields.length,
+      "שדות:",
+      fields.map((f) => f.key)
+    );
+    console.log("ProfileScreen: ערכי משך אימון:", {
+      duration: userInfo.duration,
+      session_duration: userInfo.session_duration,
+      frequency: userInfo.frequency,
+      availability: userInfo.availability,
+    });
+    return fields;
+  };
+
+  const displayFields = getDisplayFields(userInfo);
 
   // חישוב סטטיסטיקות מהנתונים המדעיים
   const stats = useMemo(() => {
@@ -376,44 +1321,103 @@ export default function ProfileScreen() {
       );
       const totalHours = Math.floor(totalMinutes / 60);
 
-      // חישוב רמה (כל 20 אימונים = רמה)
-      const level = Math.floor(workouts.length / 20) + 1;
-      const xp = workouts.length * 50; // 50 XP לכל אימון
-      const nextLevelXp = level * 20 * 50;
+      // 🆕 מערכת XP חכמה
+      const unlockedAchievements = achievements.filter(
+        (a) => a.unlocked
+      ).length;
+      const totalXP = calculateXP(
+        workouts.length,
+        streak,
+        unlockedAchievements
+      );
+
+      // חישוב רמה דינמי (כל 1000 XP = רמה)
+      const level = Math.floor(totalXP / 1000) + 1;
+      const currentLevelXP = totalXP % 1000;
+      const nextLevelXP = 1000;
 
       return {
         workouts: workouts.length,
         streak,
         totalTime: `${totalHours}h`,
         level,
-        xp,
-        nextLevelXp,
+        xp: currentLevelXP,
+        totalXP,
+        nextLevelXp: nextLevelXP,
       };
     }
 
     // נתונים ברירת מחדל
+    const defaultWorkouts = user?.trainingStats?.totalWorkouts || 0;
+    const defaultAchievements = achievements.filter((a) => a.unlocked).length;
+    const defaultXP = calculateXP(defaultWorkouts, 0, defaultAchievements);
+    const defaultLevel = Math.floor(defaultXP / 1000) + 1;
+
     return {
-      workouts: user?.trainingStats?.totalWorkouts || 0,
+      workouts: defaultWorkouts,
       streak: 0,
       totalTime: "0h",
-      level: 1,
-      xp: 0,
+      level: defaultLevel,
+      xp: defaultXP % 1000,
+      totalXP: defaultXP,
       nextLevelXp: 1000,
     };
-  }, [user]);
+  }, [user, achievements, calculateXP]);
+
+  // =======================================
+  // 🛠️ Core Handlers & Event Management
+  // פונקציות ליבה וניהול אירועים
+  // =======================================
 
   const handleLogout = useCallback(() => {
+    console.log("ProfileScreen: Logout initiated");
     setShowLogoutModal(true);
   }, []);
 
-  const confirmLogout = useCallback(() => {
-    userLogout();
-    navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+  const confirmLogout = useCallback(async () => {
+    console.log("ProfileScreen: Logout confirmed - מתחיל התנתקות מלאה");
+
+    try {
+      // הצגת הודעת טעינה
+      setShowLogoutModal(false);
+      setLoading(true);
+
+      // התנתקות מלאה עם ניקוי כל הנתונים
+      await userLogout();
+
+      console.log("✅ ProfileScreen: התנתקות הושלמה בהצלחה");
+
+      // ניווט למסך הפתיחה עם איפוס מלא של המחסנית
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" as never }],
+      });
+    } catch (error) {
+      console.error("❌ ProfileScreen: שגיאה בהתנתקות:", error);
+
+      // גם במקרה של שגיאה, נווט למסך הפתיחה
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" as never }],
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [userLogout, navigation]);
+
+  // 📷 אווטאר מקומי - בחירת תמונות לא נשלחות לשרת
+  // Images are stored locally on device only for privacy
+  const validateAvatarImage = (uri: string) => {
+    // בדיקות בסיסיות לתמונות (אופציונלי)
+    // Basic image validation (optional)
+    console.log("ProfileScreen: Avatar selected locally:", uri);
+    return true; // תמיד מקבל כי זה מקומי
+  };
 
   // בחר מהגלריה // Pick from gallery
   const pickImageFromGallery = useCallback(async () => {
     try {
+      console.log("ProfileScreen: Gallery picker opened");
       setError(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -425,12 +1429,20 @@ export default function ProfileScreen() {
 
       if (!result.canceled) {
         const newAvatar = result.assets[0].uri;
-        setSelectedAvatar(newAvatar);
-        updateUser({ avatar: newAvatar });
-        setShowAvatarModal(false);
+
+        // 🔒 ולידציה בסיסית (אופציונלי)
+        if (validateAvatarImage(newAvatar)) {
+          setSelectedAvatar(newAvatar);
+          // 💾 אחסון מקומי בלבד - לא נשלח לשרת
+          updateUser({ avatar: newAvatar });
+          setShowAvatarModal(false);
+          console.log(
+            "ProfileScreen: Avatar updated locally (not uploaded to server)"
+          );
+        }
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      console.error("ProfileScreen: Gallery picker error:", error);
       setError(error instanceof Error ? error.message : "שגיאה בבחירת תמונה");
     }
   }, [updateUser]);
@@ -438,6 +1450,7 @@ export default function ProfileScreen() {
   // בחר מהמצלמה // Take photo
   const takePhoto = useCallback(async () => {
     try {
+      console.log("ProfileScreen: Camera opened");
       setError(null);
 
       const result = await ImagePicker.launchCameraAsync({
@@ -448,12 +1461,20 @@ export default function ProfileScreen() {
 
       if (!result.canceled) {
         const newAvatar = result.assets[0].uri;
-        setSelectedAvatar(newAvatar);
-        updateUser({ avatar: newAvatar });
-        setShowAvatarModal(false);
+
+        // 🔒 ולידציה בסיסית (אופציונלי)
+        if (validateAvatarImage(newAvatar)) {
+          setSelectedAvatar(newAvatar);
+          // 💾 אחסון מקומי בלבד - לא נשלח לשרת
+          updateUser({ avatar: newAvatar });
+          setShowAvatarModal(false);
+          console.log(
+            "ProfileScreen: Avatar updated locally from camera (not uploaded to server)"
+          );
+        }
       }
     } catch (error) {
-      console.error("Error taking photo:", error);
+      console.error("ProfileScreen: Camera error:", error);
       setError(error instanceof Error ? error.message : "שגיאה בצילום תמונה");
     }
   }, [updateUser]);
@@ -461,6 +1482,7 @@ export default function ProfileScreen() {
   // בחר אימוג'י // Select emoji
   const selectPresetAvatar = useCallback(
     (avatar: string) => {
+      console.log("ProfileScreen: Preset avatar selected:", avatar);
       setSelectedAvatar(avatar);
       updateUser({ avatar });
       setShowAvatarModal(false);
@@ -619,111 +1641,120 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={styles.username}>{user?.name || "אלוף הכושר"}</Text>
+
+            {/* שם המשתמש עם כפתור עריכה */}
+            <View style={styles.usernameContainer}>
+              <Text style={styles.username}>{user?.name || "אלוף הכושר"}</Text>
+              <TouchableOpacity
+                style={styles.editNameButton}
+                onPress={() => {
+                  if (canEditName()) {
+                    setEditedName(user?.name || "");
+                    setNameError(null);
+                    setShowNameModal(true);
+                  } else {
+                    const nextEditDate = new Date(
+                      lastNameEdit + 7 * 24 * 60 * 60 * 1000
+                    );
+                    Alert.alert(
+                      "הגבלת זמן",
+                      `ניתן לשנות שם פעם בשבוע.\nעריכה הבאה תהיה זמינה ב-${nextEditDate.toLocaleDateString("he-IL")}`
+                    );
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="pencil"
+                  size={16}
+                  color={
+                    canEditName()
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.userEmail}>
               {user?.email || "user@gymovoo.com"}
             </Text>
             <View style={styles.badgesContainer}>
-              <View style={styles.badge}>
+              {/* תג רצף ימים - תמיד מוצג */}
+              <View
+                style={[
+                  styles.badge,
+                  stats.streak > 0 ? styles.activeBadge : styles.inactiveBadge,
+                ]}
+              >
                 <MaterialCommunityIcons
-                  name="crown"
+                  name="fire"
                   size={16}
-                  color="#FFD700"
+                  color={
+                    stats.streak > 0 ? "#FF6347" : theme.colors.textSecondary
+                  }
                 />
-                <Text style={styles.badgeText}>פרימיום</Text>
+                <Text
+                  style={[
+                    styles.badgeText,
+                    stats.streak > 0
+                      ? styles.activeBadgeText
+                      : styles.inactiveBadgeText,
+                  ]}
+                >
+                  {stats.streak > 0 ? `${stats.streak} ימי רצף` : "התחל רצף!"}
+                </Text>
               </View>
-              <View style={styles.badge}>
-                <MaterialCommunityIcons name="fire" size={16} color="#FF6347" />
-                <Text style={styles.badgeText}>{stats.streak} ימי רצף</Text>
-              </View>
+
+              {/* תגים דינמיים מההישגים הפתוחים - מקסימום 2 */}
+              {achievements
+                .filter((achievement) => achievement.unlocked)
+                .slice(0, 2) // מקסימום 2 הישגים כתגים
+                .map((achievement) => (
+                  <View
+                    key={`badge-${achievement.id}`}
+                    style={[styles.badge, styles.achievementTag]}
+                  >
+                    <MaterialCommunityIcons
+                      name={achievement.icon}
+                      size={16}
+                      color={achievement.color}
+                    />
+                    <Text style={styles.badgeText}>{achievement.title}</Text>
+                  </View>
+                ))}
+
+              {/* תג מספר אימונים - אם אין מספיק הישגים */}
+              {achievements.filter((a) => a.unlocked).length < 2 && (
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons
+                    name="dumbbell"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.badgeText}>{stats.workouts} אימונים</Text>
+                </View>
+              )}
             </View>
           </View>
 
-          {/* מידע אישי מהשאלון */}
+          {/* מידע אישי מהשאלון - כולו דינמי */}
           {isQuestionnaireComplete && (
             <View style={styles.infoContainer}>
               <Text style={styles.sectionTitle}>המידע שלי</Text>
               <View style={styles.infoGrid}>
-                <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="target"
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.infoLabel}>מטרה</Text>
-                  <Text style={styles.infoValue}>{userInfo.goal}</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="calendar"
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.infoLabel}>גיל</Text>
-                  <Text style={styles.infoValue}>{userInfo.age}</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="arm-flex"
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.infoLabel}>ניסיון</Text>
-                  <Text style={styles.infoValue}>{userInfo.experience}</Text>
-                </View>
-                {userInfo.frequency !== "לא צוין" && (
-                  <View style={styles.infoItem}>
+                {/* כל השדות נוצרים באופן דינמי */}
+                {displayFields.map((field) => (
+                  <View key={field.key} style={styles.infoItem}>
                     <MaterialCommunityIcons
-                      name="calendar-week"
+                      name={field.icon as any}
                       size={20}
                       color={theme.colors.primary}
                     />
-                    <Text style={styles.infoLabel}>תדירות</Text>
-                    <Text style={styles.infoValue}>{userInfo.frequency}</Text>
+                    <Text style={styles.infoLabel}>{field.label}</Text>
+                    <Text style={styles.infoValue}>{field.value}</Text>
                   </View>
-                )}
-                {userInfo.duration !== "לא צוין" && (
-                  <View style={styles.infoItem}>
-                    <MaterialCommunityIcons
-                      name="clock-outline"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.infoLabel}>משך אימון</Text>
-                    <Text style={styles.infoValue}>{userInfo.duration}</Text>
-                  </View>
-                )}
-                <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="map-marker"
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.infoLabel}>מיקום</Text>
-                  <Text style={styles.infoValue}>{userInfo.location}</Text>
-                </View>
-                {userInfo.height !== "לא צוין" && (
-                  <View style={styles.infoItem}>
-                    <MaterialCommunityIcons
-                      name="human-male-height"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.infoLabel}>גובה</Text>
-                    <Text style={styles.infoValue}>{userInfo.height}</Text>
-                  </View>
-                )}
-                {userInfo.weight !== "לא צוין" && (
-                  <View style={styles.infoItem}>
-                    <MaterialCommunityIcons
-                      name="weight"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.infoLabel}>משקל</Text>
-                    <Text style={styles.infoValue}>{userInfo.weight}</Text>
-                  </View>
-                )}
+                ))}
               </View>
             </View>
           )}
@@ -799,6 +1830,32 @@ export default function ProfileScreen() {
 
                   let allEquipment: string[] = [];
 
+                  console.log("ProfileScreen: חילוץ ציוד מהשאלון:", {
+                    questionnaire: Object.keys(questionnaire || {}),
+                    smartData: user?.smartQuestionnaireData?.answers?.equipment,
+                    trainingStats: user?.trainingStats?.selectedEquipment,
+                  });
+
+                  // 🆕 השיטה החדשה - ציוד מהשדה החכם
+                  if (user?.smartQuestionnaireData?.answers?.equipment) {
+                    allEquipment.push(
+                      ...user.smartQuestionnaireData.answers.equipment
+                    );
+                    console.log(
+                      "ProfileScreen: נמצא ציוד בשאלון החכם:",
+                      user.smartQuestionnaireData.answers.equipment
+                    );
+                  }
+
+                  // 🔧 תמיכה בשדה trainingStats
+                  if (user?.trainingStats?.selectedEquipment) {
+                    allEquipment.push(...user.trainingStats.selectedEquipment);
+                    console.log(
+                      "ProfileScreen: נמצא ציוד ב-trainingStats:",
+                      user.trainingStats.selectedEquipment
+                    );
+                  }
+
                   // 🆕 השיטה החדשה - ציוד מהשאלות הדינמיות
                   const dynamicQuestions = [
                     "bodyweight_equipment_options", // ציוד ביתי בסיסי
@@ -833,6 +1890,10 @@ export default function ProfileScreen() {
                     Array.isArray(questionnaire.available_equipment)
                   ) {
                     allEquipment.push(...questionnaire.available_equipment);
+                    console.log(
+                      "ProfileScreen: נמצא ציוד ב-available_equipment:",
+                      questionnaire.available_equipment
+                    );
                   }
 
                   // 🔧 תמיכה לאחור - פורמטים ישנים
@@ -843,12 +1904,14 @@ export default function ProfileScreen() {
                         ? questionnaire.home_equipment
                         : [];
                       allEquipment.push(...homeEq);
+                      console.log("ProfileScreen: נמצא ציוד בית:", homeEq);
                     }
                     if (questionnaire?.gym_equipment) {
                       const gymEq = Array.isArray(questionnaire.gym_equipment)
                         ? questionnaire.gym_equipment
                         : [];
                       allEquipment.push(...gymEq);
+                      console.log("ProfileScreen: נמצא ציוד חדר כושר:", gymEq);
                     }
 
                     // פורמט ישן עם מספרים
@@ -857,17 +1920,41 @@ export default function ProfileScreen() {
                         ? questionnaire[10]
                         : [];
                       allEquipment.push(...oldHomeEq);
+                      console.log(
+                        "ProfileScreen: נמצא ציוד בפורמט ישן (10):",
+                        oldHomeEq
+                      );
                     }
                     if (allEquipment.length === 0 && questionnaire[11]) {
                       const oldGymEq = Array.isArray(questionnaire[11])
                         ? questionnaire[11]
                         : [];
                       allEquipment.push(...oldGymEq);
+                      console.log(
+                        "ProfileScreen: נמצא ציוד בפורמט ישן (11):",
+                        oldGymEq
+                      );
                     }
+                  }
+
+                  // אם עדיין אין ציוד, בואו נבדוק עוד מקורות
+                  if (allEquipment.length === 0) {
+                    // בדיקת כל השדות בשאלון
+                    Object.keys(questionnaire).forEach((key) => {
+                      const value = questionnaire[key];
+                      if (Array.isArray(value) && key.includes("equipment")) {
+                        console.log(`ProfileScreen: בדיקת שדה ${key}:`, value);
+                        allEquipment.push(
+                          ...value.filter((v) => typeof v === "string")
+                        );
+                      }
+                    });
                   }
 
                   // הסרת כפילויות // Remove duplicates
                   allEquipment = [...new Set(allEquipment)];
+
+                  console.log("ProfileScreen: ציוד סופי שנמצא:", allEquipment);
 
                   if (allEquipment.length === 0) {
                     return (
@@ -881,6 +1968,16 @@ export default function ProfileScreen() {
                         <Text style={styles.noEquipmentSubtext}>
                           השלם את השאלון לקבלת המלצות
                         </Text>
+                        <TouchableOpacity
+                          style={styles.addEquipmentButton}
+                          onPress={() =>
+                            navigation.navigate("Questionnaire", {
+                              stage: "training",
+                            })
+                          }
+                        >
+                          <Text style={styles.addEquipmentText}>הוסף ציוד</Text>
+                        </TouchableOpacity>
                       </View>
                     );
                   }
@@ -941,44 +2038,120 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* הישגים */}
-          <View style={styles.achievementsContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>ההישגים שלי</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>הצג הכל</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.achievementsGrid}>
-              {achievements.map((achievement: Achievement) => (
-                <View
-                  key={achievement.id}
-                  style={[
-                    styles.achievementBadge,
-                    !achievement.unlocked && styles.lockedBadge,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={achievement.icon}
-                    size={30}
-                    color={
-                      achievement.unlocked
-                        ? achievement.color
-                        : theme.colors.textTertiary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.achievementTitle,
-                      !achievement.unlocked && styles.lockedText,
-                    ]}
-                  >
-                    {achievement.title}
-                  </Text>
+          {/* הישגים - הישגים שלא מוצגים כתגים */}
+          {(() => {
+            // הישגים שכבר מוצגים כתגים (2 הראשונים הפתוחים)
+            const badgeAchievements = achievements
+              .filter((achievement) => achievement.unlocked)
+              .slice(0, 2)
+              .map((a) => a.id);
+
+            // הישגים שעדיין לא מוצגים
+            const remainingAchievements = achievements.filter(
+              (achievement) => !badgeAchievements.includes(achievement.id)
+            );
+
+            // אם יש הישגים להציג
+            if (remainingAchievements.length > 0) {
+              return (
+                <View style={styles.achievementsContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>
+                      {remainingAchievements.some((a) => a.unlocked)
+                        ? "הישגים נוספים"
+                        : "יעדים לפתיחה"}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        console.log("ProfileScreen: Show all achievements")
+                      }
+                    >
+                      <Text style={styles.seeAllText}>הצג הכל</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.achievementsGrid}>
+                    {remainingAchievements.map((achievement: Achievement) => (
+                      <TouchableOpacity
+                        key={achievement.id}
+                        activeOpacity={0.8}
+                        onLongPress={() => {
+                          setAchievementTooltip({
+                            visible: true,
+                            achievement: achievement,
+                          });
+                        }}
+                        style={[
+                          styles.achievementBadge,
+                          !achievement.unlocked && styles.lockedBadge,
+                          // אנימציית פולס להישגים פתוחים
+                          achievement.unlocked && {
+                            transform: [{ scale: achievementPulseAnim }],
+                          },
+                        ]}
+                      >
+                        {/* רקע עם גרדיאנט להישגים פתוחים */}
+                        {achievement.unlocked && (
+                          <LinearGradient
+                            colors={[
+                              achievement.color + "20",
+                              achievement.color + "10",
+                            ]}
+                            style={styles.achievementGradientBg}
+                          />
+                        )}
+
+                        {/* אייקון עם אפקט Grayscale להישגים נעולים */}
+                        <View
+                          style={[
+                            styles.achievementIconContainer,
+                            !achievement.unlocked && styles.grayscaleContainer,
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name={achievement.icon}
+                            size={30}
+                            color={
+                              achievement.unlocked
+                                ? achievement.color
+                                : theme.colors.textTertiary
+                            }
+                          />
+
+                          {/* אייקון מנעול להישגים נעולים */}
+                          {!achievement.unlocked && (
+                            <View style={styles.lockIconContainer}>
+                              <MaterialCommunityIcons
+                                name="lock"
+                                size={16}
+                                color={theme.colors.textTertiary}
+                              />
+                            </View>
+                          )}
+                        </View>
+
+                        {/* כותרת עם אפקט מיוחד להישגים פתוחים */}
+                        <Text
+                          style={[
+                            styles.achievementTitle,
+                            !achievement.unlocked && styles.lockedText,
+                            achievement.unlocked && styles.unlockedTitle,
+                          ]}
+                        >
+                          {achievement.title}
+                        </Text>
+
+                        {/* הברקה קטנה להישגים שזה עתה נפתחו */}
+                        {achievement.unlocked && (
+                          <View style={styles.achievementShine} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              ))}
-            </View>
-          </View>
+              );
+            }
+            return null; // אם אין הישגים נוספים להציג
+          })()}
 
           {/* הגדרות בסיסיות */}
           <View style={styles.settingsContainer}>
@@ -986,9 +2159,10 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={() =>
-                navigation.navigate("Questionnaire", { stage: "training" })
-              }
+              onPress={() => {
+                console.log("ProfileScreen: Edit questionnaire");
+                navigation.navigate("Questionnaire", { stage: "training" });
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
@@ -1009,7 +2183,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => {
-                // TODO: הוסף הגדרות התראות
+                console.log("ProfileScreen: Notifications settings");
                 Alert.alert("בקרוב", "הגדרות התראות יהיו זמינות בקרוב");
               }}
               activeOpacity={0.7}
@@ -1064,6 +2238,18 @@ export default function ProfileScreen() {
                 <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
+
+            {/* הודעת פרטיות */}
+            <View style={styles.privacyNotice}>
+              <MaterialCommunityIcons
+                name="shield-check"
+                size={20}
+                color={theme.colors.success}
+              />
+              <Text style={styles.privacyText}>
+                התמונה נשמרת במכשיר שלך בלבד ולא נשלחת לשרת
+              </Text>
+            </View>
             <View style={styles.uploadOptions}>
               <TouchableOpacity
                 style={styles.uploadOption}
@@ -1107,18 +2293,202 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* 🆕 מודל עריכת שם */}
+      <Modal
+        visible={showNameModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNameModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowNameModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>עריכת שם</Text>
+              <TouchableOpacity
+                onPress={() => setShowNameModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.nameEditContainer}>
+              <Text style={styles.nameEditLabel}>שם מלא:</Text>
+              <TextInput
+                style={[styles.nameInput, nameError && styles.nameInputError]}
+                value={editedName}
+                onChangeText={(text) => {
+                  setEditedName(text);
+                  setNameError(null);
+                }}
+                placeholder="הכנס שם מלא..."
+                placeholderTextColor={theme.colors.textSecondary}
+                maxLength={30}
+                returnKeyType="done"
+                onSubmitEditing={handleSaveName}
+                textAlign="right"
+                selectTextOnFocus
+              />
+
+              {nameError && (
+                <Text style={styles.nameErrorText}>{nameError}</Text>
+              )}
+
+              <Text style={styles.nameHelpText}>
+                • ניתן לשנות שם פעם בשבוع{"\n"}• 2-30 תווים בלבד{"\n"}• אותיות
+                עברית/אנגלית, מספרים ומקפים{"\n"}• ללא מילים פוגעניות
+              </Text>
+
+              <View style={styles.nameModalButtons}>
+                <TouchableOpacity
+                  style={[styles.nameModalButton, styles.nameModalButtonCancel]}
+                  onPress={() => setShowNameModal(false)}
+                >
+                  <Text style={styles.nameModalButtonTextCancel}>ביטול</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.nameModalButton,
+                    styles.nameModalButtonSave,
+                    (loading || !editedName.trim()) &&
+                      styles.nameModalButtonDisabled,
+                  ]}
+                  onPress={handleSaveName}
+                  disabled={loading || !editedName.trim()}
+                >
+                  <Text
+                    style={[
+                      styles.nameModalButtonTextSave,
+                      (loading || !editedName.trim()) &&
+                        styles.nameModalButtonTextDisabled,
+                    ]}
+                  >
+                    {loading ? "שומר..." : "שמור"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Logout Confirmation Modal */}
       <ConfirmationModal
         visible={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={confirmLogout}
-        title="התנתקות"
-        message="האם אתה בטוח שברצונך להתנתק?"
-        confirmText="התנתק"
+        title="התנתקות מלאה 🚪"
+        message={
+          "האם אתה בטוח שברצונך להתנתק?\n\n" +
+          "⚠️ פעולה זו תמחק:\n" +
+          "• כל נתוני המשתמש\n" +
+          "• היסטוריית אימונים\n" +
+          "• העדפות אישיות\n" +
+          "• נתוני השאלון\n\n" +
+          "תצטרך להתחבר מחדש ולמלא את השאלון שוב."
+        }
+        confirmText="כן, התנתק"
         cancelText="ביטול"
         destructive={true}
         icon="log-out-outline"
       />
+
+      {/* 🎉 מודל הישג חדש */}
+      <Modal
+        visible={showAchievementModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAchievementModal(false)}
+      >
+        <View style={styles.achievementModalOverlay}>
+          <Animated.View
+            style={[
+              styles.achievementModalContent,
+              {
+                opacity: fireworksOpacity,
+                transform: [{ scale: fireworksScale }],
+              },
+            ]}
+          >
+            {/* אנימציית זיקוקים */}
+            <View style={styles.fireworksContainer}>
+              <Text style={styles.fireworksText}>🎆✨🎉✨🎆</Text>
+            </View>
+
+            {newAchievement && (
+              <>
+                <MaterialCommunityIcons
+                  name={newAchievement.icon}
+                  size={80}
+                  color={newAchievement.color}
+                  style={styles.achievementModalIcon}
+                />
+
+                <Text style={styles.achievementModalTitle}>
+                  🏆 הישג חדש! 🏆
+                </Text>
+
+                <Text style={styles.achievementModalAchievement}>
+                  {newAchievement.title}
+                </Text>
+
+                <Text style={styles.achievementModalDescription}>
+                  {newAchievement.description}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.achievementModalButton}
+                  onPress={() => setShowAchievementModal(false)}
+                >
+                  <Text style={styles.achievementModalButtonText}>
+                    מעולה! 🎯
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* 💬 Tooltip להישגים */}
+      {achievementTooltip && (
+        <Modal
+          visible={achievementTooltip.visible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setAchievementTooltip(null)}
+        >
+          <TouchableOpacity
+            style={styles.tooltipOverlay}
+            activeOpacity={1}
+            onPress={() => setAchievementTooltip(null)}
+          >
+            <View style={styles.tooltipContent}>
+              <View style={styles.tooltipHeader}>
+                <MaterialCommunityIcons
+                  name={achievementTooltip.achievement.icon}
+                  size={24}
+                  color={achievementTooltip.achievement.color}
+                />
+                <Text style={styles.tooltipTitle}>
+                  {achievementTooltip.achievement.title}
+                </Text>
+              </View>
+
+              <Text style={styles.tooltipDescription}>
+                {achievementTooltip.achievement.description}
+              </Text>
+
+              <Text style={styles.tooltipHint}>💡 לחץ בכל מקום לסגירה</Text>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </LinearGradient>
   );
 }
@@ -1140,7 +2510,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Header styles // סטיילים לכותרת
+  // Header styles - גדלי טקסט משופרים לקראות טובה יותר
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1166,14 +2536,14 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
   },
   headerTitle: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 22, // הגדלת הכותרת לגודל יותר קריא
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.text,
     textAlign: "center",
     writingDirection: "rtl",
   },
 
-  // Profile card styles // סטיילים לכרטיס פרופיל
+  // Profile card styles - טקסט גדול יותר לפרופיל
   profileCard: {
     alignItems: "center",
     marginBottom: theme.spacing.lg,
@@ -1232,7 +2602,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     color: theme.colors.primary,
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 16, // הגדלת טקסט הרמה
     fontWeight: "600",
     marginBottom: theme.spacing.xs,
     writingDirection: "rtl",
@@ -1251,17 +2621,143 @@ const styles = StyleSheet.create({
   },
   xpText: {
     color: theme.colors.textSecondary,
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הגדלת טקסט ה-XP
   },
   username: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 20, // הגדלת שם המשתמש
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: 4,
     writingDirection: "rtl",
   },
+
+  // 🆕 סטיילים לעריכת שם
+  usernameContainer: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+    gap: 8,
+  },
+
+  editNameButton: {
+    padding: 6,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundAlt,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  nameEditContainer: {
+    padding: 20,
+    gap: 16,
+  },
+
+  nameEditLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+    textAlign: "right",
+  },
+
+  nameInput: {
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.background,
+    textAlign: "right",
+    fontFamily: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
+  },
+
+  nameInputError: {
+    borderColor: theme.colors.error,
+  },
+
+  nameErrorText: {
+    color: theme.colors.error,
+    fontSize: 14,
+    textAlign: "right",
+    marginTop: -8,
+  },
+
+  nameHelpText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: "right",
+    lineHeight: 18,
+  },
+
+  nameModalButtons: {
+    flexDirection: "row-reverse", // RTL
+    gap: 12,
+    marginTop: 8,
+  },
+
+  nameModalButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  nameModalButtonCancel: {
+    backgroundColor: theme.colors.backgroundAlt,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  nameModalButtonSave: {
+    backgroundColor: theme.colors.primary,
+  },
+
+  nameModalButtonDisabled: {
+    backgroundColor: theme.colors.textSecondary,
+    opacity: 0.5,
+  },
+
+  nameModalButtonTextCancel: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  nameModalButtonTextSave: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  nameModalButtonTextDisabled: {
+    color: theme.colors.textSecondary,
+  },
+
+  // 🔒 סטיילים להודעת פרטיות אווטאר
+  privacyNotice: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.colors.success + "15",
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.success + "30",
+  },
+
+  privacyText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.success,
+    textAlign: "right",
+    fontWeight: "500",
+  },
   userEmail: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הגדלת האימייל
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
     writingDirection: "rtl",
@@ -1269,6 +2765,7 @@ const styles = StyleSheet.create({
   badgesContainer: {
     flexDirection: "row-reverse",
     gap: theme.spacing.sm,
+    flexWrap: "wrap", // מאפשר מעבר לשורה חדשה
   },
   badge: {
     flexDirection: "row-reverse",
@@ -1278,15 +2775,39 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: theme.radius.md,
     gap: 4,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  // תגים פעילים (עם הישגים)
+  activeBadge: {
+    backgroundColor: theme.colors.primary + "15",
+    borderColor: theme.colors.primary + "30",
+  },
+  // תגים לא פעילים (עדיין לא הושגו)
+  inactiveBadge: {
+    backgroundColor: theme.colors.textSecondary + "10",
+    borderColor: theme.colors.textSecondary + "20",
+  },
+  // תגים של הישגים
+  achievementTag: {
+    backgroundColor: theme.colors.success + "15",
+    borderColor: theme.colors.success + "30",
   },
   badgeText: {
     color: theme.colors.text,
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הגדלת טקסט התגיות
     fontWeight: "500",
     writingDirection: "rtl",
   },
+  activeBadgeText: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  inactiveBadgeText: {
+    color: theme.colors.textSecondary,
+  },
 
-  // Questionnaire styles // סטיילים לשאלון
+  // Questionnaire styles - טקסט גדול יותר לשאלון
   questionnaireCard: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
@@ -1313,7 +2834,7 @@ const styles = StyleSheet.create({
   },
   questionnaireTitle: {
     color: theme.colors.surface,
-    fontSize: theme.typography.h4.fontSize,
+    fontSize: 18, // הגדלת כותרת השאלון
     fontWeight: theme.typography.h4.fontWeight,
     marginBottom: 4,
     textAlign: "right",
@@ -1321,19 +2842,19 @@ const styles = StyleSheet.create({
   },
   questionnaireSubtitle: {
     color: theme.colors.surface,
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 14, // הגדלת תת כותרת השאלון
     opacity: 0.9,
     textAlign: "right",
     writingDirection: "rtl",
   },
   questionnaireButtonText: {
     color: theme.colors.surface,
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הגדלת טקסט כפתור השאלון
     fontWeight: "600",
     writingDirection: "rtl",
   },
 
-  // Info section styles // סטיילים למידע אישי
+  // Info section styles - מידע אישי עם טקסט גדול יותר
   infoContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -1354,14 +2875,14 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   infoLabel: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הגדלת תויות המידע
     color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: "center",
     writingDirection: "rtl",
   },
   infoValue: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הגדלת ערכי המידע
     color: theme.colors.text,
     fontWeight: "600",
     marginTop: 2,
@@ -1369,13 +2890,13 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Stats section styles // סטיילים לסטטיסטיקות
+  // Stats section styles - סטטיסטיקות עם טקסט גדול יותר
   statsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
   },
   sectionTitle: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 20, // הגדלת כותרות הקטעים
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
@@ -1398,19 +2919,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 24, // הגדלת מספרי הסטטיסטיקות
     fontWeight: theme.typography.h2.fontWeight,
     color: theme.colors.surface,
     marginTop: theme.spacing.xs,
   },
   statLabel: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 13, // הגדלת תויות הסטטיסטיקות
     color: theme.colors.surface,
     opacity: 0.8,
     writingDirection: "rtl",
   },
 
-  // Achievements styles // סטיילים להישגים
+  // Achievements styles - הישגים עם טקסט גדול יותר
   achievementsContainer: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -1423,7 +2944,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     color: theme.colors.primary,
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הגדלת טקסט "הצג הכל"
     writingDirection: "rtl",
   },
   achievementsGrid: {
@@ -1441,22 +2962,84 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     ...theme.shadows.small,
+    position: "relative",
+    overflow: "hidden",
+    // אפקט מיוחד להישגים פתוחים
+    transform: [{ scale: 1 }],
+  },
+  // רקע גרדיאנט להישגים פתוחים
+  achievementGradientBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: theme.radius.lg,
+  },
+  // קונטיינר לאייקון עם אפקט grayscale
+  achievementIconContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  grayscaleContainer: {
+    // אפקט grayscale באמצעות opacity וכהות
+    opacity: 0.4,
+  },
+  // אייקון מנעול
+  lockIconContainer: {
+    position: "absolute",
+    bottom: -8,
+    right: -8,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   lockedBadge: {
-    opacity: 0.5,
+    borderColor: theme.colors.textTertiary + "30",
+    backgroundColor: theme.colors.backgroundElevated,
+    // הסרת shadow מהישגים נעולים
+    shadowOpacity: 0,
+    elevation: 0,
   },
   achievementTitle: {
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: 12, // הגדלת כותרות ההישגים
     color: theme.colors.text,
     textAlign: "center",
     marginTop: 4,
     writingDirection: "rtl",
   },
+  unlockedTitle: {
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
   lockedText: {
     color: theme.colors.textTertiary,
+    opacity: 0.7,
+  },
+  // אפקט הברקה להישגים פתוחים
+  achievementShine: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    backgroundColor: theme.colors.warning,
+    borderRadius: 4,
+    opacity: 0.8,
+    shadowColor: theme.colors.warning,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
-  // Settings styles // סטיילים להגדרות
+  // Settings styles - הגדרות עם טקסט גדול יותר
   settingsContainer: {
     backgroundColor: theme.colors.card,
     marginHorizontal: theme.spacing.lg,
@@ -1482,12 +3065,12 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   settingText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הגדלת טקסט ההגדרות
     color: theme.colors.text,
     writingDirection: "rtl",
   },
 
-  // Logout styles // סטיילים להתנתקות
+  // Logout styles - התנתקות עם טקסט גדול יותר
   logoutButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1504,12 +3087,12 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: theme.colors.error,
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הגדלת טקסט ההתנתקות
     fontWeight: "600",
     writingDirection: "rtl",
   },
 
-  // Modal styles // סטיילים למודלים
+  // Modal styles - מודלים עם טקסט גדול יותר
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1533,7 +3116,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xs,
   },
   modalTitle: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 20, // הגדלת כותרת המודל
     fontWeight: theme.typography.h3.fontWeight,
     color: theme.colors.text,
     writingDirection: "rtl",
@@ -1555,13 +3138,13 @@ const styles = StyleSheet.create({
   uploadOptionText: {
     color: theme.colors.text,
     marginTop: theme.spacing.xs,
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 15, // הגדלת טקסט אפשרויות העלאה
     fontWeight: "500",
     writingDirection: "rtl",
   },
   presetsTitle: {
     color: theme.colors.text,
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הגדלת כותרת הפריסטים
     fontWeight: "600",
     marginBottom: theme.spacing.md,
     textAlign: "right",
@@ -1588,7 +3171,7 @@ const styles = StyleSheet.create({
     fontSize: 35,
   },
 
-  // Equipment styles // סטיילים לציוד
+  // Equipment styles - ציוד עם טקסט גדול יותר
   equipmentContainer: {
     backgroundColor: theme.colors.card,
     marginHorizontal: theme.spacing.lg,
@@ -1613,7 +3196,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   noEquipmentText: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 16, // הגדלת טקסט "לא נבחר ציוד"
     color: theme.colors.textSecondary,
     fontWeight: "500",
     marginTop: theme.spacing.sm,
@@ -1621,9 +3204,23 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   noEquipmentSubtext: {
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 14, // הגדלת תת טקסט הציוד
     color: theme.colors.textTertiary,
     marginTop: theme.spacing.xs,
+    textAlign: "center",
+    writingDirection: "rtl",
+  },
+  addEquipmentButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    marginTop: theme.spacing.md,
+  },
+  addEquipmentText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
     writingDirection: "rtl",
   },
@@ -1660,7 +3257,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   equipmentLabel: {
-    fontSize: theme.typography.captionSmall.fontSize,
+    fontSize: 12, // הגדלת תוויות הציוד
     color: theme.colors.text,
     textAlign: "center",
     fontWeight: "500",
@@ -1675,7 +3272,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xs,
   },
   equipmentCategoryText: {
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: 11, // הגדלת טקסט קטגוריות הציוד
     color: theme.colors.primary,
     fontWeight: "500",
     textAlign: "center",
@@ -1695,7 +3292,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 15, // הגדלת טקסט השגיאה
     color: theme.colors.error,
     fontWeight: "500",
     writingDirection: "rtl",
@@ -1709,7 +3306,149 @@ const styles = StyleSheet.create({
   },
   errorRetryText: {
     color: theme.colors.white,
-    fontSize: theme.typography.bodySmall.fontSize,
+    fontSize: 14, // הגדלת טקסט כפתור השגיאה
     fontWeight: "600",
+  },
+
+  // 🎉 סטיילים לאנימציית הישגים חדשים
+  achievementModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  achievementModalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    marginHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+    borderWidth: 2,
+    borderColor: theme.colors.primary + "30",
+  },
+
+  fireworksContainer: {
+    position: "absolute",
+    top: -20,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+
+  fireworksText: {
+    fontSize: 30,
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+
+  achievementModalIcon: {
+    marginVertical: 20,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+
+  achievementModalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+
+  achievementModalAchievement: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginBottom: 15,
+  },
+
+  achievementModalDescription: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 25,
+    paddingHorizontal: 10,
+  },
+
+  achievementModalButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  achievementModalButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  // 💬 סטיילים ל-Tooltip
+  tooltipOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  tooltipContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 20,
+    maxWidth: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  tooltipHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  tooltipTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+    textAlign: "right",
+  },
+
+  tooltipDescription: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+    textAlign: "right",
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+
+  tooltipHint: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });
