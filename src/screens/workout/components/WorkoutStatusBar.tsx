@@ -2,6 +2,28 @@
 /* @file src/screens/workout/components/WorkoutStatusBar.tsx
  * @description רכיב משולב המציג טיימר מנוחה או התרגיל הבא בהתאם למצב
  * English: Combined component showing rest timer or next exercise based on workout state
+ *
+ * @features
+ * - ✅ Rest timer with add/subtract time controls
+ * - ✅ Next exercise preview with skip functionality
+ * - ✅ Multiple variants: default, minimal, floating
+ * - ✅ Optimized with React.memo and useCallback
+ * - ✅ Centralized helper functions (formatTime, triggerVibration)
+ * - ✅ Full RTL support and accessibility
+ * - ✅ Smooth animations with cleanup
+ *
+ * @performance
+ * - React.memo for re-render prevention
+ * - useCallback for stable function references
+ * - Centralized animation configuration
+ * - Proper cleanup in useEffect
+ *
+ * @accessibility
+ * - Screen reader support with proper labels
+ * - Clear button roles and hints
+ * - RTL text alignment and layout
+ *
+ * @updated 2025-08-02 - Code optimization and helper functions integration
  */
 
 import React, { useEffect, useRef, useCallback } from "react";
@@ -11,295 +33,296 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Vibration,
-  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
+import {
+  formatTime,
+  triggerVibration,
+  animationConfig,
+} from "../../../utils/workoutHelpers";
 import type { WorkoutStatusBarProps } from "./types";
 
-// פורמט זמן | Format time
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
+export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
+  ({
+    isRestActive,
+    restTimeLeft = 0,
+    onAddRestTime,
+    onSubtractRestTime,
+    onSkipRest,
+    nextExercise,
+    onSkipToNext,
+    variant = "default",
+  }) => {
+    const slideAnim = useRef(new Animated.Value(100)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const pulseAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = ({
-  isRestActive,
-  restTimeLeft = 0,
-  onAddRestTime,
-  onSubtractRestTime,
-  onSkipRest,
-  nextExercise,
-  onSkipToNext,
-  variant = "default",
-}) => {
-  const slideAnim = useRef(new Animated.Value(100)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+    // קביעת מה להציג | Determine what to show
+    const shouldShow = isRestActive || (nextExercise && !isRestActive);
 
-  // קביעת מה להציג | Determine what to show
-  const shouldShow = isRestActive || (nextExercise && !isRestActive);
-
-  // קביעת סגנון לפי variant | Determine style by variant
-  const getContainerStyle = useCallback(() => {
-    const baseStyle = styles.container;
-    switch (variant) {
-      case "minimal":
-        return [baseStyle, styles.containerMinimal];
-      case "floating":
-        return [baseStyle, styles.containerFloating];
-      default:
-        return baseStyle;
-    }
-  }, [variant]);
-
-  const getGradientColors = useCallback(
-    (isRest: boolean): [string, string, ...string[]] => {
-      if (variant === "minimal") {
-        return [theme.colors.card, theme.colors.card];
+    // קביעת סגנון לפי variant | Determine style by variant
+    const getContainerStyle = useCallback(() => {
+      const baseStyle = styles.container;
+      switch (variant) {
+        case "minimal":
+          return [baseStyle, styles.containerMinimal];
+        case "floating":
+          return [baseStyle, styles.containerFloating];
+        default:
+          return baseStyle;
       }
+    }, [variant]);
 
-      if (isRest) {
-        return [
-          theme.colors.success + "25",
-          theme.colors.success + "15",
-          theme.colors.card + "F0",
-        ];
-      } else {
-        return [
-          theme.colors.primary + "25",
-          theme.colors.primaryGradientEnd + "25",
-          theme.colors.card + "F0",
-        ];
-      }
-    },
-    [variant]
-  );
+    const getGradientColors = useCallback(
+      (isRest: boolean): [string, string, ...string[]] => {
+        if (variant === "minimal") {
+          return [theme.colors.card, theme.colors.card];
+        }
 
-  // אופטימיזציה של handleVibrate עם useCallback
-  const handleVibrate = useCallback(() => {
-    if (Platform.OS !== "web") {
-      Vibration.vibrate(50);
-    }
-  }, []);
+        if (isRest) {
+          return [
+            theme.colors.success + "25",
+            theme.colors.success + "15",
+            theme.colors.card + "F0",
+          ];
+        } else {
+          return [
+            theme.colors.primary + "25",
+            theme.colors.primaryGradientEnd + "25",
+            theme.colors.card + "F0",
+          ];
+        }
+      },
+      [variant]
+    );
 
-  // אופטימיזציה של כפתורי זמן עם useCallback
-  const handleAddTime = useCallback(() => {
-    handleVibrate();
-    onAddRestTime?.(10);
-  }, [onAddRestTime, handleVibrate]);
+    // אופטימיזציה של handleVibrate עם useCallback
+    const handleVibrate = useCallback(() => {
+      triggerVibration(50);
+    }, []);
 
-  const handleSubtractTime = useCallback(() => {
-    handleVibrate();
-    onSubtractRestTime?.(10);
-  }, [onSubtractRestTime, handleVibrate]);
+    // אופטימיזציה של כפתורי זמן עם useCallback
+    const handleAddTime = useCallback(() => {
+      handleVibrate();
+      onAddRestTime?.(10);
+    }, [onAddRestTime, handleVibrate]);
 
-  const handleSkipRest = useCallback(() => {
-    handleVibrate();
-    onSkipRest?.();
-  }, [onSkipRest, handleVibrate]);
+    const handleSubtractTime = useCallback(() => {
+      handleVibrate();
+      onSubtractRestTime?.(10);
+    }, [onSubtractRestTime, handleVibrate]);
 
-  const handleSkipToNext = useCallback(() => {
-    handleVibrate();
-    onSkipToNext?.();
-  }, [onSkipToNext, handleVibrate]);
+    const handleSkipRest = useCallback(() => {
+      handleVibrate();
+      onSkipRest?.();
+    }, [onSkipRest, handleVibrate]);
 
-  useEffect(() => {
-    // אנימציית כניסה/יציאה משופרת | Enhanced entry/exit animation
-    const animationConfig = {
-      friction: variant === "floating" ? 8 : 10,
-      tension: variant === "floating" ? 50 : 40,
-      useNativeDriver: true,
-    };
+    const handleSkipToNext = useCallback(() => {
+      handleVibrate();
+      onSkipToNext?.();
+    }, [onSkipToNext, handleVibrate]);
 
-    Animated.spring(slideAnim, {
-      toValue: shouldShow ? 0 : 100,
-      ...animationConfig,
-    }).start();
-
-    // אנימציית פעימה לכפתור פעיל | Pulse animation for active button
-    const hasActiveButton =
-      (isRestActive && onSkipRest) || (!isRestActive && onSkipToNext);
-
-    if (shouldShow && hasActiveButton && variant !== "minimal") {
-      const pulseConfig = {
-        toValue: variant === "floating" ? 1.08 : 1.05,
-        duration: 1000,
-        useNativeDriver: true,
+    useEffect(() => {
+      // אנימציית כניסה/יציאה משופרת | Enhanced entry/exit animation
+      const springConfig = {
+        ...animationConfig.spring,
+        friction: variant === "floating" ? 8 : 10,
+        tension: variant === "floating" ? 50 : 40,
       };
 
-      pulseAnimationRef.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, pulseConfig),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseAnimationRef.current.start();
-    } else {
-      pulseAnimationRef.current?.stop();
-      pulseAnim.setValue(1);
+      Animated.spring(slideAnim, {
+        toValue: shouldShow ? 0 : 100,
+        ...springConfig,
+      }).start();
+
+      // אנימציית פעימה לכפתור פעיל | Pulse animation for active button
+      const hasActiveButton =
+        (isRestActive && onSkipRest) || (!isRestActive && onSkipToNext);
+
+      if (shouldShow && hasActiveButton && variant !== "minimal") {
+        const pulseConfig = {
+          ...animationConfig.pulse,
+          toValue: variant === "floating" ? 1.08 : 1.05,
+        };
+
+        pulseAnimationRef.current = Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, pulseConfig),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        pulseAnimationRef.current.start();
+      } else {
+        pulseAnimationRef.current?.stop();
+        pulseAnim.setValue(1);
+      }
+
+      return () => {
+        pulseAnimationRef.current?.stop();
+      };
+    }, [shouldShow, isRestActive, onSkipRest, onSkipToNext, variant]);
+
+    if (!shouldShow) {
+      return null;
     }
 
-    return () => {
-      pulseAnimationRef.current?.stop();
-    };
-  }, [shouldShow, isRestActive, onSkipRest, onSkipToNext, variant]);
+    // מצב טיימר מנוחה | Rest timer mode
+    if (isRestActive) {
+      return (
+        <Animated.View
+          style={[
+            getContainerStyle(),
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <LinearGradient
+            colors={getGradientColors(true)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientBackground}
+          >
+            <View style={styles.content}>
+              {/* כפתור -10 שניות | -10 seconds button */}
+              {onSubtractRestTime && (
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={handleSubtractTime}
+                  activeOpacity={0.7}
+                  accessibilityLabel="הפחת 10 שניות מהטיימר"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.timeButtonText}>-10</Text>
+                </TouchableOpacity>
+              )}
 
-  if (!shouldShow) {
+              {/* טיימר מרכזי | Central timer */}
+              <View style={styles.timerContainer}>
+                <MaterialCommunityIcons
+                  name="timer-sand"
+                  size={20}
+                  color={theme.colors.success}
+                />
+                <Text style={styles.timerText}>{formatTime(restTimeLeft)}</Text>
+                <Text style={styles.timerLabel}>מנוחה</Text>
+              </View>
+
+              {/* כפתור +10 שניות | +10 seconds button */}
+              {onAddRestTime && (
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={handleAddTime}
+                  activeOpacity={0.7}
+                  accessibilityLabel="הוסף 10 שניות לטיימר"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.timeButtonText}>+10</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* כפתור דילוג | Skip button */}
+              {onSkipRest && (
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <TouchableOpacity
+                    style={styles.skipButton}
+                    onPress={handleSkipRest}
+                    activeOpacity={0.7}
+                    accessibilityLabel="דלג על זמן המנוחה"
+                    accessibilityRole="button"
+                  >
+                    <LinearGradient
+                      colors={[
+                        theme.colors.success,
+                        theme.colors.success + "DD",
+                      ]} // גרדיאנט ירוק | Green gradient
+                      style={styles.skipButtonInner}
+                    >
+                      <MaterialCommunityIcons
+                        name="skip-forward"
+                        size={20}
+                        color="white"
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      );
+    }
+
+    // מצב התרגיל הבא | Next exercise mode
+    if (nextExercise) {
+      return (
+        <Animated.View
+          style={[
+            getContainerStyle(),
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <LinearGradient
+            colors={getGradientColors(false)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientBackground}
+          >
+            <View style={styles.content}>
+              {/* מידע התרגיל | Exercise info */}
+              <View style={styles.exerciseInfo}>
+                <MaterialCommunityIcons
+                  name="flash"
+                  size={20}
+                  color={theme.colors.warning}
+                />
+                <Text style={styles.exerciseLabel}>הבא בתור</Text>
+              </View>
+
+              {/* שם התרגיל | Exercise name */}
+              <Text style={styles.exerciseName} numberOfLines={2}>
+                {nextExercise.name}
+              </Text>
+
+              {/* כפתור מעבר | Skip button */}
+              {onSkipToNext && (
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <TouchableOpacity
+                    style={styles.skipButton}
+                    onPress={handleSkipToNext}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`מעבר לתרגיל הבא: ${nextExercise.name}`}
+                    accessibilityRole="button"
+                  >
+                    <LinearGradient
+                      colors={[
+                        theme.colors.primary,
+                        theme.colors.primary + "DD",
+                      ]} // גרדיאנט כחול | Blue gradient
+                      style={styles.skipButtonInner}
+                    >
+                      <MaterialCommunityIcons
+                        name="play-circle"
+                        size={24}
+                        color="white"
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      );
+    }
+
     return null;
   }
-
-  // מצב טיימר מנוחה | Rest timer mode
-  if (isRestActive) {
-    return (
-      <Animated.View
-        style={[
-          getContainerStyle(),
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        <LinearGradient
-          colors={getGradientColors(true)}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
-        >
-          <View style={styles.content}>
-            {/* כפתור -10 שניות | -10 seconds button */}
-            {onSubtractRestTime && (
-              <TouchableOpacity
-                style={styles.timeButton}
-                onPress={handleSubtractTime}
-                activeOpacity={0.7}
-                accessibilityLabel="הפחת 10 שניות מהטיימר"
-                accessibilityRole="button"
-              >
-                <Text style={styles.timeButtonText}>-10</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* טיימר מרכזי | Central timer */}
-            <View style={styles.timerContainer}>
-              <MaterialCommunityIcons
-                name="timer-sand"
-                size={20}
-                color={theme.colors.success}
-              />
-              <Text style={styles.timerText}>{formatTime(restTimeLeft)}</Text>
-              <Text style={styles.timerLabel}>מנוחה</Text>
-            </View>
-
-            {/* כפתור +10 שניות | +10 seconds button */}
-            {onAddRestTime && (
-              <TouchableOpacity
-                style={styles.timeButton}
-                onPress={handleAddTime}
-                activeOpacity={0.7}
-                accessibilityLabel="הוסף 10 שניות לטיימר"
-                accessibilityRole="button"
-              >
-                <Text style={styles.timeButtonText}>+10</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* כפתור דילוג | Skip button */}
-            {onSkipRest && (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity
-                  style={styles.skipButton}
-                  onPress={handleSkipRest}
-                  activeOpacity={0.7}
-                  accessibilityLabel="דלג על זמן המנוחה"
-                  accessibilityRole="button"
-                >
-                  <LinearGradient
-                    colors={[theme.colors.success, theme.colors.success + "DD"]} // גרדיאנט ירוק | Green gradient
-                    style={styles.skipButtonInner}
-                  >
-                    <MaterialCommunityIcons
-                      name="skip-forward"
-                      size={20}
-                      color="white"
-                    />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-          </View>
-        </LinearGradient>
-      </Animated.View>
-    );
-  }
-
-  // מצב התרגיל הבא | Next exercise mode
-  if (nextExercise) {
-    return (
-      <Animated.View
-        style={[
-          getContainerStyle(),
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        <LinearGradient
-          colors={getGradientColors(false)}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
-        >
-          <View style={styles.content}>
-            {/* מידע התרגיל | Exercise info */}
-            <View style={styles.exerciseInfo}>
-              <MaterialCommunityIcons
-                name="flash"
-                size={20}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.exerciseLabel}>הבא בתור</Text>
-            </View>
-
-            {/* שם התרגיל | Exercise name */}
-            <Text style={styles.exerciseName} numberOfLines={2}>
-              {nextExercise.name}
-            </Text>
-
-            {/* כפתור מעבר | Skip button */}
-            {onSkipToNext && (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity
-                  style={styles.skipButton}
-                  onPress={handleSkipToNext}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`מעבר לתרגיל הבא: ${nextExercise.name}`}
-                  accessibilityRole="button"
-                >
-                  <LinearGradient
-                    colors={[theme.colors.primary, theme.colors.primary + "DD"]} // גרדיאנט כחול | Blue gradient
-                    style={styles.skipButtonInner}
-                  >
-                    <MaterialCommunityIcons
-                      name="play-circle"
-                      size={24}
-                      color="white"
-                    />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-          </View>
-        </LinearGradient>
-      </Animated.View>
-    );
-  }
-
-  return null;
-};
+);
 
 const styles = StyleSheet.create({
   container: {

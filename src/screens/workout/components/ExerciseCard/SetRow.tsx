@@ -161,19 +161,14 @@ const SetRow: React.FC<SetRowProps> = ({
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
-    if (!set.actualWeight || !set.actualReps || !set.completed) return false;
+    // ✅ שיא אישי אם יש ערכים ממשיים (לא צריך set.completed)
+    if (!set.actualWeight || !set.actualReps) return false;
 
     const currentVolume = set.actualWeight * set.actualReps;
     const previousVolume = (set.previousWeight || 0) * (set.previousReps || 0);
 
     return currentVolume > previousVolume && previousVolume > 0;
-  }, [
-    set.actualWeight,
-    set.actualReps,
-    set.completed,
-    set.previousWeight,
-    set.previousReps,
-  ]);
+  }, [set.actualWeight, set.actualReps, set.previousWeight, set.previousReps]);
 
   // Personal record animation
   useEffect(() => {
@@ -279,17 +274,21 @@ const SetRow: React.FC<SetRowProps> = ({
       return;
     }
 
-    // אם הסט לא מושלם - השלם אותו
-    // אם אין ערכים ממשיים, השתמש בערכי המטרה
+    // ✅ אם הסט לא מושלם - השלם אותו עם כל הערכים הנדרשים
+    const updates: Partial<ExtendedSet> = {
+      completed: true,
+    };
+
+    // וודא שיש ערכים ממשיים
     if (!set.actualWeight && set.targetWeight) {
-      wrappedOnUpdate({ actualWeight: set.targetWeight });
+      updates.actualWeight = set.targetWeight;
     }
     if (!set.actualReps && set.targetReps) {
-      wrappedOnUpdate({ actualReps: set.targetReps });
+      updates.actualReps = set.targetReps;
     }
 
-    // השלם את הסט
-    onComplete();
+    // עדכן הכל בבת אחת
+    wrappedOnUpdate(updates);
   };
 
   const handleDelete = () => {
@@ -328,6 +327,7 @@ const SetRow: React.FC<SetRowProps> = ({
           set.completed && styles.completedContainer,
           set.completed && styles.greenBorderContainer, // גבול ירוק לסט מושלם
           isActive && styles.activeContainer,
+          isEditMode && styles.editModeActiveContainer, // 🎯 סגנון מיוחד למצב עריכה
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
@@ -516,74 +516,83 @@ const SetRow: React.FC<SetRowProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* 🛠️ אייקונים למצב עריכה - חצי מעלית ופעולות */}
+          {/* 🛠️ אייקונים למצב עריכה - עיצוב פרימיום מתקדם */}
           {isEditMode && (
-            <>
-              {/* שכפל סט */}
+            <View style={styles.premiumEditContainer}>
+              {/* כפתור מחיקה - עיצוב פרימיום */}
               <TouchableOpacity
-                onPress={onDuplicate}
-                style={styles.actionButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel="שכפל סט"
+                onPress={handleDelete}
+                style={styles.premiumDeleteButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="מחק סט"
               >
-                <MaterialCommunityIcons
-                  name="content-copy"
-                  size={18}
-                  color={theme.colors.success}
-                />
+                <View style={styles.buttonInnerShadow}>
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color="#FF4757"
+                  />
+                </View>
               </TouchableOpacity>
 
-              {/* 🏗️ חצי מעלית - עיצוב אלגנטי עם משולשים */}
-              <View style={styles.elevatorButtonsContainer}>
+              {/* חצי מעלית פרימיום עם זוהר */}
+              <View style={styles.premiumElevatorContainer}>
                 {/* חץ למעלה - רק אם לא הראשון */}
                 {!isFirst && (
                   <TouchableOpacity
                     onPress={onMoveUp}
-                    style={[styles.elevatorButton, styles.elevatorButtonUp]}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    style={styles.premiumElevatorButton}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                     accessibilityLabel="הזז סט למעלה"
                   >
-                    <MaterialCommunityIcons
-                      name="triangle"
-                      size={12}
-                      color={theme.colors.primary}
-                      style={{ transform: [{ rotate: "0deg" }] }} // 🔺 למעלה
-                    />
+                    <View style={styles.elevatorButtonGlow}>
+                      <MaterialCommunityIcons
+                        name="chevron-up"
+                        size={14}
+                        color="#2E86AB"
+                      />
+                    </View>
                   </TouchableOpacity>
                 )}
+
+                {/* מפריד עדין */}
+                {!isFirst && !isLast && <View style={styles.elevatorDivider} />}
 
                 {/* חץ למטה - רק אם לא האחרון */}
                 {!isLast && (
                   <TouchableOpacity
                     onPress={onMoveDown}
-                    style={[styles.elevatorButton, styles.elevatorButtonDown]}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    style={styles.premiumElevatorButton}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                     accessibilityLabel="הזז סט למטה"
                   >
-                    <MaterialCommunityIcons
-                      name="triangle"
-                      size={12}
-                      color={theme.colors.primary}
-                      style={{ transform: [{ rotate: "180deg" }] }} // 🔻 למטה
-                    />
+                    <View style={styles.elevatorButtonGlow}>
+                      <MaterialCommunityIcons
+                        name="chevron-down"
+                        size={14}
+                        color="#2E86AB"
+                      />
+                    </View>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* כפתור מחיקה - רק במצב עריכה */}
+              {/* שכפל סט - עיצוב פרימיום עם נעילה */}
               <TouchableOpacity
-                onPress={handleDelete}
-                style={[styles.actionButton, styles.actionButtonDanger]}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel="מחק סט"
+                onPress={onDuplicate}
+                style={styles.premiumCopyButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="שכפל סט"
               >
-                <Ionicons
-                  name="trash-outline"
-                  size={22}
-                  color={theme.colors.error}
-                />
+                <View style={styles.copyButtonInner}>
+                  <MaterialCommunityIcons
+                    name="shield-lock-outline"
+                    size={16}
+                    color="#6C5CE7"
+                  />
+                </View>
               </TouchableOpacity>
-            </>
+            </View>
           )}
         </View>
       </Animated.View>
@@ -684,7 +693,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", // שינוי RTL: הפך את כיוון הכפתורים
     alignItems: "center",
     justifyContent: "flex-end",
-    width: 80,
+    width: 90, // קצת יותר רחב לכפתורים הקומפקטיים
   },
   actionButton: {
     padding: 8,
@@ -747,6 +756,155 @@ const styles = StyleSheet.create({
   elevatorButtonDown: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.cardBorder,
+  },
+  // 🎯 סגנונות קומפקטיים חדשים למצב עריכה
+  editModeContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: 80,
+    paddingHorizontal: 4,
+  },
+  compactDeleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.error + "08",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: theme.colors.error + "20",
+  },
+  compactElevatorContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary + "05",
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: theme.colors.primary + "15",
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    gap: 2,
+  },
+  compactElevatorButton: {
+    width: 16,
+    height: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  compactCopyButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.textSecondary + "08",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: theme.colors.textSecondary + "20",
+  },
+  // 🎯 סגנונות פרימיום חדשים למצב עריכה
+  editModeActiveContainer: {
+    backgroundColor: "rgba(46, 134, 171, 0.03)", // כחול עדין מאוד
+    borderColor: "#2E86AB",
+    borderWidth: 1.5,
+    shadowColor: "#2E86AB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  premiumEditContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: 95,
+    paddingHorizontal: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    borderRadius: 12,
+    paddingVertical: 4,
+  },
+  premiumDeleteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 71, 87, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#FF4757",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  buttonInnerShadow: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  premiumElevatorContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(46, 134, 171, 0.08)",
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    shadowColor: "#2E86AB",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 0.5,
+    borderColor: "rgba(46, 134, 171, 0.2)",
+  },
+  premiumElevatorButton: {
+    width: 20,
+    height: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 4,
+  },
+  elevatorButtonGlow: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(46, 134, 171, 0.1)",
+  },
+  elevatorDivider: {
+    width: 12,
+    height: 0.5,
+    backgroundColor: "rgba(46, 134, 171, 0.3)",
+    marginVertical: 2,
+  },
+  premiumCopyButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(108, 92, 231, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#6C5CE7",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  copyButtonInner: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderWidth: 0.5,
+    borderColor: "rgba(108, 92, 231, 0.2)",
   },
 });
 

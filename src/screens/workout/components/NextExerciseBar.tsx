@@ -11,19 +11,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Vibration,
-  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
+import { triggerVibration } from "../../../utils/workoutHelpers";
 import { Exercise } from "../types/workout.types";
-
-interface NextExerciseBarProps {
-  nextExercise: Exercise | null;
-  onSkipToNext?: () => void;
-  variant?: "default" | "gradient" | "minimal" | "floating" | "pills";
-}
+import type { NextExerciseBarProps } from "./types";
 
 export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
   nextExercise,
@@ -43,7 +37,7 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       useNativeDriver: true,
     }).start();
 
-    // אנימציית פעימה לכפתור - עם ניקוי | Pulse animation with proper cleanup
+    // אנימציית פעימה לכפתור - עם ניקוי משופר | Pulse animation with improved cleanup
     if (nextExercise && onSkipToNext) {
       pulseAnimationRef.current = Animated.loop(
         Animated.sequence([
@@ -62,15 +56,21 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       pulseAnimationRef.current.start();
     } else {
       // עצירת האנימציה כשאין תרגיל או כפתור | Stop animation when no exercise or button
-      pulseAnimationRef.current?.stop();
+      if (pulseAnimationRef.current) {
+        pulseAnimationRef.current.stop();
+        pulseAnimationRef.current = null;
+      }
       pulseAnim.setValue(1);
     }
 
     // ניקוי בעת unmount | Cleanup on unmount
     return () => {
-      pulseAnimationRef.current?.stop();
+      if (pulseAnimationRef.current) {
+        pulseAnimationRef.current.stop();
+        pulseAnimationRef.current = null;
+      }
     };
-  }, [nextExercise, onSkipToNext]);
+  }, [nextExercise, onSkipToNext, slideAnim, pulseAnim]);
 
   // בדיקת תקינות נתונים | Data validation
   if (!nextExercise || !nextExercise.name) {
@@ -117,9 +117,7 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
                   style={styles.skipButtonGradient}
                   onPress={() => {
                     // הוספת haptic feedback | Add haptic feedback
-                    if (Platform.OS !== "web") {
-                      Vibration.vibrate(50); // רטט קצר | Short vibration
-                    }
+                    triggerVibration(50); // רטט קצר | Short vibration
                     onSkipToNext?.();
                   }}
                   activeOpacity={0.7}

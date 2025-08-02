@@ -18,10 +18,11 @@ export type WorkoutVariant =
   | "minimal"
   | "gradient"
   | "integrated"
-  | "compact"
-  | "bar"
   | "floating"
-  | "pills";
+  | "pills"
+  | "compact"
+  | "bar";
+
 export type ButtonVariant =
   | "primary"
   | "secondary"
@@ -65,18 +66,6 @@ export interface WorkoutDashboardProps {
   className?: string;
 }
 
-// RestTimer Props - עדכון לפי המימוש הנוכחי
-export interface RestTimerProps {
-  timeLeft: number;
-  progress: number; // A value between 0 and 1
-  isPaused: boolean;
-  nextExercise?: Exercise | null;
-  onPause: () => void;
-  onSkip: () => void;
-  onAddTime: (seconds: number) => void;
-  onSubtractTime: (seconds: number) => void;
-}
-
 // ExerciseCard Props - עדכון עם טיפוסים חדשים
 export interface ExerciseCardProps {
   exercise: Exercise;
@@ -89,7 +78,7 @@ export interface ExerciseCardProps {
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onShowTips?: () => void;
+  // onShowTips?: () => void; // מוסר - הפונקציה לא משמשת עוד
   onTitlePress?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
@@ -178,14 +167,6 @@ export interface PlateCalculatorModalProps {
   visible: boolean;
   onClose: () => void;
   currentWeight?: number;
-}
-
-// ExerciseTipsModal Props
-export interface ExerciseTipsModalProps {
-  visible: boolean;
-  onClose: () => void;
-  exerciseName: string;
-  exercise?: Exercise;
 }
 
 // Additional Types למניעת חזרה

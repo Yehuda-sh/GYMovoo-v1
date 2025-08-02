@@ -53,6 +53,7 @@ import { theme } from "../../../../styles/theme";
 // ייבוא ה-types
 // Import types
 import { Exercise, Set as WorkoutSet } from "../../types/workout.types";
+import { ExerciseHistory } from "../../../../hooks/useWorkoutHistory";
 
 // אפשור LayoutAnimation באנדרואיד
 // Enable LayoutAnimation on Android
@@ -82,7 +83,7 @@ interface ExerciseCardProps {
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onShowTips?: () => void;
+  // onShowTips?: () => void; // מוסר - הפונקציה לא משמשת עוד
   onTitlePress?: () => void; // עבור מעבר לתרגיל יחיד
   isFirst?: boolean;
   isLast?: boolean;
@@ -98,6 +99,11 @@ interface ExerciseCardProps {
   onReplace?: () => void;
   // פונקציה להזזת סטים - אופציונלי לעתיד
   onReorderSets?: (fromIndex: number, toIndex: number) => void;
+  // 🆕 נתוני היסטוריה
+  exerciseHistory?: ExerciseHistory | null;
+  // 🆕 זמן מנוחה ברירת מחדל בין סטים
+  defaultRestTime?: number;
+  onUpdateRestTime?: (seconds: number) => void;
 }
 
 const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -111,7 +117,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // onStartRest, // לא בשימוש כרגע
   onMoveUp,
   onMoveDown,
-  // onShowTips, // לא בשימוש כרגע
+  // onShowTips, // מוסר - הפונקציה לא משמשת עוד
   onTitlePress, // עבור מעבר לתרגיל יחיד
   isFirst = false,
   isLast = false,
@@ -123,6 +129,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onDuplicate,
   onReplace,
   onReorderSets, // פונקציה להזזת סטים
+  exerciseHistory, // 🆕 נתוני היסטוריה
+  defaultRestTime = 90, // ברירת מחדל 90 שניות
+  onUpdateRestTime, // פונקציה לעדכון זמן מנוחה
 }) => {
   // מצבים מקומיים
   // Local states
@@ -133,6 +142,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     new globalThis.Set()
   );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [restTime, setRestTime] = useState(defaultRestTime); // זמן מנוחה מקומי
+  const [restTimeAnimation] = useState(new Animated.Value(1)); // אנימציה לטיימר
+  const [showRestTimeEditor, setShowRestTimeEditor] = useState(false); // מצב עריכת זמן מנוחה
+  const [restTimeEditorAnimation] = useState(new Animated.Value(0)); // אנימציה לעורך זמן
 
   // אנימציות
   // Animations
@@ -144,7 +157,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // חישוב האם התרגיל הושלם
   // Calculate if exercise is completed
   const isCompleted = useMemo(() => {
-    return sets.length > 0 && sets.every((set) => set.completed);
+    return (
+      sets.length > 0 &&
+      sets.every((set) => set.completed || (set.actualReps && set.actualWeight))
+    );
   }, [sets]);
 
   // חישוב נפח כולל
@@ -161,7 +177,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // חישוב סטים שהושלמו
   // Calculate completed sets
   const completedSets = useMemo(() => {
-    return sets.filter((set) => set.completed).length;
+    return sets.filter(
+      (set) => set.completed || (set.actualReps && set.actualWeight)
+    ).length;
   }, [sets]);
 
   // חישוב חזרות כוללות
@@ -219,6 +237,91 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
     setIsSelectionMode(true);
     setSelectedSets(new Set([setId]));
+  }, []);
+
+  // טיפול בעריכת זמן מנוחה
+  // Handle rest time editing
+  const handleRestTimePress = useCallback(() => {
+    log("Rest time button pressed", {
+      currentRestTime: restTime,
+      showRestTimeEditor,
+    });
+
+    // הצג/הסתר את עורך זמן המנוחה
+    const toValue = !showRestTimeEditor ? 1 : 0;
+
+    Animated.spring(restTimeEditorAnimation, {
+      toValue,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+
+    setShowRestTimeEditor(!showRestTimeEditor);
+
+    // משוב מגע
+    if (Platform.OS === "ios") {
+      Vibration.vibrate(30);
+    } else {
+      Vibration.vibrate(50);
+    }
+  }, [showRestTimeEditor, restTimeEditorAnimation]);
+
+  // עדכון זמן מנוחה עם קפיצות
+  const updateRestTime = useCallback(
+    (change: number) => {
+      const newTime = Math.max(15, Math.min(600, restTime + change)); // מינימום 15 שניות, מקסימום 10 דקות
+
+      if (newTime !== restTime) {
+        // אנימציה של עדכון
+        Animated.sequence([
+          Animated.timing(restTimeAnimation, {
+            toValue: 1.1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(restTimeAnimation, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        setRestTime(newTime);
+        onUpdateRestTime?.(newTime);
+        log("Rest time updated", { newRestTime: newTime, change });
+
+        // עדכן את זמן המנוחה בכל הסטים
+        sets.forEach((set) => {
+          onUpdateSet(set.id, { restTime: newTime });
+        });
+
+        // משוב מגע
+        if (Platform.OS === "ios") {
+          Vibration.vibrate(50);
+        } else {
+          Vibration.vibrate(30);
+        }
+      }
+    },
+    [restTime, onUpdateRestTime, restTimeAnimation, sets, onUpdateSet]
+  );
+
+  // עיצוב זמן המנוחה לתצוגה
+  // Format rest time for display
+  const formatRestTime = useCallback((seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (minutes > 0) {
+      if (remainingSeconds === 0) {
+        return `${minutes}:00`;
+      }
+      return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+    }
+
+    // פחות מדקה - הצג כמו 30ש, 45ש
+    return `${seconds}ש`;
   }, []);
 
   // ביטול מצב בחירה
@@ -554,6 +657,112 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </View>
 
           <View style={styles.headerActions}>
+            {/* אייקון טיימר מנוחה או עורך */}
+            <Animated.View
+              style={{
+                transform: [{ scale: restTimeAnimation }],
+              }}
+            >
+              {!showRestTimeEditor ? (
+                // כפתור טיימר רגיל
+                <TouchableOpacity
+                  style={styles.restTimerButton}
+                  onPress={() => {
+                    console.log("🔥 Timer button pressed - opening editor");
+                    handleRestTimePress();
+                  }}
+                  activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`זמן מנוחה בין סטים: ${formatRestTime(restTime)}`}
+                  accessibilityHint="הקש כדי לערוך את זמן המנוחה בין סטים"
+                >
+                  <View style={styles.restTimerContent}>
+                    <MaterialCommunityIcons
+                      name="timer"
+                      size={16} // קטן יותר
+                      color={theme.colors.primary + "70"} // יותר שקוף
+                    />
+                    <Text style={styles.restTimerText}>
+                      {formatRestTime(restTime)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                // עורך קומפקטי באותה שורה
+                <Animated.View
+                  style={[
+                    styles.restTimerEditorInline,
+                    {
+                      opacity: restTimeEditorAnimation,
+                      transform: [
+                        {
+                          scaleX: restTimeEditorAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.5, 1],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={styles.inlineControlButton}
+                    onPress={() => {
+                      console.log("🔥 Minus button pressed");
+                      updateRestTime(-5);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityLabel="הפחת 5 שניות"
+                  >
+                    <MaterialCommunityIcons
+                      name="minus"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={styles.inlineTimeDisplay}>
+                    <Text style={styles.inlineTimeText}>
+                      {formatRestTime(restTime)}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.inlineControlButton}
+                    onPress={() => {
+                      console.log("🔥 Plus button pressed");
+                      updateRestTime(+5);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityLabel="הוסף 5 שניות"
+                  >
+                    <MaterialCommunityIcons
+                      name="plus"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.inlineCloseButton}
+                    onPress={() => {
+                      console.log("🔥 Close button pressed");
+                      handleRestTimePress();
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityLabel="סגור עורך זמן"
+                  >
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={14}
+                      color={theme.colors.success}
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </Animated.View>
+
             <TouchableOpacity
               style={[styles.menuButton, isEditMode && styles.menuButtonActive]}
               onPress={toggleEditMode}
@@ -773,41 +982,57 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </View>
             </View>
 
-            {sets.map((set, index) => (
-              <SetRow
-                key={set.id}
-                set={set}
-                setNumber={index + 1}
-                onUpdate={(updates: Partial<WorkoutSet>) => {
-                  console.log("🔴 ExerciseCard onUpdate called:", {
-                    setId: set.id,
-                    updates,
-                  });
-                  onUpdateSet(set.id, updates);
-                }}
-                onDelete={() => onDeleteSet?.(set.id)}
-                onComplete={() => {
-                  const currentSet = sets.find((s) => s.id === set.id);
-                  const isCompleting = !currentSet?.completed; // אם הסט לא מושלם, זה אומר שאנחנו משלימים אותו
-                  onCompleteSet(set.id, isCompleting);
-                }}
-                onLongPress={() => handleSetLongPress(set.id)}
-                isActive={index === 0 && !set.completed}
-                exercise={exercise}
-                // מצב עריכה ופונקציות עזר
-                isEditMode={isEditMode}
-                onMoveUp={index > 0 ? () => handleMoveSetUp(index) : undefined}
-                onMoveDown={
-                  index < sets.length - 1
-                    ? () => handleMoveSetDown(index)
-                    : undefined
-                }
-                onDuplicate={() => handleDuplicateSet(index)}
-                // מידע על מיקום - חשוב לחצים
-                isFirst={index === 0}
-                isLast={index === sets.length - 1}
-              />
-            ))}
+            {sets.map((set, index) => {
+              // 🆕 הכן נתוני היסטוריה עבור הסט הנוכחי
+              const setWithHistory = {
+                ...set,
+                // אם יש היסטוריה, השתמש בביצועים הקודמים
+                previousWeight:
+                  exerciseHistory?.lastPerformance?.weight ||
+                  exerciseHistory?.averagePerformance?.weight,
+                previousReps:
+                  exerciseHistory?.lastPerformance?.reps ||
+                  exerciseHistory?.averagePerformance?.reps,
+              };
+
+              return (
+                <SetRow
+                  key={set.id}
+                  set={setWithHistory}
+                  setNumber={index + 1}
+                  onUpdate={(updates: Partial<WorkoutSet>) => {
+                    console.log("🔴 ExerciseCard onUpdate called:", {
+                      setId: set.id,
+                      updates,
+                    });
+                    onUpdateSet(set.id, updates);
+                  }}
+                  onDelete={() => onDeleteSet?.(set.id)}
+                  onComplete={() => {
+                    const currentSet = sets.find((s) => s.id === set.id);
+                    const isCompleting = !currentSet?.completed; // אם הסט לא מושלם, זה אומר שאנחנו משלימים אותו
+                    onCompleteSet(set.id, isCompleting);
+                  }}
+                  onLongPress={() => handleSetLongPress(set.id)}
+                  isActive={index === 0 && !set.completed}
+                  exercise={exercise}
+                  // מצב עריכה ופונקציות עזר
+                  isEditMode={isEditMode}
+                  onMoveUp={
+                    index > 0 ? () => handleMoveSetUp(index) : undefined
+                  }
+                  onMoveDown={
+                    index < sets.length - 1
+                      ? () => handleMoveSetDown(index)
+                      : undefined
+                  }
+                  onDuplicate={() => handleDuplicateSet(index)}
+                  // מידע על מיקום - חשוב לחצים
+                  isFirst={index === 0}
+                  isLast={index === sets.length - 1}
+                />
+              );
+            })}
           </View>
 
           {/* כפתור הוספת סט - נוסף אחרי רשימת הסטים, רק אם יש סטים ולא במצב עריכה */}
@@ -1126,6 +1351,80 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.primary,
     letterSpacing: 0.5,
+  },
+  // סגנונות אייקון טיימר
+  restTimerButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "transparent", // רקע שקוף
+    borderWidth: 0.5, // גבול דק יותר
+    borderColor: theme.colors.primary + "15", // עוד יותר עדין
+    shadowColor: "transparent", // ללא צל
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0, // ללא הרמה
+  },
+  restTimerContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4, // פחות רווח
+  },
+  restTimerText: {
+    fontSize: 12, // טקסט קטן יותר
+    fontWeight: "500", // פחות בולד
+    color: theme.colors.primary + "80", // יותר שקוף
+    minWidth: 30,
+    textAlign: "center",
+    letterSpacing: 0.3,
+  },
+  // עורך זמן מנוחה קומפקטי - באותה שורה
+  restTimerEditorInline: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: theme.colors.primary + "08", // פחות בולט
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "20", // פחות בולט
+  },
+  inlineControlButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.card + "80", // שקיפות קלה
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5, // גבול דק יותר
+    borderColor: theme.colors.primary + "25", // פחות בולט
+  },
+  inlineTimeDisplay: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: "transparent", // ללא רקע
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: "center",
+    borderWidth: 0, // ללא גבול
+  },
+  inlineTimeText: {
+    fontSize: 12,
+    fontWeight: "600", // פחות בולד
+    color: theme.colors.primary,
+    textAlign: "center",
+  },
+  inlineCloseButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.success + "15", // פחות בולט
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5, // גבול דק יותר
+    borderColor: theme.colors.success + "30", // פחות בולט
   },
 });
 

@@ -481,7 +481,7 @@ GYMovoo/
 
 - **Common**: BackButton, DefaultAvatar, LoadingSpinner, EmptyState, IconButton, ConfirmationModal, InputField
 - **UI**: ScreenContainer, UniversalButton, UniversalCard
-- **Workout**: FloatingActionButton, ExerciseTipsModal, NextExerciseBar
+- **Workout**: FloatingActionButton, NextExerciseBar
 
 ### Services (15 active services):
 

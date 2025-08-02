@@ -48,6 +48,7 @@ import {
   AccessibilityInfo,
   Platform,
   Vibration,
+  ActivityIndicator, // 🎯 הוספת ספינר
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
@@ -81,6 +82,7 @@ const MenuItem: React.FC<MenuItemProps> = React.memo(
     disabled = false,
     danger = false,
   }) => {
+    const [isPressed, setIsPressed] = useState(false); // 🎯 מצב לחיצה
     const IconComponent =
       iconFamily === "ionicons" ? Ionicons : MaterialCommunityIcons;
 
@@ -107,8 +109,11 @@ const MenuItem: React.FC<MenuItemProps> = React.memo(
           styles.menuItem,
           disabled && styles.menuItemDisabled,
           danger && styles.menuItemDanger,
+          isPressed && styles.menuItemPressed, // 🎯 סגנון לחיצה
         ]}
         onPress={onPress}
+        onPressIn={() => setIsPressed(true)} // 🎯 התחלת לחיצה
+        onPressOut={() => setIsPressed(false)} // 🎯 סיום לחיצה
         disabled={disabled}
         activeOpacity={0.7}
         accessibilityRole="button"
@@ -167,6 +172,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
     const translateY = useRef(new Animated.Value(0)).current;
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showAdvancedMenu, setShowAdvancedMenu] = useState(false); // 🎯 מצב תפריט מתקדם
     const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check for screen reader
@@ -188,6 +194,13 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
         subscription?.remove();
       };
     }, []);
+
+    // Reset advanced menu when visibility changes
+    useEffect(() => {
+      if (!visible) {
+        setShowAdvancedMenu(false);
+      }
+    }, [visible]);
 
     // Announce menu opening for screen readers עם תמיכה במצב עריכה
     useEffect(() => {
@@ -384,16 +397,63 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       [handleAction, onBatchMove]
     );
 
+    // 🎯 טיפול במעבר לתפריט מתקדם
+    const handleShowAdvanced = useCallback(() => {
+      setShowAdvancedMenu(true);
+
+      // הודעת נגישות
+      if (isScreenReaderEnabled) {
+        AccessibilityInfo.announceForAccessibility(
+          "תפריט אפשרויות נוספות נפתח"
+        );
+      }
+
+      // רטט קל
+      if (Platform.OS === "ios") {
+        Vibration.vibrate(30);
+      }
+    }, [isScreenReaderEnabled]);
+
+    const handleBackToMain = useCallback(() => {
+      setShowAdvancedMenu(false);
+
+      // הודעת נגישות
+      if (isScreenReaderEnabled) {
+        AccessibilityInfo.announceForAccessibility("חזרה לתפריט הראשי");
+      }
+    }, [isScreenReaderEnabled]);
+
+    // 🎯 חישוב גובה דינמי בהתאם לתוכן
+    const calculateMenuHeight = useMemo(() => {
+      let itemCount = 0;
+      
+      if (isBatchMode) {
+        itemCount = 4; // 3 פריטים + ביטול
+      } else if (!showAdvancedMenu) {
+        itemCount = isEditMode ? 5 : 4; // פריטים בסיסיים + כותרת + ביטול
+      } else {
+        itemCount = isEditMode ? 8 : 10; // כל הפריטים + כותרות + ביטול
+      }
+      
+      const itemHeight = 48; // גובה פריט קומפקטי
+      const headerHeight = 50; // כותרת קומפקטית
+      const handleHeight = 30; // handle קטן
+      const padding = 32; // פדינג כללי
+      
+      const calculatedHeight = itemCount * itemHeight + headerHeight + handleHeight + padding;
+      return Math.min(calculatedHeight, screenHeight * 0.65); // מקסימום 65%
+    }, [isBatchMode, showAdvancedMenu, isEditMode]);
+
     // Memoized title עם תמיכה במצב עריכה
     const title = useMemo(() => {
       if (isBatchMode) {
         return `${selectedExercises.length} תרגילים נבחרו`;
       }
       if (isEditMode) {
-        return "עריכת תרגיל"; // 🎯 כותרת מיוחדת למצב עריכה
+        return showAdvancedMenu ? "אפשרויות נוספות" : "עריכת תרגיל"; // 🎯 כותרת דינמית
       }
-      return "אפשרויות תרגיל";
-    }, [isBatchMode, selectedExercises.length, isEditMode]);
+      return showAdvancedMenu ? "אפשרויות נוספות" : "אפשרויות תרגיל"; // 🎯 כותרת דינמית
+    }, [isBatchMode, selectedExercises.length, isEditMode, showAdvancedMenu]);
 
     // Enhanced accessibility for disabled items
     const getAccessibilityHint = useCallback(
@@ -439,6 +499,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
               style={[
                 styles.menuSheet,
                 {
+                  height: calculateMenuHeight, // 🎯 גובה דינמי
                   transform: [
                     {
                       translateY: Animated.add(
@@ -454,8 +515,16 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
                 },
               ]}
             >
-              {/* Handle */}
-              <View style={styles.handle} />
+              {/* Handle עם שיפורים */}
+              <View style={styles.handleContainer}>
+                <MaterialCommunityIcons
+                  name="drag-horizontal"
+                  size={16}
+                  color={theme.colors.textSecondary + "60"}
+                  style={styles.dragIcon}
+                />
+                <View style={styles.handle} />
+              </View>
 
               {/* Title */}
               <View style={styles.header}>
@@ -472,6 +541,16 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
                 ]}
                 accessibilityRole="menu"
               >
+                {/* 🎯 ספינר במצב עיבוד */}
+                {isProcessing && (
+                  <View style={styles.processingOverlay}>
+                    <ActivityIndicator
+                      size="large"
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.processingText}>מבצע פעולה...</Text>
+                  </View>
+                )}
                 {isBatchMode ? (
                   // Batch mode actions
                   <>
@@ -493,146 +572,201 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
                       danger
                     />
                   </>
-                ) : isEditMode ? (
-                  // 🎯 Edit mode actions - פעולות מיוחדות למצב עריכה
+                ) : !showAdvancedMenu ? (
+                  // 🎯 תפריט ראשי חכם - פעולות עיקריות בלבד
                   <>
-                    {/* פעולות עדיפות במצב עריכה */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="add-circle"
-                        label="הוסף סט"
-                        onPress={handleAddSet}
-                        disabled={!onAddSet}
-                      />
-                      <MenuItem
-                        icon="remove-circle"
-                        label="מחק סט אחרון"
-                        onPress={handleDeleteLastSet}
-                        disabled={!onDeleteLastSet || !hasLastSet}
-                      />
-                    </View>
+                    {isEditMode ? (
+                      // מצב עריכה - פעולות עדיפות
+                      <>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            פעולות מהירות
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="keyboard-arrow-up"
+                          iconFamily="material"
+                          label="הזז למעלה"
+                          onPress={handleMoveUp}
+                          disabled={!canMoveUp}
+                        />
+                        <MenuItem
+                          icon="keyboard-arrow-down"
+                          iconFamily="material"
+                          label="הזז למטה"
+                          onPress={handleMoveDown}
+                          disabled={!canMoveDown}
+                        />
+                        <MenuItem
+                          icon="content-copy"
+                          iconFamily="material"
+                          label="שכפל תרגיל"
+                          onPress={handleDuplicate}
+                        />
+                      </>
+                    ) : (
+                      // מצב רגיל - פעולות נפוצות
+                      <>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            פעולות נפוצות
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="add-circle"
+                          label="הוסף סט"
+                          onPress={handleAddSet}
+                          disabled={!onAddSet}
+                        />
+                        <MenuItem
+                          icon="swap-horizontal"
+                          iconFamily="material"
+                          label="החלף תרגיל"
+                          onPress={handleReplace}
+                          disabled={!onReplace}
+                        />
+                      </>
+                    )}
 
                     <View style={styles.separator} />
 
-                    {/* פעולות מיקום - עם אייקוני משולש כמו במעלית */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="keyboard-arrow-up"
-                        iconFamily="material"
-                        label="הזז תרגיל למעלה"
-                        onPress={handleMoveUp}
-                        disabled={!canMoveUp}
-                      />
-                      <MenuItem
-                        icon="keyboard-arrow-down"
-                        iconFamily="material"
-                        label="הזז תרגיל למטה"
-                        onPress={handleMoveDown}
-                        disabled={!canMoveDown}
-                      />
-                    </View>
-
-                    <View style={styles.separator} />
-
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="content-copy"
-                        iconFamily="material"
-                        label="שכפל תרגיל"
-                        onPress={handleDuplicate}
-                      />
-                      <MenuItem
-                        icon="trash"
-                        label="מחק תרגיל"
-                        onPress={confirmDelete}
-                        danger
-                      />
-                    </View>
+                    {/* כפתור אפשרויות נוספות */}
+                    <MenuItem
+                      icon="ellipsis-horizontal"
+                      label="אפשרויות נוספות..."
+                      onPress={handleShowAdvanced}
+                    />
                   </>
                 ) : (
-                  // Regular mode actions - התפריט הרגיל
+                  // 🎯 תפריט מתקדם - כל שאר האפשרויות
                   <>
-                    {/* פעולות סטים */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="add-circle"
-                        label="הוסף סט"
-                        onPress={handleAddSet}
-                        disabled={!onAddSet}
-                      />
-                      <MenuItem
-                        icon="remove-circle"
-                        label="מחק סט אחרון"
-                        onPress={handleDeleteLastSet}
-                        disabled={!onDeleteLastSet || !hasLastSet}
-                      />
-                    </View>
+                    {/* כפתור חזרה */}
+                    <MenuItem
+                      icon="arrow-back"
+                      label="חזרה לתפריט הראשי"
+                      onPress={handleBackToMain}
+                    />
 
                     <View style={styles.separator} />
 
-                    {/* פעולות תרגיל */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="content-copy"
-                        iconFamily="material"
-                        label="שכפל תרגיל"
-                        onPress={handleDuplicate}
-                      />
-                      <MenuItem
-                        icon="swap-horizontal"
-                        iconFamily="material"
-                        label="החלף תרגיל"
-                        onPress={handleReplace}
-                        disabled={!onReplace}
-                      />
-                    </View>
+                    {isEditMode ? (
+                      // אפשרויות נוספות למצב עריכה
+                      <>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            ניהול סטים
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="add-circle"
+                          label="הוסף סט"
+                          onPress={handleAddSet}
+                          disabled={!onAddSet}
+                        />
+                        <MenuItem
+                          icon="remove-circle"
+                          label="מחק סט אחרון"
+                          onPress={handleDeleteLastSet}
+                          disabled={!onDeleteLastSet || !hasLastSet}
+                        />
 
-                    <View style={styles.separator} />
+                        <View style={styles.separator} />
 
-                    {/* פעולות מיקום */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="arrow-up"
-                        label="הזז למעלה"
-                        onPress={handleMoveUp}
-                        disabled={!canMoveUp}
-                      />
-                      <MenuItem
-                        icon="arrow-down"
-                        label="הזז למטה"
-                        onPress={handleMoveDown}
-                        disabled={!canMoveDown}
-                      />
-                    </View>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            אזור סכנה
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="trash"
+                          label="מחק תרגיל"
+                          onPress={confirmDelete}
+                          danger
+                        />
+                      </>
+                    ) : (
+                      // אפשרויות נוספות למצב רגיל
+                      <>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            ניהול סטים
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="remove-circle"
+                          label="מחק סט אחרון"
+                          onPress={handleDeleteLastSet}
+                          disabled={!onDeleteLastSet || !hasLastSet}
+                        />
 
-                    <View style={styles.separator} />
+                        <View style={styles.separator} />
 
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="trash"
-                        label="מחק תרגיל"
-                        onPress={confirmDelete}
-                        danger
-                      />
-                    </View>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            מיקום וסדר
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="arrow-up"
+                          label="הזז למעלה"
+                          onPress={handleMoveUp}
+                          disabled={!canMoveUp}
+                        />
+                        <MenuItem
+                          icon="arrow-down"
+                          label="הזז למטה"
+                          onPress={handleMoveDown}
+                          disabled={!canMoveDown}
+                        />
+                        <MenuItem
+                          icon="content-copy"
+                          iconFamily="material"
+                          label="שכפל תרגיל"
+                          onPress={handleDuplicate}
+                        />
+
+                        <View style={styles.separator} />
+
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionHeaderText}>
+                            אזור סכנה
+                          </Text>
+                        </View>
+                        <MenuItem
+                          icon="trash"
+                          label="מחק תרגיל"
+                          onPress={confirmDelete}
+                          danger
+                        />
+                      </>
+                    )}
                   </>
                 )}
+
+                {/* ביטול - כפריט אחרון בתפריט עם עיצוב מיוחד */}
+                <View style={styles.separator} />
+                <View style={styles.cancelSection}>
+                  <TouchableOpacity
+                    style={styles.cancelMenuItem}
+                    onPress={onClose}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="ביטול"
+                    accessibilityHint="סגור את התפריט"
+                  >
+                    <View style={styles.cancelItemContent}>
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={22}
+                        color={theme.colors.textSecondary}
+                      />
+                      <Text style={styles.cancelItemText}>ביטול</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
             </Animated.View>
           </PanGestureHandler>
-
-          {/* Cancel Button - מחוץ ל-PanGestureHandler */}
-          <View style={styles.cancelButtonContainer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="ביטול"
-            >
-              <Text style={styles.cancelText}>ביטול</Text>
-            </TouchableOpacity>
-          </View>
         </GestureHandlerRootView>
       </Modal>
     );
@@ -653,64 +787,108 @@ const styles = StyleSheet.create({
   },
   menuSheet: {
     position: "absolute",
-    bottom: 80, // נותן מקום לכפתור הביטול
+    bottom: 0, // בדיוק בתחתית - ללא מרווח
     left: 0,
     right: 0,
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 20,
-    maxHeight: screenHeight * 0.75 - 80, // נגרע את מקום הכפתור
-    ...theme.shadows.large,
+    borderTopLeftRadius: 20, // פחות עגול
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16, // התחשבות ב-safe area
+    // הסרת maxHeight - נשתמש בגובה דינמי
+    ...theme.shadows.medium, // צל פחות דרמטי
   },
   handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: theme.colors.textSecondary + "40",
+    width: 40, // קצת יותר קטן
+    height: 4, // נשאר באותו גובה
+    backgroundColor: theme.colors.textSecondary + "50",
     borderRadius: 2,
     alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 8,
+  },
+  handleContainer: {
+    alignItems: "center",
+    paddingVertical: 10, // פחות פדינג
+    paddingHorizontal: 20,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  dragIcon: {
+    marginBottom: 4,
+    opacity: 0.6,
   },
   header: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.cardBorder,
+    paddingVertical: 8, // פחות פדינג
+    paddingHorizontal: 20, // פחות פדינג אופקי
+    borderBottomWidth: 0, // ללא גבול - נקי יותר
   },
   title: {
-    fontSize: 18,
+    fontSize: 16, // קטן יותר
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
   },
   menuContent: {
-    paddingVertical: 8,
+    paddingVertical: 4, // פחות פדינג
   },
   menuContentProcessing: {
     opacity: 0.6,
   },
+  processingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.background + "E0", // רקע שקוף קל
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+    gap: 12,
+  },
+  processingText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: theme.colors.primary,
+    textAlign: "center",
+  },
   section: {
     paddingVertical: 4,
   },
+  sectionHeader: {
+    paddingHorizontal: 20, // פחות פדינג
+    paddingVertical: 6, // פחות פדינג
+    paddingTop: 8, // פחות פדינג עליון
+  },
+  sectionHeaderText: {
+    fontSize: 12, // קטן יותר
+    fontWeight: "600",
+    color: theme.colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "right",
+  },
   separator: {
     height: 1,
-    backgroundColor: theme.colors.cardBorder,
-    marginVertical: 8,
-    marginHorizontal: 24,
+    backgroundColor: theme.colors.cardBorder + "60", // יותר עדין
+    marginVertical: 6, // פחות מרווח
+    marginHorizontal: 20, // פחות מרווח אופקי
   },
   menuItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingVertical: 12, // פחות פדינג אנכי
+    paddingHorizontal: 20, // פחות פדינג אופקי
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 48, // גובה מינימלי קבוע
+  },
+  menuItemPressed: {
+    backgroundColor: theme.colors.primary + "08", // רקע עדין בלחיצה
+    transform: [{ scale: 0.98 }], // קצת קטן יותר
   },
   menuItemContent: {
     flexDirection: "row-reverse",
     alignItems: "center",
     flex: 1,
-    gap: 16,
+    gap: 12, // פחות רווח בין אייקון לטקסט
   },
   menuItemDisabled: {
     opacity: 0.4,
@@ -734,28 +912,34 @@ const styles = StyleSheet.create({
   chevron: {
     opacity: 0.5,
   },
-  cancelButton: {
-    marginTop: 12,
-    marginHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
+  // סגנונות כפתור ביטול מיוחד
+  cancelSection: {
+    marginTop: 6, // פחות מרווח
+    paddingHorizontal: 12, // פחות פדינג
+  },
+  cancelMenuItem: {
+    paddingVertical: 12, // פחות פדינג
+    paddingHorizontal: 20,
+    flexDirection: "row-reverse",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    justifyContent: "center",
+    backgroundColor: theme.colors.error + "06", // רקע עדין יותר
+    borderRadius: 10, // פחות עגול
+    borderWidth: 0.5, // גבול דק יותר
+    borderColor: theme.colors.error + "15", // מסגרת עדינה יותר
+    marginVertical: 2, // פחות מרווח
+    minHeight: 44, // גובה מינימלי
   },
-  cancelButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 20,
-    backgroundColor: theme.colors.background,
+  cancelItemContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10, // פחות רווח
   },
-  cancelText: {
-    fontSize: 16,
+  cancelItemText: {
+    fontSize: 15, // קטן יותר
+    color: theme.colors.textSecondary,
     fontWeight: "600",
-    color: theme.colors.text,
+    textAlign: "center",
   },
 });
 

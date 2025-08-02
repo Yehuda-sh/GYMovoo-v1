@@ -138,7 +138,10 @@ class WorkoutHistoryService {
       const newRecords: PersonalRecord[] = [];
 
       for (const exercise of workout.exercises) {
-        const completedSets = exercise.sets.filter((set) => set.completed);
+        // ✅ סטים מושלמים = סטים מסומנים כמושלמים OR סטים עם ערכים ממשיים
+        const completedSets = exercise.sets.filter(
+          (set) => set.completed || (set.actualReps && set.actualWeight)
+        );
         if (completedSets.length === 0) continue;
 
         const existingPerf = existingPerformances.find(
@@ -285,7 +288,10 @@ class WorkoutHistoryService {
 
       const performances: PreviousPerformance[] = workout.exercises.map(
         (exercise) => {
-          const completedSets = exercise.sets.filter((set) => set.completed);
+          // ✅ סטים מושלמים = סטים מסומנים כמושלמים OR סטים עם ערכים ממשיים
+          const completedSets = exercise.sets.filter(
+            (set) => set.completed || (set.actualReps && set.actualWeight)
+          );
           const setsData = completedSets.map((set) => ({
             weight: set.actualWeight || set.targetWeight || 0,
             reps: set.actualReps || set.targetReps || 0,

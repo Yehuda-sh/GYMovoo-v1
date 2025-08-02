@@ -14,6 +14,7 @@ import {
   generateSingleGenderAdaptedNote,
   UserGender,
 } from "../utils/genderAdaptation";
+import { unifiedHistoryService } from "./unifiedHistoryService";
 
 // ממשק מרכזי לאימון בודד עם יכולות מעקב מקיפות
 export interface WorkoutSession {
@@ -255,6 +256,19 @@ class RealisticDemoService {
         this.DEMO_WORKOUTS_KEY,
         JSON.stringify(workouts)
       );
+
+      // 🆕 שמירה גם בשירות ההיסטוריה המאוחד לגרפים ומעקב
+      await unifiedHistoryService.saveWorkoutToUnifiedHistory({
+        date: adaptedWorkout.date,
+        exercises: adaptedWorkout.exercises.map((exercise) => ({
+          name: exercise.name,
+          sets: exercise.actualSets.map((set) => ({
+            reps: set.reps,
+            weight: set.weight || 0,
+            completed: set.completed,
+          })),
+        })),
+      });
 
       // עדכון סטטיסטיקות משתמש
       await this.updateUserStats(workouts);
