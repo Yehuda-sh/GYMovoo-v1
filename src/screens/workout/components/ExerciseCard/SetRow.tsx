@@ -516,81 +516,66 @@ const SetRow: React.FC<SetRowProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* 🛠️ אייקונים למצב עריכה - עיצוב פרימיום מתקדם */}
+          {/* 🛠️ אייקונים למצב עריכה - עיצוב נקי ומינימליסטי */}
           {isEditMode && (
-            <View style={styles.premiumEditContainer}>
-              {/* כפתור מחיקה - עיצוב פרימיום */}
+            <View style={styles.cleanEditContainer}>
+              {/* כפתור מחיקה - עיצוב נקי */}
               <TouchableOpacity
                 onPress={handleDelete}
-                style={styles.premiumDeleteButton}
+                style={styles.cleanDeleteButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="מחק סט"
               >
-                <View style={styles.buttonInnerShadow}>
-                  <Ionicons
-                    name="close-circle"
-                    size={18}
-                    color="#FF4757"
-                  />
-                </View>
+                <Ionicons name="close" size={16} color={theme.colors.error} />
               </TouchableOpacity>
 
-              {/* חצי מעלית פרימיום עם זוהר */}
-              <View style={styles.premiumElevatorContainer}>
+              {/* חצי מעלית נקיים */}
+              <View style={styles.cleanElevatorContainer}>
                 {/* חץ למעלה - רק אם לא הראשון */}
                 {!isFirst && (
                   <TouchableOpacity
                     onPress={onMoveUp}
-                    style={styles.premiumElevatorButton}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    style={styles.cleanElevatorButton}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     accessibilityLabel="הזז סט למעלה"
                   >
-                    <View style={styles.elevatorButtonGlow}>
-                      <MaterialCommunityIcons
-                        name="chevron-up"
-                        size={14}
-                        color="#2E86AB"
-                      />
-                    </View>
+                    <MaterialCommunityIcons
+                      name="chevron-up"
+                      size={14}
+                      color={theme.colors.primary}
+                    />
                   </TouchableOpacity>
                 )}
-
-                {/* מפריד עדין */}
-                {!isFirst && !isLast && <View style={styles.elevatorDivider} />}
 
                 {/* חץ למטה - רק אם לא האחרון */}
                 {!isLast && (
                   <TouchableOpacity
                     onPress={onMoveDown}
-                    style={styles.premiumElevatorButton}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    style={styles.cleanElevatorButton}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     accessibilityLabel="הזז סט למטה"
                   >
-                    <View style={styles.elevatorButtonGlow}>
-                      <MaterialCommunityIcons
-                        name="chevron-down"
-                        size={14}
-                        color="#2E86AB"
-                      />
-                    </View>
+                    <MaterialCommunityIcons
+                      name="chevron-down"
+                      size={14}
+                      color={theme.colors.primary}
+                    />
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* שכפל סט - עיצוב פרימיום עם נעילה */}
+              {/* שכפל סט - עיצוב נקי */}
               <TouchableOpacity
                 onPress={onDuplicate}
-                style={styles.premiumCopyButton}
+                style={styles.cleanCopyButton}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="שכפל סט"
               >
-                <View style={styles.copyButtonInner}>
-                  <MaterialCommunityIcons
-                    name="shield-lock-outline"
-                    size={16}
-                    color="#6C5CE7"
-                  />
-                </View>
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -804,107 +789,56 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: theme.colors.textSecondary + "20",
   },
-  // 🎯 סגנונות פרימיום חדשים למצב עריכה
+  // 🎯 סגנונות נקיים ומינימליסטיים למצב עריכה
   editModeActiveContainer: {
-    backgroundColor: "rgba(46, 134, 171, 0.03)", // כחול עדין מאוד
-    borderColor: "#2E86AB",
-    borderWidth: 1.5,
-    shadowColor: "#2E86AB",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: theme.colors.primary + "08", // רקע עדין מאוד
+    borderColor: theme.colors.primary + "30",
+    borderWidth: 1,
   },
-  premiumEditContainer: {
+  cleanEditContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    width: 95,
-    paddingHorizontal: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.02)",
-    borderRadius: 12,
-    paddingVertical: 4,
+    width: 85,
+    paddingHorizontal: 2,
   },
-  premiumDeleteButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 71, 87, 0.08)",
+  cleanDeleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: theme.colors.background,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#FF4757",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: theme.colors.error + "30",
   },
-  buttonInnerShadow: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  premiumElevatorContainer: {
+  cleanElevatorContainer: {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(46, 134, 171, 0.08)",
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    shadowColor: "#2E86AB",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-    borderWidth: 0.5,
-    borderColor: "rgba(46, 134, 171, 0.2)",
+    backgroundColor: theme.colors.background,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
-  premiumElevatorButton: {
-    width: 20,
-    height: 14,
+  cleanElevatorButton: {
+    width: 18,
+    height: 16,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  elevatorButtonGlow: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 4,
+  cleanCopyButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: theme.colors.background,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(46, 134, 171, 0.1)",
-  },
-  elevatorDivider: {
-    width: 12,
-    height: 0.5,
-    backgroundColor: "rgba(46, 134, 171, 0.3)",
-    marginVertical: 2,
-  },
-  premiumCopyButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(108, 92, 231, 0.08)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#6C5CE7",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  copyButtonInner: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderWidth: 0.5,
-    borderColor: "rgba(108, 92, 231, 0.2)",
+    borderWidth: 1,
+    borderColor: theme.colors.textSecondary + "40",
   },
 });
 

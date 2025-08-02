@@ -426,7 +426,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
     // 🎯 חישוב גובה דינמי בהתאם לתוכן
     const calculateMenuHeight = useMemo(() => {
       let itemCount = 0;
-      
+
       if (isBatchMode) {
         itemCount = 4; // 3 פריטים + ביטול
       } else if (!showAdvancedMenu) {
@@ -434,13 +434,14 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       } else {
         itemCount = isEditMode ? 8 : 10; // כל הפריטים + כותרות + ביטול
       }
-      
+
       const itemHeight = 48; // גובה פריט קומפקטי
       const headerHeight = 50; // כותרת קומפקטית
       const handleHeight = 30; // handle קטן
       const padding = 32; // פדינג כללי
-      
-      const calculatedHeight = itemCount * itemHeight + headerHeight + handleHeight + padding;
+
+      const calculatedHeight =
+        itemCount * itemHeight + headerHeight + handleHeight + padding;
       return Math.min(calculatedHeight, screenHeight * 0.65); // מקסימום 65%
     }, [isBatchMode, showAdvancedMenu, isEditMode]);
 
@@ -793,7 +794,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: 20, // פחות עגול
     borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16, // התחשבות ב-safe area
+    paddingBottom: Platform.OS === "ios" ? 34 : 16, // התחשבות ב-safe area
     // הסרת maxHeight - נשתמש בגובה דינמי
     ...theme.shadows.medium, // צל פחות דרמטי
   },
