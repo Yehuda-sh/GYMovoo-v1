@@ -3,6 +3,7 @@
  * @brief בדיקת נגישות לאפליקציה - מותאם לסטנדרטים של GYMovoo
  * @features screen reader support, color contrast, touch targets, RTL support, theme integration
  * @notes מותאם לעקרונות הפרויקט: RTL מלא, theme.ts, MaterialCommunityIcons
+ * @version 2.0 - מקוד משופר עם ביצועים טובים יותר
  */
 
 const fs = require("fs");
@@ -18,355 +19,480 @@ const ACCESSIBILITY_CONFIG = {
   MIN_GRAY_SHADES: 3,
   MAX_SMALL_PADDING: 3,
   MAX_DISPLAY_ISSUES: 8,
+  SAVE_REPORT: true, // שמירת דוח לקובץ
 };
 
-console.log("♿ GYMovoo Accessibility Check");
-console.log("==============================\n");
+// Cache לקבצים שנסרקו
+const fileCache = new Map();
 
-// בדיקת accessibility labels
+// מילות מפתח עבריות לזיהוי RTL - מורחב
+const HEBREW_KEYWORDS = [
+  "אימון",
+  "תרגיל",
+  "משקל",
+  "סט",
+  "חזרה",
+  "הגדרות",
+  "פרופיל",
+  "היסטוריה",
+  "מטרה",
+  "שריר",
+  "כושר",
+  "חזה",
+  "גב",
+  "רגליים",
+  "כתפיים",
+  "ביצפ",
+  "טריצפ",
+  "בטן",
+  "דיאטה",
+  "קלוריות",
+  "חלבון",
+  "פחמימות",
+  "שומן",
+  "מים",
+  "מנוחה",
+  "התאוששות",
+  "מתיחות",
+  "רמה",
+];
+
+console.log("♿ GYMovoo Accessibility Check v2.0");
+console.log("===================================\n");
+
+// פונקציות עזר משותפות - מונעות כפילויות קוד
+class AccessibilityAnalyzer {
+  constructor() {
+    this.srcDir = path.join(__dirname, "..", "src");
+    this.fileCache = new Map();
+    this.results = {
+      accessibility: { issues: [], stats: {} },
+      colors: { issues: [], stats: {} },
+      touchTargets: { issues: [], stats: {} },
+      text: { issues: [], stats: {} },
+    };
+  }
+
+  // סריקה מרכזית של כל הקבצים - מונע כפילויות
+  scanAllFiles() {
+    const allFiles = [];
+
+    const scanDirectory = (dir) => {
+      const items = fs.readdirSync(dir);
+
+      items.forEach((item) => {
+        const itemPath = path.join(dir, item);
+        const stat = fs.statSync(itemPath);
+
+        if (stat.isDirectory() && item !== "node_modules") {
+          scanDirectory(itemPath);
+        } else if (item.endsWith(".tsx") || item.endsWith(".ts")) {
+          const relativePath = path.relative(process.cwd(), itemPath);
+          const content = fs.readFileSync(itemPath, "utf8");
+
+          // Cache התוכן למניעת קריאות מרובות
+          this.fileCache.set(relativePath, content);
+          allFiles.push({ path: relativePath, content });
+        }
+      });
+    };
+
+    scanDirectory(this.srcDir);
+    return allFiles;
+  }
+
+  // Regex patterns משותפים
+  getPatterns() {
+    return {
+      touchables: /<(TouchableOpacity|Pressable|Button)[^>]*>/g,
+      images: /<Image[^>]*>/g,
+      texts: /<Text[^>]*>/g,
+      colors: /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g,
+      fixedSizes: /fontSize:\s*\d+/g,
+      smallSizes: /width:\s*[1-3]\d|height:\s*[1-3]\d/g,
+      smallPadding: /padding:\s*[1-5](?!\d)/g,
+      smallFonts: new RegExp(
+        `fontSize:\\s*[1-${ACCESSIBILITY_CONFIG.MIN_FONT_SIZE - 1}](?!\\d)`,
+        "g"
+      ),
+      hardcodedColors: /color:\s*['"][^'"]+['"]/g,
+      materialIcons: /MaterialCommunityIcons/g,
+    };
+  }
+
+  // הדפסת תוצאות מאוחדת
+  printResults(title, issues, stats = {}) {
+    console.log(`${title}:`);
+    console.log("-".repeat(title.length + 1));
+
+    // הצגת סטטיסטיקות
+    Object.entries(stats).forEach(([key, value]) => {
+      console.log(`📊 ${key}: ${value}`);
+    });
+
+    if (issues.length === 0) {
+      console.log("✅ לא נמצאו בעיות");
+    } else {
+      console.log(`⚠️  נמצאו ${issues.length} בעיות:`);
+      issues
+        .slice(0, ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES)
+        .forEach((issue) => {
+          console.log(`  • ${issue}`);
+        });
+      if (issues.length > ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES) {
+        console.log(
+          `  ... ועוד ${issues.length - ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES} בעיות`
+        );
+      }
+    }
+    console.log();
+  }
+}
+// בדיקת accessibility labels - משופרת
 function checkAccessibilityLabels() {
-  console.log("🏷️  בדיקת Accessibility Labels:");
-  console.log("------------------------------");
-
-  const srcDir = path.join(__dirname, "..", "src");
+  const analyzer = new AccessibilityAnalyzer();
+  const files = analyzer.scanAllFiles();
+  const patterns = analyzer.getPatterns();
   const issues = [];
   let totalTouchables = 0;
   let labeledTouchables = 0;
 
-  function scanAccessibility(dir) {
-    const items = fs.readdirSync(dir);
+  files.forEach(({ path: filePath, content }) => {
+    // בדיקת TouchableOpacity ו-Pressable
+    const touchables = content.match(patterns.touchables) || [];
+    totalTouchables += touchables.length;
 
-    items.forEach((item) => {
-      const itemPath = path.join(dir, item);
-      const stat = fs.statSync(itemPath);
-
-      if (stat.isDirectory()) {
-        scanAccessibility(itemPath);
-      } else if (item.endsWith(".tsx")) {
-        const content = fs.readFileSync(itemPath, "utf8");
-        const relativePath = path.relative(process.cwd(), itemPath);
-
-        // בדיקת TouchableOpacity ו-Pressable
-        const touchables =
-          content.match(/<(TouchableOpacity|Pressable|Button)[^>]*>/g) || [];
-        totalTouchables += touchables.length;
-
-        touchables.forEach((touchable) => {
-          if (
-            touchable.includes("accessibilityLabel") ||
-            touchable.includes("accessible")
-          ) {
-            labeledTouchables++;
-          } else {
-            issues.push(`${relativePath}: touchable ללא accessibility label`);
-          }
-        });
-
-        // בדיקת Image ללא alt
-        const images = content.match(/<Image[^>]*>/g) || [];
-        images.forEach((image) => {
-          if (
-            !image.includes("accessibilityLabel") &&
-            !image.includes("accessible={false}")
-          ) {
-            issues.push(`${relativePath}: תמונה ללא accessibility label`);
-          }
-        });
-
-        // בדיקת Text בגדלים קבועים
-        const fixedTexts = content.match(/fontSize:\s*\d+/g) || [];
-        if (fixedTexts.length > ACCESSIBILITY_CONFIG.MAX_FIXED_FONT_SIZES) {
-          issues.push(
-            `${relativePath}: יותר מדי גדלי טקסט קבועים (${fixedTexts.length})`
-          );
-        }
+    touchables.forEach((touchable) => {
+      if (
+        touchable.includes("accessibilityLabel") ||
+        touchable.includes("accessible")
+      ) {
+        labeledTouchables++;
+      } else {
+        issues.push(`${filePath}: touchable ללא accessibility label`);
       }
     });
-  }
 
-  scanAccessibility(srcDir);
+    // בדיקת Image ללא alt
+    const images = content.match(patterns.images) || [];
+    images.forEach((image) => {
+      if (
+        !image.includes("accessibilityLabel") &&
+        !image.includes("accessible={false}")
+      ) {
+        issues.push(`${filePath}: תמונה ללא accessibility label`);
+      }
+    });
+
+    // בדיקת Text בגדלים קבועים
+    const fixedTexts = content.match(patterns.fixedSizes) || [];
+    if (fixedTexts.length > ACCESSIBILITY_CONFIG.MAX_FIXED_FONT_SIZES) {
+      issues.push(
+        `${filePath}: יותר מדי גדלי טקסט קבועים (${fixedTexts.length})`
+      );
+    }
+  });
 
   const labelPercentage =
     totalTouchables > 0 ? (labeledTouchables / totalTouchables) * 100 : 100;
 
-  console.log(`📊 Touchable elements: ${totalTouchables}`);
-  console.log(
-    `🏷️  עם labels: ${labeledTouchables} (${labelPercentage.toFixed(1)}%)`
-  );
+  const stats = {
+    "Touchable elements": totalTouchables,
+    "עם labels": `${labeledTouchables} (${labelPercentage.toFixed(1)}%)`,
+  };
 
-  if (issues.length === 0) {
-    console.log("✅ לא נמצאו בעיות נגישות גדולות");
-  } else {
-    console.log(`⚠️  נמצאו ${issues.length} בעיות נגישות:`);
-    issues
-      .slice(0, ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES)
-      .forEach((issue) => {
-        console.log(`  • ${issue}`);
-      });
-    if (issues.length > ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES) {
-      console.log(
-        `  ... ועוד ${issues.length - ACCESSIBILITY_CONFIG.MAX_DISPLAY_ISSUES} בעיות`
-      );
-    }
-  }
-
-  console.log();
+  analyzer.printResults("🏷️  בדיקת Accessibility Labels", issues, stats);
+  analyzer.results.accessibility = { issues, stats };
+  return analyzer.results.accessibility;
 }
 
-// בדיקת ניגודיות צבעים - מותאם ל-theme.ts של GYMovoo
+// בדיקת ניגודיות צבעים - מותאם ל-theme.ts של GYMovoo - משופרת
 function checkColorContrast() {
-  console.log("🎨 בדיקת ניגודיות צבעים:");
-  console.log("------------------------");
-
+  const analyzer = new AccessibilityAnalyzer();
+  const patterns = analyzer.getPatterns();
   const themeFile = path.join(__dirname, "..", "src", "styles", "theme.ts");
   const colorsFile = path.join(__dirname, "..", "src", "styles", "colors.ts");
 
   let issues = [];
   let totalColors = 0;
+  let themeStructure = {
+    hasTheme: false,
+    hasDarkMode: false,
+    hasLightMode: false,
+  };
 
-  // בדיקת קובץ theme.ts הראשי
-  if (fs.existsSync(themeFile)) {
-    const content = fs.readFileSync(themeFile, "utf8");
+  // קריאת קבצים עם cache
+  const checkThemeFile = (filePath, fileName) => {
+    if (fs.existsSync(filePath)) {
+      const content =
+        analyzer.fileCache.get(filePath) || fs.readFileSync(filePath, "utf8");
+      analyzer.fileCache.set(filePath, content);
 
-    // בדיקת structure של theme - מותאם למבנה הקיים של GYMovoo
-    if (
-      content.includes("colors = {") &&
-      content.includes("background:") &&
-      content.includes("backgroundAlt:")
-    ) {
-      console.log("✅ יש מערכת צבעים מובנית (dark theme)");
-    } else if (
-      content.includes("lightTheme") &&
-      content.includes("darkTheme")
-    ) {
-      console.log("✅ יש תמיכה בLight/Dark themes");
-    } else {
-      issues.push("חסר תמיכה מלאה בLight/Dark themes");
+      // בדיקת מבנה theme
+      if (fileName === "theme.ts") {
+        themeStructure.hasTheme = true;
+        themeStructure.hasDarkMode =
+          content.includes("dark") || content.includes("Dark");
+        themeStructure.hasLightMode =
+          content.includes("light") || content.includes("Light");
+      }
+
+      const colors = content.match(patterns.colors) || [];
+      totalColors += colors.length;
+      return colors.length;
     }
+    return 0;
+  };
 
-    // חילוץ צבעים מהקובץ theme
-    const colorRegex = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
-    const colors = content.match(colorRegex) || [];
-    totalColors += colors.length;
+  const themeColors = checkThemeFile(themeFile, "theme.ts");
+  const additionalColors = checkThemeFile(colorsFile, "colors.ts");
 
-    console.log(`📊 נמצאו ${colors.length} צבעים בtheme.ts`);
+  // הערכת מבנה ה-theme
+  if (!themeStructure.hasTheme) {
+    issues.push("קובץ theme.ts לא נמצא - יש צורך במערכת צבעים מרכזית");
+  } else if (!themeStructure.hasDarkMode && !themeStructure.hasLightMode) {
+    issues.push("חסרה תמיכה בLight/Dark themes");
   }
 
-  // בדיקת קובץ colors.ts נפרד אם קיים
-  if (fs.existsSync(colorsFile)) {
-    const content = fs.readFileSync(colorsFile, "utf8");
-    const colorRegex = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
-    const colors = content.match(colorRegex) || [];
-    totalColors += colors.length;
-    console.log(`📊 נמצאו ${colors.length} צבעים נוספים בcolors.ts`);
+  if (totalColors < ACCESSIBILITY_CONFIG.MIN_GRAY_SHADES) {
+    issues.push(
+      `חסרים צבעים לנגישות טובה (יש ${totalColors}, צריך לפחות ${ACCESSIBILITY_CONFIG.MIN_GRAY_SHADES})`
+    );
   }
 
-  if (totalColors === 0 || !fs.existsSync(themeFile)) {
-    if (!fs.existsSync(themeFile)) {
-      issues.push("קובץ theme.ts לא נמצא - יש צורך במערכת צבעים מרכזית");
-    } else {
-      issues.push("לא נמצא קובץ theme או colors עם צבעים מוגדרים");
-    }
-  } else {
-    console.log(`📊 סה"כ צבעים בtheme: ${totalColors}`);
+  const stats = {
+    "צבעים בtheme.ts": themeColors,
+    "צבעים נוספים": additionalColors,
+    'סה"כ צבעים': totalColors,
+    "תמיכה בDark Mode": themeStructure.hasDarkMode ? "✅" : "❌",
+    "תמיכה בLight Mode": themeStructure.hasLightMode ? "✅" : "❌",
+  };
 
-    if (totalColors >= ACCESSIBILITY_CONFIG.MIN_GRAY_SHADES) {
-      console.log("✅ יש מספיק צבעים למדרגי נגישות");
-    } else {
-      issues.push(
-        `חסרים צבעים לנגישות טובה (יש ${totalColors}, צריך לפחות ${ACCESSIBILITY_CONFIG.MIN_GRAY_SHADES})`
-      );
-    }
-  }
-
-  if (issues.length > 0) {
-    console.log("⚠️  בעיות ניגודיות:");
-    issues.forEach((issue) => console.log(`  • ${issue}`));
-  } else {
-    console.log("✅ לא נמצאו בעיות ניגודיות גדולות");
-  }
-
-  console.log();
+  analyzer.printResults("🎨 בדיקת ניגודיות צבעים", issues, stats);
+  analyzer.results.colors = { issues, stats };
+  return analyzer.results.colors;
 }
 
 // בדיקת גדלי מגע
 function checkTouchTargets() {
-  console.log("👆 בדיקת גדלי מטרות מגע:");
-  console.log("-------------------------");
+  const analyzer = new AccessibilityAnalyzer();
+  const patterns = analyzer.getPatterns();
+  const allFiles = analyzer.scanAllFiles();
 
-  const srcDir = path.join(__dirname, "..", "src");
-  const issues = [];
+  let issues = [];
+  let stats = {
+    filesChecked: 0,
+    touchableElements: 0,
+    smallTargets: 0,
+    smallPadding: 0,
+  };
 
-  function scanTouchTargets(dir) {
-    const items = fs.readdirSync(dir);
+  // בדיקת קבצי TSX עבור מטרות מגע
+  const tsxFiles = allFiles.filter(({ path }) => path.endsWith(".tsx"));
 
-    items.forEach((item) => {
-      const itemPath = path.join(dir, item);
-      const stat = fs.statSync(itemPath);
+  tsxFiles.forEach(({ path: filePath, content }) => {
+    stats.filesChecked++;
 
-      if (stat.isDirectory()) {
-        scanTouchTargets(itemPath);
-      } else if (item.endsWith(".tsx")) {
-        const content = fs.readFileSync(itemPath, "utf8");
-        const relativePath = path.relative(process.cwd(), itemPath);
+    // בדיקת כפתורים קטנים מדי - תיקון הפטרן
+    const smallButtons = content.match(patterns.smallSizes) || [];
+    stats.smallTargets += smallButtons.length;
 
-        // בדיקת כפתורים קטנים מדי
-        const smallButtons =
-          content.match(/width:\s*[1-3]\d|height:\s*[1-3]\d/g) || [];
-        if (smallButtons.length > 0) {
-          issues.push(
-            `${relativePath}: יש כפתורים שעלולים להיות קטנים מדי (${smallButtons.length})`
-          );
-        }
-
-        // בדיקת padding קטן
-        const smallPadding = content.match(/padding:\s*[1-5](?!\d)/g) || [];
-        if (smallPadding.length > ACCESSIBILITY_CONFIG.MAX_SMALL_PADDING) {
-          issues.push(
-            `${relativePath}: יש הרבה elements עם padding קטן (${smallPadding.length})`
-          );
-        }
-      }
-    });
-  }
-
-  scanTouchTargets(srcDir);
-
-  if (issues.length === 0) {
-    console.log("✅ לא נמצאו בעיות גדלי מגע");
-  } else {
-    console.log(`⚠️  נמצאו ${issues.length} בעיות פוטנציאליות:`);
-    issues.forEach((issue) => console.log(`  • ${issue}`));
-  }
-
-  console.log();
-}
-
-// בדיקת טקסט נגיש
-function checkAccessibleText() {
-  console.log("📝 בדיקת טקסט נגיש:");
-  console.log("-------------------");
-
-  const srcDir = path.join(__dirname, "..", "src");
-  const issues = [];
-  let totalTexts = 0;
-
-  function scanText(dir) {
-    const items = fs.readdirSync(dir);
-
-    items.forEach((item) => {
-      const itemPath = path.join(dir, item);
-      const stat = fs.statSync(itemPath);
-
-      if (stat.isDirectory()) {
-        scanText(itemPath);
-      } else if (item.endsWith(".tsx")) {
-        const content = fs.readFileSync(itemPath, "utf8");
-        const relativePath = path.relative(process.cwd(), itemPath);
-
-        // ספירת Text components
-        const texts = content.match(/<Text[^>]*>/g) || [];
-        totalTexts += texts.length;
-
-        // בדיקת fontSize קטן מדי
-        const smallFonts =
-          content.match(
-            new RegExp(
-              `fontSize:\\s*[1-${ACCESSIBILITY_CONFIG.MIN_FONT_SIZE - 1}](?!\\d)`,
-              "g"
-            )
-          ) || [];
-        if (smallFonts.length > 0) {
-          issues.push(
-            `${relativePath}: טקסט קטן מדי (${smallFonts.length} instances, מינימום ${ACCESSIBILITY_CONFIG.MIN_FONT_SIZE})`
-          );
-        }
-
-        // בדיקת צבע טקסט קבוע
-        const hardcodedColors = content.match(/color:\s*['"][^'"]+['"]/g) || [];
-        if (
-          hardcodedColors.length > ACCESSIBILITY_CONFIG.MAX_HARDCODED_COLORS
-        ) {
-          issues.push(
-            `${relativePath}: יותר מדי צבעי טקסט קבועים (${hardcodedColors.length})`
-          );
-        }
-
-        // בדיקת RTL support מורחבת - מותאם לGYMovoo
-        const hebrewWords = [
-          "אימון",
-          "תרגיל",
-          "משקל",
-          "סט",
-          "חזרה",
-          "הגדרות",
-          "פרופיל",
-          "היסטוריה",
-          "מטרה",
-          "שריר",
-          "כושר",
-          "חזה",
-          "גב",
-          "רגליים",
-          "כתפיים",
-          "ביצפ",
-          "טריצפ",
-          "בטן",
-        ];
-
-        const hasHebrewContent = hebrewWords.some((word) =>
-          content.includes(word)
-        );
-
-        if (hasHebrewContent) {
-          const hasRTLSupport =
-            content.includes("textAlign") ||
-            content.includes("writingDirection") ||
-            content.includes("I18nManager") ||
-            content.includes("isRTL");
-
-          if (!hasRTLSupport) {
-            issues.push(`${relativePath}: תוכן עברי ללא תמיכת RTL מלאה`);
-          }
-        }
-
-        // בדיקת MaterialCommunityIcons - הסטנדרט של GYMovoo
-        const iconUsage = content.match(/MaterialCommunityIcons/g) || [];
-        if (iconUsage.length > 0) {
-          const hasAccessibleIcons =
-            content.includes("accessibilityLabel") &&
-            content.includes("MaterialCommunityIcons");
-          if (!hasAccessibleIcons) {
-            issues.push(`${relativePath}: אייקונים ללא accessibility labels`);
-          }
-        }
-      }
-    });
-  }
-
-  scanText(srcDir);
-
-  console.log(`📊 סה"כ Text components: ${totalTexts}`);
-
-  if (issues.length === 0) {
-    console.log("✅ לא נמצאו בעיות טקסט");
-  } else {
-    console.log(`⚠️  נמצאו ${issues.length} בעיות טקסט:`);
-    issues.slice(0, 5).forEach((issue) => console.log(`  • ${issue}`));
-    if (issues.length > 5) {
-      console.log(`  ... ועוד ${issues.length - 5} בעיות`);
+    if (smallButtons.length > 0) {
+      issues.push(
+        `${filePath}: יש כפתורים שעלולים להיות קטנים מדי (${smallButtons.length})`
+      );
     }
-  }
 
-  console.log();
+    // בדיקת padding קטן
+    const smallPadding = content.match(patterns.smallPadding) || [];
+    stats.smallPadding += smallPadding.length;
+
+    if (smallPadding.length > ACCESSIBILITY_CONFIG.MAX_SMALL_PADDING) {
+      issues.push(
+        `${filePath}: יש הרבה elements עם padding קטן (${smallPadding.length})`
+      );
+    }
+
+    // בדיקת רכיבים ניתנים למגע
+    const touchables = content.match(patterns.touchables) || [];
+    stats.touchableElements += touchables.length;
+  });
+
+  const statsDisplay = {
+    "קבצים נבדקו": stats.filesChecked,
+    "רכיבים ניתנים למגע": stats.touchableElements,
+    "מטרות מגע קטנות": stats.smallTargets,
+    "Elements עם padding קטן": stats.smallPadding,
+  };
+
+  analyzer.printResults("👆 בדיקת גדלי מטרות מגע", issues, statsDisplay);
+  analyzer.results.touchTargets = { issues, stats: statsDisplay };
+  return analyzer.results.touchTargets;
 }
 
-// הרצה
+// בדיקת טקסט נגיש - משופרת
+function checkAccessibleText() {
+  const analyzer = new AccessibilityAnalyzer();
+  const patterns = analyzer.getPatterns();
+  const allFiles = analyzer.scanAllFiles();
+
+  let issues = [];
+  let stats = {
+    filesChecked: 0,
+    textComponents: 0,
+    smallFonts: 0,
+    hardcodedColors: 0,
+    hebrewFiles: 0,
+    iconsWithoutLabels: 0,
+  };
+
+  const tsxFiles = allFiles.filter(({ path }) => path.endsWith(".tsx"));
+
+  tsxFiles.forEach(({ path: filePath, content }) => {
+    stats.filesChecked++;
+
+    // ספירת Text components
+    const texts = content.match(patterns.texts) || [];
+    stats.textComponents += texts.length;
+
+    // בדיקת fontSize קטן מדי
+    const smallFonts = content.match(patterns.smallFonts) || [];
+    stats.smallFonts += smallFonts.length;
+
+    if (smallFonts.length > 0) {
+      issues.push(
+        `${filePath}: טקסט קטן מדי (${smallFonts.length} instances, מינימום ${ACCESSIBILITY_CONFIG.MIN_FONT_SIZE})`
+      );
+    }
+
+    // בדיקת צבע טקסט קבוע
+    const hardcodedColors = content.match(patterns.hardcodedColors) || [];
+    stats.hardcodedColors += hardcodedColors.length;
+
+    if (hardcodedColors.length > ACCESSIBILITY_CONFIG.MAX_HARDCODED_COLORS) {
+      issues.push(
+        `${filePath}: יותר מדי צבעי טקסט קבועים (${hardcodedColors.length})`
+      );
+    }
+
+    // בדיקת RTL support מורחבת - מותאם לGYMovoo
+    const hebrewWords = [
+      "אימון",
+      "תרגיל",
+      "משקל",
+      "סט",
+      "חזרה",
+      "הגדרות",
+      "פרופיל",
+      "היסטוריה",
+      "מטרה",
+      "שריר",
+      "כושר",
+      "חזה",
+      "גב",
+      "רגליים",
+      "כתפיים",
+      "ביצפ",
+      "טריצפ",
+      "בטן",
+    ];
+
+    const hasHebrewContent = hebrewWords.some((word) => content.includes(word));
+    if (hasHebrewContent) {
+      stats.hebrewFiles++;
+      const hasRTLSupport =
+        content.includes("textAlign") ||
+        content.includes("writingDirection") ||
+        content.includes("I18nManager") ||
+        content.includes("isRTL");
+
+      if (!hasRTLSupport) {
+        issues.push(`${filePath}: תוכן עברי ללא תמיכת RTL מלאה`);
+      }
+    }
+
+    // בדיקת MaterialCommunityIcons - הסטנדרט של GYMovoo
+    const iconUsage = content.match(patterns.materialIcons) || [];
+    if (iconUsage.length > 0) {
+      const hasAccessibleIcons =
+        content.includes("accessibilityLabel") &&
+        content.includes("MaterialCommunityIcons");
+      if (!hasAccessibleIcons) {
+        stats.iconsWithoutLabels++;
+        issues.push(`${filePath}: אייקונים ללא accessibility labels`);
+      }
+    }
+  });
+
+  const statsDisplay = {
+    "קבצים נבדקו": stats.filesChecked,
+    "Text components": stats.textComponents,
+    "גפנים קטנות מדי": stats.smallFonts,
+    "צבעים קבועים": stats.hardcodedColors,
+    "קבצים עם עברית": stats.hebrewFiles,
+    "אייקונים ללא labels": stats.iconsWithoutLabels,
+  };
+
+  analyzer.printResults(
+    "📝 בדיקת טקסט נגיש",
+    issues.slice(0, 10),
+    statsDisplay
+  );
+  if (issues.length > 10) {
+    console.log(`... ועוד ${issues.length - 10} בעיות נוספות`);
+  }
+
+  analyzer.results.accessibleText = { issues, stats: statsDisplay };
+  return analyzer.results.accessibleText;
+}
+
+// הרצה - עם דו"ח מאוחד ואופציונלי
 try {
-  checkAccessibilityLabels();
-  checkColorContrast();
-  checkTouchTargets();
-  checkAccessibleText();
+  console.log("🔍 GYMovoo Accessibility Checker v2.0");
+  console.log("=====================================\n");
+
+  const accessibilityResults = checkAccessibilityLabels();
+  const colorResults = checkColorContrast();
+  const touchResults = checkTouchTargets();
+  const textResults = checkAccessibleText();
+
+  // סיכום כללי
+  console.log("📋 סיכום כללי:");
+  console.log("===============");
+
+  const totalIssues = [
+    accessibilityResults,
+    colorResults,
+    touchResults,
+    textResults,
+  ].reduce((sum, result) => sum + result.issues.length, 0);
+
+  if (totalIssues === 0) {
+    console.log("🎉 מעולה! לא נמצאו בעיות נגישות");
+  } else {
+    console.log(`⚠️  סה"כ נמצאו ${totalIssues} בעיות נגישות`);
+  }
+
+  // שמירת דו"ח (אופציונלי)
+  if (ACCESSIBILITY_CONFIG.SAVE_REPORT) {
+    const report = {
+      timestamp: new Date().toISOString(),
+      summary: { totalIssues },
+      details: {
+        accessibility: accessibilityResults,
+        colors: colorResults,
+        touchTargets: touchResults,
+        accessibleText: textResults,
+      },
+    };
+
+    const reportPath = path.join(
+      __dirname,
+      `accessibility-report-${Date.now()}.json`
+    );
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    console.log(`💾 דו"ח נשמר ב: ${reportPath}`);
+  }
 
   console.log("==========================================");
   console.log("📊 סיכום בדיקת נגישות - GYMovoo");
@@ -394,6 +520,9 @@ try {
     "  - RTL Support: https://reactnative.dev/blog/2016/08/19/right-to-left-support-for-react-native-apps"
   );
   console.log("  - WCAG Guidelines: https://www.w3.org/WAI/WCAG21/quickref/");
+
+  console.log("\n✅ בדיקת נגישות הושלמה");
 } catch (error) {
   console.error("❌ שגיאה בבדיקת נגישות:", error.message);
+  process.exit(1);
 }

@@ -1,0 +1,150 @@
+{
+  "timestamp": "2025-08-03T10:40:35.080Z",
+  "summary": {
+    "totalRoutes": 17,
+    "totalScreens": 13,
+    "totalNavigationCalls": 10,
+    "totalImports": 12,
+    "totalIssues": 5,
+    "connectedRoutes": 13,
+    "validNavigationCalls": 9,
+    "existingImports": 12
+  },
+  "details": {
+    "routes": [
+      "Welcome",
+      "Login",
+      "Register",
+      "Terms",
+      "Questionnaire",
+      "WorkoutPlan",
+      "MainApp",
+      "QuickWorkout",
+      "ActiveWorkout",
+      "ExerciseList",
+      "Notifications",
+      "Progress",
+      "Exercises",
+      "WorkoutPlans",
+      "Profile",
+      "History",
+      "Main"
+    ],
+    "screenComponents": [
+      "Welcome",
+      "Login",
+      "Register",
+      "Terms",
+      "Questionnaire",
+      "WorkoutPlan",
+      "MainApp",
+      "QuickWorkout",
+      "ActiveWorkout",
+      "ExerciseList",
+      "Notifications",
+      "Progress",
+      "Exercises"
+    ],
+    "navigationCalls": [
+      "Register",
+      "Terms",
+      "Login",
+      "QuickWorkout",
+      "Profile",
+      "History",
+      "NotificationsScreen",
+      "Questionnaire",
+      "MainApp",
+      "ActiveWorkout"
+    ],
+    "imports": [
+      {
+        "name": "WelcomeScreen",
+        "path": "../screens/welcome/WelcomeScreen",
+        "exists": true
+      },
+      {
+        "name": "LoginScreen",
+        "path": "../screens/auth/LoginScreen",
+        "exists": true
+      },
+      {
+        "name": "RegisterScreen",
+        "path": "../screens/auth/RegisterScreen",
+        "exists": true
+      },
+      {
+        "name": "TermsScreen",
+        "path": "../screens/auth/TermsScreen",
+        "exists": true
+      },
+      {
+        "name": "SmartQuestionnaireScreen",
+        "path": "../screens/questionnaire/SmartQuestionnaireScreen",
+        "exists": true
+      },
+      {
+        "name": "WorkoutPlanScreen",
+        "path": "../screens/workout/WorkoutPlansScreen",
+        "exists": true
+      },
+      {
+        "name": "QuickWorkoutScreen",
+        "path": "../screens/workout/QuickWorkoutScreen",
+        "exists": true
+      },
+      {
+        "name": "ActiveWorkoutScreen",
+        "path": "../screens/workout/ActiveWorkoutScreen",
+        "exists": true
+      },
+      {
+        "name": "ExerciseListScreen",
+        "path": "../screens/exercise/ExerciseListScreen",
+        "exists": true
+      },
+      {
+        "name": "NotificationsScreen",
+        "path": "../screens/notifications/NotificationsScreen",
+        "exists": true
+      },
+      {
+        "name": "ProgressScreen",
+        "path": "../screens/progress/ProgressScreen",
+        "exists": true
+      },
+      {
+        "name": "ExercisesScreen",
+        "path": "../screens/exercises/ExercisesScreen",
+        "exists": true
+      }
+    ],
+    "issues": [
+      {
+        "type": "missing_screen",
+        "route": "WorkoutPlans",
+        "message": "Route \"WorkoutPlans\" חסר Screen component"
+      },
+      {
+        "type": "missing_screen",
+        "route": "Profile",
+        "message": "Route \"Profile\" חסר Screen component"
+      },
+      {
+        "type": "missing_screen",
+        "route": "History",
+        "message": "Route \"History\" חסר Screen component"
+      },
+      {
+        "type": "missing_screen",
+        "route": "Main",
+        "message": "Route \"Main\" חסר Screen component"
+      },
+      {
+        "type": "invalid_navigation",
+        "call": "NotificationsScreen",
+        "message": "קריאת ניווט \"NotificationsScreen\" מצביעה על route שלא קיים"
+      }
+    ]
+  }
+}

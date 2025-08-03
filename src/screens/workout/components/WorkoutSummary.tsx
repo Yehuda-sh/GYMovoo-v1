@@ -99,13 +99,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
       () => ({
         duration: Math.floor((workout.duration || 0) / 60),
         totalSets: workout.exercises.reduce(
-          (acc, ex) =>
-            acc +
-            ex.sets.filter(
-              (s) =>
-                // סט נחשב מושלם אם הוא מסומן כמושלם OR יש לו ערכים ממשיים
-                s.completed || (s.actualReps && s.actualWeight)
-            ).length,
+          (acc, ex) => acc + ex.sets.filter((s) => s.completed).length,
           0
         ),
         totalPlannedSets: workout.exercises.reduce(
@@ -117,8 +111,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
             acc +
             ex.sets.reduce(
               (setAcc, set) =>
-                // כלול סטים מושלמים או סטים עם ערכים ממשיים
-                set.completed || (set.actualReps && set.actualWeight)
+                set.completed
                   ? setAcc + (set.actualWeight || 0) * (set.actualReps || 0)
                   : setAcc,
               0

@@ -161,14 +161,19 @@ const SetRow: React.FC<SetRowProps> = ({
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
-    // ✅ שיא אישי אם יש ערכים ממשיים (לא צריך set.completed)
-    if (!set.actualWeight || !set.actualReps) return false;
+    if (!set.actualWeight || !set.actualReps || !set.completed) return false;
 
     const currentVolume = set.actualWeight * set.actualReps;
     const previousVolume = (set.previousWeight || 0) * (set.previousReps || 0);
 
     return currentVolume > previousVolume && previousVolume > 0;
-  }, [set.actualWeight, set.actualReps, set.previousWeight, set.previousReps]);
+  }, [
+    set.actualWeight,
+    set.actualReps,
+    set.completed,
+    set.previousWeight,
+    set.previousReps,
+  ]);
 
   // Personal record animation
   useEffect(() => {
@@ -274,21 +279,17 @@ const SetRow: React.FC<SetRowProps> = ({
       return;
     }
 
-    // ✅ אם הסט לא מושלם - השלם אותו עם כל הערכים הנדרשים
-    const updates: Partial<ExtendedSet> = {
-      completed: true,
-    };
-
-    // וודא שיש ערכים ממשיים
+    // אם הסט לא מושלם - השלם אותו
+    // אם אין ערכים ממשיים, השתמש בערכי המטרה
     if (!set.actualWeight && set.targetWeight) {
-      updates.actualWeight = set.targetWeight;
+      wrappedOnUpdate({ actualWeight: set.targetWeight });
     }
     if (!set.actualReps && set.targetReps) {
-      updates.actualReps = set.targetReps;
+      wrappedOnUpdate({ actualReps: set.targetReps });
     }
 
-    // עדכן הכל בבת אחת
-    wrappedOnUpdate(updates);
+    // השלם את הסט
+    onComplete();
   };
 
   const handleDelete = () => {
@@ -327,7 +328,6 @@ const SetRow: React.FC<SetRowProps> = ({
           set.completed && styles.completedContainer,
           set.completed && styles.greenBorderContainer, // גבול ירוק לסט מושלם
           isActive && styles.activeContainer,
-          isEditMode && styles.editModeActiveContainer, // 🎯 סגנון מיוחד למצב עריכה
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
@@ -516,33 +516,38 @@ const SetRow: React.FC<SetRowProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* 🛠️ אייקונים למצב עריכה - עיצוב נקי ומינימליסטי */}
+          {/* 🛠️ אייקונים למצב עריכה - חצי מעלית ופעולות */}
           {isEditMode && (
-            <View style={styles.cleanEditContainer}>
-              {/* כפתור מחיקה - עיצוב נקי */}
+            <>
+              {/* שכפל סט */}
               <TouchableOpacity
-                onPress={handleDelete}
-                style={styles.cleanDeleteButton}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="מחק סט"
+                onPress={onDuplicate}
+                style={styles.actionButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="שכפל סט"
               >
-                <Ionicons name="close" size={16} color={theme.colors.error} />
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={18}
+                  color={theme.colors.success}
+                />
               </TouchableOpacity>
 
-              {/* חצי מעלית נקיים */}
-              <View style={styles.cleanElevatorContainer}>
+              {/* 🏗️ חצי מעלית - עיצוב אלגנטי עם משולשים */}
+              <View style={styles.elevatorButtonsContainer}>
                 {/* חץ למעלה - רק אם לא הראשון */}
                 {!isFirst && (
                   <TouchableOpacity
                     onPress={onMoveUp}
-                    style={styles.cleanElevatorButton}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={[styles.elevatorButton, styles.elevatorButtonUp]}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                     accessibilityLabel="הזז סט למעלה"
                   >
                     <MaterialCommunityIcons
-                      name="chevron-up"
-                      size={14}
+                      name="triangle"
+                      size={12}
                       color={theme.colors.primary}
+                      style={{ transform: [{ rotate: "0deg" }] }} // 🔺 למעלה
                     />
                   </TouchableOpacity>
                 )}
@@ -551,33 +556,34 @@ const SetRow: React.FC<SetRowProps> = ({
                 {!isLast && (
                   <TouchableOpacity
                     onPress={onMoveDown}
-                    style={styles.cleanElevatorButton}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={[styles.elevatorButton, styles.elevatorButtonDown]}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                     accessibilityLabel="הזז סט למטה"
                   >
                     <MaterialCommunityIcons
-                      name="chevron-down"
-                      size={14}
+                      name="triangle"
+                      size={12}
                       color={theme.colors.primary}
+                      style={{ transform: [{ rotate: "180deg" }] }} // 🔻 למטה
                     />
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* שכפל סט - עיצוב נקי */}
+              {/* כפתור מחיקה - רק במצב עריכה */}
               <TouchableOpacity
-                onPress={onDuplicate}
-                style={styles.cleanCopyButton}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="שכפל סט"
+                onPress={handleDelete}
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="מחק סט"
               >
-                <MaterialCommunityIcons
-                  name="content-copy"
-                  size={14}
-                  color={theme.colors.textSecondary}
+                <Ionicons
+                  name="trash-outline"
+                  size={22}
+                  color={theme.colors.error}
                 />
               </TouchableOpacity>
-            </View>
+            </>
           )}
         </View>
       </Animated.View>
@@ -678,7 +684,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", // שינוי RTL: הפך את כיוון הכפתורים
     alignItems: "center",
     justifyContent: "flex-end",
-    width: 90, // קצת יותר רחב לכפתורים הקומפקטיים
+    width: 80,
   },
   actionButton: {
     padding: 8,
@@ -741,104 +747,6 @@ const styles = StyleSheet.create({
   elevatorButtonDown: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.cardBorder,
-  },
-  // 🎯 סגנונות קומפקטיים חדשים למצב עריכה
-  editModeContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: 80,
-    paddingHorizontal: 4,
-  },
-  compactDeleteButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.error + "08",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: theme.colors.error + "20",
-  },
-  compactElevatorContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary + "05",
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: theme.colors.primary + "15",
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    gap: 2,
-  },
-  compactElevatorButton: {
-    width: 16,
-    height: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  compactCopyButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.textSecondary + "08",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: theme.colors.textSecondary + "20",
-  },
-  // 🎯 סגנונות נקיים ומינימליסטיים למצב עריכה
-  editModeActiveContainer: {
-    backgroundColor: theme.colors.primary + "08", // רקע עדין מאוד
-    borderColor: theme.colors.primary + "30",
-    borderWidth: 1,
-  },
-  cleanEditContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: 85,
-    paddingHorizontal: 2,
-  },
-  cleanDeleteButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: theme.colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.error + "30",
-  },
-  cleanElevatorContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.background,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
-    paddingVertical: 2,
-    paddingHorizontal: 2,
-  },
-  cleanElevatorButton: {
-    width: 18,
-    height: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 3,
-  },
-  cleanCopyButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: theme.colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.textSecondary + "40",
   },
 });
 

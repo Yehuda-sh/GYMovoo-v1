@@ -62,8 +62,6 @@ import { WorkoutStatusBar } from "./components/WorkoutStatusBar";
 // Hooks & Services
 import { useRestTimer } from "./hooks/useRestTimer";
 import { useWorkoutTimer } from "./hooks/useWorkoutTimer";
-import { useWorkoutHistory } from "../../hooks/useWorkoutHistory";
-import { unifiedHistoryService } from "../../services/unifiedHistoryService";
 
 // Types
 import { Exercise, Set } from "./types/workout.types";
@@ -97,13 +95,6 @@ const ActiveWorkoutScreen: React.FC = () => {
     workoutData?.exercises || []
   );
   const [expandedExercises, setExpandedExercises] = useState<string[]>([]);
-
-  // 🆕 טעינת היסטוריית אימונים
-  const {
-    exercisesHistory,
-    loading: historyLoading,
-    getExerciseHistory,
-  } = useWorkoutHistory(exercises);
 
   // פונקציות להרחבה וכיווץ של תרגילים
   const toggleExerciseExpansion = useCallback((exerciseId: string) => {
@@ -140,8 +131,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         totalSets++;
         exerciseHasAnySets = true;
 
-        // ✅ סט נחשב מושלם אם הוא מסומן כמושלם OR יש לו ערכים ממשיים
-        if (set.completed || (set.actualReps && set.actualWeight)) {
+        if (set.completed) {
           completedSets++;
           exerciseCompletedSets++;
           const reps = set.actualReps || set.targetReps || 0;
@@ -237,19 +227,17 @@ const ActiveWorkoutScreen: React.FC = () => {
                 if (set.id === setId) {
                   const isCompleting = !set.completed;
 
-                  // ✅ אם מסמנים כמושלם - תמיד וודא שיש ערכים ממשיים
-                  if (isCompleting) {
+                  // אם מסמנים כמושלם ואין ערכים ממשיים, השתמש בערכי המטרה
+                  if (isCompleting && !set.actualReps && !set.actualWeight) {
                     return {
                       ...set,
-                      completed: true,
-                      // השתמש בערכים הממשיים אם קיימים, אחרת בערכי המטרה
-                      actualReps: set.actualReps || set.targetReps,
-                      actualWeight: set.actualWeight || set.targetWeight,
+                      completed: isCompleting,
+                      actualReps: set.targetReps,
+                      actualWeight: set.targetWeight,
                     };
                   }
 
-                  // אם מבטלים השלמה - רק שנה את הסטטוס
-                  return { ...set, completed: false };
+                  return { ...set, completed: isCompleting };
                 }
                 return set;
               }),
@@ -357,7 +345,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   );
 
   // סיום האימון המלא
-  const handleFinishWorkout = useCallback(async () => {
+  const handleFinishWorkout = useCallback(() => {
     const hasCompletedExercises = workoutStats.completedExercises > 0;
 
     if (!hasCompletedExercises) {
@@ -377,28 +365,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         {
           text: "סיים אימון",
           style: "destructive",
-          onPress: async () => {
-            try {
-              // שמירת האימון לשירות ההיסטוריה המאוחד
-              await unifiedHistoryService.saveWorkoutToUnifiedHistory({
-                date: new Date().toISOString().split("T")[0], // תאריך יום
-                exercises: exercises.map((exercise) => ({
-                  name: exercise.name,
-                  sets: exercise.sets.map((set) => ({
-                    reps: set.actualReps || set.targetReps,
-                    weight: set.actualWeight || set.targetWeight || 0,
-                    completed: set.completed || false,
-                  })),
-                })),
-              });
-
-              console.log("✅ Workout saved to unified history");
-            } catch (error) {
-              console.error("❌ Error saving workout:", error);
-            }
-
-            navigation.goBack();
-          },
+          onPress: () => navigation.goBack(),
         },
       ]
     );
@@ -519,56 +486,47 @@ const ActiveWorkoutScreen: React.FC = () => {
 
       {/* All Exercises List */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {exercises.map((exercise, index) => {
-          // 🆕 קבל היסטוריה לתרגיל הנוכחי
-          const exerciseHistory = getExerciseHistory(exercise.name);
-
-          return (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              sets={exercise.sets}
-              onUpdateSet={(setId: string, updates: Partial<Set>) =>
-                handleUpdateSet(exercise.id, setId, updates)
-              }
-              onAddSet={() => handleAddSet(exercise.id)}
-              onCompleteSet={(setId: string) =>
-                handleCompleteSet(exercise.id, setId)
-              }
-              onDeleteSet={(setId: string) =>
-                handleDeleteSet(exercise.id, setId)
-              }
-              onReorderSets={(fromIndex: number, toIndex: number) =>
-                handleReorderSets(exercise.id, fromIndex, toIndex)
-              }
-              onRemoveExercise={() => {
-                Alert.alert(
-                  "מחיקת תרגיל",
-                  "האם אתה בטוח שברצונך למחוק את התרגיל?",
-                  [
-                    { text: "ביטול", style: "cancel" },
-                    {
-                      text: "מחק",
-                      style: "destructive",
-                      onPress: () => {
-                        setExercises((prev) =>
-                          prev.filter((ex) => ex.id !== exercise.id)
-                        );
-                      },
+        {exercises.map((exercise, index) => (
+          <ExerciseCard
+            key={exercise.id}
+            exercise={exercise}
+            sets={exercise.sets}
+            onUpdateSet={(setId: string, updates: Partial<Set>) =>
+              handleUpdateSet(exercise.id, setId, updates)
+            }
+            onAddSet={() => handleAddSet(exercise.id)}
+            onCompleteSet={(setId: string) =>
+              handleCompleteSet(exercise.id, setId)
+            }
+            onDeleteSet={(setId: string) => handleDeleteSet(exercise.id, setId)}
+            onReorderSets={(fromIndex: number, toIndex: number) =>
+              handleReorderSets(exercise.id, fromIndex, toIndex)
+            }
+            onRemoveExercise={() => {
+              Alert.alert(
+                "מחיקת תרגיל",
+                "האם אתה בטוח שברצונך למחוק את התרגיל?",
+                [
+                  { text: "ביטול", style: "cancel" },
+                  {
+                    text: "מחק",
+                    style: "destructive",
+                    onPress: () => {
+                      setExercises((prev) =>
+                        prev.filter((ex) => ex.id !== exercise.id)
+                      );
                     },
-                  ]
-                );
-              }}
-              onStartRest={(duration: number) => {
-                startRestTimer(duration, exercise.name);
-              }}
-              // 🆕 העבר נתוני היסטוריה
-              exerciseHistory={exerciseHistory}
-              isFirst={index === 0}
-              isLast={index === exercises.length - 1}
-            />
-          );
-        })}
+                  },
+                ]
+              );
+            }}
+            onStartRest={(duration: number) => {
+              startRestTimer(duration, exercise.name);
+            }}
+            isFirst={index === 0}
+            isLast={index === exercises.length - 1}
+          />
+        ))}
       </ScrollView>
 
       {/* Finish Workout Button */}

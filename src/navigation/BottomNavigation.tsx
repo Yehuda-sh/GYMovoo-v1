@@ -21,7 +21,7 @@ import MainScreen from "../screens/main/MainScreen";
 import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen";
 import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
 import ProfileScreen from "../screens/profile/ProfileScreen";
-import WorkoutMainScreen from "../screens/workout/WorkoutMainScreen";
+import { ActiveWorkoutScreen } from "../screens";
 
 const Tab = createBottomTabNavigator();
 
@@ -151,7 +151,7 @@ export default function BottomNavigation() {
       {/* אימון - שני משמאל */}
       <Tab.Screen
         name="QuickWorkout"
-        component={WorkoutMainScreen}
+        component={ActiveWorkoutScreen}
         options={{
           title: "אימון",
           tabBarIcon: ({ focused, color, size }) => (
