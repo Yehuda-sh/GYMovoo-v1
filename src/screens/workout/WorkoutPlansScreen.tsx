@@ -27,6 +27,7 @@ import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { questionnaireService } from "../../services/questionnaireService";
 import { WorkoutDataService } from "../../services/workoutDataService";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // Component & UI Imports
 import BackButton from "../../components/common/BackButton";
@@ -1322,8 +1323,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>טוען תוכנית אימון...</Text>
+        <LoadingSpinner
+          size="large"
+          text="טוען תוכנית אימון..."
+          variant="pulse"
+          testID="workout-plans-loading"
+        />
       </View>
     );
   }

@@ -16,7 +16,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message"; // 🆕 הוספת Toast גלובלי
 import { theme } from "../../styles/theme";
+import { EmptyState } from "../../components"; // 🆕 הוספת EmptyState
 import {
   fetchExercisesSimple,
   fetchMuscles,
@@ -56,10 +58,6 @@ export default function ExerciseListScreen() {
   const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [showNoSelectionModal, setShowNoSelectionModal] = useState(false);
-
-  // Toast
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
 
   // טעינת נתונים
   useEffect(() => {
@@ -106,11 +104,17 @@ export default function ExerciseListScreen() {
     []
   );
 
-  // Toast הצגת
+  // Toast הצגת - משופר עם Toast גלובלי
+  // Toast display - enhanced with global Toast
   const showToastMessage = useCallback((message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
+    Toast.show({
+      type: "success",
+      text1: message,
+      position: "bottom",
+      visibilityTime: 2000,
+      autoHide: true,
+      bottomOffset: 100,
+    });
   }, []);
 
   // בעת לחיצה על תרגיל - אופטימיזציה עם useCallback
@@ -318,24 +322,21 @@ export default function ExerciseListScreen() {
         maxToRenderPerBatch={10} // מגבלת רינדור לאצווה
         windowSize={10} // גודל חלון לאופטימיזציה
         initialNumToRender={8} // מספר אלמנטים ראשוני לרינדור
-        getItemLayout={(data, index) => ({
-          length: 92,
-          offset: 92 * index,
-          index,
-        }) // אופטימיזציה לגלילה
+        getItemLayout={
+          (data, index) => ({
+            length: 92,
+            offset: 92 * index,
+            index,
+          }) // אופטימיזציה לגלילה
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="magnify-close"
-              size={48}
-              color={theme.colors.textSecondary}
-              style={{ marginBottom: 16 }}
-            />
-            <Text style={styles.emptyText}>
-              לא נמצאו תרגילים לקבוצת השרירים הזו
-            </Text>
-          </View>
+          <EmptyState
+            icon="search-outline"
+            title="לא נמצאו תרגילים"
+            description="לא נמצאו תרגילים לקבוצת השרירים הזו. נסה לבחור קבוצת שרירים אחרת או לבטל את הסינון."
+            variant="compact"
+            testID="exercise-list-empty"
+          />
         }
         contentInset={{ bottom: isSelectionMode ? 100 : 0 }}
       />
@@ -348,13 +349,6 @@ export default function ExerciseListScreen() {
         >
           <Text style={styles.finishButtonText}>סיים בחירה</Text>
         </TouchableOpacity>
-      )}
-
-      {/* הצגת Toast */}
-      {showToast && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>{toastMessage}</Text>
-        </View>
       )}
 
       {/* דיאלוג פרטי תרגיל */}
@@ -456,15 +450,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
-  emptyState: {
-    paddingTop: 60,
-    alignItems: "center",
-  },
-  emptyText: {
-    color: theme.colors.textSecondary,
-    fontSize: 16,
-    textAlign: "center",
-  },
   exerciseCard: {
     flexDirection: "row-reverse",
     backgroundColor: theme.colors.card,
@@ -562,22 +547,5 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 18,
     fontWeight: "bold",
-  },
-  toast: {
-    position: "absolute",
-    bottom: 100,
-    alignSelf: "center",
-    backgroundColor: theme.colors.card,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.medium,
-  },
-  toastText: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

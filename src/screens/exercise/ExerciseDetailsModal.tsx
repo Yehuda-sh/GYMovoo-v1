@@ -95,7 +95,7 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
   return (
     <Modal visible animationType="none" transparent>
       <Pressable
-        style={[styles.overlay, { opacity: fadeAnim }]}
+        style={[theme.getModalOverlayStyle("center"), { opacity: fadeAnim }]}
         onPress={handleClose}
       >
         <Animated.View
@@ -275,12 +275,6 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   modalContainer: {
     width: "92%",
     maxHeight: "85%",

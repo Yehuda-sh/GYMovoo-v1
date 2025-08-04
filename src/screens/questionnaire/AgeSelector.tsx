@@ -343,14 +343,16 @@ export default function AgeSelector({
         onRequestClose={() => setShowPreciseModal(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={theme.getModalOverlayStyle("center")}
           activeOpacity={1}
           onPress={() => setShowPreciseModal(false)}
         >
           <Animated.View
             style={[
-              styles.modalContent,
+              theme.getModalContentStyle("center"),
               {
+                width: SCREEN_WIDTH * 0.85,
+                maxWidth: 350,
                 transform: [{ translateX: errorShake }],
               },
             ]}
@@ -482,20 +484,7 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     marginEnd: theme.spacing.sm, // שינוי RTL: marginEnd במקום marginRight
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    width: SCREEN_WIDTH * 0.85,
-    maxWidth: 350,
-    ...theme.shadows.large,
-  },
+  // Modal styles removed - now using theme helpers
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",

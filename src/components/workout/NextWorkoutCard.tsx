@@ -24,21 +24,22 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
   const { nextWorkout, isLoading, cycleStats } = useNextWorkout(workoutPlan);
   const [showTimeout, setShowTimeout] = React.useState(false);
 
-  // Timeout למניעת טעינה ארוכה מדי
-  React.useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        setShowTimeout(true);
-      }, 2000); // 2 שניות
+  // ✨ ברירת מחדל מאוחדת - Unified default workout
+  const DEFAULT_WORKOUT = React.useMemo(
+    () => ({
+      workoutName: "דחיפה",
+      workoutIndex: 0,
+      reason: "התחלת תוכנית אימונים חדשה",
+      isRegularProgression: true,
+      daysSinceLastWorkout: 0,
+      suggestedIntensity: "normal" as const,
+    }),
+    []
+  );
 
-      return () => clearTimeout(timeout);
-    } else {
-      setShowTimeout(false);
-    }
-  }, [isLoading]);
-
-  if (isLoading && !showTimeout) {
-    return (
+  // ✨ רכיب בטעינה מאוחד - Unified loading component
+  const LoadingView = React.useMemo(
+    () => (
       <View style={styles.container}>
         <LinearGradient
           colors={[theme.colors.primary + "20", theme.colors.primary + "10"]}
@@ -55,112 +56,71 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
           </View>
         </LinearGradient>
       </View>
-    );
+    ),
+    []
+  );
+
+  // Timeout למניעת טעינה ארוכה מדי
+  React.useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setShowTimeout(true);
+      }, 2000); // 2 שניות
+
+      return () => clearTimeout(timeout);
+    } else {
+      setShowTimeout(false);
+    }
+  }, [isLoading]);
+
+  if (isLoading && !showTimeout) {
+    return LoadingView;
   }
 
   if (!nextWorkout || showTimeout) {
-    // במקום "לא נמצא אימון" - הצג אימון ראשון כברירת מחדל
-    const defaultWorkout = {
-      workoutName: "דחיפה",
-      workoutIndex: 0,
-      reason: "התחלת תוכנית אימונים חדשה",
-      isRegularProgression: true,
-      daysSinceLastWorkout: 0,
-      suggestedIntensity: "normal" as const,
-    };
-
     return (
-      <View
-        style={styles.container}
-        accessible={true}
-        accessibilityRole="text"
-        accessibilityLabel={`האימון הבא שלך: ${defaultWorkout.workoutName}. ${defaultWorkout.reason}.`}
-        accessibilityHint="פרטי האימון הבא המומלץ עבורך"
-      >
-        <LinearGradient
-          colors={[theme.colors.primary + "30", theme.colors.primary + "10"]}
-          style={styles.gradient}
-        >
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              <MaterialCommunityIcons
-                name="dumbbell"
-                size={20}
-                color={theme.colors.primary}
-                accessible={false}
-              />
-              <Text style={styles.title}>האימון הבא שלך</Text>
-            </View>
-          </View>
-
-          <Text style={styles.workoutName}>{defaultWorkout.workoutName}</Text>
-          <Text style={styles.reason}>{defaultWorkout.reason}</Text>
-
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={() =>
-              onStartWorkout(
-                defaultWorkout.workoutName,
-                defaultWorkout.workoutIndex
-              )
-            }
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`התחל אימון ${defaultWorkout.workoutName}`}
-            accessibilityHint="הקש כדי להתחיל את האימון הבא"
-          >
-            <Text style={styles.startButtonText}>התחל אימון</Text>
-            <MaterialCommunityIcons
-              name="play-circle"
-              size={20}
-              color="white"
-              accessible={false}
-            />
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
+      <DefaultWorkoutView
+        workout={DEFAULT_WORKOUT}
+        onStartWorkout={onStartWorkout}
+      />
     );
   }
 
-  const getIntensityIcon = () => {
-    switch (nextWorkout.suggestedIntensity) {
-      case "light":
-        return "weather-sunny";
-      case "catchup":
-        return "rocket";
-      default:
-        return "fire";
-    }
-  };
+  // ✨ מערכת אינטנסיביות מאוחדת - Unified intensity system
+  const INTENSITY_CONFIG = React.useMemo(
+    () => ({
+      light: {
+        icon: "weather-sunny" as const,
+        color: "#FFA726", // Orange
+        text: "אימון קל",
+        description: "אימון בקצב נמוך למנוחה פעילה",
+      },
+      catchup: {
+        icon: "rocket" as const,
+        color: "#42A5F5", // Blue
+        text: "השלמה",
+        description: "השלמת אימון שהוחמץ",
+      },
+      normal: {
+        icon: "fire" as const,
+        color: theme.colors.primary,
+        text: "אימון רגיל",
+        description: "אימון בעצימות רגילה",
+      },
+    }),
+    []
+  );
 
-  const getIntensityColor = () => {
-    switch (nextWorkout.suggestedIntensity) {
-      case "light":
-        return "#FFA726"; // Orange
-      case "catchup":
-        return "#42A5F5"; // Blue
-      default:
-        return theme.colors.primary;
-    }
-  };
-
-  const getIntensityText = () => {
-    switch (nextWorkout.suggestedIntensity) {
-      case "light":
-        return "אימון קל";
-      case "catchup":
-        return "השלמה";
-      default:
-        return "אימון רגיל";
-    }
-  };
+  const getIntensityConfig = React.useMemo(() => {
+    return INTENSITY_CONFIG[nextWorkout?.suggestedIntensity || "normal"];
+  }, [nextWorkout?.suggestedIntensity, INTENSITY_CONFIG]);
 
   return (
     <View
       style={styles.container}
       accessible={true}
       accessibilityRole="text"
-      accessibilityLabel={`האימון הבא שלך: ${nextWorkout.workoutName}. ${nextWorkout.reason}. ${getIntensityText()}.`}
+      accessibilityLabel={`האימון הבא שלך: ${nextWorkout.workoutName}. ${nextWorkout.reason}. ${getIntensityConfig.text}.`}
       accessibilityHint="פרטי האימון הבא המומלץ עבורך"
     >
       <LinearGradient
@@ -183,19 +143,22 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
           <View
             style={[
               styles.intensityBadge,
-              { borderColor: getIntensityColor() },
+              { borderColor: getIntensityConfig.color },
             ]}
           >
             <MaterialCommunityIcons
-              name={getIntensityIcon()}
+              name={getIntensityConfig.icon}
               size={14}
-              color={getIntensityColor()}
+              color={getIntensityConfig.color}
               accessible={false}
             />
             <Text
-              style={[styles.intensityText, { color: getIntensityColor() }]}
+              style={[
+                styles.intensityText,
+                { color: getIntensityConfig.color },
+              ]}
             >
-              {getIntensityText()}
+              {getIntensityConfig.text}
             </Text>
           </View>
         </View>
@@ -224,26 +187,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
         )}
 
         {/* סטטיסטיקות מחזור */}
-        {cycleStats && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{cycleStats.currentWeek}</Text>
-              <Text style={styles.statLabel}>שבוע</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{cycleStats.totalWorkouts}</Text>
-              <Text style={styles.statLabel}>אימונים</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {Math.round(cycleStats.consistency)}%
-              </Text>
-              <Text style={styles.statLabel}>עקביות</Text>
-            </View>
-          </View>
-        )}
+        <CycleStatsView cycleStats={cycleStats} />
 
         {/* כפתור התחלת אימון */}
         <TouchableOpacity
@@ -274,6 +218,106 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
     </View>
   );
 };
+
+// ✨ רכיב ברירת מחדל נפרד - Separate default workout component
+const DefaultWorkoutView: React.FC<{
+  workout: {
+    workoutName: string;
+    workoutIndex: number;
+    reason: string;
+    isRegularProgression: boolean;
+    daysSinceLastWorkout: number;
+    suggestedIntensity: "normal" | "light" | "catchup";
+  };
+  onStartWorkout: (workoutName: string, workoutIndex: number) => void;
+}> = React.memo(({ workout, onStartWorkout }) => (
+  <View
+    style={styles.container}
+    accessible={true}
+    accessibilityRole="text"
+    accessibilityLabel={`האימון הבא שלך: ${workout.workoutName}. ${workout.reason}.`}
+    accessibilityHint="פרטי האימון הבא המומלץ עבורך"
+  >
+    <LinearGradient
+      colors={[theme.colors.primary + "30", theme.colors.primary + "10"]}
+      style={styles.gradient}
+    >
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <MaterialCommunityIcons
+            name="dumbbell"
+            size={20}
+            color={theme.colors.primary}
+            accessible={false}
+          />
+          <Text style={styles.title}>האימון הבא שלך</Text>
+        </View>
+      </View>
+
+      <Text style={styles.workoutName}>{workout.workoutName}</Text>
+      <Text style={styles.reason}>{workout.reason}</Text>
+
+      <TouchableOpacity
+        style={styles.startButton}
+        onPress={() =>
+          onStartWorkout(workout.workoutName, workout.workoutIndex)
+        }
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`התחל אימון ${workout.workoutName}`}
+        accessibilityHint="הקש כדי להתחיל את האימון הבא"
+      >
+        <LinearGradient
+          colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+          style={styles.startButtonGradient}
+        >
+          <MaterialCommunityIcons
+            name="play"
+            size={20}
+            color="white"
+            accessible={false}
+          />
+          <Text style={styles.startButtonText}>התחל אימון</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </LinearGradient>
+  </View>
+));
+
+// ✨ רכיב סטטיסטיקות נפרד - Separate stats component
+const CycleStatsView: React.FC<{
+  cycleStats: {
+    currentWeek: number;
+    totalWorkouts: number;
+    daysInProgram: number;
+    consistency: number;
+  } | null;
+}> = React.memo(({ cycleStats }) => {
+  if (!cycleStats) return null;
+
+  const statsData = React.useMemo(
+    () => [
+      { value: cycleStats.currentWeek, label: "שבוע" },
+      { value: cycleStats.totalWorkouts, label: "אימונים" },
+      { value: `${Math.round(cycleStats.consistency)}%`, label: "עקביות" },
+    ],
+    [cycleStats]
+  );
+
+  return (
+    <View style={styles.statsContainer}>
+      {statsData.map((stat, index) => (
+        <React.Fragment key={stat.label}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+          {index < statsData.length - 1 && <View style={styles.statDivider} />}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

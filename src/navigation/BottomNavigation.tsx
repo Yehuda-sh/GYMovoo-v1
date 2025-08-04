@@ -7,14 +7,13 @@
  */
 
 import React from "react";
-import { View, StyleSheet, Platform, I18nManager } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../styles/theme";
 
-// כפיית RTL לכל האפליקציה
-I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
+// הערה: RTL מוגדר גלובלית ב-App.tsx -> rtlConfig
+// Note: RTL is configured globally in App.tsx -> rtlConfig
 
 // מסכים // Screens
 import MainScreen from "../screens/main/MainScreen";

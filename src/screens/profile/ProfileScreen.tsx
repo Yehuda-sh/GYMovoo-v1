@@ -2224,12 +2224,12 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowAvatarModal(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={theme.getModalOverlayStyle("bottom")}
           activeOpacity={1}
           onPress={() => setShowAvatarModal(false)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={theme.getModalContentStyle("bottom")}>
+            <View style={theme.getModalHeaderStyle()}>
               <Text style={styles.modalTitle}>בחר אווטאר</Text>
               <TouchableOpacity
                 onPress={() => setShowAvatarModal(false)}
@@ -2301,12 +2301,12 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowNameModal(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={theme.getModalOverlayStyle("bottom")}
           activeOpacity={1}
           onPress={() => setShowNameModal(false)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={theme.getModalContentStyle("bottom")}>
+            <View style={theme.getModalHeaderStyle()}>
               <Text style={styles.modalTitle}>עריכת שם</Text>
               <TouchableOpacity
                 onPress={() => setShowNameModal(false)}
@@ -3092,26 +3092,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Modal styles - מודלים עם טקסט גדול יותר
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: theme.colors.card,
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    padding: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl + 20,
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.xl,
-  },
+  // Modal styles - removed duplicates, now using theme helpers
   closeButton: {
     padding: theme.spacing.xs,
   },

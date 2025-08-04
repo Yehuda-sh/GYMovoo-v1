@@ -45,13 +45,6 @@ export default function ProgressScreen(): JSX.Element {
           <Text style={styles.infoText}>• דירוג קושי ממוצע</Text>
           <Text style={styles.infoText}>• שיאים אישיים</Text>
         </View>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>חזרה</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -108,18 +101,5 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
     textAlign: "right",
     writingDirection: "rtl",
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    minWidth: 120,
-  },
-  buttonText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
   },
 });

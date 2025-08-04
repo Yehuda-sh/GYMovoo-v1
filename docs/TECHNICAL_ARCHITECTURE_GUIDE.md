@@ -99,19 +99,21 @@ interface UserMatchingAlgorithm {
 ```
 src/components/
 ├── common/           // רכיבים בסיסיים משותפים
-│   ├── LoadingSpinner.tsx     // ספינר עם טקסט עברי
-│   ├── EmptyState.tsx         // מצב ריק עם אייקונים
-│   ├── IconButton.tsx         // כפתור עם אייקון RTL
+│   ├── LoadingSpinner.tsx     // ספינר עם 4 variants
+│   ├── EmptyState.tsx         // מצב ריק עם 3 variants
+│   ├── IconButton.tsx         // כפתור עם אייקון RTL + 3 variants
 │   ├── ConfirmationModal.tsx  // מודל אישור RTL
-│   └── UniversalButton.tsx    // כפתור אוניברסלי
+│   ├── BackButton.tsx         // כפתור חזרה אוניברסלי
+│   ├── DefaultAvatar.tsx      // אווטר ברירת מחדל
+│   └── InputField.tsx         // שדה קלט מתקדם עם validation
 ├── ui/               // רכיבי UI מתקדמים
-│   ├── cards/        // כרטיסים מתקדמים
-│   ├── forms/        // טפסים עם validation
-│   └── modals/       // מודלים עם RTL
+│   ├── ScreenContainer.tsx    // קונטיינר מסך משופר
+│   ├── UniversalButton.tsx    // כפתור אוניברסלי עם 6 variants
+│   └── UniversalCard.tsx      // כרטיס אוניברסלי
 └── workout/          // רכיבי אימון ייעודיים
-    ├── ExerciseCard.tsx      // כרטיס תרגיל חכם
-    ├── WorkoutTimer.tsx      // טיימר אימון מתקדם
-    └── ProgressChart.tsx     // גרף התקדמות
+    ├── FloatingActionButton.tsx  // כפתור פעולה צף
+    ├── NextWorkoutCard.tsx       // כרטיס אימון הבא
+    └── ProgressChart.tsx         // גרף התקדמות
 ```
 
 ## 🔗 מערכת ה-Hooks המתקדמת

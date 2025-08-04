@@ -227,20 +227,6 @@ export default function TermsScreen() {
           </LinearGradient>
         </View>
 
-        {/* כפתור חזרה משופר // Enhanced back button */}
-        <TouchableOpacity
-          style={styles.backToRegistrationButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.backToRegistrationText}>חזרה להרשמה</Text>
-        </TouchableOpacity>
-
         <View style={{ height: 40 }} />
       </Animated.ScrollView>
     </View>
@@ -402,24 +388,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
-  },
-  backToRegistrationButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    ...theme.shadows.small,
-  },
-  backToRegistrationText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary,
   },
 });

@@ -292,10 +292,7 @@ npx eslint src/ --fix
 
 ```
 GYMovoo/
-├── app/                    # App Router מבוססי Expo
-│   ├── _layout.tsx         # Layout ראשי עם navigation
-│   └── index.tsx           # Entry point
-├── src/                    # קוד מקור ראשי
+├── src/                    # קוד מקור ראשי / Main source code
 │   ├── components/         # רכיבים שימושיים
 │   ├── data/              # מידע סטטי
 │   ├── hooks/             # Custom hooks

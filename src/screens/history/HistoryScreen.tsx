@@ -19,6 +19,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { EmptyState } from "../../components"; // 🆕 הוספת EmptyState
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { workoutHistoryService } from "../../services/workoutHistoryService";
@@ -594,8 +596,12 @@ export default function HistoryScreen() {
 
     return (
       <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={styles.loadingFooterText}>טוען עוד...</Text>
+        <LoadingSpinner
+          size="small"
+          text="טוען עוד..."
+          variant="fade"
+          testID="history-loading-more"
+        />
       </View>
     );
   };
@@ -612,8 +618,12 @@ export default function HistoryScreen() {
             },
           ]}
         >
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>טוען היסטוריה...</Text>
+          <LoadingSpinner
+            size="large"
+            text="טוען היסטוריה..."
+            variant="pulse"
+            testID="history-main-loading"
+          />
           <Text style={styles.loadingSubtext}>מאחזר נתוני אימונים קודמים</Text>
         </Animated.View>
       </View>
@@ -631,28 +641,14 @@ export default function HistoryScreen() {
           },
         ]}
       >
-        <View style={styles.emptyContainer}>
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ scale: fadeAnim }],
-            }}
-          >
-            <MaterialCommunityIcons
-              name="history"
-              size={100}
-              color={theme.colors.textSecondary}
-            />
-          </Animated.View>
-          <Text style={styles.emptyTitle}>אין עדיין אימונים שמורים</Text>
-          <Text style={styles.emptySubtitle}>
-            לאחר סיום אימון, לחץ על "שמור אימון ומשוב"
-          </Text>
-          <Text style={styles.emptyHint}>
-            האימונים הבאים שלך יופיעו כאן עם פרטים מלאים וסטטיסטיקות
-          </Text>
-
-          {/* הוספת כפתור לחזרה למסך הראשי */}
+        <EmptyState
+          icon="time-outline"
+          title="אין עדיין אימונים שמורים"
+          description="לאחר סיום אימון, לחץ על 'שמור אימון ומשוב' כדי לראות את ההיסטוריה שלך כאן. האימונים הבאים שלך יופיעו כאן עם פרטים מלאים וסטטיסטיקות."
+          variant="default"
+          testID="history-empty-state"
+        >
+          {/* כפתור לחזרה למסך הראשי */}
           <Animated.View
             style={[
               styles.emptyAction,
@@ -669,7 +665,7 @@ export default function HistoryScreen() {
             />
             <Text style={styles.emptyActionText}>בואו נתחיל לאמן!</Text>
           </Animated.View>
-        </View>
+        </EmptyState>
       </Animated.View>
     );
   }
@@ -757,34 +753,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textTertiary,
     textAlign: "center", // שיפור RTL: יישור מרכז
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.xl,
-    marginTop: 100,
-  },
-  emptyTitle: {
-    fontSize: theme.typography.h2.fontSize,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: theme.typography.body.fontSize,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  emptyHint: {
-    fontSize: theme.typography.caption.fontSize,
-    color: theme.colors.textTertiary,
-    textAlign: "center",
-    marginTop: theme.spacing.md,
-    fontStyle: "italic",
   },
   emptyAction: {
     flexDirection: "row-reverse", // RTL

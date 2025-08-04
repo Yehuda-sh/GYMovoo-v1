@@ -1,17 +1,18 @@
 /**
  * @file src/components/workout/FloatingActionButton.tsx
- * @brief כפתור פעולה צף - קומפקטי ולא פולשני למסך האימון
- * @dependencies React Native, Animated, Ionicons
- * @notes מיקום שמאלי תחתון (RTL), אנימציות חלקות, גודל מינימלי
+ * @brief ✨ כפתור פעולה צף משופר - גרסה פשוטה ויעילה
+ * @dependencies React Native, Animated, Ionicons, theme
+ * @notes מיקום RTL, אנימציות חלקות, גדלים מרובים
+ * @version 2.1 - Simplified and optimized
  */
 
 import React, { useRef, useEffect } from "react";
 import {
   TouchableOpacity,
-  StyleSheet,
   Animated,
   View,
   Text,
+  StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -33,76 +34,61 @@ export default function FloatingActionButton({
   icon = "add",
   label,
   visible = true,
-  bottom = 80, // מעל ה-Bottom Navigation
+  bottom = 80,
   size = "medium",
   color = theme.colors.primary,
   accessibilityLabel,
   accessibilityHint,
 }: FloatingActionButtonProps) {
-  // אנימציות // Animations
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  // גדלים לפי סוג // Sizes by type
-  const sizes = {
-    small: { button: 48, icon: 20 },
-    medium: { button: 56, icon: 24 },
-    large: { button: 64, icon: 28 },
-  };
+  const currentSize = theme.components.floatingButtonSizes[size]; // 🔄 שימוש ב-theme במקום SIZES מקומי
 
-  const currentSize = sizes[size];
-
+  // ✨ אנימציות פשוטות ויעילות - Simple and efficient animations
   useEffect(() => {
-    if (visible) {
-      // אנימציית כניסה // Entry animation
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // אנימציית יציאה // Exit animation
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
+    const animation = visible
+      ? Animated.parallel([
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 8,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ])
+      : Animated.parallel([
+          Animated.timing(scaleAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]);
+
+    animation.start();
+  }, [visible, scaleAnim, rotateAnim]);
 
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "90deg"],
+    outputRange: ["0deg", "45deg"],
   });
 
   if (!visible) return null;
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          bottom,
-          transform: [{ scale: scaleAnim }],
-        },
-      ]}
+      style={[styles.container, { bottom, transform: [{ scale: scaleAnim }] }]}
     >
-      {/* תווית אופציונלית // Optional label */}
+      {/* תווית אופציונלית - Optional label */}
       {label && (
         <Animated.View
           style={[
@@ -120,16 +106,11 @@ export default function FloatingActionButton({
             },
           ]}
         >
-          <Text
-            style={styles.labelText}
-            accessible={false} // האב כבר נגיש
-          >
-            {label}
-          </Text>
+          <Text style={styles.labelText}>{label}</Text>
         </Animated.View>
       )}
 
-      {/* הכפתור עצמו // The button itself */}
+      {/* כפתור - Button */}
       <TouchableOpacity
         style={[
           styles.button,
@@ -146,26 +127,21 @@ export default function FloatingActionButton({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || label || `כפתור ${icon}`}
         accessibilityHint={accessibilityHint || "כפתור פעולה צף"}
-        accessibilityState={{
-          disabled: false,
-        }}
       >
         <Animated.View style={{ transform: [{ rotate: rotation }] }}>
           <Ionicons
             name={icon}
             size={currentSize.icon}
             color="#fff"
-            accessible={false} // האב כבר נגיש
+            accessible={false}
           />
         </Animated.View>
-
-        {/* אפקט לחיצה // Press effect */}
-        <View style={styles.ripple} />
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
+// ✨ סגנונות פשוטים וברורים - Simple and clear styles
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
@@ -182,15 +158,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 4.5,
-    // אפקט לחיצה // Press effect
-    overflow: "hidden",
-  },
-  ripple: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   labelContainer: {
     backgroundColor: theme.colors.card,

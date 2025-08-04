@@ -1,51 +1,27 @@
 /**
  * @file src/data/newSmartQuestionnaire.ts
- * @brief שאלון דינמי חדש עם ציוד מסודר ואלגוריתם חכם
- * @brief New dynamic questionnaire wit  // ========== אימונים ללא ציוד (עם חפצים ביתיים) ==========
-  {
-    id: "bodyweight_equipment_options",
-    title: "איזה חפצים יש לך בבית?",
-    subtitle: "בחר את מה שזמין לך לאימונים עם משקל גוף",
-    question: "איזה חפצים בסיסיים יש לך בבית?",
-    type: "multiple",
-    icon: "🏠",
-    category: "essential",
-    required: true,
-    algorithmWeight: 8,
-    impactArea: ["bodyweight_workouts", "home_adaptability", "equipment_creativity"],
-    priority: "high",
-    customIcon: "questionnaire/home_items.png",d equipment and smart algorithm
+ * @brief שאלון חכם מתקדם עם AI ואלגוריתם התאמה | Advanced smart questionnaire with AI and matching algorithm
+ * @author GYMovoo Development Team
+ * @description מערכת שאלון דינמית המתאימה שאלות בהתאם לציוד זמין ומטרות אישיות עם משוב AI חכם
+ * @description Dynamic questionnaire system that adapts questions based on available equipment and personal goals with smart AI feedback
+ * @version 2.0 - Enhanced with unified interfaces and smart algorithm
  * @date 2025-01-28
  * @notes משלב AI מתקדם עם אלגוריתם התאמה אישית לפי ציוד זמין ומטרות
  * @notes Integrates advanced AI with personalized matching algorithm based on available equipment and goals
  */
 
 import { ImageSourcePropType } from "react-native";
+import {
+  SmartOption,
+  AIFeedback,
+  SmartQuestionType,
+  QuestionMetadata,
+} from "./questionnaireData";
 
-// טיפוסים בסיסיים
-export type SmartQuestionType = "single" | "multiple";
-
-// ממשק למשוב AI
-export interface AIFeedback {
-  message: string;
-  type: "positive" | "suggestion" | "warning" | "insight";
-  icon: string;
-}
-
-// ממשק לאפשרות
-export interface SmartOption {
-  id: string;
-  label: string;
-  description?: string;
-  image?: ImageSourcePropType;
-  metadata?: {
-    equipment?: string[];
-  };
-  aiInsight?: string;
-}
+// ================== SMART QUESTION INTERFACE | ממשק שאלה חכמה ==================
 
 // ממשק לשאלה עם אלגוריתם חכם מתקדם
-export interface SmartQuestion {
+export interface SmartQuestion extends QuestionMetadata {
   id: string;
   title: string;
   subtitle?: string;
@@ -57,14 +33,8 @@ export interface SmartQuestion {
   required: boolean;
   helpText?: string;
 
-  // מטא-דאטה לאלגוריתם חכם
-  algorithmWeight?: number; // משקל בחישוב האלגוריתם (1-10)
-  impactArea?: string[]; // תחומים שהשאלה משפיעה עליהם
-  priority?: "critical" | "high" | "medium" | "low"; // עדיפות השאלה
-  customIcon?: string; // אייקון מותאם עתידי
-
   aiLogic: {
-    generateFeedback: (answer: any, previousAnswers: any) => AIFeedback;
+    generateFeedback: (answer: any, previousAnswers?: any) => AIFeedback;
     influenceNextQuestions?: (answer: any) => string[];
   };
 }

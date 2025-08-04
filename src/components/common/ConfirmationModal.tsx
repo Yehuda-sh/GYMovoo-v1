@@ -69,14 +69,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onRequestClose={onClose}
       accessibilityViewIsModal={true}
     >
-      <View style={styles.overlay}>
+      <View style={theme.getModalOverlayStyle("center")}>
         <View
-          style={styles.modal}
+          style={[
+            theme.getModalContentStyle("center"),
+            {
+              width: "100%",
+              maxWidth: 300,
+              alignItems: "center",
+            },
+          ]}
           accessibilityRole="alert"
           accessibilityLabel={`דיאלוג אישור: ${title}`}
         >
           {icon && (
-            <View style={styles.iconContainer}>
+            <View style={{ marginBottom: theme.spacing.lg }}>
               <Ionicons
                 name={icon}
                 size={48}
@@ -93,7 +100,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.button,
-                styles.cancelButton,
                 { backgroundColor: cancelButtonColor || theme.colors.surface },
               ]}
               onPress={handleCancel}
@@ -109,7 +115,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.button,
-                styles.confirmButton,
                 { backgroundColor: confirmButtonColor || defaultConfirmColor },
               ]}
               onPress={handleConfirm}
@@ -131,40 +136,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing.xl,
-  },
-  modal: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    width: "100%",
-    maxWidth: 300,
-    alignItems: "center",
-  },
-  iconContainer: {
-    marginBottom: theme.spacing.lg,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    textAlign: "center",
-    writingDirection: "rtl", // RTL תמיכה מלאה
-    marginBottom: theme.spacing.md,
-  },
-  message: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    writingDirection: "rtl", // RTL תמיכה מלאה
-    lineHeight: 20,
-    marginBottom: theme.spacing.lg,
-  },
   buttonContainer: {
     flexDirection: theme.isRTL ? "row-reverse" : "row",
     width: "100%",
@@ -177,12 +148,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     alignItems: "center",
   },
-  confirmButton: {
-    // Background color set dynamically
-  },
-  cancelButton: {
-    // Background color set dynamically
-  },
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
@@ -190,6 +155,22 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: theme.colors.text,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+    textAlign: "center",
+    writingDirection: "rtl",
+    marginBottom: theme.spacing.md,
+  },
+  message: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    writingDirection: "rtl",
+    lineHeight: 20,
+    marginBottom: theme.spacing.lg,
   },
 });
 

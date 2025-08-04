@@ -84,16 +84,8 @@ export default function Index() {
 }
 "@
 
-# Create app files only if they don't exist or are placeholders
-if (!(Test-Path "app/_layout.tsx") -or (Get-Content "app/_layout.tsx" -Raw).Trim() -eq '// placeholder') {
-    $appLayoutContent | Set-Content -Path "app/_layout.tsx"
-    Write-Host "  ✓ Created: app/_layout.tsx" -ForegroundColor Green
-}
-
-if (!(Test-Path "app/index.tsx") -or (Get-Content "app/index.tsx" -Raw).Trim() -eq '// placeholder') {
-    $appIndexContent | Set-Content -Path "app/index.tsx"  
-    Write-Host "  ✓ Created: app/index.tsx" -ForegroundColor Green
-}
+# הערה: תיקיית app/ הוסרה - הפרויקט משתמש ב-Stack Navigator במקום Expo Router
+# Note: app/ directory removed - project uses Stack Navigator instead of Expo Router
 
 # רשימת קבצים ליצירה | Files to create  
 Write-Host "📄 Creating placeholder files..." -ForegroundColor Yellow

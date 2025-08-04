@@ -14,9 +14,9 @@
 
 ### הגדרת RTL באפליקציה:
 
-1. קובץ `src/utils/rtlConfig.ts` - הגדרות RTL מרכזיות
-2. קובץ `App.tsx` - טעינת RTL בהפעלה
-3. קובץ `src/navigation/BottomNavigation.tsx` - סדר כפתורים RTL
+1. **קובץ `src/utils/rtlConfig.ts`** - הגדרות RTL מרכזיות (אתחול אוטומטי)
+2. **קובץ `App.tsx`** - טעינת RTL config בהפעלה
+3. **הסרת כפילויות** - BottomNavigation לא מגדיר RTL (מטופל גלובלית)
 
 ### סדר הכפתורים (מימין לשמאל):
 

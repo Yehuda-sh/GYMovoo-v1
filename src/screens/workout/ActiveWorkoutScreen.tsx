@@ -54,6 +54,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import BackButton from "../../components/common/BackButton";
 
 // Components
 import ExerciseCard from "./components/ExerciseCard";
@@ -374,18 +375,13 @@ const ActiveWorkoutScreen: React.FC = () => {
   if (exercises.length === 0) {
     return (
       <View style={[styles.container, styles.errorContainer]}>
+        <BackButton />
         <MaterialCommunityIcons
           name="alert-circle-outline"
           size={80}
           color={theme.colors.error}
         />
         <Text style={styles.errorText}>לא נמצאו תרגילים באימון</Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>חזור</Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -394,20 +390,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="חזור לתפריט הראשי"
-        >
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color={theme.colors.text}
-          />
-          <Text style={styles.backButtonText}>חזור</Text>
-        </TouchableOpacity>
+        <BackButton absolute={false} variant="minimal" />
 
         <View style={styles.headerInfo}>
           <Text style={styles.exerciseTitle}>
@@ -575,22 +558,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     ...theme.shadows.small,
-  },
-  backButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: theme.spacing.xs,
-    padding: theme.spacing.sm,
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.radius.md,
-    minWidth: 80,
-    justifyContent: "center",
-    ...theme.shadows.small,
-  },
-  backButtonText: {
-    color: theme.colors.card,
-    fontSize: 12,
-    fontWeight: "600",
   },
   headerInfo: {
     flex: 1,

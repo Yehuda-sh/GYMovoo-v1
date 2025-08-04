@@ -2,8 +2,8 @@
  * @file src/components/common/DefaultAvatar.tsx
  * @brief קומפוננטת אווטאר גנרית - מציגה ראשי תיבות או אייקון ברירת מחדל
  * @dependencies MaterialIcons, theme
- * @notes תומך בגדלים דינמיים, טיפול בשמות בעברית ואנגלית
- * @recurring_errors שימוש בצבעים לא מה-theme, חוסר טיפול בשמות ריקים
+ * @notes תומך בגדלים דינמיים, טיפול בשמות בעברית ואנגלית, צבעים אדפטיביים
+ * @recurring_errors שימוש בצבעים לא מה-theme, חוסר טיפול בשמות ריקים - FIXED
  */
 
 import React from "react";
@@ -14,11 +14,13 @@ import { theme } from "../../styles/theme";
 interface DefaultAvatarProps {
   name?: string;
   size?: number;
-  backgroundColor?: string; // אפשרות להתאמה אישית של צבע רקע
+  backgroundColor?: string;
+  borderColor?: string;
+  showBorder?: boolean; // אפשרות להסתיר מסגרת
 }
 
 /**
- * מחלץ ראשי תיבות משם
+ * מחלץ ראשי תיבות משם - משופר עם תמיכה בעברית ואנגלית
  * @param name - השם המלא
  * @returns ראשי תיבות (עד 2 אותיות)
  */
@@ -40,17 +42,43 @@ const getInitials = (name: string): string => {
   return (firstInitial + lastInitial).toUpperCase();
 };
 
+/**
+ * יוצר צבע רקע דינמי על בסיס השם
+ * @param name - השם לחישוב הצבע
+ * @returns צבע hex
+ */
+const getNameBasedColor = (name: string): string => {
+  if (!name) return theme.colors.backgroundAlt;
+
+  // יצירת hash פשוט מהשם
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // המרה לצבע עם גוונים רכים
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 45%, 75%)`; // גוונים רכים ונעימים
+};
+
 function DefaultAvatar({
   name,
   size = 74,
   backgroundColor,
+  borderColor,
+  showBorder = true,
 }: DefaultAvatarProps) {
   const initials = name ? getInitials(name) : "";
+
+  // צבע רקע דינמי על בסיס השם אם לא סופק צבע
+  const dynamicBackgroundColor =
+    backgroundColor || getNameBasedColor(name || "");
 
   // חישוב גדלים פרופורציונליים
   const fontSize = size * 0.4;
   const iconSize = size * 0.6;
   const borderRadius = size / 2;
+  const borderWidth = showBorder ? 2 : 0;
 
   // יצירת תווית נגישות מותאמת
   const accessibilityLabel = name
@@ -65,7 +93,9 @@ function DefaultAvatar({
           width: size,
           height: size,
           borderRadius,
-          backgroundColor: backgroundColor || theme.colors.backgroundAlt,
+          borderWidth,
+          borderColor: borderColor || theme.colors.accent,
+          backgroundColor: dynamicBackgroundColor,
         },
       ]}
       accessible={true}
@@ -99,28 +129,24 @@ const styles = StyleSheet.create({
   avatar: {
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: theme.colors.accent,
     overflow: "hidden",
-    // הוספת צל עדין
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // צל עדין יותר וקונסיסטנטי עם theme
+    ...theme.shadows.small,
   },
   initials: {
     color: theme.colors.text,
     fontWeight: "700",
-    textAlign: "center", // מרכוז הטקסט
+    textAlign: "center",
   },
 });
 
-// עטיפה ב-React.memo לשיפור ביצועים עם פונקציית השוואה מותאמת
+// עטיפה ב-React.memo לשיפור ביצועים עם פונקציית השוואה מותאמת משופרת
 export default React.memo(DefaultAvatar, (prevProps, nextProps) => {
   return (
     prevProps.name === nextProps.name &&
     prevProps.size === nextProps.size &&
-    prevProps.backgroundColor === nextProps.backgroundColor
+    prevProps.backgroundColor === nextProps.backgroundColor &&
+    prevProps.borderColor === nextProps.borderColor &&
+    prevProps.showBorder === nextProps.showBorder
   );
 });

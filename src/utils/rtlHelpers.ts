@@ -324,23 +324,8 @@ export const getSelectionIndicatorStyle = (isSelected: boolean) => ({
   opacity: isSelected ? 1 : 0,
 });
 
-/**
- * סגנון לכפתור צף עם אנימציה | Animated floating button style
- */
-export const getAnimatedFloatingButtonStyle = (animatedValues?: {
-  opacity?: any;
-  scale?: any;
-  translateY?: any;
-}) => ({
-  position: "absolute" as const,
-  bottom: 30,
-  right: 20,
-  opacity: animatedValues?.opacity || 1,
-  transform: [
-    { scale: animatedValues?.scale || 1 },
-    { translateY: animatedValues?.translateY || 0 },
-  ],
-});
+// ✨ הוסר getAnimatedFloatingButtonStyle - הועבר ל-theme.ts לאיחוד
+// Removed getAnimatedFloatingButtonStyle - moved to theme.ts for unification
 
 /**
  * טיפול בטקסטים דינמיים בהתאם למגדר | Handle dynamic gender-based texts
@@ -395,5 +380,6 @@ export default {
   // פונקציות UI
   getModalPosition,
   getSelectionIndicatorStyle,
-  getAnimatedFloatingButtonStyle,
+  // ✨ getAnimatedFloatingButtonStyle הוסר - נמצא כעת ב-theme.ts
+  // getAnimatedFloatingButtonStyle removed - now in theme.ts
 };

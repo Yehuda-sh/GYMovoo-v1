@@ -389,6 +389,55 @@ export const components = {
     zIndex: 1000,
   },
 
+  // ✨ סגנונות כפתור צף משופרים - Enhanced floating button styles
+  floatingButtonSizes: {
+    small: { button: 48, icon: 20 },
+    medium: { button: 56, icon: 24 },
+    large: { button: 64, icon: 28 },
+  },
+
+  floatingButtonContainer: {
+    position: "absolute" as const,
+    left: isRTL ? spacing.lg : undefined,
+    right: isRTL ? undefined : spacing.lg,
+    flexDirection: isRTL ? "row-reverse" : "row",
+    alignItems: "center" as const,
+    zIndex: 999,
+  },
+
+  floatingButtonBase: {
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.5,
+    overflow: "hidden" as const,
+  },
+
+  floatingButtonLabel: {
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginLeft: isRTL ? 0 : 8,
+    marginRight: isRTL ? 8 : 0,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  floatingButtonLabelText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: colors.text,
+  },
+
   selectionIndicator: {
     position: "absolute" as const,
     right: 16,
@@ -483,6 +532,31 @@ export const components = {
     borderColor: colors.cardBorder,
     ...shadows.large,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  modalOverlayBottom: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end" as const,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.xl,
+    maxHeight: "80%",
+    ...shadows.large,
+  },
+  modalHeader: {
+    flexDirection: isRTL ? "row-reverse" : "row",
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    marginBottom: spacing.lg,
+  },
   screenHeader: {
     paddingStart: spacing.xl,
     paddingEnd: spacing.xl,
@@ -496,12 +570,6 @@ export const components = {
     paddingStart: spacing.xl,
     paddingEnd: spacing.xl,
     paddingBottom: spacing.lg,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    padding: spacing.xxl,
   },
   rtlText: {
     textAlign: "right" as const,
@@ -572,6 +640,70 @@ export const components = {
     zIndex: 99,
   },
 
+  // ✨ עוזרי כפתור חזרה מאוחדים - Unified back button helpers
+  getBackButtonStyle: ({
+    absolute = true,
+    variant = "default",
+    customStyle,
+  }: {
+    absolute?: boolean;
+    variant?: "default" | "minimal" | "large";
+    customStyle?: any;
+  }) => {
+    const baseStyle = {
+      backgroundColor: colors.card + "CC",
+      borderRadius: 24,
+      width: 42,
+      height: 42,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      ...shadows.medium,
+      zIndex: 99,
+    };
+
+    const variantStyles = {
+      minimal: {
+        backgroundColor: "transparent",
+        width: 36,
+        height: 36,
+        shadowOpacity: 0,
+        elevation: 0,
+      },
+      large: {
+        width: 48,
+        height: 48,
+        borderRadius: 28,
+      },
+      default: {},
+    };
+
+    const absoluteStyle = absolute
+      ? {
+          position: "absolute" as const,
+          top: Platform.OS === "ios" ? 50 : 40,
+          left: isRTL ? spacing.md : undefined,
+          right: isRTL ? undefined : spacing.md,
+        }
+      : {};
+
+    return [baseStyle, variantStyles[variant], absoluteStyle, customStyle];
+  },
+
+  getBackButtonIconSize: (
+    variant: "default" | "minimal" | "large" = "default",
+    customSize?: number
+  ) => {
+    const defaultSize = customSize || 24;
+    switch (variant) {
+      case "large":
+        return defaultSize + 4;
+      case "minimal":
+        return defaultSize - 2;
+      default:
+        return defaultSize;
+    }
+  },
+
   chipButton: {
     flexDirection: isRTL ? "row-reverse" : "row",
     alignItems: "center" as const,
@@ -625,40 +757,67 @@ export const components = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
+};
 
-  sectionHeader: {
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
+/**
+ * 👤 Avatar Helpers - עוזרי אווטאר מאוחדים
+ */
+const getAvatarStyle = (
+  size: number,
+  backgroundColor?: string,
+  borderColor?: string
+) => ({
+  width: size,
+  height: size,
+  borderRadius: size / 2,
+  backgroundColor: backgroundColor || colors.backgroundAlt,
+  borderWidth: 2,
+  borderColor: borderColor || colors.accent,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  overflow: "hidden" as const,
+  ...shadows.small,
+});
 
-  toast: {
-    position: "absolute" as const,
-    bottom: 100,
-    left: spacing.xl,
-    right: spacing.xl,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    flexDirection: isRTL ? "row-reverse" : "row",
-    alignItems: "center" as const,
-    ...shadows.large,
-  },
+const getAvatarTextStyle = (size: number) => ({
+  fontSize: size * 0.4,
+  fontWeight: "700" as const,
+  color: colors.text,
+  textAlign: "center" as const,
+});
 
-  progressBar: {
-    height: 8,
-    backgroundColor: colors.backgroundElevated,
-    borderRadius: 4,
-    overflow: "hidden" as const,
-  },
+const sectionHeader = {
+  backgroundColor: colors.background,
+  paddingHorizontal: spacing.xl,
+  paddingVertical: spacing.sm,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.divider,
+};
 
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 4,
-  },
+const toast = {
+  position: "absolute" as const,
+  bottom: 100,
+  left: spacing.xl,
+  right: spacing.xl,
+  backgroundColor: colors.card,
+  borderRadius: radius.lg,
+  padding: spacing.md,
+  flexDirection: isRTL ? "row-reverse" : "row",
+  alignItems: "center" as const,
+  ...shadows.large,
+};
+
+const progressBar = {
+  height: 8,
+  backgroundColor: colors.backgroundElevated,
+  borderRadius: 4,
+  overflow: "hidden" as const,
+};
+
+const progressBarFill = {
+  height: "100%",
+  backgroundColor: colors.primary,
+  borderRadius: 4,
 };
 
 // --- Layout Helpers ---
@@ -805,15 +964,95 @@ export const questionnaireHelpers = {
   }),
 
   /**
-   * קבלת סגנון כפתור צף
-   * Get floating button style
+   * ✨ קבלת סגנון כפתור צף מלא - Complete floating button style
+   * Get complete floating button style with animation support
    */
-  getFloatingButtonStyle: (isVisible: boolean = true) => ({
-    ...components.floatingActionButton,
-    opacity: isVisible ? 1 : 0,
-    transform: [{ scale: isVisible ? 1 : 0.8 }],
+  getFloatingButtonStyle: (
+    options: {
+      isVisible?: boolean;
+      size?: "small" | "medium" | "large";
+      color?: string;
+      bottom?: number;
+      withAnimation?: boolean;
+    } = {}
+  ) => {
+    const {
+      isVisible = true,
+      size = "medium",
+      color = colors.primary,
+      bottom = spacing.xl,
+      withAnimation = true,
+    } = options;
+
+    const sizeConfig = components.floatingButtonSizes[size];
+
+    return {
+      container: {
+        ...components.floatingButtonContainer,
+        bottom,
+        opacity: withAnimation ? (isVisible ? 1 : 0) : 1,
+        transform: withAnimation ? [{ scale: isVisible ? 1 : 0.8 }] : [],
+      },
+      button: {
+        ...components.floatingButtonBase,
+        backgroundColor: color,
+        width: sizeConfig.button,
+        height: sizeConfig.button,
+        borderRadius: sizeConfig.button / 2,
+      },
+      iconSize: sizeConfig.icon,
+      label: components.floatingButtonLabel,
+      labelText: components.floatingButtonLabelText,
+    };
+  },
+
+  /**
+   * ✨ קונפיגורציית אנימציות כפתור צף - Floating button animation config
+   */
+  getFloatingButtonAnimationConfig: () => ({
+    entry: {
+      scale: { tension: 50, friction: 7 },
+      rotate: { duration: 300 },
+    },
+    exit: {
+      scale: { duration: 200 },
+      rotate: { duration: 200 },
+    },
+    rotation: {
+      inputRange: [0, 1] as [number, number],
+      outputRange: ["0deg", "90deg"] as [string, string],
+    },
   }),
 };
+
+/**
+ * 🎭 Modal Helpers - עוזרי מודלים מאוחדים
+ */
+const getModalOverlayStyle = (position: "center" | "bottom" = "center") => ({
+  flex: 1,
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  justifyContent:
+    position === "bottom" ? ("flex-end" as const) : ("center" as const),
+  alignItems: position === "center" ? ("center" as const) : undefined,
+});
+
+const getModalContentStyle = (position: "center" | "bottom" = "center") => ({
+  backgroundColor: colors.card,
+  borderRadius: position === "bottom" ? 0 : radius.xl,
+  borderTopLeftRadius: position === "bottom" ? radius.xl : radius.xl,
+  borderTopRightRadius: position === "bottom" ? radius.xl : radius.xl,
+  padding: spacing.xl,
+  borderWidth: position === "center" ? 1 : 0,
+  borderColor: position === "center" ? colors.cardBorder : "transparent",
+  ...shadows.large,
+});
+
+const getModalHeaderStyle = () => ({
+  flexDirection: (isRTL ? "row-reverse" : "row") as "row" | "row-reverse",
+  justifyContent: "space-between" as const,
+  alignItems: "center" as const,
+  marginBottom: spacing.lg,
+});
 
 // --- Theme Object ---
 export const theme = {
@@ -832,6 +1071,15 @@ export const theme = {
   genderHelpers,
   rtlHelpers,
   questionnaireHelpers,
+
+  // Modal helpers
+  getModalOverlayStyle,
+  getModalContentStyle,
+  getModalHeaderStyle,
+
+  // Avatar helpers
+  getAvatarStyle,
+  getAvatarTextStyle,
 };
 
 export default theme;

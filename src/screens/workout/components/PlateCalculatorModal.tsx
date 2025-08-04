@@ -118,14 +118,18 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
       accessibilityLabel="מחשבון פלטות למשקולות"
     >
       <TouchableOpacity
-        style={styles.modalOverlay}
+        style={theme.getModalOverlayStyle("bottom")}
         onPress={onClose}
         activeOpacity={1}
       >
         <Animated.View
           style={[
-            styles.modalContainer,
-            { transform: [{ translateY: slideAnim }] },
+            theme.getModalContentStyle("bottom"),
+            {
+              backgroundColor: theme.colors.background,
+              maxHeight: "90%",
+              transform: [{ translateY: slideAnim }],
+            },
           ]}
         >
           <TouchableOpacity activeOpacity={1}>
@@ -248,18 +252,6 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "90%",
-    ...theme.shadows.large,
-  },
   scrollContent: {
     padding: theme.spacing.lg,
     paddingTop: 0,

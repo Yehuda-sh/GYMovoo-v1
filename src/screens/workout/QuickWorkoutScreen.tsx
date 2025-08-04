@@ -41,13 +41,6 @@ export default function QuickWorkoutScreen({ route }: QuickWorkoutScreenProps) {
           {"\n"}
           נחזור למסך הקודם.
         </Text>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>חזור</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -83,16 +76,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 32,
     lineHeight: 24,
-  },
-  backButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  backButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

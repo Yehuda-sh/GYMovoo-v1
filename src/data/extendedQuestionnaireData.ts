@@ -1,22 +1,46 @@
 /**
  * @file src/data/extendedQuestionnaireData.ts
- * @brief שאלון מורחב אופציונלי עם אלגוריתם חכם: פרטים אישיים והעדפות מתקדמות
+ * @brief שאלון מורחב אופצ  last_upd  //   last_updated?: Date; // מתי עודכן לאחרונה
+
+  // שדות כלליים
+  [key: string]: unknown;
+}
+
+// ==================== פרטים אישיים חסרים ====================
+// Personal details missing from smart questionnaire============= פרטים אישיים חסרים ================================== פרטים אישיים חסרים ====================
+// Personal details missing from smart questionnaire=============== פרטים אישיים חסרים ================================== פרטים אישיים חסרים ====================
+// Personal details missing from smart questionnaire
+  [key: string]: unknown;
+}
+
+// ==================== פרטים אישיים חסרים ====================
+// Personal details missing from smart questionnaire============== פרטים אישיים חסרים ====================; // מתי עודכן לאחרונה
+
+  // שדות כלליים
+  [key: string]: unknown;
+}
+
+// ==================== פרטים אישיים חסרים ====================ם
+  [key: string]: unknown;
+}
+
+// ==================== פרטים אישיים חסרים =================================== פרטים אישיים חסרים ====================גוריתם חכם: פרטים אישיים והעדפות מתקדמות
  * @brief Extended optional questionnaire with smart algorithm: personal details and advanced preferences
  * @notes משלים את השאלון החכם עם מידע נוסף לחידוד תוכניות ואלגוריתם התאמה
  * @notes Complements the smart questionnaire with additional info for refined programs and matching algorithm
+ * @version 2.0 - Updated with unified interfaces
  */
 
-// סוגי שאלות
-export type QuestionType =
-  | "single"
-  | "multiple"
-  | "text"
-  | "number"
-  | "slider"
-  | "height"
-  | "weight";
+import {
+  QuestionType,
+  QuestionMetadata,
+  BaseOption,
+} from "./questionnaireData";
 
-// ממשק שאלה בסיסי
+// ================== UNIFIED QUESTION INTERFACES | ממשקי שאלות מאוחדים ==================
+
+// Base question interface using unified types
+// ממשק שאלה בסיסי עם טיפוסים מאוחדים
 export interface Question {
   id: string;
   question: string;
@@ -31,6 +55,12 @@ export interface Question {
   required?: boolean;
   helpText?: string;
   defaultValue?: any;
+}
+
+// Extended question with algorithm metadata
+// שאלה מורחבת עם מטא-דאטה לאלגוריתם
+export interface ExtendedQuestion extends Question, QuestionMetadata {
+  // כל השדות כבר מוגדרים בממשקים הבסיסיים
 }
 
 // טיפוס עבור תשובות השאלון המורחב עם מטא-דאטה
