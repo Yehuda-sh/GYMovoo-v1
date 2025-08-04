@@ -1,13 +1,25 @@
 /**
  * @file src/screens/main/MainScreen.tsx
  * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
- * @dependencies theme, userStore, MaterialCommunityIcons, Animated API
+ * @brief Modern main screen - Central dashboard with scientific statistics and personalization
+ * @dependencies theme, userStore, MaterialCommunityIcons, Animated API, React Navigation
  * @notes תמיכה מלאה RTL, אנימציות משופרות, דמו אינטראקטיבי לשאלון מדעי
+ * @notes Full RTL support, enhanced animations, interactive demo for scientific questionnaire
  * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים
- * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
+ * @features Personal dashboard, advanced statistics, AI recommendations, workout history
+ * @accessibility Enhanced with proper labels and semantic structure
+ * @performance Optimized with React.memo and useMemo hooks
+ * @version 2.2.0 - Enhanced organization, accessibility, and performance optimizations
+ * @updated 2025-08-04 שיפורי נגישות, ביצועים ועקביות עם הפרויקט
  */
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -24,16 +36,27 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { RootStackParamList } from "../../navigation/types";
+import { RootStackParamList, WorkoutSource } from "../../navigation/types";
 
 import type { ComponentProps } from "react";
 
-// טיפוס לאייקון MaterialCommunityIcons
+// ===============================================
+// 🔧 Type Definitions - הגדרות טיפוסים
+// ===============================================
+
+/** @description טיפוס לאייקון MaterialCommunityIcons / Type for MaterialCommunityIcons icon */
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
-// טיפוס עבור workout בהיסטוריה
+/** @description טיפוס נגישות לכפתורים / Accessibility type for buttons */
+interface AccessibilityProps {
+  accessibilityLabel: string;
+  accessibilityHint?: string;
+  accessibilityRole?: "button" | "text" | "header";
+}
+
+/** @description טיפוס עבור workout בהיסטוריה / Type for workout in history */
 interface WorkoutHistoryItem {
   id: string;
   type?: string;
@@ -50,7 +73,7 @@ interface WorkoutHistoryItem {
   [key: string]: unknown; // Allow additional properties
 }
 
-// טיפוס עבור תשובות שאלון עם השדות הנפוצים
+/** @description טיפוס עבור תשובות שאלון עם השדות הנפוצים / Type for questionnaire answers */
 interface QuestionnaireAnswers {
   age_range?: string;
   gender?: string;
@@ -58,37 +81,85 @@ interface QuestionnaireAnswers {
   experience_level?: string;
   workout_location?: string;
   available_equipment?: string[];
+  fitness_experience?: string;
+  session_duration?: string;
+  available_days?: string;
+  health_status?: string;
   [key: string]: unknown; // Allow additional properties
 }
 
-export default function MainScreen() {
+/** @description טיפוס עבור סטטיסטיקות מעובדות / Type for processed statistics */
+interface ProcessedStats {
+  totalWorkouts: number;
+  currentStreak: number;
+  totalVolume: number;
+  averageRating: number;
+  fitnessLevel: string;
+}
+
+/** @description טיפוס עבור פריט דמו באימונים / Type for demo workout item */
+interface DemoWorkoutItem {
+  name: string;
+  date: string;
+  rating: string;
+  icon: MaterialCommunityIconName;
+}
+
+// ===============================================
+// 🚀 Main Component - קומפוננטה ראשית
+// ===============================================
+
+function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // אנימציות משופרות // Enhanced animations
+  // ===============================================
+  // 🎨 Animation References - אנימציות
+  // ===============================================
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // שם המשתמש מותאם // Adapted username
-  const displayName = user?.name || user?.email?.split("@")[0] || "משתמש";
+  // ===============================================
+  // 💾 Memoized Data Processing - עיבוד נתונים ממוחזר
+  // ===============================================
 
-  // נתונים מדעיים ומקצועיים // Scientific and professional data
-  const scientificProfile = user?.scientificProfile;
-  const activityHistory = user?.activityHistory;
-  const currentStats = user?.currentStats;
-  const aiRecommendations = user?.aiRecommendations;
+  /** @description שם המשתמש מותאם עם fallback / Adapted username with fallback */
+  const displayName = useMemo(
+    () => user?.name || user?.email?.split("@")[0] || "משתמש",
+    [user?.name, user?.email]
+  );
 
-  // נתוני סטטיסטיקה מעובדים לתצוגה // Processed statistics for display
-  const stats = {
-    totalWorkouts: currentStats?.totalWorkouts || 0,
-    currentStreak: currentStats?.currentStreak || 0,
-    totalVolume: currentStats?.totalVolume || 0,
-    averageRating: currentStats?.averageRating || 0,
-    fitnessLevel: scientificProfile?.fitnessTests?.overallLevel || "beginner",
-  };
+  /** @description נתונים מדעיים ומקצועיים ממוחזרים / Memoized scientific and professional data */
+  const profileData = useMemo(
+    () => ({
+      scientificProfile: user?.scientificProfile,
+      activityHistory: user?.activityHistory,
+      currentStats: user?.currentStats,
+      aiRecommendations: user?.aiRecommendations,
+    }),
+    [
+      user?.scientificProfile,
+      user?.activityHistory,
+      user?.currentStats,
+      user?.aiRecommendations,
+    ]
+  );
+
+  /** @description נתוני סטטיסטיקה מעובדים לתצוגה / Processed statistics for display */
+  const stats: ProcessedStats = useMemo(
+    () => ({
+      totalWorkouts: profileData.currentStats?.totalWorkouts || 0,
+      currentStreak: profileData.currentStats?.currentStreak || 0,
+      totalVolume: profileData.currentStats?.totalVolume || 0,
+      averageRating: profileData.currentStats?.averageRating || 0,
+      fitnessLevel:
+        profileData.scientificProfile?.fitnessTests?.overallLevel || "beginner",
+    }),
+    [profileData]
+  );
 
   useEffect(() => {
     // אנימציות כניסה חלקה // Smooth entry animations
@@ -138,7 +209,7 @@ export default function MainScreen() {
   const handleStartWorkout = useCallback(() => {
     console.log("🚀 MainScreen - התחל אימון מהיר נלחץ!");
     navigation.navigate("QuickWorkout", {
-      source: "quick_start",
+      source: "quick_start" as WorkoutSource,
     });
   }, [navigation]);
 
@@ -146,7 +217,7 @@ export default function MainScreen() {
     (dayNumber: number) => {
       console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
       navigation.navigate("QuickWorkout", {
-        source: "day_selection",
+        source: "day_selection" as WorkoutSource,
         requestedDay: dayNumber,
         workoutName: `יום ${dayNumber} - אימון`,
       });
@@ -164,106 +235,117 @@ export default function MainScreen() {
     navigation.navigate("History");
   }, [navigation]);
 
-  // פונקציית דמו אינטראקטיבית לשאלון מדעי // Interactive demo function for scientific questionnaire
+  // ===============================================
+  // 🎯 Demo & Utility Functions - פונקציות דמו ועזר
+  // ===============================================
+
+  /** @description פונקציית דמו אינטראקטיבית לשאלון מדעי / Interactive demo function for scientific questionnaire */
   const handleDemoRandomize = useCallback(() => {
     try {
-      // מערכי אפשרויות לבחירה רנדומלית // Arrays of options for random selection
-      const ages = ["18-25", "26-35", "36-45", "46-55", "55-plus"];
-      const goals = [
-        "weight_loss",
-        "muscle_gain",
-        "strength_improvement",
-        "endurance_improvement",
-        "general_health",
-        "fitness_maintenance",
-      ];
-      const experiences = [
-        "beginner",
-        "intermediate",
-        "advanced",
-        "expert",
-        "competitive",
-      ];
-      const frequencies = [
-        "2-times",
-        "3-times",
-        "4-times",
-        "5-times",
-        "6-plus-times",
-      ];
-      const durations = [
-        "20-30-min",
-        "30-45-min",
-        "45-60-min",
-        "60-90-min",
-        "90-plus-min",
-      ];
+      // מערכי אפשרויות לבחירה רנדומלית / Arrays of options for random selection
+      const demoOptions = {
+        ages: ["18-25", "26-35", "36-45", "46-55", "55-plus"],
+        goals: [
+          "weight_loss",
+          "muscle_gain",
+          "strength_improvement",
+          "endurance_improvement",
+          "general_health",
+          "fitness_maintenance",
+        ],
+        experiences: [
+          "beginner",
+          "intermediate",
+          "advanced",
+          "expert",
+          "competitive",
+        ],
+        frequencies: [
+          "2-times",
+          "3-times",
+          "4-times",
+          "5-times",
+          "6-plus-times",
+        ],
+        durations: [
+          "20-30-min",
+          "30-45-min",
+          "45-60-min",
+          "60-90-min",
+          "90-plus-min",
+        ],
+      };
 
-      // ציוד אפשרי מקובץ // Available equipment options
-      const bodyweightOptions = [
-        { id: "bodyweight_only", metadata: { equipment: ["bodyweight"] } },
-        { id: "mat_available", metadata: { equipment: ["mat"] } },
-        { id: "chair_available", metadata: { equipment: ["chair"] } },
-        { id: "wall_space", metadata: { equipment: ["wall"] } },
-        { id: "stairs_available", metadata: { equipment: ["stairs"] } },
-      ];
+      // ציוד אפשרי מקובץ / Available equipment options
+      const equipmentOptions = {
+        bodyweight: [
+          { id: "bodyweight_only", metadata: { equipment: ["bodyweight"] } },
+          { id: "mat_available", metadata: { equipment: ["mat"] } },
+          { id: "chair_available", metadata: { equipment: ["chair"] } },
+          { id: "wall_space", metadata: { equipment: ["wall"] } },
+          { id: "stairs_available", metadata: { equipment: ["stairs"] } },
+        ],
+        home: [
+          { id: "dumbbells_home", metadata: { equipment: ["dumbbells"] } },
+          {
+            id: "resistance_bands",
+            metadata: { equipment: ["resistance_bands"] },
+          },
+          { id: "kettlebell_home", metadata: { equipment: ["kettlebell"] } },
+          { id: "pullup_bar", metadata: { equipment: ["pullup_bar"] } },
+          { id: "exercise_ball", metadata: { equipment: ["exercise_ball"] } },
+        ],
+        gym: [
+          {
+            id: "free_weights_gym",
+            metadata: { equipment: ["dumbbells", "barbell"] },
+          },
+          { id: "squat_rack_gym", metadata: { equipment: ["squat_rack"] } },
+          { id: "bench_press_gym", metadata: { equipment: ["bench_press"] } },
+          {
+            id: "cable_machine_gym",
+            metadata: { equipment: ["cable_machine"] },
+          },
+          {
+            id: "cardio_machines_gym",
+            metadata: { equipment: ["treadmill", "elliptical"] },
+          },
+        ],
+      };
 
-      const homeOptions = [
-        { id: "dumbbells_home", metadata: { equipment: ["dumbbells"] } },
-        {
-          id: "resistance_bands",
-          metadata: { equipment: ["resistance_bands"] },
-        },
-        { id: "kettlebell_home", metadata: { equipment: ["kettlebell"] } },
-        { id: "pullup_bar", metadata: { equipment: ["pullup_bar"] } },
-        { id: "exercise_ball", metadata: { equipment: ["exercise_ball"] } },
-      ];
+      // פונקציית עזר לבחירה רנדומלית / Helper function for random selection
+      const getRandomItem = <T,>(array: T[]): T =>
+        array[Math.floor(Math.random() * array.length)];
+      const getRandomItems = <T,>(array: T[], maxCount = 3): T[] =>
+        array.slice(0, Math.floor(Math.random() * maxCount) + 1);
 
-      const gymOptions = [
-        {
-          id: "free_weights_gym",
-          metadata: { equipment: ["dumbbells", "barbell"] },
-        },
-        { id: "squat_rack_gym", metadata: { equipment: ["squat_rack"] } },
-        { id: "bench_press_gym", metadata: { equipment: ["bench_press"] } },
-        { id: "cable_machine_gym", metadata: { equipment: ["cable_machine"] } },
-        {
-          id: "cardio_machines_gym",
-          metadata: { equipment: ["treadmill", "elliptical"] },
-        },
-      ];
+      // בחירה רנדומלית / Random selection
+      const selectedBodyweight = getRandomItems(equipmentOptions.bodyweight);
+      const selectedHome = getRandomItems(equipmentOptions.home);
+      const selectedGym = getRandomItems(equipmentOptions.gym);
 
-      // בחירה רנדומלית // Random selection
-      const randomAge = ages[Math.floor(Math.random() * ages.length)];
-      const randomGoal = goals[Math.floor(Math.random() * goals.length)];
-      const randomExperience =
-        experiences[Math.floor(Math.random() * experiences.length)];
-      const randomFrequency =
-        frequencies[Math.floor(Math.random() * frequencies.length)];
-      const randomDuration =
-        durations[Math.floor(Math.random() * durations.length)];
-
-      // בחירה רנדומלית של ציוד (1-3 פריטים מכל קטגוריה) // Random equipment selection
-      const selectedBodyweight = bodyweightOptions.slice(
-        0,
-        Math.floor(Math.random() * 3) + 1
-      );
-      const selectedHome = homeOptions.slice(
-        0,
-        Math.floor(Math.random() * 3) + 1
-      );
-      const selectedGym = gymOptions.slice(
-        0,
-        Math.floor(Math.random() * 3) + 1
-      );
-
-      // יצירת נתוני שאלון חדשים // Creating new questionnaire data
+      // יצירת נתוני שאלון חדשים / Creating new questionnaire data
       const newQuestionnaireData = {
-        age: { id: randomAge, label: randomAge },
-        goal: { id: randomGoal, label: randomGoal },
-        experience: { id: randomExperience, label: randomExperience },
-        frequency: { id: randomFrequency, label: randomFrequency },
-        duration: { id: randomDuration, label: randomDuration },
+        age: {
+          id: getRandomItem(demoOptions.ages),
+          label: getRandomItem(demoOptions.ages),
+        },
+        goal: {
+          id: getRandomItem(demoOptions.goals),
+          label: getRandomItem(demoOptions.goals),
+        },
+        experience: {
+          id: getRandomItem(demoOptions.experiences),
+          label: getRandomItem(demoOptions.experiences),
+        },
+        frequency: {
+          id: getRandomItem(demoOptions.frequencies),
+          label: getRandomItem(demoOptions.frequencies),
+        },
+        duration: {
+          id: getRandomItem(demoOptions.durations),
+          label: getRandomItem(demoOptions.durations),
+        },
         bodyweight_equipment_options: selectedBodyweight,
         home_equipment_options: selectedHome,
         gym_equipment_options: selectedGym,
@@ -274,10 +356,11 @@ export default function MainScreen() {
         ],
       };
 
-      // עדכון ה-store // Update store
+      // עדכון ה-store / Update store
       useUserStore.getState().setQuestionnaire(newQuestionnaireData);
+      console.log("🎯 MainScreen - דמו הופעל בהצלחה, נתונים חדשים נוצרו");
     } catch (error) {
-      console.error("❌ Demo function error:", error);
+      console.error("❌ MainScreen - שגיאה בפונקציית הדמו:", error);
     }
   }, []);
 
@@ -337,6 +420,9 @@ export default function MainScreen() {
               <TouchableOpacity
                 style={styles.profileButton}
                 onPress={handleProfilePress}
+                accessibilityLabel="כפתור פרופיל משתמש"
+                accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
+                accessibilityRole="button"
               >
                 <Text style={styles.profileInitials}>
                   {displayName.charAt(0).toUpperCase()}
@@ -347,8 +433,16 @@ export default function MainScreen() {
               <TouchableOpacity
                 style={styles.demoButton}
                 onPress={handleDemoPress}
+                accessibilityLabel="כפתור דמו לשינוי נתונים"
+                accessibilityHint="לחץ לבחירת נתונים חדשים בצורה רנדומלית"
+                accessibilityRole="button"
               >
-                <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
+                <MaterialCommunityIcons
+                  name="refresh"
+                  size={20}
+                  color="#fff"
+                  accessibilityElementsHidden={true}
+                />
                 <Text style={styles.demoText}>דמו</Text>
               </TouchableOpacity>
             </View>
@@ -357,7 +451,7 @@ export default function MainScreen() {
         </Animated.View>
 
         {/* סטטיסטיקות מדעיות חדשות */}
-        {(stats.totalWorkouts > 0 || scientificProfile) && (
+        {(stats.totalWorkouts > 0 || profileData.scientificProfile) && (
           <Animated.View
             style={[
               styles.scientificStatsSection,
@@ -420,7 +514,7 @@ export default function MainScreen() {
             </View>
 
             {/* פרופיל מדעי - תשובות שאלון */}
-            {scientificProfile && (
+            {profileData.scientificProfile && (
               <View style={styles.questionnaireAnswersCard}>
                 <Text style={styles.questionnaireTitle}>
                   הפרטים שלך מהשאלון המדעי
@@ -636,7 +730,7 @@ export default function MainScreen() {
                 </Text>
               </View>
 
-              {aiRecommendations?.quickTip && (
+              {profileData.aiRecommendations?.quickTip && (
                 <View style={styles.aiTipContainer}>
                   <MaterialCommunityIcons
                     name="lightbulb"
@@ -644,7 +738,7 @@ export default function MainScreen() {
                     color={theme.colors.primary}
                   />
                   <Text style={styles.aiTipText}>
-                    {aiRecommendations.quickTip}
+                    {profileData.aiRecommendations.quickTip}
                   </Text>
                 </View>
               )}
@@ -687,8 +781,16 @@ export default function MainScreen() {
             <TouchableOpacity
               style={styles.startWorkoutButton}
               onPress={handleStartWorkout}
+              accessibilityLabel="התחל אימון מהיר"
+              accessibilityHint="לחץ להתחלת אימון מהיר מותאם אישית"
+              accessibilityRole="button"
             >
-              <MaterialCommunityIcons name="play" size={16} color="white" />
+              <MaterialCommunityIcons
+                name="play"
+                size={16}
+                color="white"
+                accessibilityElementsHidden={true}
+              />
               <Text style={styles.startWorkoutText}>התחל אימון מהיר</Text>
             </TouchableOpacity>
           </View>
@@ -711,11 +813,15 @@ export default function MainScreen() {
                 key={dayNum}
                 style={styles.dayButton}
                 onPress={() => handleDayWorkout(dayNum)}
+                accessibilityLabel={`יום ${dayNum} אימון`}
+                accessibilityHint={`לחץ להתחלת אימון יום ${dayNum} - ${dayNum === 1 ? "חזה וטריצפס" : dayNum === 2 ? "גב וביצפס" : dayNum === 3 ? "רגליים" : "כתפיים וליבה"}`}
+                accessibilityRole="button"
               >
                 <MaterialCommunityIcons
                   name="dumbbell"
                   size={24}
                   color={theme.colors.primary}
+                  accessibilityElementsHidden={true}
                 />
                 <Text style={styles.dayButtonText}>יום {dayNum}</Text>
                 <Text style={styles.dayButtonSubtext}>
@@ -746,22 +852,22 @@ export default function MainScreen() {
               <View style={styles.statHeader}>
                 <Text style={styles.statTitle}>מטרת שבועית</Text>
                 <Text style={styles.statPercentage}>
-                  {activityHistory?.weeklyProgress
-                    ? `${Math.round((activityHistory.weeklyProgress / (scientificProfile?.available_days || 3)) * 100)}%`
+                  {profileData.activityHistory?.weeklyProgress
+                    ? `${Math.round((profileData.activityHistory.weeklyProgress / (profileData.scientificProfile?.available_days || 3)) * 100)}%`
                     : "0%"}
                 </Text>
               </View>
               <Text style={styles.statSubtitle}>
-                {activityHistory?.weeklyProgress || 0}/
-                {scientificProfile?.available_days || 3} אימונים
+                {profileData.activityHistory?.weeklyProgress || 0}/
+                {profileData.scientificProfile?.available_days || 3} אימונים
               </Text>
               <View style={styles.progressBar}>
                 <View
                   style={[
                     styles.progressFill,
                     {
-                      width: activityHistory?.weeklyProgress
-                        ? `${Math.min(100, Math.round((activityHistory.weeklyProgress / (scientificProfile?.available_days || 3)) * 100))}%`
+                      width: profileData.activityHistory?.weeklyProgress
+                        ? `${Math.min(100, Math.round((profileData.activityHistory.weeklyProgress / (profileData.scientificProfile?.available_days || 3)) * 100))}%`
                         : "0%",
                     },
                   ]}
@@ -775,7 +881,10 @@ export default function MainScreen() {
               </View>
               <Text style={styles.statTitle}>רצף נוכחי</Text>
               <Text style={styles.statValue}>
-                {currentStats?.streak || activityHistory?.streak || 0} ימים
+                {profileData.currentStats?.streak ||
+                  profileData.activityHistory?.streak ||
+                  0}{" "}
+                ימים
               </Text>
             </View>
 
@@ -789,8 +898,8 @@ export default function MainScreen() {
               </View>
               <Text style={styles.statTitle}>סה"כ אימונים</Text>
               <Text style={styles.statValue}>
-                {activityHistory?.workouts?.length ||
-                  currentStats?.totalWorkouts ||
+                {profileData.activityHistory?.workouts?.length ||
+                  profileData.currentStats?.totalWorkouts ||
                   0}
               </Text>
             </View>
@@ -811,8 +920,9 @@ export default function MainScreen() {
 
           <View style={styles.recentWorkoutsList}>
             {/* אימונים אמיתיים מההיסטוריה */}
-            {activityHistory?.workouts && activityHistory.workouts.length > 0
-              ? activityHistory.workouts
+            {profileData.activityHistory?.workouts &&
+            profileData.activityHistory.workouts.length > 0
+              ? profileData.activityHistory.workouts
                   .slice(0, 3)
                   .map((workout: WorkoutHistoryItem, index: number) => (
                     <View
@@ -878,33 +988,36 @@ export default function MainScreen() {
                       </View>
                     </View>
                   ))
-              : // אם אין היסטוריה אמיתית - הצג אימונים דמו
-                [
-                  {
-                    name: "אימון חזה וכתפיים",
-                    date: "אתמול • 45 דקות",
-                    rating: "4.8",
-                    icon: "dumbbell",
-                  },
-                  {
-                    name: "רגליים וישבן",
-                    date: "לפני 3 ימים • 50 דקות",
-                    rating: "4.5",
-                    icon: "run",
-                  },
-                  {
-                    name: "גב וביצפס",
-                    date: "לפני 5 ימים • 40 דקות",
-                    rating: "4.7",
-                    icon: "arm-flex",
-                  },
-                ].map((workout, index) => (
+              : // אם אין היסטוריה אמיתית - הצג אימונים דמו / If no real history - show demo workouts
+                (
+                  [
+                    {
+                      name: "אימון חזה וכתפיים",
+                      date: "אתמול • 45 דקות",
+                      rating: "4.8",
+                      icon: "dumbbell" as MaterialCommunityIconName,
+                    },
+                    {
+                      name: "רגליים וישבן",
+                      date: "לפני 3 ימים • 50 דקות",
+                      rating: "4.5",
+                      icon: "run" as MaterialCommunityIconName,
+                    },
+                    {
+                      name: "גב וביצפס",
+                      date: "לפני 5 ימים • 40 דקות",
+                      rating: "4.7",
+                      icon: "arm-flex" as MaterialCommunityIconName,
+                    },
+                  ] as DemoWorkoutItem[]
+                ).map((workout, index) => (
                   <View key={`demo-${index}`} style={styles.recentWorkoutItem}>
                     <View style={styles.workoutIcon}>
                       <MaterialCommunityIcons
-                        name={workout.icon as MaterialCommunityIconName}
+                        name={workout.icon}
                         size={24}
                         color="#007AFF"
+                        accessibilityElementsHidden={true}
                       />
                     </View>
                     <View style={styles.workoutInfo}>
@@ -926,12 +1039,16 @@ export default function MainScreen() {
           <TouchableOpacity
             style={styles.viewAllButton}
             onPress={handleHistoryPress}
+            accessibilityLabel="צפה בכל ההיסטוריה"
+            accessibilityHint="לחץ לצפייה בהיסטוריית האימונים המלאה"
+            accessibilityRole="button"
           >
             <Text style={styles.viewAllText}>צפה בכל ההיסטוריה</Text>
             <MaterialCommunityIcons
               name="chevron-left"
               size={20}
               color="#007AFF"
+              accessibilityElementsHidden={true}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -1449,3 +1566,17 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 });
+
+// ===============================================
+// 🎯 Export with Performance Optimization
+// ייצוא עם אופטימיזצית ביצועים
+// ===============================================
+
+/**
+ * @description MainScreen optimized with React.memo for better performance
+ * @description MainScreen מאופטם עם React.memo לביצועים טובים יותר
+ */
+const MainScreenMemo = React.memo(MainScreen);
+MainScreenMemo.displayName = "MainScreen";
+
+export default MainScreenMemo;

@@ -11,7 +11,6 @@ import {
   Animated,
   PanResponder,
   Dimensions,
-  Vibration,
   Platform,
   TouchableOpacity,
   TextInput,
@@ -20,6 +19,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { triggerVibration } from "../../utils/workoutHelpers";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -103,7 +103,7 @@ export default function HeightSlider({
           toValue: 1.15,
           useNativeDriver: true,
         }).start();
-        if (Platform.OS === "ios") Vibration.vibrate(10);
+        if (Platform.OS === "ios") triggerVibration("short");
       },
       onPanResponderMove: (_, gestureState) => {
         const sensitivity = 0.8;
@@ -150,7 +150,7 @@ export default function HeightSlider({
         );
         onChange(roundedHeight);
 
-        if (Platform.OS === "ios") Vibration.vibrate(5);
+        if (Platform.OS === "ios") triggerVibration("short");
       },
     })
   ).current;
@@ -174,7 +174,7 @@ export default function HeightSlider({
       tension: 40,
       friction: 8,
     }).start();
-    if (Platform.OS === "ios") Vibration.vibrate(3);
+    if (Platform.OS === "ios") triggerVibration("short");
   };
 
   // DIRECT INPUT

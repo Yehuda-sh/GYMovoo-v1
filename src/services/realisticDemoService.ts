@@ -14,6 +14,7 @@ import {
   generateSingleGenderAdaptedNote,
   UserGender,
 } from "../utils/genderAdaptation";
+import { ExerciseSet as BaseExerciseSet } from "../types";
 
 // ממשק מרכזי לאימון בודד עם יכולות מעקב מקיפות
 export interface WorkoutSession {
@@ -40,19 +41,16 @@ export interface WorkoutExercise {
   targetSets: number;
   targetReps: number;
   targetWeight?: number;
-  actualSets: ExerciseSet[];
+  actualSets: RealisticExerciseSet[];
   skipped: boolean;
   notes?: string;
 }
 
-// סט בודד עם נתוני ביצועים מקיפים
-export interface ExerciseSet {
-  reps: number;
-  weight?: number;
-  duration?: number; // לתרגילי זמן
-  restTime: number; // שניות מנוחה
+// סט בודד עם נתוני ביצועים מקיפים - מורחב מהממשק הבסיסי
+export interface RealisticExerciseSet extends BaseExerciseSet {
+  restTime: number; // שניות מנוחה (חובה במקום אופציונלי)
   perceivedExertion: number; // סולם RPE 1-10
-  completed: boolean;
+  completed: boolean; // חובה (לא אופציונלי)
 }
 
 // משוב מקיף על האימון וחוויית המשתמש
@@ -78,7 +76,7 @@ export interface PerformanceAnalysis {
     enduranceChange: number; // אחוז שינוי בסיבולת
     consistencyScore: number; // דירוג עקביות 0-1
   };
-  recommendations: WorkoutRecommendation[];
+  recommendations: PerformanceRecommendation[];
 }
 
 // ממשק מדדי אימון לבטיחות טיפוסים
@@ -108,7 +106,7 @@ interface WorkoutAdjustment {
 }
 
 // המלצות אימון חכמות מבוססות נתוני ביצועים
-export interface WorkoutRecommendation {
+export interface PerformanceRecommendation {
   type:
     | "increase_weight"
     | "increase_reps"
@@ -531,8 +529,8 @@ class RealisticDemoService {
     recent: WorkoutMetrics,
     previous: WorkoutMetrics,
     trend: string
-  ): WorkoutRecommendation[] {
-    const recommendations: WorkoutRecommendation[] = [];
+  ): PerformanceRecommendation[] {
+    const recommendations: PerformanceRecommendation[] = [];
 
     // Performance-based recommendations with intelligent thresholds
     // המלצות מבוססות ביצועים עם ספים חכמים

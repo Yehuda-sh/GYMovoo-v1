@@ -2,9 +2,9 @@
  * @file src/screens/history/HistoryScreen.tsx
  * @brief מסך היסטוריית אימונים - עם תמיכה במשוב והתאמת מגדר
  * @brief Workout history screen - with feedback support and gender adaptation
- * @dependencies theme, userStore, workoutHistoryService, MaterialCommunityIcons
+ * @dependencies theme, userStore, workoutHistoryService, MaterialCommunityIcons, workoutHelpers
  * @notes תמיכה מלאה RTL, אנימציות משופרות, סטטיסטיקות מותאמות מגדר
- * @updated 2025-07-30 שיפורים RTL ואנימציות עקביות עם הפרויקט
+ * @updated 2025-08-04 קוד משופר עם הסרת כפילויות ושיפור ארכיטקטורה
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -16,10 +16,9 @@ import {
   RefreshControl,
   Alert,
   Animated,
-  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { EmptyState } from "../../components"; // 🆕 הוספת EmptyState
+import { EmptyState } from "../../components";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
@@ -29,6 +28,13 @@ import {
   WorkoutStatistics,
   WorkoutWithFeedback,
 } from "../workout/types/workout.types";
+import {
+  formatDateHebrew,
+  getDifficultyStars,
+  getFeelingEmoji,
+  getGenderIcon,
+  getUserGender,
+} from "../../utils/workoutHelpers";
 
 // Note: WorkoutStatistics interface moved to workout.types.ts for consistency
 
@@ -120,7 +126,7 @@ export default function HistoryScreen() {
               totalVolume: workout.totalVolume || 0,
             },
             metadata: {
-              userGender: getUserGender(),
+              userGender: getUserGender(user),
               deviceInfo: {
                 platform: "unknown",
                 screenWidth: 375,
@@ -195,7 +201,7 @@ export default function HistoryScreen() {
         Array.isArray(user.activityHistory.workouts) &&
         user.activityHistory.workouts.length > 0
       ) {
-        const userGender = getUserGender();
+        const userGender = getUserGender(user);
 
         const totalWorkouts = user.activityHistory.workouts.length;
         const totalDuration = user.activityHistory.workouts.reduce(
@@ -284,73 +290,10 @@ export default function HistoryScreen() {
     }
   }, [loadingMore, hasMoreData, currentPage, loading]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("he-IL", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const getDifficultyStars = (difficulty: number) => {
-    return "⭐".repeat(Math.max(1, Math.min(5, difficulty)));
-  };
-
-  const getFeelingEmoji = (feeling: string) => {
-    const emojiMap: { [key: string]: string } = {
-      challenging: "😤",
-      strong: "💪",
-      enjoyable: "😊",
-      easy: "😴",
-      excellent: "🔥",
-      good: "👍",
-      okay: "😐",
-      tired: "😴",
-      energetic: "⚡",
-    };
-    return emojiMap[feeling] || feeling || "😐";
-  };
-
-  const getGenderIcon = (gender?: "male" | "female" | "other") => {
-    switch (gender) {
-      case "male":
-        return "gender-male";
-      case "female":
-        return "gender-female";
-      default:
-        return "account";
-    }
-  };
-
-  const getUserGender = (): "male" | "female" | "other" => {
-    // בדיקה של מגדר מתוך smartQuestionnaireData (חדש) או questionnaire רגיל (ישן)
-    const smartData = user?.smartQuestionnaireData;
-    const regularData = user?.questionnaire;
-
-    if (smartData?.answers?.gender) {
-      return smartData.answers.gender;
-    }
-
-    // לשאלון הישן - מגדר בדרך כלל נמצא בשאלה 1
-    if (regularData && regularData[1]) {
-      const genderAnswer = regularData[1] as string;
-      if (
-        genderAnswer === "male" ||
-        genderAnswer === "female" ||
-        genderAnswer === "other"
-      ) {
-        return genderAnswer;
-      }
-    }
-
-    return "other";
-  };
-
   const renderStatistics = () => {
     if (!statistics) return null;
 
-    const userGender = getUserGender();
+    const userGender = getUserGender(user);
     const currentGenderStats = statistics.byGender[userGender];
 
     return (
@@ -486,7 +429,7 @@ export default function HistoryScreen() {
             )}
           </View>
           <Text style={styles.workoutDate}>
-            {formatDate(item.feedback.completedAt)}
+            {formatDateHebrew(item.feedback.completedAt)}
           </Text>
         </View>
 

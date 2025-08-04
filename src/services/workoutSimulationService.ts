@@ -9,7 +9,7 @@ import {
   realisticDemoService,
   WorkoutSession,
   WorkoutExercise,
-  ExerciseSet,
+  RealisticExerciseSet,
   WorkoutFeedback,
 } from "./realisticDemoService";
 import {
@@ -321,7 +321,7 @@ class WorkoutSimulationService {
     exercise: WorkoutExercise,
     setIndex: number,
     params: SimulationParameters
-  ): ExerciseSet {
+  ): RealisticExerciseSet {
     // וריאציות מציאותיות בביצועים
     const motivationEffect = params.motivation / 10;
     const energyEffect = params.energyLevel / 10;

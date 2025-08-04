@@ -1,9 +1,12 @@
 /**
  * @file src/navigation/BottomNavigation.tsx
  * @brief ניווט תחתון ישראלי מותאם - 5 מסכים עיקריים בסדר RTL
+ * @brief Israeli adapted bottom navigation - 5 main screens in RTL order
  * @dependencies React Navigation Bottom Tabs, Ionicons, MaterialCommunityIcons
  * @notes סדר טאבים RTL: פרופיל → היסטוריה → תוכניות → אימון → בית (מימין לשמאל)
- * @version 2.4.0 - RTL עובד בהצלחה, הוסרו לוגי דיבוג מיותרים
+ * @notes Tabs RTL order: Profile → History → Plans → Workout → Home (right to left)
+ * @version 2.5.0 - Enhanced imports consistency, removed RTL duplication
+ * @updated 2025-08-04 Improved organization and performance optimizations
  */
 
 import React from "react";
@@ -12,21 +15,34 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../styles/theme";
 
+// ===============================================
+// 📱 Screen Imports - יבוא מסכים
+// ===============================================
+// שימוש עקבי במרכז הייצוא לעקביות / Consistent use of export hub for consistency
+import {
+  MainScreen,
+  WorkoutPlansScreen,
+  HistoryScreen,
+  ProfileScreen,
+  ActiveWorkoutScreen,
+} from "../screens";
+
 // הערה: RTL מוגדר גלובלית ב-App.tsx -> rtlConfig
 // Note: RTL is configured globally in App.tsx -> rtlConfig
 
-// מסכים // Screens
-import MainScreen from "../screens/main/MainScreen";
-import WorkoutPlansScreen from "../screens/workout/WorkoutPlansScreen";
-import HistoryScreen from "../screens/history/HistoryScreen"; // יש ליצור
-import ProfileScreen from "../screens/profile/ProfileScreen";
-import { ActiveWorkoutScreen } from "../screens";
-
+// ===============================================
+// 🔧 Navigation Setup - הגדרת ניווט
+// ===============================================
 const Tab = createBottomTabNavigator();
 
-// טיפוסי אייקונים // Icon types
+// טיפוסי אייקונים / Icon types
 type IconName = keyof typeof Ionicons.glyphMap;
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+// ===============================================
+// 🎨 Tab Icon Component - רכיב אייקון טאב
+// ===============================================
+// אופטימיזציה עם React.memo / Performance optimization with React.memo
 
 interface TabIconProps {
   focused: boolean;
@@ -36,31 +52,39 @@ interface TabIconProps {
   isMaterial?: boolean;
 }
 
-// קומפוננטת אייקון לטאב עם אנימציה // Tab icon component with animation
-const TabIcon: React.FC<TabIconProps> = ({
-  focused,
-  color,
-  size,
-  iconName,
-  isMaterial = false,
-}) => {
-  const IconComponent = isMaterial ? MaterialCommunityIcons : Ionicons;
-  return (
-    <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-      <IconComponent
-        name={iconName as IconName & MaterialIconName}
-        size={focused ? size + 3 : size}
-        color={color}
-        style={{
-          opacity: focused ? 1 : 0.7,
-        }}
-      />
-      {focused && <View style={styles.activeIndicator} />}
-    </View>
-  );
-};
+// קומפוננטת אייקון לטאב עם אנימציה מותאמת
+// Tab icon component with optimized animation
+const TabIcon: React.FC<TabIconProps> = React.memo(
+  ({ focused, color, size, iconName, isMaterial = false }) => {
+    const IconComponent = isMaterial ? MaterialCommunityIcons : Ionicons;
 
-export default function BottomNavigation() {
+    return (
+      <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+        <IconComponent
+          name={iconName as IconName & MaterialIconName}
+          size={focused ? size + 3 : size}
+          color={color}
+          style={{
+            opacity: focused ? 1 : 0.7,
+          }}
+        />
+        {focused && <View style={styles.activeIndicator} />}
+      </View>
+    );
+  }
+);
+
+// תמיכה ב-debugging / Debugging support
+TabIcon.displayName = "TabIcon";
+
+/**
+ * רכיב ניווט תחתון ראשי
+ * Main bottom navigation component
+ *
+ * @returns {React.JSX.Element} רכיב ניווט עם 5 טאבים ב-RTL
+ * @returns {React.JSX.Element} Navigation component with 5 RTL tabs
+ */
+export default function BottomNavigation(): React.JSX.Element {
   return (
     <Tab.Navigator
       initialRouteName="Main" // מתחיל תמיד במסך הבית
@@ -93,9 +117,13 @@ export default function BottomNavigation() {
         },
       }}
     >
+      {/* =============================================== */}
+      {/* 📱 Tab Screens - מסכי טאבים (סדר RTL)        */}
+      {/* =============================================== */}
       {/* סדר RTL - מימין לשמאל: פרופיל → היסטוריה → תוכניות → אימון → בית */}
+      {/* RTL Order - Right to Left: Profile → History → Plans → Workout → Home */}
 
-      {/* פרופיל - ראשון מימין */}
+      {/* 👤 פרופיל - ראשון מימין / Profile - First from right */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -112,7 +140,7 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* היסטוריה - שני מימין */}
+      {/* 📊 היסטוריה - שני מימין / History - Second from right */}
       <Tab.Screen
         name="History"
         component={HistoryScreen}
@@ -129,7 +157,7 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* תוכניות - במרכז */}
+      {/* 🧠 תוכניות - במרכז / Plans - Center */}
       <Tab.Screen
         name="WorkoutPlans"
         component={WorkoutPlansScreen}
@@ -147,7 +175,7 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* אימון - שני משמאל */}
+      {/* 💪 אימון - שני משמאל / Workout - Second from left */}
       <Tab.Screen
         name="QuickWorkout"
         component={ActiveWorkoutScreen}
@@ -164,7 +192,7 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* בית - אחרון משמאל */}
+      {/* 🏠 בית - אחרון משמאל / Home - Last from left */}
       <Tab.Screen
         name="Main"
         component={MainScreen}

@@ -47,7 +47,6 @@ import {
   Dimensions,
   AccessibilityInfo,
   Platform,
-  Vibration,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
@@ -56,6 +55,7 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { theme } from "../../../../styles/theme";
+import { triggerVibration } from "../../../../utils/workoutHelpers";
 import { ExerciseMenuProps } from "../types";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -290,7 +290,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       // Provide haptic feedback on confirmation dialogs
       if (Platform.OS === "ios") {
         // Light haptic feedback for confirmation
-        Vibration.vibrate([0, 50]);
+        triggerVibration("medium");
       }
 
       Alert.alert(
@@ -307,7 +307,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
             onPress: () => {
               // Strong haptic feedback for destructive action
               if (Platform.OS === "ios") {
-                Vibration.vibrate([0, 100, 50, 100]);
+                triggerVibration("double");
               }
 
               if (isBatchMode && onBatchDelete) {
@@ -336,7 +336,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
 
           // Light haptic feedback for actions
           if (Platform.OS === "ios") {
-            Vibration.vibrate(50);
+            triggerVibration("medium");
           }
 
           // Execute action with small delay to show processing state

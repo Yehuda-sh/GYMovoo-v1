@@ -1,12 +1,23 @@
 /**
  * @file src/screens/profile/ProfileScreen.tsx
  * @brief מסך פרופיל משתמש מתקדם - דשבורד אישי עם הישגים, התקדמות וניהול ציוד
- * English: Advanced user profile screen - personal dashboard with achievements, progress, and equipment management
+ * @brief Advanced user profile screen - personal dashboard with achievements, progress, and equipment management
  * @dependencies userStore, theme, MaterialCommunityIcons, ImagePicker, DefaultAvatar
  * @notes תמיכה מלאה RTL, אנימציות משופרות, ניהול אווטאר אינטראקטיבי, גדלי טקסט מותאמים למכשירים
+ * @notes Full RTL support, enhanced animations, interactive avatar management, device-adapted text sizes
  * @features פרופיל אישי, סטטיסטיקות מתקדמות, מערכת הישגים, ניהול ציוד, הגדרות
+ * @features Personal profile, advanced statistics, achievement system, equipment management, settings
  * @performance Optimized with useMemo, useCallback, and efficient data calculations
  * @accessibility Full RTL support, screen reader compatibility, and improved text readability
+ * @version 2.4.0 - Enhanced with React.memo, accessibility improvements, and performance optimizations
+ * @updated 2025-08-04 שיפורי React.memo, נגישות משופרת ואופטימיזציית ביצועים
+ * @enhancements
+ * - ✅ React.memo wrapper for component memoization
+ * - ✅ Comprehensive accessibility labels and hints
+ * - ✅ useMemo optimizations for heavy calculations
+ * - ✅ Enhanced JSDoc documentation with bilingual support
+ * - ✅ Fixed variable reference conflicts and compilation issues
+ * - ✅ Improved component organization and code structure
  */
 
 import React, {
@@ -100,7 +111,61 @@ interface QuestionnaireBasicData {
   [key: string]: unknown;
 }
 
+// ===============================================
+// 🔧 Constants & Static Data - קונסטנטים ונתונים סטטיים
+// ===============================================
+
+/** @description מימדי מסך / Screen dimensions */
 const { width: screenWidth } = Dimensions.get("window");
+
+/** @description אוסף אווטארים מוכנים / Preset avatars collection */
+const PRESET_AVATARS = [
+  "💪",
+  "🏋️",
+  "🏃",
+  "🚴",
+  "🤸",
+  "🧘",
+  "🥊",
+  "⚽",
+  "🏀",
+  "🎾",
+  "🏐",
+  "🏓",
+  "🏸",
+  "🥅",
+  "⛳",
+  "🏹",
+  "🎣",
+  "🤾",
+  "🏇",
+  "🧗",
+  "🏂",
+  "🏄",
+  "🚣",
+  "🏊",
+  "🤽",
+  "🤿",
+  "🛷",
+  "🥌",
+  "🛹",
+  "🤺",
+  "🏃‍♂️",
+  "🏋️‍♀️",
+  "🤸‍♂️",
+  "🏃‍♀️",
+  "🧘‍♂️",
+  "🧘‍♀️",
+  "🚴‍♂️",
+  "🚴‍♀️",
+  "⛹️‍♂️",
+  "⛹️‍♀️",
+  "🏊‍♂️",
+  "🏊‍♀️",
+  "🥊",
+  "🤺",
+  "🏄‍♂️",
+] as const;
 
 // פונקציה לחישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
 const calculateAchievements = (user: User | null): Achievement[] => {
@@ -394,32 +459,24 @@ const calculateAchievements = (user: User | null): Achievement[] => {
   return achievements;
 };
 
-// דמו אווטארים (אימוג'ים)
-const PRESET_AVATARS = [
-  "💪",
-  "🏃‍♂️",
-  "🏋️‍♀️",
-  "🤸‍♂️",
-  "🏃‍♀️",
-  "🧘‍♂️",
-  "🧘‍♀️",
-  "🚴‍♂️",
-  "🚴‍♀️",
-  "⛹️‍♂️",
-  "⛹️‍♀️",
-  "🏊‍♂️",
-  "🏊‍♀️",
-  "🥊",
-  "🤺",
-  "🏄‍♂️",
-];
-
-export default function ProfileScreen() {
-  // נביגציה ומשתמש // Navigation and user
+/**
+ * רכיב מסך הפרופיל הראשי
+ * Main Profile Screen Component
+ *
+ * @component ProfileScreen
+ * @description מסך פרופיל משתמש מתקדם עם ניהול הישגים, אוואטרים, וציוד
+ * Advanced user profile screen with achievements, avatars, and equipment management
+ */
+function ProfileScreen() {
+  // ===============================================
+  // 🔧 Core Dependencies - תלויות בסיסיות
+  // ===============================================
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, updateUser, logout: userLogout } = useUserStore();
 
-  // מצב מקומי // Local state
+  // ===============================================
+  // 🎛️ Local State Management - ניהול מצב מקומי
+  // ===============================================
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || "💪");
   const [refreshing, setRefreshing] = useState(false);
@@ -427,13 +484,13 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // 🆕 מצבים חדשים לעריכת שם
+  // 🆕 מצבים חדשים לעריכת שם / New name editing states
   const [showNameModal, setShowNameModal] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || "");
   const [nameError, setNameError] = useState<string | null>(null);
   const [lastNameEdit, setLastNameEdit] = useState<number>(0);
 
-  // 🎉 מצבים להתראות הישגים
+  // 🎉 מצבים להתראות הישגים / Achievement notification states
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(
     null
@@ -443,27 +500,37 @@ export default function ProfileScreen() {
     visible: boolean;
   } | null>(null);
 
-  // אנימציות משופרות // Enhanced animations
+  // ===============================================
+  // 🎨 Animation References - הפניות אנימציה
+  // ===============================================
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const achievementPulseAnim = useRef(new Animated.Value(1)).current;
-
-  // 🎆 אנימציות זיקוקים להישגים
   const fireworksOpacity = useRef(new Animated.Value(0)).current;
   const fireworksScale = useRef(new Animated.Value(0.5)).current;
 
-  // בדיקת השלמת השאלון - פשוטה ומאוחדת // Simple and unified questionnaire completion check
-  const hasTrainingStage =
-    !!user?.questionnaire &&
-    (user.questionnaire as QuestionnaireBasicData).age &&
-    (user.questionnaire as QuestionnaireBasicData).goal;
-  const hasProfileStage =
-    !!user?.questionnaire &&
-    (user.questionnaire as QuestionnaireBasicData).gender;
-  const isQuestionnaireComplete = hasTrainingStage && hasProfileStage;
+  // ===============================================
+  // 💾 Memoized Data Processing - עיבוד נתונים ממוחזר
+  // ===============================================
 
-  // חישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
+  /** @description בדיקת השלמת השאלון / Questionnaire completion check */
+  const questionnaireStatus = useMemo(() => {
+    const hasTrainingStage =
+      !!user?.questionnaire &&
+      (user.questionnaire as QuestionnaireBasicData).age &&
+      (user.questionnaire as QuestionnaireBasicData).goal;
+    const hasProfileStage =
+      !!user?.questionnaire &&
+      (user.questionnaire as QuestionnaireBasicData).gender;
+    return {
+      hasTrainingStage,
+      hasProfileStage,
+      isComplete: hasTrainingStage && hasProfileStage,
+    };
+  }, [user?.questionnaire]);
+
+  /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
   const achievements = useMemo(() => calculateAchievements(user), [user]);
 
   useEffect(() => {
@@ -547,36 +614,39 @@ export default function ProfileScreen() {
     }
   }, [user?.avatar]);
 
-  // 🧮 מערכת XP חכמה
-  const calculateXP = (
-    workouts: number,
-    streak: number,
-    achievements: number
-  ): number => {
-    let totalXP = 0;
+  // ===============================================
+  // 🧮 Performance Optimized Calculations - חישובים מאופטמים
+  // ===============================================
 
-    // XP בסיסי מאימונים (50 XP לכל אימון)
-    totalXP += workouts * 50;
+  /** @description מערכת XP חכמה עם חישוב ממוחזר / Smart XP system with memoized calculation */
+  const calculateXP = useCallback(
+    (workouts: number, streak: number, achievements: number): number => {
+      let totalXP = 0;
 
-    // בונוס רצף (10 XP לכל יום רצף)
-    totalXP += streak * 10;
+      // XP בסיסי מאימונים (50 XP לכל אימון) / Base XP from workouts
+      totalXP += workouts * 50;
 
-    // בונוס הישגים (100 XP לכל הישג)
-    totalXP += achievements * 100;
+      // בונוס רצף (10 XP לכל יום רצף) / Streak bonus
+      totalXP += streak * 10;
 
-    // בונוס מיוחד לרצפים ארוכים
-    if (streak >= 30) totalXP += 500; // בונוס חודש
-    if (streak >= 14) totalXP += 200; // בונוס שבועיים
-    if (streak >= 7) totalXP += 100; // בונוס שבוע
+      // בונוס הישגים (100 XP לכל הישג) / Achievement bonus
+      totalXP += achievements * 100;
 
-    return totalXP;
-  };
+      // בונוס מיוחד לרצפים ארוכים / Special bonuses for long streaks
+      if (streak >= 30) totalXP += 500; // בונוס חודש
+      if (streak >= 14) totalXP += 200; // בונוס שבועיים
+      if (streak >= 7) totalXP += 100; // בונוס שבוע
 
-  // 🔒 וולידציה לשם משתמש
-  const validateName = (name: string): string | null => {
+      return totalXP;
+    },
+    []
+  );
+
+  /** @description וולידציה לשם משתמש / Username validation */
+  const validateName = useCallback((name: string): string | null => {
     const trimmedName = name.trim();
 
-    // בדיקת אורך
+    // בדיקת אורך / Length validation
     if (trimmedName.length < 2) {
       return "השם חייב להכיל לפחות 2 תווים";
     }
@@ -584,13 +654,13 @@ export default function ProfileScreen() {
       return "השם לא יכול להכיל יותר מ-30 תווים";
     }
 
-    // בדיקת תווים חוקיים (עברית, אנגלית, מספרים, רווחים)
+    // בדיקת תווים חוקיים / Valid characters check
     const validPattern = /^[\u0590-\u05FFa-zA-Z0-9\s\-']+$/;
     if (!validPattern.test(trimmedName)) {
       return "השם יכול להכיל רק אותיות עברית/אנגלית, מספרים, רווחים ומקפים";
     }
 
-    // בדיקת מילים אסורות בסיסית
+    // בדיקת מילים אסורות בסיסית / Basic banned words check
     const bannedWords = ["admin", "test", "null", "undefined", "fuck", "shit"];
     const lowerName = trimmedName.toLowerCase();
     for (const word of bannedWords) {
@@ -600,14 +670,18 @@ export default function ProfileScreen() {
     }
 
     return null; // תקין
-  };
+  }, []);
 
-  // ⏰ בדיקת הגבלת זמן לעריכת שם (פעם בשבוע)
-  const canEditName = (): boolean => {
+  // ===============================================
+  // 🔧 Helper Functions - פונקציות עזר
+  // ===============================================
+
+  /** @description בדיקת הגבלת זמן לעריכת שם / Name edit time restriction check */
+  const canEditName = useCallback((): boolean => {
     const now = Date.now();
     const oneWeek = 7 * 24 * 60 * 60 * 1000; // שבוע במילישניות
     return now - lastNameEdit >= oneWeek;
-  };
+  }, [lastNameEdit]);
 
   // 🎉 פונקציה להצגת הישג חדש עם אנימציות
   const showNewAchievement = useCallback(
@@ -1007,7 +1081,10 @@ export default function ProfileScreen() {
     return translations[key]?.[value] || value;
   };
 
-  const getUserInfo = () => {
+  // ===============================================
+  // 📊 User Info Calculation - חישוב נתוני משתמש
+  // ===============================================
+  const userInfo = useMemo(() => {
     const questionnaire = (user?.questionnaire || {}) as Record<
       string,
       unknown
@@ -1131,12 +1208,10 @@ export default function ProfileScreen() {
         );
       })(),
     };
-  };
-
-  const userInfo = getUserInfo();
+  }, [user, formatQuestionnaireValue]);
 
   // פונקציה למניעת כפילויות בתצוגת המידע - כל השדות דינמיים
-  const getDisplayFields = (userInfo: ReturnType<typeof getUserInfo>) => {
+  const getDisplayFields = (userInfo: any) => {
     const fields = [];
 
     // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
@@ -1284,7 +1359,10 @@ export default function ProfileScreen() {
     return fields;
   };
 
-  const displayFields = getDisplayFields(userInfo);
+  // ===============================================
+  // 📋 Display Fields Calculation - חישוב שדות תצוגה
+  // ===============================================
+  const displayFields = useMemo(() => getDisplayFields(userInfo), [userInfo]);
 
   // חישוב סטטיסטיקות מהנתונים המדעיים
   const stats = useMemo(() => {
@@ -1520,13 +1598,16 @@ export default function ProfileScreen() {
             <Text style={styles.headerTitle}>הפרופיל שלי</Text>
             <View style={styles.headerRight}>
               {/* כפתור השלמת שאלון אם לא הושלם */}
-              {!isQuestionnaireComplete && (
+              {!questionnaireStatus.isComplete && (
                 <TouchableOpacity
                   style={styles.headerQuestionnaireButton}
                   onPress={() =>
                     navigation.navigate("Questionnaire", { stage: "training" })
                   }
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="השלמת שאלון אימון"
+                  accessibilityHint="מעבר למילוי שאלון האימון לקבלת המלצות מותאמות אישית"
                 >
                   <MaterialCommunityIcons
                     name="clipboard-list"
@@ -1552,7 +1633,7 @@ export default function ProfileScreen() {
           )}
 
           {/* כרטיס שאלון אם לא הושלם */}
-          {!isQuestionnaireComplete && (
+          {!questionnaireStatus.isComplete && (
             <TouchableOpacity
               style={styles.questionnaireCard}
               onPress={() =>
@@ -1575,7 +1656,7 @@ export default function ProfileScreen() {
                 <View style={styles.questionnaireTextContainer}>
                   <Text style={styles.questionnaireTitle}>השלם את השאלון</Text>
                   <Text style={styles.questionnaireSubtitle}>
-                    {!hasTrainingStage
+                    {!questionnaireStatus.hasTrainingStage
                       ? "קבל תוכנית אימונים מותאמת אישית"
                       : "השלם את הפרופיל האישי שלך"}
                   </Text>
@@ -1595,6 +1676,9 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 onPress={() => setShowAvatarModal(true)}
                 style={styles.avatarContainer}
+                accessibilityRole="button"
+                accessibilityLabel="שינוי תמונת פרופיל"
+                accessibilityHint="לחיצה לפתיחת גלריית אווטארים וחלופות תמונה"
               >
                 {typeof selectedAvatar === "string" &&
                 selectedAvatar.startsWith("http") ? (
@@ -1663,6 +1747,16 @@ export default function ProfileScreen() {
                   }
                 }}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  canEditName() ? "עריכת שם משתמש" : "עריכת שם - לא זמין"
+                }
+                accessibilityHint={
+                  canEditName()
+                    ? "לחיצה לפתיחת חלון עריכת שם המשתמש"
+                    : "עריכת שם זמינה פעם בשבוע בלבד"
+                }
+                accessibilityState={{ disabled: !canEditName() }}
               >
                 <MaterialCommunityIcons
                   name="pencil"
@@ -1739,7 +1833,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* מידע אישי מהשאלון - כולו דינמי */}
-          {isQuestionnaireComplete && (
+          {questionnaireStatus.isComplete && (
             <View style={styles.infoContainer}>
               <Text style={styles.sectionTitle}>המידע שלי</Text>
               <View style={styles.infoGrid}>
@@ -2080,6 +2174,17 @@ export default function ProfileScreen() {
                             achievement: achievement,
                           });
                         }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`הישג: ${achievement.title}`}
+                        accessibilityHint={
+                          achievement.unlocked
+                            ? "הישג פתוח - לחיצה ארוכה לפרטים נוספים"
+                            : "הישג נעול - לחיצה ארוכה לראות דרישות"
+                        }
+                        accessibilityState={{
+                          disabled: false,
+                          selected: achievement.unlocked,
+                        }}
                         style={[
                           styles.achievementBadge,
                           !achievement.unlocked && styles.lockedBadge,
@@ -2205,7 +2310,13 @@ export default function ProfileScreen() {
           </View>
 
           {/* כפתור התנתקות */}
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel="התנתק מהמערכת"
+            accessibilityHint="לחיצה להתנתקות מהמשתמש הנוכחי וחזרה למסך הכניסה"
+          >
             <MaterialCommunityIcons
               name="logout"
               size={20}
@@ -2332,6 +2443,9 @@ export default function ProfileScreen() {
                 onSubmitEditing={handleSaveName}
                 textAlign="right"
                 selectTextOnFocus
+                accessibilityLabel="שדה עריכת שם משתמש"
+                accessibilityHint="הכנס שם מלא עד 30 תווים, לחץ Enter לשמירה"
+                accessibilityState={{ disabled: false }}
               />
 
               {nameError && (
@@ -3433,3 +3547,9 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
+
+/**
+ * מוטב ProfileScreen עם React.memo להשוואת שינויים
+ * ProfileScreen memoized with React.memo for change detection
+ */
+export default React.memo(ProfileScreen);

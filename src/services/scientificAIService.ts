@@ -12,6 +12,7 @@ import {
   generateSingleGenderAdaptedNote,
   UserGender,
 } from "../utils/genderAdaptation";
+import { UserProfile as BaseUserProfile } from "../types";
 
 // Scientific exercise recommendation interface
 // ממשק המלצות תרגילים מדעיות
@@ -34,7 +35,7 @@ export interface ScientificExerciseRecommendation {
 export interface FitnessAssessment {
   userId: string;
   assessmentDate: string;
-  userProfile: UserProfile;
+  userProfile: ScientificUserProfile;
   strengthAssessment: StrengthMetrics;
   cardiovascularAssessment: CardioMetrics;
   flexibilityAssessment: FlexibilityMetrics;
@@ -44,9 +45,9 @@ export interface FitnessAssessment {
   progressionPlan: ProgressionPlan;
 }
 
-// User profile for scientific analysis
-// פרופיל משתמש לניתוח מדעי
-interface UserProfile {
+// User profile for scientific analysis - specialized for AI calculations
+// פרופיל משתמש לניתוח מדעי - מתמחה בחישובי AI
+interface ScientificUserProfile {
   age: number;
   gender: UserGender;
   height: number; // cm
@@ -223,7 +224,7 @@ class ScientificAIService {
    * יצירת הערכת כושר מקיפה על בסיס נתוני המשתמש
    */
   async generateFitnessAssessment(
-    userProfile: UserProfile
+    userProfile: ScientificUserProfile
   ): Promise<FitnessAssessment> {
     const assessmentDate = new Date().toISOString();
 
@@ -325,7 +326,7 @@ class ScientificAIService {
    * קבלת המלצות תרגילים עם התאמת מגדר
    */
   async getExerciseRecommendations(
-    userProfile: UserProfile,
+    userProfile: ScientificUserProfile,
     _focusArea: string
   ): Promise<ScientificExerciseRecommendation[]> {
     const exercises = this.getExercisesForFocusArea();
@@ -344,7 +345,7 @@ class ScientificAIService {
    * יצירת פידבק לאימון מבוסס AI עם התאמת מגדר
    */
   generateWorkoutFeedback(
-    userProfile: UserProfile,
+    userProfile: ScientificUserProfile,
     workoutData: {
       duration: number;
       exercises: { rpe?: number; intensity?: number }[];
@@ -364,7 +365,7 @@ class ScientificAIService {
   }
 
   private estimateBodyComposition(
-    userProfile: UserProfile,
+    userProfile: ScientificUserProfile,
     bmi: number
   ): BodyCompositionMetrics {
     // Age and gender-adjusted body fat estimation (Jackson-Pollock method approximation)
@@ -414,7 +415,9 @@ class ScientificAIService {
     };
   }
 
-  private assessStrengthLevel(userProfile: UserProfile): StrengthMetrics {
+  private assessStrengthLevel(
+    userProfile: ScientificUserProfile
+  ): StrengthMetrics {
     // Age and experience-adjusted strength percentiles
     const experienceMultiplier = {
       beginner: 0.3,
@@ -445,7 +448,9 @@ class ScientificAIService {
     };
   }
 
-  private assessCardiovascularFitness(userProfile: UserProfile): CardioMetrics {
+  private assessCardiovascularFitness(
+    userProfile: ScientificUserProfile
+  ): CardioMetrics {
     // Age and gender-adjusted VO2 max estimation (ACSM guidelines)
     let estimatedVO2Max = 0;
 
@@ -492,7 +497,9 @@ class ScientificAIService {
     };
   }
 
-  private assessFlexibility(userProfile: UserProfile): FlexibilityMetrics {
+  private assessFlexibility(
+    userProfile: ScientificUserProfile
+  ): FlexibilityMetrics {
     // Age-adjusted flexibility assessment
     const ageFlexibilityFactor = Math.max(
       0.5,
@@ -544,7 +551,7 @@ class ScientificAIService {
   }
 
   private identifyFocusAreas(
-    userProfile: UserProfile,
+    userProfile: ScientificUserProfile,
     strength: StrengthMetrics,
     cardio: CardioMetrics,
     flexibility: FlexibilityMetrics
@@ -576,7 +583,7 @@ class ScientificAIService {
   }
 
   private createProgressionPlan(
-    userProfile: UserProfile,
+    userProfile: ScientificUserProfile,
     focusAreas: string[]
   ): ProgressionPlan {
     return {

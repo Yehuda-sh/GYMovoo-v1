@@ -91,11 +91,11 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  Vibration,
   Platform,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
+import { triggerVibration } from "../../../../utils/workoutHelpers";
 import { Set, Exercise } from "../../types/workout.types";
 
 // Extended Set interface עם שדות נוספים לממשק המשתמש
@@ -193,7 +193,7 @@ const SetRow: React.FC<SetRowProps> = ({
 
       // Vibrate on PR
       if (Platform.OS !== "web") {
-        Vibration.vibrate(100);
+        triggerVibration("personalRecord");
       }
     }
   }, [isPR, set.actualWeight, set.actualReps, prBounceAnim]);
@@ -294,7 +294,7 @@ const SetRow: React.FC<SetRowProps> = ({
 
   const handleDelete = () => {
     if (Platform.OS !== "web") {
-      Vibration.vibrate(10);
+      triggerVibration("short");
     }
     onDelete();
   };

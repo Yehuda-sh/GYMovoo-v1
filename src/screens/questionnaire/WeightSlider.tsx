@@ -13,11 +13,11 @@ import {
   Animated,
   PanResponder,
   Dimensions,
-  Vibration,
   Platform,
 } from "react-native";
 import { theme } from "../../styles/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { triggerVibration } from "../../utils/workoutHelpers";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -96,7 +96,7 @@ export default function WeightSlider({
         ]).start();
 
         if (Platform.OS === "ios") {
-          Vibration.vibrate(10);
+          triggerVibration("short");
         }
       },
 
@@ -116,7 +116,7 @@ export default function WeightSlider({
         // רטט קל כל 5 ק"ג
         if (newWeight % 5 === 0 && newWeight !== currentWeight) {
           if (Platform.OS === "ios") {
-            Vibration.vibrate(5);
+            triggerVibration("short");
           }
         }
 

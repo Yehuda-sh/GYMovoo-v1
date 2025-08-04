@@ -16,6 +16,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
+import {
+  formatTime,
+  triggerVibration,
+  animationConfig,
+} from "../../../utils/workoutHelpers";
 import { Exercise } from "../types/workout.types";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -156,12 +161,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
       animValues.countdownScale.setValue(1);
     };
   }, [timeLeft, isPaused]);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   // אופטימיזציה של מידע הסט הבא
   const nextSetInfo = useMemo(() => {

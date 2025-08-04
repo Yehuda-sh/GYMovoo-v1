@@ -18,11 +18,11 @@ import {
   TextInput,
   Platform,
   Dimensions,
-  Vibration,
   AccessibilityInfo,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import { triggerVibration } from "../../utils/workoutHelpers";
 // import * as Haptics from 'expo-haptics'; // אם מותקן
 // If expo-haptics is not installed, we'll use Vibration API
 
@@ -143,7 +143,7 @@ export default function AgeSelector({
     // משתמשים ב-Vibration API שתמיד זמין
     // Using Vibration API which is always available
     if (Platform.OS === "ios" || Platform.OS === "android") {
-      Vibration.vibrate(50);
+      triggerVibration("medium");
     }
 
     // אנימציית לחיצה

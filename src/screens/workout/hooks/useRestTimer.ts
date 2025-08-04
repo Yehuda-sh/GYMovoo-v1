@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Vibration } from "react-native";
+import { triggerVibration } from "../../../utils/workoutHelpers";
 
 export interface UseRestTimerReturn {
   isRestTimerActive: boolean;
@@ -57,7 +57,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
     // רטט ארוך בסיום
     // Long vibration at end
-    Vibration.vibrate([0, 300, 100, 300]);
+    triggerVibration("long");
   }, []);
   useEffect(() => {
     if (isRestTimerActive && !isPaused) {
@@ -79,7 +79,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
           // Vibrate in last seconds - but not every iteration
           if (remaining <= 3 && remaining !== lastVibrationRef.current) {
             lastVibrationRef.current = remaining;
-            Vibration.vibrate(100);
+            triggerVibration("short");
           }
         }
       }, 100); // עדכון כל 100ms לדיוק
@@ -111,7 +111,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
       // רטט בהתחלה
       // Vibrate at start
-      Vibration.vibrate(200);
+      triggerVibration("start");
     },
     []
   );

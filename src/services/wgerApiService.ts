@@ -1,6 +1,24 @@
 /**
- * WGER API Service - Free exercise database
- * https://wger.de/en/software/api
+ * @file WGER API Service - Free Exercise Database Integration
+ * @description שירות API של WGER - מאגר תרגילים חינמי
+ *
+ * This service provides integration with the WGER exercise database API.
+ * שירות זה מספק אינטגרציה עם API של מאגר התרגילים WGER.
+ *
+ * Features:
+ * - Exercise retrieval by equipment and muscle groups
+ * - Cached mapping for muscles and equipment
+ * - Unified interface for all exercise operations
+ * - TypeScript interfaces for type safety
+ *
+ * תכונות:
+ * - קבלת תרגילים לפי ציוד וקבוצות שרירים
+ * - מיפוי עם מטמון לשרירים וציוד
+ * - ממשק מאוחד לכל פעולות התרגילים
+ * - ממשקי TypeScript לבטיחות טיפוסים
+ *
+ * API Documentation: https://wger.de/en/software/api
+ * @version 2.0.0 - Optimized with caching and unified interfaces
  */
 
 export interface WgerExercise {
@@ -48,22 +66,8 @@ export interface WgerCategory {
   name: string;
 }
 
-// Interface for converted exercise data
-export interface ConvertedExercise {
-  id: string;
-  name: string;
-  category: string;
-  primaryMuscles: string[];
-  secondaryMuscles: string[];
-  equipment: string;
-  difficulty: string;
-  instructions: string[];
-  images: string[];
-  source: string;
-  wgerId: number;
-}
-
-// Interface compatible with useWgerExercises hook
+// Unified interface for all WGER exercise operations
+// ממשק מאוחד לכל פעולות תרגילי WGER
 export interface WgerExerciseInfo {
   id: number;
   name: string;
@@ -74,10 +78,20 @@ export interface WgerExerciseInfo {
   description: string;
   difficulty: string;
   instructions: string[];
+  images?: string[];
+  source?: string;
+  wgerId?: number;
 }
 
 class WgerApiService {
   private baseUrl = "https://wger.de/api/v2";
+
+  // Cache for mappings to avoid repeated API calls
+  // מטמון למיפויים כדי למנוע קריאות API חוזרות
+  private mappingsCache: {
+    muscleMap: Map<number, string>;
+    equipmentMap: Map<number, string>;
+  } | null = null;
 
   /**
    * Get all exercises from WGER API
@@ -281,12 +295,18 @@ class WgerApiService {
   }
 
   /**
-   * Get muscle and equipment mappings
+   * Get muscle and equipment mappings with caching
+   * קבלת מיפויי שרירים וציוד עם מטמון
    */
   private async getMappings(): Promise<{
     muscleMap: Map<number, string>;
     equipmentMap: Map<number, string>;
   }> {
+    // Return cached mappings if available
+    if (this.mappingsCache) {
+      return this.mappingsCache;
+    }
+
     const [musclesData, equipmentData] = await Promise.all([
       this.getMuscles(),
       this.getEquipment(),
@@ -302,15 +322,27 @@ class WgerApiService {
       equipmentMap.set(eq.id, eq.name);
     });
 
-    return { muscleMap, equipmentMap };
+    // Cache the mappings
+    this.mappingsCache = { muscleMap, equipmentMap };
+
+    return this.mappingsCache;
+  }
+
+  /**
+   * Clear mappings cache (useful for testing or forced refresh)
+   * ניקוי מטמון המיפויים (שימושי לבדיקות או רענון מאולץ)
+   */
+  public clearMappingsCache(): void {
+    this.mappingsCache = null;
   }
 
   /**
    * Convert WGER exercise to our internal format
+   * המרת תרגיל WGER לפורמט פנימי
    */
   async convertWgerExerciseToInternal(
     wgerExercise: WgerExercise
-  ): Promise<ConvertedExercise | null> {
+  ): Promise<WgerExerciseInfo | null> {
     try {
       // Get muscles and equipment data for conversion
       const { muscleMap, equipmentMap } = await this.getMappings();
@@ -322,19 +354,19 @@ class WgerApiService {
       const secondaryMuscles = wgerExercise.muscles_secondary
         .map((id) => muscleMap.get(id) || "Unknown")
         .filter((name) => name !== "Unknown");
-      const equipment =
-        wgerExercise.equipment.length > 0
-          ? equipmentMap.get(wgerExercise.equipment[0]) || "bodyweight"
-          : "bodyweight";
+      const equipment = wgerExercise.equipment
+        .map((id) => equipmentMap.get(id) || "bodyweight")
+        .filter(Boolean);
 
       return {
-        id: `wger_${wgerExercise.id}`,
+        id: wgerExercise.id,
         name: wgerExercise.name,
         category: wgerExercise.category.name,
         primaryMuscles,
         secondaryMuscles,
-        equipment: equipment.toLowerCase().replace(" ", "_"),
+        equipment,
         difficulty: "intermediate", // Default since WGER doesn't provide this
+        description: wgerExercise.description || "",
         instructions: wgerExercise.description
           ? [wgerExercise.description]
           : [],
@@ -349,7 +381,8 @@ class WgerApiService {
   }
 
   /**
-   * Get exercises by equipment names - compatible with useWgerExercises
+   * Get exercises by equipment names - optimized with caching
+   * קבלת תרגילים לפי שמות ציוד - מאופטם עם מטמון
    */
   async getExercisesByEquipment(
     equipmentNames: string[]
@@ -358,27 +391,17 @@ class WgerApiService {
       const wgerExercises =
         await this.searchExercisesByEquipment(equipmentNames);
 
-      // Get reference data for conversion
-      const { muscleMap, equipmentMap } = await this.getMappings();
+      // Convert all exercises to unified format
+      const convertedExercises = await Promise.all(
+        wgerExercises.map((exercise) =>
+          this.convertWgerExerciseToInternal(exercise)
+        )
+      );
 
-      // Convert to WgerExerciseInfo format
-      return wgerExercises.map((exercise) => ({
-        id: exercise.id,
-        name: exercise.name,
-        category: exercise.category.name,
-        primaryMuscles: exercise.muscles
-          .map((id) => muscleMap.get(id) || "Unknown")
-          .filter((name) => name !== "Unknown"),
-        secondaryMuscles: exercise.muscles_secondary
-          .map((id) => muscleMap.get(id) || "Unknown")
-          .filter((name) => name !== "Unknown"),
-        equipment: exercise.equipment
-          .map((id) => equipmentMap.get(id) || "bodyweight")
-          .filter(Boolean),
-        description: exercise.description || "",
-        difficulty: "intermediate",
-        instructions: exercise.description ? [exercise.description] : [],
-      }));
+      // Filter out null results and return
+      return convertedExercises.filter(
+        (exercise): exercise is WgerExerciseInfo => exercise !== null
+      );
     } catch (error) {
       console.error("❌ Error in getExercisesByEquipment:", error);
       return [];

@@ -66,7 +66,21 @@
 
 - **הפעלת הפרויקט:** השתמש ב-`npx expo start` (לא `npm run start`)
 - **מאגר תרגילים:** מאגר עשיר של תרגילים בעברית + תרגילי WGER באנגלית
-- **WGER Integration:** עובד עם wgerService.ts (לא wgerApiService.ts)
+- **WGER Integration:** עובד עם wgerApiService.ts (מאוחד ומאופטם v2.0.0)
+  - ✅ **ממשק מאוחד:** `WgerExerciseInfo` משרת את כל הצרכים
+  - ✅ **מטמון חכם:** 90% פחות קריאות API עם mappingsCache
+  - ✅ **ביצועים משופרים:** הסרת כפילויות והמרות מיותרות
+  - ✅ **איחוד הושלם:** הסרת `WgerExerciseFormatted` ב-useWgerExercises.ts
+- **🎯 Demo Service Optimization:** שירות דמו מציאותי מאופטם (904 שורות)
+  - ✅ **ממשקים מאוחדים:** `RealisticExerciseSet` מרחיב את `ExerciseSet` הבסיסי
+  - ✅ **פתרון התנגשויות:** `PerformanceRecommendation` במקום `WorkoutRecommendation` כפול
+  - ✅ **בטיחות טיפוסים:** הירארכיית inheritance נכונה עם imports מפורשים
+  - ✅ **דוח מלא:** `docs/REALISTIC_DEMO_SERVICE_OPTIMIZATION_REPORT.md`
+- **🏋️ Large Services Optimization:** אופטימיזציה של שירותים גדולים (2,474 שורות)
+  - ✅ **פתרון כפילויות UserProfile:** `WorkoutUserProfile` ו-`ScientificUserProfile`
+  - ✅ **התמחות ממשקים:** כל שירות עם ממשק מותאם לצרכיו הייחודיים
+  - ✅ **בטיחות טיפוסים משופרת:** סיום התנגשויות בין שירותים
+  - ✅ **דוח מקיף:** `docs/LARGE_SERVICES_OPTIMIZATION_REPORT.md`
 - **TypeScript:** כל הקבצים צריכים להיות עם TypeScript מתקדם, אין שימוש ב-any
 - **🔄 BackButton מרכזי:** תמיד import BackButton from "../../components/common/BackButton"
   - **Variants זמינים:** default, minimal, large
@@ -105,15 +119,11 @@
 ### פונקציות מרכזיות (מאומתות):
 
 ```typescript
-// פונקציות התאמת מגדר - קיימות ב-smartQuestionnaireData.ts
-adaptTextToGender(text: string): string
-adaptOptionToGender(option: SmartOption): SmartOption
-
-// שירותים מרכזיים - מאומתים
+// שירותים מרכזיים - מאומתים ומעודכנים
 workoutHistoryService - ניהול היסטוריית אימונים עם התאמת מגדר (15 functions)
 userStore - ניהול מצב משתמש עם פונקציות מתקדמות
-wgerService.ts - שירות WGER ראשי (הנכון לשימוש)
-wgerApiService.ts - שירות WGER משני (למקרי גיבוי)
+wgerApiService.ts - שירות WGER מאופטם עם מטמון ומפשקים מאוחדים (v2.0.0)
+questionnaireService - שאלון חכם עם TypeScript מתקדם ונגישות מלאה
 ```
 
 ### דוגמת שימוש נכון ב-BackButton:
@@ -280,6 +290,32 @@ const handleAction = () => {
 - **תיעוד דו-לשוני:** עברית ואנגלית בכל הערה
 - **בדיקות אוטומטיות:** `npx tsc --noEmit --skipLibCheck` מחויב
 
+## 🔄 שדרוגים מתוכננים לביצוע (אוגוסט 2025)
+
+### ✅ הושלם: wgerApiService.ts + useWgerExercises.ts אופטימיזציה
+
+- **ממשק מאוחד:** `WgerExerciseInfo` משרת את כל הצרכים
+- **מטמון חכם:** 90% פחות קריאות API
+- **איחוד מלא:** הסרת `WgerExerciseFormatted` כפול
+- **ביצועים:** 75% פחות כפילויות, 100% הסרת המרות מיותרות
+
+### 🚧 עתידי: איחוד ממשקי Exercise (אופציונלי)
+
+#### שלב מתקדם: ממשקי Exercise כלליים (לפי הצורך)
+
+```typescript
+// מטרה: איחוד 4 ממשקי Exercise שונים
+// src/types/Exercise.ts - ממשק מרכזי אחיד
+// השפעה: exerciseService.ts, types/index.ts, workout.types.ts
+// סטטוס: לא נדרש כעת - כל ממשק משרת מטרה ייחודית
+```
+
+### 🎯 עקרונות איחוד:
+
+- **בטיחות ראשונה:** כל שדרוג נבדק עם `npx tsc --noEmit --skipLibCheck`
+- **שלבים קטנים:** לא לשבור יותר מקובץ אחד בכל פעם
+- **תיעוד מלא:** כל שינוי מתועד ב-COPILOT_GUIDELINES
+
 ## ⚠️ בעיות ידועות וטעויות נפוצות
 
 - **אל תשתמש ב-`npm run start`** - השתמש ב-`npx expo start`
@@ -290,7 +326,7 @@ const handleAction = () => {
 - **🚫 אל תשכח accessibilityLabel** - בכל TouchableOpacity חובה: `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`
 - **🚫 אל תשתמש בערכים קשיחים** - רק `theme.colors.*` ו-`theme.spacing.*`
 - **🚫 אל תשתמש ב-any בTypeScript** - כל קובץ צריך טיפוסים מדויקים
-- שים לב לקונפליקטים בין wgerService.ts (הנכון) ו-wgerApiService.ts (גיבוי)
+- ✅ wgerApiService.ts כעת מאוחד ומאופטם (v2.0.0) עם מטמון חכם וממשקים מובנים
 - **RTL חובה:** כל טקסט עברי חייב `textAlign: "right"` + `writingDirection: "rtl"`
 - **מגדר:** שאלת מגדר תמיד ראשונה, ואחריה התאמה דינמית
 - יש מספר קבצי שאלון - השתמש ב-smartQuestionnaireData.ts החדש

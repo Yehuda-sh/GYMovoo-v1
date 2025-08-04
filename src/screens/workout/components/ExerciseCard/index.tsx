@@ -35,7 +35,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Vibration,
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -49,6 +48,7 @@ import ExerciseMenu from "./ExerciseMenu";
 // ייבוא ה-theme
 // Import theme
 import { theme } from "../../../../styles/theme";
+import { triggerVibration } from "../../../../utils/workoutHelpers";
 
 // ייבוא ה-types
 // Import types
@@ -183,7 +183,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
       // הודעת נגישות
       if (Platform.OS === "ios") {
-        Vibration.vibrate(30); // רטט קצר להודיע שהפעולה לא זמינה
+        triggerVibration("short"); // רטט קצר להודיע שהפעולה לא זמינה
       }
 
       return;
@@ -214,7 +214,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     log("Set long press", { setId });
 
     if (Platform.OS === "ios") {
-      Vibration.vibrate(10);
+      triggerVibration("short");
     }
 
     setIsSelectionMode(true);
@@ -258,7 +258,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
     // משוב מגע
     if (Platform.OS === "ios") {
-      Vibration.vibrate(!isEditMode ? 50 : 30);
+      triggerVibration(!isEditMode ? "medium" : "short");
     }
 
     // אנימציה חלקה
@@ -310,7 +310,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
         // משוב מגע חזק יותר למעבר
         if (Platform.OS === "ios") {
-          Vibration.vibrate(100);
+          triggerVibration("medium");
         }
 
         // החלף בין הסט הנוכחי לסט שמעליו
@@ -345,7 +345,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
         // משוב מגע חזק יותר למעבר
         if (Platform.OS === "ios") {
-          Vibration.vibrate(100);
+          triggerVibration("medium");
         }
 
         // החלף בין הסט הנוכחי לסט שמתחתיו
@@ -818,7 +818,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               onPress={() => {
                 // משוב מגע קל
                 if (Platform.OS === "ios") {
-                  Vibration.vibrate(50);
+                  triggerVibration("medium");
                 }
                 log("Add set button pressed");
                 onAddSet();

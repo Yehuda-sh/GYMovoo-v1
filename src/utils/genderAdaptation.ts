@@ -152,3 +152,87 @@ export function generateGenderAdaptedCongratulation(
 
   return `מזל טוב! שברת היום ${recordText}! אתה מדהים!`;
 }
+
+/**
+ * התאמת טקסט בסיסי למגדר | Basic gender text adaptation
+ * הועבר מ-rtlHelpers.ts לטובת איחוד הלוגיקה
+ */
+export const adaptBasicTextToGender = (
+  text: string,
+  gender: "male" | "female" | "other"
+): string => {
+  if (gender === "other") return text;
+
+  // המרות בסיסיות שלמדנו
+  const genderMappings = {
+    male: {
+      "צעירה ומלאה אנרגיה": "צעיר ומלא אנרגיה",
+      "מנוסה ופעילה": "מנוסה ופעיל",
+      מתחילה: "מתחיל",
+      מתקדמת: "מתקדם",
+    },
+    female: {
+      "צעיר ומלא אנרגיה": "צעירה ומלאה אנרגיה",
+      "מנוסה ופעיל": "מנוסה ופעילה",
+      מתחיל: "מתחילה",
+      מתקדם: "מתקדמת",
+    },
+  };
+
+  const mappings = genderMappings[gender];
+  let adaptedText = text;
+
+  Object.entries(mappings).forEach(([from, to]) => {
+    adaptedText = adaptedText.replace(new RegExp(from, "g"), to);
+  });
+
+  return adaptedText;
+};
+
+/**
+ * יצירת טקסט ניטרלי מגדרית | Create gender-neutral text
+ * הועבר מ-rtlHelpers.ts לטובת איחוד הלוגיקה
+ */
+export const makeTextGenderNeutral = (text: string): string => {
+  const neutralMappings = {
+    "צעיר ומלא אנרגיה": "עם אנרגיה צעירה",
+    "צעירה ומלאה אנרגיה": "עם אנרגיה צעירה",
+    "מנוסה ופעיל": "עם ניסיון ופעילות",
+    "מנוסה ופעילה": "עם ניסיון ופעילות",
+    מתחיל: "בתחילת הדרך",
+    מתחילה: "בתחילת הדרך",
+    מתקדם: "ברמה מתקדמת",
+    מתקדמת: "ברמה מתקדמת",
+  };
+
+  let neutralText = text;
+  Object.entries(neutralMappings).forEach(([from, to]) => {
+    neutralText = neutralText.replace(new RegExp(from, "g"), to);
+  });
+
+  return neutralText;
+};
+
+/**
+ * טיפול בטקסטים דינמיים בהתאם למגדר | Handle dynamic gender-based texts
+ * הועבר מ-rtlHelpers.ts לטובת איחוד הלוגיקה
+ */
+export const getDynamicGenderText = (
+  baseText: string,
+  gender: "male" | "female" | "other",
+  variations: {
+    male?: string;
+    female?: string;
+    neutral?: string;
+  } = {}
+): string => {
+  switch (gender) {
+    case "male":
+      return variations.male || adaptBasicTextToGender(baseText, "male");
+    case "female":
+      return variations.female || adaptBasicTextToGender(baseText, "female");
+    case "other":
+    default:
+      return variations.neutral || makeTextGenderNeutral(baseText);
+  }
+};

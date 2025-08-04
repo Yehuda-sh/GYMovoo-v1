@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { formatTime } from "../../../utils/workoutHelpers";
 
 interface UseWorkoutTimerReturn {
   elapsedTime: number;
@@ -190,21 +191,6 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
     setLastLap(elapsedTime);
     return currentLap;
   }, [elapsedTime, lastLap]);
-
-  // פורמט זמן לתצוגה עם אופטימיזציה
-  // Format time for display with optimization
-  const formatTime = useCallback((seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, "0")}`;
-  }, []);
 
   return {
     elapsedTime,

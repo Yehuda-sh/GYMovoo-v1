@@ -2,10 +2,13 @@
  * @file src/utils/workoutNamesSync.ts
  * @description כלי לוידוא סנכרון שמות אימונים עם תמיכה בהתאמת מגדר
  * English: Utility to ensure workout names synchronization with gender adaptation support
- * @updated 2025-07-30 תמיכה בהתאמת שמות אימונים למגדר בהתבסס על השאלון החכם
+ * @updated 2025-08-04 עדכון ייבוא מגדר ל-genderAdaptation.ts לטובת איחוד הלוגיקה
  */
 
-import { adaptBasicTextToGender, makeTextGenderNeutral } from "./rtlHelpers";
+import {
+  adaptBasicTextToGender,
+  makeTextGenderNeutral,
+} from "./genderAdaptation";
 
 // שמות האימונים כפי שהם מוגדרים ב-WorkoutPlansScreen עם תמיכה בהתאמת מגדר
 export const WORKOUT_DAYS_NAMES = {
@@ -162,7 +165,6 @@ export const getWorkoutIndexByName = (
 export const validateWorkoutNamesSync = (
   userGender?: "male" | "female" | "other"
 ) => {
-
   if (userGender) {
     console.log(`👤 User gender: ${userGender}`);
   }

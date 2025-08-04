@@ -16,8 +16,16 @@ export { workoutHistoryService } from "./workoutHistoryService";
 export { workoutSimulationService } from "./workoutSimulationService";
 export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
 export { realisticDemoService } from "./realisticDemoService";
+export type {
+  WorkoutSession,
+  WorkoutExercise,
+  RealisticExerciseSet,
+  WorkoutFeedback,
+  PerformanceRecommendation,
+} from "./realisticDemoService";
 export { scientificAIService } from "./scientificAIService";
 export { wgerApiService } from "./wgerApiService";
+export type { WgerExerciseInfo } from "./wgerApiService";
 
 // Quick workout generator
 export {

@@ -602,15 +602,20 @@ import { X } from "./X";
 ### 8. ניהול טיפוסי ניווט
 
 - **בעיה:** RootStackParamList מפוזר במקומות שונים, namespace issues ב-TypeScript.
-- **פתרון:** קובץ נפרד `src/navigation/types.ts` לכל טיפוסי הניווט.
+- **פתרון:** קובץ מרכזי `src/navigation/types.ts` עם ארגון משופר ומניעת כפילויות.
 
 ```tsx
 // ❌ Wrong - בכל קובץ בנפרד
 export type RootStackParamList = { ... }
 
-// ✅ Right - קובץ מרכזי
+// ✅ Right - קובץ מרכזי מאורגן עם טיפוסים עזר
 // src/navigation/types.ts
 export type RootStackParamList = { ... }
+
+// 🚀 New - טיפוסים עזר למניעת כפילויות
+export type WorkoutSource = "workout_plan" | "quick_start" | "day_selection";
+export interface BaseWorkoutParams = { ... }
+export interface ExtendedWorkoutParams extends BaseWorkoutParams = { ... }
 ```
 
 ---

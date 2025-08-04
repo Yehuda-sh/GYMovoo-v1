@@ -218,32 +218,63 @@ Exercises: {
 }
 ```
 
-## 🛠️ טיפוסי TypeScript
+## 🛠️ טיפוסי TypeScript - מעודכן 2025
 
-### RootStackParamList
+### RootStackParamList משופר
 
-כל המסכים והפרמטרים שלהם מוגדרים ב-`src/navigation/types.ts`:
+כל המסכים והפרמטרים שלהם מוגדרים ב-`src/navigation/types.ts` עם ארגון משופר:
 
 ```typescript
 export type RootStackParamList = {
+  // 🔐 Authentication & Onboarding
   Welcome: undefined;
   Login: { google?: boolean };
   Register: undefined;
   Terms: undefined;
-  Questionnaire: { stage?: "profile" | "training" };
-  WorkoutPlan: { ... };
-  MainApp: undefined;
+  Questionnaire: { stage?: QuestionnaireStage };
+
+  // 🏋️ Workout & Exercise Screens
+  WorkoutPlan: BaseWorkoutParams;
   QuickWorkout: { ... };
   ActiveWorkout: { ... };
-  ExerciseList: { ... };
+  ExerciseList: { mode?: ExerciseListMode; ... };
+
+  // 📱 Main Application
+  MainApp: undefined;
+
+  // 📋 Additional Features
   Notifications: undefined;
   Progress: undefined;
   Exercises: undefined;
-  WorkoutPlans: { ... };
-  Profile: undefined;
-  History: undefined;
+
+  // 🧭 Bottom Navigation (RTL)
   Main: undefined;
+  WorkoutPlans: ExtendedWorkoutParams;
+  History: undefined;
+  Profile: undefined;
 };
+```
+
+### טיפוסים עזר חדשים
+
+```typescript
+// מונעים כפילויות ומשפרים עקביות
+export type WorkoutSource = "workout_plan" | "quick_start" | "day_selection";
+export type ExerciseListMode = "view" | "selection";
+export type QuestionnaireStage = "profile" | "training";
+
+export interface BaseWorkoutParams {
+  regenerate?: boolean;
+  autoStart?: boolean;
+  returnFromWorkout?: boolean;
+  completedWorkoutId?: string;
+  preSelectedDay?: number;
+}
+
+export interface ExtendedWorkoutParams extends BaseWorkoutParams {
+  requestedWorkoutIndex?: number;
+  requestedWorkoutName?: string;
+}
 ```
 
 ## 🔍 כלי בדיקה

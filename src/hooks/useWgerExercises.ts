@@ -1,22 +1,17 @@
+/**
+ * @file src/hooks/useWgerExercises.ts
+ * @brief Enhanced WGER Exercises Hook - hook מתקדם לתרגילי WGER
+ * @description Hook for fetching and managing WGER exercise data with unified interfaces
+ * @dependencies wgerApiService, WgerExerciseInfo unified interface
+ * @notes Uses unified WgerExerciseInfo interface, eliminates format conversion duplication
+ * @version 2.0.0 - Unified interfaces, eliminated WgerExerciseFormatted duplication
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { wgerApiService, WgerExerciseInfo } from "../services/wgerApiService";
 
-export interface WgerExerciseFormatted {
-  id: string;
-  name: string;
-  category: string;
-  primaryMuscles: string[];
-  secondaryMuscles: string[];
-  equipment: string;
-  difficulty: string;
-  instructions: string[];
-  images: string[];
-  source: "wger";
-  wgerId: number;
-}
-
 export function useWgerExercises() {
-  const [exercises, setExercises] = useState<WgerExerciseFormatted[]>([]);
+  const [exercises, setExercises] = useState<WgerExerciseInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [muscles, setMuscles] = useState<Array<{ id: number; name: string }>>(
@@ -50,26 +45,8 @@ export function useWgerExercises() {
     }
   };
 
-  const convertWgerExerciseToInternal = (
-    wgerEx: WgerExerciseInfo
-  ): WgerExerciseFormatted => {
-    return {
-      id: `wger_${wgerEx.id}`,
-      name: wgerEx.name,
-      category: wgerEx.category,
-      primaryMuscles: wgerEx.primaryMuscles,
-      secondaryMuscles: wgerEx.secondaryMuscles,
-      equipment: wgerEx.equipment.join(", ") || "None",
-      difficulty: wgerEx.difficulty,
-      instructions: wgerEx.instructions,
-      images: [],
-      source: "wger" as const,
-      wgerId: wgerEx.id,
-    };
-  };
-
   const searchExercisesByEquipment = useCallback(
-    async (equipmentNames: string[]): Promise<WgerExerciseFormatted[]> => {
+    async (equipmentNames: string[]): Promise<WgerExerciseInfo[]> => {
       setLoading(true);
       setError(null);
 
@@ -83,17 +60,13 @@ export function useWgerExercises() {
           await wgerApiService.getExercisesByEquipment(equipmentNames);
         console.log(`📊 Found ${wgerExercises.length} WGER exercises`);
 
-        // Convert to our internal format
-        const formattedExercises: WgerExerciseFormatted[] = wgerExercises.map(
-          convertWgerExerciseToInternal
-        );
-
+        // Use exercises directly - no conversion needed (unified interface)
         console.log(
-          `✅ Converted ${formattedExercises.length} exercises to internal format`
+          `✅ Using ${wgerExercises.length} exercises directly from unified interface`
         );
-        setExercises(formattedExercises);
+        setExercises(wgerExercises);
 
-        return formattedExercises;
+        return wgerExercises;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
@@ -108,7 +81,7 @@ export function useWgerExercises() {
   );
 
   const getExercisesByMuscle = useCallback(
-    async (muscleNames: string[]): Promise<WgerExerciseFormatted[]> => {
+    async (muscleNames: string[]): Promise<WgerExerciseInfo[]> => {
       setLoading(true);
       setError(null);
 
@@ -128,7 +101,7 @@ export function useWgerExercises() {
 
         console.log(`📊 Found ${filtered.length} exercises for muscles`);
 
-        // Convert the basic format to WgerExerciseInfo format for consistency
+        // Convert to unified WgerExerciseInfo format
         const wgerInfoExercises: WgerExerciseInfo[] = filtered.map((ex) => ({
           id: ex.id,
           name: ex.name,
@@ -141,12 +114,9 @@ export function useWgerExercises() {
           instructions: ex.description ? [ex.description] : [],
         }));
 
-        const formattedExercises = wgerInfoExercises.map(
-          convertWgerExerciseToInternal
-        );
-        setExercises(formattedExercises);
-
-        return formattedExercises;
+        // Use exercises directly - no conversion needed
+        setExercises(wgerInfoExercises);
+        return wgerInfoExercises;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
@@ -159,9 +129,7 @@ export function useWgerExercises() {
     []
   );
 
-  const getAllExercises = useCallback(async (): Promise<
-    WgerExerciseFormatted[]
-  > => {
+  const getAllExercises = useCallback(async (): Promise<WgerExerciseInfo[]> => {
     setLoading(true);
     setError(null);
 
@@ -169,7 +137,7 @@ export function useWgerExercises() {
       const exercisesData = await wgerApiService.getExercises({ limit: 100 });
       const allExercises = exercisesData.results;
 
-      // Convert the basic format to WgerExerciseInfo format for consistency
+      // Convert to unified WgerExerciseInfo format
       const wgerInfoExercises: WgerExerciseInfo[] = allExercises.map((ex) => ({
         id: ex.id,
         name: ex.name,
@@ -182,12 +150,9 @@ export function useWgerExercises() {
         instructions: ex.description ? [ex.description] : [],
       }));
 
-      const formattedExercises = wgerInfoExercises.map(
-        convertWgerExerciseToInternal
-      );
-      setExercises(formattedExercises);
-
-      return formattedExercises;
+      // Use exercises directly - no conversion needed
+      setExercises(wgerInfoExercises);
+      return wgerInfoExercises;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
