@@ -385,6 +385,7 @@ src/services/
 ```
 שירותי authService כוללים:
 ├── fakeGoogleSignIn()     # כניסה רגילה ללא שאלון
+├── fakeGoogleRegister()   # הרשמה ללא שאלון
 └── fakeGoogleSignInWithQuestionnaire() # כניסה עם שאלון מלא (DEV בלבד)
 
 מסך Welcome כולל:

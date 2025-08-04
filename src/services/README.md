@@ -12,7 +12,10 @@
 
 ### 🔐 שירותי אימות
 
-- **`authService.ts`** - שירות אימות משתמשים
+- **`authService.ts`** - שירות אימות משתמשים עם תמיכה בGoogle Sign-In ומצבי פיתוח
+  - `fakeGoogleSignIn()` - התחברות רגילה ללא שאלון
+  - `fakeGoogleRegister()` - הרשמה חדשה ללא שאלון
+  - `fakeGoogleSignInWithQuestionnaire()` - התחברות עם שאלון מלא (מצב פיתוח בלבד)
 
 ### 🏋️ שירותי תרגילים ואימונים
 

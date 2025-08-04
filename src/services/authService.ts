@@ -10,84 +10,139 @@
  */
 
 // =======================================
+// 🎯 TypeScript Types
+// טיפוסי TypeScript
+// =======================================
+
+/**
+ * User object structure for authentication
+ * מבנה אובייקט משתמש לאימות
+ */
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  provider: "google" | "manual";
+  avatar?: string;
+  questionnaire?: any[];
+  questionnaireData?: {
+    answers: any[];
+    completedAt: string;
+    version: string;
+    metadata?: any;
+  };
+  metadata: {
+    createdAt: string;
+    isRandom: boolean;
+    sessionId: string;
+  };
+}
+
+// =======================================
 // 🎯 Core Data Generation Lists
 // רשימות ליצירת נתונים רנדומליים
 // =======================================
-/**
- * Premium Hebrew-compatible first names for realistic user generation
- * שמות פרטיים עבריים איכותיים ליצירת משתמשים מציאותיים
- */
-const firstNamesEnglish = [
-  "yossi",
-  "michal",
-  "danny",
-  "shira",
-  "omer",
-  "noa",
-  "itay",
-  "ronit",
-  "guy",
-  "liat",
-  "alon",
-  "maya",
-  "ido",
-  "tal",
-  "roy",
-  "inbal",
-  "uri",
-  "dana",
-  "nir",
-  "shani",
-  "tomer",
-  "yael",
-  "asaf",
-  "hila",
-  "ben",
-  "eden",
-  "ori",
-  "roni",
-  "gal",
-  "liora",
-  "eran",
-  "sigal",
-];
 
 /**
- * Common Israeli last names for authentic user profiles
- * שמות משפחה ישראליים נפוצים לפרופילי משתמש אמיתיים
+ * Israeli names data structure for authentic user generation
+ * מבנה נתוני שמות ישראליים ליצירת משתמשים אמיתיים
  */
-const lastNamesEnglish = [
-  "cohen",
-  "levi",
-  "mizrachi",
-  "peretz",
-  "biton",
-  "avraham",
-  "friedman",
-  "dahan",
-  "amar",
-  "bendavid",
-  "haim",
-  "malka",
-  "azoulay",
-  "shimon",
-  "gabay",
-  "nissim",
-  "katz",
-  "goldberg",
-];
+const ISRAELI_NAMES = {
+  /**
+   * Premium Hebrew-compatible first names for realistic user generation
+   * שמות פרטיים עבריים איכותיים ליצירת משתמשים מציאותיים
+   */
+  first: [
+    "yossi",
+    "michal",
+    "danny",
+    "shira",
+    "omer",
+    "noa",
+    "itay",
+    "ronit",
+    "guy",
+    "liat",
+    "alon",
+    "maya",
+    "ido",
+    "tal",
+    "roy",
+    "inbal",
+    "uri",
+    "dana",
+    "nir",
+    "shani",
+    "tomer",
+    "yael",
+    "asaf",
+    "hila",
+    "ben",
+    "eden",
+    "ori",
+    "roni",
+    "gal",
+    "liora",
+    "eran",
+    "sigal",
+  ],
+
+  /**
+   * Common Israeli last names for authentic user profiles
+   * שמות משפחה ישראליים נפוצים לפרופילי משתמש אמיתיים
+   */
+  last: [
+    "cohen",
+    "levi",
+    "mizrachi",
+    "peretz",
+    "biton",
+    "avraham",
+    "friedman",
+    "dahan",
+    "amar",
+    "bendavid",
+    "haim",
+    "malka",
+    "azoulay",
+    "shimon",
+    "gabay",
+    "nissim",
+    "katz",
+    "goldberg",
+  ],
+} as const;
 
 /**
- * Popular email domains for realistic email generation
- * דומיינים פופולריים ליצירת כתובות אימייל מציאותיות
+ * Email and avatar configuration for user generation
+ * הגדרות אימייל ואווטר ליצירת משתמשים
  */
-const domains = [
-  "gmail.com",
-  "yahoo.com",
-  "outlook.com",
-  "hotmail.com",
-  "walla.co.il",
-];
+const USER_CONFIG = {
+  /**
+   * Popular email domains for realistic email generation
+   * דומיינים פופולריים ליצירת כתובות אימייל מציאותיות
+   */
+  emailDomains: [
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "walla.co.il",
+  ] as const,
+
+  /**
+   * Google-compatible colors for avatar generation
+   * צבעים תואמי Google ליצירת אווטרים
+   */
+  avatarColors: [
+    "4285F4",
+    "DB4437",
+    "F4B400",
+    "0F9D58",
+    "AB47BC",
+    "FF7043",
+  ] as const,
+} as const;
 
 // =======================================
 // 🎲 User Generation Engine
@@ -98,17 +153,20 @@ const domains = [
  * Generate realistic random user with authentic Israeli data
  * יוצר משתמש רנדומלי מציאותי עם נתונים ישראליים אמיתיים
  *
- * @returns {Object} Complete user object with metadata
+ * @returns {User} Complete user object with metadata
  * @performance O(1) constant time generation
  * @rtl Compatible with Hebrew names and RTL display
  */
-const generateRandomUser = () => {
+const generateRandomUser = (): User => {
   // Enhanced random selection with better distribution
   const firstName =
-    firstNamesEnglish[Math.floor(Math.random() * firstNamesEnglish.length)];
+    ISRAELI_NAMES.first[Math.floor(Math.random() * ISRAELI_NAMES.first.length)];
   const lastName =
-    lastNamesEnglish[Math.floor(Math.random() * lastNamesEnglish.length)];
-  const domain = domains[Math.floor(Math.random() * domains.length)];
+    ISRAELI_NAMES.last[Math.floor(Math.random() * ISRAELI_NAMES.last.length)];
+  const domain =
+    USER_CONFIG.emailDomains[
+      Math.floor(Math.random() * USER_CONFIG.emailDomains.length)
+    ];
   const timestamp = Date.now();
   const randomSuffix = Math.floor(Math.random() * 9999);
 
@@ -118,8 +176,10 @@ const generateRandomUser = () => {
   const userId = `google_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Enhanced avatar generation with Google-compatible colors
-  const colors = ["4285F4", "DB4437", "F4B400", "0F9D58", "AB47BC", "FF7043"];
-  const bgColor = colors[Math.floor(Math.random() * colors.length)];
+  const bgColor =
+    USER_CONFIG.avatarColors[
+      Math.floor(Math.random() * USER_CONFIG.avatarColors.length)
+    ];
 
   return {
     id: userId,
@@ -144,11 +204,11 @@ const generateRandomUser = () => {
  * Enhanced Google Sign In simulation with realistic delay
  * סימולציית התחברות Google משופרת עם השהייה מציאותית
  *
- * @returns {Promise<Object>} New random user without questionnaire
+ * @returns {Promise<User>} New random user without questionnaire
  * @performance Simulates realistic server response time (800ms)
  * @usage Used by LoginScreen and WelcomeScreen for authentication flow
  */
-export const fakeGoogleSignIn = async () => {
+export const fakeGoogleSignIn = async (): Promise<User> => {
   // Realistic server delay simulation for better UX testing
   await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -162,14 +222,70 @@ export const fakeGoogleSignIn = async () => {
 };
 
 /**
- * Enhanced Google Registration simulation - alias for fakeGoogleSignIn
- * סימולציית הרשמה Google משופרת - כינוי לפונקציית ההתחברות
+ * Enhanced Google Registration simulation with form validation
+ * סימולציית הרשמה Google משופרת עם אימות טופס
  *
- * @returns {Promise<Object>} New random user for registration flow
+ * @returns {Promise<User>} New random user for registration flow
  * @performance Optimized for quick registration experience
  * @usage Used by RegisterScreen for new user creation
  */
-export const fakeGoogleRegister = fakeGoogleSignIn;
+export const fakeGoogleRegister = async (): Promise<User> => {
+  // Slightly shorter delay for registration to feel more responsive
+  await new Promise((resolve) => setTimeout(resolve, 600));
+
+  const randomUser = generateRandomUser();
+
+  // Registration users also start without questionnaire
+  return {
+    ...randomUser,
+    questionnaire: undefined,
+  };
+};
+
+/**
+ * Development-only Google Sign In with complete questionnaire data
+ * התחברות Google לפיתוח בלבד עם נתוני שאלון מלאים
+ *
+ * @returns {Promise<User>} User with complete questionnaire for development testing
+ * @usage Only available in development mode (__DEV__) for quick testing
+ * @development This function is meant for development shortcuts only
+ */
+export const fakeGoogleSignInWithQuestionnaire = async (): Promise<User> => {
+  if (!__DEV__) {
+    throw new Error(
+      "fakeGoogleSignInWithQuestionnaire is only available in development mode"
+    );
+  }
+
+  // Faster response for development
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const randomUser = generateRandomUser();
+
+  // Mock questionnaire data for development testing
+  const mockQuestionnaire = [
+    "25-35", // age range
+    "כושר בינוני", // fitness level
+    "3-4 פעמים בשבוע", // workout frequency
+    "עלייה במסה", // goal
+    "בית", // location
+  ];
+
+  return {
+    ...randomUser,
+    questionnaire: mockQuestionnaire,
+    questionnaireData: {
+      answers: mockQuestionnaire,
+      completedAt: new Date().toISOString(),
+      version: "1.0",
+      metadata: {
+        generatedRandomly: true,
+        devMode: true,
+        autoGenerated: true,
+      },
+    },
+  };
+};
 
 // =======================================
 // 🔄 Export Utilities
