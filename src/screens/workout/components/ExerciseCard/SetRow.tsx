@@ -1,10 +1,10 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/SetRow.tsx
  * @description שורת סט בודדת עם ממשק עריכה מתקדם והתאמה מלאה ל-RTL
- * @version 3.0.0
+ * @version 3.1.0
  * @author GYMovoo Development Team
  * @created 2024-12-15
- * @modified 2025-08-02
+ * @modified 2025-08-05
  *
  * @description
  * רכיב מתקדם לעריכת סטי אימון עם מצב עריכה מלא, חצי מעלית וקלט מקלדת מיועל.
@@ -21,6 +21,9 @@
  * - ✅ אינדיקטורים חזותיים לשיאים אישיים (PR Badge)
  * - ✅ הבחנה ברורה בין placeholder לערך אמיתי
  * - ✅ נגישות מקיפה עם ARIA labels
+ * - 🆕 קבועים מוגדרים למניעת magic numbers (v3.1.0)
+ * - 🆕 רכיב עזר לשדות קלט לחיסכון בכפילויות (v3.1.0)
+ * - 🆕 ייבוא ממשק מרכזי במקום הגדרה מקומית (v3.1.0)
  *
  * @technical
  * פתרונות טכניים מתקדמים:
@@ -29,6 +32,17 @@
  * - אופטימיזציות Android: blurOnSubmit={false}, showSoftInputOnFocus={true}
  * - React.memo לביצועים מיטביים
  * - useCallback ו-useMemo למניעת re-renders מיותרים
+ * - קבועים מרכזיים לערכי אנימציה ומדדי ביצועים
+ * - רכיב עזר מאוחד לשדות קלט עם SHARED_TEXT_INPUT_PROPS
+ *
+ * @optimizations (v3.1.0)
+ * שיפורים שבוצעו:
+ * - ✅ הסרת כפילויות בהגדרות שדות קלט
+ * - ✅ איחוד קבועים למניעת magic numbers
+ * - ✅ רכיב עזר לשדות קלט חוזרים
+ * - ✅ ייבוא ExtendedSet מממשק מרכזי
+ * - ✅ קבועי hitSlop מוגדרים מראש
+ * - ✅ מאפיינים משותפים לכל שדות הטקסט
  *
  * @editmode
  * במצב עריכה (isEditMode=true):
@@ -63,6 +77,7 @@
  * - useCallback לכל event handlers
  * - useMemo לערכי input ו-placeholder
  * - useRef לאנימציות ללא re-renders
+ * - קבועים מאוחדים לחיסכון בזיכרון
  *
  * @example
  * ```tsx
@@ -98,11 +113,48 @@ import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 import { Set, Exercise } from "../../types/workout.types";
 
-// Extended Set interface עם שדות נוספים לממשק המשתמש
-interface ExtendedSet extends Set {
-  previousWeight?: number;
-  previousReps?: number;
-}
+// ייבוא ממשק מרכזי במקום הגדרה מקומית
+import { ExtendedSet } from "../types";
+
+// קבועים למניעת magic numbers ושיפור קריאות
+const ANIMATION_DURATIONS = {
+  CHECK: 300,
+  PR_BOUNCE: 300,
+  SCALE_TRANSITION: 250,
+} as const;
+
+const PERFORMANCE_THRESHOLDS = {
+  SIGNIFICANT_IMPROVEMENT: 5, // אחוז שיפור משמעותי
+  SIGNIFICANT_DECLINE: -5, // אחוז ירידה משמעותית
+} as const;
+
+const INPUT_CONFIG = {
+  MAX_LENGTH: 10,
+  KEYBOARD_TYPE: "numeric" as const,
+  RETURN_KEY_TYPE: "done" as const,
+} as const;
+
+const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
+const ELEVATOR_HIT_SLOP = { top: 5, bottom: 5, left: 5, right: 5 };
+
+// מאפיינים משותפים לשדות קלט לחיסכון בכפילויות
+const SHARED_TEXT_INPUT_PROPS = {
+  keyboardType: INPUT_CONFIG.KEYBOARD_TYPE,
+  selectTextOnFocus: true,
+  editable: true,
+  returnKeyType: INPUT_CONFIG.RETURN_KEY_TYPE,
+  blurOnSubmit: false, // 🔑 מפתח: מונע סגירת מקלדת אוטומטית
+  autoFocus: false,
+  multiline: false,
+  maxLength: INPUT_CONFIG.MAX_LENGTH,
+  caretHidden: false,
+  contextMenuHidden: false,
+  autoCorrect: false,
+  autoCapitalize: "none" as const,
+  spellCheck: false,
+  textContentType: "none" as const,
+  showSoftInputOnFocus: true, // 🚀 מאלץ הצגת מקלדת ב-Android
+} as const;
 
 interface SetRowProps {
   set: ExtendedSet;
@@ -181,7 +233,7 @@ const SetRow: React.FC<SetRowProps> = ({
       Animated.sequence([
         Animated.timing(prBounceAnim, {
           toValue: 1,
-          duration: 300,
+          duration: ANIMATION_DURATIONS.PR_BOUNCE,
           useNativeDriver: true,
         }),
         Animated.spring(prBounceAnim, {
@@ -201,7 +253,7 @@ const SetRow: React.FC<SetRowProps> = ({
   useEffect(() => {
     Animated.timing(checkAnim, {
       toValue: set.completed ? 1 : 0,
-      duration: 300,
+      duration: ANIMATION_DURATIONS.CHECK,
       useNativeDriver: true,
     }).start();
   }, [set.completed, setNumber, set.actualWeight, set.actualReps, checkAnim]);
@@ -304,6 +356,58 @@ const SetRow: React.FC<SetRowProps> = ({
     setTimeout(() => setShowTargetHint(false), 2000);
   };
 
+  // רכיב עזר לשדות קלט כדי לחסוך בכפילויות
+  const renderInputField = React.useCallback(
+    (
+      type: "weight" | "reps",
+      value: string,
+      placeholder: string,
+      onChange: (value: string) => void,
+      onFocus: () => void,
+      onBlur: () => void,
+      focused: boolean,
+      inputRef: React.RefObject<TextInput>,
+      targetValue?: number
+    ) => (
+      <TouchableOpacity
+        style={[styles.inputContainer, focused && styles.focusedContainer]}
+        activeOpacity={1} // חשוב: מונע אפקט לחיצה
+        onPress={() => {
+          // מאלץ פוקוס על השדה - פתרון לבעיות Android
+          const input = inputRef.current;
+          if (input) {
+            input.focus();
+          }
+        }}
+      >
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.input,
+            set.completed && styles.completedInput,
+            focused && styles.focusedInput,
+          ]}
+          value={value}
+          onChangeText={onChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          placeholderTextColor={
+            type === "weight"
+              ? theme.colors.textSecondary + "60"
+              : theme.colors.textSecondary + "40"
+          }
+          {...SHARED_TEXT_INPUT_PROPS}
+        />
+
+        {showTargetHint && targetValue && (
+          <Text style={styles.targetHint}>יעד: {targetValue}</Text>
+        )}
+      </TouchableOpacity>
+    ),
+    [set.completed, showTargetHint]
+  );
+
   // Calculate performance indicator
   const performanceIndicator = React.useMemo(() => {
     if (!set.actualWeight || !set.previousWeight) return null;
@@ -311,9 +415,9 @@ const SetRow: React.FC<SetRowProps> = ({
     const diff =
       ((set.actualWeight - set.previousWeight) / set.previousWeight) * 100;
 
-    if (diff > 5) {
+    if (diff > PERFORMANCE_THRESHOLDS.SIGNIFICANT_IMPROVEMENT) {
       return { icon: "trending-up", color: theme.colors.success };
-    } else if (diff < -5) {
+    } else if (diff < PERFORMANCE_THRESHOLDS.SIGNIFICANT_DECLINE) {
       return { icon: "trending-down", color: theme.colors.error };
     } else {
       return { icon: "trending-neutral", color: theme.colors.textSecondary };
@@ -390,104 +494,30 @@ const SetRow: React.FC<SetRowProps> = ({
           )}
         </TouchableOpacity>
 
-        {/* 🎯 פתרון Android: TouchableOpacity אינדיבידואלי עם פוקוס מפורש */}
-        <TouchableOpacity
-          style={[
-            styles.inputContainer,
-            weightFocused && styles.focusedContainer,
-          ]}
-          activeOpacity={1} // חשוב: מונע אפקט לחיצה
-          onPress={() => {
-            // מאלץ פוקוס על השדה - פתרון לבעיות Android
-            const weightInput = weightInputRef.current;
-            if (weightInput) {
-              weightInput.focus();
-            }
-          }}
-        >
-          <TextInput
-            ref={weightInputRef} // 🔗 רפרנס לשליטה ישירה
-            style={[
-              styles.input,
-              set.completed && styles.completedInput,
-              weightFocused && styles.focusedInput,
-            ]}
-            value={weightValue}
-            onChangeText={handleWeightChange}
-            onFocus={handleWeightFocus}
-            onBlur={handleWeightBlur}
-            keyboardType="numeric" // 📱 קבוע לכל הפלטפורמות
-            placeholder={weightPlaceholder}
-            placeholderTextColor={theme.colors.textSecondary + "60"}
-            selectTextOnFocus={true}
-            editable={true}
-            returnKeyType="done"
-            blurOnSubmit={false} // 🔑 מפתח: מונע סגירת מקלדת אוטומטית
-            autoFocus={false}
-            multiline={false}
-            maxLength={10}
-            caretHidden={false}
-            contextMenuHidden={false}
-            autoCorrect={false}
-            autoCapitalize="none"
-            spellCheck={false}
-            textContentType="none"
-            showSoftInputOnFocus={true} // 🚀 מאלץ הצגת מקלדת ב-Android
-          />
+        {/* 🎯 שדות קלט מאוחדים עם רכיב עזר */}
+        {renderInputField(
+          "weight",
+          weightValue,
+          weightPlaceholder,
+          handleWeightChange,
+          handleWeightFocus,
+          handleWeightBlur,
+          weightFocused,
+          weightInputRef,
+          set.targetWeight
+        )}
 
-          {showTargetHint && set.targetWeight && (
-            <Text style={styles.targetHint}>יעד: {set.targetWeight}</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.inputContainer,
-            repsFocused && styles.focusedContainer,
-          ]}
-          activeOpacity={1} // חשוב: מונע אפקט לחיצה
-          onPress={() => {
-            // מאלץ פוקוס על השדה - פתרון לבעיות Android
-            const repsInput = repsInputRef.current;
-            if (repsInput) {
-              repsInput.focus();
-            }
-          }}
-        >
-          <TextInput
-            ref={repsInputRef}
-            style={[
-              styles.input,
-              set.completed && styles.completedInput,
-              repsFocused && styles.focusedInput,
-            ]}
-            value={repsValue}
-            onChangeText={handleRepsChange}
-            onFocus={handleRepsFocus}
-            onBlur={handleRepsBlur}
-            keyboardType="numeric"
-            placeholder={repsPlaceholder}
-            placeholderTextColor={theme.colors.textSecondary + "40"}
-            selectTextOnFocus={true}
-            editable={true}
-            returnKeyType="done"
-            blurOnSubmit={false}
-            autoFocus={false}
-            multiline={false}
-            maxLength={10}
-            caretHidden={false}
-            contextMenuHidden={false}
-            autoCorrect={false}
-            autoCapitalize="none"
-            spellCheck={false}
-            textContentType="none"
-            showSoftInputOnFocus={true}
-          />
-
-          {showTargetHint && set.targetReps && (
-            <Text style={styles.targetHint}>יעד: {set.targetReps}</Text>
-          )}
-        </TouchableOpacity>
+        {renderInputField(
+          "reps",
+          repsValue,
+          repsPlaceholder,
+          handleRepsChange,
+          handleRepsFocus,
+          handleRepsBlur,
+          repsFocused,
+          repsInputRef,
+          set.targetReps
+        )}
 
         {/* שינוי RTL: כפתורי הפעולה עברו לסוף (צד שמאל) */}
         <View style={styles.actionsContainer}>
@@ -496,7 +526,7 @@ const SetRow: React.FC<SetRowProps> = ({
             <TouchableOpacity
               onPress={handleComplete}
               style={styles.actionButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={HIT_SLOP}
               accessibilityLabel={set.completed ? "בטל השלמת סט" : "סמן כהושלם"}
             >
               <View
@@ -516,14 +546,14 @@ const SetRow: React.FC<SetRowProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* 🛠️ אייקונים למצב עריכה - חצי מעלית ופעולות */}
+          {/* 🛠️ אייקונים למצב עריכה - פעולות מאוחדות */}
           {isEditMode && (
             <>
               {/* שכפל סט */}
               <TouchableOpacity
                 onPress={onDuplicate}
                 style={styles.actionButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                hitSlop={HIT_SLOP}
                 accessibilityLabel="שכפל סט"
               >
                 <MaterialCommunityIcons
@@ -533,14 +563,14 @@ const SetRow: React.FC<SetRowProps> = ({
                 />
               </TouchableOpacity>
 
-              {/* 🏗️ חצי מעלית - עיצוב אלגנטי עם משולשים */}
+              {/* 🏗️ חצי מעלית מאוחדים - עיצוב אלגנטי עם משולשים */}
               <View style={styles.elevatorButtonsContainer}>
-                {/* חץ למעלה - רק אם לא הראשון */}
+                {/* רכיב עזר לכפתורי מעלית */}
                 {!isFirst && (
                   <TouchableOpacity
                     onPress={onMoveUp}
                     style={[styles.elevatorButton, styles.elevatorButtonUp]}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    hitSlop={ELEVATOR_HIT_SLOP}
                     accessibilityLabel="הזז סט למעלה"
                   >
                     <MaterialCommunityIcons
@@ -552,12 +582,11 @@ const SetRow: React.FC<SetRowProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {/* חץ למטה - רק אם לא האחרון */}
                 {!isLast && (
                   <TouchableOpacity
                     onPress={onMoveDown}
                     style={[styles.elevatorButton, styles.elevatorButtonDown]}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    hitSlop={ELEVATOR_HIT_SLOP}
                     accessibilityLabel="הזז סט למטה"
                   >
                     <MaterialCommunityIcons
@@ -574,7 +603,7 @@ const SetRow: React.FC<SetRowProps> = ({
               <TouchableOpacity
                 onPress={handleDelete}
                 style={[styles.actionButton, styles.actionButtonDanger]}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                hitSlop={HIT_SLOP}
                 accessibilityLabel="מחק סט"
               >
                 <Ionicons

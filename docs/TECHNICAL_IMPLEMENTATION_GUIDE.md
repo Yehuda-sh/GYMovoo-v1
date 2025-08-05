@@ -385,34 +385,42 @@ interface UserStore {
 
 ## 🎯 התאמת מגדר מתקדמת
 
-### שירות התאמה
+### שירות התאמה מיועל (עדכון 2025-08-05)
 
 ```typescript
 // src/utils/genderAdaptation.ts
-export const adaptWorkoutText = (text: string, gender: UserGender): string => {
-  const adaptations = {
-    male: {
-      מרגישה: "מרגיש",
-      מוכנה: "מוכן",
-      עייפה: "עייף",
-    },
-    female: {
-      מרגיש: "מרגישה",
-      מוכן: "מוכנה",
-      עייף: "עייפה",
-    },
-  };
+// ✅ מיועל עם קבועים וללא כפילויות קוד
 
-  const mapping = adaptations[gender] || {};
+// קבועים מרכזיים
+const DIFFICULTY_THRESHOLD = 4;
+const DEFAULT_DIFFICULTY = 3;
+
+// מילוני התאמות משותפים
+const CORE_GENDER_MAPPINGS = {
+  male: { מתחילה: "מתחיל", מתקדמת: "מתקדם" },
+  female: { מתחיל: "מתחילה", מתקדם: "מתקדמת" },
+} as const;
+
+export const adaptWorkoutText = (text: string, gender: UserGender): string => {
+  if (gender === "other") return text;
+
+  const mappings = CORE_GENDER_MAPPINGS[gender];
   let adaptedText = text;
 
-  Object.entries(mapping).forEach(([from, to]) => {
+  Object.entries(mappings).forEach(([from, to]) => {
     adaptedText = adaptedText.replace(new RegExp(from, "g"), to);
   });
 
   return adaptedText;
 };
 ```
+
+**שיפורים שבוצעו:**
+
+- ✅ **הסרת כפילויות**: איחוד מילונים דומים לקבועים מרכזיים
+- ✅ **קבועים מוגדרים**: החלפת מספרים קבועים בקבועים בעלי משמעות
+- ✅ **ביצועים משופרים**: קוד יעיל יותר עם פחות חזרות
+- ✅ **קריאות טובה יותר**: סדר הגיוני של פונקציות ומבנה ברור
 
 ## 🔧 כלי עזר RTL
 

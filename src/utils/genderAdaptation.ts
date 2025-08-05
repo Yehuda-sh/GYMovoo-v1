@@ -2,10 +2,41 @@
  * @file src/utils/genderAdaptation.ts
  * @brief כלי עזר מרכזיים להתאמת תכנים למגדר המשתמש
  * @description פונקציות משותפות להתאמת שמות תרגילים והודעות למגדר
- * @updated 2025-01-31 יצירת קובץ מרכזי להקטנת כפילויות קוד
+ * @updated 2025-08-05 שיפור ואיחוד הלוגיקה, הסרת כפילויות
  */
 
 export type UserGender = "male" | "female" | "other";
+
+// קבועים למניעת magic numbers ושיפור קריאות הקוד
+const DIFFICULTY_THRESHOLD = 4; // רמת קושי שמעליה ניתנות הודעות מתקדמות
+const DEFAULT_DIFFICULTY = 3; // רמת קושי ברירת מחדל
+
+// מילוני התאמות מרכזיים לחיסכון בכפילויות קוד
+const CORE_GENDER_MAPPINGS = {
+  male: {
+    "צעירה ומלאה אנרגיה": "צעיר ומלא אנרגיה",
+    "מנוסה ופעילה": "מנוסה ופעיל",
+    מתחילה: "מתחיל",
+    מתקדמת: "מתקדם",
+  },
+  female: {
+    "צעיר ומלא אנרגיה": "צעירה ומלאה אנרגיה",
+    "מנוסה ופעיל": "מנוסה ופעילה",
+    מתחיל: "מתחילה",
+    מתקדם: "מתקדמת",
+  },
+} as const;
+
+const NEUTRAL_MAPPINGS = {
+  "צעיר ומלא אנרגיה": "עם אנרגיה צעירה",
+  "צעירה ומלאה אנרגיה": "עם אנרגיה צעירה",
+  "מנוסה ופעיל": "עם ניסיון ופעילות",
+  "מנוסה ופעילה": "עם ניסיון ופעילות",
+  מתחיל: "בתחילת הדרך",
+  מתחילה: "בתחילת הדרך",
+  מתקדם: "ברמה מתקדמת",
+  מתקדמת: "ברמה מתקדמת",
+} as const;
 
 /**
  * התאמת שמות תרגילים למגדר המשתמש
@@ -19,7 +50,7 @@ export function adaptExerciseNameToGender(
 
   // התאמות לנשים
   if (gender === "female") {
-    const femaleAdaptations: { [key: string]: string } = {
+    const femaleAdaptations: Record<string, string> = {
       "Push-ups": "שכיבות סמיכה מותאמות",
       Squats: "כפיפות ברכיים נשיות",
       Planks: "פלאנק מחזק",
@@ -33,7 +64,7 @@ export function adaptExerciseNameToGender(
 
   // התאמות לגברים
   if (gender === "male") {
-    const maleAdaptations: { [key: string]: string } = {
+    const maleAdaptations: Record<string, string> = {
       "Push-ups": "שכיבות סמיכה חזקות",
       "Pull-ups": "מתח לגברים",
       Deadlift: "הרמת משקל כבד",
@@ -53,20 +84,23 @@ export function adaptExerciseNameToGender(
  */
 export function generateGenderAdaptedFeedbackNotes(
   gender?: UserGender,
-  difficulty: number = 3
+  difficulty: number = DEFAULT_DIFFICULTY
 ): string[] {
-  if (!gender) {
-    return [
-      "אימון מעולה!",
-      "הרגשתי בטוב היום",
-      "התקדמתי יפה",
-      "אימון מאתגר ומספק",
-      "גאה בעצמי",
-    ];
-  }
+  // הודעות ברירת מחדל לכל המגדרים
+  const defaultNotes = [
+    "אימון מעולה!",
+    "הרגשתי בטוב היום",
+    "התקדמתי יפה",
+    "אימון מאתגר ומספק",
+    "גאה בעצמי",
+  ];
+
+  if (!gender) return defaultNotes;
+
+  const isHighDifficulty = difficulty >= DIFFICULTY_THRESHOLD;
 
   if (gender === "male") {
-    return difficulty >= 4
+    return isHighDifficulty
       ? [
           "אימון חזק! המשך כך!",
           "הרגשתי כמו אריה היום",
@@ -84,7 +118,7 @@ export function generateGenderAdaptedFeedbackNotes(
   }
 
   if (gender === "female") {
-    return difficulty >= 4
+    return isHighDifficulty
       ? [
           "אימון נפלא! הרגשתי חזקה",
           "התמדתי למרות הקושי",
@@ -101,13 +135,7 @@ export function generateGenderAdaptedFeedbackNotes(
         ];
   }
 
-  return [
-    "אימון מעולה!",
-    "הרגשתי בטוב היום",
-    "התקדמתי יפה",
-    "אימון מאתגר ומספק",
-    "גאה בעצמי",
-  ];
+  return defaultNotes;
 }
 
 /**
@@ -116,7 +144,7 @@ export function generateGenderAdaptedFeedbackNotes(
  */
 export function generateSingleGenderAdaptedNote(
   gender?: UserGender,
-  difficulty: number = 3
+  difficulty: number = DEFAULT_DIFFICULTY
 ): string {
   const notes = generateGenderAdaptedFeedbackNotes(gender, difficulty);
   return notes[Math.floor(Math.random() * notes.length)];
@@ -130,27 +158,29 @@ export function generateGenderAdaptedCongratulation(
   gender?: UserGender,
   personalRecordsCount: number = 0
 ): string {
+  // ברכות כלליות ללא שיאים אישיים
   if (personalRecordsCount === 0) {
-    if (gender === "male") {
-      return "המשך כך, אתה בדרך הנכונה לגדולה!";
-    } else if (gender === "female") {
-      return "את מדהימה! המשיכי כך!";
-    }
-    return "אתה מדהים! המשך כך!";
+    const generalCongrats = {
+      male: "המשך כך, אתה בדרך הנכונה לגדולה!",
+      female: "את מדהימה! המשיכי כך!",
+      other: "אתה מדהים! המשך כך!",
+    };
+    return generalCongrats[gender || "other"];
   }
 
+  // ברכות עם שיאים אישיים
   const recordText =
     personalRecordsCount === 1
       ? "שיא אישי"
       : `${personalRecordsCount} שיאים אישיים`;
 
-  if (gender === "male") {
-    return `מזל טוב גבר! שברת היום ${recordText}! אתה אלוף!`;
-  } else if (gender === "female") {
-    return `מזל טוב גיבורה! שברת היום ${recordText}! את מדהימה!`;
-  }
+  const congratsWithRecords = {
+    male: `מזל טוב גבר! שברת היום ${recordText}! אתה אלוף!`,
+    female: `מזל טוב גיבורה! שברת היום ${recordText}! את מדהימה!`,
+    other: `מזל טוב! שברת היום ${recordText}! אתה מדהים!`,
+  };
 
-  return `מזל טוב! שברת היום ${recordText}! אתה מדהים!`;
+  return congratsWithRecords[gender || "other"];
 }
 
 /**
@@ -163,23 +193,7 @@ export const adaptBasicTextToGender = (
 ): string => {
   if (gender === "other") return text;
 
-  // המרות בסיסיות שלמדנו
-  const genderMappings = {
-    male: {
-      "צעירה ומלאה אנרגיה": "צעיר ומלא אנרגיה",
-      "מנוסה ופעילה": "מנוסה ופעיל",
-      מתחילה: "מתחיל",
-      מתקדמת: "מתקדם",
-    },
-    female: {
-      "צעיר ומלא אנרגיה": "צעירה ומלאה אנרגיה",
-      "מנוסה ופעיל": "מנוסה ופעילה",
-      מתחיל: "מתחילה",
-      מתקדם: "מתקדמת",
-    },
-  };
-
-  const mappings = genderMappings[gender];
+  const mappings = CORE_GENDER_MAPPINGS[gender];
   let adaptedText = text;
 
   Object.entries(mappings).forEach(([from, to]) => {
@@ -194,19 +208,9 @@ export const adaptBasicTextToGender = (
  * הועבר מ-rtlHelpers.ts לטובת איחוד הלוגיקה
  */
 export const makeTextGenderNeutral = (text: string): string => {
-  const neutralMappings = {
-    "צעיר ומלא אנרגיה": "עם אנרגיה צעירה",
-    "צעירה ומלאה אנרגיה": "עם אנרגיה צעירה",
-    "מנוסה ופעיל": "עם ניסיון ופעילות",
-    "מנוסה ופעילה": "עם ניסיון ופעילות",
-    מתחיל: "בתחילת הדרך",
-    מתחילה: "בתחילת הדרך",
-    מתקדם: "ברמה מתקדמת",
-    מתקדמת: "ברמה מתקדמת",
-  };
-
   let neutralText = text;
-  Object.entries(neutralMappings).forEach(([from, to]) => {
+
+  Object.entries(NEUTRAL_MAPPINGS).forEach(([from, to]) => {
     neutralText = neutralText.replace(new RegExp(from, "g"), to);
   });
 

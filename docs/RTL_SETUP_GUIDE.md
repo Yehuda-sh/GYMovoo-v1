@@ -58,7 +58,7 @@
 
 - `src/utils/rtlConfig.ts` - הגדרות RTL גלובליות (אתחול אוטומטי)
 - `src/utils/rtlHelpers.ts` - פונקציות בסיסיות RTL (130 שורות)
-- `src/utils/genderAdaptation.ts` - התאמת מגדר (220 שורות)
+- `src/utils/genderAdaptation.ts` - התאמת מגדר (216 שורות, מיועל ללא כפילויות)
 - `src/styles/theme.ts` - סגנונות RTL מתקדמים
 
 ### קבצי ניווט ואפליקציה:
@@ -161,7 +161,7 @@ The app is configured for automatic RTL with forced direction, working seamlessl
 
 - `src/utils/rtlConfig.ts` - Global RTL settings (auto-initialization)
 - `src/utils/rtlHelpers.ts` - Basic RTL functions (130 lines)
-- `src/utils/genderAdaptation.ts` - Gender adaptation (220 lines)
+- `src/utils/genderAdaptation.ts` - Gender adaptation (216 lines, optimized without duplications)
 - `src/styles/theme.ts` - Advanced RTL styles
 
 #### Navigation and App Files:

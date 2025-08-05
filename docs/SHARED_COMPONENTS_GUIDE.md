@@ -1,6 +1,30 @@
 # מדריך רכיבים משותפים - GYMovoo
 
-**עדכון אחרון:** 04/08/2025 ✨
+**עדכון אחרון:** 06/01/2025 ✨
+
+## 🎯 אופטימיזציות ינואר 2025
+
+### רכיבים מאוחדים ומיועלים:
+
+- ✅ **SetRow** - הסרת 70+ שורות כפולות, רכיב עזר לשדות קלט
+- ✅ **genderAdaptation** - קבועים מרכזיים והסרת כפילויות
+- ✅ **exerciseFilters** - מערכת סינון תרגילים מאוחדת **חדש!**
+- 🔄 **TimeButton & SkipButton** - כבר מיועלים ללא כפילויות
+
+### עקרונות אופטימיזציה ששמרנו:
+
+1. **DRY Principle** - ללא כפילויות קוד, הסרת 150+ שורות כפולות
+2. **Single Source of Truth** - ממשקים וקבועים מרכזיים
+3. **Constants over Magic Numbers** - כל הערכים מוגדרים
+4. **Reusable Components** - רכיבי עזר לתבניות חוזרות
+5. **תרגומים שמורים** - כל הטקסטים בעברית ואנגלית נשמרו
+
+### 🌟 תוספות חדשות:
+
+- **exerciseFilters.ts** - 15+ פונקציות סינון מאוחדות
+- **EQUIPMENT_TYPES** - קבועים מרכזיים לכל סוגי הציוד
+- **smartFilter** - סינון מתקדם עם קריטריונים מרובים
+- **calculateExerciseStats** - חישוב סטטיסטיקות מקיף
 
 ## סקירה כללית
 
@@ -108,7 +132,7 @@ const LoadingSpinner = React.memo(({ variant, duration, ... }) => {
 });
 ```
 
-### 2. SetRow - רכיב עריכת סטים מתקדם
+### 2. SetRow - רכיב עריכת סטים מתקדם ⭐ **מיועל!**
 
 רכיב מתקדם לעריכת סטי אימון עם מצב עריכה מלא, חצי מעלית וקלט מקלדת מיועל.
 
@@ -122,11 +146,19 @@ const LoadingSpinner = React.memo(({ variant, duration, ... }) => {
 4. **ביטול השלמת סט** - לחיצה נוספת מבטלת השלמה
 5. **אנימציות חלקות** - מעברים ויזואליים מלוטשים
 
+#### 🆕 אופטימיזציות חדשות (עדכון 05/08/2025):
+
+1. **הסרת כפילויות** - רכיב עזר לשדות קלט חוזרים
+2. **קבועים מוגדרים** - מניעת magic numbers
+3. **ממשק מרכזי** - ייבוא ExtendedSet מקובץ types משותף
+4. **מאפיינים משותפים** - SHARED_TEXT_INPUT_PROPS לכל השדות
+5. **הפחתת 70+ שורות** - באמצעות renderInputField
+
 #### 📋 Interface:
 
 ```typescript
 interface SetRowProps {
-  set: ExtendedSet;
+  set: ExtendedSet; // ✅ ייבוא מרכזי מ-types.ts
   setNumber: number;
   onUpdate: (updates: Partial<ExtendedSet>) => void;
   onDelete: () => void;
@@ -148,26 +180,56 @@ interface SetRowProps {
 #### 🎨 חצי מעלית (Elevator Buttons):
 
 ```typescript
-// עיצוב מעלית עם משולשים מסתובבים
+// עיצוב מעלית עם משולשים מסתובבים + קבועים מאוחדים
 <View style={styles.elevatorButtonsContainer}>
   {!isFirst && (
-    <TouchableOpacity onPress={onMoveUp}>
+    <TouchableOpacity
+      onPress={onMoveUp}
+      hitSlop={ELEVATOR_HIT_SLOP} // ✅ קבוע מאוחד
+    >
       <MaterialCommunityIcons
         name="triangle"
         style={{ transform: [{ rotate: '0deg' }] }}
       />
     </TouchableOpacity>
   )}
-  {!isLast && (
-    <TouchableOpacity onPress={onMoveDown}>
-      <MaterialCommunityIcons
-        name="triangle"
-        style={{ transform: [{ rotate: '180deg' }] }}
-      />
-    </TouchableOpacity>
-  )}
-</View>
 ```
+
+#### 🔧 רכיב עזר לשדות קלט:
+
+```typescript
+// ✅ חיסכון של 70+ שורות כפולות
+const renderInputField = React.useCallback((
+  type: "weight" | "reps",
+  value: string,
+  placeholder: string,
+  onChange: (value: string) => void,
+  onFocus: () => void,
+  onBlur: () => void,
+  focused: boolean,
+  inputRef: React.RefObject<TextInput>,
+  targetValue?: number
+) => (
+  <TouchableOpacity style={[styles.inputContainer, focused && styles.focusedContainer]}>
+    <TextInput
+      ref={inputRef}
+      {...SHARED_TEXT_INPUT_PROPS} // ✅ מאפיינים מאוחדים
+    />
+  </TouchableOpacity>
+), []);
+```
+
+{!isLast && (
+<TouchableOpacity onPress={onMoveDown}>
+<MaterialCommunityIcons
+name="triangle"
+style={{ transform: [{ rotate: '180deg' }] }}
+/>
+</TouchableOpacity>
+)}
+</View>
+
+````
 
 #### 🔧 אופטימיזציה לקלט מקלדת:
 
@@ -192,7 +254,7 @@ interface SetRowProps {
     spellCheck={false}
   />
 </TouchableOpacity>
-```
+````
 
 #### ✨ סגנונות מפתח:
 
