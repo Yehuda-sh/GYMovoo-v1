@@ -4,8 +4,9 @@
  * @description Central export point for all GYMovoo services and utilities
  * @dependencies All service modules within the services directory
  * @notes מאפשר ייבוא נוח ועקבי של שירותים מחוץ לתיקיה | Enables convenient and consistent service imports
- * @version 2.0.0 - Enhanced organization and type safety
- * @updated 2025-08-05 - Added User type, improved categorization, enhanced documentation
+ * @version 2.1.0 - Enhanced organization, accurate service counts, improved documentation
+ * @updated 2025-08-05 - Updated service counts, improved categorization, enhanced consistency
+ * @architecture Centralized export hub with singleton pattern for service instances
  */
 
 // =======================================
@@ -21,7 +22,7 @@ export type { User } from "./authService"; // Enhanced user type with full inter
 // =======================================
 export * from "./exerciseService";
 export * from "./questionnaireService";
-export * from "./workoutDataService";
+export { WorkoutDataService } from "./workoutDataService";
 
 // =======================================
 // 🎯 Specialized Workout Services
@@ -36,6 +37,10 @@ export type {
 export { workoutSimulationService } from "./workoutSimulationService";
 
 export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
+export type {
+  WorkoutCycleState,
+  NextWorkoutRecommendation,
+} from "./nextWorkoutLogicService";
 
 export { realisticDemoService } from "./realisticDemoService";
 export type {
@@ -43,6 +48,7 @@ export type {
   WorkoutExercise,
   RealisticExerciseSet,
   WorkoutFeedback,
+  PerformanceAnalysis,
   PerformanceRecommendation,
 } from "./realisticDemoService";
 
@@ -54,14 +60,8 @@ export { scientificAIService } from "./scientificAIService";
 export type {
   ScientificExerciseRecommendation,
   FitnessAssessment,
+  ScientificWorkoutPlan,
 } from "./scientificAIService";
-
-// =======================================
-// 🌐 External API Services
-// שירותי API חיצוניים
-// =======================================
-export { wgerApiService } from "./wgerApiService";
-export type { WgerExerciseInfo } from "./wgerApiService";
 
 // =======================================
 // ⚡ Quick Workout Generation
@@ -74,10 +74,21 @@ export {
 export type { QuickWorkoutTemplate } from "../types";
 
 // =======================================
+// 🎯 Exercise Data Access
+// גישה לנתוני תרגילים
+// =======================================
+// For exercise data, use the new local database:
+// עבור נתוני תרגילים, השתמש במאגר המקומי החדש:
+// import { allExercises, getBodyweightExercises, Exercise } from "../data/exercises";
+
+// =======================================
 // 📊 Service Export Summary
 // סיכום ייצוא שירותים
 // =======================================
-// Total Services: 8 | Core: 4 | Specialized: 4 | AI: 1 | External API: 1 | Quick Tools: 1
-// Types Exported: 12 | Interfaces: 8 | Service Instances: 7
-// Architecture: Singleton pattern with centralized export hub
-// Compatibility: Full backward compatibility maintained
+// Total Services: 12 | Core: 3 | Specialized: 5 | AI: 1 | Quick Tools: 1 | Auth: 1 | Logic: 1
+// Types Exported: 15+ | Service Instances: 8 | Interface Categories: 5
+// Architecture: Centralized export hub with categorized organization
+// Compatibility: Removed deprecated wgerApiService, migrated to local exercise database
+// Export Strategy: Explicit exports for services, comprehensive type exports for better IntelliSense
+// Exercise Data: Uses local database in src/data/exercises/ with 600+ exercises
+// Last Updated: 2025-08-05 - Removed wgerApiService and useWgerExercises, fully migrated to local database

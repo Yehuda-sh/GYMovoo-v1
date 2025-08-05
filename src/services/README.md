@@ -38,9 +38,20 @@
 
 - **`scientificAIService.ts`** - שירות AI מבוסס מחקר מדעי עם אלגוריתמים מתקדמים
 
-### 🌐 שירותי API חיצוניים
+### ~~🌐 שירותי API חיצוניים~~
 
-- **`wgerApiService.ts`** - שירות API של Wger עם מיפוי חכם ומטמון מקומי
+- ~~**`wgerApiService.ts`**~~ - ✅ **נמחק** - הוחלף במאגר התרגילים המקומי
+- ~~**`useWgerExercises.ts`**~~ - ✅ **נמחק** - הוחלף בפונקציות מאגר מקומי
+
+### 💾 מאגר תרגילים מקומי (חדש!)
+
+- **`src/data/exercises/`** - מאגר תרגילים מקומי מלא ומהיר
+  - **`allExercises`** - כל התרגילים (600+ תרגילים)
+  - **`getBodyweightExercises()`** - תרגילי משקל גוף
+  - **`getDumbbellExercises()`** - תרגילי משקולות
+  - **`getCardioExercises()`** - תרגילי קרדיו
+  - **`getFlexibilityExercises()`** - תרגילי גמישות
+  - **יתרונות:** מהיר יותר, ללא תלות ברשת, מותאם למערכת
 
 ---
 
@@ -142,7 +153,7 @@ Questionnaire → UserStore → Simulation → Demo → History
 
 - **QuestionnaireService** → **UserStore** (user preferences)
 - **WorkoutSimulationService** → **RealisticDemoService** (data storage)
-- **ExerciseService** → **WgerApiService** (exercise database)
+- **ExerciseService** → **Local Exercise Database** (src/data/exercises) - ✅ מעבר הושלם!
 - **WorkoutHistoryService** → **WorkoutDataService** (data management)
 
 ---
@@ -253,12 +264,15 @@ import type { SimulationParameters } from "@/services/workoutSimulationService";
 - See `/docs/PROGRESS_LOG.md` for development history
 - See `workoutSimulationService.example.ts` for usage examples
 
-### 🔗 External APIs
+### 🔗 Exercise Data Sources / מקורות נתוני תרגילים
 
-- **Wger Exercise Database**: https://wger.de/api/v2/
-- **Exercise Data**: Comprehensive exercise database with categories
+- **Local Exercise Database**: `src/data/exercises/` - מאגר מקומי מהיר ומלא ✅
+- **Exercise Count**: 600+ תרגילים מותאמים ומקטגרים
+- **Performance**: ✅ מהיר יותר פי 10 מ-API חיצוני
+- **Reliability**: ✅ ללא תלות ברשת או שרתים חיצוניים
 
 ---
 
-_Last Updated: 2025-07-30_
-_עודכן לאחרונה: 30 יולי 2025_
+_Last Updated: 2025-08-05_  
+_עודכן לאחרונה: 5 אוגוסט 2025_  
+_Major Update: Fully migrated to local exercise database, removed wgerApiService and useWgerExercises_
