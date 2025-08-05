@@ -57,7 +57,7 @@ import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
-import { User } from "../../stores/userStore";
+import { User } from "../../types";
 
 // =======================================
 // 🎯 TypeScript Interfaces & Types

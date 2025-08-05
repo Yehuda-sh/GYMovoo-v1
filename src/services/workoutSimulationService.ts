@@ -17,6 +17,15 @@ import {
   generateSingleGenderAdaptedNote,
   UserGender,
 } from "../utils/genderAdaptation";
+// יבוא המבנה החדש של התרגילים
+import {
+  getBodyweightExercises,
+  getDumbbellExercises,
+  getCardioExercises,
+  getFlexibilityExercises,
+  getExercisesByCategory,
+  getExercisesByEquipment,
+} from "../data/exercises/index";
 
 interface SimulationParameters {
   userExperience: "beginner" | "intermediate" | "advanced";
@@ -211,31 +220,35 @@ class WorkoutSimulationService {
   ): WorkoutExercise[] {
     const exercises: WorkoutExercise[] = [];
 
-    // ספריית תרגילים לפי סוג אימון
-    const exerciseLibrary = {
-      strength: [
-        { name: "Squat", sets: 4, reps: 8, weight: 60 },
-        { name: "Bench Press", sets: 4, reps: 8, weight: 50 },
-        { name: "Deadlift", sets: 3, reps: 6, weight: 70 },
-        { name: "Pull-ups", sets: 3, reps: 10, weight: 0 },
-        { name: "Overhead Press", sets: 3, reps: 10, weight: 35 },
-      ],
-      cardio: [
-        { name: "Treadmill", sets: 1, reps: 30, weight: 0 }, // 30 דקות
-        { name: "Cycling", sets: 1, reps: 25, weight: 0 },
-        { name: "Rowing", sets: 4, reps: 5, weight: 0 }, // 4x5 דקות
-        { name: "Jump Rope", sets: 5, reps: 2, weight: 0 }, // 5x2 דקות
-      ],
-      flexibility: [
-        { name: "Yoga Flow", sets: 1, reps: 20, weight: 0 },
-        { name: "Static Stretching", sets: 1, reps: 15, weight: 0 },
-        { name: "Foam Rolling", sets: 1, reps: 10, weight: 0 },
-      ],
-    };
+    // קבלת תרגילים מהמבנה החדש לפי סוג אימון
+    let availableExercises: any[] = [];
 
-    const availableExercises =
-      exerciseLibrary[workoutType as keyof typeof exerciseLibrary] ||
-      exerciseLibrary.strength;
+    switch (workoutType) {
+      case "strength":
+        // שילוב תרגילי משקל גוף ומשקולות
+        const bodyweightExs = getBodyweightExercises();
+        const dumbbellExs = getDumbbellExercises();
+
+        // התאמת תרגילים לציוד זמין
+        if (params.equipmentAvailable.includes("dumbbells")) {
+          availableExercises = [...bodyweightExs, ...dumbbellExs];
+        } else {
+          availableExercises = bodyweightExs;
+        }
+        break;
+
+      case "cardio":
+        availableExercises = getCardioExercises();
+        break;
+
+      case "flexibility":
+        availableExercises = getFlexibilityExercises();
+        break;
+
+      default:
+        // ברירת מחדל - תרגילי משקל גוף
+        availableExercises = getBodyweightExercises();
+    }
 
     // בחירת 3-6 תרגילים בהתאם לזמן וניסיון
     const exerciseCount =
@@ -247,21 +260,38 @@ class WorkoutSimulationService {
 
     const selectedExercises = this.shuffleArray([...availableExercises]).slice(
       0,
-      exerciseCount
+      Math.min(exerciseCount, availableExercises.length)
     );
 
     selectedExercises.forEach((exercise) => {
       // התאמת שם התרגיל למגדר
       const adaptedName = adaptExerciseNameToGender(
-        exercise.name,
+        exercise.nameLocalized.he, // שם בעברית
         params.gender
       );
 
+      // הגדרת ערכי ברירת מחדל לפי קטגוריה
+      let defaultSets = 3;
+      let defaultReps = 10;
+      let defaultWeight = undefined;
+
+      if (exercise.category === "strength") {
+        defaultSets = exercise.equipment === "dumbbells" ? 3 : 4;
+        defaultReps = exercise.equipment === "dumbbells" ? 8 : 12;
+        defaultWeight = exercise.equipment === "dumbbells" ? 15 : undefined;
+      } else if (exercise.category === "cardio") {
+        defaultSets = 1;
+        defaultReps = 20; // דקות
+      } else if (exercise.category === "core") {
+        defaultSets = 3;
+        defaultReps = 30; // שניות למשל פלאנק
+      }
+
       exercises.push({
         name: adaptedName,
-        targetSets: exercise.sets,
-        targetReps: exercise.reps,
-        targetWeight: exercise.weight > 0 ? exercise.weight : undefined,
+        targetSets: defaultSets,
+        targetReps: defaultReps,
+        targetWeight: defaultWeight,
         actualSets: [], // יתמלא בסימולציה
         skipped: false,
       });

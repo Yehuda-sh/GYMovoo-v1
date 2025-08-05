@@ -32,17 +32,15 @@
 
 ### 📝 שירותי שאלונים
 
-- **`questionnaireService.ts`** - ניהול שאלונים
-- **`scientificUserGenerator.ts`** - יצירת משתמשים לפי נתונים מדעיים
+- **`questionnaireService.ts`** - ניהול שאלונים ותמיכה בהתאמה אישית מתקדמת
 
 ### 🤖 שירותי AI ומדעיים
 
-- **`scientificAIService.ts`** - שירות AI מבוסס מחקר מדעי
+- **`scientificAIService.ts`** - שירות AI מבוסס מחקר מדעי עם אלגוריתמים מתקדמים
 
 ### 🌐 שירותי API חיצוניים
 
-- **`wgerApiService.ts`** - שירות API של Wger
-- **`wgerService.ts`** - שירות משופר ל-Wger
+- **`wgerApiService.ts`** - שירות API של Wger עם מיפוי חכם ומטמון מקומי
 
 ---
 

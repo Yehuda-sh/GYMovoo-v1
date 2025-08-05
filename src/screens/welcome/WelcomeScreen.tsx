@@ -262,28 +262,49 @@ export default function WelcomeScreen() {
   // Realistic demo creation with comprehensive workout history simulation
   // יצירת דמו מציאותי עם סימולציית היסטוריית אימונים מקיפה
   const handleDevQuickLogin = useCallback(async () => {
+    console.log("🚀 WelcomeScreen: Starting realistic demo creation process");
     setIsDevLoading(true);
 
     try {
+      console.log(
+        "👤 WelcomeScreen: Creating baseline demo user with questionnaire data"
+      );
       // Create baseline demo user with essential questionnaire data // יצירת משתמש דמו בסיסי עם נתוני שאלון חיוניים
       await realisticDemoService.createRealisticDemoUser();
+      console.log("✅ WelcomeScreen: Demo user created successfully");
 
+      console.log(
+        "🏋️ WelcomeScreen: Starting 6-month workout history simulation"
+      );
       // Simulate realistic 6-month workout progression // סימולציית התקדמות אימונים מציאותית של 6 חודשים
       await workoutSimulationService.simulateRealisticWorkoutHistory();
+      console.log("✅ WelcomeScreen: Workout history simulation completed");
 
+      console.log(
+        "📊 WelcomeScreen: Retrieving updated demo user with complete history"
+      );
       // Retrieve updated user with complete simulated history // קבלת משתמש מעודכן עם היסטוריה מדומה מלאה
       const demoUser = await realisticDemoService.getDemoUser();
 
       if (!demoUser) {
+        console.error(
+          "❌ WelcomeScreen: Demo user creation failed - no user returned"
+        );
         throw new Error("Demo user creation failed");
       }
 
+      console.log("💾 WelcomeScreen: Saving demo user to global store");
       // Save demo user to global store // שמירת משתמש דמו ב-store גלובלי
       setUser(demoUser);
 
+      console.log("🎯 WelcomeScreen: Navigating to main application");
       // Navigate to main application interface // ניווט לממשק האפליקציה הראשי
       navigation.navigate("MainApp");
-    } catch {
+      console.log(
+        "✅ WelcomeScreen: Demo creation process completed successfully"
+      );
+    } catch (error) {
+      console.error("❌ WelcomeScreen: Demo creation failed:", error);
       // Handle error silently in production
     } finally {
       setIsDevLoading(false);

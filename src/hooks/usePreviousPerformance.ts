@@ -4,6 +4,7 @@
  * @description Smart hook for getting previous exercise performances with progression algorithm
  * @notes משתמש באלגוריתם חכם לחישוב התקדמות והמלצות לביצועים הבאים
  * @notes Uses smart algorithm for calculating progression and recommendations for next performances
+ * @updated 2025-08-05 שיפור לוגינג ותמיכה במאגר התרגילים החדש
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -50,6 +51,11 @@ export const usePreviousPerformance = (
   // פונקציה לחישוב אלגוריתם התקדמות חכם
   const calculateSmartProgression = useCallback(
     (rawPerformance: PreviousPerformance): SmartPreviousPerformance => {
+      console.log(
+        "🧠 usePreviousPerformance: Starting smart progression calculation for:",
+        exerciseName
+      );
+
       // נניח שיש history או נבנה אותו מהנתונים הזמינים
       const history = ((rawPerformance as unknown as Record<string, unknown>)
         ?.history as unknown[]) || [rawPerformance];
@@ -60,6 +66,13 @@ export const usePreviousPerformance = (
         string,
         unknown
       >;
+
+      console.log("📊 usePreviousPerformance: Processing workout history:", {
+        totalWorkouts: history.length,
+        exerciseName,
+        hasLastWorkout: !!lastWorkout,
+        hasPreviousWorkout: !!previousWorkout,
+      });
 
       // חישוב מגמת התקדמות
       let progressionTrend: SmartPreviousPerformance["progressionTrend"] =
@@ -82,6 +95,13 @@ export const usePreviousPerformance = (
         if (strengthGain > 5) progressionTrend = "improving";
         else if (strengthGain > -5) progressionTrend = "stable";
         else progressionTrend = "declining";
+
+        console.log("📈 usePreviousPerformance: Progression analysis:", {
+          lastVolume,
+          prevVolume,
+          strengthGain: strengthGain.toFixed(1) + "%",
+          trend: progressionTrend,
+        });
       }
 
       // חישוב ציון עקביות (1-10)
@@ -116,6 +136,17 @@ export const usePreviousPerformance = (
         progressionTrend,
         consistencyScore,
         lastWorkoutGap
+      );
+
+      console.log("🎯 usePreviousPerformance: Smart progression calculated:", {
+        exerciseName,
+        progressionTrend,
+        consistencyScore,
+        confidenceLevel,
+        recommendedProgression: recommendedProgression.reasoning,
+      });
+      console.log(
+        "🔧 usePreviousPerformance: Ready to work with updated exercise database and equipment filtering"
       );
 
       return {
@@ -196,6 +227,10 @@ export const usePreviousPerformance = (
 
   const loadPreviousPerformance = async () => {
     try {
+      console.log(
+        "🔍 usePreviousPerformance: Loading performance data for exercise:",
+        exerciseName
+      );
       setLoading(true);
       setError(null);
 
@@ -205,16 +240,29 @@ export const usePreviousPerformance = (
         );
 
       if (rawPerformance) {
+        console.log(
+          "✅ usePreviousPerformance: Raw performance data found, calculating smart progression..."
+        );
         // הפוך את הנתונים הגולמיים לביצועים חכמים
         const smartPerformance = calculateSmartProgression(rawPerformance);
         setPreviousPerformance(smartPerformance);
+        console.log(
+          "🎯 usePreviousPerformance: Smart performance calculation completed successfully"
+        );
       } else {
+        console.log(
+          "📭 usePreviousPerformance: No previous performance data found for:",
+          exerciseName
+        );
         setPreviousPerformance(null);
       }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "שגיאה בטעינת נתוני ביצועים";
-      console.error("Error loading previous performance:", err);
+      console.error(
+        "❌ usePreviousPerformance: Error loading performance data:",
+        err
+      );
       setError(errorMessage);
       setPreviousPerformance(null);
     } finally {
@@ -229,6 +277,16 @@ export const usePreviousPerformance = (
     const { progressionTrend, strengthGain, consistencyScore } =
       previousPerformance;
 
+    console.log(
+      "💡 usePreviousPerformance: Generating progression insight for:",
+      exerciseName,
+      {
+        trend: progressionTrend,
+        gain: strengthGain.toFixed(1) + "%",
+        consistency: consistencyScore,
+      }
+    );
+
     switch (progressionTrend) {
       case "improving":
         return `מצוין! התקדמת ב-${strengthGain.toFixed(1)}% - המשך כך!`;
@@ -239,7 +297,7 @@ export const usePreviousPerformance = (
       default:
         return "תרגיל חדש - בואו נתחיל בזהירות";
     }
-  }, [previousPerformance]);
+  }, [previousPerformance, exerciseName]);
 
   const shouldIncreaseWeight = useCallback((): boolean => {
     if (!previousPerformance) return false;
@@ -247,12 +305,24 @@ export const usePreviousPerformance = (
     const { progressionTrend, consistencyScore, lastWorkoutGap } =
       previousPerformance;
 
-    return (
+    const shouldIncrease =
       progressionTrend === "improving" &&
       consistencyScore >= 7 &&
-      lastWorkoutGap <= 7
+      lastWorkoutGap <= 7;
+
+    console.log(
+      "⚖️ usePreviousPerformance: Weight increase recommendation for:",
+      exerciseName,
+      {
+        shouldIncrease,
+        trend: progressionTrend,
+        consistency: consistencyScore,
+        daysSince: lastWorkoutGap,
+      }
     );
-  }, [previousPerformance]);
+
+    return shouldIncrease;
+  }, [previousPerformance, exerciseName]);
 
   const getMotivationalMessage = useCallback((): string => {
     if (!previousPerformance) return "זמן להתחיל מסע כושר חדש! 💪";
@@ -260,16 +330,24 @@ export const usePreviousPerformance = (
     const { progressionTrend, strengthGain, lastWorkoutGap } =
       previousPerformance;
 
+    let message = "";
     if (lastWorkoutGap > 14) {
-      return "חזרת! זמן להרגיש שוב חזק 🔥";
+      message = "חזרת! זמן להרגיש שוב חזק 🔥";
     } else if (progressionTrend === "improving") {
-      return `כל הכבוד! שיפור של ${strengthGain.toFixed(1)}% 🚀`;
+      message = `כל הכבוד! שיפור של ${strengthGain.toFixed(1)}% 🚀`;
     } else if (progressionTrend === "stable") {
-      return "יציבות היא הבסיס להתקדמות! 💯";
+      message = "יציבות היא הבסיס להתקדמות! 💯";
     } else {
-      return "כל יום הוא הזדמנות חדשה להשתפר 🌟";
+      message = "כל יום הוא הזדמנות חדשה להשתפר 🌟";
     }
-  }, [previousPerformance]);
+
+    console.log(
+      "🎉 usePreviousPerformance: Generated motivational message for:",
+      exerciseName,
+      message
+    );
+    return message;
+  }, [previousPerformance, exerciseName]);
 
   return {
     previousPerformance,

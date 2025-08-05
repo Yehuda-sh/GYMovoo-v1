@@ -4,6 +4,7 @@
  * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase, WGER API
  * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה
  * @recurring_errors BackButton חובה במקום TouchableOpacity ידני, Alert.alert חסום - השתמש ב-ConfirmationModal
+ * @updated August 2025 - Enhanced logging, support for new exercise database with "none" equipment type for bodyweight exercises
  */
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -40,9 +41,10 @@ import {
   ExerciseTemplate,
 } from "./types/workout.types";
 
-import { EXTENDED_EXERCISE_DATABASE as ALL_EXERCISES } from "../../data/exerciseDatabase";
-import { ExerciseTemplate as DatabaseExercise } from "../../services/quickWorkoutGenerator";
-import { useWgerExercises } from "../../hooks/useWgerExercises";
+import { allExercises as ALL_EXERCISES } from "../../data/exercises";
+import { Exercise } from "../../data/exercises/types";
+import { QuickWorkoutTemplate as DatabaseExercise } from "../../types";
+// Removed: import { useWgerExercises } from "../../hooks/useWgerExercises";
 
 // Workout day templates
 const WORKOUT_DAYS = {
@@ -105,6 +107,16 @@ if (typeof global !== "undefined") {
 }
 
 export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
+  console.log(
+    "🏋️ WorkoutPlansScreen: Initializing with internal exercise database"
+  );
+  console.log(
+    "🏋️ WorkoutPlansScreen: Supporting 'none' equipment for bodyweight exercises"
+  );
+  console.log(
+    "🎯 WorkoutPlansScreen: WGER API disabled - using optimized internal database only"
+  );
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
 
@@ -130,10 +142,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     destructive: false,
   });
 
-  // WGER API Integration - keeping minimal imports
-  const { searchExercisesByEquipment } = useWgerExercises();
-
-  const [wgerEnabled] = useState(true);
+  // Removed WGER API Integration - using internal exercise database only
+  // const { searchExercisesByEquipment } = useWgerExercises();
+  // const [wgerEnabled] = useState(false); // Disabled WGER API
 
   // Animations
   const fadeAnim = useMemo(() => new Animated.Value(0), []);
@@ -141,13 +152,38 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
   // Quick exercise mapping for performance
   const exerciseMap = useMemo(() => {
-    return ALL_EXERCISES.reduce(
-      (acc, ex) => {
+    console.log(
+      "🗃️ WorkoutPlansScreen: Creating exercise map from database..."
+    );
+    console.log(
+      "🗃️ WorkoutPlansScreen: Database contains",
+      ALL_EXERCISES.length,
+      "exercises"
+    );
+
+    const map = ALL_EXERCISES.reduce(
+      (acc: Record<string, any>, ex: any) => {
         acc[ex.id] = ex;
         return acc;
       },
-      {} as Record<string, DatabaseExercise>
+      {} as Record<string, any>
     );
+
+    console.log(
+      "🗃️ WorkoutPlansScreen: Exercise map created with",
+      Object.keys(map).length,
+      "entries"
+    );
+
+    // Log first few exercises
+    const sampleIds = Object.keys(map).slice(0, 5);
+    console.log("🗃️ WorkoutPlansScreen: Sample exercise IDs:", sampleIds);
+    sampleIds.forEach((id) => {
+      const ex = map[id];
+      console.log(`  - ${id}: ${ex.name} (${ex.equipment})`);
+    });
+
+    return map;
   }, []);
 
   // Load plan on screen entry or regeneration request
@@ -242,44 +278,53 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     loadEquipment();
   }, []);
 
-  // Load WGER exercises based on available equipment
-  useEffect(() => {
-    const loadWgerExercises = async () => {
-      if (!wgerEnabled || availableEquipment.length === 0) {
-        return;
-      }
-
-      try {
-        await searchExercisesByEquipment(availableEquipment);
-      } catch (error) {
-        console.error("❌ Failed to load WGER exercises:", error);
-        setError(
-          error instanceof Error ? error.message : "שגיאה בטעינת תרגילים"
-        );
-      }
-    };
-
-    if (availableEquipment.length > 0) {
-      loadWgerExercises();
-    }
-  }, [availableEquipment, wgerEnabled, searchExercisesByEquipment]);
+  // Removed WGER exercises loading - using internal database only
+  // useEffect(() => {
+  //   const loadWgerExercises = async () => {
+  //     if (!wgerEnabled || availableEquipment.length === 0) {
+  //       return;
+  //     }
+  //
+  //     try {
+  //       await searchExercisesByEquipment(availableEquipment);
+  //     } catch (error) {
+  //       console.error("❌ Failed to load WGER exercises:", error);
+  //       setError(
+  //         error instanceof Error ? error.message : "שגיאה בטעינת תרגילים"
+  //       );
+  //     }
+  //   };
+  //
+  //   if (availableEquipment.length > 0) {
+  //     loadWgerExercises();
+  //   }
+  // }, [availableEquipment]);
 
   /**
    * Handle return from workout
    */
   const handlePostWorkoutReturn = () => {
-    console.log("🔄 WorkoutPlansScreen - חזרה מאימון!");
+    console.log(
+      "🔄 WorkoutPlansScreen: חזרה מאימון - עדכון תוכניות עם מאגר תרגילים חדש"
+    );
     const workoutId = route?.params?.completedWorkoutId;
+    console.log("🔄 WorkoutPlansScreen: Workout ID:", workoutId);
+
     if (workoutId) {
+      console.log("🔄 WorkoutPlansScreen: מציג modal לאחר השלמת אימון");
       setModalConfig({
         title: "אימון הושלם! 🎉",
         message: "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
-        onConfirm: () => generateWorkoutPlan(true),
+        onConfirm: () => {
+          console.log("🔄 WorkoutPlansScreen: יוצר תוכנית חדשה לאחר אימון");
+          generateWorkoutPlan(true);
+        },
         confirmText: "צור תוכנית חדשה",
         destructive: false,
       });
       setShowConfirmModal(true);
     } else {
+      console.log("🔄 WorkoutPlansScreen: טוען תוכנית רגילה (ללא ID אימון)");
       generateWorkoutPlan();
     }
   };
@@ -288,7 +333,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle AI plan generation with debug
    */
   const handleAIPlanPress = () => {
-    console.log("🤖 WorkoutPlansScreen - כפתור תוכנית AI נלחץ!");
+    console.log(
+      "🤖 WorkoutPlansScreen: כפתור תוכנית AI נלחץ - יוצר תוכנית חכמה עם מאגר התרגילים החדש"
+    );
+    console.log(
+      "🤖 WorkoutPlansScreen: Available exercises count:",
+      ALL_EXERCISES.length
+    );
+    console.log("🤖 WorkoutPlansScreen: Equipment types in database:", [
+      ...new Set(ALL_EXERCISES.map((ex: any) => ex.equipment)),
+    ]);
     generateAIWorkoutPlan(true);
   };
 
@@ -296,7 +350,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle plan regeneration with debug
    */
   const handleRegeneratePress = () => {
-    console.log("🔄 WorkoutPlansScreen - כפתור רענון נלחץ!");
+    console.log(
+      "🔄 WorkoutPlansScreen: כפתור רענון נלחץ - יוצר תוכנית חדשה עם מאגר התרגילים החדש"
+    );
+    console.log("🔄 WorkoutPlansScreen: Current plan:", workoutPlan?.name);
+    console.log(
+      "🔄 WorkoutPlansScreen: Equipment filtering ready for 'none' = bodyweight exercises"
+    );
     generateWorkoutPlan(true);
   };
 
@@ -413,37 +473,37 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.error("❌ WorkoutDataService: ERROR", error);
     }
 
-    // Test 3: WGER API (only if network is connected)
-    if (networkCheck.connected) {
-      try {
-        console.log("🧪 Testing WGER API...");
-        const testEquipment = ["barbell", "dumbbells"];
-        const wgerExercises = await searchExercisesByEquipment(testEquipment);
-
-        testResults.wgerAPI = {
-          status: "success",
-          data: { exerciseCount: wgerExercises?.length || 0, testEquipment },
-          error: null,
-        };
-        console.log("✅ WGER API: OK", {
-          exerciseCount: wgerExercises?.length || 0,
-        });
-      } catch (error) {
-        testResults.wgerAPI = {
-          status: "error",
-          data: null,
-          error: error instanceof Error ? error.message : "Unknown error",
-        };
-        console.error("❌ WGER API: ERROR", error);
-      }
-    } else {
-      testResults.wgerAPI = {
-        status: "error",
-        data: null,
-        error: "Skipped due to network connectivity issues",
-      };
-      console.warn("⚠️ WGER API: SKIPPED due to network issues");
-    }
+    // Test 3: WGER API - Removed (using internal database only)
+    // if (networkCheck.connected) {
+    //   try {
+    //     console.log("🧪 Testing WGER API...");
+    //     const testEquipment = ["barbell", "dumbbells"];
+    //     const wgerExercises = await searchExercisesByEquipment(testEquipment);
+    //
+    //     testResults.wgerAPI = {
+    //       status: "success",
+    //       data: { exerciseCount: wgerExercises?.length || 0, testEquipment },
+    //       error: null,
+    //     };
+    //     console.log("✅ WGER API: OK", {
+    //       exerciseCount: wgerExercises?.length || 0,
+    //     });
+    //   } catch (error) {
+    //     testResults.wgerAPI = {
+    //       status: "error",
+    //       data: null,
+    //       error: error instanceof Error ? error.message : "Unknown error",
+    //     };
+    //     console.error("❌ WGER API: ERROR", error);
+    //   }
+    // } else {
+    testResults.wgerAPI = {
+      status: "success",
+      data: { message: "Using internal exercise database only" },
+      error: null,
+    };
+    console.log("✅ WGER API: DISABLED - Using internal database");
+    // }
 
     // Test 4: User Store
     try {
@@ -571,7 +631,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // Validate Exercise Database
     console.log("🧪 Validating exercise database...");
-    ALL_EXERCISES.forEach((exercise, index) => {
+    ALL_EXERCISES.forEach((exercise: any, index: number) => {
       const issues: string[] = [];
 
       if (!exercise.id) issues.push(`Missing ID at index ${index}`);
@@ -585,6 +645,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         issues.push(
           `Missing equipment for ${exercise.name || `exercise ${index}`}`
         );
+
+      // Special validation for "none" equipment (bodyweight exercises)
+      if (exercise.equipment === "none" && exercise.name) {
+        console.log(`✅ Found bodyweight exercise: ${exercise.name}`);
+      }
 
       if (issues.length > 0) {
         validationResults.exerciseDatabase.invalid++;
@@ -754,6 +819,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       setError(null);
       if (refreshing) setRefreshing(true);
 
+      console.log("🏗️ WorkoutPlansScreen: Starting workout plan generation...");
+      console.log(
+        "🏗️ WorkoutPlansScreen: Total exercises in database:",
+        ALL_EXERCISES.length
+      );
+
       // Enhanced exercise cache initialization
       global.exerciseState.usedExercises_day0 = new Set<string>();
       global.exerciseState.usedExercises_day1 = new Set<string>();
@@ -761,6 +832,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // Get user data from questionnaire
       const userQuestionnaireData = user?.questionnaire || {};
+      console.log(
+        "🏗️ WorkoutPlansScreen: User questionnaire data:",
+        userQuestionnaireData
+      );
+
       const questData = userQuestionnaireData as Record<
         string | number,
         string | string[]
@@ -778,6 +854,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         weight: questData.weight || questData[4],
         gender: questData.gender || questData[2],
       };
+
+      console.log("🏗️ WorkoutPlansScreen: Processed metadata:", metadata);
 
       // Apply smart defaults for invalid data using constants
       if (
@@ -809,6 +887,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         metadata.goal = GOAL_MAP[metadata.goal as keyof typeof GOAL_MAP];
       }
 
+      console.log(
+        "🏗️ WorkoutPlansScreen: Final metadata after defaults:",
+        metadata
+      );
+
       // Check required fields
       const requiredFields = ["frequency", "duration", "goal", "experience"];
       const missingFields = requiredFields.filter(
@@ -818,7 +901,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         missingFields.length > 0 ||
         Object.keys(userQuestionnaireData).length === 0
       ) {
-        console.error(`Missing required fields: ${missingFields.join(", ")}`);
+        console.error(
+          `❌ WorkoutPlansScreen: Missing required fields: ${missingFields.join(", ")}`
+        );
         setModalConfig({
           title: "נתונים חסרים 📋",
           message: "יש להשלים את השאלון כדי לקבל תוכנית מותאמת אישית",
@@ -832,9 +917,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // Get available equipment with improved error handling
       let equipment = await getAvailableEquipment();
+      console.log("🔧 WorkoutPlansScreen: Equipment received:", equipment);
 
       if (!equipment || equipment.length === 0) {
-        console.warn("⚠️ No equipment data found, using default");
+        console.warn(
+          "⚠️ WorkoutPlansScreen: No equipment data found, using default"
+        );
         equipment = DEFAULT_EQUIPMENT;
       }
 
@@ -845,8 +933,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const daysPerWeek =
         FREQUENCY_MAP[frequencyValue as keyof typeof FREQUENCY_MAP] || 3;
 
+      console.log("🏗️ WorkoutPlansScreen: Days per week:", daysPerWeek);
+      console.log("🏗️ WorkoutPlansScreen: About to create workout plan...");
+
       // Create workout plan
       const plan = createWorkoutPlan(metadata, equipment, daysPerWeek);
+
+      console.log("✅ WorkoutPlansScreen: Workout plan created successfully!");
+      console.log("✅ WorkoutPlansScreen: Plan name:", plan.name);
+      console.log(
+        "✅ WorkoutPlansScreen: Number of workouts:",
+        plan.workouts.length
+      );
+
+      plan.workouts.forEach((workout, index) => {
+        console.log(
+          `✅ WorkoutPlansScreen: Day ${index + 1} - ${workout.name}: ${workout.exercises.length} exercises`
+        );
+        workout.exercises.forEach((exercise, exIndex) => {
+          const exerciseData = exerciseMap[exercise.exerciseId];
+          console.log(
+            `  📝 Exercise ${exIndex + 1}: ${exerciseData?.name || "Unknown"} (${exerciseData?.equipment || "Unknown equipment"})`
+          );
+        });
+      });
 
       setWorkoutPlan(plan);
 
@@ -862,7 +972,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         setShowSuccessModal(true);
       }
     } catch (error) {
-      console.error("Error generating workout plan:", error);
+      console.error(
+        "❌ WorkoutPlansScreen: Error generating workout plan:",
+        error
+      );
 
       setError(
         error instanceof Error ? error.message : "שגיאה ביצירת תוכנית אימון"
@@ -1001,43 +1114,198 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     duration: number,
     metadata: Record<string | number, string | string[]>
   ): ExerciseTemplate[] => {
-    console.log("Creating exercises for:", {
-      dayName,
-      equipment,
-      experience,
-      duration,
-      metadata,
-    });
+    console.log("🏗️ WorkoutPlansScreen: === SELECTING EXERCISES FOR DAY ===");
+    console.log("🏗️ WorkoutPlansScreen: Day name:", dayName);
+    console.log("🏗️ WorkoutPlansScreen: Available equipment:", equipment);
+    console.log("🏗️ WorkoutPlansScreen: Experience level:", experience);
+    console.log("🏗️ WorkoutPlansScreen: Duration:", duration);
 
     // Get target muscle groups based on day name
     const muscleGroups = getMuscleGroupsForDay(dayName);
     const exerciseCount = Math.max(4, Math.min(8, Math.floor(duration / 10)));
 
+    console.log("� WorkoutPlansScreen: Target muscle groups:", muscleGroups);
+    console.log("� WorkoutPlansScreen: Target exercise count:", exerciseCount);
+    console.log(
+      "🎯 WorkoutPlansScreen: Total exercises in database:",
+      ALL_EXERCISES.length
+    );
+
+    // Log first few exercises from database to verify data
+    console.log("📚 WorkoutPlansScreen: Sample exercises from database:");
+    ALL_EXERCISES.slice(0, 5).forEach((ex: any, index) => {
+      console.log(
+        `  ${index + 1}. ${ex.name} - Equipment: ${ex.equipment} - Muscles: ${ex.primaryMuscles?.join(", ")}`
+      );
+    });
+
     // Filter exercises by muscle groups and equipment
-    const availableExercises = ALL_EXERCISES.filter((exercise) => {
-      // Check if exercise targets the right muscle groups
-      const targetsCorrectMuscles = exercise.primaryMuscles.some((muscle) =>
-        muscleGroups.some(
-          (group) => muscle.includes(group) || group.includes(muscle)
-        )
+    const availableExercises = ALL_EXERCISES.filter((exercise: any) => {
+      // Enhanced muscle check - support both Hebrew and English muscle names
+      const targetsCorrectMuscles = exercise.primaryMuscles?.some(
+        (muscle: string) => {
+          // Direct match
+          const directMatch = muscleGroups.some(
+            (group) => muscle.includes(group) || group.includes(muscle)
+          );
+
+          // Additional flexible matching for common muscle name variations
+          const flexibleMatch = muscleGroups.some((group) => {
+            // Hebrew to English mappings
+            if (
+              group === "חזה" &&
+              (muscle.includes("chest") || muscle.includes("pectoral"))
+            )
+              return true;
+            if (
+              group === "גב" &&
+              (muscle.includes("back") ||
+                muscle.includes("lat") ||
+                muscle.includes("rhomboid"))
+            )
+              return true;
+            if (
+              group === "כתפיים" &&
+              (muscle.includes("shoulder") || muscle.includes("deltoid"))
+            )
+              return true;
+            if (group === "טריצפס" && muscle.includes("tricep")) return true;
+            if (group === "ביצפס" && muscle.includes("bicep")) return true;
+            if (
+              group === "רגליים" &&
+              (muscle.includes("quad") || muscle.includes("leg"))
+            )
+              return true;
+            if (group === "ישבן" && muscle.includes("glute")) return true;
+            if (group === "בטן" && muscle.includes("core")) return true;
+
+            // English to Hebrew mappings
+            if (muscle === "chest" && group.includes("חזה")) return true;
+            if (muscle === "back" && group.includes("גב")) return true;
+            if (muscle === "shoulders" && group.includes("כתפיים")) return true;
+            if (muscle === "triceps" && group.includes("טריצפס")) return true;
+            if (muscle === "biceps" && group.includes("ביצפס")) return true;
+            if (
+              (muscle === "quadriceps" || muscle === "legs") &&
+              group.includes("רגליים")
+            )
+              return true;
+            if (muscle === "glutes" && group.includes("ישבן")) return true;
+            if (muscle === "core" && group.includes("בטן")) return true;
+
+            return false;
+          });
+
+          return directMatch || flexibleMatch;
+        }
       );
 
-      // Check if equipment is available
+      // Enhanced equipment check - support for "none" equipment (bodyweight)
       const hasRequiredEquipment =
         equipment.includes(exercise.equipment) ||
+        exercise.equipment === "none" ||
         exercise.equipment === "bodyweight";
 
-      return targetsCorrectMuscles && hasRequiredEquipment;
+      console.log(
+        `🔍 WorkoutPlansScreen: Exercise "${exercise.name}" - muscles: ${targetsCorrectMuscles} (${exercise.primaryMuscles?.join(", ")}), equipment: ${hasRequiredEquipment} (${exercise.equipment})`
+      );
+
+      const isValid = targetsCorrectMuscles && hasRequiredEquipment;
+      if (isValid) {
+        console.log(
+          `✅ WorkoutPlansScreen: "${exercise.name}" is VALID for this day!`
+        );
+      }
+
+      return isValid;
     });
+
+    console.log(
+      "🔍 WorkoutPlansScreen: Available exercises after filtering:",
+      availableExercises.length
+    );
+
+    if (availableExercises.length === 0) {
+      console.error(
+        "❌ WorkoutPlansScreen: NO EXERCISES FOUND AFTER FILTERING!"
+      );
+      console.error("❌ WorkoutPlansScreen: Target muscles:", muscleGroups);
+      console.error("❌ WorkoutPlansScreen: Available equipment:", equipment);
+
+      // Fallback: try to find ANY exercises for this equipment
+      const fallbackExercises = ALL_EXERCISES.filter((exercise: any) => {
+        return (
+          equipment.includes(exercise.equipment) ||
+          exercise.equipment === "none" ||
+          exercise.equipment === "bodyweight"
+        );
+      });
+
+      console.log(
+        "🔧 WorkoutPlansScreen: Fallback exercises found:",
+        fallbackExercises.length
+      );
+      if (fallbackExercises.length > 0) {
+        console.log("🔧 WorkoutPlansScreen: Using fallback exercises:");
+        fallbackExercises.slice(0, 3).forEach((ex: any) => {
+          console.log(`  - ${ex.name} (${ex.equipment})`);
+        });
+
+        // Use first few fallback exercises
+        const selectedFallback = fallbackExercises.slice(
+          0,
+          Math.min(exerciseCount, fallbackExercises.length)
+        );
+        return selectedFallback.map((exercise: any) => ({
+          exerciseId: exercise.id,
+          sets: getSetsForExperience(experience),
+          reps: getRepsForGoal(metadata.goal as string),
+          restTime: getRestTimeForGoal(metadata.goal as string),
+          weight: 0,
+          notes: exercise.instructions?.join(". ") || "",
+        }));
+      }
+    }
+
+    console.log(
+      "🔍 WorkoutPlansScreen: Available exercises after filtering:",
+      availableExercises.length
+    );
 
     // Select exercises based on experience level
     const difficultyFilter = getDifficultyFilter(experience);
-    const selectedExercises = availableExercises
-      .filter((ex) => difficultyFilter.includes(ex.difficulty || "beginner"))
+    console.log("🎯 WorkoutPlansScreen: Difficulty filter:", difficultyFilter);
+
+    let selectedExercises = availableExercises
+      .filter((ex: any) =>
+        difficultyFilter.includes(ex.difficulty || "beginner")
+      )
       .slice(0, exerciseCount);
 
+    console.log(
+      "🎯 WorkoutPlansScreen: Selected exercises after difficulty filtering:",
+      selectedExercises.map((ex: any) => `${ex.name} (${ex.equipment})`)
+    );
+
+    // If we don't have enough exercises, be more flexible with difficulty
+    if (selectedExercises.length < Math.min(3, exerciseCount)) {
+      console.log(
+        "⚠️ WorkoutPlansScreen: Not enough exercises found, expanding difficulty criteria..."
+      );
+      selectedExercises = availableExercises.slice(0, exerciseCount);
+      console.log(
+        "🔧 WorkoutPlansScreen: Expanded selection:",
+        selectedExercises.map((ex: any) => `${ex.name} (${ex.equipment})`)
+      );
+    }
+
+    console.log(
+      "🎯 WorkoutPlansScreen: Final selected exercises:",
+      selectedExercises.map((ex: any) => `${ex.name} (${ex.equipment})`)
+    );
+
     // Convert to ExerciseTemplate format
-    return selectedExercises.map((exercise) => ({
+    const exerciseTemplates = selectedExercises.map((exercise: any) => ({
       exerciseId: exercise.id,
       sets: getSetsForExperience(experience),
       reps: getRepsForGoal(metadata.goal as string),
@@ -1045,29 +1313,93 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       weight: 0,
       notes: exercise.instructions?.join(". ") || "",
     }));
+
+    console.log(
+      "🎯 WorkoutPlansScreen: Created exercise templates:",
+      exerciseTemplates.length
+    );
+
+    return exerciseTemplates;
   };
 
   const getMuscleGroupsForDay = (dayName: string): string[] => {
+    console.log(
+      "🎯 WorkoutPlansScreen: getMuscleGroupsForDay called with:",
+      dayName
+    );
+
+    // Enhanced mapping with both Hebrew and English terms
     const muscleMapping: { [key: string]: string[] } = {
-      "אימון מלא": ["חזה", "גב", "רגליים", "כתפיים", "ידיים"],
-      "פלג גוף עליון": ["חזה", "גב", "כתפיים", "ידיים"],
-      "פלג גוף תחתון": ["רגליים", "ישבן", "שוקיים"],
-      דחיפה: ["חזה", "כתפיים", "טריצפס"],
-      משיכה: ["גב", "ביצפס"],
-      רגליים: ["רגליים", "ישבן", "שוקיים"],
-      חזה: ["חזה", "טריצפס"],
-      גב: ["גב", "ביצפס"],
-      כתפיים: ["כתפיים"],
-      ידיים: ["ביצפס", "טריצפס"],
+      "אימון מלא": [
+        "חזה",
+        "גב",
+        "רגליים",
+        "כתפיים",
+        "ידיים",
+        "chest",
+        "back",
+        "legs",
+        "shoulders",
+        "arms",
+        "quadriceps",
+        "glutes",
+        "triceps",
+        "biceps",
+        "core",
+        "full_body",
+      ],
+      "פלג גוף עליון": [
+        "חזה",
+        "גב",
+        "כתפיים",
+        "ידיים",
+        "chest",
+        "back",
+        "shoulders",
+        "arms",
+        "triceps",
+        "biceps",
+      ],
+      "פלג גוף תחתון": [
+        "רגליים",
+        "ישבן",
+        "שוקיים",
+        "legs",
+        "quadriceps",
+        "glutes",
+        "hamstrings",
+      ],
+      דחיפה: ["חזה", "כתפיים", "טריצפס", "chest", "shoulders", "triceps"],
+      משיכה: ["גב", "ביצפס", "back", "biceps"],
+      רגליים: [
+        "רגליים",
+        "ישבן",
+        "שוקיים",
+        "legs",
+        "quadriceps",
+        "glutes",
+        "hamstrings",
+      ],
+      חזה: ["חזה", "טריצפס", "chest", "triceps"],
+      גב: ["גב", "ביצפס", "back", "biceps"],
+      כתפיים: ["כתפיים", "shoulders"],
+      ידיים: ["ביצפס", "טריצפס", "biceps", "triceps"],
       בטן: ["בטן", "core"],
-      "חזה + טריצפס": ["חזה", "טריצפס"],
-      "גב + ביצפס": ["גב", "ביצפס"],
-      "כתפיים + בטן": ["כתפיים", "בטן"],
-      "ידיים + בטן": ["ביצפס", "טריצפס", "בטן"],
-      "בטן + קרדיו": ["בטן", "core"],
+      "חזה + טריצפס": ["חזה", "טריצפס", "chest", "triceps"],
+      "גב + ביצפס": ["גב", "ביצפס", "back", "biceps"],
+      "כתפיים + בטן": ["כתפיים", "בטן", "shoulders", "core"],
+      "ידיים + בטן": ["ביצפס", "טריצפס", "בטן", "biceps", "triceps", "core"],
+      "בטן + קרדיו": ["בטן", "core", "full_body"],
     };
 
-    return muscleMapping[dayName] || ["גוף מלא"];
+    const result = muscleMapping[dayName] || ["גוף מלא", "full_body"];
+    console.log(
+      "🎯 WorkoutPlansScreen: Muscle groups for",
+      dayName,
+      ":",
+      result
+    );
+    return result;
   };
 
   const getDifficultyFilter = (experience: string): string[] => {
@@ -1075,8 +1407,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       return ["beginner", "intermediate"];
     } else if (experience.includes("בינוני")) {
       return ["beginner", "intermediate", "advanced"];
+    } else if (experience === "some_experience") {
+      // Handle intermediate level - include all difficulties for better exercise variety
+      return ["beginner", "intermediate", "advanced"];
     } else {
-      return ["intermediate", "advanced"];
+      return ["beginner", "intermediate", "advanced"];
     }
   };
 
@@ -1126,10 +1461,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     exercises.forEach((exercise) => {
       const exerciseData = exerciseMap[exercise.exerciseId];
       if (exerciseData?.primaryMuscles) {
-        exerciseData.primaryMuscles.forEach((muscle) => muscles.add(muscle));
+        exerciseData.primaryMuscles.forEach((muscle: string) =>
+          muscles.add(muscle)
+        );
       }
     });
 
+    console.log(
+      "🎯 WorkoutPlansScreen: Extracted target muscles:",
+      Array.from(muscles)
+    );
     return Array.from(muscles);
   };
 
@@ -1214,10 +1555,35 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   // Improved equipment getter with error handling
   const getAvailableEquipment = async (): Promise<string[]> => {
     try {
+      console.log("🔧 WorkoutPlansScreen: Loading available equipment...");
       const equipment = await questionnaireService.getAvailableEquipment();
-      return equipment && equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT;
+
+      console.log(
+        "🔧 WorkoutPlansScreen: Raw equipment from questionnaire:",
+        equipment
+      );
+
+      // Enhanced equipment validation and mapping
+      const validEquipment =
+        equipment && equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT;
+
+      // Check if user selected "home without equipment" - should only get bodyweight exercises
+      const hasNoEquipment =
+        equipment?.includes("none") || equipment?.includes("bodyweight");
+      if (hasNoEquipment) {
+        console.log(
+          "🏠 WorkoutPlansScreen: User selected home without equipment - filtering to bodyweight only"
+        );
+        return ["none", "bodyweight"]; // Ensure bodyweight exercises are available
+      }
+
+      console.log(
+        "🔧 WorkoutPlansScreen: Final equipment list:",
+        validEquipment
+      );
+      return validEquipment;
     } catch (error) {
-      console.error("❌ Error getting equipment:", error);
+      console.error("❌ WorkoutPlansScreen: Error getting equipment:", error);
       setError(error instanceof Error ? error.message : "שגיאה בטעינת ציוד");
       return DEFAULT_EQUIPMENT;
     }
@@ -1225,15 +1591,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
   const startWorkout = (workout: WorkoutTemplate) => {
     try {
+      console.log(
+        "🚀 WorkoutPlansScreen: Starting workout with updated exercise database"
+      );
+      console.log("🚀 WorkoutPlansScreen: Workout name:", workout.name);
+      console.log(
+        "🚀 WorkoutPlansScreen: Exercise count:",
+        workout.exercises.length
+      );
+
       // Convert template to active workout format for ActiveWorkoutScreen
       const activeExercises = workout.exercises
         .map((template: ExerciseTemplate) => {
           const exercise = exerciseMap[template.exerciseId];
 
           if (!exercise) {
-            console.warn(`Exercise not found: ${template.exerciseId}`);
+            console.warn(
+              `❌ WorkoutPlansScreen: Exercise not found: ${template.exerciseId}`
+            );
             return null;
           }
+
+          console.log(
+            `✅ WorkoutPlansScreen: Processing exercise: ${exercise.name} (equipment: ${exercise.equipment})`
+          );
 
           // Create sets array with proper structure for ActiveWorkoutScreen
           const sets = Array.from({ length: template.sets }, (_, index) => ({
@@ -1270,6 +1651,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         );
 
       if (activeExercises.length === 0) {
+        console.error(
+          "❌ WorkoutPlansScreen: No valid exercises found for workout"
+        );
         setModalConfig({
           title: "שגיאה באימון",
           message: "לא נמצאו תרגילים תקינים לאימון זה",
@@ -1281,12 +1665,33 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         return;
       }
 
+      // Log exercise equipment types for debugging
+      const equipmentTypes = activeExercises.map((ex) => ex.equipment);
+      console.log(
+        "🏋️ WorkoutPlansScreen: Active workout equipment types:",
+        equipmentTypes
+      );
+
+      // Check for bodyweight-only workout
+      const isBodyweightOnly = equipmentTypes.every(
+        (eq) => eq === "none" || eq === "bodyweight"
+      );
+      if (isBodyweightOnly) {
+        console.log(
+          "💪 WorkoutPlansScreen: This is a bodyweight-only workout - perfect for home without equipment!"
+        );
+      }
+
       // Navigate to ActiveWorkoutScreen with proper workout data structure
-      console.log("🚀 WorkoutPlansScreen - מנווט ל-ActiveWorkoutScreen עם:", {
-        workoutName: workout.name,
-        exerciseCount: activeExercises.length,
-        firstExercise: activeExercises[0]?.name,
-      });
+      console.log(
+        "🚀 WorkoutPlansScreen: Navigating to ActiveWorkoutScreen with:",
+        {
+          workoutName: workout.name,
+          exerciseCount: activeExercises.length,
+          firstExercise: activeExercises[0]?.name,
+          isBodyweightOnly,
+        }
+      );
 
       navigation.navigate("ActiveWorkout", {
         workoutData: {
@@ -1297,7 +1702,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         },
       } as never);
     } catch (error) {
-      console.error("Error starting workout:", error);
+      console.error("❌ WorkoutPlansScreen: Error starting workout:", error);
       setError(error instanceof Error ? error.message : "שגיאה בתחילת האימון");
 
       setModalConfig({
@@ -1312,9 +1717,25 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   const showExerciseDetails = (exerciseId: string) => {
+    const exercise = exerciseMap[exerciseId];
+    console.log(
+      "💪 WorkoutPlansScreen: Showing exercise details for:",
+      exercise?.name
+    );
+    console.log(
+      "💪 WorkoutPlansScreen: Exercise equipment:",
+      exercise?.equipment
+    );
+    console.log(
+      "💪 WorkoutPlansScreen: Exercise muscles:",
+      exercise?.primaryMuscles
+    );
+
     if (expandedExercise === exerciseId) {
+      console.log("💪 WorkoutPlansScreen: Collapsing exercise details");
       setExpandedExercise(null);
     } else {
+      console.log("💪 WorkoutPlansScreen: Expanding exercise details");
       setExpandedExercise(exerciseId);
     }
   };
@@ -1460,7 +1881,17 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             <View style={styles.exercisesList}>
               {workoutPlan.workouts[selectedDay].exercises.map((exercise) => {
                 const exerciseData = exerciseMap[exercise.exerciseId];
-                if (!exerciseData) return null;
+                console.log(
+                  `📝 WorkoutPlansScreen: Rendering exercise ${exercise.exerciseId}:`,
+                  exerciseData?.name || "NOT FOUND"
+                );
+
+                if (!exerciseData) {
+                  console.error(
+                    `❌ WorkoutPlansScreen: Exercise data not found for ID: ${exercise.exerciseId}`
+                  );
+                  return null;
+                }
 
                 return (
                   <View key={exercise.exerciseId} style={styles.exerciseCard}>

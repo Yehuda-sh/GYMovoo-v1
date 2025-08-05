@@ -5,6 +5,8 @@
 Hook חכם לקבלת ביצועים קודמים עם אלגוריתם התקדמות מתקדם.
 Smart hook for getting previous exercise performances with advanced progression algorithm.
 
+**עדכון אוגוסט 2025**: שיפור לוגינג ותמיכה מלאה במאגר התרגילים החדש 🆕
+
 ## שיפורים שנוספו / Added Enhancements
 
 ### 🎯 אלגוריתם התקדמות חכם / Smart Progression Algorithm
@@ -20,6 +22,28 @@ Smart hook for getting previous exercise performances with advanced progression 
 getProgressionInsight(): string // תובנה על ההתקדמות
 shouldIncreaseWeight(): boolean // האם להעלות משקל
 getMotivationalMessage(): string // הודעה מוטיבציונית
+```
+
+### 🆕 שיפורי לוגינג (אוגוסט 2025) / Enhanced Logging
+
+- **מעקב מפורט**: לוגינג מקיף עם קידומת `usePreviousPerformance:`
+- **ניתוח ביצועים**: מעקב אחרי חישובי התקדמות בזמן אמת
+- **דיבוג חכם**: לוגים מסייעים לפיתוח ותחזוקה
+- **אינטגרציה**: הכנה לעבודה עם מאגר התרגילים החדש
+
+```typescript
+// דוגמאות לוגינג:
+console.log(
+  "🧠 usePreviousPerformance: Starting smart progression calculation for:",
+  exerciseName
+);
+console.log("📈 usePreviousPerformance: Progression analysis:", {
+  strengthGain,
+  trend,
+});
+console.log(
+  "🎯 usePreviousPerformance: Ready to work with updated exercise database"
+);
 ```
 
 ### 💡 המלצות אוטומטיות / Automatic Recommendations
@@ -50,6 +74,17 @@ const {
 const insight = getProgressionInsight(); // "מצוין! התקדמת ב-12.5% - המשך כך!"
 const shouldIncrease = shouldIncreaseWeight(); // true/false
 const motivation = getMotivationalMessage(); // "כל הכבוד! שיפור של 12.5% 🚀"
+```
+
+### 🆕 עבודה עם מאגר התרגילים החדש / Working with New Exercise Database
+
+```typescript
+// התרגילים החדשים עם equipment "none" נתמכים במלואם
+usePreviousPerformance("שכיבת סמיכה בסיסית"); // תרגיל משקל גוף
+usePreviousPerformance("כיפופי ברכיים עם משקל גוף"); // תרגיל בית
+usePreviousPerformance("דחיפת חזה עם משקולות"); // תרגיל עם ציוד
+
+// כל התרגילים מהמאגר החדש נתמכים עם ניתוח חכם מלא
 ```
 
 ## יתרונות המערכת החכמה / Smart System Benefits

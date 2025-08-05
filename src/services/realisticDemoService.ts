@@ -131,17 +131,32 @@ class RealisticDemoService {
    * יצירת משתמש דמו חדש עם נתוני שאלון חיוניים בלבד - מדמה תהליך הכרות אמיתי של משתמש
    */
   async createRealisticDemoUser(gender?: UserGender): Promise<void> {
+    console.log("📝 RealisticDemoService: Starting demo user creation");
     // יצירת משתמש דמו מציאותי עם לוגים מינימליים
 
     // מחיקת נתונים קיימים
     await AsyncStorage.removeItem(this.DEMO_USER_KEY);
     await AsyncStorage.removeItem(this.DEMO_WORKOUTS_KEY);
+    console.log("🗑️ RealisticDemoService: Cleared existing demo data");
 
     // יצירת נתוני דמו מבוססי מגדר
     const selectedGender = gender || (Math.random() > 0.5 ? "male" : "female");
     const genderBasedData = this.generateGenderBasedDemoData(selectedGender);
+    console.log(
+      `👤 RealisticDemoService: Generated ${selectedGender} profile - ${genderBasedData.name}`
+    );
 
     // רק נתוני שאלון חיוניים - בדיוק כמו שמשתמש אמיתי היה מספק
+    const workoutLocation = Math.random() > 0.3 ? "gym" : "home"; // 30% סיכוי לבית
+    const availableEquipment =
+      Math.random() > 0.3
+        ? ["dumbbells", "barbell", "cable_machine"]
+        : ["none"]; // 30% סיכוי לאימון בית ללא ציוד
+
+    console.log(
+      `🏠 RealisticDemoService: Location: ${workoutLocation}, Equipment: ${availableEquipment.join(",")}`
+    );
+
     const basicUserData = {
       id: "demo_user_realistic",
       email: genderBasedData.email,
@@ -165,11 +180,11 @@ class RealisticDemoService {
         primary_goal: "build_muscle",
         secondary_goals: ["increase_strength", "improve_health"],
 
-        // פרמטרי אימון
+        // פרמטרי אימון - הוספת וריאציה בציוד וסביבת אימון
         available_days: 4,
         session_duration: "45-60",
-        workout_location: "gym",
-        available_equipment: ["dumbbells", "barbell", "cable_machine"],
+        workout_location: workoutLocation,
+        available_equipment: availableEquipment,
 
         // העדפות וסגנון
         preferred_time: "evening",
@@ -188,10 +203,10 @@ class RealisticDemoService {
         age: "26-35",
         goal: "build_muscle",
         experience: "some_experience",
-        location: "gym",
+        location: workoutLocation,
         frequency: "4 times per week",
         duration: "45-60",
-        equipment: ["dumbbells", "barbell", "cable_machine"],
+        equipment: availableEquipment,
         gender: selectedGender,
         height: genderBasedData.height,
         weight: genderBasedData.weight,
@@ -223,6 +238,10 @@ class RealisticDemoService {
       JSON.stringify(basicUserData)
     );
     await AsyncStorage.setItem(this.DEMO_WORKOUTS_KEY, JSON.stringify([]));
+
+    console.log(
+      "✅ RealisticDemoService: Demo user created and saved successfully"
+    );
   }
 
   /**
@@ -231,6 +250,10 @@ class RealisticDemoService {
    */
   async addWorkoutSession(workout: WorkoutSession): Promise<void> {
     try {
+      console.log(
+        `🏋️ RealisticDemoService: Adding workout session - ${workout.type}, ${workout.exercises.length} exercises`
+      );
+
       // קבלת נתוני משתמש להתאמת מגדר
       const user = await this.getDemoUser();
       const userGender: UserGender =
@@ -238,6 +261,9 @@ class RealisticDemoService {
 
       // התאמת שמות תרגילים למגדר
       const adaptedWorkout = this.adaptWorkoutToGender(workout, userGender);
+      console.log(
+        `🎯 RealisticDemoService: Adapted workout for ${userGender} user`
+      );
 
       // קבלת היסטוריה נוכחית
       const workoutsJson = await AsyncStorage.getItem(this.DEMO_WORKOUTS_KEY);
@@ -247,6 +273,9 @@ class RealisticDemoService {
 
       // הוספת האימון החדש
       workouts.push(adaptedWorkout);
+      console.log(
+        `📊 RealisticDemoService: Total workouts in history: ${workouts.length}`
+      );
 
       // שמירת היסטוריה מעודכנת
       await AsyncStorage.setItem(
@@ -256,16 +285,26 @@ class RealisticDemoService {
 
       // עדכון סטטיסטיקות משתמש
       await this.updateUserStats(workouts);
+      console.log("📈 RealisticDemoService: User stats updated");
 
       // ריצת אלגוריתם ניתוח והמלצות
       const analysis = await this.analyzePerformance(workouts);
+      console.log(
+        `🧠 RealisticDemoService: Performance analysis completed - trend: ${analysis.trend}`
+      );
 
       // יצירת המלצות לאימון הבא
       if (analysis.recommendations.length > 0) {
         await this.generateWorkoutRecommendations(analysis);
+        console.log(
+          `💡 RealisticDemoService: Generated ${analysis.recommendations.length} recommendations`
+        );
       }
     } catch (error) {
-      console.error("Error adding workout session:", error);
+      console.error(
+        "❌ RealisticDemoService: Error adding workout session:",
+        error
+      );
     }
   }
 

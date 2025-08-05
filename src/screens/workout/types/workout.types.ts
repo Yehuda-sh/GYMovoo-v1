@@ -29,7 +29,7 @@ export interface Exercise {
   category: string;
   primaryMuscles: string[];
   secondaryMuscles?: string[];
-  equipment: string;
+  equipment: string; // Can be "none" for bodyweight exercises, or specific equipment like "dumbbells", "barbell", etc.
   sets: Set[];
   restTime?: number; // זמן מנוחה ברירת מחדל בין סטים
   notes?: string;
@@ -82,7 +82,7 @@ export interface WorkoutTemplate {
   exercises: ExerciseTemplate[];
   estimatedDuration: number;
   targetMuscles: string[];
-  equipment: string[];
+  equipment: string[]; // Array of equipment needed, can include "none" for bodyweight workouts
 }
 
 // תבנית תרגיל

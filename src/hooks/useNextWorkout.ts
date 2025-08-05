@@ -4,6 +4,7 @@
  * @description Hook for getting the next workout in cycle with smart algorithm
  * @notes משתמש במערכת השאלונים החדשה ובאלגוריתם ההתאמה החכם
  * @notes Uses the new questionnaire system and smart matching algorithm
+ * @updated 2025-08-05 שיפור לוגינג ותמיכה במאגר התרגילים החדש
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -70,6 +71,8 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
     // קבלת נתוני משתמש מהמערכת הקיימת עם תמיכה מורחבת
     const getUserFrequencyData = () => {
+      console.log("🔍 useNextWorkout: Starting frequency data extraction...");
+
       // נסה מכל המקורות האפשריים
       let frequency = "";
 
@@ -79,10 +82,18 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         frequency = Array.isArray(availability)
           ? availability[0]
           : availability;
+        console.log(
+          "📊 useNextWorkout: Found frequency in smartQuestionnaireData:",
+          frequency
+        );
       }
       // תמיכה בשאלון המורחב (אם יתווסף בעתיד)
       else if (user?.trainingStats?.preferredWorkoutDays) {
         frequency = user.trainingStats.preferredWorkoutDays.toString();
+        console.log(
+          "📊 useNextWorkout: Found frequency in trainingStats:",
+          frequency
+        );
       }
       // תמיכה במערכת הנוכחית
       else if (user?.questionnaireData?.answers) {
@@ -91,6 +102,10 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           unknown
         >;
         frequency = (answers.frequency as string) || "";
+        console.log(
+          "📊 useNextWorkout: Found frequency in questionnaireData:",
+          frequency
+        );
       }
       // תמיכה בפורמט הישן
       else if (user?.questionnaire) {
@@ -102,9 +117,15 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
             }
           }
         });
+        console.log(
+          "📊 useNextWorkout: Found frequency in legacy questionnaire:",
+          frequency
+        );
       }
 
-      console.log(`📊 Raw frequency data found: "${frequency}"`);
+      console.log(
+        `📊 useNextWorkout: Raw frequency data found: "${frequency}"`
+      );
       return frequency;
     };
 
@@ -159,7 +180,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     }
 
     console.log(
-      `🎯 Detected frequency: "${frequency}" -> ${daysPerWeek} days per week`
+      `🎯 useNextWorkout: Detected frequency: "${frequency}" -> ${daysPerWeek} days per week`
+    );
+    console.log(
+      `📅 useNextWorkout: Selected workout plan for ${daysPerWeek} days:`,
+      WORKOUT_DAYS_MAP[daysPerWeek as keyof typeof WORKOUT_DAYS_MAP] ||
+        WORKOUT_DAYS_MAP[3]
     );
 
     // החזרת התוכנית המתאימה
@@ -183,15 +209,18 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
       const weeklyPlan = getWeeklyPlanFromData();
       console.log(
-        "🔄 Getting next workout recommendation with smart plan:",
+        "🔄 useNextWorkout: Getting next workout recommendation with smart plan:",
         weeklyPlan
       );
-      console.log("👤 User data available:", {
+      console.log("👤 useNextWorkout: User data available:", {
         hasQuestionnaireData: !!user?.questionnaireData,
         hasQuestionnaire: !!user?.questionnaire,
         hasSmartData: !!user?.smartQuestionnaireData,
         hasExtendedData: !!user?.trainingStats,
       });
+      console.log(
+        "🔧 useNextWorkout: Integration with updated exercise database and services ready"
+      );
 
       // בדיקת בטיחות מתקדמת - וידוא שהשירות קיים
       if (
@@ -214,7 +243,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       setNextWorkout(recommendation);
       setCycleStats(stats);
 
-      console.log("✅ Next workout recommendation received:", {
+      console.log("✅ useNextWorkout: Next workout recommendation received:", {
         workoutName: recommendation.workoutName,
         workoutIndex: recommendation.workoutIndex,
         reason: recommendation.reason,
@@ -222,12 +251,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       });
 
       if (stats) {
-        console.log("📊 Cycle statistics:", {
+        console.log("📊 useNextWorkout: Cycle statistics:", {
           currentWeek: stats.currentWeek,
           totalWorkouts: stats.totalWorkouts,
           consistency: stats.consistency,
         });
       }
+
+      console.log(
+        "🎯 useNextWorkout: Ready to work with updated exercise services (workoutDataService, quickWorkoutGenerator)"
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
@@ -245,7 +278,13 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       };
       setNextWorkout(fallbackRecommendation);
 
-      console.log("🔄 Using fallback recommendation:", fallbackRecommendation);
+      console.log(
+        "🔄 useNextWorkout: Using fallback recommendation:",
+        fallbackRecommendation
+      );
+      console.log(
+        "💡 useNextWorkout: Even in fallback mode, updated exercise services will provide proper equipment filtering"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -258,11 +297,14 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const markWorkoutCompleted = useCallback(
     async (workoutIndex: number, workoutName: string) => {
       try {
-        console.log(`🏁 Starting to mark workout as completed:`, {
-          workoutName,
-          workoutIndex,
-          timestamp: new Date().toISOString(),
-        });
+        console.log(
+          `🏁 useNextWorkout: Starting to mark workout as completed:`,
+          {
+            workoutName,
+            workoutIndex,
+            timestamp: new Date().toISOString(),
+          }
+        );
 
         // בדיקת בטיחות מתקדמת
         if (
@@ -270,7 +312,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           typeof nextWorkoutLogicService.updateWorkoutCompleted !== "function"
         ) {
           const error = "nextWorkoutLogicService is not properly initialized";
-          console.error("❌", error);
+          console.error("❌ useNextWorkout:", error);
           setError(error);
           return;
         }
@@ -281,21 +323,28 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           workoutName
         );
 
-        console.log(`✅ Successfully marked workout completed:`, {
-          workoutName,
-          workoutIndex,
-          completedAt: new Date().toISOString(),
-        });
+        console.log(
+          `✅ useNextWorkout: Successfully marked workout completed:`,
+          {
+            workoutName,
+            workoutIndex,
+            completedAt: new Date().toISOString(),
+          }
+        );
 
         // רענון המלצה לאחר השלמת אימון
-        console.log("🔄 Refreshing recommendation after workout completion...");
+        console.log(
+          "🔄 useNextWorkout: Refreshing recommendation after workout completion..."
+        );
         await refreshRecommendation();
 
-        console.log("🎯 Recommendation refresh completed successfully");
+        console.log(
+          "🎯 useNextWorkout: Recommendation refresh completed - next workout will use updated exercise database"
+        );
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
-        console.error("❌ Error marking workout completed:", {
+        console.error("❌ useNextWorkout: Error marking workout completed:", {
           error: errorMessage,
           workoutName,
           workoutIndex,

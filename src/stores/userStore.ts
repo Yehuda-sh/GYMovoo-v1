@@ -1,160 +1,33 @@
 /**
  * @file src/stores/userStore.ts
- * @brief Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם והתאמת מגדר
- * @brief Central store for managing user state with smart questionnaire and gender adaptation
- * @dependencies zustand, AsyncStorage
- * @notes כולל שמירה אוטומטית ב-AsyncStorage עם תמיכה מלאה בנתוני השאלון החכם
- * @notes Includes automatic saving to AsyncStorage with full smart questionnaire data support
- * @updated 2025-07-30 הוספת תמיכה מלאה במערכת השאלון החכם והתאמת מגדר
+ * @brief Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם
+ * @brief Central store for managing user state with smart questionnaire support
+ * @dependencies zustand, AsyncStorage, types/index
+ * @notes מבנה מפושט ומאוחד עם הסרת כפילויות וטיפוסים מרכזיים
+ * @notes Simplified and unified structure with removed duplications and centralized types
+ * @updated 2025-01-08 איחוד טיפוסים, פישוט מבנה, הסרת קוד מיותר
+ * @optimization הוסרו כפילויות, טיפוסים הועברו ל-types/index.ts, פונקציות פושטו
  */
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// טיפוס נתוני השאלון החכם החדש
-// New smart questionnaire data type
-export interface SmartQuestionnaireData {
-  // תשובות השאלון החכם
-  // Smart questionnaire answers
-  answers: {
-    gender?: "male" | "female" | "other";
-    fitnessLevel?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    availability?: string[];
-    preferences?: string[];
-    equipment?: string[];
-    nutrition?: string[];
-  };
-
-  // מטאדאטה מורחבת
-  // Extended metadata
-  metadata: {
-    completedAt: string;
-    version: string;
-    sessionId?: string;
-    completionTime?: number; // זמן השלמה במילישניות
-    questionsAnswered?: number;
-    totalQuestions?: number;
-    deviceInfo?: {
-      platform?: string;
-      screenWidth?: number;
-      screenHeight?: number;
-    };
-  };
-
-  // נתוני AI ותובנות
-  // AI data and insights
-  aiInsights?: {
-    fitnessAssessment?: string;
-    recommendedProgram?: string;
-    equipmentSuggestions?: string[];
-    nutritionTips?: string[];
-    personalizedMessage?: string;
-  };
-
-  // נתוני התאמת מגדר
-  // Gender adaptation data
-  genderAdaptation?: {
-    textVariations?: { [key: string]: string };
-    workoutNameAdaptations?: { [key: string]: string };
-    preferredLanguageStyle?: string;
-  };
-}
+import {
+  User,
+  SmartQuestionnaireData,
+  LegacyQuestionnaireData,
+} from "../types";
 
 // טיפוס תשובות השאלון הישן (לתאימות לאחור)
 // Old questionnaire answers type (for backward compatibility)
-type QuestionnaireAnswers = {
+type LegacyQuestionnaireAnswers = {
   [key: number]: string | string[];
 };
 
-// טיפוס נתוני השאלון הישן (לתאימות לאחור)
-// Old questionnaire data type (for backward compatibility)
-export interface QuestionnaireData {
-  // תשובות בפורמט הישן
-  // Answers in old format
-  answers?: QuestionnaireAnswers;
-
-  // נתונים מורחבים
-  // Extended data
-  metadata?: {
-    [key: string]: unknown;
-  };
-
-  // תאריך השלמה
-  // Completion date
-  completedAt?: string;
-
-  // גרסת השאלון
-  // Questionnaire version
-  version?: string;
-}
-
-export interface User {
-  // נתוני בסיס
-  // Basic data
-  id?: string;
-  name?: string;
-  email?: string;
-  avatar?: string; // URL או נתיב מקומי / URL or local path
-  provider?: string; // לדוגמה: "google", "facebook" וכו' / e.g., "google", "facebook" etc.
-
-  // נתוני השאלון החכם החדש (עיקרי)
-  // New smart questionnaire data (primary)
-  smartQuestionnaireData?: SmartQuestionnaireData;
-
-  // נתוני השאלון הישן (לתאימות לאחור)
-  // Old questionnaire data (for backward compatibility)
-  questionnaire?: QuestionnaireAnswers; // לתאימות לאחור / for backward compatibility
-  questionnaireData?: QuestionnaireData; // נתונים מורחבים / extended data
-
-  // נתונים מדעיים חדשים
-  // New scientific data
-  scientificProfile?: any; // יבוא מ-scientificUserGenerator
-  aiRecommendations?: any;
-  activityHistory?: any;
-  currentStats?: any;
-
-  // העדפות משתמש מורחבות
-  // Extended user preferences
-  preferences?: {
-    theme?: "light" | "dark";
-    notifications?: boolean;
-    language?: "he" | "en";
-    units?: "metric" | "imperial";
-    // העדפות חדשות מהשאלון החכם
-    gender?: "male" | "female" | "other";
-    rtlPreference?: boolean;
-    workoutNameStyle?: "adapted" | "neutral" | "original";
-  };
-
-  // נתוני אימון מורחבים
-  // Extended training data
-  trainingStats?: {
-    totalWorkouts?: number;
-    totalVolume?: number;
-    favoriteExercises?: string[];
-    lastWorkoutDate?: string;
-    // נתונים חדשים מהשאלון החכם
-    preferredWorkoutDays?: number;
-    selectedEquipment?: string[];
-    fitnessGoals?: string[];
-    currentFitnessLevel?: "beginner" | "intermediate" | "advanced";
-  };
-
-  // נתוני פרופיל מותאמים למגדר
-  // Gender-adapted profile data
-  genderProfile?: {
-    selectedGender: "male" | "female" | "other";
-    adaptedWorkoutNames?: { [key: string]: string };
-    personalizedMessages?: string[];
-    completionMessages?: {
-      male?: string;
-      female?: string;
-      neutral?: string;
-    };
-  };
-}
+// =======================================
+// 🏪 Store Interface Definition
+// הגדרת ממשק ה-Store
+// =======================================
 
 interface UserStore {
   // מצב המשתמש
@@ -189,8 +62,8 @@ interface UserStore {
 
   // פעולות שאלון ישן (לתאימות לאחור)
   // Old questionnaire actions (for backward compatibility)
-  setQuestionnaire: (answers: QuestionnaireAnswers) => void;
-  setQuestionnaireData: (data: QuestionnaireData) => void;
+  setQuestionnaire: (answers: LegacyQuestionnaireAnswers) => void;
+  setQuestionnaireData: (data: LegacyQuestionnaireData) => void;
   resetQuestionnaire: () => void;
 
   // פעולות העדפות מורחבות
@@ -238,81 +111,33 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
-      // התנתקות מורחבת עם ניקוי מלא
-      // Extended logout with complete data clearing
+      // התנתקות מפושטת עם ניקוי יעיל
+      // Simplified logout with efficient cleanup
       logout: async () => {
         try {
-          console.log("🚪 userStore.logout - מתחיל התנתקות מלאה");
+          console.log("🚪 userStore.logout - מתחיל התנתקות");
 
-          // רשימה מקיפה של כל המפתחות שצריך למחוק
+          // רשימת מפתחות עיקריים לניקוי
           const keysToRemove = [
-            // נתוני משתמש בסיסיים
             "user-storage",
-            "user_data",
-            "user_preferences",
-
-            // נתוני שאלון
             "questionnaire_metadata",
-            "questionnaire_draft",
             "questionnaire_answers",
             "smart_questionnaire_results",
-            "questionnaire_completion_data",
-
-            // נתוני אימון
-            "workout_preferences",
-            "workout_history",
-            "active_workout_data",
-            "workout_plans",
-            "workout_statistics",
-            "workout_session_data",
-
-            // העדפות אישיות
             "user_gender_preference",
             "selected_equipment",
-            "gender_adaptation_data",
-            "rtl_preferences",
-            "theme_preferences",
-
-            // נתוני AI
-            "ai_workout_data",
-            "ai_recommendations",
-            "ai_insights",
-
-            // נתוני סשן
-            "session_data",
-            "login_timestamp",
-            "last_activity",
-
-            // נתוני מטמון
-            "cached_exercises",
-            "cached_workout_data",
-            "offline_data",
-
-            // נתוני התקדמות
-            "progress_photos",
-            "body_measurements",
-            "performance_records",
-
-            // הגדרות מתקדמות
-            "notification_settings",
-            "privacy_settings",
-            "app_settings",
           ];
 
-          // מחיקה מרובה של כל המפתחות
+          // מחיקה יעילה של המפתחות העיקריים
           await AsyncStorage.multiRemove(keysToRemove);
 
-          // איפוס מלא של ה-store
+          // איפוס ה-store
           set({ user: null });
 
           console.log("✅ userStore.logout - התנתקות הושלמה בהצלחה");
-          console.log(`🗑️ נמחקו ${keysToRemove.length} מפתחות מ-AsyncStorage`);
         } catch (error) {
           console.error("❌ userStore.logout - שגיאה בהתנתקות:", error);
-
           // גם אם יש שגיאה, איפוס ה-store
           set({ user: null });
-
           throw error;
         }
       },
@@ -423,8 +248,8 @@ export const useUserStore = create<UserStore>()(
         ]);
       },
 
-      // === פונקציות התאמת מגדר ===
-      // === Gender Adaptation Functions ===
+      // === פונקציות התאמת מגדר (פשוטות) ===
+      // === Gender Adaptation Functions (Simplified) ===
 
       // הגדרת מגדר משתמש
       // Set user gender
@@ -436,10 +261,6 @@ export const useUserStore = create<UserStore>()(
                 preferences: {
                   ...state.user.preferences,
                   gender,
-                },
-                genderProfile: {
-                  ...state.user.genderProfile,
-                  selectedGender: gender,
                 },
               }
             : null,
@@ -489,7 +310,7 @@ export const useUserStore = create<UserStore>()(
         console.log("💾 userStore.setQuestionnaire נקרא עם:", answers);
 
         // יצירת נתוני שאלון מורחבים
-        const questionnaireData = {
+        const questionnaireData: LegacyQuestionnaireData = {
           answers: answers,
           metadata: {
             completedAt: new Date().toISOString(),
@@ -502,11 +323,16 @@ export const useUserStore = create<UserStore>()(
         console.log("💾 Creating questionnaireData:", questionnaireData);
 
         set((state) => ({
-          user: {
-            ...(state.user || {}),
-            questionnaire: answers,
-            questionnaireData: questionnaireData, // 🔧 הוספת נתונים מורחבים
-          },
+          user: state.user
+            ? {
+                ...state.user,
+                questionnaire: answers,
+                questionnaireData: questionnaireData,
+              }
+            : {
+                questionnaire: answers,
+                questionnaireData: questionnaireData,
+              },
         }));
 
         // שמירה גם ב-AsyncStorage הנפרד לתאימות
@@ -532,12 +358,17 @@ export const useUserStore = create<UserStore>()(
       // Set extended questionnaire data (old)
       setQuestionnaireData: (data) => {
         set((state) => ({
-          user: {
-            ...(state.user || {}),
-            questionnaireData: data,
-            // שמירת תאימות לאחור
-            questionnaire: data.answers,
-          },
+          user: state.user
+            ? {
+                ...state.user,
+                questionnaireData: data,
+                // שמירת תאימות לאחור
+                questionnaire: data.answers,
+              }
+            : {
+                questionnaireData: data,
+                questionnaire: data.answers,
+              },
         }));
       },
 
@@ -710,6 +541,18 @@ export const useUserStore = create<UserStore>()(
     }
   )
 );
+
+// =======================================
+// 📤 Re-exports for Backward Compatibility
+// יצוא מחדש לתאימות לאחור
+// =======================================
+
+// Re-export types from central location
+export type {
+  User,
+  SmartQuestionnaireData,
+  LegacyQuestionnaireData,
+} from "../types";
 
 // Hooks נוספים לנוחות
 // Additional convenience hooks

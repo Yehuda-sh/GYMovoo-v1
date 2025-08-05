@@ -7,9 +7,21 @@
 
 import { questionnaireService } from "./questionnaireService";
 import { useUserStore } from "../stores/userStore";
-import { EXTENDED_EXERCISE_DATABASE } from "../data/exerciseDatabase";
-import { ExerciseTemplate as ExerciseFromDB } from "./quickWorkoutGenerator";
+import { Exercise } from "../data/exercises/types";
+import {
+  allExercises,
+  getBodyweightExercises,
+  getDumbbellExercises,
+  getCardioExercises,
+  getFlexibilityExercises,
+  getResistanceBandExercises,
+  getSmartFilteredExercises,
+  filterExercisesByEquipment,
+} from "../data/exercises";
 import { UserProfile as BaseUserProfile } from "../types";
+
+// אליאס עבור תרגיל מהמאגר החדש
+type ExerciseFromDB = Exercise;
 import {
   WorkoutPlan,
   WorkoutTemplate,
@@ -446,7 +458,7 @@ export class WorkoutDataService {
   }
 
   /**
-   * בחירת תרגילים בסיסיים
+   * בחירת תרגילים בסיסיים - עודכן לשימוש בפונקציות החכמות
    */
   private static selectBasicExercises(
     workoutName: string,
@@ -454,25 +466,27 @@ export class WorkoutDataService {
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
 
-    // סינון תרגילים מתאימים
-    const suitableExercises = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
+    // 🎯 שימוש בפונקציית הסינון החכמה במקום הישנה
+    // אם אין ציוד - הפונקציה תחזיר רק תרגילי משקל גוף
+    const environments: ("home" | "gym" | "outdoor")[] = ["home"]; // ברירת מחדל לאימון בסיסי
+    let suitableExercises = getSmartFilteredExercises(environments, equipment);
+
+    // סינון נוסף לפי שרירי היעד
+    suitableExercises = suitableExercises.filter((exercise: Exercise) => {
       const muscleMatch = targetMuscles.some(
         (muscle) =>
           exercise.primaryMuscles.includes(muscle) ||
           exercise.category === muscle
       );
-      const equipmentMatch =
-        equipment.includes(exercise.equipment) ||
-        exercise.equipment === "bodyweight";
       const levelMatch = exercise.difficulty === "beginner";
 
-      return muscleMatch && equipmentMatch && levelMatch;
+      return muscleMatch && levelMatch;
     });
 
     // בחירת 4-6 תרגילים
     const selectedExercises = suitableExercises.slice(0, 6);
 
-    return selectedExercises.map((exercise) => ({
+    return selectedExercises.map((exercise: Exercise) => ({
       exerciseId: exercise.id,
       sets: 3,
       reps: "10-12",
@@ -736,8 +750,7 @@ export class WorkoutDataService {
       "bike",
       "rowing_machine",
       "stairs", // ✅ מדרגות לקרדיו
-      "none",
-      "bodyweight", // ✅ רק משקל גוף
+      "none", // 🏠 עודכן לטיפוס החדש
     ];
     return (
       equipment.some((eq) => cardioEquipment.includes(eq)) ||
@@ -759,8 +772,7 @@ export class WorkoutDataService {
       "wall", // ✅ קיר לדחיפות
       "water_bottles", // ✅ בקבוקי מים כמשקולות
       "towel", // ✅ מגבת להתנגדות
-      "none",
-      "bodyweight", // ✅ רק משקל גוף
+      "none", // 🏠 עודכן לטיפוס החדש
     ];
     return (
       equipment.some((eq) => strengthEquipment.includes(eq)) ||
@@ -783,8 +795,7 @@ export class WorkoutDataService {
       "wall", // ✅ קיר לתמיכה
       "towel", // ✅ מגבת למתיחות
       "stairs", // ✅ מדרגות לאימון פונקציונלי
-      "none",
-      "bodyweight", // ✅ רק משקל גוף
+      "none", // 🏠 עודכן לטיפוס החדש
     ];
     return (
       equipment.some((eq) => functionalEquipment.includes(eq)) ||
@@ -987,8 +998,12 @@ export class WorkoutDataService {
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
 
-    // שלב 1: סינון תרגילים מתאימים לציוד ושרירים
-    const suitableExercises = EXTENDED_EXERCISE_DATABASE.filter((exercise) => {
+    // שלב 1: סינון תרגילים מתאימים לציוד ושרירים - עם פונקציה חכמה
+    const environments: ("home" | "gym" | "outdoor")[] = ["home"]; // ברירת מחדל
+    let suitableExercises = getSmartFilteredExercises(environments, equipment);
+
+    // סינון נוסף לפי שרירי יעד
+    suitableExercises = suitableExercises.filter((exercise: Exercise) => {
       // בדיקת התאמת שרירים
       const muscleMatch = targetMuscles.some(
         (muscle) =>
@@ -997,19 +1012,13 @@ export class WorkoutDataService {
           exercise.category === muscle
       );
 
-      // בדיקת התאמת ציוד - תמיכה בציוד המפורט
-      const equipmentMatch = this.isEquipmentAvailable(
-        exercise.equipment,
-        equipment
-      );
-
       // בדיקת רמת קושי מתאימה
       const difficultyMatch = this.isDifficultyAppropriate(
         exercise.difficulty,
         workoutMatrix.intensityLevel
       );
 
-      return muscleMatch && equipmentMatch && difficultyMatch;
+      return muscleMatch && difficultyMatch;
     });
 
     if (suitableExercises.length === 0) {
@@ -1044,7 +1053,8 @@ export class WorkoutDataService {
     availableEquipment: string[]
   ): boolean {
     // אם התרגיל דורש משקל גוף - תמיד זמין
-    if (exerciseEquipment === "bodyweight" || exerciseEquipment === "none") {
+    if (exerciseEquipment === "none") {
+      // 🏠 עודכן לטיפוס החדש
       return true;
     }
 
@@ -1317,7 +1327,7 @@ export class WorkoutDataService {
     // התאמה לפי מטרה
     if (goalType.includes("כח") || workoutMatrix.intensityLevel === "high") {
       return "6-8";
-    } else if (goalType.includes("קרדיו") || exercise.category === "קרדיו") {
+    } else if (goalType.includes("קרדיו") || exercise.category === "cardio") {
       return "15-20";
     } else {
       return "10-12"; // ברירת מחדל לבניית שריר
@@ -1347,10 +1357,11 @@ export class WorkoutDataService {
    * יצירת הערות AI מותאמות
    */
   private static generateAIExerciseNotes(exercise: ExerciseFromDB): string {
-    const baseNote = `תרגיל AI מותאם - ${exercise.name}`;
+    const baseNote = `תרגיל AI מותאם - ${exercise.nameLocalized.he}`; // 🌍 עודכן לשדה החדש
 
-    if (exercise.tips && exercise.tips.length > 0) {
-      return `${baseNote} | טיפ: ${exercise.tips[0]}`;
+    if (exercise.tips?.he && exercise.tips.he.length > 0) {
+      // 🌍 עודכן לשדה החדש
+      return `${baseNote} | טיפ: ${exercise.tips.he[0]}`;
     }
 
     return baseNote;
