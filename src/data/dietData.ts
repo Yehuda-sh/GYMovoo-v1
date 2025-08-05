@@ -6,7 +6,7 @@
  * @version 2.0 - Updated with unified interfaces and enhanced data structure
  */
 
-import { OptionWithImage, BaseOption } from "./questionnaireData";
+import { OptionWithImage, BaseOption } from "./newSmartQuestionnaire";
 
 // ================== UNIFIED DIET INTERFACES | ממשקי תזונה מאוחדים ==================
 

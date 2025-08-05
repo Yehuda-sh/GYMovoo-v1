@@ -43,10 +43,12 @@ import {
   formatTime,
   formatDuration,
   formatVolume,
-} from "../../../utils/workoutHelpers";
-import { calculateWorkoutStats } from "../../../utils/workoutStatsCalculator";
-import { workoutLogger } from "../../../utils/workoutLogger";
+  calculateWorkoutStats,
+  workoutLogger,
+} from "../../../utils";
 import { WorkoutData } from "../types/workout.types";
+import { useModalManager } from "../hooks/useModalManager";
+import { UniversalModal } from "../../../components/common/UniversalModal";
 
 // Import modular components
 import { WorkoutStatsGrid } from "./WorkoutSummary/WorkoutStatsGrid";
@@ -77,6 +79,10 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>(
       []
     );
+
+    // Modal management - אחיד במקום Alert.alert מפוזר
+    const { activeModal, modalConfig, hideModal, showComingSoon } =
+      useModalManager();
 
     // Calculate workout statistics using centralized utility
     const stats = useMemo(() => {
@@ -343,21 +349,33 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
               onShareWorkout={handleShareWorkout}
               onSaveAsTemplate={() => {
                 workoutLogger.info("WorkoutSummary", "שמירה כתבנית התחילה");
-                Alert.alert("שמירה כתבנית", "תכונה זו תהיה זמינה בקרוב!");
+                showComingSoon("שמירה כתבנית אימון");
               }}
               onEditWorkout={() => {
                 workoutLogger.info("WorkoutSummary", "עריכת אימון התחילה");
-                Alert.alert("עריכת אימון", "תכונה זו תהיה זמינה בקרוב!");
+                showComingSoon("עריכת אימון");
               }}
               onDeleteWorkout={() => {
                 workoutLogger.warn("WorkoutSummary", "מחיקת אימון התחילה");
-                Alert.alert("מחיקת אימון", "תכונה זו תהיה זמינה בקרוב!");
+                showComingSoon("מחיקת אימון");
               }}
               onFinishWorkout={handleFinalizeSummary}
               isWorkoutSaved={true}
             />
           </ScrollView>
         </View>
+
+        {/* מודל אחיד למקום Alert.alert מפוזר */}
+        <UniversalModal
+          visible={activeModal !== null}
+          type={activeModal || "comingSoon"}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onClose={hideModal}
+          onConfirm={modalConfig.onConfirm}
+          confirmText={modalConfig.confirmText}
+          destructive={modalConfig.destructive}
+        />
       </View>
     );
   }

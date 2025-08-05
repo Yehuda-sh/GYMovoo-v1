@@ -41,8 +41,8 @@ import {
   formatTime,
   triggerVibration,
   animationConfig,
-} from "../../../utils/workoutHelpers";
-import { workoutLogger } from "../../../utils/workoutLogger";
+  workoutLogger,
+} from "../../../utils";
 import { SkipButton } from "./shared/SkipButton";
 import { TimeButton } from "./shared/TimeButton";
 import type { WorkoutStatusBarProps } from "./types";

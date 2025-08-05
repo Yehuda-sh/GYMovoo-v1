@@ -8,11 +8,10 @@
  */
 
 import { Dimensions, Platform } from "react-native";
+// ייבוא isRTL מהמקום המרכזי | Import isRTL from central location
+import { isRTL } from "../utils/rtlHelpers";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-// --- Locale Configuration ---
-export const isRTL = true;
 
 // --- Colors ---
 export const colors = {

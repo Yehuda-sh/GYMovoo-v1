@@ -27,7 +27,6 @@ export const workoutLogger = {
 
   debug: (message: string, data?: any) => {
     if (IS_DEVELOPMENT) {
-      console.log(`🔍 [Workout Debug] ${message}`, data || "");
     }
   },
 

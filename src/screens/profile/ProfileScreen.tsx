@@ -58,6 +58,8 @@ import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
 import type { ComponentProps } from "react";
 import { User } from "../../types";
+import { useModalManager } from "../workout/hooks/useModalManager";
+import { UniversalModal } from "../../components/common/UniversalModal";
 
 // =======================================
 // 🎯 TypeScript Interfaces & Types
@@ -473,6 +475,10 @@ function ProfileScreen() {
   // ===============================================
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, updateUser, logout: userLogout } = useUserStore();
+
+  // Modal management - אחיד במקום Alert.alert מפוזר
+  const { activeModal, modalConfig, hideModal, showComingSoon } =
+    useModalManager();
 
   // ===============================================
   // 🎛️ Local State Management - ניהול מצב מקומי
@@ -2289,7 +2295,7 @@ function ProfileScreen() {
               style={styles.settingItem}
               onPress={() => {
                 console.log("ProfileScreen: Notifications settings");
-                Alert.alert("בקרוב", "הגדרות התראות יהיו זמינות בקרוב");
+                showComingSoon("הגדרות התראות");
               }}
               activeOpacity={0.7}
             >
@@ -2603,6 +2609,18 @@ function ProfileScreen() {
           </TouchableOpacity>
         </Modal>
       )}
+
+      {/* מודל אחיד למקום Alert.alert מפוזר */}
+      <UniversalModal
+        visible={activeModal !== null}
+        type={activeModal || "comingSoon"}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={hideModal}
+        onConfirm={modalConfig.onConfirm}
+        confirmText={modalConfig.confirmText}
+        destructive={modalConfig.destructive}
+      />
     </LinearGradient>
   );
 }

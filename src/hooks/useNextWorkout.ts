@@ -71,7 +71,6 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
     // קבלת נתוני משתמש מהמערכת הקיימת עם תמיכה מורחבת
     const getUserFrequencyData = () => {
-      console.log("🔍 useNextWorkout: Starting frequency data extraction...");
 
       // נסה מכל המקורות האפשריים
       let frequency = "";

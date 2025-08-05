@@ -18,7 +18,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
-import { OptionWithImage } from "../../data/questionnaireData";
+import { OptionWithImage } from "../../data/newSmartQuestionnaire";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_WIDTH = (SCREEN_WIDTH - theme.spacing.lg * 2 - theme.spacing.sm) / 2; // 2 פריטים בשורה

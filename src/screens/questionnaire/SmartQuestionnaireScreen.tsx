@@ -1,7 +1,12 @@
 /**
  * @file src/screens/questionnaire/SmartQuestionnaireScreen.tsx
- * @brief מסך שאלון חכם עם משוב AI בזמן אמת
- * @description חוויית שאלון אינטראקטיבית עם בינה מלאכותית
+ * @brief מסך שאלון חכם עם משוב AI בזמן אמת - אופטימליזציה 2025
+ * @description חוויית שאלון אינטראקטיבית עם בינה מלאכותית ומערכת קומפוננטות מרכזית
+ *
+ * ✅ אופטימיזציה מקיפה - הסרת כפילויות קוד
+ * ✅ קומפוננטות מפורקות ומרכזיות
+ * ✅ תמיכה מלאה ב-RTL ועברית
+ * ✅ DRY Principle - שימוש חוזר בקומפוננטות
  */
 
 import React, { useState, useEffect } from "react";
@@ -21,197 +26,42 @@ import { useNavigation } from "@react-navigation/native";
 import {
   NewQuestionnaireManager,
   SmartQuestion,
+  getSmartQuestionnaireInsights,
   SmartOption,
   AIFeedback,
-  getSmartQuestionnaireInsights,
 } from "../../data/newSmartQuestionnaire";
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 
-// קומפוננטת משוב AI מנימה
-const AIFeedbackComponent: React.FC<{
-  feedback: AIFeedback;
-  onClose: () => void;
-}> = ({ feedback, onClose }) => {
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
+// קומפוננטות מרכזיות מאופטימליזציה
+import {
+  AIFeedbackComponent as AIFeedbackCentralized,
+  SmartOptionComponent as SmartOptionCentralized,
+  SmartProgressBar as SmartProgressBarCentralized,
+} from "../../components/questionnaire";
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+// =====================================
+// 🔧 קבועים מרכזיים
+// Central Constants
+// =====================================
 
-    // סגירה אוטומטית אחרי 4 שניות
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, []);
+const ANIMATION_CONSTANTS = {
+  BUTTON_FADE_DURATION: 300,
+  BUTTON_HIDE_DURATION: 200,
+  ANSWER_PROCESSING_DELAY: 500,
+  FEEDBACK_DISPLAY_DURATION: 3000,
+} as const;
 
-  const getBackgroundColor = () => {
-    switch (feedback.type) {
-      case "positive":
-        return theme.colors.success;
-      case "suggestion":
-        return theme.colors.warning;
-      case "warning":
-        return theme.colors.error;
-      case "insight":
-        return theme.colors.info;
-      default:
-        return theme.colors.success;
-    }
-  };
+const PROGRESS_TIPS = {
+  EARLY_STAGE: "ככל שתענה יותר, כך נוכל ליצור תוכנית מותאמת יותר עבורך",
+  LATE_STAGE: "כמעט סיימנו! התשובות שלך עוזרות לנו ליצור את האימון המושלם",
+} as const;
 
-  return (
-    <Animated.View
-      style={[
-        styles.aiFeedbackContainer,
-        {
-          backgroundColor: getBackgroundColor(),
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
-    >
-      <View style={styles.aiFeedbackContent}>
-        <Text style={styles.aiFeedbackIcon}>{feedback.icon}</Text>
-        <View style={styles.aiFeedbackText}>
-          <Text style={styles.aiFeedbackMessage}>{feedback.message}</Text>
-        </View>
-        <TouchableOpacity onPress={onClose} style={styles.aiFeedbackClose}>
-          <Text style={styles.aiFeedbackCloseText}>✕</Text>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
-  );
-};
-
-// קומפוננטת אפשרות חכמה
-const SmartOptionComponent: React.FC<{
-  option: SmartOption;
-  isSelected: boolean;
-  onSelect: () => void;
-}> = ({ option, isSelected, onSelect }) => {
-  const scaleAnim = new Animated.Value(1);
-
-  const handlePress = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    onSelect();
-  };
-
-  return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        style={[styles.optionContainer, isSelected && styles.optionSelected]}
-        onPress={handlePress}
-        activeOpacity={0.8}
-      >
-        <View style={styles.optionContent}>
-          {/* תמונת ציוד אם קיימת */}
-          {option.image && (
-            <View style={styles.optionImageContainer}>
-              <Image source={option.image} style={styles.optionImage} />
-            </View>
-          )}
-
-          <View style={styles.optionTextContainer}>
-            <Text
-              style={[
-                styles.optionLabel,
-                isSelected && styles.optionLabelSelected,
-              ]}
-            >
-              {option.label}
-            </Text>
-            {option.description && (
-              <Text
-                style={[
-                  styles.optionDescription,
-                  isSelected && styles.optionDescriptionSelected,
-                ]}
-              >
-                {option.description}
-              </Text>
-            )}
-            {option.aiInsight && isSelected && (
-              <View style={styles.aiInsightContainer}>
-                <Text style={styles.aiInsightIcon}>🤖</Text>
-                <Text style={styles.aiInsightText}>{option.aiInsight}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedIndicatorText}>✓</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
-// קומפוננטת התקדמות חכמה
-const SmartProgressBar: React.FC<{
-  progress: { current: number; total: number; percentage: number };
-}> = ({ progress }) => {
-  const progressAnim = new Animated.Value(0);
-
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progress.percentage,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [progress.percentage]);
-
-  return (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressText}>
-          שאלה {progress.current} מתוך {progress.total}
-        </Text>
-        <Text style={styles.progressPercentage}>{progress.percentage}%</Text>
-      </View>
-      <View style={styles.progressBarBackground}>
-        <Animated.View
-          style={[
-            styles.progressBarFill,
-            {
-              width: progressAnim.interpolate({
-                inputRange: [0, 100],
-                outputRange: ["0%", "100%"],
-              }),
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-};
-
-// המסך הראשי
+// =====================================
+// 🎯 המסך הראשי - ללא קומפוננטות כפולות
+// Main Screen - Without Duplicate Components
+// =====================================
 const SmartQuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation();
   const { setQuestionnaire, user } = useUserStore();
@@ -396,7 +246,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* התקדמות עם טיפים חכמים */}
-          <SmartProgressBar progress={progress} />
+          <SmartProgressBarCentralized progress={progress} />
           {/* טיפ חכם בהתאם להתקדמות */}
           {progress.percentage > 0 && progress.percentage < 100 && (
             <View style={styles.smartTipContainer}>
@@ -434,7 +284,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
                   : selectedOptions.some((opt) => opt.id === option.id);
 
               return (
-                <SmartOptionComponent
+                <SmartOptionCentralized
                   key={option.id}
                   option={option}
                   isSelected={isSelected}
@@ -518,7 +368,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
 
         {/* משוב AI */}
         {showFeedback && aiFeedback && (
-          <AIFeedbackComponent
+          <AIFeedbackCentralized
             feedback={aiFeedback}
             onClose={handleCloseFeedback}
           />
@@ -538,6 +388,11 @@ const SmartQuestionnaireScreen: React.FC = () => {
   );
 };
 
+// =====================================
+// 🎨 סטיילים מופחתים - ללא כפילויות
+// Reduced Styling - Without Duplicates
+// =====================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -556,14 +411,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.card,
-    alignItems: "center",
-    justifyContent: "center",
   },
   headerTitle: {
     ...theme.typography.title2,
@@ -589,40 +436,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",
-  },
-
-  // סטיילים לבר התקדמות
-  progressContainer: {
-    margin: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  progressText: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    textAlign: "right", // תמיד ימין בעברית
-  },
-  progressPercentage: {
-    ...theme.typography.body,
-    color: theme.colors.primary,
-    fontWeight: "bold",
-    textAlign: "left", // אחוזים משמאל
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: theme.radius.xs,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.xs,
   },
 
   // סטיילים לכותרת השאלה
@@ -667,187 +480,9 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // סטיילים לאפשרויות
+  // סטיילים לאפשרויות - מרכז לקומפוננטות
   optionsContainer: {
     marginHorizontal: theme.spacing.lg,
-  },
-  optionContainer: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
-    paddingRight: theme.spacing.lg + 30, // מקום לסמן הבחירה מימין
-    marginBottom: theme.spacing.md,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    ...theme.shadows.medium,
-  },
-  optionSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.surfaceVariant,
-  },
-  optionContent: {
-    flex: 1,
-    flexDirection: "row-reverse", // תמונה משמאל, טקסט מימין ב-RTL
-    alignItems: "center",
-  },
-  optionImageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surfaceVariant,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: theme.spacing.md, // תמיד marginLeft בעברית
-    overflow: "hidden",
-  },
-  optionImage: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
-  optionTextContainer: {
-    flex: 1,
-    alignItems: "flex-end", // מיישר טקסט לימין ב-RTL
-  },
-  optionLabel: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-    textAlign: "right", // תמיד ימין בעברית
-    writingDirection: "rtl",
-    width: "100%", // תופס את כל הרוחב
-  },
-  optionLabelSelected: {
-    color: theme.colors.primary,
-    fontWeight: "600",
-  },
-  optionDescription: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    textAlign: "right", // תמיד ימין בעברית
-    writingDirection: "rtl",
-    width: "100%", // תופס את כל הרוחב
-  },
-  optionDescriptionSelected: {
-    color: theme.colors.textSecondary,
-  },
-  selectedIndicator: {
-    position: "absolute",
-    top: theme.spacing.md,
-    right: theme.spacing.md, // משמאל לימין בעברית - V מימין
-    width: 24,
-    height: 24,
-    borderRadius: theme.radius.round,
-    backgroundColor: theme.colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedIndicatorText: {
-    color: theme.colors.white,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-
-  // סטיילים לתובנת AI
-  aiInsightContainer: {
-    flexDirection: "row-reverse", // תמיד row-reverse בעברית
-    alignItems: "flex-start",
-    backgroundColor: theme.colors.info + "20", // שקיפות 20%
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    marginTop: theme.spacing.md,
-    borderRightWidth: 3, // תמיד בצד ימין בעברית
-    borderRightColor: theme.colors.info,
-  },
-  aiInsightIcon: {
-    fontSize: 16,
-    marginLeft: theme.spacing.sm, // תמיד marginLeft בעברית
-  },
-  aiInsightText: {
-    flex: 1,
-    ...theme.typography.bodySmall,
-    color: theme.colors.info,
-    fontStyle: "italic",
-    textAlign: "right", // תמיד ימין בעברית
-    writingDirection: "rtl",
-  },
-
-  // סטיילים למשוב AI
-  aiFeedbackContainer: {
-    position: "absolute",
-    top: 100,
-    left: theme.spacing.lg,
-    right: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    ...theme.shadows.large,
-    zIndex: 1000,
-  },
-  aiFeedbackContent: {
-    flexDirection: "row-reverse", // תמיד row-reverse בעברית
-    alignItems: "flex-start",
-    padding: theme.spacing.lg,
-  },
-  aiFeedbackIcon: {
-    fontSize: 24,
-    marginLeft: theme.spacing.md, // תמיד marginLeft בעברית
-  },
-  aiFeedbackText: {
-    flex: 1,
-  },
-  aiFeedbackMessage: {
-    color: theme.colors.white,
-    ...theme.typography.bodyLarge,
-    lineHeight: 22,
-    textAlign: "right", // תמיד ימין בעברית
-    writingDirection: "rtl",
-  },
-  aiFeedbackAction: {
-    marginTop: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-  },
-  aiFeedbackActionText: {
-    color: theme.colors.white,
-    ...theme.typography.body,
-    textDecorationLine: "underline",
-  },
-  aiFeedbackClose: {
-    padding: theme.spacing.xs,
-  },
-  aiFeedbackCloseText: {
-    color: theme.colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  // סטיילים לטעינה
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: theme.colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-  loadingIndicator: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    alignItems: "center",
-    ...theme.shadows.large,
-  },
-  loadingEmoji: {
-    fontSize: 32,
-    marginBottom: theme.spacing.sm,
-  },
-  loadingMessage: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.text,
-    textAlign: "center",
-    writingDirection: "rtl",
   },
 
   // סטיילים לטיפים חכמים
@@ -959,31 +594,33 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // סטיילים ישנים לכפתור הבא (נשמרים לתאימות)
-  nextButtonContainer: {
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-  },
-  nextButton: {
-    borderRadius: theme.radius.md,
-    ...theme.shadows.medium,
-    overflow: "hidden",
-  },
-  nextButtonGradient: {
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.xl,
+  // סטיילים לטעינה
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.overlay,
+    justifyContent: "center",
     alignItems: "center",
-    borderRadius: theme.radius.md,
+    zIndex: 999,
   },
-  nextButtonDisabled: {
-    backgroundColor: theme.colors.textTertiary,
+  loadingIndicator: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xl,
+    alignItems: "center",
+    ...theme.shadows.large,
   },
-  nextButtonText: {
-    color: theme.colors.white,
+  loadingEmoji: {
+    fontSize: 32,
+    marginBottom: theme.spacing.sm,
+  },
+  loadingMessage: {
     ...theme.typography.bodyLarge,
-    fontWeight: "600",
-    textAlign: "center", // כיוון של טקסט בכפתור תמיד במרכז
+    color: theme.colors.text,
+    textAlign: "center",
     writingDirection: "rtl",
   },
 });

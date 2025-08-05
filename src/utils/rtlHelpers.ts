@@ -1,10 +1,10 @@
 /**
  * @file src/utils/rtlHelpers.ts
- * @brief כלי עזר בסיסיים לתמיכה ב-RTL | Basic RTL support utilities
+ * @brief כלי עזר מלאים לתמיכה ב-RTL | Complete RTL support utilities
  * @dependencies react-native I18nManager, genderAdaptation
- * @notes פונקציות בסיסיות לטיפול בכיווניות RTL - פונקציות מתקדמות ב-theme.ts
+ * @notes כולל פונקציות בסיסיות וגישה לRTL - פונקציות מתקדמות ב-theme.ts
  * @recurring_errors שימוש ב-marginLeft/Right במקום Start/End, חסר textAlign: "right"
- * @updated 2025-08-04 ניקוי כפילויות והעברת פונקציות מתקדמות ל-theme.ts
+ * @updated 2025-08-05 מיזוג מלא עם rtlConfig.ts - קובץ מאוחד יחיד לכל RTL
  */
 
 import { I18nManager, TextStyle, ViewStyle } from "react-native";
@@ -16,7 +16,21 @@ import {
 } from "./genderAdaptation";
 
 /**
+ * מכריח RTL בכל האפליקציה | Forces RTL for the entire application
+ * הועבר מ-rtlConfig.ts במסגרת מיזוג מלא | Moved from rtlConfig.ts as part of full merge
+ */
+export const initializeRTL = () => {
+  // הפעלת RTL מאולץ
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+
+  return I18nManager.isRTL;
+};
+
+/**
  * בדיקה האם הממשק ב-RTL | Check if interface is RTL
+ * זוהי ההגדרה המרכזית היחידה של isRTL בפרויקט!
+ * This is the ONLY central definition of isRTL in the project!
  */
 export const isRTL = I18nManager.isRTL;
 
@@ -67,6 +81,8 @@ export const getArrowIcon = (forward: boolean = true): string => {
 
 /**
  * המרת margin ישן ל-Start/End | Convert old margin to Start/End
+ * @deprecated מומלץ להשתמש ישירות ב-marginStart/marginEnd
+ * @deprecated Recommended to use marginStart/marginEnd directly
  */
 export const convertMargin = (left?: number, right?: number) => ({
   marginStart: isRTL ? right : left,
@@ -75,6 +91,8 @@ export const convertMargin = (left?: number, right?: number) => ({
 
 /**
  * המרת padding ישן ל-Start/End | Convert old padding to Start/End
+ * @deprecated מומלץ להשתמש ישירות ב-paddingStart/paddingEnd
+ * @deprecated Recommended to use paddingStart/paddingEnd directly
  */
 export const convertPadding = (left?: number, right?: number) => ({
   paddingStart: isRTL ? right : left,
@@ -140,31 +158,51 @@ export const getBasicRTLContainerStyle = (): ViewStyle => ({
 // ✨ פונקציות מתקדמות הועברו ל-theme.ts לטובת איחוד המערכת
 // Advanced functions moved to theme.ts for system unification
 
+/**
+ * ייצוא ברירת המחדל - כל הפונקציות RTL כולל אתחול
+ * Default export - all RTL functions including initialization
+ *
+ * 📋 מידע חשוב:
+ * - isRTL: ההגדרה המרכזית היחידה בפרויקט
+ * - initializeRTL: הועבר מ-rtlConfig.ts למיזוג מלא
+ * - פונקציות מתקדמות זמינות ב-theme.rtlHelpers
+ * - פונקציות מגדר זמינות ב-genderAdaptation.ts
+ *
+ * 🔗 דוגמאות שימוש:
+ * import { isRTL, initializeRTL, getFlexDirection } from '../utils/rtlHelpers';
+ * import rtlHelpers from '../utils/rtlHelpers';
+ */
 export default {
-  // פונקציות RTL בסיסיות
+  // פונקציות RTL בסיסיות ואתחול | Basic RTL functions and initialization
   isRTL,
+  initializeRTL,
   getFlexDirection,
   getTextAlign,
   getReverseTextAlign,
   getArrowIcon,
 
-  // פונקציות סגנון בסיסי
+  // פונקציות סגנון בסיסי | Basic style functions
   getBasicRTLTextStyle,
   getBasicRTLContainerStyle,
 
-  // פונקציות המרה
+  // פונקציות המרה (deprecated) | Conversion functions (deprecated)
   convertMargin,
   convertPadding,
 
-  // פונקציות טקסט
+  // פונקציות טקסט | Text functions
   wrapMixedText,
   containsHebrew,
 
   // פונקציות התאמת מגדר - מייבא מ-genderAdaptation.ts
+  // Gender adaptation functions - imported from genderAdaptation.ts
   adaptBasicTextToGender,
   makeTextGenderNeutral,
   getDynamicGenderText,
 
-  // פונקציות UI
+  // פונקציות UI | UI functions
   getModalPosition,
 };
+
+// אתחול אוטומטי ב-RTL בזמן import - הועבר מ-rtlConfig.ts
+// Automatic RTL initialization on import - moved from rtlConfig.ts
+initializeRTL();

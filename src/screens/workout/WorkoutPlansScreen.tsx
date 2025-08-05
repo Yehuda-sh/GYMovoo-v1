@@ -384,10 +384,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Test API connections and data quality
    */
   const handleTestAPIConnections = async () => {
-    console.log("🔍 WorkoutPlansScreen - בדיקת חיבורי API ואיכות נתונים!");
-
     // First check network connectivity
-    console.log("📡 Testing network connectivity...");
     const networkCheck = await checkNetworkConnectivity();
     console.log("📡 Network check result:", networkCheck);
 
@@ -423,7 +420,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // Test 1: Questionnaire Service
     try {
-      console.log("🧪 Testing questionnaireService...");
       const equipment = await questionnaireService.getAvailableEquipment();
       const preferences = await questionnaireService.getUserPreferences();
 
@@ -444,7 +440,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // Test 2: Workout Data Service
     try {
-      console.log("🧪 Testing WorkoutDataService...");
       const userData = await WorkoutDataService.getUserWorkoutData();
 
       testResults.workoutDataService = {
@@ -496,7 +491,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // Test 4: User Store
     try {
-      console.log("🧪 Testing User Store...");
       const userState = useUserStore.getState();
       const hasUser = !!userState.user;
       const hasQuestionnaire = !!(
@@ -565,7 +559,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     }
 
     // Store detailed results for debugging
-    console.log("📊 API Test Results Summary:", testResults);
     console.log("📊 Data Quality Results:", dataQuality);
 
     return { testResults, dataQuality, networkCheck };
@@ -606,8 +599,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Test data quality and integrity
    */
   const validateDataQuality = async () => {
-    console.log("🔍 WorkoutPlansScreen - בדיקת איכות נתונים!");
-
     const validationResults = {
       exerciseDatabase: { valid: 0, invalid: 0, issues: [] as string[] },
       workoutPlan: { valid: true, issues: [] as string[] },
@@ -1762,18 +1753,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 color={theme.colors.primary}
               />
               <Text style={styles.regenerateButtonText}>רענון</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={handleTestAPIConnections}
-            >
-              <MaterialCommunityIcons
-                name="test-tube"
-                size={20}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.testButtonText}>בדיקת API ואיכות נתונים</Text>
             </TouchableOpacity>
           </View>
         </View>

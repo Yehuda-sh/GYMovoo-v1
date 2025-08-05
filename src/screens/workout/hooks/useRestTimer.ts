@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { triggerVibration } from "../../../utils/workoutHelpers";
+import { triggerVibration } from "../../../utils";
 
 export interface UseRestTimerReturn {
   isRestTimerActive: boolean;

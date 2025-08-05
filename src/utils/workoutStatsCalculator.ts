@@ -83,3 +83,31 @@ export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
 export function calculateProgress(completed: number, total: number): number {
   return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
+
+/**
+ * חישוב נפח כולל (משקל × חזרות × סטים)
+ * Calculate total volume (weight × reps × sets)
+ */
+export function calculateTotalVolume(
+  weight: number,
+  reps: number,
+  sets: number
+): number {
+  return weight * reps * sets;
+}
+
+/**
+ * חישוב ציון יעילות אימון (1-10)
+ * Calculate workout efficiency score (1-10)
+ */
+export function calculateWorkoutEfficiency(
+  completedSets: number,
+  plannedSets: number,
+  duration: number,
+  plannedDuration: number
+): number {
+  const completionRate = completedSets / plannedSets;
+  const timeEfficiency = plannedDuration / duration;
+  const efficiency = (completionRate * 0.7 + timeEfficiency * 0.3) * 10;
+  return Math.round(Math.max(1, Math.min(10, efficiency)));
+}

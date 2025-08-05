@@ -46,7 +46,7 @@ import Animated, {
   useSharedValue,
   runOnJS,
 } from "react-native-reanimated";
-import { MUSCLE_GROUPS, MuscleGroup } from "../../utils/muscleGroupsMap";
+import { MUSCLE_GROUPS, MuscleGroup } from "../../utils";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -651,6 +651,35 @@ const styles = StyleSheet.create({
     color: "#00695c",
     marginTop: 4,
     fontStyle: "italic",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  editControls: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  editLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginRight: 8,
+  },
+  exportButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 16,
+  },
+  exportButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
 

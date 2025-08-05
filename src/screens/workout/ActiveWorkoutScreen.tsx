@@ -65,9 +65,11 @@ import { useRestTimer } from "./hooks/useRestTimer";
 import { useWorkoutTimer } from "./hooks/useWorkoutTimer";
 
 // Utils
-import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
-import { formatVolume } from "../../utils/workoutHelpers";
-import { workoutLogger } from "../../utils/workoutLogger";
+import {
+  calculateWorkoutStats,
+  formatVolume,
+  workoutLogger,
+} from "../../utils";
 
 // Types
 import { Exercise, Set } from "./types/workout.types";

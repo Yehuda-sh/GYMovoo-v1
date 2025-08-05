@@ -86,4 +86,4 @@ const image = getExerciseImage("pushups");
 
 ## עדכון עתידי:
 
-כאשר התמונות המותאמות יהיו מוכנות, פשוט השם אותן בתיקייה זו ועדכן את הפונקציה `getExerciseImage()` בקובץ `exerciseDatabase.ts`.
+כאשר התמונות המותאמות יהיו מוכנות, פשוט השם אותן בתיקייה זו ועדכן את הפונקציה `getExerciseImage()` במערכת התרגילים החדשה `src/data/exercises/`.

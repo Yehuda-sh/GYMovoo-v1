@@ -8,7 +8,9 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
-import { workoutLogger } from "../../../../utils/workoutLogger";
+import { workoutLogger } from "../../../../utils";
+import { useModalManager } from "../../hooks/useModalManager";
+import { UniversalModal } from "../../../../components/common/UniversalModal";
 
 interface ActionButtonsProps {
   onShareWorkout: () => void;
@@ -28,6 +30,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     onFinishWorkout,
     isWorkoutSaved,
   }) => {
+    // Modal management - אחיד במקום Alert.alert מפוזר
+    const { activeModal, modalConfig, hideModal, showConfirm, showComingSoon } =
+      useModalManager();
     const handleShareWorkout = () => {
       workoutLogger.info("ActionButtons", "שיתוף אימון התחיל");
       onShareWorkout();
@@ -35,19 +40,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
 
     const handleSaveAsTemplate = () => {
       workoutLogger.info("ActionButtons", "שמירה כתבנית התחילה");
-      Alert.alert(
+      showConfirm(
         "שמירה כתבנית",
         "האם תרצה לשמור את האימון הזה כתבנית לשימוש עתידי?",
-        [
-          { text: "ביטול", style: "cancel" },
-          {
-            text: "שמור",
-            onPress: () => {
-              onSaveAsTemplate();
-              workoutLogger.info("ActionButtons", "אימון נשמר כתבנית בהצלחה");
-            },
-          },
-        ]
+        () => {
+          onSaveAsTemplate();
+          workoutLogger.info("ActionButtons", "אימון נשמר כתבנית בהצלחה");
+        }
       );
     };
 
@@ -57,20 +56,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     };
 
     const handleDeleteWorkout = () => {
-      Alert.alert(
+      showConfirm(
         "מחיקת אימון",
         "האם אתה בטוח שתרצה למחוק את האימון? פעולה זו לא ניתנת לביטול.",
-        [
-          { text: "ביטול", style: "cancel" },
-          {
-            text: "מחק",
-            style: "destructive",
-            onPress: () => {
-              onDeleteWorkout();
-              workoutLogger.warn("ActionButtons", "אימון נמחק על ידי המשתמש");
-            },
-          },
-        ]
+        () => {
+          onDeleteWorkout();
+          workoutLogger.warn("ActionButtons", "אימון נמחק על ידי המשתמש");
+        },
+        true // destructive
       );
     };
 
@@ -180,10 +173,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             style={styles.secondaryButton}
             onPress={() => {
               workoutLogger.info("ActionButtons", "הפתיחה של אימונים קודמים");
-              Alert.alert(
-                "אימונים קודמים",
-                "פונקציונליות זו תהיה זמינה בקרוב!"
-              );
+              showComingSoon("היסטוריית אימונים קודמים");
             }}
             accessibilityRole="button"
             accessibilityLabel="הצג אימונים קודמים"
@@ -208,6 +198,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             {isWorkoutSaved ? "נשמר בענן" : "שומר..."}
           </Text>
         </View>
+
+        {/* מודל אחיד למקום Alert.alert מפוזר */}
+        <UniversalModal
+          visible={activeModal !== null}
+          type={activeModal || "comingSoon"}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onClose={hideModal}
+          onConfirm={modalConfig.onConfirm}
+          confirmText={modalConfig.confirmText}
+          destructive={modalConfig.destructive}
+        />
       </View>
     );
   }

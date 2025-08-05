@@ -13,6 +13,8 @@
  * @usage
  * import { formatTime, formatTimeExtended, triggerVibration, animationConfig } from '@/utils/workoutHelpers'
  *
+ * @note Statistical calculation functions moved to workoutStatsCalculator.ts to avoid duplication
+ *
  * @dependencies
  * - react-native: Platform, Vibration
  *
@@ -24,6 +26,7 @@
  *
  * @created 2025-08-02 - Initial implementation for code deduplication
  * @updated 2025-08-04 - Enhanced with advanced formatting and vibration patterns
+ * @updated 2025-08-05 - Moved statistical functions to workoutStatsCalculator.ts
  */
 
 import { Platform, Vibration } from "react-native";
@@ -326,48 +329,3 @@ export const sharedButtonStyles = {
     borderWidth: 0,
   },
 } as const;
-
-/**
- * פונקציות עזר לחישובי אימון
- * Workout calculation helper functions
- */
-
-/**
- * חישוב אחוז השלמה
- * Calculate completion percentage
- */
-export const calculateCompletionPercentage = (
-  completed: number,
-  total: number
-): number => {
-  if (total === 0) return 0;
-  return Math.round((completed / total) * 100);
-};
-
-/**
- * חישוב נפח כולל (משקל × חזרות × סטים)
- * Calculate total volume (weight × reps × sets)
- */
-export const calculateTotalVolume = (
-  weight: number,
-  reps: number,
-  sets: number
-): number => {
-  return weight * reps * sets;
-};
-
-/**
- * חישוב ציון יעילות אימון (1-10)
- * Calculate workout efficiency score (1-10)
- */
-export const calculateWorkoutEfficiency = (
-  completedSets: number,
-  plannedSets: number,
-  duration: number,
-  plannedDuration: number
-): number => {
-  const completionRate = completedSets / plannedSets;
-  const timeEfficiency = plannedDuration / duration;
-  const efficiency = (completionRate * 0.7 + timeEfficiency * 0.3) * 10;
-  return Math.round(Math.max(1, Math.min(10, efficiency)));
-};

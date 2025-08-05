@@ -27,8 +27,8 @@ import {
   ActiveWorkoutScreen,
 } from "../screens";
 
-// הערה: RTL מוגדר גלובלית ב-App.tsx -> rtlConfig
-// Note: RTL is configured globally in App.tsx -> rtlConfig
+// הערה: RTL מוגדר גלובלית ב-App.tsx -> rtlHelpers
+// Note: RTL is configured globally in App.tsx -> rtlHelpers
 
 // ===============================================
 // 🔧 Navigation Setup - הגדרת ניווט

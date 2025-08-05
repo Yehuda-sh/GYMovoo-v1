@@ -154,7 +154,8 @@ export default function WelcomeScreen() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        console.log("🔍 WelcomeScreen - בודק מצב התחברות:", {
+        // Log current authentication status for debugging
+        console.log("🔍 WelcomeScreen - בדיקת מצב התחברות:", {
           hasUser: !!user,
           userEmail: user?.email,
           isLoggedInResult: isLoggedIn(),

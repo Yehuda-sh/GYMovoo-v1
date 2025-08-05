@@ -70,7 +70,7 @@ const getActiveExerciseFromHistory = (
 **אלגוריתמים חכמים 1-10:** כל נתון עם דירוג אלגוריתמי
 
 - `equipmentData.ts` - 100+ פריטי ציוד עם scoring
-- `exerciseDatabase.ts` - מאגר תרגילים עם אלגוריתמי התאמה
+- `exercises/` - מערכת תרגילים מודולרית עם סינון חכם ואלגוריתמי התאמה
 - `useWorkoutIntegration.ts` - מ-661 ל-375 שורות חכמות
 
 ---

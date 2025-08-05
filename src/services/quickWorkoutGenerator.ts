@@ -1,14 +1,15 @@
 /**
  * @file src/services/quickWorkoutGenerator.ts
- * @brief שירות ליצירת אימונים מהירים מותאמים אישית עם סינון מדויק
- * @dependencies questionnaireService, exerciseDatabase, types/index
- * @notes יוצר אימונים דינמיים על בסיס נתוני המשתמש עם סינון חכם לפי ציוד
- * @optimization שימוש במאגר התרגילים החדש עם סינון מדויק
+ * @brief שירות ליצירת אימונים מהירים מותאמים אישית עם סינון מדויק ומטריצות נתונים מרכזיות
+ * @dependencies questionnaireService, exerciseDatabase (מערכת חדשה), types/index
+ * @notes יוצר אימונים דינמיים על בסיס נתוני המשתמש עם סינון חכם לפי ציוד ומטריצות נתונים מאוחדות
+ * @optimization שימוש במאגר התרגילים החדש עם סינון מדויק, מטריצות נתונים מרכזיות, הסרת כפילות קוד
  * @algorithm עם התחשבות בדרישה המרכזית: אימון בית ללא ציוד = רק תרגילי משקל גוף
+ * @refactoring מרכוז קונסטנטים, הסרת פונקציות כפולות, שיפור קריאות וארגון קוד
  */
 
 import { questionnaireService } from "./questionnaireService";
-import { WorkoutExercise, ExerciseSet, QuickWorkoutTemplate } from "../types";
+import { WorkoutExercise, ExerciseSet } from "../types";
 import { Exercise } from "../data/exercises/types";
 import {
   allExercises,
@@ -20,6 +21,125 @@ import {
   getSmartFilteredExercises,
   filterExercisesByEquipment,
 } from "../data/exercises";
+
+// =======================================
+// 🎯 קונסטנטים ומטריצות נתונים מרכזיות
+// Central Data Matrices and Constants
+// =======================================
+
+/**
+ * מטריצת סטים לפי מטרה - מרכוז נתונים
+ * Sets matrix by goal - centralized data
+ */
+const GOAL_SETS_MATRIX = {
+  "ירידה במשקל": 3,
+  "עליה במסת שריר": 4,
+  "שיפור כוח": 5,
+  "שיפור סיבולת": 3,
+  "בריאות כללית": 3,
+} as const;
+
+/**
+ * מטריצת חזרות לפי מטרה - מרכוז נתונים
+ * Reps matrix by goal - centralized data
+ */
+const GOAL_REPS_MATRIX = {
+  "ירידה במשקל": 15,
+  "עליה במסת שריר": 10,
+  "שיפור כוח": 5,
+  "שיפור סיבולת": 20,
+  "בריאות כללית": 12,
+} as const;
+
+/**
+ * מטריצת זמני מנוחה בסיסיים לפי מטרה - מרכוז נתונים
+ * Rest times matrix by goal - centralized data
+ */
+const GOAL_REST_TIMES_MATRIX = {
+  "ירידה במשקל": 45,
+  "עליה במסת שריר": 90,
+  "שיפור כוח": 180,
+  "שיפור סיבולת": 30,
+  "בריאות כללית": 60,
+} as const;
+
+/**
+ * מטריצת משקלים התחלתיים לפי תרגיל וניסיון - מרכוז נתונים
+ * Starting weights matrix by exercise and experience - centralized data
+ */
+const EXERCISE_WEIGHTS_MATRIX: {
+  [exerciseId: string]: { [level: string]: number };
+} = {
+  bench_press: { מתחיל: 40, בינוני: 60, מתקדם: 80 },
+  db_bench_press: { מתחיל: 15, בינוני: 25, מתקדם: 35 },
+  bent_over_row: { מתחיל: 30, בינוני: 50, מתקדם: 70 },
+  db_row: { מתחיל: 12, בינוני: 20, מתקדם: 30 },
+  squat: { מתחיל: 40, בינוני: 70, מתקדם: 100 },
+  deadlift: { מתחיל: 50, בינוני: 80, מתקדם: 120 },
+  shoulder_press: { מתחיל: 10, בינוני: 15, מתקדם: 25 },
+  lateral_raise: { מתחיל: 5, בינוני: 8, מתקדם: 12 },
+  bicep_curl: { מתחיל: 8, בינוני: 12, מתקדם: 18 },
+  tricep_extension: { מתחיל: 8, בינוני: 12, מתקדם: 18 },
+} as const;
+
+/**
+ * מודפקטורי משקל לפי מטרה - מרכוז נתונים
+ * Weight modifiers by goal - centralized data
+ */
+const GOAL_WEIGHT_MODIFIERS = {
+  "שיפור כוח": 1.2,
+  "שיפור סיבולת": 0.7,
+} as const;
+
+/**
+ * מודפקטורי קושי לזמן מנוחה - מרכוז נתונים
+ * Difficulty modifiers for rest time - centralized data
+ */
+const DIFFICULTY_REST_MODIFIERS = {
+  advanced: 1.2,
+  beginner: 0.8,
+  intermediate: 1,
+} as const;
+
+/**
+ * פונקציות עזר מאוחדות לעבודה עם רמות ניסיון
+ * Unified helper functions for experience levels
+ */
+const ExperienceUtils = {
+  /**
+   * המרת ניסיון מעברית לאנגלית
+   * Convert experience from Hebrew to English
+   */
+  toDifficultyLevel(
+    experience: string
+  ): "beginner" | "intermediate" | "advanced" {
+    if (experience.includes("מתחיל")) return "beginner";
+    if (experience.includes("מקצועי") || experience.includes("תחרותי"))
+      return "advanced";
+    return "intermediate";
+  },
+
+  /**
+   * המרת ניסיון לרמה עברית
+   * Convert experience to Hebrew level
+   */
+  toHebrewLevel(experience: string): "מתחיל" | "בינוני" | "מתקדם" {
+    if (experience.includes("מתחיל")) return "מתחיל";
+    if (experience.includes("מתקדם") || experience.includes("מקצועי"))
+      return "מתקדם";
+    return "בינוני";
+  },
+
+  /**
+   * מודפקטור סטים לפי ניסיון
+   * Sets modifier by experience
+   */
+  getSetModifier(experience: string, baseCount: number): number {
+    if (experience.includes("מתחיל")) return Math.min(baseCount, 3);
+    if (experience.includes("מקצועי")) return baseCount + 1;
+    return baseCount;
+  },
+} as const;
 
 /**
  * מחלקה ליצירת אימונים מהירים
@@ -90,7 +210,7 @@ export class QuickWorkoutGenerator {
     }
 
     // סינון לפי רמת קושי
-    const difficulty = this.getDifficultyLevel(experience);
+    const difficulty = ExperienceUtils.toDifficultyLevel(experience);
     availableExercises = availableExercises.filter((ex: Exercise) => {
       if (difficulty === "beginner") return ex.difficulty === "beginner";
       if (difficulty === "intermediate") return ex.difficulty !== "advanced";
@@ -196,112 +316,51 @@ export class QuickWorkoutGenerator {
   }
 
   /**
-   * חישוב מספר סטים - מטריצה מאוחדת
+   * חישוב מספר סטים - משתמש במטריצה מרכזית
+   * Calculate set count - uses centralized matrix
    */
   private static getSetCount(goal: string, experience: string): number {
-    // מטריצת סטים לפי מטרה
-    const goalBaseCounts = {
-      "ירידה במשקל": 3,
-      "עליה במסת שריר": 4,
-      "שיפור כוח": 5,
-      "שיפור סיבולת": 3,
-      "בריאות כללית": 3,
-    };
-
-    const baseCount = goalBaseCounts[goal as keyof typeof goalBaseCounts] || 3;
-
-    // מודפקטורי ניסיון
-    const experienceModifiers = {
-      מתחיל: (count: number) => Math.min(count, 3),
-      מקצועי: (count: number) => count + 1,
-    };
-
-    // התאמה לניסיון
-    if (experience.includes("מתחיל"))
-      return experienceModifiers.מתחיל(baseCount);
-    if (experience.includes("מקצועי"))
-      return experienceModifiers.מקצועי(baseCount);
-
-    return baseCount;
+    const baseCount =
+      GOAL_SETS_MATRIX[goal as keyof typeof GOAL_SETS_MATRIX] || 3;
+    return ExperienceUtils.getSetModifier(experience, baseCount);
   }
 
   /**
-   * חישוב חזרות ומשקל - מטריצה מאוחדת ומשופרת, מעודכן לטיפוס החדש
+   * חישוב חזרות ומשקל - משתמש במטריצות מרכזיות
+   * Calculate reps and weight - uses centralized matrices
    */
   private static getRepsAndWeight(
     template: Exercise,
     goal: string,
     experience: string
   ): { reps: number; weight: number } {
-    // מטריצת חזרות לפי מטרה
-    const goalRepsMap = {
-      "ירידה במשקל": 15,
-      "עליה במסת שריר": 10,
-      "שיפור כוח": 5,
-      "שיפור סיבולת": 20,
-      "בריאות כללית": 12,
-    };
+    const reps = GOAL_REPS_MATRIX[goal as keyof typeof GOAL_REPS_MATRIX] || 12;
 
-    const reps = goalRepsMap[goal as keyof typeof goalRepsMap] || 12;
-
-    // משקל לפי תרגיל וניסיון - מעודכן לטיפוס החדש
+    // משקל לפי תרגיל וניסיון - משתמש במטריצה מרכזית
     if (template.equipment === "none") return { reps, weight: 0 }; // 🏠 תרגילי גוף
 
-    // מטריצת משקלים התחלתיים משוערים לפי תרגיל וניסיון
-    const weightMatrix: { [exerciseId: string]: { [level: string]: number } } =
-      {
-        bench_press: { מתחיל: 40, בינוני: 60, מתקדם: 80 },
-        db_bench_press: { מתחיל: 15, בינוני: 25, מתקדם: 35 },
-        bent_over_row: { מתחיל: 30, בינוני: 50, מתקדם: 70 },
-        db_row: { מתחיל: 12, בינוני: 20, מתקדם: 30 },
-        squat: { מתחיל: 40, בינוני: 70, מתקדם: 100 },
-        deadlift: { מתחיל: 50, בינוני: 80, מתקדם: 120 },
-        shoulder_press: { מתחיל: 10, בינוני: 15, מתקדם: 25 },
-        lateral_raise: { מתחיל: 5, בינוני: 8, מתקדם: 12 },
-        bicep_curl: { מתחיל: 8, בינוני: 12, מתקדם: 18 },
-        tricep_extension: { מתחיל: 8, בינוני: 12, מתקדם: 18 },
-      };
+    const expLevel = ExperienceUtils.toHebrewLevel(experience);
+    const baseWeight = EXERCISE_WEIGHTS_MATRIX[template.id]?.[expLevel] || 10;
 
-    const expLevel = this.getExperienceLevel(experience);
-    const baseWeight = weightMatrix[template.id]?.[expLevel] || 10;
-
-    // מודפקטורי מטרה
-    const goalWeightModifiers = {
-      "שיפור כוח": 1.2,
-      "שיפור סיבולת": 0.7,
-    };
-
+    // מודפקטור מטרה - משתמש בקונסטנט מרכזי
     const modifier =
-      goalWeightModifiers[goal as keyof typeof goalWeightModifiers] || 1;
+      GOAL_WEIGHT_MODIFIERS[goal as keyof typeof GOAL_WEIGHT_MODIFIERS] || 1;
     const weight = Math.round(baseWeight * modifier);
 
     return { reps, weight };
   }
 
   /**
-   * חישוב זמן מנוחה - מטריצה מאוחדת
+   * חישוב זמן מנוחה - משתמש במטריצות מרכזיות
+   * Calculate rest time - uses centralized matrices
    */
   private static calculateRestTime(goal: string, difficulty: string): number {
-    // מטריצת זמני מנוחה בסיסיים לפי מטרה
-    const baseRestTimes = {
-      "ירידה במשקל": 45,
-      "עליה במסת שריר": 90,
-      "שיפור כוח": 180,
-      "שיפור סיבולת": 30,
-      "בריאות כללית": 60,
-    };
-
-    const rest = baseRestTimes[goal as keyof typeof baseRestTimes] || 60;
-
-    // מודפקטורי קושי
-    const difficultyModifiers = {
-      advanced: 1.2,
-      beginner: 0.8,
-      intermediate: 1,
-    };
-
+    const rest =
+      GOAL_REST_TIMES_MATRIX[goal as keyof typeof GOAL_REST_TIMES_MATRIX] || 60;
     const modifier =
-      difficultyModifiers[difficulty as keyof typeof difficultyModifiers] || 1;
+      DIFFICULTY_REST_MODIFIERS[
+        difficulty as keyof typeof DIFFICULTY_REST_MODIFIERS
+      ] || 1;
     return Math.round(rest * modifier);
   }
 
@@ -454,24 +513,6 @@ export class QuickWorkoutGenerator {
     }
 
     return selected;
-  }
-
-  private static getDifficultyLevel(
-    experience: string
-  ): "beginner" | "intermediate" | "advanced" {
-    if (experience.includes("מתחיל")) return "beginner";
-    if (experience.includes("מקצועי") || experience.includes("תחרותי"))
-      return "advanced";
-    return "intermediate";
-  }
-
-  private static getExperienceLevel(
-    experience: string
-  ): "מתחיל" | "בינוני" | "מתקדם" {
-    if (experience.includes("מתחיל")) return "מתחיל";
-    if (experience.includes("מתקדם") || experience.includes("מקצועי"))
-      return "מתקדם";
-    return "בינוני";
   }
 
   private static groupByCategory(exercises: Exercise[]): {

@@ -1,0 +1,142 @@
+/**
+ * @file src/screens/workout/components/shared/StatItem.tsx
+ * @brief רכיב סטטיסטיקה מאוחד עם אנימציות ונגישות
+ * @version 1.0.0
+ * @author GYMovoo Development Team
+ * @created 2025-08-05
+ *
+ * @description
+ * רכיב סטטיסטיקה מאוחד התומך בשני משפחות אייקונים ואנימציות
+ * מאופטם עם React.memo לביצועים מקסימליים
+ *
+ * @features
+ * - ✅ תמיכה ב-MaterialCommunityIcons וב-FontAwesome5
+ * - ✅ אנימציות spring מתקדמות
+ * - ✅ אופטימיזציות ביצועים עם React.memo
+ * - ✅ נגישות מקיפה
+ * - ✅ תמיכת RTL מלאה
+ */
+
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
+import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
+import { theme } from "../../../../styles/theme";
+
+export interface StatItemProps {
+  label: string;
+  value: string | number;
+  icon: string;
+  iconFamily: "material" | "font5";
+  color?: string;
+  animate?: boolean;
+  size?: "small" | "medium" | "large";
+}
+
+export const StatItem: React.FC<StatItemProps> = React.memo(
+  ({
+    label,
+    value,
+    icon,
+    iconFamily,
+    color = theme.colors.primary,
+    animate = false,
+    size = "medium",
+  }) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const sizeConfig = {
+      small: {
+        iconSize: 16,
+        valueSize: 14,
+        labelSize: 10,
+        gap: theme.spacing.xs,
+      },
+      medium: {
+        iconSize: 24,
+        valueSize: 18,
+        labelSize: 12,
+        gap: theme.spacing.sm,
+      },
+      large: {
+        iconSize: 28,
+        valueSize: 22,
+        labelSize: 14,
+        gap: theme.spacing.md,
+      },
+    };
+
+    const config = sizeConfig[size];
+
+    useEffect(() => {
+      if (animate) {
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    }, [value, animate, scaleAnim]);
+
+    return (
+      <Animated.View
+        style={[
+          styles.statItem,
+          { gap: config.gap },
+          animate && { transform: [{ scale: scaleAnim }] },
+        ]}
+        accessible={true}
+        accessibilityRole="text"
+        accessibilityLabel={`${label}: ${value}`}
+        accessibilityHint="סטטיסטיקת אימון"
+      >
+        {iconFamily === "material" ? (
+          <MaterialCommunityIcons
+            name={
+              icon as React.ComponentProps<
+                typeof MaterialCommunityIcons
+              >["name"]
+            }
+            size={config.iconSize}
+            color={color}
+          />
+        ) : (
+          <FontAwesome5
+            name={icon as React.ComponentProps<typeof FontAwesome5>["name"]}
+            size={
+              iconFamily === "font5" ? config.iconSize - 4 : config.iconSize
+            }
+            color={color}
+          />
+        )}
+        <Text style={[styles.statValue, { fontSize: config.valueSize }]}>
+          {value}
+        </Text>
+        <Text style={[styles.statLabel, { fontSize: config.labelSize }]}>
+          {label}
+        </Text>
+      </Animated.View>
+    );
+  }
+);
+
+StatItem.displayName = "StatItem";
+
+const styles = StyleSheet.create({
+  statItem: {
+    alignItems: "center",
+  },
+  statValue: {
+    fontWeight: "bold",
+    color: theme.colors.text,
+  },
+  statLabel: {
+    color: theme.colors.textSecondary,
+  },
+});

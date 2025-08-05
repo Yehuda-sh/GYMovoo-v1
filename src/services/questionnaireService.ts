@@ -69,23 +69,11 @@ class QuestionnaireService {
    */
   async getUserPreferences(): Promise<QuestionnaireMetadata | null> {
     try {
-      console.log(
-        "🔍 QuestionnaireService: Starting comprehensive user preferences retrieval"
-      );
-
       // Priority 1: Check for new user data in userStore
       const user = useUserStore.getState().user;
-      console.log(
-        "🔍 QuestionnaireService: User data from store -",
-        user?.email || "No user"
-      );
 
       // Enhanced questionnaire data processing with legacy support
       if (user?.questionnaire) {
-        console.log(
-          "✅ QuestionnaireService: Found questionnaire in userStore, processing..."
-        );
-
         const fullMetadata: QuestionnaireMetadata = {
           ...user.questionnaire,
           completedAt:
@@ -460,7 +448,6 @@ class QuestionnaireService {
         })
       );
     } catch (error) {
-      console.error("Error saving questionnaire data:", error);
       throw error;
     }
   }
@@ -707,7 +694,6 @@ class QuestionnaireService {
         STORAGE_KEYS.WORKOUT_PREFERENCES,
       ]);
     } catch (error) {
-      console.error("Error clearing questionnaire data:", error);
       throw error;
     }
   }
@@ -896,14 +882,15 @@ class QuestionnaireService {
     workoutType: string
   ): number {
     const calorieMultipliers = {
-      cardio: 10,
-      hiit: 15,
-      strength: 7,
-      power: 8,
-      mobility: 3,
-      lowimpact: 5,
-      rehab: 4,
-      general: 8,
+      cardio: 12, // Enhanced for cardio workouts
+      hiit: 14, // Highest for HIIT intensity
+      strength: 9, // Moderate for strength training
+      power: 11, // High for power training
+      mobility: 9, // Updated for flexibility work
+      lowimpact: 5, // Lower for gentle exercises
+      rehab: 4, // Lowest for rehabilitation
+      general: 8, // Default fallback
+      endurance: 10, // Added for endurance training
     };
 
     const multiplier =
@@ -1013,7 +1000,7 @@ class QuestionnaireService {
     id: "circuit-1",
     name: "אימון מעגלים",
     description: "אימון מעגלים המשלב כוח וסיבולת",
-    estimatedCalories: Math.round(duration * 12),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "cardio"),
     type: "mixed" as const,
   });
 
@@ -1027,7 +1014,7 @@ class QuestionnaireService {
     name: "תרגילים מורכבים",
     description: "אימון המתמקד בתרגילים מורכבים רב-מפרקיים",
     equipment: ["barbell", "dumbbells"],
-    estimatedCalories: Math.round(duration * 9),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "strength"),
   });
 
   private createEnduranceWorkout = (
@@ -1039,7 +1026,7 @@ class QuestionnaireService {
     id: "endurance-1",
     name: "אימון סיבולת",
     description: "אימון לשיפור סיבולת שרירית ולב-ריאה",
-    estimatedCalories: Math.round(duration * 11),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "endurance"),
   });
 
   private createMetabolicWorkout = (
@@ -1052,7 +1039,7 @@ class QuestionnaireService {
     name: "אימון מטבולי",
     description: "אימון להאצת חילוף החומרים",
     equipment: ["bodyweight", "dumbbells"],
-    estimatedCalories: Math.round(duration * 14),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "hiit"),
   });
 
   private createPushPullWorkout = (
@@ -1077,7 +1064,7 @@ class QuestionnaireService {
     id: "functional-1",
     name: "אימון פונקציונלי",
     description: "אימון לשיפור תנועות יומיומיות",
-    estimatedCalories: Math.round(duration * 9),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "general"),
   });
 
   private createBalancedWorkout = (
@@ -1089,7 +1076,7 @@ class QuestionnaireService {
     id: "balanced-1",
     name: "אימון מאוזן",
     description: "אימון המשלב כוח, סיבולת וגמישות",
-    estimatedCalories: Math.round(duration * 10),
+    estimatedCalories: this.calculateEstimatedCalories(duration, "general"),
   });
 
   // =======================================

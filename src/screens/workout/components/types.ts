@@ -63,7 +63,8 @@ export interface WorkoutDashboardProps {
   personalRecords: number;
   elapsedTime?: string;
   variant?: WorkoutVariant;
-  className?: string;
+  onHide?: () => void; // פונקציה להעלמת הדשבורד | Function to hide dashboard
+  isEditMode?: boolean; // מצב עריכה | Edit mode
 }
 
 // ExerciseCard Props - עדכון עם טיפוסים חדשים

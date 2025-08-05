@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { formatTime } from "../../../utils/workoutHelpers";
+import { formatTime } from "../../../utils";
 
 interface UseWorkoutTimerReturn {
   elapsedTime: number;

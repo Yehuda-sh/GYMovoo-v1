@@ -194,7 +194,8 @@ return selectedExercises.map((exercise, index) =>
 ### 🔧 אינטגרציה טכנית
 
 - **`workoutDataService.ts`** - המנוע הראשי ליצירת אימונים מותאמים
-- **`exerciseDatabase.ts`** - מאגר של 200+ תרגילים עם ציונים אלגוריתמיים
+- **`exercises/`** - מערכת תרגילים מודולרית עם 200+ תרגילים וציונים אלגוריתמיים
+- **`quickWorkoutGenerator.ts`** - יצירת אימונים מהירים עם מטריצות נתונים מרכזיות
 - **`scientificAIService.ts`** - המלצות מבוססות מחקר מדעי
 
 ### 🎨 חוויית משתמש משופרת
@@ -206,7 +207,7 @@ return selectedExercises.map((exercise, index) =>
 
 ---
 
-_עדכון אחרון: 1 באוגוסט 2025 - אלגוריתם AI מתקדם עם בדיקת ביצועים_  
+_עדכון אחרון: 5 באוגוסט 2025 - אלגוריתם AI מתקדם עם מערכת תרגילים מודולרית מחוזקת_  
 _הערה: מספרים במסמך זה משתנים בהתאם למאגר הנוכחי ולהגדרות המערכת_
 
 ```

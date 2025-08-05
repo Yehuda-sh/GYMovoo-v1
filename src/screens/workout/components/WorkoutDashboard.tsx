@@ -1,10 +1,11 @@
 /**
  * @file src/screens/workout/components/WorkoutDashboard.tsx
  * @brief דשבורד אימון אינטרקטיבי עם סטטיסטיקות חיות ווריאנטים מגוונים
- * @version 2.0.0
+ * @version 3.0.0
  * @author GYMovoo Development Team
  * @created 2024-12-15
- * @modified 2025-08-02
+ * @modified 2025-08-05
+ * @optimized true - שופר ואופטמם במסגרת ניקוי כפילויות קוד
  *
  * @description
  * רכיב דשבורד מתקדם המציג סטטיסטיקות אימון בזמן אמת עם תמיכה ב-4 ווריאנטים:
@@ -20,13 +21,15 @@
  * - ✅ תמיכת RTL מלאה
  * - ✅ נגישות מקיפה עם ARIA labels
  * - ✅ 4 ווריאנטי תצוגה שונים
- * - ✅ כפתור סגירה דינמי
+ * - ✅ כפתור סגירה דינמי מאוחד
  * - ✅ גרדיאנטים וצללים מתקדמים
  * - ✅ תמיכה במצב עריכה עם הצגה מותאמת
+ * - ✅ רכיבים משותפים מאופטמים
  *
  * @performance
  * אופטימיזציה מתקדמת עם useRef לאנימציות, memo optimization עבור StatItem,
- * חישובי אחוז השלמה מקומיים ללא re-renders מיותרים
+ * חישובי אחוז השלמה מקומיים ללא re-renders מיותרים.
+ * שימוש ברכיבים משותפים להפחתת כפילויות קוד.
  *
  * @rtl
  * תמיכה מלאה בעברית עם flexDirection: row-reverse, textAlign: right,
@@ -40,7 +43,7 @@
  * חישוב אחוז השלמה: (completedSets / totalSets) * 100
  * אנימציית סקלה: 1 → 1.1 → 1 עם spring physics
  *
- * @dependencies MaterialCommunityIcons, FontAwesome5, LinearGradient, theme
+ * @dependencies MaterialCommunityIcons, FontAwesome5, LinearGradient, theme, shared components
  * @exports WorkoutDashboard
  *
  * @example
@@ -60,108 +63,13 @@
  */
 // cspell:ignore נפח, סטים, קצב, שיאים, ווריאנטים, גרדיאנט
 
-import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  TouchableOpacity,
-} from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
-
-interface DashboardStatProps {
-  label: string;
-  value: string | number;
-  icon: string; // Support both MaterialCommunityIcons and FontAwesome5 icon names
-  iconFamily: "material" | "font5";
-  color?: string;
-  animate?: boolean;
-}
-
-interface WorkoutDashboardProps {
-  totalVolume: number;
-  completedSets: number;
-  totalSets: number;
-  pace: number;
-  personalRecords: number;
-  elapsedTime?: string; // הוספת זמן אימון
-  // English: Added workout time
-  variant?: "default" | "compact" | "bar" | "floating";
-  onHide?: () => void; // פונקציה להעלמת הדשבורד
-  // English: Function to hide dashboard
-  isEditMode?: boolean; // מצב עריכה - להצגת מידע שונה
-  // English: Edit mode - for showing different information
-}
-
-// קומפוננטת סטטיסטיקה בודדת - ממוחזרת עם React.memo לביצועים
-// Single stat component - memoized with React.memo for performance
-const StatItem: React.FC<DashboardStatProps> = React.memo(
-  ({
-    label,
-    value,
-    icon,
-    iconFamily,
-    color = theme.colors.primary,
-    animate = false,
-  }) => {
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-
-    useEffect(() => {
-      if (animate) {
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1.1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            friction: 3,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
-    }, [value, animate, scaleAnim]);
-
-    return (
-      <Animated.View
-        style={[
-          styles.statItem,
-          animate && { transform: [{ scale: scaleAnim }] },
-        ]}
-        accessible={true}
-        accessibilityRole="text"
-        accessibilityLabel={`${label}: ${value}`}
-        accessibilityHint="סטטיסטיקת אימון"
-      >
-        {iconFamily === "material" ? (
-          <MaterialCommunityIcons
-            name={
-              icon as React.ComponentProps<
-                typeof MaterialCommunityIcons
-              >["name"]
-            }
-            size={24}
-            color={color}
-          />
-        ) : (
-          <FontAwesome5
-            name={icon as React.ComponentProps<typeof FontAwesome5>["name"]}
-            size={20}
-            color={color}
-          />
-        )}
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </Animated.View>
-    );
-  }
-);
-
-StatItem.displayName = "StatItem";
+import { CloseButton, StatItem, type StatItemProps } from "./shared";
+import type { WorkoutDashboardProps } from "./types";
 
 export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   totalVolume,
@@ -174,55 +82,68 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   onHide,
   isEditMode = false,
 }) => {
-  // חישוב אחוז השלמה
-  // Calculate completion percentage
-  const completionPercentage =
-    totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+  // חישוב אחוז השלמה - מאופטם עם useMemo
+  // Calculate completion percentage - optimized with useMemo
+  const completionPercentage = useMemo(
+    () => (totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0),
+    [completedSets, totalSets]
+  );
 
-  const stats: DashboardStatProps[] = [
-    {
-      label: "נפח",
-      value: `${Math.round(totalVolume)} ק"ג`,
-      icon: "weight-hanging",
-      iconFamily: "font5",
-      color: theme.colors.primary,
-    },
-    {
-      label: isEditMode ? "עריכה" : "סטים",
-      value: isEditMode ? "✏️" : `${completedSets}/${totalSets}`,
-      icon: isEditMode ? "pencil" : "format-list-checks",
-      iconFamily: "material",
-      color: isEditMode ? theme.colors.warning : theme.colors.success,
-      animate: !isEditMode,
-    },
-    {
-      label: "קצב",
-      value: pace.toFixed(1),
-      icon: "speedometer",
-      iconFamily: "material",
-      color: theme.colors.warning,
-    },
-    {
-      label: "שיאים",
-      value: personalRecords,
-      icon: "trophy",
-      iconFamily: "material",
-      color: theme.colors.secondary,
-      animate: personalRecords > 0 && !isEditMode,
-    },
-  ];
+  // אופטימיזציה של נתוני הסטטיסטיקות עם useMemo
+  // Optimize stats data with useMemo
+  const stats: StatItemProps[] = useMemo(
+    () => [
+      {
+        label: "נפח",
+        value: `${Math.round(totalVolume)} ק"ג`,
+        icon: "weight-hanging",
+        iconFamily: "font5",
+        color: theme.colors.primary,
+      },
+      {
+        label: isEditMode ? "עריכה" : "סטים",
+        value: isEditMode ? "✏️" : `${completedSets}/${totalSets}`,
+        icon: isEditMode ? "pencil" : "format-list-checks",
+        iconFamily: "material",
+        color: isEditMode ? theme.colors.warning : theme.colors.success,
+        animate: !isEditMode,
+      },
+      {
+        label: "קצב",
+        value: pace.toFixed(1),
+        icon: "speedometer",
+        iconFamily: "material",
+        color: theme.colors.warning,
+      },
+      {
+        label: "שיאים",
+        value: personalRecords,
+        icon: "trophy",
+        iconFamily: "material",
+        color: theme.colors.secondary,
+        animate: personalRecords > 0 && !isEditMode,
+      },
+    ],
+    [totalVolume, completedSets, totalSets, pace, personalRecords, isEditMode]
+  );
 
-  // אם יש זמן אימון, הוסף אותו
-  // If there's elapsed time, add it
-  if (elapsedTime) {
-    stats.unshift({
-      label: "זמן",
-      value: elapsedTime,
-      icon: "clock-outline",
-      iconFamily: "material",
-      color: theme.colors.text,
-    });
-  }
+  // הוספת זמן אימון לתחילת המערך אם קיים
+  // Add elapsed time to beginning of array if exists
+  const statsWithTime = useMemo(() => {
+    if (elapsedTime) {
+      return [
+        {
+          label: "זמן",
+          value: elapsedTime,
+          icon: "clock-outline",
+          iconFamily: "material" as const,
+          color: theme.colors.text,
+        },
+        ...stats,
+      ];
+    }
+    return stats;
+  }, [elapsedTime, stats]);
 
   // סגנון בר דק (כמו NextExerciseBar)
   // Thin bar style (like NextExerciseBar)
@@ -299,34 +220,15 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* כפתור סגירה מתחת לווריאנט בר */}
+        {/* כפתור סגירה מאוחד לכל הווריאנטים */}
         {onHide && (
-          <TouchableOpacity
-            style={[
-              styles.closeButtonBelow,
-              {
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                marginTop: theme.spacing.xs,
-                alignSelf: "center",
-              },
-            ]}
-            onPress={() => {
-              onHide();
-            }}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityRole="button"
+          <CloseButton
+            onPress={onHide}
+            size="small"
+            position="center"
+            marginTop={theme.spacing.xs}
             accessibilityLabel="סגור דשבורד"
-            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={16}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          />
         )}
       </View>
     );
@@ -351,7 +253,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
               : "תצוגת סטטיסטיקות אימון קומפקטית"
           }
         >
-          {stats.slice(0, 3).map((stat, index) => (
+          {statsWithTime.slice(0, 3).map((stat, index) => (
             <React.Fragment key={stat.label}>
               {index > 0 && <View style={styles.compactDivider} />}
               <View style={styles.compactStat}>
@@ -382,33 +284,14 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           ))}
         </TouchableOpacity>
 
-        {/* כפתור סגירה מתחת לווריאנט קומפקטי */}
+        {/* כפתור סגירה מאוחד */}
         {onHide && (
-          <TouchableOpacity
-            style={[
-              styles.closeButtonBelow,
-              {
-                width: 30,
-                height: 30,
-                borderRadius: 15,
-                marginTop: theme.spacing.xs,
-              },
-            ]}
-            onPress={() => {
-              onHide();
-            }}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityRole="button"
+          <CloseButton
+            onPress={onHide}
+            size="medium"
+            position="center"
             accessibilityLabel="סגור דשבורד"
-            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={16}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          />
         )}
       </View>
     );
@@ -439,7 +322,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
             style={styles.floatingGradient}
           >
             <View style={styles.floatingContent}>
-              {stats.map((stat) => (
+              {statsWithTime.map((stat) => (
                 <View key={stat.label} style={styles.floatingStat}>
                   {stat.iconFamily === "material" ? (
                     <MaterialCommunityIcons
@@ -472,34 +355,15 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* כפתור סגירה מתחת לווריאנט צף */}
+        {/* כפתור סגירה מאוחד */}
         {onHide && (
-          <TouchableOpacity
-            style={[
-              styles.closeButtonBelow,
-              {
-                width: 30,
-                height: 30,
-                borderRadius: 15,
-                marginTop: theme.spacing.sm,
-                alignSelf: "center",
-              },
-            ]}
-            onPress={() => {
-              onHide();
-            }}
-            activeOpacity={0.7}
-            accessible={true}
-            accessibilityRole="button"
+          <CloseButton
+            onPress={onHide}
+            size="medium"
+            position="center"
+            marginTop={theme.spacing.sm}
             accessibilityLabel="סגור דשבורד"
-            accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={16}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          />
         )}
       </View>
     );
@@ -525,86 +389,33 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
           onHide ? "הקש כדי להסתיר את הדשבורד" : "תצוגת סטטיסטיקות אימון מפורטת"
         }
       >
-        {stats.map((stat) => (
+        {statsWithTime.map((stat) => (
           <StatItem key={stat.label} {...stat} />
         ))}
       </TouchableOpacity>
 
-      {/* כפתור סגירה מתחת לדשבורד */}
+      {/* כפתור סגירה מאוחד */}
       {onHide && (
-        <TouchableOpacity
-          style={styles.closeButtonBelow}
-          onPress={() => {
-            onHide();
-          }}
-          activeOpacity={0.7}
-          accessible={true}
-          accessibilityRole="button"
+        <CloseButton
+          onPress={onHide}
+          size="large"
+          position="center"
           accessibilityLabel="סגור דשבורד"
-          accessibilityHint="הקש כדי להסתיר את דשבורד האימון"
-        >
-          <MaterialCommunityIcons
-            name="close"
-            size={18}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
+        />
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // קונטיינר ברירת מחדל עם כפתור סגירה
-  // Default container with close button
+  // קונטיינר ברירת מחדל
+  // Default container
   defaultContainer: {
     position: "relative",
   },
-  closeButton: {
-    position: "absolute",
-    top: -8,
-    right: theme.spacing.sm,
-    zIndex: 1000,
-    backgroundColor: theme.colors.background,
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  closeButtonBelow: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignSelf: "center",
-    marginTop: theme.spacing.sm,
-  },
 
-  // סגנון מקורי
-  // Original style
+  // סגנון מקורי - משופר
+  // Original style - improved
   container: {
     flexDirection: "row-reverse",
     justifyContent: "space-around",
@@ -615,19 +426,6 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-  },
-  statItem: {
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
   },
 
   // סגנון בר

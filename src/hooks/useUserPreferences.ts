@@ -9,11 +9,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  questionnaireService,
-  QuestionnaireMetadata,
-  WorkoutRecommendation,
-} from "../services/questionnaireService";
+import { questionnaireService } from "../services/questionnaireService";
+import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
 import { useUserStore } from "../stores/userStore";
 
 // ממשק מורחב לתוצאות חכמות
@@ -272,7 +269,6 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     try {
       setIsLoading(true);
       setError(null);
-
 
       // טען נתונים בסיסיים
       const preferencesData = await questionnaireService.getUserPreferences();

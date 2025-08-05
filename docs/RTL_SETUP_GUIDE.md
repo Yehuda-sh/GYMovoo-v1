@@ -19,11 +19,10 @@
 
 ### מערכת RTL מאופטמת:
 
-1. **קובץ `src/utils/rtlConfig.ts`** - הגדרות RTL גלובליות עם אתחול אוטומטי
-2. **קובץ `src/utils/rtlHelpers.ts`** - פונקציות בסיסיות בלבד (130 שורות, 66% הפחתה)
-3. **קובץ `src/utils/genderAdaptation.ts`** - כל הפונקציות התאמת מגדר (ללא כפילויות)
-4. **קובץ `App.tsx`** - טעינת RTL config אוטומטית בהפעלה
-5. **ארכיטקטורה נקייה** - הפרדת אחריות ללא כפילויות קוד
+1. **קובץ `src/utils/rtlHelpers.ts`** - כל פונקציות RTL כולל אתחול אוטומטי (מאוחד) ✅
+2. **קובץ `src/utils/genderAdaptation.ts`** - כל הפונקציות התאמת מגדר (ללא כפילויות)
+3. **קובץ `App.tsx`** - טעינת RTL config אוטומטית בהפעלה
+4. **ארכיטקטורה נקייה** - הפרדת אחריות ללא כפילויות קוד - **מיזוג rtlConfig.ts בוצע** ✅
 
 ### הפחתת כפילויות (הושלמה):
 
@@ -56,8 +55,7 @@
 
 ### קבצי RTL מרכזיים:
 
-- `src/utils/rtlConfig.ts` - הגדרות RTL גלובליות (אתחול אוטומטי)
-- `src/utils/rtlHelpers.ts` - פונקציות בסיסיות RTL (130 שורות)
+- `src/utils/rtlHelpers.ts` - פונקציות RTL מלאות + אתחול אוטומטי (מאוחד) ✅
 - `src/utils/genderAdaptation.ts` - התאמת מגדר (216 שורות, מיועל ללא כפילויות)
 - `src/styles/theme.ts` - סגנונות RTL מתקדמים
 
@@ -69,22 +67,25 @@
 
 ### דוחות ותיעוד:
 
-- `RTL_HELPERS_OPTIMIZATION_REPORT.md` - דוח אופטימיזציה מפורט (66% הפחתה)
 - `docs/NAVIGATION_GUIDE.md` - אנימציות RTL מתקדמות
+- `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md` - מימוש RTL מפורט טכנית
 
-## 🔧 הערות טכניות מעודכנות
+## 🔧 הערות טכניות מעודכנות (אוגוסט 2025)
 
 ### התפתחות המערכת:
 
 - **אתחול אוטומטי**: `I18nManager.forceRTL(true)` פועל בעת import של rtlConfig.ts
 - **אין צורך בהפעלה מחדש**: השינוי חל מיידית עם טעינת האפליקציה
 - **ארכיטקטורה משופרת**: הפרדת אחריות בין RTL, מגדר וסגנונות UI
+- **⚠️ תיקון כפילויות**: הוסרה כפילות isRTL בין rtlHelpers.ts ו-theme.ts
+- **✅ מיזוג מלא בוצע**: rtlConfig.ts מוזג לחלוטין לתוך rtlHelpers.ts - אפס כפילויות!
 
 ### אופטימיזציות ביצועים:
 
 - **הפחתת נפח קוד**: 66% הפחתה ב-rtlHelpers.ts (386→130 שורות)
 - **Tree shaking משופר**: ייבוא רק של הפונקציות הדרושות
 - **IntelliSense טוב יותר**: יבואים ברורים ועקביים
+- **איחוד isRTL**: הגדרה מרכזית אחת ברגיסטר
 
 ### לקחים ארכיטקטוניים:
 
@@ -98,14 +99,12 @@
 
 - `docs/NAVIGATION_GUIDE.md` - אנימציות RTL מתקדמות וגסטורות
 - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md` - מימוש RTL מפורט טכנית
-- `RTL_HELPERS_OPTIMIZATION_REPORT.md` - ניתוח אופטימיזציה מלא
 
 ### מבנה התיעוד הכולל:
 
 - **מסמך זה**: הגדרות RTL בסיסיות ומצב מערכת נוכחי
 - **NAVIGATION_GUIDE.md**: אנימציות RTL מתקדמות ומערכת ניווט
 - **TECHNICAL_IMPLEMENTATION_GUIDE.md**: פרטים טכניים מעמיקים על RTL
-- **RTL_HELPERS_OPTIMIZATION_REPORT.md**: דוח השיפורים והאופטימיזציות
 
 ---
 
@@ -130,11 +129,10 @@ The app is configured for automatic RTL with forced direction, working seamlessl
 
 #### Optimized RTL System:
 
-1. **`src/utils/rtlConfig.ts`** - Global RTL settings with auto-initialization
-2. **`src/utils/rtlHelpers.ts`** - Basic functions only (130 lines, 66% reduction)
-3. **`src/utils/genderAdaptation.ts`** - All gender adaptation functions (no duplications)
-4. **`App.tsx`** - Automatic RTL config loading on startup
-5. **Clean Architecture** - Separation of concerns with no code duplication
+1. **`src/utils/rtlHelpers.ts`** - Complete RTL functions including auto-initialization (merged) ✅
+2. **`src/utils/genderAdaptation.ts`** - All gender adaptation functions (no duplications)
+3. **`App.tsx`** - Automatic RTL config loading on startup
+4. **Clean Architecture** - Separation of concerns with zero code duplication - **rtlConfig.ts merge completed** ✅
 
 #### Duplication Elimination (Completed):
 
@@ -159,8 +157,7 @@ The app is configured for automatic RTL with forced direction, working seamlessl
 
 #### Core RTL Files:
 
-- `src/utils/rtlConfig.ts` - Global RTL settings (auto-initialization)
-- `src/utils/rtlHelpers.ts` - Basic RTL functions (130 lines)
+- `src/utils/rtlHelpers.ts` - Complete RTL functions + auto-initialization (merged) ✅
 - `src/utils/genderAdaptation.ts` - Gender adaptation (216 lines, optimized without duplications)
 - `src/styles/theme.ts` - Advanced RTL styles
 
@@ -172,22 +169,25 @@ The app is configured for automatic RTL with forced direction, working seamlessl
 
 #### Reports and Documentation:
 
-- `RTL_HELPERS_OPTIMIZATION_REPORT.md` - Detailed optimization report (66% reduction)
 - `docs/NAVIGATION_GUIDE.md` - Advanced RTL animations
+- `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md` - Detailed RTL implementation
 
-### 🔧 Updated Technical Notes
+### 🔧 Updated Technical Notes (August 2025)
 
 #### System Evolution:
 
 - **Auto-initialization**: `I18nManager.forceRTL(true)` runs on rtlConfig.ts import
 - **No restart needed**: Changes apply instantly on app load
 - **Improved architecture**: Separation between RTL, gender, and UI styles
+- **⚠️ Fixed duplications**: Removed isRTL duplication between rtlHelpers.ts and theme.ts
+- **✅ Full merge completed**: rtlConfig.ts fully merged into rtlHelpers.ts - zero duplications!
 
 #### Performance Optimizations:
 
 - **Code size reduction**: 66% reduction in rtlHelpers.ts (386→130 lines)
 - **Better tree shaking**: Import only needed functions
 - **Better IntelliSense**: Clear and consistent imports
+- **Unified isRTL**: Single central definition
 
 #### Architectural Lessons:
 
@@ -201,7 +201,6 @@ For more RTL information, see:
 
 - `docs/NAVIGATION_GUIDE.md` - Advanced RTL animations and gestures
 - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md` - Detailed RTL implementation
-- `RTL_HELPERS_OPTIMIZATION_REPORT.md` - Complete optimization analysis
 
 ---
 

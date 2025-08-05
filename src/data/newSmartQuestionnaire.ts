@@ -11,12 +11,55 @@
  */
 
 import { ImageSourcePropType } from "react-native";
-import {
-  SmartOption,
-  AIFeedback,
-  SmartQuestionType,
-  QuestionMetadata,
-} from "./questionnaireData";
+
+// ================== MOVED INTERFACES | ממשקים שהועברו ==================
+// Moved from questionnaireData.ts for centralization
+
+// Base option interface for all questionnaire components
+// ממשק אפשרות בסיסי לכל קומפוננטי השאלון
+export interface BaseOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+// Extended option with visual and metadata support
+// אפשרות מורחבת עם תמיכה ויזואלית ומטא-דאטה
+export interface OptionWithImage extends BaseOption {
+  image?: ImageSourcePropType | string;
+  isDefault?: boolean;
+  isPremium?: boolean;
+  category?: string;
+  tags?: string[];
+}
+
+// Smart option with AI insights and equipment metadata
+// אפשרות חכמה עם תובנות AI ומטא-דאטה של ציוד
+export interface SmartOption extends OptionWithImage {
+  metadata?: {
+    equipment?: string[];
+    [key: string]: unknown;
+  };
+  aiInsight?: string;
+}
+
+// Question types
+export type SmartQuestionType = "single" | "multiple";
+
+// AI Feedback interface
+export interface AIFeedback {
+  message: string;
+  type: "positive" | "suggestion" | "warning" | "insight";
+  icon: string;
+}
+
+// Shared metadata interface
+export interface QuestionMetadata {
+  algorithmWeight?: number; // משקל בחישוב האלגוריתם (1-10)
+  impactArea?: string[]; // תחומים שהשאלה משפיעה עליהם
+  priority?: "critical" | "high" | "medium" | "low"; // עדיפות השאלה
+  customIcon?: string; // אייקון מותאם עתידי
+}
 
 // ================== SMART QUESTION INTERFACE | ממשק שאלה חכמה ==================
 

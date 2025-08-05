@@ -4,10 +4,10 @@
  * @brief Main entry point for GYMovoo application
  * @description מטפל באתחול RTL, ניקוי אחסון, וניווט ראשי
  * @description Handles RTL initialization, storage cleanup, and main navigation
- * @dependencies AppNavigator, StorageCleanup, rtlConfig, Toast
+ * @dependencies AppNavigator, StorageCleanup, rtlHelpers, Toast
  * @notes אתחול RTL אוטומטי, ניקוי אחסון אסינכרוני, Toast גלובלי
  * @notes Automatic RTL init, async storage cleanup, global Toast
- * @updated 2025-08-04 Enhanced organization and eliminated RTL duplication
+ * @updated 2025-08-05 עדכון אחרי מיזוג rtlConfig.ts לתוך rtlHelpers.ts
  */
 
 import React, { useEffect } from "react";
@@ -22,7 +22,7 @@ import Toast from "react-native-toast-message";
 // 🔧 Utilities & Configuration - כלים והגדרות
 // ===============================================
 import { StorageCleanup } from "./src/utils/storageCleanup";
-import "./src/utils/rtlConfig"; // 🌍 אתחול RTL אוטומטי / Automatic RTL initialization
+import "./src/utils/rtlHelpers"; // 🌍 אתחול RTL אוטומטי / Automatic RTL initialization
 
 // ===============================================
 // 📚 Required Libraries - ספריות נדרשות

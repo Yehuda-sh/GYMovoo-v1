@@ -1,10 +1,18 @@
 /**
  * @file exercises/index.ts
- * @description נקודת כניסה מרכזית לכל התרגילים
- * Central entry point for all exercises
+ * @description נקודת כניסה מרכזית לכל התרגילים עם מערכת סינון מרכזית
+ * Central entry point for all exercises with centralized filtering system
+ *
+ * ✅ מותאם לעקרונות DRY - Single Source of Truth
+ * ✅ משתמש במערכת הסינון המרכזית מ-exerciseFilters.ts
+ * ✅ מונע כפילות קוד בפונקציות הסינון
  */
 
-// יבוא טיפוסים
+// =====================================
+// 📦 יבוא טיפוסים ונתונים
+// Types and Data Imports
+// =====================================
+
 import { Exercise } from "./types";
 export { Exercise } from "./types";
 
@@ -15,14 +23,38 @@ import { cardioExercises } from "./cardio";
 import { flexibilityExercises } from "./flexibility";
 import { resistanceBandExercises } from "./resistanceBands";
 
-// ייצוא קטגוריות
+// יבוא מערכת הסינון המרכזית - חיסכון בכפילות קוד!
+import {
+  smartFilter,
+  customFilter,
+  calculateExerciseStats,
+  getBodyweightExercises as getBodyweightFiltered,
+  getDumbbellExercises as getDumbbellFiltered,
+  getResistanceBandExercises as getResistanceBandFiltered,
+  getHomeCompatibleExercises as getHomeCompatibleFiltered,
+  getQuietExercises as getQuietFiltered,
+  filterByEquipment,
+  filterByCategory,
+  filterByDifficulty,
+  EQUIPMENT_TYPES,
+} from "./exerciseFilters";
+
+// =====================================
+// 📊 מאגר תרגילים מאוחד
+// Unified Exercise Database
+// =====================================
+
+// ייצוא קטגוריות תרגילים
 export { bodyweightExercises } from "./bodyweight";
 export { dumbbellExercises } from "./dumbbells";
 export { cardioExercises } from "./cardio";
 export { flexibilityExercises } from "./flexibility";
 export { resistanceBandExercises } from "./resistanceBands";
 
-// מאגר תרגילים מאוחד
+/**
+ * מאגר תרגילים מאוחד - Single Source of Truth
+ * Unified exercise database
+ */
 export const allExercises: Exercise[] = [
   ...bodyweightExercises,
   ...dumbbellExercises,
@@ -31,108 +63,145 @@ export const allExercises: Exercise[] = [
   ...resistanceBandExercises,
 ];
 
-// פונקציות סינון
+// =====================================
+// 🔧 פונקציות נוחות לקטגוריות
+// Convenience Functions for Categories
+// =====================================
+
+/**
+ * החזרת תרגילי משקל גוף
+ * Get bodyweight exercises from static arrays
+ */
 export function getBodyweightExercises(): Exercise[] {
   return bodyweightExercises;
 }
 
+/**
+ * החזרת תרגילי משקולות
+ * Get dumbbell exercises from static arrays
+ */
 export function getDumbbellExercises(): Exercise[] {
   return dumbbellExercises;
 }
 
+/**
+ * החזרת תרגילי קרדיו
+ * Get cardio exercises from static arrays
+ */
 export function getCardioExercises(): Exercise[] {
   return cardioExercises;
 }
 
+/**
+ * החזרת תרגילי גמישות
+ * Get flexibility exercises from static arrays
+ */
 export function getFlexibilityExercises(): Exercise[] {
   return flexibilityExercises;
 }
 
+/**
+ * החזרת תרגילי גומיות התנגדות
+ * Get resistance band exercises from static arrays
+ */
 export function getResistanceBandExercises(): Exercise[] {
   return resistanceBandExercises;
 }
 
-// פונקציות סינון מתקדמות
+// =====================================
+// 🎯 פונקציות סינון מתקדמות - מתבססות על exerciseFilters
+// Advanced Filtering Functions - Based on exerciseFilters
+// =====================================
+
+/**
+ * סינון חכם לפי סביבות וציוד - משתמש במערכת המרכזית
+ * Smart filtering by environments and equipment - Using centralized system
+ */
 export function getSmartFilteredExercises(
   environments?: string[],
   equipment?: string[]
 ): Exercise[] {
-  return allExercises.filter((exercise) => {
-    // סינון לפי סביבה
-    if (environments && environments.length > 0) {
-      const hasMatchingEnvironment = environments.some((env) => {
-        if (env === "בית" && exercise.equipment === "bodyweight") return true;
-        if (env === "חוץ" && exercise.equipment === "bodyweight") return true;
-        if (env === "חדר כושר" && exercise.equipment !== "bodyweight")
-          return true;
-        return false;
-      });
-      if (!hasMatchingEnvironment) return false;
-    }
-
-    // סינון לפי ציוד
-    if (equipment && equipment.length > 0) {
-      const hasMatchingEquipment = equipment.some((eq) => {
-        if (eq === "ללא ציוד" && exercise.equipment === "bodyweight")
-          return true;
-        if (eq === "משקולות" && exercise.equipment === "dumbbells") return true;
-        if (eq === "גומי התנגדות" && exercise.equipment === "resistance_bands")
-          return true;
-        return false;
-      });
-      if (!hasMatchingEquipment) return false;
-    }
-
-    return true;
+  // 🎯 שימוש במערכת הסינון המרכזית במקום הלוגיקה הכפולה
+  return smartFilter(allExercises, {
+    environments: environments || [],
+    equipment: equipment || [],
   });
 }
 
+/**
+ * סינון תרגילים לפי ציוד - משתמש במערכת המרכזית
+ * Filter exercises by equipment - Using centralized system
+ */
 export function filterExercisesByEquipment(equipment: string[]): Exercise[] {
-  return allExercises.filter((exercise) => {
-    return equipment.some((eq) => {
-      if (eq === "bodyweight" && exercise.equipment === "bodyweight")
-        return true;
-      if (eq === "dumbbells" && exercise.equipment === "dumbbells") return true;
-      if (
-        eq === "resistance_bands" &&
-        exercise.equipment === "resistance_bands"
-      )
-        return true;
-      return false;
-    });
-  });
+  // 🔧 שימוש בפונקציית הסינון המרכזית
+  return filterByEquipment(allExercises, equipment);
 }
 
+/**
+ * החזרת תרגילים לפי ציוד ספציפי - משתמש במערכת המרכזית
+ * Get exercises by specific equipment - Using centralized system
+ */
 export function getExercisesByEquipment(equipment: string): Exercise[] {
-  return allExercises.filter((ex) => ex.equipment === equipment);
+  return filterByEquipment(allExercises, [equipment]);
 }
 
+/**
+ * החזרת תרגילים לפי קטגוריה - משתמש במערכת המרכזית
+ * Get exercises by category - Using centralized system
+ */
 export function getExercisesByCategory(category: string): Exercise[] {
-  return allExercises.filter((ex) => ex.category === category);
+  return filterByCategory(allExercises, [category]);
 }
 
+/**
+ * החזרת תרגילים לפי רמת קושי - משתמש במערכת המרכזית
+ * Get exercises by difficulty - Using centralized system
+ */
 export function getExercisesByDifficulty(difficulty: string): Exercise[] {
-  return allExercises.filter((ex) => ex.difficulty === difficulty);
+  return filterByDifficulty(allExercises, [difficulty]);
 }
 
+/**
+ * החזרת תרגילים מתאימים לבית - משתמש במערכת המרכזית
+ * Get home compatible exercises - Using centralized system
+ */
 export function getHomeCompatibleExercises(): Exercise[] {
-  return allExercises.filter((ex) => ex.homeCompatible);
+  return getHomeCompatibleFiltered(allExercises);
 }
 
+/**
+ * החזרת תרגילים שקטים - משתמש במערכת המרכזית
+ * Get quiet exercises - Using centralized system
+ */
 export function getQuietExercises(): Exercise[] {
-  return allExercises.filter(
-    (ex) => ex.noiseLevel === "silent" || ex.noiseLevel === "quiet"
-  );
+  return getQuietFiltered(allExercises);
 }
 
-// סטטיסטיקות
+// =====================================
+// 📈 סטטיסטיקות - משתמש במערכת המרכזית
+// Statistics - Using centralized system
+// =====================================
+
+/**
+ * חישוב סטטיסטיקות תרגילים - משתמש במערכת המרכזית
+ * Calculate exercise statistics - Using centralized system
+ */
 export function getExerciseStats() {
-  return {
-    total: allExercises.length,
-    bodyweight: bodyweightExercises.length,
-    dumbbells: dumbbellExercises.length,
-    cardio: cardioExercises.length,
-    flexibility: flexibilityExercises.length,
-    resistanceBands: resistanceBandExercises.length,
-  };
+  // 🎯 שימוש בפונקציית הסטטיסטיקות המרכזית
+  return calculateExerciseStats(allExercises);
 }
+
+// =====================================
+// 🚀 ייצוא נוסף של פונקציות הסינון המתקדמות
+// Additional Export of Advanced Filtering Functions
+// =====================================
+
+// ייצוא הפונקציות המתקדמות מהמערכת המרכזית
+export {
+  smartFilter,
+  customFilter,
+  EQUIPMENT_TYPES,
+  filterByEquipment,
+  filterByCategory,
+  filterByDifficulty,
+} from "./exerciseFilters";

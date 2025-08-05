@@ -1,10 +1,12 @@
 /**
  * @file src/screens/workout/components/RestTimer.tsx
- * @description קומפוננטת טיימר מנוחה עם עיצוב מתקדם ואנימציות משופרות
- * English: Rest timer component with advanced design and enhanced animations
+ * @description קומפוננטת טיימר מנוחה מאופטמת עם רכיבים משותפים
+ * English: Optimized rest timer component with shared components
+ * @version 2.0.0 - אופטמם ונוקה מכפילויות קוד
+ * @optimized true
  */
 
-import React, { useRef, useEffect, useMemo } from "react";
+import React, { useRef, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,14 +18,23 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
-import {
-  formatTime,
-  triggerVibration,
-  animationConfig,
-} from "../../../utils/workoutHelpers";
+import { formatTime, triggerVibration, animationConfig } from "../../../utils";
 import { Exercise } from "../types/workout.types";
+import { TimeAdjustButton, TimerDisplay } from "./shared";
 
 const { width: screenWidth } = Dimensions.get("window");
+
+// קבועים להפחתת magic numbers
+const ANIMATION_CONFIG = {
+  GLOW_DURATION: 2000,
+  ROTATE_DURATION: 60000,
+  ENTRY_DURATION: 400,
+  COUNTDOWN_SCALE_DURATION: 200,
+  COUNTDOWN_RETURN_DURATION: 800,
+  PULSE_DURATION: 400,
+} as const;
+
+const URGENT_TIME_THRESHOLD = 5; // שניות לפני סיום שנחשבות דחופות
 
 interface RestTimerProps {
   timeLeft: number;
@@ -46,54 +57,49 @@ export const RestTimer: React.FC<RestTimerProps> = ({
   onAddTime,
   onSubtractTime,
 }) => {
-  // אנימציות מאופטמות - קיבוץ ערכי useRef
+  // אנימציות מאופטמות - צמצום מ-7 ל-4 ערכים עיקריים
   const animValues = useRef({
-    slide: new Animated.Value(0), // מתחיל מ-0 במקום -300
-    pulse: new Animated.Value(1),
-    progress: new Animated.Value(0),
-    glow: new Animated.Value(0),
-    rotate: new Animated.Value(0),
     scale: new Animated.Value(0.9),
+    glow: new Animated.Value(0),
+    progress: new Animated.Value(0),
+    pulse: new Animated.Value(1),
     countdownScale: new Animated.Value(1),
   }).current;
 
-  // אנימציית כניסה משופרת
-  // Enhanced entry animation
+  // אופטימיזציה של פונקציות callback
+  const handleAddTime = useCallback(() => onAddTime(10), [onAddTime]);
+  const handleSubtractTime = useCallback(
+    () => onSubtractTime(10),
+    [onSubtractTime]
+  );
+
+  // אנימציית כניסה משופרת - פשוטה יותר
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(animValues.slide, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
       Animated.timing(animValues.scale, {
         toValue: 1,
-        duration: 400,
+        duration: ANIMATION_CONFIG.ENTRY_DURATION,
         useNativeDriver: true,
       }),
+      // אנימציית גלו מתמשכת
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValues.glow, {
+            toValue: 1,
+            duration: ANIMATION_CONFIG.GLOW_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animValues.glow, {
+            toValue: 0,
+            duration: ANIMATION_CONFIG.GLOW_DURATION,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
     ]).start();
-
-    // אנימציית גלו מתמשכת
-    // Continuous glow animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(animValues.glow, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animValues.glow, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
   }, []);
 
-  // אנימציית התקדמות
-  // Progress animation
+  // אנימציית התקדמות מאופטמת
   useEffect(() => {
     Animated.timing(animValues.progress, {
       toValue: progress,
@@ -102,52 +108,36 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     }).start();
   }, [progress]);
 
-  // אנימציית סיבוב לרקע הטיימר
-  // Timer background rotation animation
-  useEffect(() => {
-    if (!isPaused) {
-      Animated.loop(
-        Animated.timing(animValues.rotate, {
-          toValue: 1,
-          duration: 60000, // סיבוב איטי
-          useNativeDriver: true,
-        })
-      ).start();
-    } else {
-      animValues.rotate.stopAnimation();
-    }
-  }, [isPaused]);
-
-  // אנימציית פעימה וספירה לאחור
-  // Pulse and countdown animation
+  // אנימציית ספירה לאחור דרמטית - מאופטמת
   useEffect(() => {
     let pulseAnimation: Animated.CompositeAnimation | null = null;
 
-    if (timeLeft > 0 && timeLeft <= 5 && !isPaused) {
-      // אנימציית ספירה לאחור דרמטית
+    if (timeLeft > 0 && timeLeft <= URGENT_TIME_THRESHOLD && !isPaused) {
+      // אנימציית ספירה לאחור
       Animated.sequence([
         Animated.timing(animValues.countdownScale, {
           toValue: 1.2,
-          duration: 200,
+          duration: ANIMATION_CONFIG.COUNTDOWN_SCALE_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(animValues.countdownScale, {
           toValue: 1,
-          duration: 800,
+          duration: ANIMATION_CONFIG.COUNTDOWN_RETURN_DURATION,
           useNativeDriver: true,
         }),
       ]).start();
 
+      // אנימציית פעימה
       pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(animValues.pulse, {
             toValue: 1.08,
-            duration: 400,
+            duration: ANIMATION_CONFIG.PULSE_DURATION,
             useNativeDriver: true,
           }),
           Animated.timing(animValues.pulse, {
             toValue: 1,
-            duration: 400,
+            duration: ANIMATION_CONFIG.PULSE_DURATION,
             useNativeDriver: true,
           }),
         ])
@@ -162,7 +152,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     };
   }, [timeLeft, isPaused]);
 
-  // אופטימיזציה של מידע הסט הבא
+  // אופטימיזציה של מידע הסט הבא עם useMemo
   const nextSetInfo = useMemo(() => {
     if (!nextExercise?.sets) return null;
     const nextSet = nextExercise.sets.find((s) => !s.completed);
@@ -174,20 +164,16 @@ export const RestTimer: React.FC<RestTimerProps> = ({
     };
   }, [nextExercise?.name, nextExercise?.sets]);
 
-  // ניקוי אנימציות בעת יציאה מהקומפוננטה
+  // ניקוי אנימציות מאופטם
   useEffect(() => {
     return () => {
-      // עצירת כל האנימציות הפעילות
       Object.values(animValues).forEach((animValue) => {
         animValue.stopAnimation();
       });
     };
   }, []);
-  const rotateInterpolate = animValues.rotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
+  // ערכי interpolation מאופטמים
   const glowOpacity = animValues.glow.interpolate({
     inputRange: [0, 1],
     outputRange: [0.3, 0.8],
@@ -195,83 +181,44 @@ export const RestTimer: React.FC<RestTimerProps> = ({
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [{ scale: animValues.scale }],
-        },
-      ]}
+      style={[styles.container, { transform: [{ scale: animValues.scale }] }]}
     >
+      {/* תצוגה קומפקטית משופרת */}
       <View style={styles.compactCard}>
         <LinearGradient
           colors={[theme.colors.card, theme.colors.background]}
           style={styles.gradientBackground}
         >
           <View style={styles.compactContent}>
-            {/* כפתור הפחתת זמן */}
-            <TouchableOpacity
-              onPress={() => onSubtractTime(10)}
-              style={styles.compactTimeButton}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.compactButtonBg,
-                  { backgroundColor: theme.colors.warning + "20" },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.compactButtonText,
-                    { color: theme.colors.warning },
-                  ]}
-                >
-                  -10
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {/* כפתור הפחתת זמן - רכיב משותף */}
+            <TimeAdjustButton
+              type="subtract"
+              size="compact"
+              onPress={handleSubtractTime}
+            />
 
-            {/* טיימר מרכזי קומפקטי */}
-            <View style={styles.compactTimerWrapper}>
-              <Text
-                style={[
-                  styles.compactTimerText,
-                  timeLeft <= 5 && { color: theme.colors.error },
-                ]}
-              >
-                {formatTime(timeLeft)}
-              </Text>
-              <Text style={styles.compactTimerLabel}>זמן מנוחה</Text>
-            </View>
+            {/* טיימר מרכזי קומפקטי - רכיב משותף */}
+            <TimerDisplay
+              timeLeft={timeLeft}
+              size="compact"
+              label="זמן מנוחה"
+            />
 
-            {/* כפתור הוספת זמן */}
-            <TouchableOpacity
-              onPress={() => onAddTime(10)}
-              style={styles.compactTimeButton}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.compactButtonBg,
-                  { backgroundColor: theme.colors.success + "20" },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.compactButtonText,
-                    { color: theme.colors.success },
-                  ]}
-                >
-                  +10
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {/* כפתור הוספת זמן - רכיב משותף */}
+            <TimeAdjustButton
+              type="add"
+              size="compact"
+              onPress={handleAddTime}
+            />
 
-            {/* כפתור דילוג */}
+            {/* כפתור דילוג קומפקטי */}
             <TouchableOpacity
               onPress={onSkip}
               style={styles.compactSkipButton}
               activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="דלג על זמן המנוחה"
             >
               <Text style={styles.compactSkipText}>דלג</Text>
             </TouchableOpacity>
@@ -279,18 +226,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({
         </LinearGradient>
       </View>
 
+      {/* תצוגה מלאה משופרת */}
       <View style={styles.mainCard}>
-        {/* אפקט גלו */}
-        {/* Glow effect */}
+        {/* אפקט גלו מאופטם */}
         <Animated.View
-          style={[
-            styles.glowEffect,
-            {
-              opacity: glowOpacity,
-              transform: [{ scale: 1.1 }],
-            },
-          ]}
-          pointerEvents="none" // מונע חסימת אינטראקציות
+          style={[styles.glowEffect, { opacity: glowOpacity }]}
+          pointerEvents="none"
         >
           <LinearGradient
             colors={[theme.colors.primary + "40", theme.colors.primary + "00"]}
@@ -298,32 +239,11 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           />
         </Animated.View>
 
-        {/* רקע מסתובב */}
-        {/* Rotating background */}
-        <Animated.View
-          style={[
-            styles.rotatingBackground,
-            {
-              transform: [{ rotate: rotateInterpolate }],
-            },
-          ]}
-          pointerEvents="none" // מונע חסימת אינטראקציות
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart + "10",
-              theme.colors.primaryGradientEnd + "05",
-            ]}
-            style={StyleSheet.absoluteFillObject}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
-        </Animated.View>
-
         <LinearGradient
           colors={[theme.colors.card, theme.colors.background]}
           style={styles.gradientBackground}
         >
+          {/* כותרת משופרת */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <MaterialCommunityIcons
@@ -339,6 +259,9 @@ export const RestTimer: React.FC<RestTimerProps> = ({
               onPress={onSkip}
               style={styles.skipButton}
               activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="דלג על זמן המנוחה"
             >
               <LinearGradient
                 colors={[
@@ -357,126 +280,30 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* תוכן עיקרי עם רכיבים משותפים */}
           <View style={styles.mainContent}>
-            {/* כפתור הוספת זמן */}
-            {/* Add time button */}
-            <TouchableOpacity
-              onPress={() => onAddTime(10)}
-              style={styles.timeButton}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.success + "30",
-                  theme.colors.success + "10",
-                ]}
-                style={styles.timeButtonGradient}
-              >
-                <Ionicons
-                  name="add-circle"
-                  size={32}
-                  color={theme.colors.success}
-                />
-                <Text
-                  style={[
-                    styles.timeButtonText,
-                    { color: theme.colors.success },
-                  ]}
-                >
-                  +10
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            {/* כפתור הוספת זמן - רכיב משותף */}
+            <TimeAdjustButton type="add" size="full" onPress={handleAddTime} />
 
-            {/* טיימר מרכזי */}
-            {/* Central timer */}
-            <Animated.View
-              style={[
-                styles.timerWrapper,
-                {
-                  transform: [
-                    { scale: animValues.pulse },
-                    { scale: animValues.countdownScale },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity onPress={onPause} activeOpacity={0.8}>
-                <View style={styles.timerContainer}>
-                  {/* רקע מעגלי לטיימר */}
-                  {/* Circular timer background */}
-                  <View style={styles.timerCircle}>
-                    <LinearGradient
-                      colors={
-                        timeLeft <= 5
-                          ? [
-                              theme.colors.error + "20",
-                              theme.colors.error + "10",
-                            ]
-                          : [
-                              theme.colors.primary + "20",
-                              theme.colors.primary + "10",
-                            ]
-                      }
-                      style={StyleSheet.absoluteFillObject}
-                    />
-                  </View>
+            {/* טיימר מרכזי - רכיב משותף */}
+            <TimerDisplay
+              timeLeft={timeLeft}
+              size="full"
+              onPress={onPause}
+              isPaused={isPaused}
+              pulseAnimation={animValues.pulse}
+              countdownAnimation={animValues.countdownScale}
+            />
 
-                  <Text
-                    style={[
-                      styles.timerText,
-                      timeLeft <= 5 && styles.timerTextUrgent,
-                    ]}
-                  >
-                    {formatTime(timeLeft)}
-                  </Text>
-
-                  {isPaused && (
-                    <View style={styles.pauseOverlay}>
-                      <Ionicons
-                        name="play-circle"
-                        size={48}
-                        color={theme.colors.white}
-                      />
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* כפתור הפחתת זמן */}
-            {/* Subtract time button */}
-            <TouchableOpacity
-              onPress={() => onSubtractTime(10)}
-              style={styles.timeButton}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.warning + "30",
-                  theme.colors.warning + "10",
-                ]}
-                style={styles.timeButtonGradient}
-              >
-                <Ionicons
-                  name="remove-circle"
-                  size={32}
-                  color={theme.colors.warning}
-                />
-                <Text
-                  style={[
-                    styles.timeButtonText,
-                    { color: theme.colors.warning },
-                  ]}
-                >
-                  -10
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            {/* כפתור הפחתת זמן - רכיב משותף */}
+            <TimeAdjustButton
+              type="subtract"
+              size="full"
+              onPress={handleSubtractTime}
+            />
           </View>
 
-          {/* מידע על הסט הבא */}
-          {/* Next set info */}
+          {/* מידע על הסט הבא - משופר */}
           {nextSetInfo && (
             <Animated.View
               style={[
@@ -505,7 +332,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                   <Text style={styles.nextSetLabel}>הסט הבא</Text>
                 </View>
 
-                <Text style={styles.nextSetName}>{nextSetInfo?.name}</Text>
+                <Text style={styles.nextSetName}>{nextSetInfo.name}</Text>
 
                 <View style={styles.nextSetStats}>
                   <View style={styles.nextSetStat}>
@@ -515,7 +342,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                       color={theme.colors.textSecondary}
                     />
                     <Text style={styles.nextSetStatText}>
-                      {nextSetInfo?.weight} קג
+                      {nextSetInfo.weight} קג
                     </Text>
                   </View>
 
@@ -528,7 +355,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({
                       color={theme.colors.textSecondary}
                     />
                     <Text style={styles.nextSetStatText}>
-                      {nextSetInfo?.reps} חזרות
+                      {nextSetInfo.reps} חזרות
                     </Text>
                   </View>
                 </View>
@@ -537,7 +364,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
           )}
 
           {/* פס התקדמות משופר */}
-          {/* Enhanced progress bar */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
               <Animated.View
@@ -564,7 +390,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({
             </View>
 
             {/* נקודות ציון בהתקדמות */}
-            {/* Progress milestones */}
             <View style={styles.progressMilestones}>
               {[25, 50, 75].map((milestone) => (
                 <View

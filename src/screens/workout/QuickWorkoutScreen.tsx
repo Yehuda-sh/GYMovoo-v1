@@ -5,7 +5,7 @@
  * @notes מסך זמני שיתפתח לאימון מהיר מלא במסגרת השדרוגים הבאים
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -15,7 +15,8 @@ import { theme } from "../../styles/theme";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import { generateQuickWorkout } from "../../services/quickWorkoutGenerator";
+import { useModalManager } from "./hooks/useModalManager";
+import { UniversalModal } from "../../components/common/UniversalModal";
 
 interface QuickWorkoutScreenProps {
   route?: {
@@ -38,36 +39,45 @@ export default function QuickWorkoutScreen({ route }: QuickWorkoutScreenProps) {
   const [loading, setLoading] = useState(false);
   const [canGenerateWorkout, setCanGenerateWorkout] = useState(false);
 
+  // Modal management - אחיד במקום Alert.alert מפוזר
+  const { activeModal, modalConfig, hideModal, showComingSoon } =
+    useModalManager();
+
   // בדיקה אם ניתן ליצור אימון מהיר
   useEffect(() => {
     // זמנית נשאיר false עד שנוסיף פונקציונליות מלאה
     setCanGenerateWorkout(false);
   }, []);
 
-  // פונקציה זמנית ליצירת אימון - מוכן לשדרוג עתידי
-  const handleGenerateQuickWorkout = async () => {
+  // פונקציה זמנית ליצירת אימון - משתמשת במודל אחיד במקום Alert.alert
+  const handleGenerateQuickWorkout = useCallback(async () => {
     try {
       setLoading(true);
 
-      // זמנית נציג alert עם האפשרות לפיתוח
-      Alert.alert(
-        "פיתוח בתהליך",
-        "יצירת אימון מהיר באמצעות AI בפיתוח.\nהאם תרצה לעבור לתכנון אימונים?",
-        [
-          { text: "ביטול", style: "cancel" },
-          {
-            text: "תכנון אימונים",
-            onPress: () => navigation.navigate("WorkoutPlans", {}),
-          },
-        ]
-      );
+      // שימוש במערכת מודלים אחידה במקום Alert.alert מפוזר
+      showComingSoon("יצירת אימון מהיר באמצעות AI");
+
+      // אופציה נוספת לניווט לתכנון אימונים
+      setTimeout(() => {
+        Alert.alert(
+          "עבור לתכנון אימונים?",
+          "האם תרצה לעבור למסך תכנון האימונים הקיים?",
+          [
+            { text: "לא, תודה", style: "cancel" },
+            {
+              text: "כן, עבור",
+              onPress: () => navigation.navigate("WorkoutPlans", {}),
+            },
+          ]
+        );
+      }, 1500);
     } catch (error) {
       console.error("Error in quick workout generation:", error);
       Alert.alert("שגיאה", "לא הצלחנו ליצור אימון מהיר. נסה שוב מאוחר יותר.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigation, showComingSoon]);
 
   // פונקציה לניווט לתכנון אימונים
   const navigateToWorkoutPlans = () => {
@@ -139,6 +149,18 @@ export default function QuickWorkoutScreen({ route }: QuickWorkoutScreenProps) {
           🚧 המסך בפיתוח - בקרוב: יצירת אימונים מהירים עם AI
         </Text>
       </View>
+
+      {/* מודל אחיד למקום Alert.alert מפוזר */}
+      <UniversalModal
+        visible={activeModal !== null}
+        type={activeModal || "comingSoon"}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={hideModal}
+        onConfirm={modalConfig.onConfirm}
+        confirmText={modalConfig.confirmText}
+        destructive={modalConfig.destructive}
+      />
     </View>
   );
 }
@@ -225,13 +247,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     marginTop: theme.spacing.lg,
-  },
-  // Legacy styles - keeping for backward compatibility
-  message: {
-    fontSize: 16,
-    color: theme.colors.text,
-    textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
   },
 });
