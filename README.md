@@ -290,10 +290,22 @@ GYMovoo/
 
 הפרויקט כולל תיעוד מפורט:
 
-- 📖 **מדריך ניווט** - `docs/NAVIGATION_GUIDE.md`
+### 📱 מדריכי מסכים (חדש!)
+
+- 🎉 **[מדריך מסכי האפליקציה](docs/screens/README.md)** - אינדקס מרכזי לכל המסכים
+- 🔐 **[מסכי אימות](docs/screens/AUTH_SCREENS_GUIDE.md)** - התחברות, הרשמה ותנאי שימוש
+- 🏠 **[מסך ראשי](docs/screens/MAIN_SCREEN_GUIDE.md)** - דשבורד מרכזי וניווט
+- 🏋️ **[מסכי אימונים](docs/screens/WORKOUT_SCREENS_GUIDE.md)** - תוכניות אימון ואימון פעיל
+- � **[מסכי תרגילים](docs/screens/EXERCISE_SCREENS_GUIDE.md)** - מאגר תרגילים ומפת שרירים
+- 📋 **[מסכי שאלון](docs/screens/QUESTIONNAIRE_SCREENS_GUIDE.md)** - שאלון חכם ובניית פרופיל
+- 👤 **[פרופיל והיסטוריה](docs/screens/PROFILE_HISTORY_SCREENS_GUIDE.md)** - ניהול נתונים ומעקב התקדמות
+- 🎉 **[מסך ברוכים הבאים](docs/screens/WELCOME_SCREEN_GUIDE.md)** - מסך פתיחה ומבוא
+
+### 🔧 מדריכים טכניים
+
+- �📖 **מדריך ניווט** - `docs/NAVIGATION_GUIDE.md`
 - 🧩 **מדריך רכיבים משותפים** - `docs/SHARED_COMPONENTS_GUIDE.md`
 - 🔧 **מדריך יישום טכני** - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md`
-- 📋 **יומן התקדמות** - `docs/PROGRESS_LOG.md`
 - 📝 **הנחיות פיתוח** - `docs/DEVELOPMENT_GUIDELINES.md`
 - 📊 **סיכום מאסטר** - `docs/PROJECT_MASTER_SUMMARY.md`
 - 📑 **אינדקס תיעוד** - `docs/DOCUMENTATION_INDEX_MASTER.md`
