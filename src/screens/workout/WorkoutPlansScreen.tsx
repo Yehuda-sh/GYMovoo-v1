@@ -1,7 +1,7 @@
 /**
  * @file src/screens/workout/WorkoutPlansScreen.tsx
  * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר עם AI וניהול מתקדם
- * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase, WGER API
+ * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase
  * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה
  * @recurring_errors BackButton חובה במקום TouchableOpacity ידני, Alert.alert חסום - השתמש ב-ConfirmationModal
  * @updated August 2025 - Enhanced logging, support for new exercise database with "none" equipment type for bodyweight exercises
@@ -33,6 +33,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 // Component & UI Imports
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { UniversalModal } from "../../components/common/UniversalModal";
 
 // Data & Type Imports
 import {
@@ -44,7 +45,7 @@ import {
 import { allExercises as ALL_EXERCISES } from "../../data/exercises";
 import { Exercise } from "../../data/exercises/types";
 import { QuickWorkoutTemplate as DatabaseExercise } from "../../types";
-// Removed: import { useWgerExercises } from "../../hooks/useWgerExercises";
+import { useModalManager } from "./hooks/useModalManager";
 
 // Workout day templates
 const WORKOUT_DAYS = {
@@ -113,9 +114,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   console.log(
     "🏋️ WorkoutPlansScreen: Supporting 'none' equipment for bodyweight exercises"
   );
-  console.log(
-    "🎯 WorkoutPlansScreen: WGER API disabled - using optimized internal database only"
-  );
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
@@ -129,22 +127,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
 
-  // Modal states
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
-  const [modalConfig, setModalConfig] = useState({
-    title: "",
-    message: "",
-    onConfirm: () => {},
-    confirmText: "אישור",
-    destructive: false,
-  });
-
-  // Removed WGER API Integration - using internal exercise database only
-  // const { searchExercisesByEquipment } = useWgerExercises();
-  // const [wgerEnabled] = useState(false); // Disabled WGER API
+  // Modal management using the new hook
+  const {
+    activeModal,
+    modalConfig,
+    showError,
+    showSuccess,
+    showConfirm,
+    showComingSoon,
+    hideModal,
+  } = useModalManager();
 
   // Animations
   const fadeAnim = useMemo(() => new Animated.Value(0), []);
@@ -312,17 +304,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     if (workoutId) {
       console.log("🔄 WorkoutPlansScreen: מציג modal לאחר השלמת אימון");
-      setModalConfig({
-        title: "אימון הושלם! 🎉",
-        message: "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
-        onConfirm: () => {
+      showConfirm(
+        "אימון הושלם! 🎉",
+        "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
+        () => {
           console.log("🔄 WorkoutPlansScreen: יוצר תוכנית חדשה לאחר אימון");
           generateWorkoutPlan(true);
-        },
-        confirmText: "צור תוכנית חדשה",
-        destructive: false,
-      });
-      setShowConfirmModal(true);
+        }
+      );
     } else {
       console.log("🔄 WorkoutPlansScreen: טוען תוכנית רגילה (ללא ID אימון)");
       generateWorkoutPlan();
@@ -547,32 +536,32 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const workoutPlanHealth = dataQuality.workoutPlan.valid ? "✅" : "❌";
     const userPrefsHealth = dataQuality.userPreferences.complete ? "✅" : "⚠️";
 
-    setModalConfig({
-      title: `🔍 בדיקה מקיפה - ${successCount}/${totalTests} API תקין`,
-      message:
-        `📊 תוצאות בדיקת API:\n` +
-        `• questionnaireService: ${testResults.questionnaireService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-        `• WorkoutDataService: ${testResults.workoutDataService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-        `• WGER API: ${testResults.wgerAPI.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-        `• User Store: ${testResults.userStore.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n\n` +
-        `� תוצאות בדיקת איכות נתונים:\n` +
-        `• בסיס נתוני תרגילים: ${exerciseDbHealth} תקינים\n` +
-        `• תוכנית אימון נוכחית: ${workoutPlanHealth}\n` +
-        `• העדפות משתמש: ${userPrefsHealth}\n\n` +
-        `�💾 פרטים מלאים נשמרו בקונסול`,
-      onConfirm: () => {},
-      confirmText: "סגור",
-      destructive: false,
-    });
+    const successMessage =
+      `📊 תוצאות בדיקת API:\n` +
+      `• questionnaireService: ${testResults.questionnaireService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
+      `• WorkoutDataService: ${testResults.workoutDataService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
+      `• WGER API: ${testResults.wgerAPI.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
+      `• User Store: ${testResults.userStore.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n\n` +
+      `📋 תוצאות בדיקת איכות נתונים:\n` +
+      `• בסיס נתוני תרגילים: ${exerciseDbHealth} תקינים\n` +
+      `• תוכנית אימון נוכחית: ${workoutPlanHealth}\n` +
+      `• העדפות משתמש: ${userPrefsHealth}\n\n` +
+      `💾 פרטים מלאים נשמרו בקונסול`;
 
     if (
       successCount === totalTests &&
       dataQuality.workoutPlan.valid &&
       dataQuality.userPreferences.complete
     ) {
-      setShowSuccessModal(true);
+      showSuccess(
+        `🔍 בדיקה מקיפה - ${successCount}/${totalTests} API תקין`,
+        successMessage
+      );
     } else {
-      setShowErrorModal(true);
+      showError(
+        `🔍 בדיקה מקיפה - ${successCount}/${totalTests} API תקין`,
+        successMessage
+      );
     }
 
     // Store detailed results for debugging
@@ -755,19 +744,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           setWorkoutPlan(aiPlan);
 
           if (forceRegenerate) {
-            setModalConfig({
-              title: "🤖 תוכנית AI חדשה נוצרה!",
-              message:
-                `נוצרה תוכנית חכמה: "${aiPlan.name}"\n\n` +
-                `📊 ציון התאמה: ${aiPlan.aiScore?.toFixed(0) || "90"}/100\n` +
-                `🎯 רמה: ${aiPlan.personalizationLevel === "basic" ? "בסיסית" : aiPlan.personalizationLevel === "advanced" ? "מתקדמת" : "מומחה"}\n` +
-                `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0) || "85"}%\n\n` +
-                `✨ התוכנית תתאים את עצמה לפי הביצועים שלך!`,
-              onConfirm: () => {},
-              confirmText: "בואו נתחיל! 💪",
-              destructive: false,
-            });
-            setShowSuccessModal(true);
+            const successMessage =
+              `נוצרה תוכנית חכמה: "${aiPlan.name}"\n\n` +
+              `📊 ציון התאמה: ${aiPlan.aiScore?.toFixed(0) || "90"}/100\n` +
+              `🎯 רמה: ${aiPlan.personalizationLevel === "basic" ? "בסיסית" : aiPlan.personalizationLevel === "advanced" ? "מתקדמת" : "מומחה"}\n` +
+              `🏋️ ניצול ציוד: ${aiPlan.equipmentUtilization?.toFixed(0) || "85"}%\n\n` +
+              `✨ התוכנית תתאים את עצמה לפי הביצועים שלך!`;
+
+            showSuccess("🤖 תוכנית AI חדשה נוצרה!", successMessage);
           }
           return;
         }
@@ -787,20 +771,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         error instanceof Error ? error.message : "שגיאה ביצירת תוכנית AI"
       );
 
-      setModalConfig({
-        title: "שגיאה ביצירת תוכנית AI",
-        message:
-          error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
-            ? "אנא השלם את השאלון תחילה"
-            : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.",
-        onConfirm: () => {
-          setError(null);
-          generateAIWorkoutPlan(true);
-        },
-        confirmText: "נסה שוב",
-        destructive: false,
-      });
-      setShowErrorModal(true);
+      const errorMessage =
+        error instanceof Error && error.message === "NO_QUESTIONNAIRE_DATA"
+          ? "אנא השלם את השאלון תחילה"
+          : "אירעה שגיאה ביצירת התוכנית. נסה שוב מאוחר יותר.";
+
+      showError("שגיאה ביצירת תוכנית AI", errorMessage);
 
       // fallback לתוכנית רגילה
       generateWorkoutPlan(forceRegenerate);
@@ -904,14 +880,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         console.error(
           `❌ WorkoutPlansScreen: Missing required fields: ${missingFields.join(", ")}`
         );
-        setModalConfig({
-          title: "נתונים חסרים 📋",
-          message: "יש להשלים את השאלון כדי לקבל תוכנית מותאמת אישית",
-          onConfirm: () => navigation.navigate("Questionnaire" as never),
-          confirmText: "לשאלון",
-          destructive: false,
-        });
-        setShowErrorModal(true);
+        showError(
+          "נתונים חסרים 📋",
+          "יש להשלים את השאלון כדי לקבל תוכנית מותאמת אישית"
+        );
         return;
       }
 
@@ -962,14 +934,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // Show success message if regenerated
       if (forceRegenerate && !refreshing) {
-        setModalConfig({
-          title: "✨ תוכנית חדשה נוצרה!",
-          message: "התוכנית עודכנה בהתאם להעדפותיך",
-          onConfirm: () => {},
-          confirmText: "אישור",
-          destructive: false,
-        });
-        setShowSuccessModal(true);
+        showSuccess("✨ תוכנית חדשה נוצרה!", "התוכנית עודכנה בהתאם להעדפותיך");
       }
     } catch (error) {
       console.error(
@@ -981,17 +946,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         error instanceof Error ? error.message : "שגיאה ביצירת תוכנית אימון"
       );
 
-      setModalConfig({
-        title: "שגיאה",
-        message: "לא הצלחנו ליצור תוכנית אימון. נסה שוב.",
-        onConfirm: () => {
-          setError(null);
-          generateWorkoutPlan(true);
-        },
-        confirmText: "נסה שוב",
-        destructive: false,
-      });
-      setShowErrorModal(true);
+      showError("שגיאה", "לא הצלחנו ליצור תוכנית אימון. נסה שוב.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1654,14 +1609,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         console.error(
           "❌ WorkoutPlansScreen: No valid exercises found for workout"
         );
-        setModalConfig({
-          title: "שגיאה באימון",
-          message: "לא נמצאו תרגילים תקינים לאימון זה",
-          onConfirm: () => setError(null),
-          confirmText: "אישור",
-          destructive: false,
-        });
-        setShowErrorModal(true);
+        showError("שגיאה באימון", "לא נמצאו תרגילים תקינים לאימון זה");
         return;
       }
 
@@ -1705,14 +1653,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       console.error("❌ WorkoutPlansScreen: Error starting workout:", error);
       setError(error instanceof Error ? error.message : "שגיאה בתחילת האימון");
 
-      setModalConfig({
-        title: "שגיאה",
-        message: "לא הצליח להתחיל את האימון. נסה שוב.",
-        onConfirm: () => setError(null),
-        confirmText: "אישור",
-        destructive: false,
-      });
-      setShowErrorModal(true);
+      showError("שגיאה", "לא הצליח להתחיל את האימון. נסה שוב.");
     }
   };
 
@@ -1918,54 +1859,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         )}
       </ScrollView>
 
-      {/* Modals */}
-      <ConfirmationModal
-        visible={showSuccessModal}
+      {/* Universal Modal - replaces 4 separate modals */}
+      <UniversalModal
+        visible={activeModal !== null}
+        type={activeModal || "error"}
         title={modalConfig.title}
         message={modalConfig.message}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          modalConfig.onConfirm();
-        }}
-        onCancel={() => setShowSuccessModal(false)}
-        confirmText={modalConfig.confirmText}
-      />
-
-      <ConfirmationModal
-        visible={showErrorModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => {
-          setShowErrorModal(false);
-          modalConfig.onConfirm();
-        }}
-        onCancel={() => setShowErrorModal(false)}
-        confirmText={modalConfig.confirmText}
-      />
-
-      <ConfirmationModal
-        visible={showConfirmModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={() => {
-          setShowConfirmModal(false);
-          modalConfig.onConfirm();
-        }}
-        onCancel={() => setShowConfirmModal(false)}
+        onClose={hideModal}
+        onConfirm={modalConfig.onConfirm}
         confirmText={modalConfig.confirmText}
         destructive={modalConfig.destructive}
-      />
-
-      <ConfirmationModal
-        visible={showComingSoonModal}
-        title="בקרוב..."
-        message="התכונה הזו תהיה זמינה בקרוב"
-        onClose={() => setShowComingSoonModal(false)}
-        onConfirm={() => setShowComingSoonModal(false)}
-        confirmText="אישור"
       />
     </View>
   );

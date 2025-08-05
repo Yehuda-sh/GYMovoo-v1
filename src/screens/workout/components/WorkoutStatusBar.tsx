@@ -42,6 +42,9 @@ import {
   triggerVibration,
   animationConfig,
 } from "../../../utils/workoutHelpers";
+import { workoutLogger } from "../../../utils/workoutLogger";
+import { SkipButton } from "./shared/SkipButton";
+import { TimeButton } from "./shared/TimeButton";
 import type { WorkoutStatusBarProps } from "./types";
 
 export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
@@ -103,28 +106,43 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
       triggerVibration(50);
     }, []);
 
-    // אופטימיזציה של כפתורי זמן עם useCallback
+    // אופטימיזציה של כפתורי זמן עם useCallback ולוגים
     const handleAddTime = useCallback(() => {
+      workoutLogger.info("WorkoutStatusBar", "הוספת 10 שניות לטיימר מנוחה");
       handleVibrate();
       onAddRestTime?.(10);
     }, [onAddRestTime, handleVibrate]);
 
     const handleSubtractTime = useCallback(() => {
+      workoutLogger.info("WorkoutStatusBar", "הפחתת 10 שניות מטיימר מנוחה");
       handleVibrate();
       onSubtractRestTime?.(10);
     }, [onSubtractRestTime, handleVibrate]);
 
     const handleSkipRest = useCallback(() => {
+      workoutLogger.info("WorkoutStatusBar", "דילוג על טיימר מנוחה");
       handleVibrate();
       onSkipRest?.();
     }, [onSkipRest, handleVibrate]);
 
     const handleSkipToNext = useCallback(() => {
+      workoutLogger.info(
+        "WorkoutStatusBar",
+        `מעבר לתרגיל הבא: ${nextExercise?.name || "לא ידוע"}`
+      );
       handleVibrate();
       onSkipToNext?.();
-    }, [onSkipToNext, handleVibrate]);
+    }, [onSkipToNext, handleVibrate, nextExercise?.name]);
 
     useEffect(() => {
+      // לוג שינוי מצב תצוגה
+      if (shouldShow) {
+        const mode = isRestActive ? "טיימר מנוחה" : "תרגיל הבא";
+        workoutLogger.info("WorkoutStatusBar", `הצגת רכיב: ${mode}`);
+      } else {
+        workoutLogger.debug("WorkoutStatusBar", "הסתרת רכיב");
+      }
+
       // אנימציית כניסה/יציאה משופרת | Enhanced entry/exit animation
       const springConfig = {
         ...animationConfig.spring,
@@ -190,15 +208,12 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
             <View style={styles.content}>
               {/* כפתור -10 שניות | -10 seconds button */}
               {onSubtractRestTime && (
-                <TouchableOpacity
-                  style={styles.timeButton}
+                <TimeButton
                   onPress={handleSubtractTime}
-                  activeOpacity={0.7}
+                  text="-10"
+                  color={theme.colors.error}
                   accessibilityLabel="הפחת 10 שניות מהטיימר"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.timeButtonText}>-10</Text>
-                </TouchableOpacity>
+                />
               )}
 
               {/* טיימר מרכזי | Central timer */}
@@ -214,41 +229,23 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
 
               {/* כפתור +10 שניות | +10 seconds button */}
               {onAddRestTime && (
-                <TouchableOpacity
-                  style={styles.timeButton}
+                <TimeButton
                   onPress={handleAddTime}
-                  activeOpacity={0.7}
+                  text="+10"
+                  color={theme.colors.success}
                   accessibilityLabel="הוסף 10 שניות לטיימר"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.timeButtonText}>+10</Text>
-                </TouchableOpacity>
+                />
               )}
 
               {/* כפתור דילוג | Skip button */}
               {onSkipRest && (
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                  <TouchableOpacity
-                    style={styles.skipButton}
+                  <SkipButton
                     onPress={handleSkipRest}
-                    activeOpacity={0.7}
+                    icon="skip-forward"
+                    colors={[theme.colors.success, theme.colors.success + "DD"]}
                     accessibilityLabel="דלג על זמן המנוחה"
-                    accessibilityRole="button"
-                  >
-                    <LinearGradient
-                      colors={[
-                        theme.colors.success,
-                        theme.colors.success + "DD",
-                      ]} // גרדיאנט ירוק | Green gradient
-                      style={styles.skipButtonInner}
-                    >
-                      <MaterialCommunityIcons
-                        name="skip-forward"
-                        size={20}
-                        color="white"
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  />
                 </Animated.View>
               )}
             </View>
@@ -291,27 +288,13 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
               {/* כפתור מעבר | Skip button */}
               {onSkipToNext && (
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                  <TouchableOpacity
-                    style={styles.skipButton}
+                  <SkipButton
                     onPress={handleSkipToNext}
-                    activeOpacity={0.7}
+                    icon="play-circle"
+                    colors={[theme.colors.primary, theme.colors.primary + "DD"]}
                     accessibilityLabel={`מעבר לתרגיל הבא: ${nextExercise.name}`}
-                    accessibilityRole="button"
-                  >
-                    <LinearGradient
-                      colors={[
-                        theme.colors.primary,
-                        theme.colors.primary + "DD",
-                      ]} // גרדיאנט כחול | Blue gradient
-                      style={styles.skipButtonInner}
-                    >
-                      <MaterialCommunityIcons
-                        name="play-circle"
-                        size={24}
-                        color="white"
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    size={24}
+                  />
                 </Animated.View>
               )}
             </View>
@@ -363,19 +346,6 @@ const styles = StyleSheet.create({
   },
 
   // טיימר מנוחה | Rest timer styles
-  timeButton: {
-    backgroundColor: theme.colors.success + "20",
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.success + "40",
-  },
-  timeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.success,
-  },
   timerContainer: {
     alignItems: "center",
     flex: 1,
@@ -411,21 +381,5 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginHorizontal: 12,
-  },
-
-  // כפתור משותף | Shared button styles
-  skipButton: {
-    borderRadius: theme.radius.xl,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: theme.colors.primary + "30",
-    ...theme.shadows.medium,
-  },
-  skipButtonInner: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 50,
   },
 });
