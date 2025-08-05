@@ -1217,7 +1217,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           reps: getRepsForGoal(metadata.goal as string),
           restTime: getRestTimeForGoal(metadata.goal as string),
           weight: 0,
-          notes: exercise.instructions?.join(". ") || "",
+          notes:
+            exercise.instructions?.he?.join(". ") ||
+            exercise.instructions?.en?.join(". ") ||
+            "",
         }));
       }
     }
@@ -1266,7 +1269,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       reps: getRepsForGoal(metadata.goal as string),
       restTime: getRestTimeForGoal(metadata.goal as string),
       weight: 0,
-      notes: exercise.instructions?.join(". ") || "",
+      notes:
+        exercise.instructions?.he?.join(". ") ||
+        exercise.instructions?.en?.join(". ") ||
+        "",
     }));
 
     console.log(

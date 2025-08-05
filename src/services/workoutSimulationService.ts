@@ -79,6 +79,16 @@ class WorkoutSimulationService {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 6);
 
+    // וידוא שתאריך ההתחלה תקין
+    if (isNaN(startDate.getTime())) {
+      console.error("❌ Invalid start date calculation");
+      return;
+    }
+
+    console.log(
+      `📅 Starting simulation from: ${startDate.toISOString().split("T")[0]}`
+    );
+
     let totalWorkouts = 0;
     let missedWorkouts = 0;
 
@@ -90,11 +100,12 @@ class WorkoutSimulationService {
         totalWorkouts
       );
 
+      const availableDays = user.questionnaireData.available_days || 3;
       const weeklyWorkouts = await this.simulateWeeklyWorkouts(
         startDate,
         week,
         currentParams,
-        user.questionnaireData.available_days
+        availableDays
       );
 
       totalWorkouts += weeklyWorkouts.completed;
@@ -137,10 +148,27 @@ class WorkoutSimulationService {
     const actualDays = this.determineActualWorkoutDays(plannedDays, params);
 
     for (let dayIndex = 0; dayIndex < actualDays.length; dayIndex++) {
-      const workoutDate = new Date(startDate);
-      workoutDate.setDate(
-        workoutDate.getDate() + weekNumber * 7 + actualDays[dayIndex]
-      );
+      // יצירת תאריך בטוח עם validate
+      const workoutDate = new Date(startDate.getTime());
+      const daysToAdd = weekNumber * 7 + actualDays[dayIndex];
+
+      // בדיקה שהתאריך תקין
+      if (daysToAdd < 0 || daysToAdd > 365 * 2) {
+        console.warn(
+          `⚠️ Invalid date calculation: ${daysToAdd} days from start`
+        );
+        continue;
+      }
+
+      workoutDate.setDate(workoutDate.getDate() + daysToAdd);
+
+      // וידוא שהתאריך תקין
+      if (isNaN(workoutDate.getTime())) {
+        console.warn(
+          `⚠️ Invalid date created for week ${weekNumber}, day ${dayIndex}`
+        );
+        continue;
+      }
 
       // החלטה אם לבצע את האימון
       const willWorkout = this.decideToWorkout(params);
@@ -186,7 +214,44 @@ class WorkoutSimulationService {
     const plannedDuration = plannedExercises.length * 15; // הערכה: 15 דקות לתרגיל
     const duration = this.calculateActualDuration(plannedDuration, params);
     const startTime = this.generateRealisticStartTime();
-    const endTime = new Date(new Date(startTime).getTime() + duration * 60000);
+
+    // יצירת זמן סיום בטוח
+    const startTimeDate = new Date(
+      `${date.toISOString().split("T")[0]}T${startTime}:00`
+    );
+    const endTime = new Date(startTimeDate.getTime() + duration * 60000);
+
+    // וידוא שהתאריכים תקינים
+    if (isNaN(startTimeDate.getTime()) || isNaN(endTime.getTime())) {
+      console.warn(
+        `⚠️ Invalid time calculation for workout on ${date.toISOString()}`
+      );
+      // יצירת פידבק פשוט עבור fallback
+      const fallbackFeedback = this.generateRealisticFeedback(
+        actualExercises,
+        params,
+        duration
+      );
+
+      const workout: WorkoutSession = {
+        id: `workout_${date.getTime()}`,
+        date: date.toISOString().split("T")[0],
+        startTime: `18:00`,
+        endTime: new Date(date.getTime() + duration * 60000).toISOString(),
+        duration,
+        type: workoutType,
+        exercises: actualExercises,
+        feedback: fallbackFeedback,
+        plannedVsActual: {
+          plannedExercises: plannedExercises.length,
+          completedExercises: actualExercises.length,
+          skippedSets: 0,
+          totalSetsPlanned: plannedExercises.length * 3,
+          totalSetsCompleted: actualExercises.length * 3,
+        },
+      };
+      return workout;
+    }
 
     // יצירת פידבק מציאותי
     const feedback = this.generateRealisticFeedback(
@@ -668,6 +733,12 @@ class WorkoutSimulationService {
     planned: number,
     params: SimulationParameters
   ): number[] {
+    // בדיקת תקינות הפרמטרים
+    if (!planned || planned < 1 || planned > 7) {
+      console.warn(`⚠️ Invalid planned days: ${planned}, using default 3`);
+      planned = 3;
+    }
+
     const possibleDays = [0, 1, 2, 3, 4, 5, 6];
 
     // וריאציה מציאותית בכמות הימים
@@ -675,12 +746,20 @@ class WorkoutSimulationService {
     if (params.motivation < 5) {
       actualDays = Math.max(1, planned - 1);
     } else if (params.motivation > 8 && Math.random() < 0.3) {
-      actualDays = planned + 1;
+      actualDays = Math.min(6, planned + 1); // הוספת הגבלה עליונה
     }
+
+    // בדיקה נוספת
+    actualDays = Math.max(1, Math.min(6, actualDays));
 
     // בחירת ימים רנדומליים
     const shuffled = this.shuffleArray(possibleDays);
-    return shuffled.slice(0, Math.min(actualDays, 6)); // מקסימום 6 ימים
+    const selectedDays = shuffled.slice(0, actualDays);
+
+    console.log(
+      `📅 Selected ${selectedDays.length} workout days: [${selectedDays.join(", ")}]`
+    );
+    return selectedDays;
   }
 
   /**
