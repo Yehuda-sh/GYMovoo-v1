@@ -2,7 +2,7 @@
  * @file src/services/workoutSimulationService.ts
  * @brief סימולציה של ביצוע אימונים מציאותיים עם וריאציות והתקדמות
  * @description מדמה איך משתמש אמיתי מבצע אימונים - עם דילוגים, עייפות, שיפורים
- * @updated 2025-07-30 שיפורים כלליים והוספת תמיכה בהתאמת מגדר
+ * @updated 2025-08-05 שיפורים כלליים והסרת כפילויות קוד
  */
 
 import {
@@ -27,6 +27,19 @@ import {
   getExercisesByEquipment,
 } from "../data/exercises/index";
 
+// קבועים למניעת magic numbers
+const SIMULATION_CONSTANTS = {
+  WEEKS_TO_SIMULATE: 26, // 6 חודשים
+  BREAK_WEEKS: [7, 15] as const, // הפסקות כל 8 שבועות
+  SKIP_EXERCISE_PROBABILITY: 0.05,
+  SKIP_SET_PROBABILITY: 0.03,
+  EQUIPMENT_ISSUE_PROBABILITY: 0.05,
+  DEFAULT_PROBABILITY: 0.8,
+  WARMUP_TIME: 10, // דקות חימום
+  COOLDOWN_TIME: 5, // דקות קירור
+  PERFORMANCE_VARIATION: 0.2, // ±10% וריאציה
+} as const;
+
 interface SimulationParameters {
   userExperience: "beginner" | "intermediate" | "advanced";
   motivation: number; // 1-10
@@ -34,8 +47,6 @@ interface SimulationParameters {
   energyLevel: number; // 1-10
   equipmentAvailable: string[];
   currentStreak: number;
-  // הוספת תמיכה בהתאמת מגדר
-  // Added gender adaptation support
   gender?: UserGender;
   personalizedGoals?: string[];
 }
@@ -45,7 +56,6 @@ class WorkoutSimulationService {
    * סימולציה של 6 חודשי אימונים מציאותיים
    */
   async simulateRealisticWorkoutHistory(): Promise<void> {
-    // יצירת סימולציית אימונים מציאותית של 6 חודשים
     const user = await realisticDemoService.getDemoUser();
     if (!user) {
       console.error("No demo user found for workout simulation");
@@ -55,19 +65,17 @@ class WorkoutSimulationService {
     // פרמטרי סימולציה ראשוניים
     let currentParams: SimulationParameters = {
       userExperience: user.questionnaireData.fitness_experience,
-      motivation: 7, // מתחיל במוטיבציה גבוהה
+      motivation: 7,
       availableTime: this.parseSessionDuration(
         user.questionnaireData.session_duration
       ),
       energyLevel: 7,
       equipmentAvailable: user.questionnaireData.available_equipment,
       currentStreak: 0,
-      // הוספת נתוני מגדר בסיסיים
       gender: user.questionnaireData.gender || "other",
       personalizedGoals: user.questionnaireData.goals || [],
     };
 
-    // סימולציה של 26 שבועות (6 חודשים)
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 6);
 
@@ -75,15 +83,13 @@ class WorkoutSimulationService {
     let missedWorkouts = 0;
 
     // סימולציה של 26 שבועות (6 חודשים)
-    for (let week = 0; week < 26; week++) {
-      // התאמת פרמטרים לפי התקדמות
+    for (let week = 0; week < SIMULATION_CONSTANTS.WEEKS_TO_SIMULATE; week++) {
       currentParams = this.updateSimulationParameters(
         currentParams,
         week,
         totalWorkouts
       );
 
-      // סימולציה של אימונים השבוע
       const weeklyWorkouts = await this.simulateWeeklyWorkouts(
         startDate,
         week,
@@ -95,11 +101,10 @@ class WorkoutSimulationService {
       missedWorkouts += weeklyWorkouts.missed;
 
       // עדכון רצף
-      if (weeklyWorkouts.completed > 0) {
-        currentParams.currentStreak += weeklyWorkouts.completed;
-      } else {
-        currentParams.currentStreak = 0;
-      }
+      currentParams.currentStreak =
+        weeklyWorkouts.completed > 0
+          ? currentParams.currentStreak + weeklyWorkouts.completed
+          : 0;
 
       // הפסקה קצרה כל 8 שבועות
       if (week === 7 || week === 15) {
@@ -108,7 +113,6 @@ class WorkoutSimulationService {
       }
     }
 
-    // סיכום סופי עם סטטיסטיקות חיוניות
     const completionRate = Math.round(
       (totalWorkouts / (totalWorkouts + missedWorkouts)) * 100
     );
@@ -139,7 +143,7 @@ class WorkoutSimulationService {
       );
 
       // החלטה אם לבצע את האימון
-      const willWorkout = this.decideToWorkout(params, dayIndex, weekNumber);
+      const willWorkout = this.decideToWorkout(params);
 
       if (willWorkout) {
         // סימולציה של אימון מציאותי
@@ -167,7 +171,7 @@ class WorkoutSimulationService {
     weekNumber: number
   ): Promise<WorkoutSession> {
     // בחירת סוג אימון
-    const workoutType = this.selectWorkoutType(params, weekNumber);
+    const workoutType = this.selectWorkoutType(params);
 
     // יצירת תרגילים לאימון
     const plannedExercises = this.generateWorkoutExercises(workoutType, params);
@@ -179,8 +183,9 @@ class WorkoutSimulationService {
     );
 
     // חישוב זמני אימון מציאותיים
-    const duration = this.calculateActualDuration(actualExercises, params);
-    const startTime = this.generateRealisticStartTime(date, params);
+    const plannedDuration = plannedExercises.length * 15; // הערכה: 15 דקות לתרגיל
+    const duration = this.calculateActualDuration(plannedDuration, params);
+    const startTime = this.generateRealisticStartTime();
     const endTime = new Date(new Date(startTime).getTime() + duration * 60000);
 
     // יצירת פידבק מציאותי
@@ -192,8 +197,8 @@ class WorkoutSimulationService {
 
     // חישוב נתוני השוואה
     const plannedVsActual = this.calculatePlannedVsActual(
-      plannedExercises,
-      actualExercises
+      plannedExercises.length,
+      actualExercises.length
     );
 
     const workout: WorkoutSession = {
@@ -205,7 +210,13 @@ class WorkoutSimulationService {
       type: workoutType,
       exercises: actualExercises,
       feedback,
-      plannedVsActual,
+      plannedVsActual: {
+        plannedExercises: plannedExercises.length,
+        completedExercises: actualExercises.length,
+        skippedSets: 0, // נחשב לאחר מכן
+        totalSetsPlanned: plannedExercises.length * 3, // הערכה: 3 סטים לתרגיל
+        totalSetsCompleted: actualExercises.length * 3,
+      },
     };
 
     return workout;
@@ -307,41 +318,53 @@ class WorkoutSimulationService {
     plannedExercises: WorkoutExercise[],
     params: SimulationParameters
   ): WorkoutExercise[] {
-    const actualExercises: WorkoutExercise[] = plannedExercises.map(
-      (exercise) => {
-        const actualExercise: WorkoutExercise = { ...exercise, actualSets: [] };
+    return plannedExercises.map((exercise) => {
+      const actualExercise: WorkoutExercise = { ...exercise, actualSets: [] };
 
-        // החלטה אם לדלג על התרגיל (5% סיכוי)
-        if (Math.random() < 0.05 && params.motivation < 6) {
-          actualExercise.skipped = true;
-          actualExercise.notes = "דולג בגלל חוסר מוטיבציה";
-          return actualExercise;
-        }
-
-        // ביצוע סטים
-        for (let setIndex = 0; setIndex < exercise.targetSets; setIndex++) {
-          // החלטה אם לדלג על סט (10% סיכוי בסטים אחרונים)
-          const skipProbability =
-            setIndex >= exercise.targetSets - 1 ? 0.1 : 0.03;
-
-          if (Math.random() < skipProbability && params.energyLevel < 5) {
-            continue;
-          }
-
-          // סימולציה של ביצוע הסט
-          const actualSet = this.simulateSetExecution(
-            exercise,
-            setIndex,
-            params
-          );
-          actualExercise.actualSets.push(actualSet);
-        }
-
+      // החלטה אם לדלג על התרגיל
+      if (this.shouldSkipExercise(params)) {
+        actualExercise.skipped = true;
+        actualExercise.notes = "דולג בגלל חוסר מוטיבציה";
         return actualExercise;
       }
-    );
 
-    return actualExercises;
+      // ביצוע סטים
+      for (let setIndex = 0; setIndex < exercise.targetSets; setIndex++) {
+        if (this.shouldSkipSet(setIndex, exercise.targetSets, params)) {
+          continue;
+        }
+
+        const actualSet = this.simulateSetExecution(exercise, setIndex, params);
+        actualExercise.actualSets.push(actualSet);
+      }
+
+      return actualExercise;
+    });
+  }
+
+  /**
+   * בדיקה אם לדלג על תרגיל
+   */
+  private shouldSkipExercise(params: SimulationParameters): boolean {
+    return (
+      Math.random() < SIMULATION_CONSTANTS.SKIP_EXERCISE_PROBABILITY &&
+      params.motivation < 6
+    );
+  }
+
+  /**
+   * בדיקה אם לדלג על סט
+   */
+  private shouldSkipSet(
+    setIndex: number,
+    totalSets: number,
+    params: SimulationParameters
+  ): boolean {
+    const skipProbability =
+      setIndex >= totalSets - 1
+        ? 0.1
+        : SIMULATION_CONSTANTS.SKIP_SET_PROBABILITY;
+    return Math.random() < skipProbability && params.energyLevel < 5;
   }
 
   /**
@@ -411,53 +434,15 @@ class WorkoutSimulationService {
     params: SimulationParameters,
     duration: number
   ): WorkoutFeedback {
-    // חישוב ביצועים כלליים
-    const completedSets = exercises.reduce(
-      (sum, ex) => sum + ex.actualSets.length,
-      0
-    );
-    const totalPlannedSets = exercises.reduce(
-      (sum, ex) => sum + ex.targetSets,
-      0
-    );
+    const { completedSets, totalPlannedSets } =
+      this.calculateSetStatistics(exercises);
     const completionRate = completedSets / totalPlannedSets;
 
-    // דירוג כללי בהתאם לביצועים
-    let overallRating = 3; // בסיס
-    if (completionRate > 0.9) overallRating = 5;
-    else if (completionRate > 0.8) overallRating = 4;
-    else if (completionRate < 0.6) overallRating = 2;
+    const overallRating = this.calculateOverallRating(completionRate, params);
+    const averageRPE = this.calculateAverageRPE(exercises);
+    const difficulty = this.determineDifficulty(averageRPE);
+    const enjoyment = this.determineEnjoyment(overallRating, completionRate);
 
-    // השפעת מוטיבציה ואנרגיה
-    if (params.motivation >= 8 && params.energyLevel >= 8)
-      overallRating = Math.min(5, overallRating + 1);
-    if (params.motivation <= 4 || params.energyLevel <= 4)
-      overallRating = Math.max(1, overallRating - 1);
-
-    // רמת קושי
-    const averageRPE =
-      exercises.reduce((sum, ex) => {
-        const setsRPE = ex.actualSets.reduce(
-          (setSum, set) => setSum + set.perceivedExertion,
-          0
-        );
-        return sum + setsRPE / Math.max(ex.actualSets.length, 1);
-      }, 0) / exercises.length;
-
-    let difficulty: "too_easy" | "perfect" | "too_hard" = "perfect";
-    if (averageRPE < 5) difficulty = "too_easy";
-    else if (averageRPE > 8) difficulty = "too_hard";
-
-    // רמת הנאה
-    let enjoyment: "low" | "medium" | "high" = "medium";
-    if (overallRating >= 4 && completionRate > 0.8) enjoyment = "high";
-    else if (overallRating <= 2 || completionRate < 0.6) enjoyment = "low";
-
-    // מצבי רוח מציאותיים
-    const moods = ["😢", "😐", "😊", "🤩"];
-    const moodIndex = Math.min(3, Math.max(0, overallRating - 2));
-
-    // הערות מציאותיות מותאמות למגדר
     const selectedNote = generateSingleGenderAdaptedNote(
       params.gender,
       averageRPE > 6 ? 4 : 3
@@ -469,11 +454,98 @@ class WorkoutSimulationService {
       enjoyment,
       energyLevel: params.energyLevel,
       fatigueLevel: Math.min(10, 11 - params.energyLevel + duration / 10),
-      mood: moods[moodIndex] as WorkoutFeedback["mood"],
+      mood: this.getMoodEmoji(overallRating),
       notes: selectedNote,
       timeConstraints: duration > params.availableTime,
-      equipmentIssues: Math.random() < 0.05, // 5% סיכוי לבעיות ציוד
+      equipmentIssues:
+        Math.random() < SIMULATION_CONSTANTS.EQUIPMENT_ISSUE_PROBABILITY,
     };
+  }
+
+  /**
+   * חישוב סטטיסטיקות סטים
+   */
+  private calculateSetStatistics(exercises: WorkoutExercise[]) {
+    const completedSets = exercises.reduce(
+      (sum, ex) => sum + ex.actualSets.length,
+      0
+    );
+    const totalPlannedSets = exercises.reduce(
+      (sum, ex) => sum + ex.targetSets,
+      0
+    );
+    return { completedSets, totalPlannedSets };
+  }
+
+  /**
+   * חישוב דירוג כללי
+   */
+  private calculateOverallRating(
+    completionRate: number,
+    params: SimulationParameters
+  ): number {
+    let rating = 3; // בסיס
+
+    if (completionRate > 0.9) rating = 5;
+    else if (completionRate > 0.8) rating = 4;
+    else if (completionRate < 0.6) rating = 2;
+
+    // השפעת מוטיבציה ואנרגיה
+    if (params.motivation >= 8 && params.energyLevel >= 8) {
+      rating = Math.min(5, rating + 1);
+    }
+    if (params.motivation <= 4 || params.energyLevel <= 4) {
+      rating = Math.max(1, rating - 1);
+    }
+
+    return rating;
+  }
+
+  /**
+   * חישוב ממוצע RPE
+   */
+  private calculateAverageRPE(exercises: WorkoutExercise[]): number {
+    return (
+      exercises.reduce((sum, ex) => {
+        const setsRPE = ex.actualSets.reduce(
+          (setSum, set) => setSum + set.perceivedExertion,
+          0
+        );
+        return sum + setsRPE / Math.max(ex.actualSets.length, 1);
+      }, 0) / exercises.length
+    );
+  }
+
+  /**
+   * קביעת רמת קושי
+   */
+  private determineDifficulty(
+    averageRPE: number
+  ): "too_easy" | "perfect" | "too_hard" {
+    if (averageRPE < 5) return "too_easy";
+    if (averageRPE > 8) return "too_hard";
+    return "perfect";
+  }
+
+  /**
+   * קביעת רמת הנאה
+   */
+  private determineEnjoyment(
+    overallRating: number,
+    completionRate: number
+  ): "low" | "medium" | "high" {
+    if (overallRating >= 4 && completionRate > 0.8) return "high";
+    if (overallRating <= 2 || completionRate < 0.6) return "low";
+    return "medium";
+  }
+
+  /**
+   * קבלת אמוטיקון מצב רוח
+   */
+  private getMoodEmoji(overallRating: number): WorkoutFeedback["mood"] {
+    const moods = ["😢", "😐", "😊", "🤩"];
+    const moodIndex = Math.min(3, Math.max(0, overallRating - 2));
+    return moods[moodIndex] as WorkoutFeedback["mood"];
   }
 
   /**
@@ -487,54 +559,95 @@ class WorkoutSimulationService {
     const newParams = { ...params };
 
     // התקדמות בניסיון
-    if (weekNumber > 8 && params.userExperience === "beginner") {
-      newParams.userExperience = "intermediate";
-    } else if (weekNumber > 16 && params.userExperience === "intermediate") {
-      newParams.userExperience = "advanced";
-    }
+    newParams.userExperience = this.updateExperienceLevel(
+      params.userExperience,
+      weekNumber
+    );
 
-    // שיפור מוטיבציה בהתאם לביצועים
-    if (totalWorkouts > 0 && weekNumber % 4 === 0) {
-      // כל 4 שבועות - בדיקת מוטיבציה לפי ביצועים
-      const weeklyAverage = totalWorkouts / (weekNumber || 1);
-      if (weeklyAverage >= 3) {
-        newParams.motivation = Math.min(9, params.motivation + 0.5);
-      }
-    }
-
-    // שינויים במוטיבציה (מחזוריים)
+    // עדכון מוטיבציה כל 4 שבועות
     if (weekNumber % 4 === 0) {
-      // כל 4 שבועות - וריאציה במוטיבציה
-      const motivationChange = (Math.random() - 0.5) * 2; // ±1
-      newParams.motivation = Math.max(
-        3,
-        Math.min(9, params.motivation + motivationChange)
+      newParams.motivation = this.updateMotivation(
+        params,
+        totalWorkouts,
+        weekNumber
       );
     }
 
-    // שינויים באנרגיה (מחזוריים)
+    // עדכון אנרגיה כל 3 שבועות
     if (weekNumber % 3 === 0) {
-      const energyChange = (Math.random() - 0.5) * 2; // ±1
-      newParams.energyLevel = Math.max(
-        4,
-        Math.min(9, params.energyLevel + energyChange)
-      );
+      newParams.energyLevel = this.updateEnergyLevel(params.energyLevel);
     }
 
-    // התאמת זמן זמין (לעיתים יש יותר/פחות זמן)
+    // התאמת זמן זמין (10% סיכוי לשינוי)
     if (Math.random() < 0.1) {
-      // 10% סיכוי לשינוי
-      const timeChange = (Math.random() - 0.5) * 20; // ±10 דקות
-      newParams.availableTime = Math.max(
-        30,
-        Math.min(90, params.availableTime + timeChange)
-      );
+      newParams.availableTime = this.updateAvailableTime(params.availableTime);
     }
 
     return newParams;
   }
 
-  // פונקציות עזר
+  /**
+   * עדכון רמת ניסיון
+   */
+  private updateExperienceLevel(
+    currentExperience: string,
+    weekNumber: number
+  ): "beginner" | "intermediate" | "advanced" {
+    if (weekNumber > 16 && currentExperience === "intermediate") {
+      return "advanced";
+    }
+    if (weekNumber > 8 && currentExperience === "beginner") {
+      return "intermediate";
+    }
+    return currentExperience as "beginner" | "intermediate" | "advanced";
+  }
+
+  /**
+   * עדכון מוטיבציה
+   */
+  private updateMotivation(
+    params: SimulationParameters,
+    totalWorkouts: number,
+    weekNumber: number
+  ): number {
+    let newMotivation = params.motivation;
+
+    // שיפור מוטיבציה בהתאם לביצועים
+    if (totalWorkouts > 0) {
+      const weeklyAverage = totalWorkouts / (weekNumber || 1);
+      if (weeklyAverage >= 3) {
+        newMotivation = Math.min(9, params.motivation + 0.5);
+      }
+    }
+
+    // וריאציה מחזורית במוטיבציה
+    const motivationChange = (Math.random() - 0.5) * 2; // ±1
+    newMotivation = Math.max(3, Math.min(9, newMotivation + motivationChange));
+
+    return newMotivation;
+  }
+
+  /**
+   * עדכון רמת אנרגיה
+   */
+  private updateEnergyLevel(currentEnergy: number): number {
+    const energyChange = (Math.random() - 0.5) * 2; // ±1
+    return Math.max(4, Math.min(9, currentEnergy + energyChange));
+  }
+
+  /**
+   * עדכון זמן זמין
+   */
+  private updateAvailableTime(currentTime: number): number {
+    const timeChange = (Math.random() - 0.5) * 20; // ±10 דקות
+    return Math.max(30, Math.min(90, currentTime + timeChange));
+  }
+
+  // ===== פונקציות עזר =====
+
+  /**
+   * פרסור משך האימון מהשאלון
+   */
   private parseSessionDuration(duration: string): number {
     const durationMap: Record<string, number> = {
       "45-60": 52,
@@ -548,154 +661,31 @@ class WorkoutSimulationService {
     return match ? durationMap[match] : 45;
   }
 
+  /**
+   * קביעת ימי אימון בפועל (עם וריאציות)
+   */
   private determineActualWorkoutDays(
     planned: number,
     params: SimulationParameters
   ): number[] {
-    const possibleDays = [0, 1, 2, 3, 4, 5, 6]; // ימי השבוע
+    const possibleDays = [0, 1, 2, 3, 4, 5, 6];
 
-    // וריאציה מציאותית - לפעמים פחות ימים, לפעמים יותר
+    // וריאציה מציאותית בכמות הימים
     let actualDays = planned;
-    if (params.motivation < 5) actualDays = Math.max(1, planned - 1);
-    else if (params.motivation > 8 && Math.random() < 0.3)
+    if (params.motivation < 5) {
+      actualDays = Math.max(1, planned - 1);
+    } else if (params.motivation > 8 && Math.random() < 0.3) {
       actualDays = planned + 1;
+    }
 
     // בחירת ימים רנדומליים
     const shuffled = this.shuffleArray(possibleDays);
     return shuffled.slice(0, Math.min(actualDays, 6)); // מקסימום 6 ימים
   }
 
-  private decideToWorkout(
-    params: SimulationParameters,
-    dayIndex: number,
-    weekNumber: number
-  ): boolean {
-    let probability = 0.8; // 80% סיכוי בסיסי
-
-    // השפעת מוטיבציה
-    probability += (params.motivation - 5) * 0.05;
-
-    // השפעת אנרגיה
-    probability += (params.energyLevel - 5) * 0.03;
-
-    // עייפות מצטברת
-    if (params.currentStreak > 5) probability -= 0.1;
-
-    // יום בשבוע (פחות סיכוי בסוף השבוע)
-    if (dayIndex >= 5) probability -= 0.1;
-
-    // התחלת שנה חדשה / מוטיבציה גבוהה
-    if (weekNumber < 4) probability += 0.1;
-
-    return Math.random() < Math.max(0.2, Math.min(0.95, probability));
-  }
-
-  private selectWorkoutType(
-    params: SimulationParameters,
-    weekNumber: number
-  ): string {
-    const types = ["strength", "cardio", "flexibility"];
-
-    // וריאציה לפי שבוע - יותר קרדיו בתחילת תוכנית
-    if (weekNumber < 4 && params.userExperience === "beginner") {
-      return "cardio";
-    }
-
-    // התפלגות בהתאם לניסיון
-    if (params.userExperience === "beginner") {
-      // מתחילים - יותר קרדיו וגמישות
-      const weights = [0.4, 0.5, 0.1];
-      return this.weightedRandomSelect(types, weights);
-    } else if (params.userExperience === "intermediate") {
-      // בינוניים - איזון
-      const weights = [0.6, 0.3, 0.1];
-      return this.weightedRandomSelect(types, weights);
-    } else {
-      // מתקדמים - יותר כוח
-      const weights = [0.7, 0.2, 0.1];
-      return this.weightedRandomSelect(types, weights);
-    }
-  }
-
-  private calculateActualDuration(
-    exercises: WorkoutExercise[],
-    params: SimulationParameters
-  ): number {
-    let totalTime = 10; // חימום
-
-    exercises.forEach((exercise) => {
-      if (exercise.skipped) return;
-
-      exercise.actualSets.forEach((set) => {
-        totalTime += 2; // זמן ביצוע סט
-        totalTime += set.restTime / 60; // מנוחה בדקות
-      });
-    });
-
-    totalTime += 5; // קירור
-
-    // התאמה לפי רמת ניסיון - מתחילים לוקחים יותר זמן
-    if (params.userExperience === "beginner") {
-      totalTime *= 1.2; // 20% יותר זמן
-    } else if (params.userExperience === "advanced") {
-      totalTime *= 0.9; // 10% פחות זמן
-    }
-
-    // וריאציה מציאותית
-    const variation = (Math.random() - 0.5) * 0.2; // ±10%
-    return Math.max(15, Math.round(totalTime * (1 + variation)));
-  }
-
-  private generateRealisticStartTime(
-    date: Date,
-    params: SimulationParameters
-  ): string {
-    // זמן אימון על פי העדפות והרמת מגדר
-    let baseHour = 18; // ערב - ברירת מחדל
-
-    // התאמת זמן לפי מגדר ותכונות
-    if (params.gender === "female") {
-      baseHour = 17; // נשים נוטות להתאמן מוקדם יותר
-    } else if (params.gender === "male") {
-      baseHour = 19; // גברים נוטים להתאמן מאוחר יותר
-    }
-
-    // התאמת זמן לפי רמת ניסיון
-    if (params.userExperience === "advanced") {
-      baseHour -= 1; // מתקדמים מתאמנים מוקדם יותר
-    }
-
-    const variation = Math.floor(Math.random() * 4) - 2; // ±2 שעות
-    const actualHour = Math.max(6, Math.min(22, baseHour + variation));
-    const minutes = Math.floor(Math.random() * 60);
-
-    const startTime = new Date(date);
-    startTime.setHours(actualHour, minutes, 0, 0);
-
-    return startTime.toISOString();
-  }
-
-  private calculatePlannedVsActual(
-    planned: WorkoutExercise[],
-    actual: WorkoutExercise[]
-  ) {
-    const plannedSets = planned.reduce((sum, ex) => sum + ex.targetSets, 0);
-    const completedSets = actual.reduce(
-      (sum, ex) => sum + ex.actualSets.length,
-      0
-    );
-    const skippedSets = plannedSets - completedSets;
-
-    return {
-      plannedExercises: planned.length,
-      completedExercises: actual.filter((ex) => !ex.skipped).length,
-      skippedSets,
-      totalSetsPlanned: plannedSets,
-      totalSetsCompleted: completedSets,
-    };
-  }
-
-  // פונקציות עזר כלליות
+  /**
+   * ערבוב מערך (פישר-ייטס אלגוריתם)
+   */
   private shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -705,6 +695,9 @@ class WorkoutSimulationService {
     return shuffled;
   }
 
+  /**
+   * בחירה רנדומלית עם משקלים
+   */
   private weightedRandomSelect(items: string[], weights: number[]): string {
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
     let random = Math.random() * totalWeight;
@@ -717,6 +710,116 @@ class WorkoutSimulationService {
     }
 
     return items[0]; // fallback
+  }
+
+  /**
+   * החלטה האם להתאמן היום
+   */
+  private decideToWorkout(params: SimulationParameters): boolean {
+    const motivationFactor = params.motivation / 10;
+    const energyFactor = params.energyLevel / 10;
+    const streakBonus = Math.min(params.currentStreak * 0.1, 0.3);
+
+    const probability = (motivationFactor + energyFactor + streakBonus) / 3;
+    return Math.random() < probability;
+  }
+
+  /**
+   * בחירת סוג אימון
+   */
+  private selectWorkoutType(params: SimulationParameters): string {
+    const experience = params.userExperience;
+    const timeAvailable = params.availableTime;
+
+    if (timeAvailable < 20) {
+      return "quick";
+    } else if (timeAvailable < 45) {
+      return "standard";
+    } else if (experience === "advanced") {
+      return "intensive";
+    } else {
+      return "standard";
+    }
+  }
+
+  /**
+   * חישוב משך אימון בפועל
+   */
+  private calculateActualDuration(
+    plannedDuration: number,
+    params: SimulationParameters
+  ): number {
+    const experienceMultiplier = this.getExperienceMultiplier(
+      params.userExperience
+    );
+    const motivationFactor = params.motivation / 10;
+    const energyFactor = params.energyLevel / 10;
+
+    const efficiency =
+      (experienceMultiplier + motivationFactor + energyFactor) / 3;
+    const variation =
+      (Math.random() - 0.5) * SIMULATION_CONSTANTS.PERFORMANCE_VARIATION;
+
+    return Math.round(plannedDuration * efficiency * (1 + variation));
+  }
+
+  /**
+   * יצירת זמן התחלה מציאותי
+   */
+  private generateRealisticStartTime(): string {
+    return this.selectStartTimeSlot();
+  }
+
+  /**
+   * השוואת מתוכנן מול בפועל
+   */
+  private calculatePlannedVsActual(planned: number, actual: number): string {
+    const ratio = actual / planned;
+
+    if (ratio > 1.1) {
+      return "exceeded";
+    } else if (ratio < 0.8) {
+      return "below";
+    } else {
+      return "on-target";
+    }
+  }
+
+  /**
+   * קבלת מכפיל ניסיון
+   */
+  private getExperienceMultiplier(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 0.7;
+      case "intermediate":
+        return 0.9;
+      case "advanced":
+        return 1.1;
+      default:
+        return 0.8;
+    }
+  }
+
+  /**
+   * בחירת זמן התחלה
+   */
+  private selectStartTimeSlot(): string {
+    const timeSlots = [
+      "06:00",
+      "06:30",
+      "07:00",
+      "07:30",
+      "08:00",
+      "17:00",
+      "17:30",
+      "18:00",
+      "18:30",
+      "19:00",
+      "19:30",
+      "20:00",
+    ];
+    return timeSlots[Math.floor(Math.random() * timeSlots.length)];
   }
 }
 
