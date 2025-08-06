@@ -7,15 +7,17 @@ console.log("🔧 Testing Text Component Fix");
 console.log("=" * 40);
 
 console.log("✅ Fixed Issue:");
-console.log("   Error: 'Text strings must be rendered within a <Text> component'");
+console.log(
+  "   Error: 'Text strings must be rendered within a <Text> component'"
+);
 console.log("   Location: SmartQuestionnaireScreen.tsx line ~350");
 
 console.log("\n🐛 Problem Found:");
-console.log("   Code: </View>{\" \"}");
+console.log('   Code: </View>{" "}');
 console.log("   Issue: Space character outside Text component");
 
 console.log("\n🛠️ Solution Applied:");
-console.log("   Before: </View>{\" \"}");
+console.log('   Before: </View>{" "}');
 console.log("   After:  </View>");
 console.log("   Result: Removed unnecessary space character");
 
