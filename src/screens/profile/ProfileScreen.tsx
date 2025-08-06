@@ -61,6 +61,25 @@ import { User } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
 
+// 🆕 קבועים וקונפיגורציות מרכזיות / New centralized constants and configurations
+import {
+  PROFILE_SCREEN_TEXTS,
+  formatQuestionnaireValue,
+} from "../../constants/profileScreenTexts";
+import {
+  PROFILE_UI_COLORS,
+  STATS_COLORS,
+  EQUIPMENT_COLORS,
+  BUTTON_COLORS,
+  getStatsGradient,
+} from "../../constants/profileScreenColors";
+import {
+  calculateAchievements,
+  getUnlockedCount,
+  getNextAchievement,
+  type Achievement,
+} from "../../constants/achievementsConfig";
+
 // =======================================
 // 🎯 TypeScript Interfaces & Types
 // ממשקי טייפסקריפט וטיפוסים
@@ -73,19 +92,6 @@ import { UniversalModal } from "../../components/common/UniversalModal";
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
-
-/**
- * Achievement interface with Hebrew and English support
- * ממשק הישג עם תמיכה בעברית ואנגלית
- */
-type Achievement = {
-  id: number;
-  title: string;
-  description: string; // 🆕 תיאור ההישג
-  icon: MaterialCommunityIconName;
-  color: string;
-  unlocked: boolean;
-};
 
 /**
  * Workout interface with rating and feedback support
@@ -169,297 +175,9 @@ const PRESET_AVATARS = [
   "🏄‍♂️",
 ] as const;
 
-// פונקציה לחישוב הישגים מהנתונים המדעיים // Calculate achievements from scientific data
-const calculateAchievements = (user: User | null): Achievement[] => {
-  const achievements: Achievement[] = [
-    // 🎯 הישגים בסיסיים - תמיד זמינים
-    {
-      id: 1,
-      title: "מתחיל נלהב",
-      description:
-        "השלמת ההרשמה והתחלת המסע שלך לכושר! כל מסע גדול מתחיל בצעד ראשון.",
-      icon: "star",
-      color: "#FFD700",
-      unlocked: !!user?.scientificProfile || !!user?.questionnaire,
-    },
-    {
-      id: 2,
-      title: "השלמת שאלון",
-      description:
-        "מילאת את השאלון בהצלחה וקיבלת תוכנית מותאמת אישית. עכשיו אפשר להתחיל לאמן!",
-      icon: "clipboard-check",
-      color: "#4CAF50",
-      unlocked:
-        !!user?.questionnaire && Object.keys(user.questionnaire).length > 5,
-    },
-
-    // 🔥 הישגים מבוססי רצף
-    {
-      id: 3,
-      title: "רצף שבועי",
-      description:
-        "7 ימים ברציפות של אימונים! אתה מתחיל להכניס את הכושר לשגרה היומית.",
-      icon: "fire",
-      color: "#FF6347",
-      unlocked: false,
-    },
-    {
-      id: 4,
-      title: "רצף דו-שבועי",
-      description: "14 ימים ברציפות! הרגלי הכושר שלך מתחזקים. המשך כך!",
-      icon: "fire-circle",
-      color: "#FF4500",
-      unlocked: false,
-    },
-    {
-      id: 5,
-      title: "רצף חודשי",
-      description: "חודש שלם של אימונים ברציפות! אתה כבר ממכר לכושר. מדהים!",
-      icon: "fire-truck",
-      color: "#DC143C",
-      unlocked: false,
-    },
-
-    // 💪 הישגים מבוססי כמות
-    {
-      id: 6,
-      title: "10 אימונים",
-      description: "השלמת 10 אימונים! התחלה מצוינת למסע הכושר שלך.",
-      icon: "medal-outline",
-      color: "#CD7F32", // ברונזה
-      unlocked: false,
-    },
-    {
-      id: 7,
-      title: "25 אימונים",
-      description: "25 אימונים בכיס! אתה מתחיל לראות שינויים בגוף ובכוח שלך.",
-      icon: "medal",
-      color: "#C0C0C0", // כסף
-      unlocked: false,
-    },
-    {
-      id: 8,
-      title: "50 אימונים",
-      description:
-        "50 אימונים! אתה כבר חבר ותיק במועדון הכושר הווירטואלי שלנו!",
-      icon: "trophy-award",
-      color: "#FFD700", // זהב
-      unlocked: false,
-    },
-    {
-      id: 9,
-      title: "100 אימונים",
-      description:
-        "מאה אימונים! אתה גיבור כושר אמיתי. רמת המחויבות שלך מדהימה!",
-      icon: "trophy",
-      color: "#9932CC", // יהלום
-      unlocked: false,
-    },
-
-    // ⏰ הישגים מבוססי זמן
-    {
-      id: 10,
-      title: "שעה של כושר",
-      description: "צברת שעה שלמה של פעילות גופנית! כל דקה נחשבת.",
-      icon: "clock-check",
-      color: "#1E90FF",
-      unlocked: false,
-    },
-    {
-      id: 11,
-      title: "10 שעות אימון",
-      description: "10 שעות של אימונים! הגוף שלך מתחזק עם כל תרגיל.",
-      icon: "clock-check-outline",
-      color: "#0080FF",
-      unlocked: false,
-    },
-    {
-      id: 12,
-      title: "מרתון כושר",
-      description: "26 שעות של אימונים - כמו מרתון אמיתי! אתה אתלט של ממש!",
-      icon: "run",
-      color: "#FF69B4",
-      unlocked: false,
-    },
-
-    // 📅 הישגים מבוססי ותק
-    {
-      id: 13,
-      title: "שבוע עם GYMovoo",
-      description: "שבוע שלם איתנו! ברוך הבא למשפחת GYMovoo.",
-      icon: "calendar-week",
-      color: "#32CD32",
-      unlocked: false,
-    },
-    {
-      id: 14,
-      title: "חודש עם GYMovoo",
-      description: "חודש מלא של אימונים! אתה כבר חלק מהקהילה שלנו.",
-      icon: "calendar-month",
-      color: "#228B22",
-      unlocked: false,
-    },
-    {
-      id: 15,
-      title: "ותיק GYMovoo",
-      description: "3 חודשים איתנו! אתה ותיק אמיתי וחבר יקר של הקהילה.",
-      icon: "account-star",
-      color: "#8B4513",
-      unlocked: false,
-    },
-
-    // 🎯 הישגים מבוססי ביצועים
-    {
-      id: 16,
-      title: "מדרג מעולה",
-      description: "ממוצע של 4+ כוכבים! האימונים שלך מעולים ואתה נהנה מהתהליך.",
-      icon: "star-four-points",
-      color: "#FF8C00",
-      unlocked: false,
-    },
-    {
-      id: 17,
-      title: "מושלם!",
-      description: "10 אימונים עם 5 כוכבים! אתה פרפקציוניסט של הכושר!",
-      icon: "star-check",
-      color: "#FF1493",
-      unlocked: false,
-    },
-
-    // 💯 הישגים מיוחדים
-    {
-      id: 18,
-      title: "לוחם סוף השבוע",
-      description: "10 אימונים בסופי שבוע! גם בזמן הפנוי אתה לא שוכח את הכושר.",
-      icon: "sword-cross",
-      color: "#4B0082",
-      unlocked: false,
-    },
-    {
-      id: 19,
-      title: "חובב בוקר",
-      description: "15 אימוני בוקר! אתה מתחיל את היום עם אנרגיה חיובית.",
-      icon: "weather-sunny",
-      color: "#FFA500",
-      unlocked: false,
-    },
-    {
-      id: 20,
-      title: "ינשוף לילה",
-      description: "10 אימונים בלילה! גם כשהעולם ישן, אתה מתאמן.",
-      icon: "owl",
-      color: "#483D8B",
-      unlocked: false,
-    },
-  ];
-
-  // חישוב הישגים מנתונים אמיתיים
-  if (user?.activityHistory?.workouts) {
-    const workouts = user.activityHistory.workouts;
-    const workoutCount = workouts.length;
-    const now = new Date();
-
-    // 💪 הישגים מבוססי כמות
-    if (workoutCount >= 10) achievements[5].unlocked = true; // 10 אימונים
-    if (workoutCount >= 25) achievements[6].unlocked = true; // 25 אימונים
-    if (workoutCount >= 50) achievements[7].unlocked = true; // 50 אימונים
-    if (workoutCount >= 100) achievements[8].unlocked = true; // 100 אימונים
-
-    // 🔥 חישוב רצף מתקדם
-    const sortedWorkouts = [...workouts].sort(
-      (a, b) =>
-        new Date(b.date || b.completedAt).getTime() -
-        new Date(a.date || a.completedAt).getTime()
-    );
-
-    let currentStreak = 0;
-    let checkDate = new Date(now);
-    for (const workout of sortedWorkouts) {
-      const workoutDate = new Date(workout.date || workout.completedAt);
-      const diffDays = Math.floor(
-        (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (diffDays <= 2) {
-        currentStreak++;
-        checkDate = workoutDate;
-      } else {
-        break;
-      }
-    }
-
-    if (currentStreak >= 7) achievements[2].unlocked = true; // רצף שבועי
-    if (currentStreak >= 14) achievements[3].unlocked = true; // רצף דו-שבועי
-    if (currentStreak >= 30) achievements[4].unlocked = true; // רצף חודשי
-
-    // ⏰ הישגים מבוססי זמן כולל
-    const totalMinutes = workouts.reduce(
-      (sum: number, w: WorkoutWithRating) => sum + (w.duration || 45),
-      0
-    );
-    const totalHours = totalMinutes / 60;
-
-    if (totalHours >= 1) achievements[9].unlocked = true; // שעה של כושר
-    if (totalHours >= 10) achievements[10].unlocked = true; // 10 שעות
-    if (totalHours >= 26) achievements[11].unlocked = true; // מרתון כושר
-
-    // 📅 הישגים מבוססי ותק - נשתמש בתאריך הראשון אימון
-    const firstWorkoutDate =
-      workouts.length > 0
-        ? new Date(
-            Math.min(
-              ...workouts.map((w: WorkoutWithRating) =>
-                new Date(w.date || w.completedAt || Date.now()).getTime()
-              )
-            )
-          )
-        : new Date();
-    const daysSinceFirstWorkout = Math.floor(
-      (now.getTime() - firstWorkoutDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysSinceFirstWorkout >= 7) achievements[12].unlocked = true; // שבוע
-    if (daysSinceFirstWorkout >= 30) achievements[13].unlocked = true; // חודש
-    if (daysSinceFirstWorkout >= 90) achievements[14].unlocked = true; // ותיק
-
-    // 🎯 הישגים מבוססי ביצועים
-    const ratingsSum = workouts.reduce((sum: number, w: WorkoutWithRating) => {
-      const rating = w.feedback?.rating || w.rating || 0;
-      return sum + rating;
-    }, 0);
-    const avgRating = workoutCount > 0 ? ratingsSum / workoutCount : 0;
-
-    if (avgRating >= 4 && workoutCount >= 10) achievements[15].unlocked = true; // מדרג מעולה
-
-    const perfectRatings = workouts.filter(
-      (w: WorkoutWithRating) => (w.feedback?.rating || w.rating || 0) === 5
-    ).length;
-    if (perfectRatings >= 10) achievements[16].unlocked = true; // מושלם!
-
-    // 💯 הישגים מיוחדים מבוססי זמן/יום
-    const weekendWorkouts = workouts.filter((w: WorkoutWithRating) => {
-      const date = new Date(w.date || w.completedAt || Date.now());
-      const day = date.getDay();
-      return day === 0 || day === 6; // ראשון או שבת
-    }).length;
-    if (weekendWorkouts >= 10) achievements[17].unlocked = true; // לוחם סוף השבוע
-
-    const morningWorkouts = workouts.filter((w: WorkoutWithRating) => {
-      const date = new Date(w.date || w.completedAt || Date.now());
-      const hour = date.getHours();
-      return hour >= 5 && hour <= 10; // 5:00-10:00
-    }).length;
-    if (morningWorkouts >= 15) achievements[18].unlocked = true; // חובב בוקר
-
-    const nightWorkouts = workouts.filter((w: WorkoutWithRating) => {
-      const date = new Date(w.date || w.completedAt || Date.now());
-      const hour = date.getHours();
-      return hour >= 22 || hour <= 5; // 22:00-5:00
-    }).length;
-    if (nightWorkouts >= 10) achievements[19].unlocked = true; // ינשוף לילה
-  }
-
-  return achievements;
-};
+// � הישגים מחושבים דינמית מ-achievementsConfig
+// New dynamic achievements calculated from achievementsConfig
+// הפונקציה ה-calculateAchievements מיובאת מ-achievementsConfig.ts
 
 /**
  * רכיב מסך הפרופיל הראשי
@@ -799,293 +517,6 @@ function ProfileScreen() {
       setLoading(false);
     }
   }, [editedName, lastNameEdit, updateUser]);
-
-  // חישוב מידע נוסף מהשאלון
-  // פונקציה להמרת מזהים לטקסטים בעברית
-  const formatQuestionnaireValue = (key: string, value: string): string => {
-    if (value === "לא צוין" || !value) return "לא צוין";
-
-    const translations: Record<string, Record<string, string>> = {
-      age: {
-        "18-25": "18-25",
-        "26-35": "26-35",
-        "36-45": "36-45",
-        "46-55": "46-55",
-        "56+": "56+",
-        // תרגומים נוספים
-        under_18: "מתחת ל-18",
-        "18_25": "18-25",
-        "26_35": "26-35",
-        "36_45": "36-45",
-        "46_55": "46-55",
-        over_55: "מעל 55",
-      },
-      goal: {
-        weight_loss: "ירידה במשקל",
-        muscle_gain: "עליה במסת שריר",
-        strength_improvement: "שיפור כוח",
-        endurance_improvement: "שיפור סיבולת",
-        general_health: "בריאות כללית",
-        injury_rehab: "שיקום מפציעה",
-        // תרגומים נוספים
-        lose_weight: "ירידה במשקל",
-        build_muscle: "בניית שריר",
-        improve_strength: "שיפור כוח",
-        improve_endurance: "שיפור סיבולת",
-        general_fitness: "כושר כללי",
-        rehabilitation: "שיקום",
-        maintain_fitness: "שמירה על כושר",
-        sport_performance: "ביצועים ספורטיביים",
-      },
-      experience: {
-        beginner: "מתחיל (0-6 חודשים)",
-        intermediate: "בינוני (6-24 חודשים)",
-        advanced: "מתקדם (2-5 שנים)",
-        expert: "מקצועי (5+ שנים)",
-        athlete: "ספורטאי תחרותי",
-        // תרגומים נוספים - פורמטים שונים מהשאלון
-        never_exercised: "מעולם לא התאמנתי",
-        rarely_exercise: "מתאמן לעיתים רחוקות",
-        sometimes_exercise: "מתאמן לפעמים",
-        regularly_exercise: "מתאמן בקביעות",
-        very_experienced: "מאוד מנוסה",
-        // פורמטים נוספים אפשריים
-        no_experience: "ללא ניסיון",
-        little_experience: "מעט ניסיון",
-        some_experience: "קצת ניסיון",
-        good_experience: "ניסיון טוב",
-        lots_of_experience: "הרבה ניסיון",
-        professional: "מקצועי",
-        competitive: "תחרותי",
-        // רמות כושר
-        fitness_beginner: "מתחיל בכושר",
-        fitness_intermediate: "בינוני בכושר",
-        fitness_advanced: "מתקדם בכושר",
-        fitness_expert: "מומחה כושר",
-        // פורמטים עם קווים תחתונים
-        beginner_level: "רמת מתחיל",
-        intermediate_level: "רמה בינונית",
-        advanced_level: "רמה מתקדמת",
-        expert_level: "רמת מומחה",
-        // פורמטים מספריים
-        level_1: "רמה 1 - מתחיל",
-        level_2: "רמה 2 - בינוני",
-        level_3: "רמה 3 - מתקדם",
-        level_4: "רמה 4 - מומחה",
-        level_5: "רמה 5 - פרו",
-      },
-      frequency: {
-        "2-times": "2 פעמים בשבוע",
-        "3-times": "3 פעמים בשבוע",
-        "4-times": "4 פעמים בשבוע",
-        "5-times": "5 פעמים בשבוע",
-        "6-7-times": "6-7 פעמים בשבוע",
-        // תרגומים נוספים - פורמטים שונים
-        "1_time": "פעם אחת בשבוע",
-        "2_times": "2 פעמים בשבוע",
-        "3_times": "3 פעמים בשבוע",
-        "4_times": "4 פעמים בשבוע",
-        "5_times": "5 פעמים בשבוע",
-        "6_times": "6 פעמים בשבוע",
-        "7_times": "7 פעמים בשבוע",
-        daily: "כל יום",
-        // פורמטים עם מילים
-        once_a_week: "פעם בשבוע",
-        twice_a_week: "פעמיים בשבוע",
-        three_times_a_week: "3 פעמים בשבוע",
-        four_times_a_week: "4 פעמים בשבוע",
-        five_times_a_week: "5 פעמים בשבוע",
-        six_times_a_week: "6 פעמים בשבוע",
-        seven_times_a_week: "7 פעמים בשבוע",
-        every_day: "כל יום",
-        // פורמטים עם "times per week"
-        "1 time per week": "פעם בשבוע",
-        "2 times per week": "פעמיים בשבוע",
-        "3 times per week": "3 פעמים בשבוע",
-        "4 times per week": "4 פעמים בשבוע",
-        "5 times per week": "5 פעמים בשבוע",
-        "6 times per week": "6 פעמים בשבוע",
-        "7 times per week": "7 פעמים בשבוע",
-        // תדירות כללית
-        rarely: "לעיתים רחוקות",
-        sometimes: "לפעמים",
-        often: "לעיתים קרובות",
-        very_often: "לעיתים קרובות מאוד",
-        always: "תמיד",
-        // פורמטים נוספים שראיתי בלוגים
-        "once per week": "פעם בשבוע",
-        "twice per week": "פעמיים בשבוע",
-        "three times per week": "3 פעמים בשבוע",
-        "four times per week": "4 פעמים בשבוע",
-        "five times per week": "5 פעמים בשבוע",
-        "six times per week": "6 פעמים בשבוע",
-        "seven times per week": "7 פעמים בשבוע",
-        // פורמטים מהשאלון החכם
-        low_frequency: "תדירות נמוכה",
-        medium_frequency: "תדירות בינונית",
-        high_frequency: "תדירות גבוהה",
-        very_high_frequency: "תדירות גבוהה מאוד",
-        // פורמטים מספריים
-        "1x_week": "פעם בשבוע",
-        "2x_week": "פעמיים בשבוע",
-        "3x_week": "3 פעמים בשבוע",
-        "4x_week": "4 פעמים בשבוע",
-        "5x_week": "5 פעמים בשבוע",
-        "6x_week": "6 פעמים בשבוע",
-        "7x_week": "7 פעמים בשבוע",
-        // פורמטים עם קווים מקפיים
-        "1-per-week": "פעם בשבוע",
-        "2-per-week": "פעמיים בשבוע",
-        "3-per-week": "3 פעמים בשבוע",
-        "4-per-week": "4 פעמים בשבוע",
-        "5-per-week": "5 פעמים בשבוע",
-        "6-per-week": "6 פעמים בשבוע",
-        "7-per-week": "7 פעמים בשבוע",
-      },
-      duration: {
-        "20-30-min": "20-30 דקות",
-        "30-45-min": "30-45 דקות",
-        "45-60-min": "45-60 דקות",
-        "60-90-min": "60-90 דקות",
-        "90-plus-min": "90+ דקות",
-        // תרגומים נוספים
-        "15_min": "15 דקות",
-        "20_min": "20 דקות",
-        "30_min": "30 דקות",
-        "45_min": "45 דקות",
-        "60_min": "60 דקות",
-        "90_min": "90 דקות",
-        "120_min": "120 דקות",
-        short: "קצר (15-30 דקות)",
-        medium: "בינוני (30-60 דקות)",
-        long: "ארוך (60+ דקות)",
-      },
-      gender: {
-        male: "זכר",
-        female: "נקבה",
-        other: "אחר",
-        prefer_not_to_say: "מעדיף לא לומר",
-      },
-      location: {
-        home: "אימונים בבית",
-        gym: "אימונים בחדר כושר",
-        both: "בית וחדר כושר",
-        outdoor: "אימונים בחוץ",
-      },
-      diet: {
-        none: "לא צוין",
-        vegetarian: "צמחוני",
-        vegan: "טבעוני",
-        keto: "קטוגנית",
-        paleo: "פליאו",
-        mediterranean: "ים תיכונית",
-        balanced: "מאוזנת",
-        no_diet: "ללא דיאטה מיוחדת",
-      },
-      activity_level: {
-        sedentary: "בישיבה רוב הזמן",
-        light: "פעילות קלה",
-        moderate: "פעילות בינונית",
-        active: "פעיל",
-        very_active: "פעיל מאוד",
-      },
-      workout_time: {
-        morning: "בוקר",
-        afternoon: "אחר הצהריים",
-        evening: "ערב",
-        night: "לילה",
-        flexible: "גמיש",
-      },
-      motivation: {
-        health: "בריאות",
-        appearance: "מראה חיצוני",
-        strength: "כוח",
-        competition: "תחרות",
-        stress_relief: "הפגת לחץ",
-        social: "חברתי",
-      },
-      body_type: {
-        ectomorph: "אקטומורף (רזה)",
-        mesomorph: "מזומורף (שרירי)",
-        endomorph: "אנדומורף (עגול)",
-      },
-      sleep_hours: {
-        less_than_6: "פחות מ-6 שעות",
-        "6_7": "6-7 שעות",
-        "7_8": "7-8 שעות",
-        "8_9": "8-9 שעות",
-        more_than_9: "יותר מ-9 שעות",
-      },
-      stress_level: {
-        low: "נמוך",
-        moderate: "בינוני",
-        high: "גבוה",
-        very_high: "גבוה מאוד",
-      },
-      session_duration: {
-        "15": "15 דקות",
-        "20": "20 דקות",
-        "30": "30 דקות",
-        "45": "45 דקות",
-        "60": "60 דקות",
-        "90": "90 דקות",
-        "15-30": "15-30 דקות",
-        "30-45": "30-45 דקות",
-        "45-60": "45-60 דקות",
-        "60-90": "60-90 דקות",
-        "15_minutes": "15 דקות",
-        "30_minutes": "30 דקות",
-        "45_minutes": "45 דקות",
-        "60_minutes": "60 דקות",
-        "90_minutes": "90 דקות",
-        short: "קצר (15-30 דקות)",
-        medium: "בינוני (30-60 דקות)",
-        long: "ארוך (60-90 דקות)",
-        very_short: "קצר מאוד (10-15 דקות)",
-        extended: "ממושך (90+ דקות)",
-      },
-      health_conditions: {
-        none: "אין",
-        back_pain: "כאבי גב",
-        knee_problems: "בעיות ברכיים",
-        shoulder_issues: "בעיות כתפיים",
-        heart_condition: "בעיות לב",
-        diabetes: "סוכרת",
-        high_blood_pressure: "לחץ דם גבוה",
-        arthritis: "דלקת פרקים",
-        asthma: "אסתמה",
-        previous_injury: "פציעה קודמת",
-        chronic_pain: "כאב כרוני",
-        joint_problems: "בעיות פרקים",
-        muscle_weakness: "חולשת שרירים",
-        balance_issues: "בעיות איזון",
-        mobility_limitations: "מגבלות ניידות",
-        no_limitations: "ללא מגבלות",
-        minor_limitations: "מגבלות קלות",
-        moderate_limitations: "מגבלות בינוניות",
-        significant_limitations: "מגבלות משמעותיות",
-      },
-      availability: {
-        sunday: "יום ראשון",
-        monday: "יום שני",
-        tuesday: "יום שלישי",
-        wednesday: "יום רביעי",
-        thursday: "יום חמישי",
-        friday: "יום שישי",
-        saturday: "יום שבת",
-        weekdays: "ימי חול",
-        weekends: "סופי שבוע",
-        daily: "מדי יום",
-        "3_days": "3 ימים בשבוע",
-        "4_days": "4 ימים בשבוע",
-        "5_days": "5 ימים בשבוע",
-        "6_days": "6 ימים בשבוע",
-        flexible: "גמיש",
-      },
-    };
-
-    return translations[key]?.[value] || value;
-  };
 
   // ===============================================
   // 📊 User Info Calculation - חישוב נתוני משתמש
@@ -1601,7 +1032,9 @@ function ProfileScreen() {
           {/* Header */}
           <View style={styles.header}>
             <BackButton absolute={false} />
-            <Text style={styles.headerTitle}>הפרופיל שלי</Text>
+            <Text style={styles.headerTitle}>
+              {PROFILE_SCREEN_TEXTS.HEADERS.PROFILE_TITLE}
+            </Text>
             <View style={styles.headerRight}>
               {/* כפתור השלמת שאלון אם לא הושלם */}
               {!questionnaireStatus.isComplete && (
@@ -1612,7 +1045,7 @@ function ProfileScreen() {
                   }
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel="השלמת שאלון אימון"
+                  accessibilityLabel={PROFILE_SCREEN_TEXTS.A11Y.EDIT_PROFILE}
                   accessibilityHint="מעבר למילוי שאלון האימון לקבלת המלצות מותאמות אישית"
                 >
                   <MaterialCommunityIcons
@@ -1633,7 +1066,9 @@ function ProfileScreen() {
                 style={styles.errorRetryButton}
                 onPress={() => setError(null)}
               >
-                <Text style={styles.errorRetryText}>הבנתי</Text>
+                <Text style={styles.errorRetryText}>
+                  {PROFILE_SCREEN_TEXTS.ACTIONS.GOT_IT}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1660,7 +1095,9 @@ function ProfileScreen() {
                   color={theme.colors.white}
                 />
                 <View style={styles.questionnaireTextContainer}>
-                  <Text style={styles.questionnaireTitle}>השלם את השאלון</Text>
+                  <Text style={styles.questionnaireTitle}>
+                    {PROFILE_SCREEN_TEXTS.ACTIONS.COMPLETE_QUESTIONNAIRE}
+                  </Text>
                   <Text style={styles.questionnaireSubtitle}>
                     {!questionnaireStatus.hasTrainingStage
                       ? "קבל תוכנית אימונים מותאמת אישית"
@@ -1791,7 +1228,9 @@ function ProfileScreen() {
                   name="fire"
                   size={16}
                   color={
-                    stats.streak > 0 ? "#FF6347" : theme.colors.textSecondary
+                    stats.streak > 0
+                      ? STATS_COLORS.STREAK.ACTIVE
+                      : theme.colors.textSecondary
                   }
                 />
                 <Text
@@ -1832,7 +1271,9 @@ function ProfileScreen() {
                     size={16}
                     color={theme.colors.primary}
                   />
-                  <Text style={styles.badgeText}>{stats.workouts} אימונים</Text>
+                  <Text style={styles.badgeText}>
+                    {stats.workouts} {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                  </Text>
                 </View>
               )}
             </View>
@@ -1841,7 +1282,9 @@ function ProfileScreen() {
           {/* מידע אישי מהשאלון - כולו דינמי */}
           {questionnaireStatus.isComplete && (
             <View style={styles.infoContainer}>
-              <Text style={styles.sectionTitle}>המידע שלי</Text>
+              <Text style={styles.sectionTitle}>
+                {PROFILE_SCREEN_TEXTS.HEADERS.MY_INFO}
+              </Text>
               <View style={styles.infoGrid}>
                 {/* כל השדות נוצרים באופן דינמי */}
                 {displayFields.map((field) => (
@@ -1861,44 +1304,56 @@ function ProfileScreen() {
 
           {/* סטטיסטיקות */}
           <View style={styles.statsContainer}>
-            <Text style={styles.sectionTitle}>הסטטיסטיקות שלי</Text>
+            <Text style={styles.sectionTitle}>
+              {PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS}
+            </Text>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
                 <LinearGradient
-                  colors={["#4e9eff", "#3a7bc8"]}
+                  colors={getStatsGradient("workouts")}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
                     name="dumbbell"
                     size={24}
-                    color="#fff"
+                    color={STATS_COLORS.WORKOUTS.ICON}
                   />
                   <Text style={styles.statNumber}>{stats.workouts}</Text>
-                  <Text style={styles.statLabel}>אימונים</Text>
+                  <Text style={styles.statLabel}>
+                    {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                  </Text>
                 </LinearGradient>
               </View>
               <View style={styles.statCard}>
                 <LinearGradient
-                  colors={["#ff6b6b", "#d84848"]}
+                  colors={getStatsGradient("streak")}
                   style={styles.statGradient}
                 >
-                  <MaterialCommunityIcons name="fire" size={24} color="#fff" />
+                  <MaterialCommunityIcons
+                    name="fire"
+                    size={24}
+                    color={STATS_COLORS.STREAK.ICON}
+                  />
                   <Text style={styles.statNumber}>{stats.streak}</Text>
-                  <Text style={styles.statLabel}>ימי רצף</Text>
+                  <Text style={styles.statLabel}>
+                    {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                  </Text>
                 </LinearGradient>
               </View>
               <View style={styles.statCard}>
                 <LinearGradient
-                  colors={["#00d9ff", "#00b8d4"]}
+                  colors={getStatsGradient("rating")}
                   style={styles.statGradient}
                 >
                   <MaterialCommunityIcons
                     name="clock-outline"
                     size={24}
-                    color="#fff"
+                    color={STATS_COLORS.RATING.ICON}
                   />
                   <Text style={styles.statNumber}>{stats.totalTime}</Text>
-                  <Text style={styles.statLabel}>זמן כולל</Text>
+                  <Text style={styles.statLabel}>
+                    {PROFILE_SCREEN_TEXTS.STATS.TOTAL_TIME}
+                  </Text>
                 </LinearGradient>
               </View>
             </View>
@@ -1908,13 +1363,17 @@ function ProfileScreen() {
           {user?.questionnaire && (
             <View style={styles.equipmentContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>הציוד שלי</Text>
+                <Text style={styles.sectionTitle}>
+                  {PROFILE_SCREEN_TEXTS.HEADERS.MY_EQUIPMENT}
+                </Text>
                 <TouchableOpacity
                   onPress={() =>
                     navigation.navigate("Questionnaire", { stage: "training" })
                   }
                 >
-                  <Text style={styles.seeAllText}>ערוך</Text>
+                  <Text style={styles.seeAllText}>
+                    {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT}
+                  </Text>
                 </TouchableOpacity>
               </View>
               <ScrollView
@@ -2123,9 +1582,9 @@ function ProfileScreen() {
                           <View style={styles.equipmentCategoryBadge}>
                             <Text style={styles.equipmentCategoryText}>
                               {equipment.category === "home"
-                                ? "בית"
+                                ? PROFILE_SCREEN_TEXTS.VALUES.HOME
                                 : equipment.category === "gym"
-                                  ? "חדר כושר"
+                                  ? PROFILE_SCREEN_TEXTS.VALUES.GYM
                                   : "שניהם"}
                             </Text>
                           </View>
@@ -2158,15 +1617,17 @@ function ProfileScreen() {
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>
                       {remainingAchievements.some((a) => a.unlocked)
-                        ? "הישגים נוספים"
-                        : "יעדים לפתיחה"}
+                        ? PROFILE_SCREEN_TEXTS.HEADERS.ACHIEVEMENTS
+                        : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
                     </Text>
                     <TouchableOpacity
                       onPress={() =>
                         console.log("ProfileScreen: Show all achievements")
                       }
                     >
-                      <Text style={styles.seeAllText}>הצג הכל</Text>
+                      <Text style={styles.seeAllText}>
+                        {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.achievementsGrid}>
@@ -2266,7 +1727,9 @@ function ProfileScreen() {
 
           {/* הגדרות בסיסיות */}
           <View style={styles.settingsContainer}>
-            <Text style={styles.sectionTitle}>הגדרות</Text>
+            <Text style={styles.sectionTitle}>
+              {PROFILE_SCREEN_TEXTS.HEADERS.SETTINGS}
+            </Text>
 
             <TouchableOpacity
               style={styles.settingItem}
@@ -2282,7 +1745,9 @@ function ProfileScreen() {
                   size={24}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.settingText}>ערוך שאלון</Text>
+                <Text style={styles.settingText}>
+                  {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT_QUESTIONNAIRE}
+                </Text>
               </View>
               <MaterialCommunityIcons
                 name="chevron-left"
@@ -2320,7 +1785,7 @@ function ProfileScreen() {
             style={styles.logoutButton}
             onPress={handleLogout}
             accessibilityRole="button"
-            accessibilityLabel="התנתק מהמערכת"
+            accessibilityLabel={PROFILE_SCREEN_TEXTS.A11Y.LOGOUT_BUTTON}
             accessibilityHint="לחיצה להתנתקות מהמשתמש הנוכחי וחזרה למסך הכניסה"
           >
             <MaterialCommunityIcons
@@ -2328,7 +1793,9 @@ function ProfileScreen() {
               size={20}
               color={theme.colors.error}
             />
-            <Text style={styles.logoutText}>התנתק</Text>
+            <Text style={styles.logoutText}>
+              {PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -3437,7 +2904,7 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: "center",
     marginHorizontal: 20,
-    shadowColor: "#000",
+    shadowColor: PROFILE_UI_COLORS.SHADOW,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -3516,7 +2983,7 @@ const styles = StyleSheet.create({
   // 💬 סטיילים ל-Tooltip
   tooltipOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: PROFILE_UI_COLORS.BACKGROUND.OVERLAY,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -3527,7 +2994,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     maxWidth: "90%",
-    shadowColor: "#000",
+    shadowColor: PROFILE_UI_COLORS.SHADOW,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

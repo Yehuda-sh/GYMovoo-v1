@@ -1,13 +1,16 @@
 /**
  * @file src/screens/workout/services/autoSaveService.ts
- * @description שירות שמירה אוטומטית לאימונים
- * English: Auto-save service for workouts
+ * @description שירות שמירה אוטומטית לאימונים - משופר עם וידואי נתונים וטיפול בשגיאות
+ * English: Auto-save service for workouts - enhanced with data validation and error handling
+ * @inspired מההצלחה במסך ההיסטוריה עם validateWorkoutData וטיפול בשגיאות
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { WorkoutData, WorkoutDraft } from "../types/workout.types";
 import { AUTO_SAVE } from "../utils/workoutConstants";
+import workoutValidationService from "./workoutValidationService";
+import workoutErrorHandlingService from "./workoutErrorHandlingService";
 
 class AutoSaveService {
   private static instance: AutoSaveService;
@@ -48,14 +51,24 @@ class AutoSaveService {
     this.currentWorkoutId = null;
   }
 
-  // שמור מצב אימון
-  // Save workout state
+  // שמור מצב אימון - משופר עם וידואי נתונים
+  // Save workout state - enhanced with data validation
   async saveWorkoutState(workout: WorkoutData): Promise<void> {
     if (!this.currentWorkoutId) return;
 
     try {
+      // וידואי מהיר לפני שמירה (מבוסס על הלקחים מההיסטוריה)
+      if (!workoutValidationService.quickValidateForAutoSave(workout)) {
+        console.warn("⚠️ Workout data failed quick validation - skipping save");
+        return;
+      }
+
+      // ניקוי נתונים לפני שמירה
+      const sanitizedWorkout =
+        workoutValidationService.sanitizeWorkoutForSave(workout);
+
       const draft: WorkoutDraft = {
-        workout,
+        workout: sanitizedWorkout,
         lastSaved: new Date().toISOString(),
         version: 1,
       };
@@ -67,30 +80,34 @@ class AutoSaveService {
 
       // שמירה בשקט ללא לוגים
     } catch (error: unknown) {
-      // אם מסד הנתונים מלא, עצור את השמירות הנוספות
-      const errorObj = error as { code?: number; message?: string };
-      if (errorObj?.code === 13 || errorObj?.message?.includes("SQLITE_FULL")) {
-        console.warn("⚠️ Database full - stopping auto-save");
-        this.stopAutoSave();
-        return;
+      // טיפול משופר בשגיאות באמצעות השירות החדש
+      const recoveryStrategy =
+        await workoutErrorHandlingService.handleAutoSaveError(
+          error,
+          workout,
+          () => this.saveWorkoutState(workout)
+        );
+
+      // ביצוע אסטרטגיית השחזור
+      if (recoveryStrategy.action) {
+        try {
+          await recoveryStrategy.action();
+        } catch (recoveryError) {
+          console.error("❌ Recovery action failed:", recoveryError);
+          // עצירת השירות אם השחזור נכשל
+          this.stopAutoSave();
+        }
       }
 
-      // אם האחסון מלא, עצור גם
-      if (
-        errorObj?.message?.includes("storage full") ||
-        errorObj?.message?.includes("QUOTA_EXCEEDED")
-      ) {
-        console.warn("⚠️ Storage quota exceeded - stopping auto-save");
+      // אם זה שגיאה קריטית, עצור את השירות
+      if (recoveryStrategy.type === "user_action") {
         this.stopAutoSave();
-        return;
       }
-
-      console.error("❌ Error saving workout draft:", error);
     }
   }
 
-  // שחזר טיוטות
-  // Recover drafts
+  // שחזר טיוטות - משופר עם וידואי נתונים
+  // Recover drafts - enhanced with data validation
   async recoverDrafts(): Promise<WorkoutDraft[]> {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -101,28 +118,69 @@ class AutoSaveService {
       const drafts = await AsyncStorage.multiGet(draftKeys);
       const validDrafts: WorkoutDraft[] = [];
 
-      for (const [, value] of drafts) {
+      for (const [key, value] of drafts) {
         if (value) {
           try {
             const draft: WorkoutDraft = JSON.parse(value);
 
-            // בדוק אם הטיוטה לא ישנה מדי
-            // Check if draft is not too old
-            const savedDate = new Date(draft.lastSaved);
-            const now = new Date();
-            const age = now.getTime() - savedDate.getTime();
+            // וידואי הטיוטה באמצעות השירות החדש
+            const validation =
+              workoutValidationService.validateWorkoutDraft(draft);
 
-            if (age < AUTO_SAVE.draftExpiry) {
-              validDrafts.push(draft);
+            if (validation.isValid || validation.warnings.length === 0) {
+              // בדוק אם הטיוטה לא ישנה מדי
+              const savedDate = new Date(draft.lastSaved);
+              const now = new Date();
+              const age = now.getTime() - savedDate.getTime();
+
+              if (age < AUTO_SAVE.draftExpiry) {
+                validDrafts.push(draft);
+              } else {
+                // נקה טיוטות ישנות
+                await AsyncStorage.removeItem(key);
+                console.log("🧹 Removed expired draft:", key);
+              }
+            } else if (validation.correctedData) {
+              // שמור טיוטה מתוקנת
+              const correctedDraft: WorkoutDraft = {
+                ...draft,
+                workout: validation.correctedData,
+              };
+              validDrafts.push(correctedDraft);
+              console.log("🔧 Using corrected draft data for:", key);
+            } else {
+              // מחק טיוטות לא תקינות
+              await AsyncStorage.removeItem(key);
+              console.warn("🗑️ Removed invalid draft:", key);
             }
           } catch (e) {
-            console.error("Error parsing draft:", e);
+            // טיפול בשגיאת פירסור JSON
+            const result =
+              await workoutErrorHandlingService.handleDataLoadError(
+                e,
+                "draft_parsing"
+              );
+
+            if (!result.success) {
+              console.error("Error parsing draft:", e);
+              // מחק את הטיוטה הפגומה
+              await AsyncStorage.removeItem(key);
+            }
           }
         }
       }
 
       return validDrafts;
     } catch (error) {
+      const result = await workoutErrorHandlingService.handleDataLoadError(
+        error,
+        "draft_recovery"
+      );
+
+      if (result.success && result.data) {
+        return result.data;
+      }
+
       console.error("Error recovering drafts:", error);
       return [];
     }

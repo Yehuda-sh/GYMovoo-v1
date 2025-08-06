@@ -43,14 +43,7 @@ export type {
 } from "./nextWorkoutLogicService";
 
 export { realisticDemoService } from "./realisticDemoService";
-export type {
-  WorkoutSession,
-  WorkoutExercise,
-  RealisticExerciseSet,
-  WorkoutFeedback,
-  PerformanceAnalysis,
-  PerformanceRecommendation,
-} from "./realisticDemoService";
+export type { DemoUser } from "./realisticDemoService";
 
 // =======================================
 // 🤖 AI and Scientific Services

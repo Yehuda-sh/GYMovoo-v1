@@ -1,764 +1,911 @@
 /**
- * @file src/services/realisticDemoService.ts
- * @brief שירות דמו מציאותי לסימולציית משתמש אמיתי עם אלגוריתם למידה חכם
- * @description מדמה משתמש אמיתי שממלא שאלון, מבצע אימונים, ובונה היסטוריה בזמן אמת עם ניתוח ביצועים מתקדם
- * @features ניתוח ביצועים חכם, המלצות אימון מותאמות, מעקב התקדמות, מערכת נקודות ורמות
- * @algorithms אלגוריתם ניתוח מגמות, חישוב עקביות, זיהוי שיאים אישיים, המלצות מבוססות נתונים
- * @dependencies AsyncStorage, userStore, WorkoutSession interfaces
- * @performance אופטימיזציה למינימום logging, עיבוד נתונים יעיל, ניהול זיכרון חכם
- */
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
+ * import { 
+  WorkoutData, 
+  WorkoutWithFeedback, 
+  Exercise,
+  Set
+} from "../screens/workout/types/workout.types";
+import type { User } from "../types";
 import {
   adaptExerciseNameToGender,
   generateSingleGenderAdaptedNote,
+  generateGenderAdaptedCongratulation,
+  UserGender,
+} from "../utils/genderAdaptation";rvices/realisticDemoService.ts
+ * @brief שירות הדמיה מציאותית של משתמשים ואימונים - מלא תואם למסך ההיסטוריה
+ * @description יוצר נתוני דמו שעוברים validateWorkoutData ופועלים עם formatDateHebrewLocal
+ * @updated 2025-08-06 עדכון מלא לתאימות עם מסך ההיסטוריה
+ * @compatible validateWorkoutData, formatDateHebrewLocal, WorkoutWithFeedback
+ */
+
+import {
+  WorkoutData,
+  WorkoutWithFeedback,
+  Exercise,
+  Set,
+} from "../screens/workout/types/workout.types";
+import {
+  adaptExerciseNameToGender,
+  generateSingleGenderAdaptedNote,
+  generateGenderAdaptedCongratulation,
   UserGender,
 } from "../utils/genderAdaptation";
-import { ExerciseSet as BaseExerciseSet } from "../types";
 
-// ממשק מרכזי לאימון בודד עם יכולות מעקב מקיפות
-export interface WorkoutSession {
+// טיפוסים נוספים נדרשים
+export interface DemoUser {
   id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  duration: number; // דקות
-  type: string; // "strength", "cardio", "flexibility"
-  exercises: WorkoutExercise[];
-  feedback: WorkoutFeedback;
-  plannedVsActual: {
-    plannedExercises: number;
-    completedExercises: number;
-    skippedSets: number;
-    totalSetsPlanned: number;
-    totalSetsCompleted: number;
-  };
-}
-
-// מעקב תרגיל בודד עם מדדי ביצועים מפורטים
-export interface WorkoutExercise {
   name: string;
-  targetSets: number;
-  targetReps: number;
-  targetWeight?: number;
-  actualSets: RealisticExerciseSet[];
-  skipped: boolean;
-  notes?: string;
+  gender: UserGender;
+  age: number;
+  experience: "beginner" | "intermediate" | "advanced";
+  height: number; // ב-ס"מ
+  weight: number; // ב-ק"ג
+  fitnessGoals: string[];
+  availableDays: number;
+  sessionDuration: string;
+  equipment: string[];
+  preferredTime: "morning" | "afternoon" | "evening";
+  workoutHistory: WorkoutWithFeedback[];
 }
 
-// סט בודד עם נתוני ביצועים מקיפים - מורחב מהממשק הבסיסי
-export interface RealisticExerciseSet extends BaseExerciseSet {
-  restTime: number; // שניות מנוחה (חובה במקום אופציונלי)
-  perceivedExertion: number; // סולם RPE 1-10
-  completed: boolean; // חובה (לא אופציונלי)
-}
-
-// משוב מקיף על האימון וחוויית המשתמש
-export interface WorkoutFeedback {
-  overallRating: number; // דירוג כללי 1-5 כוכבים
-  difficulty: "too_easy" | "perfect" | "too_hard";
-  enjoyment: "low" | "medium" | "high";
-  energyLevel: number; // רמת אנרגיה לפני האימון 1-10
-  fatigueLevel: number; // רמת עייפות אחרי האימון 1-10
-  mood: "😢" | "😐" | "😊" | "🤩";
-  notes: string;
-  timeConstraints: boolean; // האם היה לחץ זמן
-  equipmentIssues: boolean; // בעיות ציוד
-}
-
-// ניתוח ביצועים מתקדם עם תובנות מבוססות בינה מלאכותית
-export interface PerformanceAnalysis {
-  trend: "improving" | "plateauing" | "declining";
-  confidence: number; // רמת ביטחון 0-1
-  keyMetrics: {
-    volumeChange: number; // אחוז שינוי בנפח אימון
-    intensityChange: number; // אחוז שינוי בעצמה
-    enduranceChange: number; // אחוז שינוי בסיבולת
-    consistencyScore: number; // דירוג עקביות 0-1
+// ממשק משתמש פשוט לצורך התאימות
+interface AppUser {
+  id?: string;
+  name?: string;
+  email?: string;
+  provider?: string;
+  activityHistory?: {
+    workouts: WorkoutWithFeedback[];
   };
-  recommendations: PerformanceRecommendation[];
+  trainingStats?: {
+    totalWorkouts?: number;
+    totalVolume?: number;
+    favoriteExercises?: string[];
+    lastWorkoutDate?: string;
+    preferredWorkoutDays?: number;
+    selectedEquipment?: string[];
+    fitnessGoals?: string[];
+    currentFitnessLevel?: "beginner" | "intermediate" | "advanced";
+  };
+  preferences?: {
+    theme?: "light" | "dark";
+    notifications?: boolean;
+    language?: "he" | "en";
+    units?: "metric" | "imperial";
+    gender?: "male" | "female" | "other";
+    rtlPreference?: boolean;
+    workoutNameStyle?: "adapted" | "neutral" | "original";
+  };
+  genderProfile?: {
+    selectedGender: "male" | "female" | "other";
+    adaptedWorkoutNames?: { [key: string]: string };
+    personalizedMessages?: string[];
+  };
+  currentStats?: {
+    totalWorkouts: number;
+    averageDifficulty: number;
+    workoutStreak: number;
+  };
 }
 
-// ממשק מדדי אימון לבטיחות טיפוסים
-interface WorkoutMetrics {
-  averageVolume: number;
-  averageIntensity: number;
-  averageDuration: number;
-  completionRate: number;
-  averageRating: number;
-}
+// הגדרות קבועות
+const DEMO_CONSTANTS = {
+  // פרמטרי אימון מציאותיים
+  MIN_SETS: 2,
+  MAX_SETS: 5,
+  MIN_REPS: 6,
+  MAX_REPS: 20,
+  MIN_WEIGHT: 5,
+  MAX_WEIGHT: 120,
+  MIN_DURATION_SECONDS: 1800, // 30 דקות
+  MAX_DURATION_SECONDS: 5400, // 90 דקות
 
-// Personal record interface for structured tracking
-// ממשק שיא אישי למעקב מובנה
-interface PersonalRecord {
-  exercise: string;
-  type: "weight" | "reps" | "volume";
-  value: number;
-  date: string;
-}
+  // טווחי זמן
+  WORKOUT_HISTORY_WEEKS: 12,
+  MIN_WORKOUTS_PER_WEEK: 2,
+  MAX_WORKOUTS_PER_WEEK: 4,
 
-// ממשק התאמת אימון לתכנון חכם
-interface WorkoutAdjustment {
-  type: "weight_increase" | "rep_increase" | "intensity_reduction";
-  exercise: string;
-  adjustment: string;
-  reason: string;
-}
+  // פידבק מציאותי
+  FEEDBACK_POSITIVE_CHANCE: 0.7,
+  PERSONAL_RECORD_CHANCE: 0.1,
+  FATIGUE_CHANCE: 0.2,
 
-// המלצות אימון חכמות מבוססות נתוני ביצועים
-export interface PerformanceRecommendation {
-  type:
-    | "increase_weight"
-    | "increase_reps"
-    | "decrease_rest"
-    | "change_exercise"
-    | "add_volume"
-    | "reduce_intensity";
-  exercise?: string;
-  currentValue: number;
-  recommendedValue: number;
-  reason: string;
-  confidence: number; // רמת ביטחון בהמלצה 0-1
-  priority: "low" | "medium" | "high";
-}
+  // דירוגים
+  MIN_RATING: 3,
+  MAX_RATING: 5,
+} as const;
 
-// שירות דמו מציאותי - יישום מרכזי עם אלגוריתמים חכמים
+// נתוני תרגילים מותאמים לכל רמה
+const EXERCISES_BY_LEVEL = {
+  beginner: [
+    {
+      name: "שכיבות סמיכה",
+      category: "bodyweight",
+      primaryMuscles: ["חזה", "כתפיים"],
+      equipment: "none",
+    },
+    {
+      name: "סקוואט משקל גוף",
+      category: "legs",
+      primaryMuscles: ["רגליים", "עכוז"],
+      equipment: "none",
+    },
+    {
+      name: "פלנק",
+      category: "core",
+      primaryMuscles: ["בטן", "ליבה"],
+      equipment: "none",
+    },
+    {
+      name: "משיכות",
+      category: "back",
+      primaryMuscles: ["גב", "ביצפס"],
+      equipment: "pullup_bar",
+    },
+    {
+      name: "דיפס",
+      category: "chest",
+      primaryMuscles: ["חזה", "טריצפס"],
+      equipment: "none",
+    },
+  ],
+  intermediate: [
+    {
+      name: "ספסל שטוח",
+      category: "chest",
+      primaryMuscles: ["חזה", "כתפיים"],
+      equipment: "barbell",
+    },
+    {
+      name: "סקוואט עם משקל",
+      category: "legs",
+      primaryMuscles: ["רגליים"],
+      equipment: "barbell",
+    },
+    {
+      name: "משיכות סנטר",
+      category: "back",
+      primaryMuscles: ["גב"],
+      equipment: "dumbbells",
+    },
+    {
+      name: "כתף צידית",
+      category: "shoulders",
+      primaryMuscles: ["כתפיים"],
+      equipment: "dumbbells",
+    },
+    {
+      name: "ביצפס",
+      category: "arms",
+      primaryMuscles: ["ביצפס"],
+      equipment: "dumbbells",
+    },
+    {
+      name: "טריצפס",
+      category: "arms",
+      primaryMuscles: ["טריצפס"],
+      equipment: "dumbbells",
+    },
+  ],
+  advanced: [
+    {
+      name: "ספסל שטוח כבד",
+      category: "chest",
+      primaryMuscles: ["חזה"],
+      equipment: "barbell",
+    },
+    {
+      name: "דדליפט",
+      category: "back",
+      primaryMuscles: ["גב", "רגליים"],
+      equipment: "barbell",
+    },
+    {
+      name: "סקוואט כבד",
+      category: "legs",
+      primaryMuscles: ["רגליים"],
+      equipment: "barbell",
+    },
+    {
+      name: "כתף צבאית",
+      category: "shoulders",
+      primaryMuscles: ["כתפיים"],
+      equipment: "barbell",
+    },
+    {
+      name: "משיכות רחבות",
+      category: "back",
+      primaryMuscles: ["גב"],
+      equipment: "pullup_bar",
+    },
+    {
+      name: "בארבל רואו",
+      category: "back",
+      primaryMuscles: ["גב"],
+      equipment: "barbell",
+    },
+  ],
+} as const;
+
+// הודעות פידבק מותאמות מגדר
+const FEEDBACK_MESSAGES = {
+  positive: {
+    male: [
+      "אימון מעולה! הרגשתי חזק והשגתי יעדים אמיתיים",
+      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
+      "אימון נהדר! הגעתי לשיא חדש",
+      "רמה גבוהה של אנרגיה והתמדה",
+    ],
+    female: [
+      "אימון מעולה! הרגשתי חזקה והשגתי יעדים אמיתיים",
+      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
+      "אימון נהדר! הגעתי לשיא חדש",
+      "רמה גבוהה של אנרגיה והתמדה",
+    ],
+    other: [
+      "אימון מעולה! הרגשתי חזק/ה והשגתי יעדים אמיתיים",
+      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
+      "אימון נהדר! הגעתי לשיא חדש",
+      "רמה גבוהה של אנרגיה והתמדה",
+    ],
+  },
+  neutral: {
+    male: [
+      "אימון סביר, צריך להתרכז יותר בפעם הבאה",
+      "הרגשתי קצת עייפות אבל סיימתי את האימון",
+      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
+    ],
+    female: [
+      "אימון סביר, צריכה להתרכז יותר בפעם הבאה",
+      "הרגשתי קצת עייפות אבל סיימתי את האימון",
+      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
+    ],
+    other: [
+      "אימון סביר, צריך/ה להתרכז יותר בפעם הבאה",
+      "הרגשתי קצת עייפות אבל סיימתי את האימון",
+      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
+    ],
+  },
+} as const;
+
 class RealisticDemoService {
-  private readonly DEMO_USER_KEY = "realistic_demo_user";
-  private readonly DEMO_WORKOUTS_KEY = "realistic_demo_workouts";
+  private static instance: RealisticDemoService;
 
-  /**
-   * יצירת משתמש דמו חדש עם נתוני שאלון חיוניים בלבד - מדמה תהליך הכרות אמיתי של משתמש
-   */
-  async createRealisticDemoUser(gender?: UserGender): Promise<void> {
-    console.log("📝 RealisticDemoService: Starting demo user creation");
-    // יצירת משתמש דמו מציאותי עם לוגים מינימליים
+  private constructor() {}
 
-    // מחיקת נתונים קיימים
-    await AsyncStorage.removeItem(this.DEMO_USER_KEY);
-    await AsyncStorage.removeItem(this.DEMO_WORKOUTS_KEY);
-    console.log("🗑️ RealisticDemoService: Cleared existing demo data");
-
-    // יצירת נתוני דמו מבוססי מגדר
-    const selectedGender = gender || (Math.random() > 0.5 ? "male" : "female");
-    const genderBasedData = this.generateGenderBasedDemoData(selectedGender);
-    console.log(
-      `👤 RealisticDemoService: Generated ${selectedGender} profile - ${genderBasedData.name}`
-    );
-
-    // רק נתוני שאלון חיוניים - בדיוק כמו שמשתמש אמיתי היה מספק
-    const workoutLocation = Math.random() > 0.3 ? "gym" : "home"; // 30% סיכוי לבית
-    const availableEquipment =
-      Math.random() > 0.3
-        ? ["dumbbells", "barbell", "cable_machine"]
-        : ["none"]; // 30% סיכוי לאימון בית ללא ציוד
-
-    console.log(
-      `🏠 RealisticDemoService: Location: ${workoutLocation}, Equipment: ${availableEquipment.join(",")}`
-    );
-
-    const basicUserData = {
-      id: "demo_user_realistic",
-      email: genderBasedData.email,
-      name: genderBasedData.name,
-      provider: "demo",
-      createdAt: new Date().toISOString(),
-      avatar: genderBasedData.avatar,
-
-      // נתוני שאלון מרכזיים - פרופיל משתמש בסיסי
-      questionnaireData: {
-        // פרטים אישיים
-        age_range: "26-35",
-        gender: selectedGender,
-        height: genderBasedData.height,
-        weight: genderBasedData.weight,
-
-        // רמת כושר - הערכה עצמית בלבד
-        fitness_experience: "some_experience",
-
-        // מטרות ויעדים
-        primary_goal: "build_muscle",
-        secondary_goals: ["increase_strength", "improve_health"],
-
-        // פרמטרי אימון - הוספת וריאציה בציוד וסביבת אימון
-        available_days: 4,
-        session_duration: "45-60",
-        workout_location: workoutLocation,
-        available_equipment: availableEquipment,
-
-        // העדפות וסגנון
-        preferred_time: "evening",
-        motivation_type: "achievement",
-        workout_style: "focused",
-
-        // מצב בריאותי
-        health_status: "good",
-        previous_injuries: [],
-
-        completedAt: new Date().toISOString(),
-      },
-
-      // גם בפורמט הישן לתאימות עם ProfileScreen
-      questionnaire: {
-        age: "26-35",
-        goal: "build_muscle",
-        experience: "some_experience",
-        location: workoutLocation,
-        frequency: "4 times per week",
-        duration: "45-60",
-        equipment: availableEquipment,
-        gender: selectedGender,
-        height: genderBasedData.height,
-        weight: genderBasedData.weight,
-      },
-
-      // התחלה מאפס - חוויית משתמש חדש אמיתית
-      activityHistory: {
-        workouts: [],
-        achievements: [],
-        milestones: [],
-      },
-      currentStats: {
-        totalWorkouts: 0,
-        totalVolume: 0,
-        averageRating: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        personalRecords: [],
-        // מערכת גיימיפיקציה משופרת
-        totalPoints: 0,
-        level: 1,
-        xp: 0,
-      },
-    };
-
-    // שמירה עם לוגים מינימליים
-    await AsyncStorage.setItem(
-      this.DEMO_USER_KEY,
-      JSON.stringify(basicUserData)
-    );
-    await AsyncStorage.setItem(this.DEMO_WORKOUTS_KEY, JSON.stringify([]));
-
-    console.log(
-      "✅ RealisticDemoService: Demo user created and saved successfully"
-    );
-  }
-
-  /**
-   * Add new workout session and run intelligent analysis algorithm
-   * הוספת אימון חדש והרצת אלגוריתם ניתוח חכם
-   */
-  async addWorkoutSession(workout: WorkoutSession): Promise<void> {
-    try {
-      console.log(
-        `🏋️ RealisticDemoService: Adding workout session - ${workout.type}, ${workout.exercises.length} exercises`
-      );
-
-      // קבלת נתוני משתמש להתאמת מגדר
-      const user = await this.getDemoUser();
-      const userGender: UserGender =
-        (user?.questionnaireData?.gender as UserGender) || "other";
-
-      // התאמת שמות תרגילים למגדר
-      const adaptedWorkout = this.adaptWorkoutToGender(workout, userGender);
-      console.log(
-        `🎯 RealisticDemoService: Adapted workout for ${userGender} user`
-      );
-
-      // קבלת היסטוריה נוכחית
-      const workoutsJson = await AsyncStorage.getItem(this.DEMO_WORKOUTS_KEY);
-      const workouts: WorkoutSession[] = workoutsJson
-        ? JSON.parse(workoutsJson)
-        : [];
-
-      // הוספת האימון החדש
-      workouts.push(adaptedWorkout);
-      console.log(
-        `📊 RealisticDemoService: Total workouts in history: ${workouts.length}`
-      );
-
-      // שמירת היסטוריה מעודכנת
-      await AsyncStorage.setItem(
-        this.DEMO_WORKOUTS_KEY,
-        JSON.stringify(workouts)
-      );
-
-      // עדכון סטטיסטיקות משתמש
-      await this.updateUserStats(workouts);
-      console.log("📈 RealisticDemoService: User stats updated");
-
-      // ריצת אלגוריתם ניתוח והמלצות
-      const analysis = await this.analyzePerformance(workouts);
-      console.log(
-        `🧠 RealisticDemoService: Performance analysis completed - trend: ${analysis.trend}`
-      );
-
-      // יצירת המלצות לאימון הבא
-      if (analysis.recommendations.length > 0) {
-        await this.generateWorkoutRecommendations(analysis);
-        console.log(
-          `💡 RealisticDemoService: Generated ${analysis.recommendations.length} recommendations`
-        );
-      }
-    } catch (error) {
-      console.error(
-        "❌ RealisticDemoService: Error adding workout session:",
-        error
-      );
+  static getInstance(): RealisticDemoService {
+    if (!RealisticDemoService.instance) {
+      RealisticDemoService.instance = new RealisticDemoService();
     }
+    return RealisticDemoService.instance;
   }
 
   /**
-   * Adapt workout session to user gender preferences
-   * התאמת אימון להעדפות מגדר המשתמש
+   * יוצר משתמש דמו מציאותי
    */
-  private adaptWorkoutToGender(
-    workout: WorkoutSession,
-    gender: UserGender
-  ): WorkoutSession {
-    const adaptedWorkout = { ...workout };
+  generateDemoUser(): DemoUser {
+    const genders: UserGender[] = ["male", "female", "other"];
+    const gender = genders[Math.floor(Math.random() * genders.length)];
+    const experiences = ["beginner", "intermediate", "advanced"] as const;
+    const experience =
+      experiences[Math.floor(Math.random() * experiences.length)];
 
-    // התאמת שמות תרגילים למגדר
-    adaptedWorkout.exercises = workout.exercises.map((exercise) => ({
-      ...exercise,
-      name: adaptExerciseNameToGender(exercise.name, gender),
-    }));
+    const maleNames = ["דוד", "יוסי", "אמיר", "רן", "תומר", "אלון", "גיל"];
+    const femaleNames = ["שרה", "מיכל", "רונית", "נועה", "ליאת", "יעל", "דנה"];
+    const otherNames = ["אלכס", "עדן", "נועם", "שחר", "ריי", "קיי", "דני"];
 
-    // התאמת הערות פידבק למגדר
-    const averageRPE =
-      workout.exercises.reduce((sum, ex) => {
-        const setsRPE = ex.actualSets.reduce(
-          (setSum, set) => setSum + set.perceivedExertion,
-          0
-        );
-        return sum + setsRPE / Math.max(ex.actualSets.length, 1);
-      }, 0) / workout.exercises.length;
-
-    adaptedWorkout.feedback = {
-      ...workout.feedback,
-      notes: generateSingleGenderAdaptedNote(gender, averageRPE > 6 ? 4 : 3),
-    };
-
-    return adaptedWorkout;
-  }
-
-  /**
-   * Generate gender-based demo data for realistic user profiles
-   * יצירת נתוני דמו מבוססי מגדר לפרופילי משתמש מציאותיים
-   */
-  private generateGenderBasedDemoData(gender: UserGender) {
-    const maleProfiles = [
-      {
-        name: "יוני כהן",
-        email: "yoni.cohen.fit@gmail.com",
-        avatar: "🏋️‍♂️",
-        height: 175,
-        weight: 75,
-      },
-      {
-        name: "דני לוי",
-        email: "dani.levi.workout@gmail.com",
-        avatar: "💪",
-        height: 180,
-        weight: 82,
-      },
-      {
-        name: "רון ישראלי",
-        email: "ron.israeli.gym@gmail.com",
-        avatar: "🤸‍♂️",
-        height: 172,
-        weight: 70,
-      },
-    ];
-
-    const femaleProfiles = [
-      {
-        name: "מיכל כהן",
-        email: "michal.cohen.fit@gmail.com",
-        avatar: "🏋️‍♀️",
-        height: 165,
-        weight: 60,
-      },
-      {
-        name: "נועה לוי",
-        email: "noa.levi.workout@gmail.com",
-        avatar: "💃",
-        height: 170,
-        weight: 65,
-      },
-      {
-        name: "שירה ישראלי",
-        email: "shira.israeli.gym@gmail.com",
-        avatar: "🤸‍♀️",
-        height: 162,
-        weight: 55,
-      },
-    ];
-
-    const otherProfiles = [
-      {
-        name: "אלכס דמו",
-        email: "alex.demo.fit@gmail.com",
-        avatar: "🌟",
-        height: 168,
-        weight: 68,
-      },
-    ];
-
-    if (gender === "male") {
-      return maleProfiles[Math.floor(Math.random() * maleProfiles.length)];
-    } else if (gender === "female") {
-      return femaleProfiles[Math.floor(Math.random() * femaleProfiles.length)];
-    } else {
-      return otherProfiles[0];
-    }
-  }
-
-  /**
-   * Intelligent performance analysis algorithm with trend detection
-   * אלגוריתם חכם לניתוח ביצועים עם זיהוי מגמות
-   */
-  private async analyzePerformance(
-    workouts: WorkoutSession[]
-  ): Promise<PerformanceAnalysis> {
-    if (workouts.length < 3) {
-      return {
-        trend: "improving",
-        confidence: 0.3,
-        keyMetrics: {
-          volumeChange: 0,
-          intensityChange: 0,
-          enduranceChange: 0,
-          consistencyScore: 1,
-        },
-        recommendations: [],
-      };
-    }
-
-    // Analyze last 4 weeks vs previous 4 weeks for accurate trend detection
-    // ניתוח 4 השבועות האחרונים לעומת 4 השבועות הקודמים לזיהוי מגמה מדויק
-    const recentWorkouts = workouts.slice(-8); // 8 אימונים אחרונים
-    const previousWorkouts = workouts.slice(-16, -8); // 8 אימונים קודמים
-
-    // חישוב מדדי ביצועים מקיפים
-    const recentMetrics = this.calculateWorkoutMetrics(recentWorkouts);
-    const previousMetrics = this.calculateWorkoutMetrics(previousWorkouts);
-
-    // ניתוח מגמה מתקדם עם גורמים מרובים
-    const volumeChange = this.calculatePercentageChange(
-      previousMetrics.averageVolume,
-      recentMetrics.averageVolume
-    );
-    const intensityChange = this.calculatePercentageChange(
-      previousMetrics.averageIntensity,
-      recentMetrics.averageIntensity
-    );
-    const enduranceChange = this.calculatePercentageChange(
-      previousMetrics.averageDuration,
-      recentMetrics.averageDuration
-    );
-
-    // ציון עקביות עבור דבקות באימונים
-    const consistencyScore = this.calculateConsistencyScore(recentWorkouts);
-
-    // קביעת מגמה חכמה
-    let trend: "improving" | "plateauing" | "declining" = "plateauing";
-    if (volumeChange > 5 && intensityChange > 0) trend = "improving";
-    else if (volumeChange < -5 || intensityChange < -10) trend = "declining";
-
-    // רמת ביטחון מבוססת כמות נתונים
-    const confidence = Math.min(workouts.length / 20, 1); // יותר אימונים = ביטחון גבוה יותר
-
-    // יצירת המלצות
-    const recommendations = this.generateRecommendations(
-      recentMetrics,
-      previousMetrics,
-      trend
-    );
+    let names: string[];
+    if (gender === "male") names = maleNames;
+    else if (gender === "female") names = femaleNames;
+    else names = otherNames;
 
     return {
-      trend,
-      confidence,
-      keyMetrics: {
-        volumeChange,
-        intensityChange,
-        enduranceChange,
-        consistencyScore,
-      },
-      recommendations,
+      id: `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: names[Math.floor(Math.random() * names.length)],
+      gender,
+      age: 25 + Math.floor(Math.random() * 20), // 25-44
+      experience,
+      height:
+        gender === "male"
+          ? 170 + Math.floor(Math.random() * 20)
+          : 160 + Math.floor(Math.random() * 15),
+      weight:
+        gender === "male"
+          ? 70 + Math.floor(Math.random() * 25)
+          : 55 + Math.floor(Math.random() * 20),
+      fitnessGoals: this.generateFitnessGoals(),
+      availableDays: 3 + Math.floor(Math.random() * 3), // 3-5 ימים
+      sessionDuration: this.generateSessionDuration(),
+      equipment: this.generateEquipment(experience),
+      preferredTime: this.generatePreferredTime(),
+      workoutHistory: [], // יאוכלס בנפרד
     };
   }
 
   /**
-   * Calculate comprehensive workout metrics for performance analysis
-   * חישוב מדדי ביצועים מקיפים לניתוח ביצועים
+   * יוצר אימון מציאותי שעובר validateWorkoutData
    */
-  private calculateWorkoutMetrics(workouts: WorkoutSession[]) {
-    if (workouts.length === 0) {
+  generateRealisticWorkout(
+    gender: UserGender,
+    experience: "beginner" | "intermediate" | "advanced",
+    equipment: string[] = [],
+    customDate?: Date
+  ): WorkoutWithFeedback {
+    const workoutId = `workout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = customDate || this.generateRealisticWorkoutDate();
+
+    // חישוב משך אימון מציאותי
+    const durationMinutes =
+      DEMO_CONSTANTS.MIN_DURATION_SECONDS / 60 +
+      Math.floor(
+        (Math.random() *
+          (DEMO_CONSTANTS.MAX_DURATION_SECONDS -
+            DEMO_CONSTANTS.MIN_DURATION_SECONDS)) /
+          60
+      );
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+
+    // יצירת תרגילים מותאמים לרמה
+    const exercises = this.generateRealisticExercises(
+      gender,
+      experience,
+      equipment
+    );
+
+    // חישוב סטטיסטיקות אמיתיות
+    const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+    const totalVolume = this.calculateTotalVolume(exercises);
+
+    const workoutData: WorkoutData = {
+      id: workoutId,
+      name: `אימון ${this.determineWorkoutType(exercises)}`,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000),
+      exercises,
+      totalVolume,
+      totalSets,
+      completedSets: totalSets,
+      caloriesBurned: this.calculateCalories(durationMinutes),
+      notes: generateSingleGenderAdaptedNote(gender),
+      rating: Math.floor(Math.random() * 3) + 3, // 3-5
+      location: "בית",
+      mood: this.generateMood(),
+    };
+
+    // יצירת פידבק מותאם מגדר
+    const feedback = this.generateRealisticFeedback(
+      gender,
+      experience,
+      workoutData
+    );
+
+    // יצירת סטטיסטיקות
+    const stats = {
+      duration: workoutData.duration,
+      totalSets: totalSets,
+      totalPlannedSets: totalSets,
+      totalVolume: totalVolume,
+      personalRecords:
+        Math.random() < DEMO_CONSTANTS.PERSONAL_RECORD_CHANCE ? 1 : 0,
+    };
+
+    return {
+      id: workoutId,
+      workout: workoutData,
+      feedback,
+      stats,
+      startTime: workoutData.startTime,
+      endTime: workoutData.endTime,
+      metadata: {
+        deviceInfo: {
+          platform: "mobile",
+          screenWidth: 375,
+          screenHeight: 812,
+        },
+        userGender: gender,
+        version: "1.0",
+        workoutSource: "demo",
+      },
+    };
+  }
+
+  /**
+   * יוצר תרגילים מציאותיים מותאמים לרמה ומגדר
+   */
+  private generateRealisticExercises(
+    gender: UserGender,
+    experience: "beginner" | "intermediate" | "advanced",
+    equipment: string[]
+  ): Exercise[] {
+    const availableExercises = EXERCISES_BY_LEVEL[experience];
+    const exerciseCount =
+      experience === "beginner" ? 4 : experience === "intermediate" ? 6 : 8;
+
+    const selectedExercises = this.shuffleArray([...availableExercises]).slice(
+      0,
+      exerciseCount
+    );
+
+    return selectedExercises.map((exerciseTemplate, index) => {
+      const exerciseName = adaptExerciseNameToGender(
+        exerciseTemplate.name,
+        gender
+      );
+
       return {
-        averageVolume: 0,
-        averageIntensity: 0,
-        averageDuration: 0,
-        completionRate: 0,
-        averageRating: 0,
+        id: `exercise_${index + 1}`,
+        name: exerciseName,
+        category: exerciseTemplate.category,
+        primaryMuscles: [...exerciseTemplate.primaryMuscles],
+        secondaryMuscles: [],
+        equipment: exerciseTemplate.equipment,
+        sets: this.generateRealisticSets(experience),
+        restTime: this.calculateRestTime(experience),
+        notes:
+          Math.random() < 0.3 ? generateSingleGenderAdaptedNote(gender) : "",
+        videoUrl: "",
+        imageUrl: "",
+        instructions: [],
+        tips: [],
       };
+    });
+  }
+
+  /**
+   * יוצר סטים מציאותיים לפי רמת הניסיון
+   */
+  private generateRealisticSets(
+    experience: "beginner" | "intermediate" | "advanced"
+  ): Set[] {
+    const setCount =
+      experience === "beginner"
+        ? DEMO_CONSTANTS.MIN_SETS
+        : DEMO_CONSTANTS.MIN_SETS +
+          Math.floor(
+            Math.random() * (DEMO_CONSTANTS.MAX_SETS - DEMO_CONSTANTS.MIN_SETS)
+          );
+
+    const sets: Set[] = [];
+    let baseWeight = this.getBaseWeight(experience);
+    let baseReps = this.getBaseReps(experience);
+
+    for (let i = 0; i < setCount; i++) {
+      // הדרגתיות מציאותית - משקל יורד או חזרות יורדות
+      const weightVariation =
+        i === 0 ? 0 : -Math.floor(Math.random() * 3) * 2.5; // ירידה של 0-5 ק"ג
+      const repsVariation = i === 0 ? 0 : -Math.floor(Math.random() * 3); // ירידה של 0-2 חזרות
+
+      sets.push({
+        id: `set_${i + 1}`,
+        type: "working",
+        targetReps: Math.max(DEMO_CONSTANTS.MIN_REPS, baseReps + repsVariation),
+        targetWeight: Math.max(
+          DEMO_CONSTANTS.MIN_WEIGHT,
+          baseWeight + weightVariation
+        ),
+        actualReps: Math.max(DEMO_CONSTANTS.MIN_REPS, baseReps + repsVariation),
+        actualWeight: Math.max(
+          DEMO_CONSTANTS.MIN_WEIGHT,
+          baseWeight + weightVariation
+        ),
+        completed: Math.random() > 0.05, // 95% השלמה
+        restTime: this.calculateRestTime(experience),
+        notes: "",
+        isPR: i === 0 && Math.random() < DEMO_CONSTANTS.PERSONAL_RECORD_CHANCE,
+        rpe: Math.floor(Math.random() * 3) + 7, // 7-10
+      });
     }
 
-    // חישוב נפח אימון כולל על פני כל האימונים
-    const totalVolume = workouts.reduce((sum, workout) => {
+    return sets;
+  }
+
+  /**
+   * יוצר פידבק מציאותי ומותאם מגדר
+   */
+  private generateRealisticFeedback(
+    gender: UserGender,
+    experience: "beginner" | "intermediate" | "advanced",
+    workoutData: WorkoutData
+  ) {
+    const isPositive = Math.random() < DEMO_CONSTANTS.FEEDBACK_POSITIVE_CHANCE;
+    const messageType = isPositive ? "positive" : "neutral";
+    const messages = FEEDBACK_MESSAGES[messageType][gender];
+    const selectedMessage =
+      messages[Math.floor(Math.random() * messages.length)];
+
+    const difficulty = this.calculateDifficultyByExperience(experience);
+    const feeling = this.generateFeeling();
+
+    return {
+      difficulty,
+      feeling,
+      readyForMore: Math.random() > 0.3, // 70% מוכנים ליותר
+      completedAt: workoutData.endTime || new Date().toISOString(),
+      genderAdaptedNotes: selectedMessage,
+      congratulationMessage:
+        Math.random() < 0.4
+          ? generateGenderAdaptedCongratulation(gender)
+          : undefined,
+    };
+  }
+
+  /**
+   * יוצר תאריך אימון מציאותי
+   */
+  private generateRealisticWorkoutDate(): Date {
+    const now = new Date();
+    const daysBack = Math.floor(
+      Math.random() * DEMO_CONSTANTS.WORKOUT_HISTORY_WEEKS * 7
+    );
+    const workoutDate = new Date(
+      now.getTime() - daysBack * 24 * 60 * 60 * 1000
+    );
+
+    // שעות אימון מציאותיות (6:00-22:00)
+    const hour = 6 + Math.floor(Math.random() * 16);
+    const minute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
+
+    workoutDate.setHours(hour, minute, 0, 0);
+    return workoutDate;
+  }
+
+  // פונקציות עזר
+  private generateFitnessGoals(): string[] {
+    const allGoals = [
+      "הגדלת מסה שרירית",
+      "ירידה במשקל",
+      "שיפור כושר גופני",
+      "חיזוק השרירים",
+      "שיפור סיבולת",
+      "הגדרת השרירים",
+    ];
+    const goalCount = 2 + Math.floor(Math.random() * 3); // 2-4 יעדים
+    return this.shuffleArray(allGoals).slice(0, goalCount);
+  }
+
+  private generateSessionDuration(): string {
+    const durations = ["30-45 דקות", "45-60 דקות", "60-90 דקות"];
+    return durations[Math.floor(Math.random() * durations.length)];
+  }
+
+  private generateEquipment(experience: string): string[] {
+    const basicEquipment: string[] = ["none"];
+    const intermediateEquipment: string[] = ["none", "dumbbells", "barbell"];
+    const advancedEquipment: string[] = [
+      "none",
+      "dumbbells",
+      "barbell",
+      "cable_machine",
+      "leg_press",
+    ];
+
+    switch (experience) {
+      case "beginner":
+        return basicEquipment;
+      case "intermediate":
+        return intermediateEquipment;
+      case "advanced":
+        return advancedEquipment;
+      default:
+        return basicEquipment;
+    }
+  }
+
+  private generatePreferredTime(): "morning" | "afternoon" | "evening" {
+    const times: ("morning" | "afternoon" | "evening")[] = [
+      "morning",
+      "afternoon",
+      "evening",
+    ];
+    return times[Math.floor(Math.random() * times.length)];
+  }
+
+  private generateMood(): "great" | "good" | "okay" | "tired" | "bad" {
+    const moods: ("great" | "good" | "okay" | "tired" | "bad")[] = [
+      "great",
+      "good",
+      "okay",
+      "tired",
+      "bad",
+    ];
+    const weights = [0.3, 0.4, 0.2, 0.08, 0.02]; // הטיה חיובית
+    const rand = Math.random();
+    let sum = 0;
+    for (let i = 0; i < weights.length; i++) {
+      sum += weights[i];
+      if (rand <= sum) return moods[i];
+    }
+    return "good";
+  }
+
+  private generateFeeling(): string {
+    const feelings = ["😊", "💪", "🔥", "⚡", "😤", "🎯", "🏆", "😅"];
+    return feelings[Math.floor(Math.random() * feelings.length)];
+  }
+
+  private getBaseWeight(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 10 + Math.floor(Math.random() * 15); // 10-25 ק"ג
+      case "intermediate":
+        return 25 + Math.floor(Math.random() * 25); // 25-50 ק"ג
+      case "advanced":
+        return 50 + Math.floor(Math.random() * 40); // 50-90 ק"ג
+      default:
+        return 15;
+    }
+  }
+
+  private getBaseReps(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 12 + Math.floor(Math.random() * 6); // 12-18
+      case "intermediate":
+        return 8 + Math.floor(Math.random() * 8); // 8-16
+      case "advanced":
+        return 6 + Math.floor(Math.random() * 10); // 6-16
+      default:
+        return 12;
+    }
+  }
+
+  private calculateRestTime(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 60 + Math.floor(Math.random() * 60); // 60-120 שניות
+      case "intermediate":
+        return 90 + Math.floor(Math.random() * 90); // 90-180 שניות
+      case "advanced":
+        return 120 + Math.floor(Math.random() * 120); // 120-240 שניות
+      default:
+        return 90;
+    }
+  }
+
+  private calculateTotalVolume(exercises: Exercise[]): number {
+    return exercises.reduce((total, exercise) => {
       return (
-        sum +
-        workout.exercises.reduce((exerciseSum, exercise) => {
+        total +
+        exercise.sets.reduce((exerciseTotal, set) => {
           return (
-            exerciseSum +
-            exercise.actualSets.reduce((setSum, set) => {
-              return setSum + set.reps * (set.weight || 1);
-            }, 0)
+            exerciseTotal +
+            (set.actualWeight || set.targetWeight) *
+              (set.actualReps || set.targetReps)
           );
         }, 0)
       );
     }, 0);
+  }
 
-    // חישוב שיעורי השלמת אימונים
-    const totalSetsPlanned = workouts.reduce(
-      (sum, w) => sum + w.plannedVsActual.totalSetsPlanned,
-      0
-    );
-    const totalSetsCompleted = workouts.reduce(
-      (sum, w) => sum + w.plannedVsActual.totalSetsCompleted,
-      0
-    );
+  private calculateCalories(durationMinutes: number): number {
+    // נוסחה פשוטה לחישוב קלוריות
+    const baseCaloriesPerMinute = 8;
+    return Math.floor(durationMinutes * baseCaloriesPerMinute);
+  }
 
-    // חישוב עצמת אימון ממוצעת באמצעות RPE
-    const averageIntensity =
-      workouts.reduce((sum, workout) => {
-        const workoutIntensity = workout.exercises.reduce(
-          (exerciseSum, exercise) => {
-            const setsIntensity = exercise.actualSets.reduce(
-              (setSum, set) => setSum + set.perceivedExertion,
-              0
-            );
-            return (
-              exerciseSum +
-              setsIntensity / Math.max(exercise.actualSets.length, 1)
-            );
-          },
-          0
+  private determineWorkoutType(exercises: Exercise[]): string {
+    const muscleGroups = exercises.flatMap((ex) => ex.primaryMuscles);
+    const upperBodyCount = muscleGroups.filter(
+      (muscle) =>
+        muscle.includes("חזה") ||
+        muscle.includes("גב") ||
+        muscle.includes("כתף") ||
+        muscle.includes("ביצפס") ||
+        muscle.includes("טריצפס")
+    ).length;
+
+    const lowerBodyCount = muscleGroups.filter(
+      (muscle) => muscle.includes("רגל") || muscle.includes("עכוז")
+    ).length;
+
+    if (upperBodyCount > lowerBodyCount * 1.5) return "גוף עליון";
+    if (lowerBodyCount > upperBodyCount * 1.5) return "גוף תחתון";
+    return "גוף מלא";
+  }
+
+  private calculateDifficultyByExperience(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 2 + Math.floor(Math.random() * 2); // 2-3
+      case "intermediate":
+        return 3 + Math.floor(Math.random() * 2); // 3-4
+      case "advanced":
+        return 4 + Math.floor(Math.random() * 2); // 4-5
+      default:
+        return 3;
+    }
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  /**
+   * יוצר היסטוריית אימונים מלאה למשתמש
+   */
+  generateWorkoutHistory(
+    user: DemoUser,
+    weeksBack: number = DEMO_CONSTANTS.WORKOUT_HISTORY_WEEKS
+  ): WorkoutWithFeedback[] {
+    const workouts: WorkoutWithFeedback[] = [];
+    const now = new Date();
+
+    for (let week = 0; week < weeksBack; week++) {
+      const workoutsThisWeek =
+        DEMO_CONSTANTS.MIN_WORKOUTS_PER_WEEK +
+        Math.floor(
+          Math.random() *
+            (DEMO_CONSTANTS.MAX_WORKOUTS_PER_WEEK -
+              DEMO_CONSTANTS.MIN_WORKOUTS_PER_WEEK)
         );
-        return sum + workoutIntensity / Math.max(workout.exercises.length, 1);
-      }, 0) / workouts.length;
 
-    return {
-      averageVolume: totalVolume / workouts.length,
-      averageIntensity,
-      averageDuration:
-        workouts.reduce((sum, w) => sum + w.duration, 0) / workouts.length,
-      completionRate: totalSetsCompleted / Math.max(totalSetsPlanned, 1),
-      averageRating:
-        workouts.reduce((sum, w) => sum + w.feedback.overallRating, 0) /
-        workouts.length,
-    };
-  }
-
-  /**
-   * Generate data-driven recommendations based on performance analysis
-   * יצירת המלצות מבוססות נתונים על בסיס ניתוח ביצועים
-   */
-  private generateRecommendations(
-    recent: WorkoutMetrics,
-    previous: WorkoutMetrics,
-    trend: string
-  ): PerformanceRecommendation[] {
-    const recommendations: PerformanceRecommendation[] = [];
-
-    // Performance-based recommendations with intelligent thresholds
-    // המלצות מבוססות ביצועים עם ספים חכמים
-    if (trend === "improving" && recent.completionRate > 0.9) {
-      recommendations.push({
-        type: "increase_weight",
-        currentValue: 100, // דוגמה לבסיס
-        recommendedValue: 105,
-        reason:
-          "ביצועים מצוינים - זמן להעלות משקל | Excellent performance - time to increase weight",
-        confidence: 0.8,
-        priority: "high",
-      });
-    }
-
-    // התערבות בשיעור השלמה נמוך
-    if (recent.completionRate < 0.7) {
-      recommendations.push({
-        type: "reduce_intensity",
-        currentValue: recent.averageIntensity,
-        recommendedValue: recent.averageIntensity * 0.9,
-        reason:
-          "שיעור השלמה נמוך - כדאי להקל | Low completion rate - consider reducing intensity",
-        confidence: 0.7,
-        priority: "medium",
-      });
-    }
-
-    // אופטימיזציה של שביעות רצון המשתמש
-    if (recent.averageRating < 3) {
-      recommendations.push({
-        type: "change_exercise",
-        currentValue: 0,
-        recommendedValue: 1,
-        reason:
-          "דירוגים נמוכים - כדאי לגוון תרגילים | Low ratings - consider exercise variation",
-        confidence: 0.6,
-        priority: "medium",
-      });
-    }
-
-    return recommendations;
-  }
-
-  /**
-   * Calculate percentage change between two values with error handling
-   * חישוב שינוי באחוזים בין שני ערכים עם טיפול בשגיאות
-   */
-  private calculatePercentageChange(
-    oldValue: number,
-    newValue: number
-  ): number {
-    if (oldValue === 0) return newValue > 0 ? 100 : 0;
-    return ((newValue - oldValue) / oldValue) * 100;
-  }
-
-  /**
-   * Calculate workout consistency score based on training intervals
-   * חישוב ציון עקביות אימונים על בסיס מרווחי אימון
-   */
-  private calculateConsistencyScore(workouts: WorkoutSession[]): number {
-    if (workouts.length === 0) return 1;
-
-    // ניתוח מרווחי אימון לדפוסי עקביות
-    const dates = workouts.map((w) => new Date(w.date)).sort();
-    const intervals = [];
-
-    for (let i = 1; i < dates.length; i++) {
-      const interval =
-        (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
-      intervals.push(interval);
-    }
-
-    if (intervals.length === 0) return 1;
-
-    // ניתוח סטטיסטי של עקביות מרווחים
-    const avgInterval =
-      intervals.reduce((sum, val) => sum + val, 0) / intervals.length;
-    const variance =
-      intervals.reduce((sum, val) => sum + Math.pow(val - avgInterval, 2), 0) /
-      intervals.length;
-    const stdDev = Math.sqrt(variance);
-
-    // עקביות גבוהה = סטיית תקן נמוכה
-    return Math.max(0, 1 - stdDev / avgInterval);
-  }
-
-  /**
-   * Update comprehensive user statistics with gamification elements
-   * עדכון סטטיסטיקות משתמש מקיפות עם אלמנטי גיימיפיקציה
-   */
-  private async updateUserStats(workouts: WorkoutSession[]): Promise<void> {
-    try {
-      const userJson = await AsyncStorage.getItem(this.DEMO_USER_KEY);
-      if (!userJson) return;
-
-      const userData = JSON.parse(userJson);
-
-      // חישוב סטטיסטיקות אימון מקיפות
-      const totalVolume = workouts.reduce((sum, workout) => {
-        return (
-          sum +
-          workout.exercises.reduce((exerciseSum, exercise) => {
-            return (
-              exerciseSum +
-              exercise.actualSets.reduce((setSum, set) => {
-                return setSum + set.reps * (set.weight || 1);
-              }, 0)
-            );
-          }, 0)
+      for (let workout = 0; workout < workoutsThisWeek; workout++) {
+        const workoutDate = new Date(
+          now.getTime() - (week * 7 + workout * 2) * 24 * 60 * 60 * 1000
         );
-      }, 0);
+        const generatedWorkout = this.generateRealisticWorkout(
+          user.gender,
+          user.experience,
+          user.equipment,
+          workoutDate
+        );
+        workouts.push(generatedWorkout);
+      }
+    }
 
-      const averageRating =
-        workouts.length > 0
-          ? workouts.reduce((sum, w) => sum + w.feedback.overallRating, 0) /
-            workouts.length
-          : 0;
+    return workouts.sort((a, b) => {
+      const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
+      const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
+      return bTime - aTime;
+    });
+  }
 
-      // חישוב רצף אימונים נוכחי
-      const currentStreak = this.calculateCurrentStreak(workouts);
+  /**
+   * יוצר משתמש דמו עם נתוני שאלון בסיסיים
+   */
+  async createRealisticDemoUser(gender?: UserGender): Promise<DemoUser> {
+    const user = this.generateDemoUser();
+    if (gender) {
+      user.gender = gender;
+    }
 
-      // מערכת גיימיפיקציה מתקדמת עם נקודות ורמות
-      const totalPoints = workouts.reduce((sum, w) => {
-        let points = 50; // נקודות בסיס לכל אימון
-        points += w.feedback.overallRating * 10; // בונוס לפי דירוג
-        points += Math.floor(w.duration / 10) * 5; // בונוס לפי משך
-        return sum + points;
-      }, 0);
+    // אין שמירה כאן - רק יצירה
+    return user;
+  }
 
-      const level = Math.floor(totalPoints / 1000) + 1; // כל 1000 נקודות = עליית רמה
-      const xp = totalPoints % 1000; // התקדמות ברמה הנוכחית
+  /**
+   * מחזיר משתמש דמו (לשם תאימות עם הקוד הקיים)
+   */
+  async getDemoUser(): Promise<DemoUser | null> {
+    // ליצירה פשוטה של משתמש דמו
+    return this.generateDemoUser();
+  }
 
-      // עדכון נתוני משתמש מקיפים
-      userData.currentStats = {
+  /**
+   * יוצר משתמש מלא תואם לממשק User של המערכת
+   */
+  async generateRealisticUser(): Promise<AppUser> {
+    const demoUser = this.generateDemoUser();
+    const workouts = await this.generateWorkoutHistory(demoUser);
+
+    // יצירת משתמש תואם לממשק User
+    const user: AppUser = {
+      id: demoUser.id,
+      name: demoUser.name,
+      email: `${demoUser.name.toLowerCase().replace(/\s+/g, ".")}@demo.app`,
+      provider: "demo",
+
+      // נתוני אימון
+      trainingStats: {
         totalWorkouts: workouts.length,
-        totalVolume: Math.round(totalVolume),
-        averageRating: Math.round(averageRating * 10) / 10,
-        currentStreak,
-        longestStreak: Math.max(
-          userData.currentStats.longestStreak || 0,
-          currentStreak
+        totalVolume: workouts.reduce(
+          (sum, w) => sum + (w.stats?.totalVolume || 0),
+          0
         ),
-        personalRecords: this.extractPersonalRecords(workouts),
-        totalPoints,
-        level,
-        xp,
-      };
+        favoriteExercises: this.calculateFavoriteExercises(workouts),
+        lastWorkoutDate: workouts[0]?.startTime || new Date().toISOString(),
+        preferredWorkoutDays: demoUser.availableDays,
+        selectedEquipment: demoUser.equipment,
+        fitnessGoals: demoUser.fitnessGoals,
+        currentFitnessLevel: demoUser.experience,
+      },
 
-      userData.activityHistory = {
+      // העדפות
+      preferences: {
+        theme: "light",
+        notifications: true,
+        language: "he",
+        units: "metric",
+        gender: demoUser.gender,
+        rtlPreference: true,
+        workoutNameStyle: "adapted",
+      },
+
+      // פרופיל מותאם מגדר
+      genderProfile: {
+        selectedGender: demoUser.gender,
+        adaptedWorkoutNames: {},
+        personalizedMessages: [],
+      },
+
+      // היסטוריית פעילות
+      activityHistory: {
         workouts: workouts,
-        achievements: userData.activityHistory?.achievements || [],
-        milestones: userData.activityHistory?.milestones || [],
-      };
+      },
 
-      // שמירה
-      await AsyncStorage.setItem(this.DEMO_USER_KEY, JSON.stringify(userData));
-    } catch (error) {
-      console.error("❌ Error updating user stats:", error);
-    }
+      // סטטיסטיקות נוכחיות
+      currentStats: {
+        totalWorkouts: workouts.length,
+        averageDifficulty: this.calculateAverageDifficulty(workouts),
+        workoutStreak: this.calculateWorkoutStreak(workouts),
+      },
+    };
+
+    return user;
   }
 
   /**
-   * Calculate current workout streak with intelligent gap detection
-   * חישוב רצף אימונים נוכחי עם זיהוי פערים חכם
+   * מחשב תרגילים מועדפים בהתבסס על התדירות
    */
-  private calculateCurrentStreak(workouts: WorkoutSession[]): number {
+  private calculateFavoriteExercises(
+    workouts: WorkoutWithFeedback[]
+  ): string[] {
+    const exerciseCount: Record<string, number> = {};
+
+    workouts.forEach((workout) => {
+      workout.workout.exercises.forEach((exercise) => {
+        exerciseCount[exercise.name] = (exerciseCount[exercise.name] || 0) + 1;
+      });
+    });
+
+    return Object.entries(exerciseCount)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([name]) => name);
+  }
+
+  /**
+   * מחשב קושי ממוצע
+   */
+  private calculateAverageDifficulty(workouts: WorkoutWithFeedback[]): number {
+    if (workouts.length === 0) return 3;
+
+    const totalDifficulty = workouts.reduce(
+      (sum, w) => sum + (w.feedback?.difficulty || 3),
+      0
+    );
+    return Math.round((totalDifficulty / workouts.length) * 10) / 10;
+  }
+
+  /**
+   * מחשב רצף אימונים נוכחי
+   */
+  private calculateWorkoutStreak(workouts: WorkoutWithFeedback[]): number {
     if (workouts.length === 0) return 0;
 
-    const sortedWorkouts = workouts.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    const sortedWorkouts = workouts
+      .filter((w) => w.startTime)
+      .sort(
+        (a, b) =>
+          new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime()
+      );
+
+    let streak = 0;
     const today = new Date();
-    const lastWorkout = new Date(sortedWorkouts[0].date);
 
-    // If last workout was more than 3 days ago - streak is broken
-    // אם האימון האחרון היה יותר מ-3 ימים - הרצף נפסק
-    const daysSinceLastWorkout =
-      (today.getTime() - lastWorkout.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceLastWorkout > 3) return 0;
+    for (const workout of sortedWorkouts) {
+      const workoutDate = new Date(workout.startTime!);
+      const daysDiff = Math.floor(
+        (today.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-    let streak = 1;
-    for (let i = 1; i < sortedWorkouts.length; i++) {
-      const current = new Date(sortedWorkouts[i].date);
-      const previous = new Date(sortedWorkouts[i - 1].date);
-      const daysBetween =
-        (previous.getTime() - current.getTime()) / (1000 * 60 * 60 * 24);
-
-      if (daysBetween <= 3) {
+      if (daysDiff <= streak + 1) {
         streak++;
       } else {
         break;
@@ -767,176 +914,8 @@ class RealisticDemoService {
 
     return streak;
   }
-
-  /**
-   * Extract personal records from workout history with comprehensive tracking
-   * חילוץ שיאים אישיים מהיסטוריית אימונים עם מעקב מקיף
-   */
-  private extractPersonalRecords(workouts: WorkoutSession[]) {
-    const records: PersonalRecord[] = [];
-    // מעקב אחר סוגי שיאים מרובים לכל תרגיל
-    const exerciseRecords: {
-      [key: string]: { weight: number; reps: number; volume: number };
-    } = {};
-
-    workouts.forEach((workout) => {
-      workout.exercises.forEach((exercise) => {
-        exercise.actualSets.forEach((set) => {
-          if (!set.completed) return;
-
-          const exerciseName = exercise.name;
-          if (!exerciseRecords[exerciseName]) {
-            exerciseRecords[exerciseName] = { weight: 0, reps: 0, volume: 0 };
-          }
-
-          // מעקב שיא משקל
-          if (set.weight && set.weight > exerciseRecords[exerciseName].weight) {
-            exerciseRecords[exerciseName].weight = set.weight;
-          }
-
-          // מעקב שיא חזרות
-          if (set.reps > exerciseRecords[exerciseName].reps) {
-            exerciseRecords[exerciseName].reps = set.reps;
-          }
-
-          // מעקב שיא נפח
-          const volume = set.reps * (set.weight || 1);
-          if (volume > exerciseRecords[exerciseName].volume) {
-            exerciseRecords[exerciseName].volume = volume;
-          }
-        });
-      });
-    });
-
-    // המרה לפורמט שיאים מובנה
-    Object.keys(exerciseRecords).forEach((exerciseName) => {
-      const record = exerciseRecords[exerciseName];
-      if (record.weight > 0) {
-        records.push({
-          exercise: exerciseName,
-          type: "weight",
-          value: record.weight,
-          date: new Date().toISOString(),
-        });
-      }
-      if (record.reps > 0) {
-        records.push({
-          exercise: exerciseName,
-          type: "reps",
-          value: record.reps,
-          date: new Date().toISOString(),
-        });
-      }
-    });
-
-    return records;
-  }
-
-  /**
-   * יצירת המלצות לתוכנית אימון
-   */
-  private async generateWorkoutRecommendations(
-    analysis: PerformanceAnalysis
-  ): Promise<void> {
-    // יצירת המלצות לתוכנית אימון עם לוגים מינימליים
-
-    // כאן נשמור המלצות לתוכנית אימון מעודכנת
-    const recommendations = {
-      analysisDate: new Date().toISOString(),
-      trend: analysis.trend,
-      confidence: analysis.confidence,
-      suggestions: analysis.recommendations,
-      nextWorkoutAdjustments: this.createNextWorkoutAdjustments(analysis),
-    };
-
-    await AsyncStorage.setItem(
-      "workout_recommendations",
-      JSON.stringify(recommendations)
-    );
-  }
-
-  /**
-   * Create intelligent workout plan adjustments based on performance analysis
-   * יצירת התאמות חכמות לתוכנית אימון על בסיס ניתוח ביצועים
-   */
-  private createNextWorkoutAdjustments(analysis: PerformanceAnalysis) {
-    const adjustments: WorkoutAdjustment[] = [];
-
-    // Create specific workout adjustments based on recommendation type
-    // יצירת התאמות ספציפיות לאימון על בסיס סוג ההמלצה
-    analysis.recommendations.forEach((rec) => {
-      switch (rec.type) {
-        case "increase_weight":
-          adjustments.push({
-            type: "weight_increase",
-            exercise: rec.exercise || "all",
-            adjustment: "+5%",
-            reason: rec.reason,
-          });
-          break;
-        case "increase_reps":
-          adjustments.push({
-            type: "rep_increase",
-            exercise: rec.exercise || "all",
-            adjustment: "+1-2 reps",
-            reason: rec.reason,
-          });
-          break;
-        case "reduce_intensity":
-          adjustments.push({
-            type: "intensity_reduction",
-            exercise: rec.exercise || "all",
-            adjustment: "-10%",
-            reason: rec.reason,
-          });
-          break;
-      }
-    });
-
-    return adjustments;
-  }
-
-  /**
-   * Get demo user data with error handling
-   * קבלת נתוני משתמש דמו עם טיפול בשגיאות
-   */
-  async getDemoUser() {
-    try {
-      const userJson = await AsyncStorage.getItem(this.DEMO_USER_KEY);
-      return userJson ? JSON.parse(userJson) : null;
-    } catch (error) {
-      console.error("Error getting demo user:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Get comprehensive workout history for analysis
-   * קבלת היסטוריית אימונים מקיפה לניתוח
-   */
-  async getWorkoutHistory(): Promise<WorkoutSession[]> {
-    try {
-      const workoutsJson = await AsyncStorage.getItem(this.DEMO_WORKOUTS_KEY);
-      return workoutsJson ? JSON.parse(workoutsJson) : [];
-    } catch (error) {
-      console.error("Error getting workout history:", error);
-      return [];
-    }
-  }
-
-  /**
-   * Clear all demo data for fresh start
-   * מחיקת כל נתוני הדמו להתחלה חדשה
-   */
-  async clearDemoData(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(this.DEMO_USER_KEY);
-      await AsyncStorage.removeItem(this.DEMO_WORKOUTS_KEY);
-      await AsyncStorage.removeItem("workout_recommendations");
-    } catch (error) {
-      console.error("Error clearing demo data:", error);
-    }
-  }
 }
 
-export const realisticDemoService = new RealisticDemoService();
+// יצוא singleton instance
+export const realisticDemoService = RealisticDemoService.getInstance();
+export default realisticDemoService;

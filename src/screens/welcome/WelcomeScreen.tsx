@@ -268,31 +268,16 @@ export default function WelcomeScreen() {
 
     try {
       console.log(
-        "👤 WelcomeScreen: Creating baseline demo user with questionnaire data"
+        "👤 WelcomeScreen: Creating realistic demo user with complete history"
       );
-      // Create baseline demo user with essential questionnaire data // יצירת משתמש דמו בסיסי עם נתוני שאלון חיוניים
-      await realisticDemoService.createRealisticDemoUser();
-      console.log("✅ WelcomeScreen: Demo user created successfully");
 
+      // יצירת משתמש דמו מלא עם היסטוריית אימונים
+      const demoUser = await realisticDemoService.generateRealisticUser();
       console.log(
-        "🏋️ WelcomeScreen: Starting 6-month workout history simulation"
+        "✅ WelcomeScreen: Demo user created successfully with",
+        demoUser.activityHistory?.workouts?.length || 0,
+        "workouts"
       );
-      // Simulate realistic 6-month workout progression // סימולציית התקדמות אימונים מציאותית של 6 חודשים
-      await workoutSimulationService.simulateRealisticWorkoutHistory();
-      console.log("✅ WelcomeScreen: Workout history simulation completed");
-
-      console.log(
-        "📊 WelcomeScreen: Retrieving updated demo user with complete history"
-      );
-      // Retrieve updated user with complete simulated history // קבלת משתמש מעודכן עם היסטוריה מדומה מלאה
-      const demoUser = await realisticDemoService.getDemoUser();
-
-      if (!demoUser) {
-        console.error(
-          "❌ WelcomeScreen: Demo user creation failed - no user returned"
-        );
-        throw new Error("Demo user creation failed");
-      }
 
       console.log("💾 WelcomeScreen: Saving demo user to global store");
       // Save demo user to global store // שמירת משתמש דמו ב-store גלובלי
