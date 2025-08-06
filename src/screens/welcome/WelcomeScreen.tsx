@@ -135,7 +135,8 @@ const TouchableButton = ({
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser, user, isLoggedIn } = useUserStore();
+  const { setUser, user, isLoggedIn, getCustomDemoUser, updateUser } =
+    useUserStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isDevLoading, setIsDevLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -268,8 +269,45 @@ export default function WelcomeScreen() {
     try {
       console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_USER_CREATE);
 
-      // יצירת משתמש דמו מלא עם היסטוריית אימונים
-      const demoUser = await realisticDemoService.generateRealisticUser();
+      // 🎯 בדוק אם יש משתמש דמו מותאם מהשאלון
+      const customDemoUser = getCustomDemoUser();
+      let demoUser;
+
+      if (customDemoUser) {
+        console.log(
+          "🎯 Using custom demo user from questionnaire:",
+          customDemoUser.name
+        );
+        // יצור משתמש מלא עם נתוני השאלון המותאמים
+        const baseDemoUser = {
+          id: customDemoUser.id,
+          name: customDemoUser.name,
+          gender: customDemoUser.gender,
+          age: customDemoUser.age,
+          experience: customDemoUser.experience,
+          height: customDemoUser.height,
+          weight: customDemoUser.weight,
+          fitnessGoals: customDemoUser.fitnessGoals,
+          availableDays: customDemoUser.availableDays,
+          sessionDuration: customDemoUser.sessionDuration,
+          equipment: customDemoUser.equipment,
+          preferredTime: customDemoUser.preferredTime,
+          workoutHistory: [],
+        };
+
+        // יצור משתמש מלא עם היסטוריית אימונים מבוססת השאלון
+        demoUser =
+          await realisticDemoService.generateRealisticUserFromCustomDemo(
+            baseDemoUser
+          );
+      } else {
+        // יצירת משתמש דמו רגיל אם אין נתוני שאלון
+        console.log(
+          "📝 No questionnaire data found, creating random demo user"
+        );
+        demoUser = await realisticDemoService.generateRealisticUser();
+      }
+
       console.log(
         WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SUCCESS,
         demoUser.activityHistory?.workouts?.length || 0,
@@ -279,6 +317,66 @@ export default function WelcomeScreen() {
       console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SAVE);
       // Save demo user to global store // שמירת משתמש דמו ב-store גלובלי
       setUser(demoUser);
+
+      // 🎯 אם יצרנו משתמש מותאם, וודא שנתוני השאלון נשמרים
+      if (customDemoUser) {
+        console.log("💾 Ensuring questionnaire data is preserved in store");
+
+        // יצור נתוני שאלון מלאים מהמשתמש המותאם
+        const simulatedQuestionnaireData = {
+          answers: {
+            experience: customDemoUser.experience,
+            gender: customDemoUser.gender,
+            equipment: customDemoUser.equipment,
+            goals: customDemoUser.fitnessGoals,
+            available_days: customDemoUser.availableDays.toString(),
+            workout_frequency:
+              customDemoUser.experience === "beginner"
+                ? "sometimes"
+                : customDemoUser.experience === "intermediate"
+                  ? "regularly"
+                  : "often",
+            preferred_time: customDemoUser.preferredTime,
+          },
+          completedAt: new Date().toISOString(),
+          metadata: {
+            completedAt: new Date().toISOString(),
+            version: "1.0",
+            sessionId: `demo_${Date.now()}`,
+            completionTime: 300, // 5 דקות סימולציה
+            questionsAnswered: 8,
+            totalQuestions: 8,
+            deviceInfo: {
+              platform: "mobile" as const,
+              screenWidth: 375,
+              screenHeight: 812,
+            },
+          },
+          insights: {
+            completionScore: 100,
+            equipmentReadinessLevel: customDemoUser.equipment.includes("none")
+              ? 3
+              : 5,
+            insights: [
+              `מותאם אישית עבור ${customDemoUser.experience === "beginner" ? "מתחיל" : customDemoUser.experience === "intermediate" ? "בינוני" : "מתקדם"}`,
+              `ציוד זמין: ${customDemoUser.equipment.length === 1 && customDemoUser.equipment[0] === "none" ? "אימוני משקל גוף" : customDemoUser.equipment.join(", ")}`,
+              `יעדי כושר: ${customDemoUser.fitnessGoals.slice(0, 2).join(", ")}`,
+            ],
+            trainingCapabilities: customDemoUser.fitnessGoals,
+          },
+        };
+
+        // עדכן את המשתמש עם נתוני השאלון
+        updateUser({
+          smartQuestionnaireData: simulatedQuestionnaireData,
+          customDemoUser: {
+            ...customDemoUser,
+            createdFromQuestionnaire: true,
+            questionnaireTimestamp:
+              customDemoUser.questionnaireTimestamp || new Date().toISOString(),
+          },
+        });
+      }
 
       console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_NAVIGATE);
       // Navigate to main application interface // ניווט לממשק האפליקציה הראשי

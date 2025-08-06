@@ -90,6 +90,12 @@ interface UserStore {
     hasOldQuestionnaire: boolean;
     isFullySetup: boolean;
   };
+
+  // פעולות משתמש דמו מותאם
+  // Custom demo user actions
+  setCustomDemoUser: (demoUser: User["customDemoUser"]) => void;
+  getCustomDemoUser: () => User["customDemoUser"] | null;
+  clearCustomDemoUser: () => void;
 }
 
 export const useUserStore = create<UserStore>()(
@@ -526,6 +532,54 @@ export const useUserStore = create<UserStore>()(
           throw error;
         }
       },
+
+      // 🎯 פעולות משתמש דמו מותאם
+      // Custom demo user actions
+      setCustomDemoUser: (demoUser) => {
+        if (!demoUser) return;
+
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                customDemoUser: {
+                  id: demoUser.id || `demo_${Date.now()}`,
+                  name: demoUser.name || "משתמש דמו",
+                  gender: demoUser.gender || "other",
+                  age: demoUser.age || 30,
+                  experience: demoUser.experience || "intermediate",
+                  height: demoUser.height || 170,
+                  weight: demoUser.weight || 70,
+                  fitnessGoals: demoUser.fitnessGoals || [],
+                  availableDays: demoUser.availableDays || 3,
+                  sessionDuration:
+                    typeof demoUser.sessionDuration === "string"
+                      ? demoUser.sessionDuration
+                      : String(demoUser.sessionDuration),
+                  equipment: demoUser.equipment || [],
+                  preferredTime: demoUser.preferredTime || "evening",
+                  createdFromQuestionnaire: true,
+                  questionnaireTimestamp: new Date().toISOString(),
+                },
+              }
+            : null,
+        }));
+        console.log("✅ Custom demo user saved:", demoUser?.name);
+      },
+
+      getCustomDemoUser: () => {
+        const user = get().user;
+        return user?.customDemoUser || null;
+      },
+
+      clearCustomDemoUser: () => {
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, customDemoUser: undefined }
+            : null,
+        }));
+        console.log("✅ Custom demo user cleared");
+      },
     }),
     {
       name: "user-storage",
@@ -567,6 +621,10 @@ export const useQuestionnaireCompleted = () =>
       state.user?.questionnaire !== undefined ||
       state.user?.questionnaireData?.completedAt !== undefined
   );
+
+// Hook לגישה למשתמש דמו מותאם
+export const useCustomDemoUser = () =>
+  useUserStore((state) => state.user?.customDemoUser);
 
 // Hook מתקדם לבדיקת מצב התחברות
 // Advanced hook for checking login status

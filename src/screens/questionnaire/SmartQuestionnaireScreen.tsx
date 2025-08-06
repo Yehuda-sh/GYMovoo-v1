@@ -33,6 +33,7 @@ import {
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import { realisticDemoService } from "../../services/realisticDemoService";
 
 // קומפוננטות מרכזיות מאופטימליזציה
 import {
@@ -64,7 +65,7 @@ const PROGRESS_TIPS = {
 // =====================================
 const SmartQuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { setQuestionnaire, user } = useUserStore();
+  const { setSmartQuestionnaireData, user, setCustomDemoUser } = useUserStore();
 
   const [manager] = useState(() => {
     console.log(
@@ -184,11 +185,54 @@ const SmartQuestionnaireScreen: React.FC = () => {
     const answers = manager.getAllAnswers();
 
     try {
-      // שמור את התשובות
-      await setQuestionnaire(answers);
-
       // קבל אינסייטים חכמים מהמערכת החדשה
       const insights = getSmartQuestionnaireInsights(answers);
+
+      // יצור נתוני שאלון חכם מלאים
+      const smartQuestionnaireData = {
+        answers: answers,
+        completedAt: new Date().toISOString(),
+        metadata: {
+          completedAt: new Date().toISOString(),
+          version: "1.0",
+          sessionId: `smart_${Date.now()}`,
+          completionTime: 300, // זמן ממוצע
+          questionsAnswered: Object.keys(answers).length,
+          totalQuestions: Object.keys(answers).length,
+          deviceInfo: {
+            platform: "mobile" as const,
+            screenWidth: 375,
+            screenHeight: 812,
+          },
+        },
+        insights: insights,
+      };
+
+      // שמור את נתוני השאלון החכם
+      setSmartQuestionnaireData(smartQuestionnaireData);
+
+      // 🎯 חידוש: יצור משתמש דמו מותאם לתשובות השאלון
+      const customDemoUser =
+        realisticDemoService.generateDemoUserFromQuestionnaire(answers);
+      console.log("Generated custom demo user:", customDemoUser);
+
+      // שמור את משתמש הדמו המותאם ב-store (עם השדות הנדרשים)
+      setCustomDemoUser({
+        id: customDemoUser.id,
+        name: customDemoUser.name,
+        gender: customDemoUser.gender,
+        age: customDemoUser.age,
+        experience: customDemoUser.experience,
+        height: customDemoUser.height,
+        weight: customDemoUser.weight,
+        fitnessGoals: customDemoUser.fitnessGoals,
+        availableDays: customDemoUser.availableDays,
+        sessionDuration: customDemoUser.sessionDuration,
+        equipment: customDemoUser.equipment,
+        preferredTime: customDemoUser.preferredTime,
+        createdFromQuestionnaire: true,
+        questionnaireTimestamp: new Date().toISOString(),
+      });
 
       // קבל את המגדר מהתשובות אם קיים (במערכת החדשה אין שאלת מגדר)
       const inviteText = "תוכנית האימונים האישית שלך מוכנה! בואו נתחיל להתאמן";
@@ -197,7 +241,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
       // הצג הודעת הצלחה עם סיכום AI מתקדם
       Alert.alert(
         "🎉 השאלון הושלם!",
-        `${inviteText}\n\n📊 ניתוח חכם:\n• ציון השלמה: ${insights.completionScore}%\n• רמת מוכנות: ${insights.equipmentReadinessLevel}/5\n• ${insights.insights[0] || "מוכן לאימונים!"}\n\n💪 ${insights.trainingCapabilities.slice(0, 2).join(", ")}`,
+        `${inviteText}\n\n📊 ניתוח חכם:\n• ציון השלמה: ${insights.completionScore}%\n• רמת מוכנות: ${insights.equipmentReadinessLevel}/5\n• ${insights.insights[0] || "מוכן לאימונים!"}\n\n💪 ${insights.trainingCapabilities.slice(0, 2).join(", ")}\n\n👤 פרופיל מותאם: ${customDemoUser.name} (${customDemoUser.experience})`,
         [
           {
             text: buttonText,
@@ -310,7 +354,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
                 </View>
               </View>
             )}
-          </View>{" "}
+          </View>
           {/* רווח תחתון */}
           <View style={styles.bottomSpacer} />
         </ScrollView>

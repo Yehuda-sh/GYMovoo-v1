@@ -464,4 +464,23 @@ export interface User {
       neutral?: string;
     };
   };
+
+  // משתמש דמו מותאם (על בסיס תשובות השאלון)
+  // Custom demo user (based on questionnaire answers)
+  customDemoUser?: {
+    id: string;
+    name: string;
+    gender: "male" | "female" | "other";
+    age: number;
+    experience: "beginner" | "intermediate" | "advanced";
+    height: number;
+    weight: number;
+    fitnessGoals: string[];
+    availableDays: number;
+    sessionDuration: string;
+    equipment: string[];
+    preferredTime: string;
+    createdFromQuestionnaire: boolean;
+    questionnaireTimestamp?: string;
+  };
 }

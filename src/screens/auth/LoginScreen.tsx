@@ -225,7 +225,12 @@ export default function LoginScreen() {
           useUserStore.getState().setUser(user);
 
           // בדיקה אם יש שאלון // Check if questionnaire exists
-          const hasQuestionnaire = useUserStore.getState().user?.questionnaire;
+          const currentUser = useUserStore.getState().user;
+          const hasQuestionnaire = !!(
+            currentUser?.questionnaire ||
+            currentUser?.questionnaireData ||
+            currentUser?.smartQuestionnaireData
+          );
           console.log(
             "🔐 LoginScreen - Has questionnaire?",
             !!hasQuestionnaire

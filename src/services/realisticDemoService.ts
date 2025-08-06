@@ -323,6 +323,173 @@ class RealisticDemoService {
   }
 
   /**
+   * יוצר משתמש דמו מותאם לתשובות שאלון
+   */
+  generateDemoUserFromQuestionnaire(questionnaireAnswers?: any): DemoUser {
+    // אם יש תשובות שאלון, השתמש בהן
+    if (questionnaireAnswers) {
+      return this.createUserFromQuestionnaireAnswers(questionnaireAnswers);
+    }
+
+    // אחרת, יצור משתמש דמו רנדומלי
+    return this.generateDemoUser();
+  }
+
+  /**
+   * יוצר משתמש מותאם לתשובות השאלון
+   */
+  private createUserFromQuestionnaireAnswers(answers: any): DemoUser {
+    const genders: UserGender[] = ["male", "female", "other"];
+
+    // חלץ מידע מהתשובות
+    const gender =
+      answers.gender || genders[Math.floor(Math.random() * genders.length)];
+    const experience = this.extractExperienceFromAnswers(answers);
+    const fitnessGoals = this.extractFitnessGoalsFromAnswers(answers);
+    const equipment = this.extractEquipmentFromAnswers(answers);
+    const availableDays = this.extractAvailableDaysFromAnswers(answers);
+
+    const maleNames = ["דוד", "יוסי", "אמיר", "רן", "תומר", "אלון", "גיל"];
+    const femaleNames = ["שרה", "מיכל", "רונית", "נועה", "ליאת", "יעל", "דנה"];
+    const otherNames = ["אלכס", "עדן", "נועם", "שחר", "ריי", "קיי", "דני"];
+
+    let names: string[];
+    if (gender === "male") names = maleNames;
+    else if (gender === "female") names = femaleNames;
+    else names = otherNames;
+
+    return {
+      id: `questionnaire_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: names[Math.floor(Math.random() * names.length)],
+      gender,
+      age: 25 + Math.floor(Math.random() * 20), // 25-44
+      experience,
+      height:
+        gender === "male"
+          ? 170 + Math.floor(Math.random() * 20)
+          : 160 + Math.floor(Math.random() * 15),
+      weight:
+        gender === "male"
+          ? 70 + Math.floor(Math.random() * 25)
+          : 55 + Math.floor(Math.random() * 20),
+      fitnessGoals,
+      availableDays,
+      sessionDuration: this.generateSessionDuration(),
+      equipment,
+      preferredTime: this.generatePreferredTime(),
+      workoutHistory: [], // יאוכלס בנפרד
+    };
+  }
+
+  /**
+   * מחלץ רמת ניסיון מתשובות השאלון
+   */
+  private extractExperienceFromAnswers(
+    answers: any
+  ): "beginner" | "intermediate" | "advanced" {
+    // חפש שאלות הקשורות לרמת ניסיון
+    if (answers.experience) return answers.experience;
+    if (answers.fitness_level) return answers.fitness_level;
+    if (answers.workout_frequency) {
+      const frequency = answers.workout_frequency;
+      if (frequency === "never" || frequency === "rarely") return "beginner";
+      if (frequency === "sometimes" || frequency === "regularly")
+        return "intermediate";
+      if (frequency === "often" || frequency === "daily") return "advanced";
+    }
+
+    // ברירת מחדל
+    return "intermediate";
+  }
+
+  /**
+   * מחלץ יעדי כושר מתשובות השאלון
+   */
+  private extractFitnessGoalsFromAnswers(answers: any): string[] {
+    const goalMapping: Record<string, string> = {
+      lose_weight: "ירידה במשקל",
+      gain_muscle: "הגדלת מסה שרירית",
+      improve_endurance: "שיפור סיבולת",
+      get_stronger: "חיזוק השרירים",
+      improve_fitness: "שיפור כושר גופני",
+      tone_muscles: "הגדרת השרירים",
+    };
+
+    const goals: string[] = [];
+
+    // חפש יעדים בתשובות
+    Object.keys(answers).forEach((key) => {
+      if (key.includes("goal") || key.includes("target")) {
+        const value = answers[key];
+        if (Array.isArray(value)) {
+          value.forEach((goal) => {
+            if (goalMapping[goal]) {
+              goals.push(goalMapping[goal]);
+            }
+          });
+        } else if (goalMapping[value]) {
+          goals.push(goalMapping[value]);
+        }
+      }
+    });
+
+    // אם לא נמצאו יעדים, החזר יעדים ברירת מחדל
+    return goals.length > 0 ? goals : this.generateFitnessGoals();
+  }
+
+  /**
+   * מחלץ ציוד זמין מתשובות השאלון
+   */
+  private extractEquipmentFromAnswers(answers: any): string[] {
+    const equipmentMapping: Record<string, string> = {
+      dumbbells: "dumbbells",
+      barbell: "barbell",
+      resistance_bands: "resistance_bands",
+      pullup_bar: "pullup_bar",
+      none: "none",
+      bodyweight: "none",
+    };
+
+    const equipment: string[] = [];
+
+    // חפש ציוד בתשובות
+    Object.keys(answers).forEach((key) => {
+      if (key.includes("equipment") || key.includes("gear")) {
+        const value = answers[key];
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (equipmentMapping[item]) {
+              equipment.push(equipmentMapping[item]);
+            }
+          });
+        } else if (equipmentMapping[value]) {
+          equipment.push(equipmentMapping[value]);
+        }
+      }
+    });
+
+    // אם לא נמצא ציוד, החזר ברירת מחדל
+    return equipment.length > 0 ? equipment : ["none"];
+  }
+
+  /**
+   * מחלץ ימים זמינים מתשובות השאלון
+   */
+  private extractAvailableDaysFromAnswers(answers: any): number {
+    // חפש מידע על ימים זמינים
+    if (answers.available_days) return parseInt(answers.available_days) || 3;
+    if (answers.workout_frequency) {
+      const frequency = answers.workout_frequency;
+      if (frequency === "never" || frequency === "rarely") return 2;
+      if (frequency === "sometimes") return 3;
+      if (frequency === "regularly") return 4;
+      if (frequency === "often" || frequency === "daily") return 5;
+    }
+
+    return 3; // ברירת מחדל
+  }
+
+  /**
    * יוצר אימון מציאותי שעובר validateWorkoutData
    */
   generateRealisticWorkout(
@@ -794,11 +961,42 @@ class RealisticDemoService {
     const demoUser = this.generateDemoUser();
     const workouts = await this.generateWorkoutHistory(demoUser);
 
+    // יצירת אימייל אנגלי מתאים
+    const englishEmailNames: Record<string, string> = {
+      // שמות זכרים
+      דוד: "david",
+      יוסי: "yossi",
+      אמיר: "amir",
+      רן: "ran",
+      תומר: "tomer",
+      אלון: "alon",
+      גיל: "gil",
+      // שמות נשים
+      שרה: "sarah",
+      מיכל: "michal",
+      רונית: "ronit",
+      נועה: "noa",
+      ליאת: "liat",
+      יעל: "yael",
+      דנה: "dana",
+      // שמות נייטרליים
+      אלכס: "alex",
+      עדן: "eden",
+      נועם: "noam",
+      שחר: "shachar",
+      ריי: "ray",
+      קיי: "kay",
+      דני: "danny",
+    };
+
+    const englishName = englishEmailNames[demoUser.name] || "user";
+    const randomNum = Math.floor(Math.random() * 999) + 1;
+
     // יצירת משתמש תואם לממשק User
     const user: AppUser = {
       id: demoUser.id,
       name: demoUser.name,
-      email: `${demoUser.name.toLowerCase().replace(/\s+/g, ".")}@demo.app`,
+      email: `${englishName}${randomNum}@demo.app`,
       provider: "demo",
 
       // נתוני אימון
@@ -832,6 +1030,122 @@ class RealisticDemoService {
         selectedGender: demoUser.gender,
         adaptedWorkoutNames: {},
         personalizedMessages: [],
+      },
+
+      // היסטוריית פעילות
+      activityHistory: {
+        workouts: workouts,
+      },
+
+      // סטטיסטיקות נוכחיות
+      currentStats: {
+        totalWorkouts: workouts.length,
+        averageDifficulty: this.calculateAverageDifficulty(workouts),
+        workoutStreak: this.calculateWorkoutStreak(workouts),
+      },
+    };
+
+    return user;
+  }
+
+  /**
+   * יוצר משתמש מלא מנתוני דמו מותאמים (מהשאלון)
+   */
+  async generateRealisticUserFromCustomDemo(
+    customDemoUser: any
+  ): Promise<AppUser> {
+    // יצור DemoUser מהנתונים המותאמים
+    const demoUser: DemoUser = {
+      id: customDemoUser.id,
+      name: customDemoUser.name,
+      gender: customDemoUser.gender,
+      age: customDemoUser.age,
+      experience: customDemoUser.experience,
+      height: customDemoUser.height,
+      weight: customDemoUser.weight,
+      fitnessGoals: customDemoUser.fitnessGoals,
+      availableDays: customDemoUser.availableDays,
+      sessionDuration: customDemoUser.sessionDuration,
+      equipment: customDemoUser.equipment,
+      preferredTime: customDemoUser.preferredTime,
+      workoutHistory: [],
+    };
+
+    // יצור היסטוריית אימונים מבוססת הנתונים המותאמים
+    const workouts = await this.generateWorkoutHistory(demoUser);
+
+    // יצירת אימייל אנגלי מתאים
+    const englishEmailNames: Record<string, string> = {
+      // שמות זכרים
+      דוד: "david",
+      יוסי: "yossi",
+      אמיר: "amir",
+      רן: "ran",
+      תומר: "tomer",
+      אלון: "alon",
+      גיל: "gil",
+      // שמות נשים
+      שרה: "sarah",
+      מיכל: "michal",
+      רונית: "ronit",
+      נועה: "noa",
+      ליאת: "liat",
+      יעל: "yael",
+      דנה: "dana",
+      // שמות נייטרליים
+      אלכס: "alex",
+      עדן: "eden",
+      נועם: "noam",
+      שחר: "shachar",
+      ריי: "ray",
+      קיי: "kay",
+      דני: "danny",
+    };
+
+    const englishName = englishEmailNames[demoUser.name] || "user";
+    const randomNum = Math.floor(Math.random() * 999) + 1;
+
+    // יצירת משתמש תואם לממשק User
+    const user: AppUser = {
+      id: demoUser.id,
+      name: demoUser.name,
+      email: `${englishName}${randomNum}@demo.app`,
+      provider: "demo",
+
+      // נתוני אימון מותאמים
+      trainingStats: {
+        totalWorkouts: workouts.length,
+        totalVolume: workouts.reduce(
+          (sum, w) => sum + (w.stats?.totalVolume || 0),
+          0
+        ),
+        favoriteExercises: this.calculateFavoriteExercises(workouts),
+        lastWorkoutDate:
+          workouts.length > 0 ? workouts[0].feedback?.completedAt : undefined,
+        preferredWorkoutDays: demoUser.availableDays,
+        selectedEquipment: demoUser.equipment,
+        fitnessGoals: demoUser.fitnessGoals,
+        currentFitnessLevel: demoUser.experience,
+      },
+
+      // העדפות מותאמות
+      preferences: {
+        theme: "light",
+        notifications: true,
+        language: "he",
+        units: "metric",
+        gender: demoUser.gender,
+        rtlPreference: true,
+        workoutNameStyle: "adapted",
+      },
+
+      // פרופיל מותאם מגדר
+      genderProfile: {
+        selectedGender: demoUser.gender,
+        adaptedWorkoutNames: {},
+        personalizedMessages: [
+          `ברוכ${demoUser.gender === "female" ? "ה" : ""} הבא${demoUser.gender === "female" ? "ה" : ""} ${demoUser.name}!`,
+        ],
       },
 
       // היסטוריית פעילות

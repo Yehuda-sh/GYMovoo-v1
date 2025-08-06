@@ -240,19 +240,35 @@ function ProfileScreen() {
 
   /** @description בדיקת השלמת השאלון / Questionnaire completion check */
   const questionnaireStatus = useMemo(() => {
+    const hasQuestionnaire = !!(
+      user?.questionnaire ||
+      user?.questionnaireData ||
+      user?.smartQuestionnaireData
+    );
+
     const hasTrainingStage =
-      !!user?.questionnaire &&
-      (user.questionnaire as QuestionnaireBasicData).age &&
-      (user.questionnaire as QuestionnaireBasicData).goal;
+      (hasQuestionnaire &&
+        (user.questionnaire as QuestionnaireBasicData)?.age &&
+        (user.questionnaire as QuestionnaireBasicData)?.goal) ||
+      !!user?.smartQuestionnaireData ||
+      !!user?.questionnaireData;
+
     const hasProfileStage =
-      !!user?.questionnaire &&
-      (user.questionnaire as QuestionnaireBasicData).gender;
+      hasQuestionnaire &&
+      ((user.questionnaire as QuestionnaireBasicData)?.gender ||
+        !!user?.smartQuestionnaireData ||
+        !!user?.questionnaireData);
+
     return {
       hasTrainingStage,
       hasProfileStage,
       isComplete: hasTrainingStage && hasProfileStage,
     };
-  }, [user?.questionnaire]);
+  }, [
+    user?.questionnaire,
+    user?.questionnaireData,
+    user?.smartQuestionnaireData,
+  ]);
 
   /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
   const achievements = useMemo(() => calculateAchievements(user), [user]);
@@ -522,127 +538,76 @@ function ProfileScreen() {
   // 📊 User Info Calculation - חישוב נתוני משתמש
   // ===============================================
   const userInfo = useMemo(() => {
-    const questionnaire = (user?.questionnaire || {}) as Record<
-      string,
-      unknown
-    >;
-
-    // תמיכה גם בשאלון החכם החדש
-    const smartData = user?.smartQuestionnaireData?.answers;
-
-    // לוג לדיבוג תרגומים
-    console.log("ProfileScreen: נתוני משתמש לתרגום:", {
-      age: questionnaire.age,
-      goal: questionnaire.goal || smartData?.goals?.[0],
-      experience:
-        questionnaire.experience ||
-        questionnaire.fitness_level ||
-        smartData?.fitnessLevel,
-      frequency: questionnaire.frequency || questionnaire.workout_frequency,
-      duration: questionnaire.duration || questionnaire.workout_duration,
-      location: questionnaire.location || questionnaire.workout_location,
-      gender:
-        questionnaire.gender || smartData?.gender || user?.preferences?.gender,
-      diet:
-        questionnaire.diet_type ||
-        questionnaire.diet ||
-        smartData?.nutrition?.[0],
-    });
-
-    return {
-      age: formatQuestionnaireValue("age", questionnaire.age as string),
-      goal: formatQuestionnaireValue(
-        "goal",
-        (questionnaire.goal || smartData?.goals?.[0]) as string
-      ),
-      experience: formatQuestionnaireValue(
-        "experience",
-        (questionnaire.experience ||
-          questionnaire.fitness_level ||
-          smartData?.fitnessLevel) as string
-      ),
-      frequency: formatQuestionnaireValue(
-        "frequency",
-        (questionnaire.frequency || questionnaire.workout_frequency) as string
-      ),
-      duration: formatQuestionnaireValue(
-        "duration",
-        (questionnaire.duration || questionnaire.workout_duration) as string
-      ),
-      location: formatQuestionnaireValue(
-        "location",
-        (questionnaire.location || questionnaire.workout_location) as string
-      ),
-      gender: formatQuestionnaireValue(
-        "gender",
-        (questionnaire.gender ||
-          smartData?.gender ||
-          user?.preferences?.gender) as string
-      ),
-      height: questionnaire.height ? `${questionnaire.height} ס"מ` : "לא צוין",
-      weight: questionnaire.weight ? `${questionnaire.weight} ק"ג` : "לא צוין",
-      diet: formatQuestionnaireValue(
-        "diet",
-        (questionnaire.diet_type ||
-          questionnaire.diet ||
-          smartData?.nutrition?.[0]) as string
-      ),
-      // שדות נוספים אפשריים
-      activity_level: formatQuestionnaireValue(
-        "activity_level",
-        questionnaire.activity_level as string
-      ),
-      workout_time: formatQuestionnaireValue(
-        "workout_time",
-        (questionnaire.workout_time || questionnaire.preferred_time) as string
-      ),
-      motivation: formatQuestionnaireValue(
-        "motivation",
-        questionnaire.motivation as string
-      ),
-      body_type: formatQuestionnaireValue(
-        "body_type",
-        questionnaire.body_type as string
-      ),
-      sleep_hours: formatQuestionnaireValue(
-        "sleep_hours",
-        questionnaire.sleep_hours as string
-      ),
-      stress_level: formatQuestionnaireValue(
-        "stress_level",
-        questionnaire.stress_level as string
-      ),
-      session_duration: formatQuestionnaireValue(
-        "session_duration",
-        (questionnaire.session_duration ||
-          questionnaire.duration ||
-          questionnaire.workout_duration) as string
-      ),
-      health_conditions: questionnaire.health_conditions
-        ? Array.isArray(questionnaire.health_conditions)
-          ? questionnaire.health_conditions
-              .map((condition) =>
-                formatQuestionnaireValue("health_conditions", condition)
-              )
-              .join(", ")
-          : formatQuestionnaireValue(
-              "health_conditions",
-              questionnaire.health_conditions as string
-            )
-        : "לא צוין",
-      availability: (() => {
-        const availabilityData =
-          questionnaire.availability || smartData?.availability;
-        if (!availabilityData) return "לא צוין";
-        if (Array.isArray(availabilityData)) {
-          return availabilityData
-            .map((day: string) => formatQuestionnaireValue("availability", day))
-            .join(", ");
+    // Robust dynamic mapping for user fields
+    const questionnaire = (user?.questionnaire || {}) as Record<string, unknown>;
+    const smartData = user?.smartQuestionnaireData?.answers || {};
+    // Helper to get nested values (e.g., goals[0], nutrition[0])
+    const getNested = (obj: any, key: string) => {
+      if (!obj) return undefined;
+      if (key === "goal") return obj.goal || obj.goals?.[0];
+      if (key === "diet_type" || key === "diet") return obj.diet_type || obj.diet || obj.nutrition?.[0];
+      if (key === "experience") return obj.experience || obj.fitness_level || obj.fitnessLevel;
+      if (key === "gender") return obj.gender || obj.gender || obj.preferences?.gender;
+      if (key === "availability") return obj.availability || obj.availability;
+      return obj[key];
+    };
+    const fallback = (key: string, ...sources: any[]) => {
+      for (const src of sources) {
+        const val = getNested(src, key);
+        if (val !== undefined && val !== null && val !== "") {
+          return val;
         }
-        return formatQuestionnaireValue(
-          "availability",
-          availabilityData as string
-        );
+      }
+      return undefined;
+    };
+    const getOrDefault = (key: string, ...sources: any[]) => {
+      const val = fallback(key, ...sources);
+      return val !== undefined ? val : "לא צוין";
+    };
+    // Log for debug
+    console.log("ProfileScreen: נתוני משתמש לתרגום:", {
+      age: getOrDefault("age", questionnaire, smartData, user),
+      goal: getOrDefault("goal", questionnaire, smartData, user),
+      experience: getOrDefault("experience", questionnaire, smartData, user),
+      frequency: getOrDefault("frequency", questionnaire, smartData, user),
+      duration: getOrDefault("duration", questionnaire, smartData, user),
+      location: getOrDefault("location", questionnaire, smartData, user),
+      gender: getOrDefault("gender", questionnaire, smartData, user?.preferences),
+      diet: getOrDefault("diet_type", questionnaire, smartData, user),
+    });
+    return {
+      age: formatQuestionnaireValue("age", getOrDefault("age", questionnaire, smartData, user)),
+      goal: formatQuestionnaireValue("goal", getOrDefault("goal", questionnaire, smartData, user)),
+      experience: formatQuestionnaireValue("experience", getOrDefault("experience", questionnaire, smartData, user)),
+      frequency: formatQuestionnaireValue("frequency", getOrDefault("frequency", questionnaire, smartData, user)),
+      duration: formatQuestionnaireValue("duration", getOrDefault("duration", questionnaire, smartData, user)),
+      location: formatQuestionnaireValue("location", getOrDefault("location", questionnaire, smartData, user)),
+      gender: formatQuestionnaireValue("gender", getOrDefault("gender", questionnaire, smartData, user?.preferences)),
+      height: getOrDefault("height", questionnaire, smartData, user) !== "לא צוין" ? `${getOrDefault("height", questionnaire, smartData, user)} ס"מ` : "לא צוין",
+      weight: getOrDefault("weight", questionnaire, smartData, user) !== "לא צוין" ? `${getOrDefault("weight", questionnaire, smartData, user)} ק"ג` : "לא צוין",
+      diet: formatQuestionnaireValue("diet", getOrDefault("diet_type", questionnaire, smartData, user)),
+      activity_level: formatQuestionnaireValue("activity_level", getOrDefault("activity_level", questionnaire, smartData, user)),
+      workout_time: formatQuestionnaireValue("workout_time", getOrDefault("workout_time", questionnaire, smartData, user)),
+      motivation: formatQuestionnaireValue("motivation", getOrDefault("motivation", questionnaire, smartData, user)),
+      body_type: formatQuestionnaireValue("body_type", getOrDefault("body_type", questionnaire, smartData, user)),
+      sleep_hours: formatQuestionnaireValue("sleep_hours", getOrDefault("sleep_hours", questionnaire, smartData, user)),
+      stress_level: formatQuestionnaireValue("stress_level", getOrDefault("stress_level", questionnaire, smartData, user)),
+      session_duration: formatQuestionnaireValue("session_duration", getOrDefault("session_duration", questionnaire, smartData, user)),
+      health_conditions: (() => {
+        const val = getOrDefault("health_conditions", questionnaire, smartData, user);
+        if (val === "לא צוין") return val;
+        if (Array.isArray(val)) {
+          return val.map((condition) => formatQuestionnaireValue("health_conditions", condition)).join(", ");
+        }
+        return formatQuestionnaireValue("health_conditions", val);
+      })(),
+      availability: (() => {
+        const val = getOrDefault("availability", questionnaire, smartData, user);
+        if (val === "לא צוין") return val;
+        if (Array.isArray(val)) {
+          return val.map((day: string) => formatQuestionnaireValue("availability", day)).join(", ");
+        }
+        return formatQuestionnaireValue("availability", val);
       })(),
     };
   }, [user, formatQuestionnaireValue]);

@@ -515,7 +515,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const userState = useUserStore.getState();
       const hasUser = !!userState.user;
       const hasQuestionnaire = !!(
-        userState.user?.questionnaire || userState.user?.questionnaireData
+        userState.user?.questionnaire ||
+        userState.user?.questionnaireData ||
+        userState.user?.smartQuestionnaireData
       );
 
       testResults.userStore = {
@@ -818,8 +820,35 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       global.exerciseState.usedExercises_day1 = new Set<string>();
       global.exerciseState.usedExercises_day2 = new Set<string>();
 
-      // Get user data from questionnaire
-      const userQuestionnaireData = user?.questionnaire || {};
+      // Get user data from questionnaire - check all possible questionnaire formats
+      const userQuestionnaireData =
+        user?.questionnaire ||
+        user?.questionnaireData ||
+        (user?.smartQuestionnaireData?.answers
+          ? {
+              // Convert smartQuestionnaireData to expected format
+              experience:
+                user.smartQuestionnaireData.answers.fitnessLevel ||
+                "intermediate",
+              gender: user.smartQuestionnaireData.answers.gender || "other",
+              equipment: user.smartQuestionnaireData.answers.equipment || [
+                "none",
+              ],
+              goals: user.smartQuestionnaireData.answers.goals || [
+                "muscle_gain",
+              ],
+              frequency:
+                user.smartQuestionnaireData.answers.availability?.[0] ||
+                "3_times_week",
+              duration: "45_60_min",
+              goal:
+                user.smartQuestionnaireData.answers.goals?.[0] || "muscle_gain",
+              age: "25-35",
+              height: "170",
+              weight: "70",
+              location: "home",
+            }
+          : {});
       console.log(
         "🏗️ WorkoutPlansScreen: User questionnaire data:",
         userQuestionnaireData
