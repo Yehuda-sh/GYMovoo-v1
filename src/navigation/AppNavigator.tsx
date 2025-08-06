@@ -18,7 +18,6 @@ import TermsScreen from "../screens/auth/TermsScreen";
 import SmartQuestionnaireScreen from "../screens/questionnaire/SmartQuestionnaireScreen";
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
-import QuickWorkoutScreen from "../screens/workout/QuickWorkoutScreen";
 import ActiveWorkoutScreen from "../screens/workout/ActiveWorkoutScreen";
 
 // מסכים נוספים שלא ב-Bottom Tabs // Additional screens not in Bottom Tabs
@@ -28,6 +27,7 @@ import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
 import ProgressScreen from "../screens/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
+import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -82,18 +82,6 @@ export default function AppNavigator() {
           }}
         />
 
-        {/* מסך אימון פעיל מתקדם עם מעקב חכם */}
-        <Stack.Screen
-          name="QuickWorkout"
-          component={QuickWorkoutScreen}
-          options={{
-            gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
-            cardStyle: {
-              backgroundColor: "transparent", // רקע שקוף לאנימציות חלקות
-            },
-          }}
-        />
-
         {/* מסך אימון יחיד פעיל - טיפול בתרגיל יחיד */}
         <Stack.Screen
           name="ActiveWorkout"
@@ -134,6 +122,27 @@ export default function AppNavigator() {
 
         <Stack.Screen
           name="Exercises"
+          component={ExercisesScreen}
+          options={{
+            freezeOnBlur: true, // חיסכון בביצועים
+          }}
+        />
+
+        {/* מסך פרטי תרגיל מפורט */}
+        <Stack.Screen
+          name="ExerciseDetails"
+          component={ExerciseDetailsScreen}
+          options={{
+            presentation: "card", // פתיחה כמסך מלא
+            cardStyle: {
+              backgroundColor: "rgba(248, 250, 252, 1)", // רקע בהיר
+            },
+          }}
+        />
+
+        {/* מסך ספריית תרגילים עם סינון */}
+        <Stack.Screen
+          name="ExercisesScreen"
           component={ExercisesScreen}
           options={{
             freezeOnBlur: true, // חיסכון בביצועים

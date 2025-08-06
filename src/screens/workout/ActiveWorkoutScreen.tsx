@@ -59,6 +59,7 @@ import BackButton from "../../components/common/BackButton";
 // Components
 import ExerciseCard from "./components/ExerciseCard";
 import { WorkoutStatusBar } from "./components/WorkoutStatusBar";
+import { FloatingActionButton } from "../../components";
 
 // Hooks & Services
 import { useRestTimer } from "./hooks/useRestTimer";
@@ -320,6 +321,36 @@ const ActiveWorkoutScreen: React.FC = () => {
     );
   }, [workoutStats, navigation]);
 
+  // הוספת תרגיל חדש לאימון הפעיל
+  const handleAddExercise = useCallback(() => {
+    navigation.navigate("ExerciseList", {
+      fromScreen: "ActiveWorkout",
+      mode: "selection",
+      onSelectExercise: (selectedExercise: Exercise) => {
+        // הוסף את התרגיל החדש לרשימת התרגילים
+        const newExercise: Exercise = {
+          ...selectedExercise,
+          id: `${selectedExercise.id}_${Date.now()}`, // ID יחודי
+          sets: [
+            {
+              id: `${selectedExercise.id}_set_${Date.now()}`,
+              type: "working",
+              targetReps: 10,
+              targetWeight: 0,
+              completed: false,
+              isPR: false,
+            },
+          ],
+        };
+
+        setExercises((prev) => [...prev, newExercise]);
+
+        // חזור למסך האימון הפעיל
+        navigation.goBack();
+      },
+    });
+  }, [navigation]);
+
   if (exercises.length === 0) {
     return (
       <View style={[styles.container, styles.errorContainer]}>
@@ -479,6 +510,18 @@ const ActiveWorkoutScreen: React.FC = () => {
           />
         </TouchableOpacity>
       </View>
+
+      {/* FloatingActionButton להוספת תרגילים */}
+      <FloatingActionButton
+        onPress={handleAddExercise}
+        icon="add"
+        label="הוסף תרגיל"
+        visible={true}
+        bottom={120} // מעל הכפתור סיים אימון
+        size="medium"
+        accessibilityLabel="הוסף תרגיל חדש לאימון"
+        accessibilityHint="לחץ כדי לבחור תרגיל חדש להוספה לאימון הנוכחי"
+      />
     </View>
   );
 };

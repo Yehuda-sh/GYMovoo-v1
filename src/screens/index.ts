@@ -18,7 +18,6 @@ export { default as ProfileScreen } from "./profile/ProfileScreen";
 
 // Workout screens
 export { default as ActiveWorkoutScreen } from "./workout/ActiveWorkoutScreen";
-export { default as QuickWorkoutScreen } from "./workout/QuickWorkoutScreen";
 export { default as WorkoutPlansScreen } from "./workout/WorkoutPlansScreen";
 
 // Exercise screens

@@ -51,20 +51,6 @@ export type RootStackParamList = {
   /** @description מסך תוכניות אימון ראשי עם אפשרויות מתקדמות / Main workout plans screen with advanced options */
   WorkoutPlan: BaseWorkoutParams;
 
-  /** @description אימון מהיר עם תרגילים מותאמים / Quick workout with customized exercises */
-  QuickWorkout: {
-    exercises?: Exercise[];
-    workoutName?: string;
-    workoutId?: string;
-    source?: WorkoutSource;
-    requestedDay?: number;
-    planData?: {
-      targetMuscles: string[];
-      estimatedDuration: number;
-      equipment: string[];
-    };
-  };
-
   /** @description אימון פעיל עם מעקב זמן ואמת / Active workout with real-time tracking */
   ActiveWorkout: {
     workoutData: {
@@ -81,6 +67,27 @@ export type RootStackParamList = {
     mode?: ExerciseListMode;
     onSelectExercise?: (exercise: Exercise) => void;
     selectedMuscleGroup?: string;
+  };
+
+  /** @description מסך פרטי תרגיל מפורט / Detailed exercise information screen */
+  ExerciseDetails: {
+    exerciseId: string;
+    exerciseName: string;
+    muscleGroup: string;
+    exerciseData?: {
+      equipment?: string;
+      difficulty?: string;
+      instructions?: string[];
+      benefits?: string[];
+      tips?: string[];
+    };
+  };
+
+  /** @description מסך ספריית תרגילים עם סינון / Exercise library screen with filtering */
+  ExercisesScreen: {
+    selectedMuscleGroup?: string;
+    filterTitle?: string;
+    returnScreen?: string;
   };
 
   // ===============================================

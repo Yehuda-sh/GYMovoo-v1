@@ -3,9 +3,10 @@
  * @brief מסך תרגילים - סקירה כללית של כל התרגילים במערכת
  * @dependencies React Native, MaterialCommunityIcons, ExerciseListScreen
  * @notes מסך ראשי לגישה לכל התרגילים עם סינון לפי קבוצות שרירים
+ * @updated 2025-08-06 אופטימיזציה: הסרת ערכים קשיחים, שימוש במערכת theme, ריכוז constants
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,79 +17,72 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import { fetchMuscles, Muscle } from "../../services/exerciseService";
+import {
+  EXERCISES_SCREEN_TEXTS,
+  EXERCISES_MUSCLE_GROUPS,
+  getMuscleGroupColor,
+  generateExerciseStats,
+} from "../../constants/exercisesScreenTexts";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// Type definition for muscle groups
+// Type definition for muscle groups with enhanced typing
 interface MuscleGroup {
   id: string;
   name: string;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  color: string;
   description: string;
+  color: string;
 }
 
 type ExercisesScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
-// קבוצות שרירים עיקריות
-const mainMuscleGroups: MuscleGroup[] = [
-  {
-    id: "chest",
-    name: "חזה",
-    icon: "arm-flex",
-    color: theme.colors.primary,
-    description: "דחיפות, צלילים ועוד",
-  },
-  {
-    id: "back",
-    name: "גב",
-    icon: "human-handsup",
-    color: theme.colors.success,
-    description: "משיכות, חתירה ועוד",
-  },
-  {
-    id: "legs",
-    name: "רגליים",
-    icon: "run",
-    color: theme.colors.error,
-    description: "סקוואטים, לאנג'ים ועוד",
-  },
-  {
-    id: "shoulders",
-    name: "כתפיים",
-    icon: "human-handsup",
-    color: theme.colors.warning,
-    description: "כתף קדמית, אחורית וצדדית",
-  },
-  {
-    id: "arms",
-    name: "זרועות",
-    icon: "arm-flex",
-    color: theme.colors.info,
-    description: "ביצפס, טריצפס ועוד",
-  },
-  {
-    id: "core",
-    name: "ליבה",
-    icon: "human",
-    color: theme.colors.accent,
-    description: "בטן, גב תחתון ועוד",
-  },
-];
+interface ExercisesScreenParams {
+  selectedMuscleGroup?: string;
+  filterTitle?: string;
+  returnScreen?: string;
+}
 
 export default function ExercisesScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const [muscles, setMuscles] = useState<Muscle[]>([]);
+
+  // קבלת פרמטרים מהניווט
+  const { selectedMuscleGroup, filterTitle, returnScreen } =
+    (route.params as ExercisesScreenParams) || {};
+
+  // שימוש בקבוצות השרירים מה-constants עם הוספת צבעים
+  const mainMuscleGroups = useMemo(
+    () =>
+      EXERCISES_MUSCLE_GROUPS.map((group) => ({
+        ...group,
+        color: getMuscleGroupColor(theme, group.id),
+      })),
+    []
+  );
 
   useEffect(() => {
     loadMuscles();
   }, []);
+
+  // אם יש סינון, נעבור ישירות לרשימת התרגילים המסוננת
+  useEffect(() => {
+    if (selectedMuscleGroup) {
+      const typedNavigation = navigation as ExercisesScreenNavigationProp;
+      typedNavigation.navigate("ExerciseList", {
+        fromScreen: returnScreen || "ExercisesScreen",
+        mode: "view",
+        selectedMuscleGroup: selectedMuscleGroup,
+      });
+    }
+  }, [selectedMuscleGroup, navigation, returnScreen]);
 
   const loadMuscles = async () => {
     try {
@@ -132,8 +126,14 @@ export default function ExercisesScreen() {
             size={80}
             color={theme.colors.primary}
           />
-          <Text style={styles.title}>ספריית תרגילים</Text>
-          <Text style={styles.subtitle}>גלה מאות תרגילים מותאמים לכל רמה</Text>
+          <Text style={styles.title}>
+            {filterTitle || EXERCISES_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
+          </Text>
+          <Text style={styles.subtitle}>
+            {selectedMuscleGroup
+              ? `תרגילים מותאמים לקבוצת השרירים ${selectedMuscleGroup}`
+              : EXERCISES_SCREEN_TEXTS.HEADERS.SUBTITLE}
+          </Text>
         </View>
 
         {/* כפתור צפייה בכל התרגילים */}

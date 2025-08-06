@@ -272,18 +272,17 @@ function MainScreen() {
 
   const handleStartWorkout = useCallback(() => {
     console.log("🚀 MainScreen - התחל אימון מהיר נלחץ!");
-    navigation.navigate("QuickWorkout", {
-      source: "quick_start" as WorkoutSource,
+    navigation.navigate("WorkoutPlans", {
+      autoStart: true,
     });
   }, [navigation]);
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
       console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
-      navigation.navigate("QuickWorkout", {
-        source: "day_selection" as WorkoutSource,
-        requestedDay: dayNumber,
-        workoutName: `יום ${dayNumber} - אימון`,
+      navigation.navigate("WorkoutPlans", {
+        preSelectedDay: dayNumber,
+        autoStart: true,
       });
     },
     [navigation]

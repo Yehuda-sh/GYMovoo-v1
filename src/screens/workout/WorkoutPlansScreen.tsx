@@ -370,14 +370,35 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * Handle exercise details toggle with debug
+   * Handle exercise details navigation - עובר למסך פרטי התרגיל
    */
   const handleExerciseDetailsToggle = (
     exerciseId: string,
     exerciseName: string
   ) => {
-    console.log(`💪 WorkoutPlansScreen - פרטי תרגיל: ${exerciseName}`);
-    showExerciseDetails(exerciseId);
+    console.log(`💪 WorkoutPlansScreen - מעבר לפרטי תרגיל: ${exerciseName}`);
+
+    // מצא את נתוני התרגיל ממאגר הנתונים
+    const exercise = exerciseMap[exerciseId];
+
+    if (!exercise) {
+      console.error("💪 WorkoutPlansScreen - תרגיל לא נמצא במאגר:", exerciseId);
+      return;
+    }
+
+    // עבור למסך פרטי התרגיל עם כל הנתונים הנדרשים
+    navigation.navigate("ExerciseDetails", {
+      exerciseId: exerciseId,
+      exerciseName: exercise.name,
+      muscleGroup: exercise.primaryMuscles?.[0] || "כללי",
+      exerciseData: {
+        equipment: exercise.equipment || "ציוד חופשי",
+        difficulty: exercise.difficulty || "בינוני",
+        instructions: exercise.instructions || [],
+        benefits: exercise.benefits || [],
+        tips: exercise.tips || [],
+      },
+    });
   };
 
   /**
