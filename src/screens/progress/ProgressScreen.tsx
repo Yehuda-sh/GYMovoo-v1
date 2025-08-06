@@ -1,9 +1,13 @@
 /**
  * @file src/screens/progress/ProgressScreen.tsx
- * @description מסך התקדמות זמני - מפנה לשירות היסטוריית אימונים
+ *        <View 
+          style={styles.infoBox}
+          accessibilityLabel={PROGRESS_SCREEN_TEXTS.A11Y.INFO_BOX}
+        >cription מסך התקדמות זמני - מפנה לשירות היסטוריית אימונים
  * English: Temporary progress screen - redirects to workout history service
- * @version 1.0.0
+ * @version 1.0.1
  * @created 2025-08-01
+ * @updated 2025-08-05 אופטימיזציה: הסרת ערכים קשיחים, שימוש במערכת theme, ריכוז constants
  *
  * @note
  * מסך זה הוחלף ב-workoutHistoryService שמספק נתוני התקדמות מדויקים יותר.
@@ -11,39 +15,70 @@
  */
 
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 
 export default function ProgressScreen(): JSX.Element {
   const navigation = useNavigation();
 
+  // Debug logging for screen lifecycle
+  console.log(PROGRESS_SCREEN_TEXTS.CONSOLE.SCREEN_LOADED);
+
+  const handleBackPress = () => {
+    console.log(PROGRESS_SCREEN_TEXTS.CONSOLE.NAVIGATION_BACK);
+    navigation.goBack();
+  };
+
   return (
     <View style={styles.container}>
-      <BackButton absolute={false} variant="minimal" />
+      <BackButton
+        absolute={false}
+        variant="minimal"
+        onPress={handleBackPress}
+      />
 
       <View style={styles.content}>
         <MaterialCommunityIcons
-          name="chart-line-variant"
+          name={PROGRESS_SCREEN_TEXTS.ICONS.MAIN_CHART}
           size={120}
           color={theme.colors.primary}
           style={styles.icon}
+          accessibilityLabel={PROGRESS_SCREEN_TEXTS.A11Y.MAIN_ICON}
         />
 
-        <Text style={styles.title}>מסך התקדמות</Text>
+        <Text style={styles.title}>
+          {PROGRESS_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
+        </Text>
         <Text style={styles.subtitle}>
-          הנתונים שלך נשמרים ונמצאים ב-WorkoutHistoryService
+          {PROGRESS_SCREEN_TEXTS.HEADERS.SUBTITLE}
         </Text>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>📊 נתוני התקדמות זמינים:</Text>
-          <Text style={styles.infoText}>• סך כל האימונים</Text>
-          <Text style={styles.infoText}>• זמן אימון כולל</Text>
-          <Text style={styles.infoText}>• רצף אימונים נוכחי</Text>
-          <Text style={styles.infoText}>• דירוג קושי ממוצע</Text>
-          <Text style={styles.infoText}>• שיאים אישיים</Text>
+        <View
+          style={styles.infoBox}
+          accessibilityLabel={PROGRESS_SCREEN_TEXTS.A11Y.INFO_BOX}
+        >
+          <Text style={styles.infoTitle}>
+            {PROGRESS_SCREEN_TEXTS.INFO.BOX_TITLE}
+          </Text>
+          <Text style={styles.infoText}>
+            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_WORKOUTS}
+          </Text>
+          <Text style={styles.infoText}>
+            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_TIME}
+          </Text>
+          <Text style={styles.infoText}>
+            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.CURRENT_STREAK}
+          </Text>
+          <Text style={styles.infoText}>
+            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.AVERAGE_RATING}
+          </Text>
+          <Text style={styles.infoText}>
+            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.PERSONAL_RECORDS}
+          </Text>
         </View>
       </View>
     </View>

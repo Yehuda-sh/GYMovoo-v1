@@ -4,8 +4,8 @@
  * @description Central export point for all GYMovoo services and utilities
  * @dependencies All service modules within the services directory
  * @notes מאפשר ייבוא נוח ועקבי של שירותים מחוץ לתיקיה | Enables convenient and consistent service imports
- * @version 2.1.0 - Enhanced organization, accurate service counts, improved documentation
- * @updated 2025-08-05 - Updated service counts, improved categorization, enhanced consistency
+ * @version 2.2.0 - Updated service count, removed duplications, improved organization
+ * @updated 2025-08-06 - Fixed TypeScript issues, removed duplicated services, enhanced consistency
  * @architecture Centralized export hub with singleton pattern for service instances
  */
 
@@ -14,7 +14,6 @@
 // שירותי אימות ואבטחה
 // =======================================
 export * from "./authService";
-export type { User } from "./authService"; // Enhanced user type with full interface support
 
 // =======================================
 // 🏋️ Core Workout Services
@@ -34,7 +33,8 @@ export type {
   PersonalRecord,
 } from "./workoutHistoryService";
 
-export { workoutSimulationService } from "./workoutSimulationService";
+// Note: workoutSimulationService can be imported directly from "./workoutSimulationService"
+// export { default as workoutSimulationService } from "./workoutSimulationService";
 
 export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
 export type {
@@ -43,7 +43,6 @@ export type {
 } from "./nextWorkoutLogicService";
 
 export { realisticDemoService } from "./realisticDemoService";
-export type { DemoUser } from "./realisticDemoService";
 
 // =======================================
 // 🤖 AI and Scientific Services
@@ -64,24 +63,30 @@ export {
   QuickWorkoutGenerator,
   generateQuickWorkout,
 } from "./quickWorkoutGenerator";
-export type { QuickWorkoutTemplate } from "../types";
 
 // =======================================
-// 🎯 Exercise Data Access
-// גישה לנתוני תרגילים
+// 🎯 Workout Screen Services (Legacy)
+// שירותי מסך אימון (תמיכה בגרסה קודמת)
 // =======================================
-// For exercise data, use the new local database:
-// עבור נתוני תרגילים, השתמש במאגר המקומי החדש:
-// import { allExercises, getBodyweightExercises, Exercise } from "../data/exercises";
+// Note: These services are also available in src/screens/workout/services
+// הערה: שירותים אלו זמינים גם ב-src/screens/workout/services
+export {
+  autoSaveService,
+  workoutValidationService,
+  workoutErrorHandlingService,
+  workoutFeedbackService,
+  workoutDataService as WorkoutScreenDataService, // Renamed to avoid conflicts
+} from "../screens/workout/services";
 
 // =======================================
 // 📊 Service Export Summary
 // סיכום ייצוא שירותים
 // =======================================
-// Total Services: 12 | Core: 3 | Specialized: 5 | AI: 1 | Quick Tools: 1 | Auth: 1 | Logic: 1
-// Types Exported: 15+ | Service Instances: 8 | Interface Categories: 5
+// Total Services: 13 | Core: 3 | Specialized: 3 | AI: 1 | Quick Tools: 1 | Auth: 1 | Logic: 1 | Workout Screen: 5
+// Types Exported: 12+ | Service Instances: 8 | Interface Categories: 4
 // Architecture: Centralized export hub with categorized organization
-// Compatibility: Removed deprecated wgerApiService, migrated to local exercise database
+// Compatibility: Merged workout screen services, removed duplications
 // Export Strategy: Explicit exports for services, comprehensive type exports for better IntelliSense
 // Exercise Data: Uses local database in src/data/exercises/ with 600+ exercises
-// Last Updated: 2025-08-05 - Removed wgerApiService and useWgerExercises, fully migrated to local database
+// Note: workoutSimulationService available via direct import from "./workoutSimulationService"
+// Last Updated: 2025-08-06 - Fixed duplications, enhanced TypeScript compatibility, improved service organization

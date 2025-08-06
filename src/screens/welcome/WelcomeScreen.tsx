@@ -26,12 +26,13 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import {
-  fakeGoogleSignIn,
-  realisticDemoService,
-  workoutSimulationService,
-} from "../../services";
+import { fakeGoogleSignIn, realisticDemoService } from "../../services";
 import { RootStackParamList } from "../../navigation/types";
+import {
+  WELCOME_SCREEN_TEXTS,
+  generateActiveUsersCount,
+  formatActiveUsersText,
+} from "../../constants/welcomeScreenTexts";
 
 // Skeleton loading component for Google authentication button during async operations
 // קומפוננטת Skeleton לטעינת כפתור Google במהלך פעולות אסינכרוניות
@@ -139,8 +140,9 @@ export default function WelcomeScreen() {
   const [isDevLoading, setIsDevLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Generate active users count only once
-  const [activeUsers] = useState(() => Math.floor(Math.random() * 2000) + 8000);
+  // Generate realistic active users count based on time of day
+  // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
+  const [activeUsers] = useState(() => generateActiveUsersCount());
 
   // Animation references for enhanced UI transitions // רפרנסי אנימציה למעברי UI משופרים
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -155,7 +157,7 @@ export default function WelcomeScreen() {
     const checkAuthStatus = async () => {
       try {
         // Log current authentication status for debugging
-        console.log("🔍 WelcomeScreen - בדיקת מצב התחברות:", {
+        console.log(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
           hasUser: !!user,
           userEmail: user?.email,
           isLoggedInResult: isLoggedIn(),
@@ -166,18 +168,15 @@ export default function WelcomeScreen() {
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         if (isLoggedIn() && user) {
-          console.log(
-            "✅ WelcomeScreen - משתמש מחובר נמצא! מנווט למסך הבית:",
-            user.email
-          );
+          console.log(WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND, user.email);
           navigation.navigate("MainApp");
           return;
         }
 
-        console.log("ℹ️ WelcomeScreen - משתמש לא מחובר, מציג מסך ברוכים הבאים");
+        console.log(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
         setIsCheckingAuth(false);
       } catch (error) {
-        console.error("❌ WelcomeScreen - שגיאה בבדיקת מצב התחברות:", error);
+        console.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
         setIsCheckingAuth(false);
       }
     };
@@ -263,34 +262,30 @@ export default function WelcomeScreen() {
   // Realistic demo creation with comprehensive workout history simulation
   // יצירת דמו מציאותי עם סימולציית היסטוריית אימונים מקיפה
   const handleDevQuickLogin = useCallback(async () => {
-    console.log("🚀 WelcomeScreen: Starting realistic demo creation process");
+    console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_START);
     setIsDevLoading(true);
 
     try {
-      console.log(
-        "👤 WelcomeScreen: Creating realistic demo user with complete history"
-      );
+      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_USER_CREATE);
 
       // יצירת משתמש דמו מלא עם היסטוריית אימונים
       const demoUser = await realisticDemoService.generateRealisticUser();
       console.log(
-        "✅ WelcomeScreen: Demo user created successfully with",
+        WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SUCCESS,
         demoUser.activityHistory?.workouts?.length || 0,
         "workouts"
       );
 
-      console.log("💾 WelcomeScreen: Saving demo user to global store");
+      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SAVE);
       // Save demo user to global store // שמירת משתמש דמו ב-store גלובלי
       setUser(demoUser);
 
-      console.log("🎯 WelcomeScreen: Navigating to main application");
+      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_NAVIGATE);
       // Navigate to main application interface // ניווט לממשק האפליקציה הראשי
       navigation.navigate("MainApp");
-      console.log(
-        "✅ WelcomeScreen: Demo creation process completed successfully"
-      );
+      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_COMPLETE);
     } catch (error) {
-      console.error("❌ WelcomeScreen: Demo creation failed:", error);
+      console.error(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_ERROR, error);
       // Handle error silently in production
     } finally {
       setIsDevLoading(false);
@@ -310,14 +305,16 @@ export default function WelcomeScreen() {
           size={80}
           color={theme.colors.primary}
         />
-        <Text style={[styles.appName, { marginTop: 16 }]}>GYMovoo</Text>
+        <Text style={[styles.appName, { marginTop: 16 }]}>
+          {WELCOME_SCREEN_TEXTS.HEADERS.APP_NAME}
+        </Text>
         <ActivityIndicator
           size="large"
           color={theme.colors.primary}
           style={{ marginTop: 24 }}
         />
         <Text style={[styles.tagline, { marginTop: 16 }]}>
-          בודק מצב התחברות...
+          {WELCOME_SCREEN_TEXTS.HEADERS.LOADING_CHECK}
         </Text>
       </LinearGradient>
     );
@@ -349,8 +346,12 @@ export default function WelcomeScreen() {
               color={theme.colors.primary}
             />
           </View>
-          <Text style={styles.appName}>GYMovoo</Text>
-          <Text style={styles.tagline}>האימון המושלם שלך מתחיל כאן</Text>
+          <Text style={styles.appName}>
+            {WELCOME_SCREEN_TEXTS.HEADERS.APP_NAME}
+          </Text>
+          <Text style={styles.tagline}>
+            {WELCOME_SCREEN_TEXTS.HEADERS.TAGLINE}
+          </Text>
         </Animated.View>
 
         {/* Live user activity counter with pulse animation // מונה פעילות משתמשים חי עם אנימציית פעימה */}
@@ -378,7 +379,7 @@ export default function WelcomeScreen() {
               />
             </View>
             <Text style={styles.activeUsersText}>
-              {activeUsers.toLocaleString()} משתמשים פעילים כרגע
+              {formatActiveUsersText(activeUsers)}
             </Text>
           </View>
         </Animated.View>
@@ -399,7 +400,9 @@ export default function WelcomeScreen() {
                 size={28}
                 color={theme.colors.primary}
               />
-              <Text style={styles.featureText}>תוכניות מותאמות אישית</Text>
+              <Text style={styles.featureText}>
+                {WELCOME_SCREEN_TEXTS.FEATURES.PERSONAL_PLANS}
+              </Text>
             </View>
             <View style={styles.feature}>
               <MaterialCommunityIcons
@@ -407,7 +410,9 @@ export default function WelcomeScreen() {
                 size={28}
                 color={theme.colors.primary}
               />
-              <Text style={styles.featureText}>מעקב התקדמות</Text>
+              <Text style={styles.featureText}>
+                {WELCOME_SCREEN_TEXTS.FEATURES.PROGRESS_TRACKING}
+              </Text>
             </View>
           </View>
           <View style={styles.featureRow}>
@@ -417,7 +422,9 @@ export default function WelcomeScreen() {
                 size={28}
                 color={theme.colors.primary}
               />
-              <Text style={styles.featureText}>אימונים מהירים</Text>
+              <Text style={styles.featureText}>
+                {WELCOME_SCREEN_TEXTS.FEATURES.QUICK_WORKOUTS}
+              </Text>
             </View>
             <View style={styles.feature}>
               <MaterialCommunityIcons
@@ -425,7 +432,9 @@ export default function WelcomeScreen() {
                 size={28}
                 color={theme.colors.primary}
               />
-              <Text style={styles.featureText}>קהילה תומכת</Text>
+              <Text style={styles.featureText}>
+                {WELCOME_SCREEN_TEXTS.FEATURES.SUPPORTIVE_COMMUNITY}
+              </Text>
             </View>
           </View>
         </Animated.View>
@@ -444,8 +453,8 @@ export default function WelcomeScreen() {
           <TouchableButton
             style={styles.primaryButton}
             onPress={() => navigation.navigate("Register")}
-            accessibilityLabel="התחל את המסע שלך לכושר מושלם"
-            accessibilityHint="לחץ כדי להתחיל בתהליך ההרשמה"
+            accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY}
+            accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY_HINT}
           >
             <LinearGradient
               colors={[
@@ -456,8 +465,14 @@ export default function WelcomeScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.primaryButtonText}>התחל עכשיו</Text>
-              <Ionicons name="arrow-forward" size={22} color="#fff" />
+              <Text style={styles.primaryButtonText}>
+                {WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={22}
+                color={theme.colors.white}
+              />
             </LinearGradient>
           </TouchableButton>
 
@@ -469,14 +484,16 @@ export default function WelcomeScreen() {
               color={theme.colors.warning}
             />
             <Text style={styles.trialText}>
-              7 ימי ניסיון חינם • ללא כרטיס אשראי
+              {WELCOME_SCREEN_TEXTS.PROMOTION.FREE_TRIAL}
             </Text>
           </View>
 
           {/* Content divider for alternative authentication options // מפריד תוכן לאפשרויות אימות חלופיות */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>או</Text>
+            <Text style={styles.dividerText}>
+              {WELCOME_SCREEN_TEXTS.PROMOTION.DIVIDER_TEXT}
+            </Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -490,8 +507,8 @@ export default function WelcomeScreen() {
                 style={styles.googleButton}
                 onPress={handleGoogleSignIn}
                 disabled={isGoogleLoading}
-                accessibilityLabel="התחבר עם חשבון Google"
-                accessibilityHint="לחץ כדי להתחבר באמצעות חשבון Google שלך"
+                accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.GOOGLE_SIGNIN}
+                accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.GOOGLE_SIGNIN_HINT}
               >
                 <Image
                   source={{
@@ -500,7 +517,9 @@ export default function WelcomeScreen() {
                   style={styles.googleLogo}
                   resizeMode="contain"
                 />
-                <Text style={styles.googleButtonText}>המשך עם Google</Text>
+                <Text style={styles.googleButtonText}>
+                  {WELCOME_SCREEN_TEXTS.ACTIONS.CONTINUE_WITH_GOOGLE}
+                </Text>
               </TouchableButton>
             )}
 
@@ -513,8 +532,10 @@ export default function WelcomeScreen() {
                 ]}
                 onPress={handleDevQuickLogin}
                 disabled={isDevLoading || isGoogleLoading}
-                accessibilityLabel="כניסה מהירה לפיתוח עם דמו מציאותי מלא"
-                accessibilityHint="לחץ לכניסה מהירה עם נתונים מדומים - רק למפתחים"
+                accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.REALISTIC_DEMO}
+                accessibilityHint={
+                  WELCOME_SCREEN_TEXTS.A11Y.REALISTIC_DEMO_HINT
+                }
               >
                 {isDevLoading ? (
                   <ActivityIndicator
@@ -530,8 +551,8 @@ export default function WelcomeScreen() {
                 )}
                 <Text style={styles.devButtonText}>
                   {isDevLoading
-                    ? "יוצר דמו מציאותי..."
-                    : "🎯 דמו מציאותי (6 חודשים)"}
+                    ? WELCOME_SCREEN_TEXTS.ACTIONS.REALISTIC_DEMO_CREATING
+                    : WELCOME_SCREEN_TEXTS.ACTIONS.REALISTIC_DEMO_READY}
                 </Text>
               </TouchableButton>
             )}
@@ -540,15 +561,17 @@ export default function WelcomeScreen() {
             <TouchableButton
               style={styles.secondaryButton}
               onPress={() => navigation.navigate("Login", {})}
-              accessibilityLabel="כניסה למשתמשים קיימים"
-              accessibilityHint="לחץ אם כבר יש לך חשבון"
+              accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.EXISTING_USER}
+              accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.EXISTING_USER_HINT}
             >
               <MaterialCommunityIcons
                 name="login"
                 size={20}
                 color={theme.colors.primary}
               />
-              <Text style={styles.secondaryButtonText}>כבר יש לי חשבון</Text>
+              <Text style={styles.secondaryButtonText}>
+                {WELCOME_SCREEN_TEXTS.ACTIONS.HAVE_ACCOUNT}
+              </Text>
             </TouchableButton>
           </View>
         </Animated.View>
@@ -556,9 +579,14 @@ export default function WelcomeScreen() {
         {/* Legal compliance and policy links footer // פוטר עם קישורי ציות משפטי ומדיניות */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            בהמשך אתה מסכים ל<Text style={styles.footerLink}> תנאי השימוש</Text>
-            {" ו"}
-            <Text style={styles.footerLink}>מדיניות הפרטיות</Text>
+            {WELCOME_SCREEN_TEXTS.LEGAL.TERMS_AGREEMENT}
+            <Text style={styles.footerLink}>
+              {WELCOME_SCREEN_TEXTS.LEGAL.TERMS_OF_USE}
+            </Text>
+            {WELCOME_SCREEN_TEXTS.LEGAL.AND_CONJUNCTION}
+            <Text style={styles.footerLink}>
+              {WELCOME_SCREEN_TEXTS.LEGAL.PRIVACY_POLICY}
+            </Text>
           </Text>
         </View>
       </ScrollView>
@@ -693,7 +721,7 @@ export const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: theme.typography.buttonLarge.fontSize,
     fontWeight: theme.typography.buttonLarge.fontWeight,
-    color: "#fff",
+    color: theme.colors.white,
     marginStart: theme.spacing.xs,
     textAlign: "center",
     writingDirection: "rtl",

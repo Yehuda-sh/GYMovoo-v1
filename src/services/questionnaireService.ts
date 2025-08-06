@@ -180,15 +180,14 @@ class QuestionnaireService {
 
     // מיזוג רשימות ללא כפילויות - כולל שדה הציוד הראשי
     // Merge lists without duplicates - including primary equipment field
-    const mergedEquipment = [
-      ...new Set([
-        ...primaryEquipment, // Add primary equipment field first
-        ...homeEquipment,
-        ...gymEquipment,
-        ...availableEquipment,
-        ...dynamicEquipment,
-      ]),
+    const allEquipment = [
+      ...primaryEquipment, // Add primary equipment field first
+      ...homeEquipment,
+      ...gymEquipment,
+      ...availableEquipment,
+      ...dynamicEquipment,
     ];
+    const mergedEquipment = Array.from(new Set(allEquipment));
 
     return mergedEquipment;
   }
@@ -262,7 +261,7 @@ class QuestionnaireService {
       }
     });
 
-    const result = [...new Set(equipment)]; // Professional deduplication
+    const result = Array.from(new Set(equipment)); // Professional deduplication
     return result;
   }
 
