@@ -413,7 +413,7 @@ export const GYM_EQUIPMENT: Equipment[] = [
     id: "olympic_bar",
     label: "בר אולימפי",
     image: require("../../assets/barbell.png"),
-    description: "בר סטנדרטי 20 ק\"ג לתרגילי כוח",
+    description: 'בר סטנדרטי 20 ק"ג לתרגילי כוח',
     category: "gym",
     tags: ["olympic bar", "powerlifting", "אולימפי", "כוח"],
     algorithmWeight: 10,
@@ -649,7 +649,9 @@ export function getEquipmentById(equipmentId: string): Equipment | undefined {
   return equipment;
 }
 
-export function getEquipmentByCategory(category: "home" | "gym" | "cardio"): Equipment[] {
+export function getEquipmentByCategory(
+  category: "home" | "gym" | "cardio"
+): Equipment[] {
   switch (category) {
     case "home":
       return HOME_EQUIPMENT;
@@ -675,7 +677,9 @@ export function searchEquipment(query: string): Equipment[] {
   return ALL_EQUIPMENT.filter((eq) => {
     const labelMatch = eq.label.toLowerCase().includes(lowerQuery);
     const descriptionMatch = eq.description?.toLowerCase().includes(lowerQuery);
-    const tagMatch = eq.tags.some((tag) => tag.toLowerCase().includes(lowerQuery));
+    const tagMatch = eq.tags.some((tag) =>
+      tag.toLowerCase().includes(lowerQuery)
+    );
     return labelMatch || descriptionMatch || tagMatch;
   });
 }
@@ -722,8 +726,13 @@ export function validateEquipmentDatabase(): {
     }
 
     // בדיקת משקל אלגוריתם
-    if (equipment.algorithmWeight && (equipment.algorithmWeight < 1 || equipment.algorithmWeight > 10)) {
-      warnings.push(`משקל אלגוריתם לא תקין עבור ${equipment.label}: ${equipment.algorithmWeight}`);
+    if (
+      equipment.algorithmWeight &&
+      (equipment.algorithmWeight < 1 || equipment.algorithmWeight > 10)
+    ) {
+      warnings.push(
+        `משקל אלגוריתם לא תקין עבור ${equipment.label}: ${equipment.algorithmWeight}`
+      );
     }
   });
 

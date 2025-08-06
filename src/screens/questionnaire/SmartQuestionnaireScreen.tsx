@@ -23,6 +23,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import {
   NewQuestionnaireManager,
   SmartQuestion,
@@ -50,13 +51,8 @@ import {
 const ANIMATION_CONSTANTS = {
   BUTTON_FADE_DURATION: 300,
   BUTTON_HIDE_DURATION: 200,
-  ANSWER_PROCESSING_DELAY: 500,
-  FEEDBACK_DISPLAY_DURATION: 3000,
-} as const;
-
-const PROGRESS_TIPS = {
-  EARLY_STAGE: "ככל שתענה יותר, כך נוכל ליצור תוכנית מותאמת יותר עבורך",
-  LATE_STAGE: "כמעט סיימנו! התשובות שלך עוזרות לנו ליצור את האימון המושלם",
+  ANSWER_PROCESSING_DELAY: 300, // הקטנה מ-500ms ל-300ms
+  FEEDBACK_DISPLAY_DURATION: 1500, // 1.5 שניות - מהיר וחלק
 } as const;
 
 // =====================================
@@ -92,7 +88,16 @@ const SmartQuestionnaireScreen: React.FC = () => {
   }, []);
 
   const loadCurrentQuestion = () => {
+    console.log("🔍 DEBUG: loadCurrentQuestion נקרא");
     const question = manager.getCurrentQuestion();
+    console.log("🔍 DEBUG: שאלה נוכחית:", {
+      questionId: question?.id,
+      questionTitle: question?.title,
+      questionType: question?.type,
+      hasOptions: !!question?.options,
+      optionsCount: question?.options?.length,
+    });
+
     setCurrentQuestion(question);
     setSelectedOption(null);
     setSelectedOptions([]); // נקה בחירות מרובות
@@ -100,28 +105,44 @@ const SmartQuestionnaireScreen: React.FC = () => {
     // הסתר כפתור
     Animated.timing(buttonAnimation, {
       toValue: 0,
-      duration: 200,
+      duration: ANIMATION_CONSTANTS.BUTTON_HIDE_DURATION,
       useNativeDriver: true,
     }).start();
+
+    console.log("🔍 DEBUG: loadCurrentQuestion הושלם");
   };
 
   const handleOptionSelect = async (option: SmartOption) => {
-    if (isAnswering) return;
+    console.log("🔍 DEBUG: handleOptionSelect נקרא", {
+      optionId: option.id,
+      optionLabel: option.label,
+      questionType: currentQuestion?.type,
+      isAnswering: isAnswering,
+    });
+
+    if (isAnswering) {
+      console.log("🔍 DEBUG: עדיין עונה, מתעלם מהבחירה");
+      return;
+    }
 
     let newSelections: SmartOption[] = [];
 
     // עבור כל סוגי השאלות - פשוט הוסף/הסר מהבחירה
     if (currentQuestion?.type === "single") {
+      console.log("🔍 DEBUG: שאלה עם בחירה יחידה");
       // בשאלה עם בחירה אחת - החלף את הבחירה
       setSelectedOption(option);
       newSelections = [option];
       setSelectedOptions(newSelections);
+      console.log("🔍 DEBUG: נבחר:", option.label);
     } else if (currentQuestion?.type === "multiple") {
+      console.log("🔍 DEBUG: שאלה עם בחירה מרובה");
       const isAlreadySelected = selectedOptions.some(
         (opt) => opt.id === option.id
       );
 
       if (isAlreadySelected) {
+        console.log("🔍 DEBUG: מסיר אפשרות קיימת");
         // הסר מהבחירה
         newSelections = selectedOptions.filter((opt) => opt.id !== option.id);
         setSelectedOptions(newSelections);
@@ -130,18 +151,24 @@ const SmartQuestionnaireScreen: React.FC = () => {
           setSelectedOption(null);
         }
       } else {
+        console.log("🔍 DEBUG: מוסיף אפשרות חדשה");
         // הוסף לבחירה
         newSelections = [...selectedOptions, option];
         setSelectedOptions(newSelections);
       }
     }
 
+    console.log(
+      "🔍 DEBUG: בחירות חדשות:",
+      newSelections.map((opt) => opt.label)
+    );
+
     // הצג/הסתר כפתור עם אנימציה
     const hasSelections = newSelections.length > 0;
 
     Animated.timing(buttonAnimation, {
       toValue: hasSelections ? 1 : 0,
-      duration: 300,
+      duration: ANIMATION_CONSTANTS.BUTTON_FADE_DURATION,
       useNativeDriver: true,
     }).start();
   };
@@ -168,17 +195,22 @@ const SmartQuestionnaireScreen: React.FC = () => {
 
       // המשך לשאלה הבאה אחרי המשוב
       setTimeout(() => {
+        console.log("🔍 DEBUG: מנסה לעבור לשאלה הבאה");
         const hasNextQuestion = manager.nextQuestion();
+        console.log("🔍 DEBUG: יש שאלה הבאה:", hasNextQuestion);
 
         if (hasNextQuestion) {
+          console.log("🔍 DEBUG: טוען שאלה הבאה");
           loadCurrentQuestion();
         } else {
+          console.log("🔍 DEBUG: מסיים שאלון - כל השאלות נענו");
           completeQuestionnaire();
         }
 
         setIsAnswering(false);
-      }, 3000); // 3 שניות להצגת המשוב
-    }, 500);
+        console.log("🔍 DEBUG: סיים לענות, isAnswering = false");
+      }, ANIMATION_CONSTANTS.FEEDBACK_DISPLAY_DURATION); // 2 שניות להצגת המשוב
+    }, ANIMATION_CONSTANTS.ANSWER_PROCESSING_DELAY);
   };
 
   const completeQuestionnaire = async () => {
@@ -260,6 +292,16 @@ const SmartQuestionnaireScreen: React.FC = () => {
     setAiFeedback(null);
   };
 
+  // 🔙 פונקציה חדשה לחזרה אחורה
+  const handlePrevious = () => {
+    if (!manager.canGoBack() || isAnswering) return;
+
+    const didGoBack = manager.previousQuestion();
+    if (didGoBack) {
+      loadCurrentQuestion();
+    }
+  };
+
   if (!currentQuestion) {
     return (
       <SafeAreaView style={styles.container}>
@@ -289,19 +331,30 @@ const SmartQuestionnaireScreen: React.FC = () => {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          {/* התקדמות עם טיפים חכמים */}
+          {/* התקדמות */}
           <SmartProgressBarCentralized progress={progress} />
-          {/* טיפ חכם בהתאם להתקדמות */}
-          {progress.percentage > 0 && progress.percentage < 100 && (
-            <View style={styles.smartTipContainer}>
-              <Text style={styles.smartTipIcon}>💡</Text>
-              <Text style={styles.smartTipText}>
-                {progress.percentage < 50
-                  ? "ככל שתענה יותר, כך נוכל ליצור תוכנית מותאמת יותר עבורך"
-                  : "כמעט סיימנו! התשובות שלך עוזרות לנו ליצור את האימון המושלם"}
-              </Text>
+
+          {/* כפתור חזרה בתוך השאלון */}
+          {manager.canGoBack() && (
+            <View style={styles.backButtonContainer}>
+              <TouchableOpacity
+                style={styles.previousButton}
+                onPress={handlePrevious}
+                disabled={isAnswering}
+              >
+                <View style={styles.previousButtonContent}>
+                  <Ionicons
+                    name="chevron-back"
+                    size={16}
+                    color={theme.colors.textSecondary}
+                    style={styles.previousButtonIcon}
+                  />
+                  <Text style={styles.previousButtonText}>שאלה קודמת</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           )}
+
           {/* כותרת השאלה */}
           <View style={styles.questionHeader}>
             <Text style={styles.questionIcon}>{currentQuestion.icon}</Text>
@@ -336,24 +389,6 @@ const SmartQuestionnaireScreen: React.FC = () => {
                 />
               );
             })}
-
-            {/* הצגת מידע נוסף על הבחירות */}
-            {selectedOptions.length > 0 && (
-              <View style={styles.selectionSummary}>
-                <Text style={styles.selectionSummaryTitle}>
-                  ✨ הבחירות שלך ({selectedOptions.length}):
-                </Text>
-                <View style={styles.selectedItemsContainer}>
-                  {selectedOptions.map((option, index) => (
-                    <View key={option.id} style={styles.selectedItem}>
-                      <Text style={styles.selectedItemText}>
-                        {option.label}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
           </View>
           {/* רווח תחתון */}
           <View style={styles.bottomSpacer} />
@@ -415,6 +450,7 @@ const SmartQuestionnaireScreen: React.FC = () => {
           <AIFeedbackCentralized
             feedback={aiFeedback}
             onClose={handleCloseFeedback}
+            autoCloseDelay={ANIMATION_CONSTANTS.FEEDBACK_DISPLAY_DURATION}
           />
         )}
 
@@ -529,70 +565,6 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.lg,
   },
 
-  // סטיילים לטיפים חכמים
-  smartTipContainer: {
-    backgroundColor: theme.colors.info + "15",
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    flexDirection: "row-reverse", // אייקון מימין בעברית
-    alignItems: "center",
-    borderRightWidth: 3,
-    borderRightColor: theme.colors.info,
-  },
-  smartTipIcon: {
-    fontSize: 20,
-    marginLeft: theme.spacing.sm, // רווח מימין בעברית
-  },
-  smartTipText: {
-    flex: 1,
-    ...theme.typography.body,
-    color: theme.colors.info,
-    textAlign: "right",
-    writingDirection: "rtl",
-    lineHeight: 20,
-  },
-
-  // סטיילים לסיכום בחירות
-  selectionSummary: {
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
-  },
-  selectionSummaryTitle: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.primary,
-    fontWeight: "600",
-    textAlign: "right",
-    marginBottom: theme.spacing.md,
-    writingDirection: "rtl",
-  },
-  selectedItemsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-    justifyContent: "flex-end", // מיישר לימין ב-RTL
-  },
-  selectedItem: {
-    backgroundColor: theme.colors.primary + "20",
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "40",
-  },
-  selectedItemText: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.primary,
-    fontWeight: "500",
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-
   bottomSpacer: {
     height: 100, // יותר מקום לכפתור הצף
   },
@@ -664,6 +636,39 @@ const styles = StyleSheet.create({
   loadingMessage: {
     ...theme.typography.bodyLarge,
     color: theme.colors.text,
+    textAlign: "center",
+    writingDirection: "rtl",
+  },
+
+  // סטיילים לכפתור חזרה בתוך השאלון
+  backButtonContainer: {
+    marginBottom: theme.spacing.md,
+    alignItems: "flex-start",
+  },
+  previousButton: {
+    backgroundColor: theme.colors.card,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  previousButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previousButtonIcon: {
+    marginLeft: theme.spacing.xs,
+  },
+  previousButtonText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",
   },

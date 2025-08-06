@@ -170,7 +170,12 @@ export default function WelcomeScreen() {
 
         if (isLoggedIn() && user) {
           console.log(WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND, user.email);
-          navigation.navigate("MainApp");
+          // בדוק אם למשתמש יש שאלון חכם
+          if (user.smartQuestionnaireData) {
+            navigation.navigate("MainApp");
+          } else {
+            navigation.navigate("Questionnaire", { stage: "profile" });
+          }
           return;
         }
 

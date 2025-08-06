@@ -44,6 +44,7 @@ interface UserStore {
   // Authentication state checks
   isLoggedIn: () => boolean;
   clearAllUserData: () => Promise<void>;
+  clearDataForFreshStart: () => Promise<void>; // חדש: לניקוי במצב פיתוח
 
   // פעולות שאלון חכם חדשות
   // New smart questionnaire actions
@@ -580,6 +581,31 @@ export const useUserStore = create<UserStore>()(
         }));
         console.log("✅ Custom demo user cleared");
       },
+
+      // פונקציה לניקוי מלא לפיתוח (ללא התנתקות)
+      // Complete data clearing for development (without logout)
+      clearDataForFreshStart: async () => {
+        try {
+          console.log("🧹 clearDataForFreshStart - מתחיל ניקוי לכניסה חדשה");
+
+          // קבלת כל המפתחות מ-AsyncStorage
+          const allKeys = await AsyncStorage.getAllKeys();
+          console.log(`📋 נמצאו ${allKeys.length} מפתחות ב-AsyncStorage`);
+
+          // מחיקת כל המפתחות
+          await AsyncStorage.multiRemove(allKeys);
+
+          // איפוס ה-store
+          set({ user: null });
+
+          console.log(
+            "✅ clearDataForFreshStart - ניקוי הושלם, הסשן החדש התחיל"
+          );
+        } catch (error) {
+          console.error("❌ clearDataForFreshStart - שגיאה בניקוי:", error);
+          throw error;
+        }
+      },
     }),
     {
       name: "user-storage",
@@ -591,6 +617,22 @@ export const useUserStore = create<UserStore>()(
       // Auto-load on startup
       onRehydrateStorage: () => (state) => {
         console.log("User store rehydrated:", state?.user?.email);
+
+        // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
+        // Development mode: Auto-clear on every fresh start (temporarily disabled)
+        if (false && __DEV__) {
+          console.log("🧹 DEV MODE: Auto-clearing user data for fresh start");
+          // ניקוי אסינכרוני כדי לא לחסום את הטעינה
+          setTimeout(async () => {
+            try {
+              const allKeys = await AsyncStorage.getAllKeys();
+              await AsyncStorage.multiRemove(allKeys);
+              console.log("✅ DEV MODE: All data cleared");
+            } catch (error) {
+              console.error("❌ DEV MODE: Error clearing data:", error);
+            }
+          }, 100);
+        }
       },
     }
   )
@@ -625,6 +667,23 @@ export const useQuestionnaireCompleted = () =>
 // Hook לגישה למשתמש דמו מותאם
 export const useCustomDemoUser = () =>
   useUserStore((state) => state.user?.customDemoUser);
+
+// Hook לניקוי מהיר במצב פיתוח
+// Quick clear hook for development mode
+export const useFreshStart = () => {
+  const clearDataForFreshStart = useUserStore(
+    (state) => state.clearDataForFreshStart
+  );
+
+  const performFreshStart = async () => {
+    console.log("🔄 Performing fresh start...");
+    await clearDataForFreshStart();
+    // אחרי הניקוי, האפליקציה תחזור למסך הפתיחה
+    console.log("✨ Fresh start completed! App will reset to welcome screen.");
+  };
+
+  return { performFreshStart };
+};
 
 // Hook מתקדם לבדיקת מצב התחברות
 // Advanced hook for checking login status
