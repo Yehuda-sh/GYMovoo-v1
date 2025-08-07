@@ -80,7 +80,7 @@ interface WorkoutWithRating {
  * Achievement definitions configuration
  * קונפיגורציית הגדרות הישגים
  */
-export const ACHIEVEMENTS_CONFIG: AchievementConfig[] = [
+export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
   // 🎯 Basic achievements / הישגים בסיסיים
   {
     id: 1,
@@ -365,6 +365,7 @@ const calculateStreak = (workouts: WorkoutWithRating[]): number => {
 
   for (const workout of sortedWorkouts) {
     const workoutDate = new Date(workout.date || workout.completedAt || "");
+    if (isNaN(workoutDate.getTime())) continue;
     const diffDays = Math.floor(
       (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -386,10 +387,13 @@ const calculateStreak = (workouts: WorkoutWithRating[]): number => {
  * חישוב זמן אימון כולל בדקות
  */
 const calculateTotalTime = (workouts: WorkoutWithRating[]): number => {
-  return workouts.reduce(
-    (sum: number, workout: WorkoutWithRating) => sum + (workout.duration || 45),
-    0
-  );
+  // Normalize duration to minutes. If value looks like seconds (> 180), convert to minutes.
+  return workouts.reduce((sum: number, workout: WorkoutWithRating) => {
+    const raw = workout.duration;
+    if (raw == null) return sum + 45; // sensible default in minutes
+    const minutes = raw > 180 ? Math.round(raw / 60) : raw; // heuristic seconds→minutes
+    return sum + minutes;
+  }, 0);
 };
 
 /**
@@ -397,11 +401,15 @@ const calculateTotalTime = (workouts: WorkoutWithRating[]): number => {
  * חישוב דירוג ממוצע מאימונים
  */
 const calculateAverageRating = (workouts: WorkoutWithRating[]): number => {
-  const ratedWorkouts = workouts.filter((w) => w.rating && w.rating > 0);
+  const ratedWorkouts = workouts.filter(
+    (w) =>
+      (w.rating && w.rating > 0) ||
+      (w.feedback?.difficulty && w.feedback.difficulty > 0)
+  );
   if (ratedWorkouts.length === 0) return 0;
 
   const totalRating = ratedWorkouts.reduce(
-    (sum, w) => sum + (w.rating || 0),
+    (sum, w) => sum + (w.rating ?? w.feedback?.difficulty ?? 0),
     0
   );
   return totalRating / ratedWorkouts.length;
@@ -412,7 +420,8 @@ const calculateAverageRating = (workouts: WorkoutWithRating[]): number => {
  * ספירת דירוגים מושלמים (5 כוכבים)
  */
 const countPerfectRatings = (workouts: WorkoutWithRating[]): number => {
-  return workouts.filter((w) => w.rating === 5).length;
+  return workouts.filter((w) => w.rating === 5 || w.feedback?.difficulty === 5)
+    .length;
 };
 
 /**
@@ -420,11 +429,13 @@ const countPerfectRatings = (workouts: WorkoutWithRating[]): number => {
  * חישוב ימים מאז הרשמה
  */
 const calculateDaysSinceRegistration = (user: User): number => {
-  // For now, return a default of 30 days for all users
-  // לעת עתה, החזר ברירת מחדל של 30 ימים לכל המשתמשים
-  // This should be updated when user registration date is available
-  // זה צריך להתעדכן כאשר תאריך הרשמת המשתמש יהיה זמין
-  return 30;
+  // Prefer actual creation date if available; fallback to 30 days
+  const createdAt = (user as any)?.createdAt as string | undefined;
+  if (!createdAt) return 30;
+  const created = new Date(createdAt);
+  if (isNaN(created.getTime())) return 30;
+  const diffMs = Date.now() - created.getTime();
+  return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 };
 
 /**
@@ -437,6 +448,7 @@ const countWorkoutsByTime = (
 ): number => {
   return workouts.filter((workout) => {
     const workoutDate = new Date(workout.date || workout.completedAt || "");
+    if (isNaN(workoutDate.getTime())) return false;
     const hour = workoutDate.getHours();
     const dayOfWeek = workoutDate.getDay();
 
@@ -467,8 +479,11 @@ const checkRequirement = (
 
   switch (requirement.type) {
     case "questionnaire":
-      const hasQuestionnaire =
+      // Consider either legacy questionnaire or the new smartQuestionnaireData presence
+      const hasLegacy =
         !!user.questionnaire && Object.keys(user.questionnaire).length > 5;
+      const hasSmart = !!(user as any)?.smartQuestionnaireData?.answers;
+      const hasQuestionnaire = hasLegacy || hasSmart;
       return { met: hasQuestionnaire, progress: hasQuestionnaire ? 100 : 0 };
 
     case "workoutCount":
@@ -520,11 +535,14 @@ const checkRequirement = (
       };
 
     case "timeOfDay":
-      const timeCount = countWorkoutsByTime(
-        workouts,
-        requirement.value as string
-      );
-      const specialTimeTarget = 10; // Default target for time-based achievements
+      const timeValue = requirement.value as string;
+      const timeCount = countWorkoutsByTime(workouts, timeValue);
+      const specialTargets: Record<string, number> = {
+        weekend: 5,
+        morning: 10,
+        night: 8,
+      };
+      const specialTimeTarget = specialTargets[timeValue] ?? 10;
       return {
         met: timeCount >= specialTimeTarget,
         progress: Math.min((timeCount / specialTimeTarget) * 100, 100),

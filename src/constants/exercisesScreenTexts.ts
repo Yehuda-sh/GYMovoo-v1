@@ -13,7 +13,7 @@ export const EXERCISES_MUSCLE_GROUPS = [
     id: "chest",
     name: "חזה",
     icon: "arm-flex" as const,
-    description: "דחיפות, צלילים ועוד",
+    description: "לחיצות, פרפרים ועוד",
   },
   {
     id: "back",
@@ -37,7 +37,7 @@ export const EXERCISES_MUSCLE_GROUPS = [
     id: "arms",
     name: "זרועות",
     icon: "arm-flex" as const,
-    description: "ביצפס, טריצפס ועוד",
+    description: "בייספס, טרייספס ועוד",
   },
   {
     id: "core",
@@ -46,6 +46,8 @@ export const EXERCISES_MUSCLE_GROUPS = [
     description: "בטן, גב תחתון ועוד",
   },
 ] as const;
+
+export type ExercisesMuscleGroup = (typeof EXERCISES_MUSCLE_GROUPS)[number];
 
 export const EXERCISES_SCREEN_TEXTS = {
   // Headers and main titles / כותרות ראשיות
@@ -133,7 +135,12 @@ export const EXERCISES_SCREEN_TEXTS = {
  * Helper function to get muscle group color from theme
  * פונקציית עזר לקבלת צבע קבוצת שרירים מהנושא
  */
-export const getMuscleGroupColor = (theme: any, groupId: string): string => {
+type ThemeColorLike = { colors: Record<string, string> };
+
+export const getMuscleGroupColor = (
+  theme: ThemeColorLike,
+  groupId: string
+): string => {
   const colorMap = {
     chest: theme.colors.primary,
     back: theme.colors.success,
@@ -150,7 +157,13 @@ export const getMuscleGroupColor = (theme: any, groupId: string): string => {
  * Dynamic statistics calculation based on loaded data
  * חישוב סטטיסטיקות דינמי על בסיס נתונים נטענים
  */
-export const generateExerciseStats = (musclesCount: number) => ({
+export const generateExerciseStats = (
+  musclesCount: number
+): {
+  exercisesCount: string;
+  muscleGroupsCount: string;
+  averageRating: string;
+} => ({
   exercisesCount: EXERCISES_SCREEN_TEXTS.STATISTICS.EXERCISES_COUNT,
   muscleGroupsCount: musclesCount.toString(),
   averageRating: EXERCISES_SCREEN_TEXTS.STATISTICS.AVERAGE_RATING,

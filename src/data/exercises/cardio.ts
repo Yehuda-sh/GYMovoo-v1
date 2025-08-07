@@ -102,7 +102,7 @@ export const cardioExercises: Exercise[] = [
     tips: {
       he: [
         "התחל לאט ובצע בטכניקה נכונה",
-        "נשים לאורך כל התרגיל",
+        "נשום לאורך כל התרגיל",
         "אם קשה - בצע ללא קפיצה בסוף",
       ],
       en: [
@@ -150,9 +150,9 @@ export const cardioExercises: Exercise[] = [
     instructions: {
       he: [
         "התחל בעמדת פלאנק עם זרועות ישרות",
-        "מעלה ברך אחת לעבר החזה",
+        "העלה ברך אחת לעבר החזה",
         "החלף רגליים במהירות",
-        "המשך לחליפה במקצב מהיר",
+        "המשך להחליף במקצב מהיר",
       ],
       en: [
         "Start in plank position with straight arms",
@@ -162,7 +162,7 @@ export const cardioExercises: Exercise[] = [
       ],
     },
     tips: {
-      he: ["שמור על ירכיים יציבות", "אל תתן לישבן להתרומם", "נשם באופן קבוע"],
+      he: ["שמור על ירכיים יציבות", "אל תתן לישבן להתרומם", "נשום באופן קבוע"],
       en: ["Keep hips stable", "Don't let hips rise up", "Breathe regularly"],
     },
     safetyNotes: {
