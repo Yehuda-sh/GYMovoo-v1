@@ -27,6 +27,8 @@ export const workoutLogger = {
 
   debug: (message: string, data?: any) => {
     if (IS_DEVELOPMENT) {
+      // keep debug silent in production; useful during development
+      console.debug?.(`[Workout][debug] ${message}`, data ?? "");
     }
   },
 

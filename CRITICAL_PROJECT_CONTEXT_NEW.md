@@ -9,6 +9,13 @@
 
 # 🏋️‍♂️ GYMovoo – חוקי ברזל, סטנדרטים ולקחים
 
+> Doc accuracy update (Aug 2025)
+>
+> - Questionnaire: The project uses a unified screen `src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx` (replaces legacy SmartQuestionnaireScreen and selector screens like AgeSelector/DietSelector/etc.).
+> - Navigation/entry: The app does not use Expo App Router (`app/`). Entry is `index.ts` and navigation is via `src/navigation/AppNavigator.tsx`.
+> - `QuestionnaireNavigationUpdate.tsx` and selector screen files listed below are legacy references and may not exist; keep them for historical notes only.
+> - Completion detection in code checks any of: `questionnaire`, `questionnaireData`, `smartQuestionnaireData` on the user object.
+
 ## תוכן עניינים | Table of Contents
 
 1. [כללי זהב (עברית)](#1-כללי-זהב-עברית)
@@ -308,6 +315,8 @@ GYMovoo/
 
 ### מסכים קיימים (27 מסכים פעילים):
 
+Note: Questionnaire is unified now. The selector screens listed below are legacy/for reference; current UI is `src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx`.
+
 ```
 src/screens/
 ├── auth/                  # אימות (3 מסכים)
@@ -409,7 +418,7 @@ src/navigation/
 ├── AppNavigator.tsx       # Stack Navigator ראשי
 ├── BottomNavigation.tsx   # Bottom Tab Navigator
 ├── types.ts              # טיפוסי ניווט מרכזיים
-└── QuestionnaireNavigationUpdate.tsx # עדכוני ניווט דינמיים
+└── QuestionnaireNavigationUpdate.tsx # (legacy reference; not in current code)
 ```
 
 ### כלי בדיקה אוטומטיים (15+ סקריפטים):
@@ -444,21 +453,21 @@ docs/
 
 ```
 GYMovoo/
-├── app/                    # Expo App Router based
-│   ├── _layout.tsx         # Root layout with navigation
-│   └── index.tsx           # Entry point
+├── index.ts                # Expo entry (registerRootComponent)
+├── App.tsx                 # Root component
 ├── src/                    # Main source code
 │   ├── components/         # Reusable components
-│   ├── data/              # Static data
-│   ├── hooks/             # Custom hooks
-│   ├── navigation/        # Navigation system
-│   ├── screens/           # All screens
-│   ├── services/          # Data services
-│   ├── stores/            # State management
-│   └── styles/            # Global styling
-├── assets/                # Images and icons
-├── scripts/               # Validation & automation tools
-└── docs/                  # Detailed documentation
+│   ├── data/               # Static data & questionnaire manager
+│   ├── hooks/              # Custom hooks
+│   ├── navigation/         # AppNavigator + types
+│   ├── screens/            # All screens (incl. UnifiedQuestionnaireScreen)
+│   ├── services/           # Data/services layer
+│   ├── stores/             # Zustand store(s)
+│   └── styles/             # Global styling/theme
+├── assets/                 # Images and icons
+├── android/                # Native Android project (generated)
+├── scripts/                # Validation & automation tools
+└── docs/                   # Documentation
 ```
 
 ### Existing Screens (27 active screens):

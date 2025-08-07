@@ -152,3 +152,20 @@ const questionnaireStatus = useMemo(() => {
 **✅ התיקון הושלם בהצלחה!**
 
 משתמש שנוצר עם כפתור "משתמש מציאותי" יוכל כעת לגשת לכל המסכים ללא הודעות שגיאה על שאלון חסר.
+
+---
+
+## 🔎 איך לבדוק (אימות מהיר)
+
+- הרצת בדיקת זיהוי השאלון האוטומטית:
+  - `npm run check:questionnaire:detection`
+- הרצת אגרגטור כללי לכל הבדיקות (כולל זיהוי השאלון):
+  - `node runAllProjectChecks.js`
+
+אם הכל תקין, תראה שהתרחישים Smart/Old/Legacy/None מסומנים כ-✅.
+
+## 🧩 הערות נתונים תמציתיות
+
+- `smartQuestionnaireData.answers.equipment` חייב להיות מערך שטוח של מחרוזות (string[]), ללא קינון
+- קיימת המרה אוטומטית ב-WorkoutPlansScreen לנתונים ישנים (duration="45_60_min", frequency מתוך availability[0])
+- בדיקת השלמה מתבצעת לפי סדר עדיפויות: smartQuestionnaireData → questionnaireData → questionnaire

@@ -620,6 +620,7 @@ export const useUserStore = create<UserStore>()(
 
         // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
         // Development mode: Auto-clear on every fresh start (temporarily disabled)
+        // eslint-disable-next-line no-constant-condition, no-constant-binary-expression
         if (false && __DEV__) {
           console.log("🧹 DEV MODE: Auto-clearing user data for fresh start");
           // ניקוי אסינכרוני כדי לא לחסום את הטעינה

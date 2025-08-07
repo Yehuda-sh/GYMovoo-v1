@@ -73,19 +73,6 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
     }
   }, [isLoading]);
 
-  if (isLoading && !showTimeout) {
-    return LoadingView;
-  }
-
-  if (!nextWorkout || showTimeout) {
-    return (
-      <DefaultWorkoutView
-        workout={DEFAULT_WORKOUT}
-        onStartWorkout={onStartWorkout}
-      />
-    );
-  }
-
   // ✨ מערכת אינטנסיביות מאוחדת - Unified intensity system
   const INTENSITY_CONFIG = React.useMemo(
     () => ({
@@ -114,6 +101,19 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
   const getIntensityConfig = React.useMemo(() => {
     return INTENSITY_CONFIG[nextWorkout?.suggestedIntensity || "normal"];
   }, [nextWorkout?.suggestedIntensity, INTENSITY_CONFIG]);
+
+  if (isLoading && !showTimeout) {
+    return LoadingView;
+  }
+
+  if (!nextWorkout || showTimeout) {
+    return (
+      <DefaultWorkoutView
+        workout={DEFAULT_WORKOUT}
+        onStartWorkout={onStartWorkout}
+      />
+    );
+  }
 
   return (
     <View
@@ -293,16 +293,17 @@ const CycleStatsView: React.FC<{
     consistency: number;
   } | null;
 }> = React.memo(({ cycleStats }) => {
-  if (!cycleStats) return null;
-
-  const statsData = React.useMemo(
-    () => [
+  const statsData = React.useMemo(() => {
+    if (!cycleStats)
+      return [] as Array<{ value: number | string; label: string }>;
+    return [
       { value: cycleStats.currentWeek, label: "שבוע" },
       { value: cycleStats.totalWorkouts, label: "אימונים" },
       { value: `${Math.round(cycleStats.consistency)}%`, label: "עקביות" },
-    ],
-    [cycleStats]
-  );
+    ];
+  }, [cycleStats]);
+
+  if (statsData.length === 0) return null;
 
   return (
     <View style={styles.statsContainer}>

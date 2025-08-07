@@ -5,99 +5,90 @@
 ### **שלב 1: לחיצה על "דמו מציאותי" ב-WelcomeScreen**
 
 ```typescript
-// הפונקציה שמופעלת:
+// הפונקציה שמופעלת (תקציר תואם לקוד בפועל):
 const handleDevQuickLogin = async () => {
-  // 1. יצירת משתמש דמו מלא עם היסטוריה
-  const demoUser = await realisticDemoService.generateRealisticUser();
+  // 1) משתמש בסיסי
+  const basicUser = realisticDemoService.generateDemoUser();
 
-  // 2. שמירה ב-userStore
-  setUser(demoUser);
+  // 2) שאלון חכם רנדומלי תואם (flat arrays, מפתחות עדכניים)
+  const smart = generateRandomQuestionnaire(basicUser);
 
-  // 3. ניווט למסך הראשי
+  // 3) היסטוריית אימונים מתקדמת תואמת למסכי היסטוריה
+  const workouts =
+    await workoutSimulationService.simulateHistoryCompatibleWorkouts(
+      basicUser.gender,
+      basicUser.experience
+    );
+
+  // 4) בניית משתמש מועשר + מיפוי תאימות ל-legacy
+  const enhancedUser = {
+    ...basicUser,
+    name: "David 123", // בפועל נבחר שם אנגלי רנדומלי + מספר
+    email: "david123@demo.gymovoo.com",
+    smartQuestionnaireData: smart,
+    questionnaire: {
+      equipment: smart.answers.equipment,
+      available_equipment: smart.answers.equipment,
+      gender: smart.answers.gender,
+      age: smart.answers.age,
+      height: smart.answers.height,
+      weight: smart.answers.weight,
+      goal: smart.answers.goals,
+      experience: smart.answers.fitnessLevel,
+      location: smart.answers.workoutLocation,
+      frequency: smart.answers.availability?.[0] || "3-4 times per week",
+      duration: smart.answers.sessionDuration,
+    },
+    activityHistory: { workouts },
+    createdAt: new Date().toISOString(),
+  };
+
+  // 5) שמירה וניווט
+  setUser(enhancedUser);
   navigation.navigate("MainApp");
 };
 ```
 
-### **שלב 2: יצירת נתונים ב-realisticDemoService.generateRealisticUser()**
+### **שלב 2: מה יש בתוך enhancedUser (נוכחי)**
 
 ```typescript
-// יוצר משתמש עם המבנה הנכון:
+// מבנה עיקרי לשימוש במסכים:
 const user = {
-  id: "demo_12345...",
-  name: "דן אברהם",
-  email: "dan.abraham@demo.app",
-  provider: "demo",
+  id: "demo_user_...",
+  name: "David 123",
+  email: "david123@demo.gymovoo.com",
 
-  // 🔑 הנתונים החשובים למסך ההיסטוריה:
+  // נתוני שאלון (חדש + תאימות)
+  smartQuestionnaireData: {
+    /* answers, metadata */
+  },
+  questionnaire: {
+    /* mapped from smart.answers */
+  },
+
+  // 🔑 נתונים למסך ההיסטוריה
   activityHistory: {
     workouts: [
       {
         id: "workout_1",
         workout: {
-          id: "workout_1",
-          name: "אימון חזה וכתפיים",
-          startTime: "2025-07-20T18:00:00.000Z",
-          endTime: "2025-07-20T19:15:00.000Z",
-          duration: 4500, // 75 דקות
-          exercises: [
-            {
-              id: "exercise_1",
-              name: "דחיפות בר",
-              category: "chest",
-              primaryMuscles: ["חזה", "כתפיים"],
-              sets: [
-                {
-                  id: "set_1",
-                  type: "working",
-                  targetReps: 12,
-                  targetWeight: 40,
-                  actualReps: 12,
-                  actualWeight: 40,
-                  completed: true,
-                },
-              ],
-            },
-          ],
-          totalVolume: 480, // משקל × חזרות
-          totalSets: 4,
-          completedSets: 4,
+          /* ...exercises, duration, totalVolume ... */
         },
         feedback: {
-          difficulty: 4, // 1-5
-          feeling: "💪", // emoji
-          readyForMore: true,
-          completedAt: "2025-07-20T19:15:00.000Z",
-          genderAdaptedNotes: "אימון מעולה! הרגשתי חזק והשגתי יעדים אמיתיים",
+          /* difficulty, completedAt, genderAdaptedNotes ... */
         },
         stats: {
-          duration: 4500,
-          totalSets: 4,
-          totalPlannedSets: 4,
-          totalVolume: 480,
-          personalRecords: 0,
+          /* duration, totalSets, personalRecords ... */
         },
         startTime: "2025-07-20T18:00:00.000Z",
         endTime: "2025-07-20T19:15:00.000Z",
       },
-      // עוד 15-25 אימונים דומים...
+      // ... עוד אימונים
     ],
   },
 
-  // סטטיסטיקות מחושבות:
-  trainingStats: {
-    totalWorkouts: 23,
-    totalVolume: 12500,
-    favoriteExercises: ["דחיפות בר", "סקוואט", "משיכות"],
-    lastWorkoutDate: "2025-08-03T19:00:00.000Z",
-    currentFitnessLevel: "intermediate",
-  },
-
-  // סטטיסטיקות נוכחיות:
-  currentStats: {
-    totalWorkouts: 23,
-    averageDifficulty: 4.1,
-    workoutStreak: 5,
-  },
+  createdAt: new Date().toISOString(),
+  // הערה: trainingStats/currentStats עשויים להיות מחושבים בזמן ריצה/מסכים
 };
 ```
 
@@ -143,7 +134,7 @@ if (
 - ✅ `WorkoutWithFeedback[]` מוחזר נכון
 - ✅ כל השדות הנדרשים קיימים
 - ✅ `validateWorkoutData()` עובר על כל האימונים
-- ✅ `formatDateHebrewLocal()` מקבל תאריכים תקינים
+- ✅ `formatDateHebrew()` מקבל תאריכים תקינים
 
 ### **2. מבנה נתונים תקין:**
 
@@ -155,8 +146,8 @@ if (
 ### **3. תצוגה במסכים:**
 
 - ✅ **HistoryScreen** - רואה 15-25 אימונים עם פרטים מלאים
-- ✅ **ProfileScreen** - רואה סטטיסטיקות נכונות
-- ✅ **HomeScreen** - מקבל המלצות מבוססות נתונים
+- ✅ **ProfileScreen** - רואה סטטיסטיקות אם זמינות/מחושבות
+- ✅ **HomeScreen** - יכול לנצל נתונים להמלצות
 
 ### **4. חישובים אוטומטיים:**
 
@@ -199,17 +190,17 @@ if (
 #### **👤 במסך הפרופיל:**
 
 ```
-"שלום דן אברהם! 👋"
+"שלום David 123! 👋"
 "רמת כושר: בינונית | 23 אימונים הושלמו"
 "🏆 השגים: 8 שיאים אישיים"
 "🔥 רצף נוכחי: 5 ימים"
-"💪 תרגילים מועדפים: דחיפות בר, סקוואט, משיכות"
+"💪 תרגילים מועדפים: (מחושב מתוך היסטוריה, אם קיים)"
 ```
 
 #### **🏠 במסך הבית:**
 
 ```
-"בהתבסס על 23 האימונים שלך..."
+"בהתבסס על היסטוריית האימונים שלך..."
 "🎯 האימון הבא שלך: רגליים וליבה"
 "⏱️ זמן מומלץ: 60 דקות"
 "📈 התקדמות: +15% בנפח השבוע"
@@ -219,12 +210,14 @@ if (
 
 ## 🚀 **סיכום:**
 
-**הזרימה עובדת בצורה מושלמת!**
+**הזרימה עובדת בצורה מושלמת (בזרימה הנוכחית של WelcomeScreen)!**
 
 - ✅ **נתונים מציאותיים ותקינים** נוצרים אוטומטית
-- ✅ **תאימות מלאה** לכל הממשקים והמסכים
+- ✅ **תאימות מלאה** לכל הממשקים והמסכים המרכזיים
 - ✅ **חוויית משתמש עשירה** מהרגע הראשון
 - ✅ **אין שגיאות או נתונים חסרים**
 - ✅ **כל הולידציות עוברות** בהצלחה
+
+הערה: קיים מסלול שירות אופציונלי (`realisticDemoService.generateRealisticUserFromCustomDemo`) לשימוש בנתוני שאלון אמיתיים (`customDemoUser`) אם יוחלט לשלב בהמשך.
 
 **המשתמש מקבל אפליקציה מלאה ופעילה עם היסטוריה עשירה של 15-25 אימונים מציאותיים!** 🎉

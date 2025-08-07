@@ -1,11 +1,11 @@
 # 🎯 תיקון אינטגרציה: קישור השאלון ל-realisticDemoService
 
-**תאריך:** 2025-01-08  
+**תאריך:** 8 באוגוסט 2025  
 **בעיה:** השאלון מושלם אבל לא מחובר ל-`realisticDemoService` - נתוני הדמו לא השתנו לפי תשובות השאלון
 
 ## 🔍 זיהוי הבעיה
 
-- ✅ השאלון (`SmartQuestionnaireScreen`) עובד מושלם
+- ✅ השאלון (`UnifiedQuestionnaireScreen`) עובד מושלם
 - ✅ ה-`realisticDemoService` יוצר נתוני דמו מציאותיים
 - ❌ **אין חיבור ביניהם** - השאלון שומר ב-userStore אבל הדמו נשאר רנדומלי
 
@@ -52,7 +52,7 @@ clearCustomDemoUser(): void
 export const useCustomDemoUser = () => useUserStore((state) => state.user?.customDemoUser)
 ```
 
-### 4. עדכון SmartQuestionnaireScreen
+### 4. עדכון UnifiedQuestionnaireScreen
 
 ```typescript
 // בתוך completeQuestionnaire()
@@ -133,7 +133,7 @@ setCustomDemoUser({
 - ✅ `src/services/realisticDemoService.ts` - הוספת +140 שורות קוד
 - ✅ `src/types/index.ts` - הרחבת User interface
 - ✅ `src/stores/userStore.ts` - 3 פונקציות חדשות + hook
-- ✅ `src/screens/questionnaire/SmartQuestionnaireScreen.tsx` - אינטגרציה מלאה
+- ✅ `src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx` - אינטגרציה מלאה (יצירת answersMap, קריאה ל‑generateDemoUserFromQuestionnaire, שמירת customDemoUser)
 
 **סה"כ שינויים:** 4 קבצים, ~200 שורות קוד חדשות
 
@@ -143,3 +143,10 @@ setCustomDemoUser({
 - 🏗️ TypeScript תקין ללא שגיאות
 - 🔄 תאימות לאחור מלאה
 - 📱 מוכן לשימוש באפליקציה
+
+---
+
+## 🔎 איך לאמת מהר
+
+- הרץ: `npm run check:questionnaire:detection` כדי לוודא זיהוי שאלון בכל המסכים
+- לחלופין: `node runAllProjectChecks.js` לקבלת סיכום כולל

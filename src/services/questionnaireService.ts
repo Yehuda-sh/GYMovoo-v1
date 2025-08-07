@@ -437,18 +437,14 @@ class QuestionnaireService {
    * Save questionnaire data with enhanced analysis
    */
   async saveQuestionnaireData(data: QuestionnaireMetadata): Promise<void> {
-    try {
-      await AsyncStorage.setItem(
-        STORAGE_KEYS.QUESTIONNAIRE_METADATA,
-        JSON.stringify({
-          ...data,
-          completedAt: data.completedAt || new Date().toISOString(),
-          version: "3.0", // Updated version for enhanced system
-        })
-      );
-    } catch (error) {
-      throw error;
-    }
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.QUESTIONNAIRE_METADATA,
+      JSON.stringify({
+        ...data,
+        completedAt: data.completedAt || new Date().toISOString(),
+        version: "3.0", // Updated version for enhanced system
+      })
+    );
   }
 
   /**
@@ -686,15 +682,11 @@ class QuestionnaireService {
    * Clear questionnaire data
    */
   async clearQuestionnaireData(): Promise<void> {
-    try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.QUESTIONNAIRE_METADATA,
-        STORAGE_KEYS.QUESTIONNAIRE_DRAFT,
-        STORAGE_KEYS.WORKOUT_PREFERENCES,
-      ]);
-    } catch (error) {
-      throw error;
-    }
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.QUESTIONNAIRE_METADATA,
+      STORAGE_KEYS.QUESTIONNAIRE_DRAFT,
+      STORAGE_KEYS.WORKOUT_PREFERENCES,
+    ]);
   }
 
   // =======================================

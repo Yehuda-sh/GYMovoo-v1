@@ -58,15 +58,18 @@ const IconButton: React.FC<IconButtonProps> = React.memo(
       let calculatedBorderRadius = borderRadius;
       if (!borderRadius) {
         switch (variant) {
-          case "circle":
+          case "circle": {
             const circleRadius = (size + padding * 2) / 2;
             calculatedBorderRadius = circleRadius;
             break;
-          case "square":
+          }
+          case "square": {
             calculatedBorderRadius = theme.radius.sm;
             break;
-          default:
+          }
+          default: {
             calculatedBorderRadius = theme.radius.md;
+          }
         }
       }
 

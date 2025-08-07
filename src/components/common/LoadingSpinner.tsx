@@ -133,7 +133,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         if (style) baseContainerStyle.push(style);
 
         // Transform animations
-        let transforms: any[] = [];
+        const transforms: any[] = [];
 
         if (variant === "fade") {
           transforms.push({ opacity: fadeAnim });

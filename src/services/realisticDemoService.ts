@@ -634,8 +634,8 @@ class RealisticDemoService {
           );
 
     const sets: Set[] = [];
-    let baseWeight = this.getBaseWeight(experience);
-    let baseReps = this.getBaseReps(experience);
+    const baseWeight = this.getBaseWeight(experience);
+    const baseReps = this.getBaseReps(experience);
 
     for (let i = 0; i < setCount; i++) {
       // הדרגתיות מציאותית - משקל יורד או חזרות יורדות

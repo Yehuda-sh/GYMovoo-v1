@@ -55,12 +55,13 @@ console.log("\n=== הבדיקה הצליחה! המאגר עובד תקין ===\n
 // דוגמת קוד לשימוש באפליקציה:
 console.log("💡 דוגמת שימוש באפליקציה:");
 console.log(`
-// שימוש בפונקציות הסינון:
-import { 
-  getBodyweightExercises, 
-  getDumbbellExercises, 
-  getSmartFilteredExercises 
-} from './src/data/exerciseDatabase';
+// שימוש בפונקציות הסינון (ייצוא אמיתי):
+import {
+  getBodyweightExercises,
+  getDumbbellExercises,
+  getSmartFilteredExercises,
+  getQuietExercises,
+} from './src/data/exercises';
 
 // תרגילי בית ללא ציוד:
 const homeWorkout = getSmartFilteredExercises(['home'], []);
@@ -69,5 +70,5 @@ const homeWorkout = getSmartFilteredExercises(['home'], []);
 const homeWithWeights = getSmartFilteredExercises(['home'], ['dumbbells']);
 
 // תרגילים שקטים לדירה:
-const quietExercises = getQuietExercises();
+const quietOnly = getQuietExercises();
 `);

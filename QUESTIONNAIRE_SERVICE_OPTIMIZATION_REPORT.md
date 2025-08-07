@@ -2,11 +2,11 @@
 
 ## QuestionnaireService Optimization Report
 
-**תאריך:** ${new Date().toLocaleDateString('he-IL')}  
+**תאריך:** 8 באוגוסט 2025  
 **קובץ:** `src/services/questionnaireService.ts`  
 **שורות לפני:** 1428 שורות  
-**שורות אחרי:** 1417 שורות  
-**חיסכון:** 11 שורות (0.8%)
+**שורות אחרי:** 1414 שורות  
+**חיסכון:** 14 שורות (≈0.98%)
 
 ---
 
@@ -39,14 +39,17 @@ estimatedCalories: this.calculateEstimatedCalories(duration, "endurance"),
 
 ### 2. 📊 משקלי קלוריות משופרים / Enhanced Calorie Weights
 
-**שיפורים בפונקציית חישוב הקלוריות:**
+**שיפורים בפונקציית חישוב הקלוריות (כיום בקוד):**
 
-- `cardio`: 10 → 12 (שיפור של 20%)
-- `hiit`: 15 → 14 (כיול מדויק יותר)
-- `strength`: 7 → 9 (שיפור של 28%)
-- `power`: 8 → 11 (שיפור של 37%)
-- `mobility`: 3 → 9 (שיפור דרמטי של 200%)
-- הוספת `endurance`: 10 (חדש)
+- `cardio`: 12
+- `hiit`: 14
+- `strength`: 9
+- `power`: 11
+- `mobility`: 9
+- `lowimpact`: 5
+- `rehab`: 4
+- `general`: 8 (ברירת מחדל)
+- `endurance`: 10 (נוסף)
 
 ---
 
@@ -78,7 +81,7 @@ private create[Type]Workout = (duration, equipment, prefs) => ({
 });
 ```
 
-**המלצה:** יצירת Factory Pattern מרכזי
+**סטטוס:** Factory Pattern חלקי כבר קיים (createWorkoutByType + workoutFactories); יש מקום להרחבה ואיחוד מלא.
 
 #### ב. בדיקות תקינות / Validation Checks
 

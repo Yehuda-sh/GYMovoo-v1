@@ -108,10 +108,11 @@ function testScenario(name, steps) {
   });
 
   console.log(`\n✅ תרחיש "${name}" הושלם`);
+  return simulator;
 }
 
 // תרחיש 1: אימונים בבית ללא ציוד
-testScenario("אימונים בבית ללא ציוד", [
+const sim1 = testScenario("אימונים בבית ללא ציוד", [
   { type: "answer", questionId: "training_location", answer: "home" },
   { type: "next" },
   {
@@ -123,7 +124,7 @@ testScenario("אימונים בבית ללא ציוד", [
 ]);
 
 // תרחיש 2: אימונים בחדר כושר מלא
-testScenario("אימונים בחדר כושר מלא", [
+const sim2 = testScenario("אימונים בחדר כושר מלא", [
   { type: "answer", questionId: "training_location", answer: "gym" },
   { type: "next" },
   {
@@ -135,7 +136,7 @@ testScenario("אימונים בחדר כושר מלא", [
 ]);
 
 // תרחיש 3: אימונים בחוץ עם ציוד נייד
-testScenario("אימונים בחוץ עם ציוד נייד", [
+const sim3 = testScenario("אימונים בחוץ עם ציוד נייד", [
   { type: "answer", questionId: "training_location", answer: "outdoor" },
   { type: "next" },
   {
@@ -147,7 +148,7 @@ testScenario("אימונים בחוץ עם ציוד נייד", [
 ]);
 
 // תרחיש 4: אימונים בבית עם חדר כושר ביתי מתקדם
-testScenario("אימונים בבית - חדר כושר ביתי מתקדם", [
+const sim4 = testScenario("אימונים בבית - חדר כושר ביתי מתקדם", [
   { type: "answer", questionId: "training_location", answer: "home" },
   { type: "next" },
   {
@@ -167,3 +168,49 @@ console.log("   • חדר כושר -> שאלת סוג חדר כושר");
 console.log("   • חוץ -> שאלת ציוד נייד");
 console.log("3. ✅ שאלה שלישית: תלויה בציוד שנבחר");
 console.log("\n💡 הבעיה נפתרה: אין יותר שאלות על חדר כושר למי שבחר בית!");
+
+// ------------------------------
+// Quick sanity checks (runtime)
+// ------------------------------
+const check = (name, predicate) => {
+  try {
+    const ok = !!predicate();
+    console.log(`${ok ? "✅" : "❌"} ${name}`);
+    return ok;
+  } catch (e) {
+    console.log(`❌ ${name} (error: ${e?.message || e})`);
+    return false;
+  }
+};
+
+console.log("\n🧪 Running quick checks:\n");
+const results = [];
+
+results.push(
+  check(
+    "Scenario 1 ends with bodyweight_equipment_options",
+    () => sim1.questionsToShow.at(-1) === "bodyweight_equipment_options"
+  )
+);
+results.push(
+  check(
+    "Scenario 2 ends with gym_equipment_options",
+    () => sim2.questionsToShow.at(-1) === "gym_equipment_options"
+  )
+);
+results.push(
+  check(
+    "Scenario 3 ends with home_equipment_options (portable)",
+    () => sim3.questionsToShow.at(-1) === "home_equipment_options"
+  )
+);
+results.push(
+  check(
+    "Scenario 4 ends with home_equipment_options (advanced home)",
+    () => sim4.questionsToShow.at(-1) === "home_equipment_options"
+  )
+);
+
+const passed = results.filter(Boolean).length;
+console.log(`\n✅ Passed ${passed}/${results.length} checks.`);
+process.exitCode = passed === results.length ? 0 : 1;

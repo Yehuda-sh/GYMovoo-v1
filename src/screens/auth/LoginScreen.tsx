@@ -127,6 +127,7 @@ export default function LoginScreen() {
         setEmail(savedEmail);
         setRememberMe(true);
       } else {
+        // no saved email found
       }
     } catch (error) {
       console.error("🔐 LoginScreen - Failed to load saved email:", error);

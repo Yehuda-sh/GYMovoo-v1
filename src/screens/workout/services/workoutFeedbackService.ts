@@ -42,7 +42,7 @@ class WorkoutFeedbackService {
    */
   validateFeedback(feedback: any): FeedbackValidationResult {
     const warnings: string[] = [];
-    let isValid = true;
+    const isValid = true;
 
     try {
       // וידואי זמן השלמה

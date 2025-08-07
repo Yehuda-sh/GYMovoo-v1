@@ -14,6 +14,21 @@ import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginReactNative from "eslint-plugin-react-native";
 
 export default [
+  // Ignore heavy/generated folders (Flat config doesn't read .eslintignore)
+  {
+    ignores: [
+      "**/node_modules/**",
+      "**/android/**",
+      "**/ios/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/.expo/**",
+      "**/.expo-shared/**",
+      "**/.vscode/**",
+    ],
+  },
+
   // Base configurations | תצורות בסיס
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -54,7 +69,6 @@ export default [
       ],
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "off", // Allow require() for assets
-      "@typescript-eslint/prefer-const": "error",
       "@typescript-eslint/no-var-requires": "off", // Allow for React Native assets
 
       // React rules | חוקי React
@@ -88,6 +102,18 @@ export default [
     },
   },
 
+  // TypeScript parser for TS files (explicit in flat config)
+  {
+    files: ["**/*.{ts,tsx,mts,cts}"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        sourceType: "module",
+      },
+    },
+  },
+
   // Relaxed rules for debug/test/script files | חוקים מקלים לקבצי דיבוג/בדיקה/סקריפטים
   {
     files: [
@@ -104,6 +130,7 @@ export default [
       "@typescript-eslint/no-var-requires": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      "prefer-const": "off",
       "no-console": "off", // Allow console in tests/scripts
       "react-native/no-unused-styles": "off",
       "react-native/no-inline-styles": "off",

@@ -478,63 +478,70 @@ const checkRequirement = (
   const workouts = user.activityHistory?.workouts || [];
 
   switch (requirement.type) {
-    case "questionnaire":
+    case "questionnaire": {
       // Consider either legacy questionnaire or the new smartQuestionnaireData presence
       const hasLegacy =
         !!user.questionnaire && Object.keys(user.questionnaire).length > 5;
       const hasSmart = !!(user as any)?.smartQuestionnaireData?.answers;
       const hasQuestionnaire = hasLegacy || hasSmart;
       return { met: hasQuestionnaire, progress: hasQuestionnaire ? 100 : 0 };
+    }
 
-    case "workoutCount":
+    case "workoutCount": {
       const count = workouts.length;
       const target = requirement.value as number;
       return {
         met: count >= target,
         progress: Math.min((count / target) * 100, 100),
       };
+    }
 
-    case "streak":
+    case "streak": {
       const streak = calculateStreak(workouts);
       const streakTarget = requirement.value as number;
       return {
         met: streak >= streakTarget,
         progress: Math.min((streak / streakTarget) * 100, 100),
       };
+    }
 
-    case "totalTime":
+    case "totalTime": {
       const totalTime = calculateTotalTime(workouts);
       const totalTimeTarget = requirement.value as number;
       return {
         met: totalTime >= totalTimeTarget,
         progress: Math.min((totalTime / totalTimeTarget) * 100, 100),
       };
+    }
 
-    case "registrationTime":
+    case "registrationTime": {
       const daysSince = calculateDaysSinceRegistration(user);
       const daysTarget = requirement.value as number;
       return {
         met: daysSince >= daysTarget,
         progress: Math.min((daysSince / daysTarget) * 100, 100),
       };
+    }
 
-    case "averageRating":
+    case "averageRating": {
       const avgRating = calculateAverageRating(workouts);
       const ratingTarget = requirement.value as number;
       return {
         met: avgRating >= ratingTarget,
         progress: Math.min((avgRating / ratingTarget) * 100, 100),
       };
+    }
 
-    case "perfectRatings":
+    case "perfectRatings": {
       const perfectCount = countPerfectRatings(workouts);
       const perfectTarget = requirement.value as number;
       return {
         met: perfectCount >= perfectTarget,
         progress: Math.min((perfectCount / perfectTarget) * 100, 100),
       };
+    }
 
-    case "timeOfDay":
+    case "timeOfDay": {
       const timeValue = requirement.value as string;
       const timeCount = countWorkoutsByTime(workouts, timeValue);
       const specialTargets: Record<string, number> = {
@@ -547,6 +554,7 @@ const checkRequirement = (
         met: timeCount >= specialTimeTarget,
         progress: Math.min((timeCount / specialTimeTarget) * 100, 100),
       };
+    }
 
     default:
       return { met: false, progress: 0 };

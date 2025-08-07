@@ -57,7 +57,6 @@ import {
   formatDifficultyScore,
   removeDuplicateWorkouts,
   sortWorkoutsByDate,
-  formatDateHebrew as formatDateHebrewLocal,
   validateWorkoutData,
 } from "./utils/historyHelpers";
 
@@ -84,6 +83,7 @@ export default function HistoryScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
+  // Effect: initial load & user change reload (added user dependency)
   useEffect(() => {
     loadHistory(true);
     loadStatistics();
@@ -102,7 +102,7 @@ export default function HistoryScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [user?.id]);
 
   const loadHistory = async (reset: boolean = false) => {
     try {
@@ -532,7 +532,7 @@ export default function HistoryScreen() {
               )}
             </View>
             <Text style={styles.workoutDate}>
-              {formatDateHebrewLocal(item.feedback.completedAt)}
+              {formatDateHebrew(item.feedback.completedAt)}
             </Text>
           </View>
 
@@ -755,9 +755,7 @@ export default function HistoryScreen() {
       <FlatList
         data={workouts}
         renderItem={renderWorkoutItem}
-        keyExtractor={(item, index) =>
-          `${item.id}_${index}_${item.feedback.completedAt}`
-        }
+        keyExtractor={(item) => `${item.id}_${item.feedback.completedAt}`}
         onEndReached={loadMoreWorkouts}
         onEndReachedThreshold={HISTORY_SCREEN_CONFIG.LOAD_MORE_THRESHOLD}
         ListHeaderComponent={() => (

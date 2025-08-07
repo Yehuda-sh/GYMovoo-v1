@@ -1,6 +1,6 @@
 # 🛠️ תיקון בעיות משתמש מציאותי
 
-**תאריך:** 2025-01-08  
+**תאריך:** 2025-08-08  
 **בעיות שזוהו:** משתמשים עם עברית באימייל + כפתור משתמש מציאותי לא מחובר לשאלון
 
 ## 🐛 הבעיות שתוקנו
@@ -21,7 +21,7 @@ demoUser.name = "דוד"
 email = "david123@demo.app" ✅
 ```
 
-### 2. כפתור "משתמש מציאותי" מתעלם מהשאלון
+### 2. כפתור "משתמש מציאותי" והקשר לשאלון
 
 **לפני התיקון:**
 
@@ -29,20 +29,22 @@ email = "david123@demo.app" ✅
 - לוחץ "משתמש מציאותי"
 - מקבל משתמש רנדומלי שלא קשור לתשובות ❌
 
-**אחרי התיקון:**
+**אחרי התיקון (נוכחי):**
 
-- משתמש עונה על שאלון ✅
-- לוחץ "משתמש מציאותי"
-- מקבל משתמש מותאם לתשובותיו ✅
+- לחיצה על "משתמש מציאותי" יוצרת משתמש דמו מלא עם SmartQuestionnaireData תקין + מיפוי תאימות ל-legacy ✅
+- הזרימה הנוכחית אינה מושכת `customDemoUser` קיימת מה-store (שדרוג אופציונלי) ⚠️
 
 ## 🔧 הפתרונות שיושמו
 
 ### 1. תיקון אימיילים עבריים
 
-**קובץ:** `src/services/realisticDemoService.ts`
+**קבצים רלוונטיים:**
+
+- `src/services/realisticDemoService.ts` (כשמשתמשים בנתוני דמו מותאמים)
+- `src/screens/welcome/WelcomeScreen.tsx` (בזרימה הנוכחית של כפתור הדמו)
 
 ```typescript
-// הוספת מיפוי שמות עבריים לאנגליים
+// realisticDemoService.ts — מיפוי שמות עבריים לאנגליים (למסלול customDemoUser)
 const englishEmailNames: Record<string, string> = {
   // שמות זכרים
   דוד: "david",
@@ -69,66 +71,55 @@ const englishEmailNames: Record<string, string> = {
   קיי: "kay",
   דני: "danny",
 };
+```
 
-const englishName = englishEmailNames[demoUser.name] || "user";
-const randomNum = Math.floor(Math.random() * 999) + 1;
-email = `${englishName}${randomNum}@demo.app`;
+```typescript
+// WelcomeScreen.tsx — ברירת מחדל: בחירת שם אנגלי מרשימה + דומיין demo.gymovoo.com
+const englishNames = { male: ["David", "Alex", ...], female: ["Sarah", ...] };
+const randomName = namesList[Math.floor(Math.random() * namesList.length)];
+const uniqueNumber = Math.floor(Math.random() * 1000);
+const userEmail = `${randomName.toLowerCase()}${uniqueNumber}@demo.gymovoo.com`;
 ```
 
 ### 2. חיבור כפתור משתמש מציאותי לשאלון
 
-**א. פונקציה חדשה ב-service:**
+**א. פונקציה זמינה ב-service (לשדרוג אופציונלי):**
 
 ```typescript
 async generateRealisticUserFromCustomDemo(customDemoUser: any): Promise<AppUser>
 ```
 
-**ב. עדכון WelcomeScreen.tsx:**
+**ב. מצב נוכחי ב-WelcomeScreen.tsx:**
 
 ```typescript
-const { setUser, user, isLoggedIn, getCustomDemoUser } = useUserStore();
-
-// בתוך handleDevQuickLogin
-const customDemoUser = getCustomDemoUser();
-let demoUser;
-
-if (customDemoUser) {
-  console.log(
-    "🎯 Using custom demo user from questionnaire:",
-    customDemoUser.name
-  );
-  demoUser =
-    await realisticDemoService.generateRealisticUserFromCustomDemo(
-      baseDemoUser
-    );
-} else {
-  console.log("📝 No questionnaire data found, creating random demo user");
-  demoUser = await realisticDemoService.generateRealisticUser();
-}
+// ב-handleDevQuickLogin: יצירת basicUser → generateRandomQuestionnaire(basicUser)
+// → סימולציית היסטוריה → בניית enhancedUser הכולל smartQuestionnaireData + questionnaire (legacy) → setUser(enhancedUser)
 ```
 
 ## 📊 מיפוי אימיילים
 
-| שם עברי | אימייל חדש        |
-| ------- | ----------------- |
-| דוד     | david123@demo.app |
-| שרה     | sarah456@demo.app |
-| אמיר    | amir789@demo.app  |
-| נועה    | noa234@demo.app   |
-| תומר    | tomer567@demo.app |
+| שם עברי | אימייל (service)  | אימייל (WelcomeScreen)    |
+| ------- | ----------------- | ------------------------- |
+| דוד     | david123@demo.app | david123@demo.gymovoo.com |
+| שרה     | sarah456@demo.app | sarah456@demo.gymovoo.com |
+| אמיר    | amir789@demo.app  | amir789@demo.gymovoo.com  |
+| נועה    | noa234@demo.app   | noa234@demo.gymovoo.com   |
+| תומר    | tomer567@demo.app | tomer567@demo.gymovoo.com |
 
 ## 🔄 זרימת לוגיקה חדשה
 
 ```mermaid
 graph TD
-    A[User clicks "משתמש מציאותי"] --> B[Check getCustomDemoUser()]
-    B --> C{Has questionnaire data?}
-    C -->|Yes| D[Use generateRealisticUserFromCustomDemo]
-    C -->|No| E[Use generateRealisticUser - random]
-    D --> F[Demo user with questionnaire preferences]
-    E --> G[Random demo user]
-    F --> H[Login with English email]
-    G --> H
+   A[User clicks "משתמש מציאותי"] --> B[Create basicUser]
+   B --> C[generateRandomQuestionnaire(basicUser)]
+   C --> D[Simulate advanced workout history]
+   D --> E[Build enhancedUser with smartQuestionnaireData + legacy mapping]
+   E --> F[setUser(enhancedUser) + English email]
+   F --> G[Navigate to MainApp]
+
+%% אופציונלי בעתיד
+   A -. optional .-> X[getCustomDemoUser()]
+   X -. if found .-> Y[generateRealisticUserFromCustomDemo]
 ```
 
 ## ✅ תוצאות התיקון
@@ -143,11 +134,11 @@ graph TD
 
 1. ✅ אימיילים אנגליים: `david123@demo.app`
 2. ✅ משתמש מציאותי מבוסס שאלון
-3. ✅ עקביות מלאה בחוויה
+3. ✅ עקביות מלאה בחוויה (smartQuestionnaireData + legacy mapping)
 
 ## 🎯 דוגמאות שימוש
 
-### דוגמה 1: משתמש עם שאלון
+### דוגמה 1: משתמש עם שאלון (שדרוג אופציונלי)
 
 ```
 1. משתמש עונה על שאלון: מתחילה, נשית, 3 ימים, dumbbells
@@ -156,7 +147,7 @@ graph TD
 4. אימייל: sarah456@demo.app
 ```
 
-### דוגמה 2: משתמש ללא שאלון
+### דוגמה 2: משתמש ללא שאלון (מצב נוכחי)
 
 ```
 1. לוחץ "משתמש מציאותי" ישירות
@@ -172,25 +163,26 @@ graph TD
    - מיפוי שמות עברי→אנגלי
 
 2. ✅ `src/screens/welcome/WelcomeScreen.tsx`
-   - הוספת `getCustomDemoUser` מה-store
-   - לוגיקה תנאית ב-`handleDevQuickLogin`
-   - העדפה לנתוני שאלון אם קיימים
+   - יצירת smartQuestionnaireData דרך `generateRandomQuestionnaire`
+   - מיפוי ל-`questionnaire` (legacy) לתאימות
+   - יצירת אימייל אנגלי (דומיין demo.gymovoo.com)
+   - שמירת המשתמש בקריאה אחת (`setUser(enhancedUser)`) וניווט
 
 ## 🧪 בדיקות נדרשות
 
-1. **מילוי שאלון → משתמש מציאותי:**
-   - השלם שאלון עם נתונים ספציפיים
+1. **SmartQuestionnaireData קיים ומלא:**
    - לחץ "משתמש מציאותי"
-   - וודא שהנתונים תואמים
+   - וודא שנוצר `smartQuestionnaireData.answers` עם שדות: gender, fitnessLevel, goals, equipment (string[]), availability (string[]), sessionDuration, workoutLocation
 
 2. **ללא שאלון → משתמש מציאותי:**
    - עבור ישירות למסך welcome
    - לחץ "משתמש מציאותי"
-   - וודא יצירת משתמש רנדומלי עם אימייל אנגלי
+   - וודא יצירת משתמש רנדומלי עם אימייל אנגלי (demo.gymovoo.com)
 
 3. **פורמט אימייל:**
    - בדוק שכל האימיילים באנגלית
    - וודא מספר רנדומלי נוסף לכל אימייל
+   - שיקול: לאחד דומיין ל-demo.gymovoo.com גם במסלול service
 
 ## 💡 שיפורים עתידיים אפשריים
 
@@ -201,7 +193,10 @@ graph TD
 2. **שמירת העדפות:**
    - שמירת העדפת "משתמש מותאם" vs "רנדומלי"
    - אפשרות לעדכון נתוני דמו
+3. **מימוש getCustomDemoUser בפועל:**
+   - אם קיים `customDemoUser` → השתמש ב-`generateRealisticUserFromCustomDemo`
+   - אחרת → הזרימה הנוכחית
 
-3. **משוב למשתמש:**
+4. **משוב למשתמש:**
    - הודעה "נמצאו נתוני שאלון - יוצר משתמש מותאם"
    - אפשרות לבחירה בין מותאם לרנדומלי

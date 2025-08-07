@@ -2,7 +2,7 @@
 
 ## Workout Services Completion Report
 
-**תאריך:** 6 באוגוסט 2025
+**תאריך:** 7 באוגוסט 2025
 **מטרה:** השלמת והתאמת שירותי האימון לתאימות מלאה עם מסך ההיסטוריה
 
 ---
@@ -20,7 +20,7 @@
   - יצירת אימונים תואמי מסך ההיסטוריה
   - תמיכה מלאה ב-WorkoutWithFeedback
   - תמיכה בvalidateWorkoutData
-  - תמיכה בformatDateHebrewLocal
+  - תמיכה בformatDateHebrew
 - **פונקציות מרכזיות:**
   - `generateDemoUser()` - יצירת משתמש דמו
   - `generateRealisticWorkout()` - יצירת אימון מציאותי
@@ -84,7 +84,7 @@
 ### ✅ תכונות שנוספו:
 
 1. **validateWorkoutData compatibility:** כל הנתונים עוברים את הולידציה
-2. **formatDateHebrewLocal support:** תמיכה מלאה בפורמט תאריכים עברי
+2. **formatDateHebrew support:** תמיכה מלאה בפורמט תאריכים עברי
 3. **WorkoutWithFeedback structure:** מבנה נתונים מלא ותואם
 4. **Gender adaptation:** התאמת תרגילים והודעות לפי מגדר
 5. **Realistic data generation:** נתונים מציאותיים ולא דמיוניים

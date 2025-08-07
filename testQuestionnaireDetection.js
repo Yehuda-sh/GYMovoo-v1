@@ -123,7 +123,7 @@ function checkWorkoutPlanQuestionnaire(user) {
 }
 
 console.log("🧪 Testing Questionnaire Detection After Fix");
-console.log("=" * 50);
+console.log("=".repeat(50));
 
 // בדיקת כל סוגי המשתמשים
 const testUsers = [
@@ -132,6 +132,20 @@ const testUsers = [
   { name: "Legacy Questionnaire User", user: userWithLegacyQuestionnaire },
   { name: "No Questionnaire User", user: userWithoutQuestionnaire },
 ];
+
+const results = [];
+const check = (label, predicate) => {
+  try {
+    const ok = !!predicate();
+    console.log(`   ${ok ? "✅" : "❌"} ${label}`);
+    results.push(ok);
+    return ok;
+  } catch (e) {
+    console.log(`   ❌ ${label} (error: ${e?.message || e})`);
+    results.push(false);
+    return false;
+  }
+};
 
 testUsers.forEach(({ name, user }) => {
   console.log(`\n📋 Testing: ${name}`);
@@ -149,13 +163,35 @@ testUsers.forEach(({ name, user }) => {
 
   // סטטוס צפוי
   const shouldHaveQuestionnaire = user !== userWithoutQuestionnaire;
-  const testPassed = hasQuestionnaire === shouldHaveQuestionnaire;
-  console.log(
-    `   ${testPassed ? "✅" : "❌"} Test Result: ${testPassed ? "PASS" : "FAIL"}`
+  const expectedPlanData = user !== userWithoutQuestionnaire;
+
+  check(
+    "Questionnaire detection matches expectation",
+    () => hasQuestionnaire === shouldHaveQuestionnaire
   );
+  check(
+    "Workout plan data availability matches expectation",
+    () => workoutPlanCheck.hasData === expectedPlanData
+  );
+
+  // בדיקות עומק נוספות למשתמש עם smartQuestionnaireData
+  if (user === userWithSmartQuestionnaire) {
+    check("Smart mapping contains required fields", () => {
+      const keys = Object.keys(workoutPlanCheck.data || {});
+      return (
+        ["experience", "gender", "equipment", "goals", "frequency"].every((k) =>
+          keys.includes(k)
+        ) && Array.isArray(workoutPlanCheck.data.equipment)
+      );
+    });
+    check("Smart equipment propagated correctly", () => {
+      const eq = workoutPlanCheck.data?.equipment || [];
+      return eq.includes("dumbbells") && eq.includes("barbell");
+    });
+  }
 });
 
-console.log("\n" + "=" * 50);
+console.log("\n" + "=".repeat(50));
 console.log("🎯 Summary:");
 console.log("- כפתור 'משתמש מציאותי' יוצר smartQuestionnaireData");
 console.log("- כל המסכים כעת מזהים גם smartQuestionnaireData");
@@ -168,5 +204,12 @@ console.log(
 );
 console.log("- LoginScreen.tsx: בודק את כל סוגי השאלונים");
 console.log("- ProfileScreen.tsx: תומך בכל פורמטי השאלון");
+
+const passed = results.filter(Boolean).length;
+const total = results.length;
+console.log(`\n✅ Passed ${passed}/${total} checks.`);
+
+// Exit code for CI
+process.exitCode = passed === total ? 0 : 1;
 
 console.log("\n✅ התיקון הושלם בהצלחה!");

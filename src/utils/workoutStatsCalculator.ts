@@ -22,7 +22,7 @@ export interface WorkoutStats {
  * Calculates comprehensive workout statistics
  */
 export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
-  let totalExercises = exercises.length;
+  const totalExercises = exercises.length;
   let completedExercises = 0;
   let totalSets = 0;
   let completedSets = 0;

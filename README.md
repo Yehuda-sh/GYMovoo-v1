@@ -31,7 +31,7 @@
 #### 🆕 עדכונים אחרונים (אוגוסט 2025)
 
 - **🔧 TypeScript Cleanup מלא** - 50+ `any` types הוחלפו בטיפוסים מדויקים ב-7 מסכי Screen מרכזיים
-- **� תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
+- **🐛 תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
 - **⚡ אופטימיזציה מתקדמת** - קובץ questionnaireService צומצם מ-1428 ל-1417 שורות (הסרת כפילויות)
 - **🎨 שיפורי UI/UX** - תיקוני fontWeight, icon typing, ושיפור עקביות העיצוב
 - **📦 ממשקים מתקדמים** - WorkoutStatistics, QuestionnaireBasicData, WorkoutHistoryItem, QuestionnaireAnswers
@@ -70,10 +70,10 @@
 
 ```bash
 # שכפל את הפרויקט
-git clone https://github.com/yourusername/gymovoo.git
+git clone https://github.com/Yehuda-sh/GYMovoo-v1.git
 
 # היכנס לתיקיית הפרויקט
-cd gymovoo
+cd GYMovoo-v1
 
 # התקן את החבילות
 npm install
@@ -248,11 +248,12 @@ GYMovoo/
 - `npm run type-check` - בדיקת TypeScript
 - `npm run audit` - בדיקת אבטחה של dependencies
 - `npm run check:all` - הרצת כל הבדיקות המתקדמות
+- `npm run check:questionnaire` - בדיקת לוגיקת השאלון החכם
+- `npm run check:questionnaire:flow` - בדיקת זרימת שאלות דינמית
+- `npm run check:questionnaire:detection` - זיהוי השלמת שאלון ומיפוי לוקאלי
+- `node runAllProjectChecks.js` - אגרגטור להרצת כלל הבדיקות עם סיכום
 - **כלי בדיקה מיוחדים חדשים:**
-  - `node scripts/checkScientificQuestionnaire.js` - בדיקת השאלון המדעי
-  - `node scripts/testScientificDemo.js` - בדיקת הדמו המדעי
   - `node scripts/testDataFlow.js` - בדיקת זרימת נתונים מלאה
-  - `node scripts/analyzeQuestionnaireUsage.js` - ניתוח שימוש בשאלונים
 
 ## 🎨 עיצוב וסגנון
 
@@ -297,14 +298,14 @@ GYMovoo/
 - 🔐 **[מסכי אימות](docs/screens/AUTH_SCREENS_GUIDE.md)** - התחברות, הרשמה ותנאי שימוש
 - 🏠 **[מסך ראשי](docs/screens/MAIN_SCREEN_GUIDE.md)** - דשבורד מרכזי וניווט
 - 🏋️ **[מסכי אימונים](docs/screens/WORKOUT_SCREENS_GUIDE.md)** - תוכניות אימון ואימון פעיל
-- � **[מסכי תרגילים](docs/screens/EXERCISE_SCREENS_GUIDE.md)** - מאגר תרגילים ומפת שרירים
+- 🏋️‍♂️ **[מסכי תרגילים](docs/screens/EXERCISE_SCREENS_GUIDE.md)** - מאגר תרגילים ומפת שרירים
 - 📋 **[מסכי שאלון](docs/screens/QUESTIONNAIRE_SCREENS_GUIDE.md)** - שאלון חכם ובניית פרופיל
 - 👤 **[פרופיל והיסטוריה](docs/screens/PROFILE_HISTORY_SCREENS_GUIDE.md)** - ניהול נתונים ומעקב התקדמות
 - 🎉 **[מסך ברוכים הבאים](docs/screens/WELCOME_SCREEN_GUIDE.md)** - מסך פתיחה ומבוא
 
 ### 🔧 מדריכים טכניים
 
-- �📖 **מדריך ניווט** - `docs/NAVIGATION_GUIDE.md`
+- 📖 **מדריך ניווט** - `docs/NAVIGATION_GUIDE.md`
 - 🧩 **מדריך רכיבים משותפים** - `docs/SHARED_COMPONENTS_GUIDE.md`
 - 🔧 **מדריך יישום טכני** - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md`
 - 📝 **הנחיות פיתוח** - `docs/DEVELOPMENT_GUIDELINES.md`
@@ -426,10 +427,10 @@ eas build -p ios
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/gymovoo.git
+git clone https://github.com/Yehuda-sh/GYMovoo-v1.git
 
 # Navigate to project directory
-cd gymovoo
+cd GYMovoo-v1
 
 # Install dependencies
 npm install
@@ -485,8 +486,7 @@ For comprehensive documentation, please refer to:
 - 📖 **Navigation Guide** - `docs/NAVIGATION_GUIDE.md`
 - 🧩 **Shared Components Guide** - `docs/SHARED_COMPONENTS_GUIDE.md`
 - 🔧 **Technical Implementation Guide** - `docs/TECHNICAL_IMPLEMENTATION_GUIDE.md`
-- 📋 **Progress Log** - `docs/PROGRESS_LOG.md`
-- 📝 **Development Guidelines** - `docs/DEVELOPMENT_GUIDELINES.md`
+- **Development Guidelines** - `docs/DEVELOPMENT_GUIDELINES.md`
 - 📊 **Master Summary** - `docs/PROJECT_MASTER_SUMMARY.md`
 - 📑 **Documentation Index** - `docs/DOCUMENTATION_INDEX_MASTER.md`
 

@@ -2,7 +2,7 @@
 
 ## README.md Analysis & Optimization Report
 
-**תאריך:** 5 באוגוסט 2025  
+**תאריך:** 8 באוגוסט 2025  
 **קובץ נותח:** `README.md`  
 **גודל נוכחי:** 508 שורות
 
@@ -30,6 +30,13 @@
 
 **לפני:** רשימה בסיסית של שינויים
 **אחרי:** תיאור מפורט יותר עם מספרים ספציפיים
+
+### 4. 🔧 תיקוני README טכניים שבוצעו בפועל (אוגוסט 2025)
+
+- עדכון כתובת השכפול ונתיב התיקייה: `git clone https://github.com/Yehuda-sh/GYMovoo-v1.git` ואז `cd GYMovoo-v1` (בעבר הופנו ל-yourusername/gymovoo)
+- הוספת סקריפטי בדיקות חדשים: `npm run check:questionnaire`, `:flow`, `:detection` ו-`node runAllProjectChecks.js`
+- תיקון אמוג'ים מקולקלים ברשימות (למשל 🐛, 🏋️‍♂️, 📖)
+- הסרת קישור שבור: `docs/PROGRESS_LOG.md`
 
 ---
 
@@ -97,13 +104,13 @@
 
 ### 2. 📂 ניהול מסמכים:
 
-#### 🔴 למחיקה מיידית:
+#### 🔴 למחיקה מיידית (PowerShell - Windows):
 
-```bash
-# דוחות אופטימיזציה ישנים
-rm OPTIMIZATION_REPORT_SetRow_2025-08-05.md
-rm OPTIMIZATION_REPORT_genderAdaptation_2025-08-05.md
-rm OPTIMIZATION_REPORT_COMPLETE_2025-01-06.md
+```powershell
+# דוחות אופטימיזציה ישנים (pwsh)
+Remove-Item OPTIMIZATION_REPORT_SetRow_2025-08-05.md -Force
+Remove-Item OPTIMIZATION_REPORT_genderAdaptation_2025-08-05.md -Force
+Remove-Item OPTIMIZATION_REPORT_COMPLETE_2025-01-06.md -Force
 ```
 
 #### 🟡 לבדיקה ואז החלטה:

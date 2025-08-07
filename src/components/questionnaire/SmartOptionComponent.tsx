@@ -103,6 +103,7 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
               </Text>
             )}
             {/* בואו נעדכן את זה לאחר מכן */}
+            {/* eslint-disable-next-line no-constant-binary-expression */}
             {false && showAIInsight && isSelected && (
               <View style={styles.aiInsightContainer}>
                 <Text style={styles.aiInsightIcon}>🤖</Text>

@@ -12,7 +12,6 @@ Write-Host "מתחיל יצירת מבנה פרויקט GYMovoo..." -ForegroundC
 # הרץ בספריית הפרויקט שלך | Run in your project directory
 # רשימת תיקיות ליצירה | Folders to create
 $folders = @(
-    "app",
     "src/screens/welcome/components",
     "src/screens/auth/components", 
     "src/screens/questionnaire/components",
@@ -92,46 +91,83 @@ Write-Host "📄 Creating placeholder files..." -ForegroundColor Yellow
 Write-Host "יוצר קבצי placeholder..." -ForegroundColor Yellow
 
 $files = @(
-    "src/screens/welcome/WelcomeScreen.tsx",
-    "src/screens/welcome/types.ts", 
-    "src/screens/auth/LoginScreen.tsx",
-    "src/screens/auth/RegisterScreen.tsx",
-    "src/screens/auth/types.ts",
-    "src/screens/questionnaire/QuestionnaireScreen.tsx",
-    "src/screens/questionnaire/types.ts",
-    "src/screens/summary/SummaryScreen.tsx",
-    "src/screens/summary/types.ts",
-    "src/screens/plans/PlansListScreen.tsx",
-    "src/screens/plans/types.ts",
-    "src/screens/plan-detail/PlanDetailScreen.tsx", 
-    "src/screens/plan-detail/types.ts",
-    "src/screens/workout/QuickWorkoutScreen.tsx",
-    "src/screens/workout/types.ts",
-    "src/components/workout/ExerciseCard.tsx",
-    "src/components/workout/SetRow.tsx",
-    "src/components/workout/WorkoutHeader.tsx",
-    "src/components/workout/ProgressBar.tsx",
-    "src/hooks/useWorkout.ts",
-    "src/hooks/useExercise.ts", 
-    "src/hooks/useAuth.ts",
-    "src/stores/userStore.ts",
-    "src/stores/workoutStore.ts",
-    "src/stores/historyStore.ts",
-    "src/services/workoutService.ts",
-    "src/services/storageService.ts",
-    "src/types/user.ts",
-    "src/types/workout.ts",
-    "src/types/common.ts",
-    "src/utils/validation.ts",
-    "src/utils/formatting.ts",
-    "src/constants/colors.ts",
-    "src/constants/strings.ts", 
-    "src/constants/config.ts",
-    "src/styles/theme.ts",
-    "src/styles/rtl.ts",
-    "src/styles/components.ts",
-    "src/styles/workout.ts",
-    "src/navigation/types.ts"
+  # Screens (existing)
+  "src/screens/welcome/WelcomeScreen.tsx",
+  "src/screens/auth/LoginScreen.tsx",
+  "src/screens/profile/ProfileScreen.tsx",
+  "src/screens/history/HistoryScreen.tsx",
+  "src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx",
+  "src/screens/workout/ActiveWorkoutScreen.tsx",
+  "src/screens/workout/WorkoutPlansScreen.tsx",
+
+  # Workout components (existing paths)
+  "src/screens/workout/components/WorkoutHeader.tsx",
+  "src/screens/workout/components/WorkoutStatusBar.tsx",
+  "src/screens/workout/components/WorkoutDashboard.tsx",
+  "src/screens/workout/components/WorkoutSummary/ActionButtons.tsx",
+  "src/screens/workout/components/WorkoutSummary/AchievementsSection.tsx",
+  "src/screens/workout/components/WorkoutSummary/FeedbackSection.tsx",
+  "src/screens/workout/components/WorkoutSummary/WorkoutStatsGrid.tsx",
+  "src/screens/workout/components/ExerciseCard/index.tsx",
+  "src/screens/workout/components/ExerciseCard/SetRow.tsx",
+  "src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx",
+  "src/screens/workout/components/PlateCalculatorModal.tsx",
+  "src/screens/workout/components/NextExerciseBar.tsx",
+  "src/screens/workout/components/RestTimer.tsx",
+  "src/screens/workout/components/shared/TimerDisplay.tsx",
+  "src/screens/workout/components/shared/TimeButton.tsx",
+  "src/screens/workout/components/shared/TimeAdjustButton.tsx",
+  "src/screens/workout/components/shared/StatItem.tsx",
+  "src/screens/workout/components/shared/SkipButton.tsx",
+  "src/screens/workout/components/shared/CloseButton.tsx",
+
+  # Components (existing)
+  "src/components/common/EmptyState.tsx",
+  "src/components/common/LoadingSpinner.tsx",
+  "src/components/common/IconButton.tsx",
+  "src/components/ui/ScreenContainer.tsx",
+  "src/components/ui/UniversalButton.tsx",
+  "src/components/ui/UniversalCard.tsx",
+  "src/components/questionnaire/SmartProgressBar.tsx",
+  "src/components/questionnaire/SmartOptionComponent.tsx",
+
+  # Hooks
+  "src/screens/workout/hooks/useWorkoutTimer.ts",
+  "src/screens/workout/hooks/useRestTimer.ts",
+  "src/screens/workout/hooks/useModalManager.tsx",
+
+  # Stores (existing)
+  "src/stores/userStore.ts",
+
+  # Services (existing)
+  "src/services/questionnaireService.ts",
+  "src/services/realisticDemoService.ts",
+  "src/services/workoutHistoryService.ts",
+  "src/services/workoutSimulationService.ts",
+  "src/services/scientificAIService.ts",
+
+  # Types and utils (existing)
+  "src/screens/workout/types/workout.types.ts",
+  "src/utils/genderAdaptation.ts",
+  "src/utils/rtlHelpers.ts",
+  "src/utils/workoutHelpers.ts",
+  "src/utils/workoutStatsCalculator.ts",
+  "src/utils/workoutNamesSync.ts",
+
+  # Navigation and styles (existing)
+  "src/navigation/AppNavigator.tsx",
+  "src/navigation/BottomNavigation.tsx",
+  "src/navigation/types.ts",
+  "src/styles/theme.ts",
+    
+  # Constants (existing)
+  "src/constants/historyScreenConfig.ts",
+  "src/constants/historyScreenTexts.ts",
+  "src/constants/welcomeScreenTexts.ts",
+  "src/constants/profileScreenTexts.ts",
+  "src/constants/profileScreenColors.ts",
+  "src/constants/mainScreenTexts.ts",
+  "src/constants/progressScreenTexts.ts"
 )
 
 $createdFiles = 0
@@ -141,13 +177,16 @@ $placeholderContent = @"
 "@
 
 foreach ($file in $files) {
-    if (!(Test-Path $file)) {
-        $placeholderContent | Set-Content -Path $file
-        $createdFiles++
-        Write-Host "  ✓ Created: $file" -ForegroundColor Green
-    } else {
-        Write-Host "  → Exists: $file" -ForegroundColor DarkGray
-    }
+  $parent = Split-Path -Path $file -Parent
+  if (!(Test-Path $file) -and (Test-Path $parent)) {
+    $placeholderContent | Set-Content -Path $file
+    $createdFiles++
+    Write-Host "  ✓ Created: $file" -ForegroundColor Green
+  } elseif (!(Test-Path $parent)) {
+    Write-Host "  → Skipped (missing parent folder): $file" -ForegroundColor DarkYellow
+  } else {
+    Write-Host "  → Exists: $file" -ForegroundColor DarkGray
+  }
 }
 Write-Host "📄 Created $createdFiles new placeholder files" -ForegroundColor Cyan
 

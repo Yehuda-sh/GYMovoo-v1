@@ -61,3 +61,65 @@ console.log("תוצאה:", invalidResult);
 console.log("");
 
 console.log("✅ בדיקות הושלמו!");
+
+// ------------------------------
+// Quick sanity checks (runtime)
+// ------------------------------
+
+const check = (name, predicate) => {
+  try {
+    const ok = !!predicate();
+    console.log(`${ok ? "✅" : "❌"} ${name}`);
+    return ok;
+  } catch (e) {
+    console.log(`❌ ${name} (error: ${e?.message || e})`);
+    return false;
+  }
+};
+
+console.log("\n🧪 Running quick checks:\n");
+const results = [];
+
+results.push(
+  check(
+    "home → home_equipment_availability",
+    () =>
+      Array.isArray(homeResult) &&
+      homeResult.length === 1 &&
+      homeResult[0] === "home_equipment_availability"
+  )
+);
+
+results.push(
+  check(
+    "gym → gym_equipment_availability",
+    () =>
+      Array.isArray(gymResult) &&
+      gymResult.length === 1 &&
+      gymResult[0] === "gym_equipment_availability"
+  )
+);
+
+results.push(
+  check(
+    "outdoor → outdoor_equipment_availability",
+    () =>
+      Array.isArray(outdoorResult) &&
+      outdoorResult.length === 1 &&
+      outdoorResult[0] === "outdoor_equipment_availability"
+  )
+);
+
+results.push(
+  check(
+    "unknown → defaults to home_equipment_availability",
+    () =>
+      Array.isArray(invalidResult) &&
+      invalidResult.length === 1 &&
+      invalidResult[0] === "home_equipment_availability"
+  )
+);
+
+const passed = results.filter(Boolean).length;
+console.log(`\n✅ Passed ${passed}/${results.length} checks.`);
+process.exitCode = passed === results.length ? 0 : 1;

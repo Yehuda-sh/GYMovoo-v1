@@ -4,15 +4,19 @@
  */
 
 import {
-  exerciseDatabase,
+  allExercises as exerciseDatabase,
   getBodyweightExercises,
   getDumbbellExercises,
   getSmartFilteredExercises,
   getQuietExercises,
-  getMinimalSpaceExercises,
-  getDatabaseStats,
-  EQUIPMENT_CATEGORIES,
-} from "./src/data/exerciseDatabase";
+  getExerciseStats,
+  customFilter,
+} from "./src/data/exercises";
+import {
+  HOME_EQUIPMENT,
+  GYM_EQUIPMENT,
+  CARDIO_EQUIPMENT,
+} from "./src/data/equipmentData";
 
 console.log("🔍 בדיקה מקיפה של מאגר התרגילים החדש");
 console.log("===========================================\n");
@@ -23,17 +27,13 @@ const firstExercise = exerciseDatabase[0];
 console.log(`   📝 שם בעברית: ${firstExercise.nameLocalized.he}`);
 console.log(`   📝 שם באנגלית: ${firstExercise.nameLocalized.en}`);
 console.log(
-  `   📋 הוראות עברית: ${firstExercise.instructionsLocalized.he.length} הוראות`
+  `   📋 הוראות עברית: ${firstExercise.instructions.he.length} הוראות`
 );
 console.log(
-  `   📋 הוראות אנגלית: ${firstExercise.instructionsLocalized.en.length} הוראות`
+  `   📋 הוראות אנגלית: ${firstExercise.instructions.en.length} הוראות`
 );
-console.log(
-  `   💡 טיפים עברית: ${firstExercise.tipsLocalized.he.length} טיפים`
-);
-console.log(
-  `   💡 טיפים אנגלית: ${firstExercise.tipsLocalized.en.length} טיפים\n`
-);
+console.log(`   💡 טיפים עברית: ${firstExercise.tips.he.length} טיפים`);
+console.log(`   💡 טיפים אנגלית: ${firstExercise.tips.en.length} טיפים\n`);
 
 // ✅ 2. בדיקת סינון מדויק - הדרישה המרכזית!
 console.log("2️⃣ סינון מדויק לפי ציוד - הדרישה המרכזית:");
@@ -62,18 +62,23 @@ console.log("4️⃣ תכונות חכמות:");
 const quietExercises = getQuietExercises();
 console.log(`   🤫 תרגילים שקטים לדירה: ${quietExercises.length} תרגילים`);
 
-const minimalSpace = getMinimalSpaceExercises();
+const minimalSpace = customFilter(exerciseDatabase, { maxSpace: "minimal" });
 console.log(`   📐 תרגילים למקום מינימלי: ${minimalSpace.length} תרגילים\n`);
 
-// ✅ 5. בדיקת קטגוריות ציוד
+// ✅ 5. בדיקת קטגוריות ציוד (מבוסס על equipmentData)
 console.log("5️⃣ קטגוריות ציוד:");
-Object.entries(EQUIPMENT_CATEGORIES).forEach(([category, equipment]) => {
-  console.log(`   ${category}: ${equipment.join(", ")}`);
+const equipmentCategories = {
+  בית: HOME_EQUIPMENT.map((e) => e.id),
+  "חדר כושר": GYM_EQUIPMENT.map((e) => e.id),
+  קרדיו: CARDIO_EQUIPMENT.map((e) => e.id),
+};
+Object.entries(equipmentCategories).forEach(([category, items]) => {
+  console.log(`   ${category}: ${items.join(", ")}`);
 });
 
 // ✅ 6. סטטיסטיקות כלליות
 console.log("\n6️⃣ סטטיסטיקות מאגר:");
-const stats = getDatabaseStats();
+const stats = getExerciseStats();
 console.log(`   📊 סה"כ תרגילים: ${stats.total}`);
 console.log(`   🏠 מתאים לבית: ${stats.homeCompatible}`);
 console.log(`   🏋️ מועדף לחדר כושר: ${stats.gymPreferred}`);
