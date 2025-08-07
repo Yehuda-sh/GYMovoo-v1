@@ -19,7 +19,6 @@ export * from "./authService";
 // 🏋️ Core Workout Services
 // שירותי אימון ליבה
 // =======================================
-export * from "./exerciseService";
 export * from "./questionnaireService";
 export { WorkoutDataService } from "./workoutDataService";
 

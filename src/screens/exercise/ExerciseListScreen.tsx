@@ -20,11 +20,9 @@ import Toast from "react-native-toast-message"; // 🆕 הוספת Toast גלו�
 import { theme } from "../../styles/theme";
 import { EmptyState } from "../../components"; // 🆕 הוספת EmptyState
 import {
-  fetchExercisesSimple,
-  fetchMuscles,
   Exercise,
-  Muscle,
-} from "../../services/exerciseService";
+  fetchRandomExercises,
+} from "../../data/exercises";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import MuscleBar from "./MuscleBar";
 import BackButton from "../../components/common/BackButton";
@@ -54,8 +52,7 @@ export default function ExerciseListScreen() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [allMuscles, setAllMuscles] = useState<Muscle[]>([]);
-  const [selectedMuscle, setSelectedMuscle] = useState<number | "all">("all");
+  const [selectedMuscle, setSelectedMuscle] = useState<string | "all">("all");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [showNoSelectionModal, setShowNoSelectionModal] = useState(false);
 

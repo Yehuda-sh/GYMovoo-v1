@@ -256,8 +256,18 @@ export default function WelcomeScreen() {
       // Save user data to global store // שמירת נתוני משתמש ב-store גלובלי
       setUser(googleUser);
 
-      // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
-      navigation.navigate("Questionnaire", { stage: "profile" });
+      // 🎯 בדוק אם יש שאלון קיים - אם כן, דלג ישר לאפליקציה!
+      // Check if user has existing questionnaire - if yes, skip directly to app!
+      if (googleUser.questionnaire && googleUser.questionnaire.length > 0) {
+        console.log(
+          "✅ Google user has existing questionnaire - skipping to MainApp"
+        );
+        navigation.navigate("MainApp");
+      } else {
+        console.log("ℹ️ Google user needs questionnaire - navigating to setup");
+        // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
+        navigation.navigate("Questionnaire", { stage: "profile" });
+      }
     } catch {
       // Handle error silently in production
     } finally {

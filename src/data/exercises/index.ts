@@ -205,3 +205,17 @@ export {
   filterByCategory,
   filterByDifficulty,
 } from "./exerciseFilters";
+
+// =====================================
+// 🎲 פונקציות תאימות ותמיכה במערכת הישנה
+// Compatibility Functions for Legacy Support
+// =====================================
+
+/**
+ * החזרת תרגילים רנדומליים - תחליף ל-fetchRandomExercises הישן
+ * Get random exercises - replacement for old fetchRandomExercises
+ */
+export async function fetchRandomExercises(): Promise<Exercise[]> {
+  // החזר כל התרגילים - תוכל לסנן לפי הצורך
+  return allExercises;
+}

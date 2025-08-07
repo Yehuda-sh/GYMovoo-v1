@@ -24,6 +24,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // המערכת החדשה האחודה
 import {
@@ -44,7 +45,7 @@ import { realisticDemoService } from "../../services/realisticDemoService";
 
 const UnifiedQuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { setCustomDemoUser } = useUserStore();
+  const { setCustomDemoUser, logout } = useUserStore();
 
   // State management
   const [manager] = useState(() => new UnifiedQuestionnaireManager());
@@ -55,29 +56,193 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
   // Debug עבור אמולטור
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Load initial question
+  // Load initial question and check for saved progress
   useEffect(() => {
-    loadCurrentQuestion();
+    loadCurrentQuestionWithProgress();
   }, []);
+
+  const loadCurrentQuestionWithProgress = async () => {
+    try {
+      // 🔍 בדוק אם יש התקדמות שמורה
+      const savedProgress = await AsyncStorage.getItem("questionnaire_draft");
+
+      if (savedProgress) {
+        const progressData = JSON.parse(savedProgress);
+        console.log("📋 Found saved questionnaire progress:", {
+          totalAnswered: progressData.totalAnswered,
+          progress: progressData.progress,
+          savedAt: progressData.savedAt,
+        });
+
+        // שאל את המשתמש אם לחזור להתקדמות השמורה
+        Alert.alert(
+          "התקדמות שמורה נמצאה",
+          `נמצאה התקדמות שמורה עם ${progressData.totalAnswered || 0} תשובות.\nהאם לחזור למקום שבו עצרת?`,
+          [
+            {
+              text: "התחל מחדש",
+              style: "destructive",
+              onPress: () => {
+                // מחק את ההתקדמות השמורה והתחל מחדש
+                AsyncStorage.removeItem("questionnaire_draft");
+                loadCurrentQuestion();
+              },
+            },
+            {
+              text: "המשך מהמקום שעצרתי",
+              style: "default",
+              onPress: () => {
+                // טען את ההתקדמות השמורה
+                restoreProgress(progressData);
+              },
+            },
+          ]
+        );
+      } else {
+        loadCurrentQuestion();
+      }
+    } catch (error) {
+      console.error("❌ Error checking saved progress:", error);
+      loadCurrentQuestion();
+    }
+  };
+
+  const restoreProgress = (progressData: any) => {
+    try {
+      // שחזר את התשובות
+      if (progressData.answers && Array.isArray(progressData.answers)) {
+        progressData.answers.forEach((answer: any) => {
+          manager.answerQuestion(answer.questionId, answer.answer);
+        });
+
+        console.log(
+          `✅ Restored ${progressData.answers.length} answers from saved progress`
+        );
+      }
+
+      // טען את השאלה הנוכחית
+      loadCurrentQuestion();
+
+      // מחק את ההתקדמות השמורה כי היא נטענה
+      AsyncStorage.removeItem("questionnaire_draft");
+    } catch (error) {
+      console.error("❌ Error restoring progress:", error);
+      loadCurrentQuestion();
+    }
+  };
 
   // הגנה מפני יציאה בטעות עם Back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        // אל תאפשר יציאה בטעות
-        Alert.alert(
-          "יציאה מהשאלון",
-          "האם אתה בטוח שברצונך לצאת? התקדמותך תאבד.",
-          [
+        // קבל את התשובות הנוכחיות
+        const currentAnswers = manager.getResults().answers;
+
+        if (currentAnswers.length === 0) {
+          // 🚪 אם אין תשובות - יציאה מהירה ללא שמירה
+          Alert.alert("יציאה מהשאלון", "האם אתה בטוח שברצונך לצאת מהשאלון?", [
             { text: "ביטול", style: "cancel" },
             {
               text: "יציאה",
               style: "destructive",
-              onPress: () => navigation.goBack(),
+              onPress: async () => {
+                console.log(
+                  "🚪 User exited questionnaire with no progress - full logout and reset"
+                );
+                try {
+                  // התנתק מהמשתמש הנוכחי
+                  await logout();
+
+                  console.log(
+                    "✅ Full logout completed - navigating to clean Welcome"
+                  );
+
+                  // חזור למסך Welcome נקי לגמרי
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Welcome" }],
+                  });
+                } catch (error) {
+                  console.error("❌ Error during full logout:", error);
+                  // גם אם יש שגיאה, נווט למסך Welcome
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Welcome" }],
+                  });
+                }
+              },
             },
-          ]
-        );
+          ]);
+        } else {
+          // 💾 אם יש תשובות - הצע שמירה
+          Alert.alert(
+            "יציאה מהשאלון",
+            `יש לך ${currentAnswers.length} תשובות שנשמרו.\nההתקדמות תישמר ותוכל להמשיך בפעם הבאה.`,
+            [
+              { text: "ביטול", style: "cancel" },
+              {
+                text: "יציאה עם שמירה",
+                style: "default",
+                onPress: () => {
+                  // שמור התקדמות
+                  const progress = manager.getProgress();
+                  AsyncStorage.setItem(
+                    "questionnaire_draft",
+                    JSON.stringify({
+                      answers: currentAnswers,
+                      progress: progress,
+                      totalAnswered: currentAnswers.length,
+                      savedAt: new Date().toISOString(),
+                    })
+                  );
+                  // חזור למסך Welcome עם ההתקדמות השמורה
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Welcome" }],
+                  });
+                },
+              },
+              {
+                text: "יציאה ללא שמירה",
+                style: "destructive",
+                onPress: async () => {
+                  console.log(
+                    "🗑️ User chose to exit without saving progress - full logout and reset"
+                  );
+                  try {
+                    // מחק כל הנתונים הקשורים לשאלון
+                    await AsyncStorage.multiRemove([
+                      "questionnaire_draft",
+                      "questionnaire_metadata",
+                      "user_profile",
+                    ]);
+
+                    // התנתק מהמשתמש הנוכחי
+                    await logout();
+
+                    console.log(
+                      "✅ Full logout completed - navigating to clean Welcome"
+                    );
+
+                    // חזור למסך Welcome נקי לגמרי
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Welcome" }],
+                    });
+                  } catch (error) {
+                    console.error("❌ Error during full logout:", error);
+                    // גם אם יש שגיאה, נווט למסך Welcome
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Welcome" }],
+                    });
+                  }
+                },
+              },
+            ]
+          );
+        }
         return true; // מונע יציאה אוטומטית
       }
     );
@@ -149,7 +314,15 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
   // Complete questionnaire
   const completeQuestionnaire = async () => {
     try {
+      console.log("🎯 Starting questionnaire completion...");
       const results = manager.getResults();
+      console.log("📊 Questionnaire results:", {
+        answersCount: results.answers.length,
+        answers: results.answers.map((a) => ({
+          id: a.questionId,
+          hasAnswer: !!a.answer,
+        })),
+      });
 
       // Create demo user from answers
       const answersMap: Record<string, any> = {};
@@ -160,8 +333,42 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       const customDemoUser =
         realisticDemoService.generateDemoUserFromQuestionnaire(answersMap);
 
-      // Save to store
-      setCustomDemoUser({
+      console.log("👤 Generated demo user:", {
+        name: customDemoUser.name,
+        equipment: customDemoUser.equipment,
+        goals: customDemoUser.fitnessGoals,
+      });
+
+      // פונקציה עזר לקבלת ערך תשובה
+      const getAnswerValue = (
+        answersMap: Record<string, any>,
+        questionId: string
+      ) => {
+        const answer = answersMap[questionId];
+        if (!answer) return null;
+
+        // אם זה תשובה יחידה - החזר את ה-ID שלה
+        if (answer.id) return answer.id;
+
+        // אם זה מערך תשובות - החזר את ה-ID של הראשון
+        if (Array.isArray(answer) && answer.length > 0 && answer[0].id) {
+          return answer[0].id;
+        }
+
+        return null;
+      };
+
+      console.log("🔍 Raw answers from questionnaire:", {
+        fitness_goal: getAnswerValue(answersMap, "fitness_goal"),
+        experience_level: getAnswerValue(answersMap, "experience_level"),
+        availability: getAnswerValue(answersMap, "availability"),
+        session_duration: getAnswerValue(answersMap, "session_duration"),
+        workout_location: getAnswerValue(answersMap, "workout_location"),
+        diet_preferences: getAnswerValue(answersMap, "diet_preferences"),
+      });
+
+      // Save to store AND AsyncStorage
+      const userProfileData = {
         id: customDemoUser.id,
         name: customDemoUser.name,
         gender: customDemoUser.gender,
@@ -176,7 +383,97 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         preferredTime: customDemoUser.preferredTime,
         createdFromQuestionnaire: true,
         questionnaireTimestamp: new Date().toISOString(),
+
+        // 🎯 Add questionnaire data in the format WorkoutPlansScreen expects
+        questionnaireData: {
+          // נתונים ישירים מהתשובות בפועל (לא מהדמו!)
+          goal:
+            getAnswerValue(answersMap, "fitness_goal") ||
+            customDemoUser.fitnessGoals?.[0] ||
+            "בריאות כללית",
+          gender: customDemoUser.gender, // מהדמו כי אין שאלה על מגדר
+          age: customDemoUser.age, // מהדמו כי אין שאלה על גיל
+          experience:
+            getAnswerValue(answersMap, "experience_level") ||
+            customDemoUser.experience,
+          equipment: customDemoUser.equipment || [], // מתורגם מהמיקום
+          frequency:
+            getAnswerValue(answersMap, "availability") ||
+            (Array.isArray(customDemoUser.availableDays)
+              ? customDemoUser.availableDays[0]
+              : customDemoUser.availableDays) ||
+            "3_times_week",
+          duration:
+            getAnswerValue(answersMap, "session_duration") ||
+            customDemoUser.sessionDuration ||
+            "30_45_min",
+          location: getAnswerValue(answersMap, "workout_location") || "home",
+          diet: getAnswerValue(answersMap, "diet_preferences") || "balanced",
+          answers: results.answers,
+          metadata: {
+            completedAt: new Date().toISOString(),
+            source: "UnifiedQuestionnaireScreen",
+          },
+        },
+      };
+
+      // Save to Zustand store
+      setCustomDemoUser(userProfileData);
+
+      console.log("💾 Saving user profile data:", {
+        hasQuestionnaireData: !!userProfileData.questionnaireData,
+        questionnaireKeys: userProfileData.questionnaireData
+          ? Object.keys(userProfileData.questionnaireData)
+          : [],
+        actualValues: {
+          goal: userProfileData.questionnaireData?.goal,
+          equipment: userProfileData.questionnaireData?.equipment,
+          experience: userProfileData.questionnaireData?.experience,
+          frequency: userProfileData.questionnaireData?.frequency,
+          duration: userProfileData.questionnaireData?.duration,
+          location: userProfileData.questionnaireData?.location,
+          diet: userProfileData.questionnaireData?.diet,
+        },
       });
+
+      // 💾 Save to AsyncStorage for WorkoutPlansScreen
+      try {
+        // פורמט תואם ל-QuestionnaireService
+        const questionnaireMetadata = {
+          // נתונים ישירים שהשירות מחפש
+          goal: customDemoUser.fitnessGoals?.[0] || "בריאות כללית",
+          gender: customDemoUser.gender,
+          age: customDemoUser.age,
+          experience: customDemoUser.experience,
+          height: customDemoUser.height,
+          weight: customDemoUser.weight,
+          equipment: customDemoUser.equipment || [],
+          available_equipment: customDemoUser.equipment || [],
+          sessionDuration: customDemoUser.sessionDuration,
+          availableDays: customDemoUser.availableDays,
+          preferredTime: customDemoUser.preferredTime,
+          diet: getAnswerValue(answersMap, "diet_preferences") || "balanced",
+
+          // מטא-דאטה נוספת
+          completedAt: new Date().toISOString(),
+          source: "UnifiedQuestionnaireScreen",
+          userProfile: userProfileData,
+          answers: results.answers,
+        };
+
+        await AsyncStorage.setItem(
+          "questionnaire_metadata",
+          JSON.stringify(questionnaireMetadata)
+        );
+        console.log(
+          "✅ Questionnaire metadata saved to AsyncStorage for WorkoutPlansScreen"
+        );
+      } catch (storageError) {
+        console.error(
+          "❌ Error saving questionnaire data to AsyncStorage:",
+          storageError
+        );
+      }
 
       // יצירת סיכום תשובות פשוט
       const answersSummary = results.answers
@@ -244,18 +541,129 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => {
-              Alert.alert(
-                "יציאה מהשאלון",
-                "האם אתה בטוח שברצונך לצאת? התקדמותך תאבד.",
-                [
-                  { text: "ביטול", style: "cancel" },
-                  {
-                    text: "יציאה",
-                    style: "destructive",
-                    onPress: () => navigation.goBack(),
-                  },
-                ]
-              );
+              // קבל את התשובות הנוכחיות לפני ההודעה
+              const currentAnswers = manager.getResults().answers;
+
+              if (currentAnswers.length === 0) {
+                // 🚪 אם אין תשובות בכלל - יציאה מהירה ללא שמירה
+                Alert.alert(
+                  "יציאה מהשאלון",
+                  "האם אתה בטוח שברצונך לצאת מהשאלון?",
+                  [
+                    { text: "ביטול", style: "cancel" },
+                    {
+                      text: "יציאה",
+                      style: "destructive",
+                      onPress: async () => {
+                        console.log(
+                          "🚪 User exited questionnaire with no progress - full logout and reset"
+                        );
+                        try {
+                          // התנתק מהמשתמש הנוכחי
+                          await logout();
+
+                          console.log(
+                            "✅ Full logout completed - navigating to clean Welcome"
+                          );
+
+                          // חזור למסך Welcome נקי לגמרי
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Welcome" }],
+                          });
+                        } catch (error) {
+                          console.error("❌ Error during full logout:", error);
+                          // גם אם יש שגיאה, נווט למסך Welcome
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Welcome" }],
+                          });
+                        }
+                      },
+                    },
+                  ]
+                );
+              } else {
+                // 💾 אם יש תשובות - הצע שמירה
+                Alert.alert(
+                  "יציאה מהשאלון",
+                  `יש לך ${currentAnswers.length} תשובות שנשמרו.\nההתקדמות תישמר ותוכל להמשיך בפעם הבאה.`,
+                  [
+                    { text: "ביטול", style: "cancel" },
+                    {
+                      text: "יציאה עם שמירה",
+                      style: "default",
+                      onPress: () => {
+                        // 💾 שמור את ההתקדמות הנוכחית
+                        console.log(
+                          "💾 Saving questionnaire progress before exit"
+                        );
+
+                        const progress = manager.getProgress();
+                        AsyncStorage.setItem(
+                          "questionnaire_draft",
+                          JSON.stringify({
+                            answers: currentAnswers,
+                            progress: progress,
+                            totalAnswered: currentAnswers.length,
+                            savedAt: new Date().toISOString(),
+                          })
+                        )
+                          .then(() => {
+                            console.log(
+                              "✅ Questionnaire progress saved successfully on exit"
+                            );
+                          })
+                          .catch((error) => {
+                            console.error(
+                              "❌ Failed to save questionnaire progress:",
+                              error
+                            );
+                          });
+
+                        // חזור למסך Welcome עם ההתקדמות השמורה
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Welcome" }],
+                        });
+                      },
+                    },
+                    {
+                      text: "יציאה ללא שמירה",
+                      style: "destructive",
+                      onPress: async () => {
+                        console.log(
+                          "🗑️ User chose to exit without saving progress - full logout and reset"
+                        );
+                        try {
+                          // מחק התקדמות קודמת אם יש
+                          await AsyncStorage.removeItem("questionnaire_draft");
+
+                          // התנתק מהמשתמש הנוכחי
+                          await logout();
+
+                          console.log(
+                            "✅ Full logout completed - navigating to clean Welcome"
+                          );
+
+                          // חזור למסך Welcome נקי לגמרי
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Welcome" }],
+                          });
+                        } catch (error) {
+                          console.error("❌ Error during full logout:", error);
+                          // גם אם יש שגיאה, נווט למסך Welcome
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "Welcome" }],
+                          });
+                        }
+                      },
+                    },
+                  ]
+                );
+              }
             }}
             style={styles.backButton}
           >
@@ -290,26 +698,14 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           removeClippedSubviews={false} // חשוב לאמולטור
           directionalLockEnabled={true} // נעל לגלילה אנכית בלבד
           scrollsToTop={false} // מנע גלילה אוטומטית לראש
-          onContentSizeChange={(width, height) => {
-            console.log(
-              `📐 EMULATOR: Content size changed: ${width}x${height}`
-            );
+          onContentSizeChange={() => {
+            // Removed emulator logging
           }}
-          onScroll={(event) => {
-            const { contentOffset, contentSize, layoutMeasurement } =
-              event.nativeEvent;
-            console.log(
-              `🖱️ EMULATOR: Scroll Y: ${Math.round(contentOffset.y)}, Max: ${Math.round(contentSize.height - layoutMeasurement.height)}`
-            );
+          onScroll={() => {
+            // Removed emulator logging
           }}
-          onScrollEndDrag={(event) => {
-            const { contentOffset, contentSize, layoutMeasurement } =
-              event.nativeEvent;
-            const maxScrollY = contentSize.height - layoutMeasurement.height;
-            const scrollProgress = (contentOffset.y / maxScrollY) * 100;
-            console.log(
-              `🎯 EMULATOR: Scroll ended at ${Math.round(scrollProgress)}%`
-            );
+          onScrollEndDrag={() => {
+            // Removed emulator logging
           }}
         >
           {/* Back Button (in question) */}
