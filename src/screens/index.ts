@@ -29,12 +29,7 @@ export { default as MuscleBar } from "./exercise/MuscleBar";
 export { default as ExercisesScreen } from "./exercises/ExercisesScreen";
 
 // Questionnaire screens
-export { default as AgeSelector } from "./questionnaire/AgeSelector";
-export { default as DietSelector } from "./questionnaire/DietSelector";
-export { default as EquipmentSelector } from "./questionnaire/EquipmentSelector";
-export { default as HeightSlider } from "./questionnaire/HeightSlider";
-export { default as SmartQuestionnaireScreen } from "./questionnaire/SmartQuestionnaireScreen";
-export { default as WeightSlider } from "./questionnaire/WeightSlider";
+export { default as UnifiedQuestionnaireScreen } from "./questionnaire/UnifiedQuestionnaireScreen";
 
 // History screens
 export { default as HistoryScreen } from "./history/HistoryScreen";

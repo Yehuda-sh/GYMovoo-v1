@@ -9,9 +9,8 @@
  */
 
 // ייצוא קומפוננטות מרכזיות
-export { default as AIFeedbackComponent } from "./AIFeedbackComponent";
 export { default as SmartOptionComponent } from "./SmartOptionComponent";
 export { default as SmartProgressBar } from "./SmartProgressBar";
 
 // ייצוא טיפוסים רלוונטיים
-export { AIFeedback, SmartOption } from "../../data/newSmartQuestionnaire";
+export { QuestionOption } from "../../data/unifiedQuestionnaire";

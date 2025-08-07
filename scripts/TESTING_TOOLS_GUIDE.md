@@ -11,6 +11,8 @@
 5. **securityCheck.js** - בדיקת אבטחה עם npm audit ✨
 6. **projectStructureValidator.js** - בדיקת מבנה מתוקנת ✨
 7. **quickCompileCheck.js** - בדיקת קומפילציה דינמית ✨
+8. **equipmentManager.js** - 🆕 **ניהול ציוד חכם!** בדיקה ותיקון נתוני ציוד ✨
+9. **equipmentFixer.js** - 🆕 **תיקון ציוד אוטומטי!** תיקון בעיות עקביות ✨
 
 ### 🛡️ כלים נוספים:
 

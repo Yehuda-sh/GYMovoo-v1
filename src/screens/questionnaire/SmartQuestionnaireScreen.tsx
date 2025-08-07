@@ -15,6 +15,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Animated,
   StyleSheet,
   SafeAreaView,
@@ -329,7 +330,20 @@ const SmartQuestionnaireScreen: React.FC = () => {
 
         <ScrollView
           style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="automatic"
+          nestedScrollEnabled={true}
+          onContentSizeChange={(width, height) => {
+            console.log(`📐 ScrollView content size: ${width}x${height}`);
+          }}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            console.log(`📱 ScrollView layout height: ${height}`);
+          }}
         >
           {/* התקדמות */}
           <SmartProgressBarCentralized progress={progress} />
@@ -373,77 +387,146 @@ const SmartQuestionnaireScreen: React.FC = () => {
             )}
           </View>
           {/* אפשרויות עם תמונות חכמות */}
-          <View style={styles.optionsContainer}>
-            {currentQuestion.options?.map((option, index) => {
-              const isSelected =
-                currentQuestion.type === "single"
-                  ? selectedOption?.id === option.id
-                  : selectedOptions.some((opt) => opt.id === option.id);
-
-              return (
-                <SmartOptionCentralized
-                  key={option.id}
-                  option={option}
-                  isSelected={isSelected}
-                  onSelect={() => handleOptionSelect(option)}
-                />
+          <View
+            style={styles.optionsContainer}
+            onLayout={(event) => {
+              const { height } = event.nativeEvent.layout;
+              console.log(`📋 Options container height: ${height}`);
+              console.log(
+                `🔢 Number of options: ${currentQuestion.options?.length || 0}`
               );
-            })}
+            }}
+          >
+            <FlatList
+              data={currentQuestion.options || []}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false} // כי אנחנו כבר בתוך ScrollView
+              showsVerticalScrollIndicator={false}
+              onLayout={(event) => {
+                const { height } = event.nativeEvent.layout;
+                console.log(`📝 FlatList height: ${height}`);
+              }}
+              renderItem={({ item: option, index }) => {
+                const isSelected =
+                  currentQuestion.type === "single"
+                    ? selectedOption?.id === option.id
+                    : selectedOptions.some((opt) => opt.id === option.id);
+
+                return (
+                  <SmartOptionCentralized
+                    key={option.id}
+                    option={option}
+                    isSelected={isSelected}
+                    onSelect={() => handleOptionSelect(option)}
+                  />
+                );
+              }}
+            />
           </View>
+
+          {/* כפתור הבא - בתוך ScrollView במקום צף */}
+          {selectedOptions.length > 0 && (
+            <Animated.View
+              style={[
+                styles.inlineButtonContainer,
+                {
+                  opacity: buttonAnimation,
+                  transform: [
+                    {
+                      scale: buttonAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.inlineButton,
+                  isAnswering && styles.inlineButtonDisabled,
+                ]}
+                onPress={handleNext}
+                disabled={isAnswering}
+              >
+                <LinearGradient
+                  colors={
+                    isAnswering
+                      ? [theme.colors.textTertiary, theme.colors.textTertiary]
+                      : [theme.colors.primary, theme.colors.primaryDark]
+                  }
+                  style={styles.inlineButtonGradient}
+                >
+                  <Text style={styles.inlineButtonText}>
+                    {isAnswering
+                      ? "מעבד..."
+                      : currentQuestion?.type === "single"
+                        ? "הבא"
+                        : `הבא (${selectedOptions.length} נבחרו)`}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
           {/* רווח תחתון */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
 
-        {/* כפתור הבא צף */}
-        <Animated.View
-          style={[
-            styles.floatingButtonContainer,
-            {
-              opacity: buttonAnimation,
-              transform: [
-                {
-                  translateY: buttonAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [100, 0],
-                  }),
-                },
-                {
-                  scale: buttonAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-          pointerEvents={selectedOptions.length > 0 ? "auto" : "none"}
-        >
-          <TouchableOpacity
+        {/* כפתור הבא צף - מושבת זמנית לפתרון בעיית גלילה */}
+        {false && (
+          <Animated.View
             style={[
-              styles.floatingButton,
-              isAnswering && styles.floatingButtonDisabled,
+              styles.floatingButtonContainer,
+              {
+                opacity: buttonAnimation,
+                transform: [
+                  {
+                    translateY: buttonAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0],
+                    }),
+                  },
+                  {
+                    scale: buttonAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
             ]}
-            onPress={handleNext}
-            disabled={isAnswering}
+            // שיפור pointerEvents - מאפשר גלילה כשהכפתור לא זמין
+            pointerEvents={selectedOptions.length > 0 ? "auto" : "box-none"}
           >
-            <LinearGradient
-              colors={
-                isAnswering
-                  ? [theme.colors.textTertiary, theme.colors.textTertiary]
-                  : [theme.colors.primary, theme.colors.primaryDark]
-              }
-              style={styles.floatingButtonGradient}
+            <TouchableOpacity
+              style={[
+                styles.floatingButton,
+                isAnswering && styles.floatingButtonDisabled,
+              ]}
+              onPress={handleNext}
+              disabled={isAnswering}
             >
-              <Text style={styles.floatingButtonText}>
-                {isAnswering
-                  ? "מעבד..."
-                  : currentQuestion?.type === "single"
-                    ? "הבא"
-                    : `הבא (${selectedOptions.length} נבחרו)`}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+              <LinearGradient
+                colors={
+                  isAnswering
+                    ? [theme.colors.textTertiary, theme.colors.textTertiary]
+                    : [theme.colors.primary, theme.colors.primaryDark]
+                }
+                style={styles.floatingButtonGradient}
+              >
+                <Text style={styles.floatingButtonText}>
+                  {isAnswering
+                    ? "מעבד..."
+                    : currentQuestion?.type === "single"
+                      ? "הבא"
+                      : `הבא (${selectedOptions.length} נבחרו)`}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
 
         {/* משוב AI */}
         {showFeedback && aiFeedback && (
@@ -506,6 +589,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 250, // עוד יותר רווח תחתון
+    minHeight: "100%", // ודא שהתוכן תופס לפחות את כל המסך
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -565,17 +653,59 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.lg,
   },
 
+  // סטיילים לכפתור בתוך ScrollView (במקום צף)
+  inlineButtonContainer: {
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+  },
+  inlineButton: {
+    borderRadius: theme.radius.xl,
+    overflow: "hidden",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  inlineButtonGradient: {
+    paddingVertical: theme.spacing.lg + 2,
+    paddingHorizontal: theme.spacing.xl,
+    alignItems: "center",
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.primary + "F5",
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "40",
+  },
+  inlineButtonDisabled: {
+    opacity: 0.6,
+  },
+  inlineButtonText: {
+    color: theme.colors.white,
+    ...theme.typography.bodyLarge,
+    fontWeight: "700",
+    textAlign: "center",
+    writingDirection: "rtl",
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.5,
+  },
+
   bottomSpacer: {
-    height: 100, // יותר מקום לכפתור הצף
+    height: 200, // הגדלה ל-200px - הרבה יותר מקום
   },
 
   // סטיילים לכפתור צף
   floatingButtonContainer: {
     position: "absolute",
-    bottom: 30,
+    bottom: 20, // הקטנה מ-30 ל-20 - יותר מקום לגלילה
     left: theme.spacing.lg,
     right: theme.spacing.lg,
     backgroundColor: "transparent",
+    // הוספת pointerEvents ברירת מחדל - מאפשר גלילה כשהכפתור לא פעיל
+    pointerEvents: "box-none", // מאפשר לאירועים לעבור דרך הקונטיינר
+    zIndex: 1000, // וודא שהכפתור מעל הכל אבל לא חוסם גלילה
   },
   floatingButton: {
     borderRadius: theme.radius.xl,

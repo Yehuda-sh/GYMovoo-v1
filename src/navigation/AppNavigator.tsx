@@ -15,7 +15,7 @@ import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
 
 // שאלון חכם מתקדם עם AI // Advanced smart questionnaire with AI
-import SmartQuestionnaireScreen from "../screens/questionnaire/SmartQuestionnaireScreen";
+import UnifiedQuestionnaireScreen from "../screens/questionnaire/UnifiedQuestionnaireScreen";
 // מסכי אימון // Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import ActiveWorkoutScreen from "../screens/workout/ActiveWorkoutScreen";
@@ -61,12 +61,11 @@ export default function AppNavigator() {
         {/* שאלון חכם מתקדם עם AI ואינסייטים */}
         <Stack.Screen
           name="Questionnaire"
-          component={SmartQuestionnaireScreen}
+          component={UnifiedQuestionnaireScreen}
           options={{
             headerShown: false,
-            presentation: "modal",
-            gestureDirection: "vertical", // סגירה למטה
-            gestureResponseDistance: 200, // מרחק גרירה לסגירה
+            gestureEnabled: false, // השבת gesture למניעת יציאה בטעות
+            presentation: "card", // החלפה מ-modal ל-card
           }}
         />
 

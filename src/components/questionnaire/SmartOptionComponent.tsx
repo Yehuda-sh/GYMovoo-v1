@@ -19,7 +19,7 @@ import {
   ImageSourcePropType,
 } from "react-native";
 import { theme } from "../../styles/theme";
-import { SmartOption } from "../../data/newSmartQuestionnaire";
+import { QuestionOption } from "../../data/unifiedQuestionnaire";
 
 // =====================================
 // 🎯 ממשק הקומפוננטה
@@ -27,7 +27,7 @@ import { SmartOption } from "../../data/newSmartQuestionnaire";
 // =====================================
 
 interface SmartOptionComponentProps {
-  option: SmartOption;
+  option: QuestionOption;
   isSelected: boolean;
   onSelect: () => void;
   showAIInsight?: boolean; // הצגת תובנת AI (ברירת מחדל: true)
@@ -102,10 +102,13 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
                 {option.description}
               </Text>
             )}
-            {showAIInsight && option.aiInsight && isSelected && (
+            {/* בואו נעדכן את זה לאחר מכן */}
+            {false && showAIInsight && isSelected && (
               <View style={styles.aiInsightContainer}>
                 <Text style={styles.aiInsightIcon}>🤖</Text>
-                <Text style={styles.aiInsightText}>{option.aiInsight}</Text>
+                <Text style={styles.aiInsightText}>
+                  {"AI Insight disabled"}
+                </Text>
               </View>
             )}
           </View>
