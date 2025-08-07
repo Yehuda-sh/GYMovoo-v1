@@ -3,63 +3,90 @@
  * @brief ✨ כפתור חזרה אוניברסלי משופר עם אינטגרציה מלאה ל-theme
  * @dependencies React Navigation, Ionicons, theme
  * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, ללא כפילויות
- * @version 2.0 - Unified with theme.ts, removed all duplications
+ * @version 2.1 - Performance optimized with memoization
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { TouchableOpacity, ViewStyle } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
+type BackButtonVariant = "default" | "minimal" | "large";
+
 interface BackButtonProps {
+  /** האם הכפתור צריך להיות במיקום מוחלט */
   absolute?: boolean;
+  /** פונקציה מותאמת אישית לטיפול בלחיצה */
   onPress?: () => void;
+  /** גודל האייקון המותאם אישית */
   size?: number;
-  variant?: "default" | "minimal" | "large";
+  /** וריאנט עיצובי של הכפתור */
+  variant?: BackButtonVariant;
+  /** עיצוב נוסף לכפתור */
   style?: ViewStyle;
+  /** האם הכפתור מושבת */
+  disabled?: boolean;
 }
 
-export default function BackButton({
-  absolute = true,
-  onPress,
-  size,
-  variant = "default",
-  style,
-}: BackButtonProps) {
-  const navigation = useNavigation();
+const BackButton: React.FC<BackButtonProps> = React.memo(
+  ({
+    absolute = true,
+    onPress,
+    size,
+    variant = "default",
+    style,
+    disabled = false,
+  }) => {
+    const navigation = useNavigation();
 
-  const handlePress = () => {
-    if (onPress) {
-      onPress();
-    } else {
-      navigation.goBack();
-    }
-  };
+    // Memoized styles עבור ביצועים טובים יותר
+    const buttonStyle = useMemo(
+      () =>
+        theme.components.getBackButtonStyle({
+          absolute,
+          variant,
+          customStyle: style,
+        }),
+      [absolute, variant, style]
+    );
 
-  // ✨ שימוש בקונפיגורציית theme מאוחדת - Using unified theme configuration
-  const buttonStyle = theme.components.getBackButtonStyle({
-    absolute,
-    variant,
-    customStyle: style,
-  });
+    const iconSize = useMemo(
+      () => theme.components.getBackButtonIconSize(variant, size),
+      [variant, size]
+    );
 
-  const iconSize = theme.components.getBackButtonIconSize(variant, size);
+    const handlePress = () => {
+      if (disabled) return;
 
-  return (
-    <TouchableOpacity
-      onPress={handlePress}
-      style={buttonStyle}
-      activeOpacity={0.7}
-      accessibilityLabel="חזור"
-      accessibilityRole="button"
-      accessibilityHint="לחץ כדי לחזור למסך הקודם"
-    >
-      <Ionicons
-        name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
-        size={iconSize}
-        color={theme.colors.text}
-      />
-    </TouchableOpacity>
-  );
-}
+      if (onPress) {
+        onPress();
+      } else {
+        navigation.goBack();
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        style={[buttonStyle, disabled && { opacity: 0.5 }]}
+        activeOpacity={disabled ? 1 : 0.7}
+        disabled={disabled}
+        accessibilityLabel="חזור"
+        accessibilityRole="button"
+        accessibilityHint="לחץ כדי לחזור למסך הקודם"
+        accessibilityState={{ disabled }}
+      >
+        <Ionicons
+          name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
+          size={iconSize}
+          color={disabled ? theme.colors.textTertiary : theme.colors.text}
+        />
+      </TouchableOpacity>
+    );
+  }
+);
+
+BackButton.displayName = "BackButton";
+
+export default BackButton;

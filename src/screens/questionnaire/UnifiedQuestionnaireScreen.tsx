@@ -178,13 +178,39 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         questionnaireTimestamp: new Date().toISOString(),
       });
 
-      // Show completion message
+      // יצירת סיכום תשובות פשוט
+      const answersSummary = results.answers
+        .slice(0, 5) // רק 5 תשובות ראשונות
+        .map((answer) => {
+          if (Array.isArray(answer.answer)) {
+            const labels = answer.answer
+              .map((opt) => opt.label)
+              .slice(0, 2)
+              .join(", ");
+            return `• ${labels}${answer.answer.length > 2 ? " ועוד..." : ""}`;
+          } else {
+            return `• ${answer.answer.label}`;
+          }
+        })
+        .join("\n");
+
+      // Show completion message with summary and options
       Alert.alert(
         "🎉 השאלון הושלם!",
-        `התוכנית שלך מוכנה!\n\n👤 ${customDemoUser.name}\n💪 ${customDemoUser.experience}\n🎯 ${customDemoUser.fitnessGoals.join(", ")}`,
+        `התוכנית האישית שלך מוכנה!\n\n📋 סיכום התשובות:\n${answersSummary}\n\n👤 פרופיל שנוצר: ${customDemoUser.name}\n💪 רמה: ${customDemoUser.experience}\n🎯 מטרות: ${customDemoUser.fitnessGoals.join(", ")}`,
         [
           {
+            text: "עריכת שאלון",
+            style: "default",
+            onPress: () => {
+              // איפוס השאלון והתחלה מחדש
+              manager.reset();
+              loadCurrentQuestion();
+            },
+          },
+          {
             text: "בואו נתחיל!",
+            style: "default",
             onPress: () => navigation.navigate("MainApp"),
           },
         ]
@@ -381,40 +407,40 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
             })}
           </View>
 
-          {/* Next Button */}
-          {selectedOptions.length > 0 && (
-            <View style={styles.nextButtonContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.nextButton,
-                  isLoading && styles.nextButtonDisabled,
-                ]}
-                onPress={handleNext}
-                disabled={isLoading}
-              >
-                <LinearGradient
-                  colors={
-                    isLoading
-                      ? [theme.colors.textTertiary, theme.colors.textTertiary]
-                      : [theme.colors.primary, theme.colors.primaryDark]
-                  }
-                  style={styles.nextButtonGradient}
-                >
-                  <Text style={styles.nextButtonText}>
-                    {isLoading
-                      ? "שומר..."
-                      : currentQuestion.type === "single"
-                        ? "הבא"
-                        : `הבא (${selectedOptions.length} נבחרו)`}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
-
           {/* Bottom Spacer */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
+
+        {/* Floating Next Button - צף בתחתית המסך */}
+        {selectedOptions.length > 0 && (
+          <View style={styles.floatingButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.floatingButton,
+                isLoading && styles.floatingButtonDisabled,
+              ]}
+              onPress={handleNext}
+              disabled={isLoading}
+            >
+              <LinearGradient
+                colors={
+                  isLoading
+                    ? [theme.colors.textTertiary, theme.colors.textTertiary]
+                    : [theme.colors.primary, theme.colors.primaryDark]
+                }
+                style={styles.floatingButtonGradient}
+              >
+                <Text style={styles.floatingButtonText}>
+                  {isLoading
+                    ? "שומר..."
+                    : currentQuestion.type === "single"
+                      ? "הבא"
+                      : `הבא (${selectedOptions.length} נבחרו)`}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -479,7 +505,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ScrollView - מותאם לאמולטורים
+  // ScrollView - מותאם עם תמיכה באמולטורים
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
@@ -487,8 +513,7 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 400, // הרבה יותר רווח לאמולטור
-    minHeight: "120%", // ודא שיש מספיק תוכן לגלילה
+    paddingBottom: theme.spacing.xxl, // רווח נורמלי
   },
 
   // Loading
@@ -654,9 +679,56 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Bottom Spacer - גדול מאוד לאמולטורים
+  // Floating Button Styles - עיצוב משופר
+  floatingButtonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.background,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border + "40",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  floatingButton: {
+    borderRadius: theme.radius.xl,
+    overflow: "hidden",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingButtonDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0.1,
+  },
+  floatingButtonGradient: {
+    paddingVertical: theme.spacing.lg + 2,
+    paddingHorizontal: theme.spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56,
+  },
+  floatingButtonText: {
+    color: theme.colors.white,
+    ...theme.typography.bodyLarge,
+    fontWeight: "700",
+    textAlign: "center",
+    writingDirection: "rtl",
+    fontSize: 16,
+  },
+
+  // Bottom Spacer
   bottomSpacer: {
-    height: 300, // עוד יותר רווח תחתון לגלילה מושלמת באמולטור
+    height: theme.spacing.xxl + 60, // רווח מותאם לכפתור הצף
     backgroundColor: "transparent",
   },
 });

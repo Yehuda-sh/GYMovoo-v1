@@ -567,6 +567,11 @@ export class UnifiedQuestionnaireManager {
     return Array.from(this.answers.values());
   }
 
+  // קבל שאלה לפי ID
+  getQuestionById(questionId: string): Question | null {
+    return this.questions.find((q) => q.id === questionId) || null;
+  }
+
   // קבל תוצאות מלאות
   getResults(): QuestionnaireResults {
     return {

@@ -4,7 +4,7 @@
  * @dependencies React Native, Dimensions
  * @notes כולל צבעים, רווחים, טיפוגרפיה, צללים ורכיבים מוכנים עם תמיכה בהתאמת מגדר
  * @recurring_errors אין להשתמש בערכים קשיחים - הכל דרך theme בלבד
- * @updated 2025-07-30 הוספת תמיכה במערכת השאלון החכם והתאמת מגדר
+ * @updated 2025-08-07 עדכון למערכת שאלון אחודה חדשה והסרת קוד מיותר
  */
 
 import { Dimensions, Platform } from "react-native";
@@ -64,7 +64,7 @@ export const colors = {
   workoutCardStart: "#2d5a7a",
   workoutCardEnd: "#1a3a5a",
 
-  // Questionnaire & Gender Adaptation Colors
+  // Questionnaire & Gender Adaptation Colors (Legacy - רוב לא בשימוש)
   questionnaireCard: "#1f2937",
   questionnaireBorder: "#374151",
   selectedOption: "#4f46e5",
@@ -293,7 +293,7 @@ export const components = {
     ...shadows.medium,
   },
 
-  // Smart Questionnaire Components
+  // Smart Questionnaire Components (Legacy - לא בשימוש במערכת האחודה)
   questionnaireCard: {
     backgroundColor: colors.questionnaireCard,
     borderRadius: radius.lg,
@@ -937,7 +937,7 @@ export const rtlHelpers = {
   getRTLInputStyle: () => components.rtlInput,
 };
 
-// --- Smart Questionnaire Theme Helpers ---
+// --- Smart Questionnaire Theme Helpers (Legacy - לא בשימוש) ---
 export const questionnaireHelpers = {
   /**
    * קבלת סגנון אפשרות שאלון
@@ -1066,7 +1066,7 @@ export const theme = {
   icons,
   layout,
 
-  // Enhanced helpers for smart questionnaire and gender adaptation
+  // Enhanced helpers for gender adaptation (questionnaire helpers are legacy)
   genderHelpers,
   rtlHelpers,
   questionnaireHelpers,

@@ -3,12 +3,16 @@
  * @description קומפוננטת בר התקדמות חכמה עם אנימציות
  * Smart progress bar component with animations
  *
+ * 🔄 סטטוס: קומפוננט מורשת - לא בשימוש במערכת האחודה החדשה
+ * Status: Legacy component - not used in the new unified system
+ *
  * ✅ קומפוננטה מפורקת ומרכזית לבר התקדמות
  * ✅ שימוש חוזר במסכי שאלון שונים
  * ✅ תמיכה מלאה ב-RTL ואנימציות חלקות
+ * ✅ אופטימזציה לביצועים עם React.memo ו-useRef
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { theme } from "../../styles/theme";
 
@@ -24,10 +28,16 @@ interface ProgressData {
 }
 
 interface SmartProgressBarProps {
+  /** נתוני התקדמות */
   progress: ProgressData;
-  showPercentage?: boolean; // הצגת אחוזים (ברירת מחדל: true)
-  animationDuration?: number; // זמן אנימציה (ברירת מחדל: 500ms)
-  customLabel?: string; // טקסט מותאם אישית
+  /** הצגת אחוזים (ברירת מחדל: true) */
+  showPercentage?: boolean;
+  /** זמן אנימציה במילישניות (ברירת מחדל: 500ms) */
+  animationDuration?: number;
+  /** טקסט מותאם אישית */
+  customLabel?: string;
+  /** האם להציג אנימציה */
+  animated?: boolean;
 }
 
 // =====================================
@@ -35,48 +45,72 @@ interface SmartProgressBarProps {
 // Smart Progress Bar Component
 // =====================================
 
-const SmartProgressBar: React.FC<SmartProgressBarProps> = ({
-  progress,
-  showPercentage = true,
-  animationDuration = 500,
-  customLabel,
-}) => {
-  const progressAnim = new Animated.Value(0);
+const SmartProgressBar: React.FC<SmartProgressBarProps> = React.memo(
+  ({
+    progress,
+    showPercentage = true,
+    animationDuration = 500,
+    customLabel,
+    animated = true,
+  }) => {
+    // useRef למניעת זיכרון leaks
+    const progressAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progress.percentage,
-      duration: animationDuration,
-      useNativeDriver: false,
-    }).start();
-  }, [progress.percentage, animationDuration, progressAnim]);
+    // Memoized label עבור ביצועים טובים יותר
+    const labelText = useMemo(
+      () => customLabel || `שאלה ${progress.current} מתוך ${progress.total}`,
+      [customLabel, progress.current, progress.total]
+    );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.progressText}>
-          {customLabel || `שאלה ${progress.current} מתוך ${progress.total}`}
-        </Text>
-        {showPercentage && (
-          <Text style={styles.progressPercentage}>{progress.percentage}%</Text>
-        )}
+    // Memoized percentage עם validation
+    const displayPercentage = useMemo(() => {
+      const percentage = Math.min(Math.max(progress.percentage, 0), 100);
+      return Math.round(percentage);
+    }, [progress.percentage]);
+
+    useEffect(() => {
+      if (animated) {
+        Animated.timing(progressAnim, {
+          toValue: progress.percentage,
+          duration: animationDuration,
+          useNativeDriver: false,
+        }).start();
+      } else {
+        // אם לא רוצים אנימציה, עדכן מיד
+        progressAnim.setValue(progress.percentage);
+      }
+    }, [progress.percentage, animationDuration, animated, progressAnim]);
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.progressText}>{labelText}</Text>
+          {showPercentage && (
+            <Text style={styles.progressPercentage}>{displayPercentage}%</Text>
+          )}
+        </View>
+        <View style={styles.barBackground}>
+          <Animated.View
+            style={[
+              styles.barFill,
+              {
+                width: animated
+                  ? progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ["0%", "100%"],
+                      extrapolate: "clamp", // מונע ערכים מחוץ לטווח
+                    })
+                  : `${displayPercentage}%`,
+              },
+            ]}
+          />
+        </View>
       </View>
-      <View style={styles.barBackground}>
-        <Animated.View
-          style={[
-            styles.barFill,
-            {
-              width: progressAnim.interpolate({
-                inputRange: [0, 100],
-                outputRange: ["0%", "100%"],
-              }),
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-};
+    );
+  }
+);
+
+SmartProgressBar.displayName = "SmartProgressBar";
 
 // =====================================
 // 🎨 עיצוב אופטימלי עם RTL
@@ -99,12 +133,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "right", // תמיד ימין בעברית
     writingDirection: "rtl",
+    flex: 1,
   },
   progressPercentage: {
     ...theme.typography.body,
     color: theme.colors.primary,
     fontWeight: "bold",
     textAlign: "left", // אחוזים משמאל
+    marginLeft: theme.spacing.sm,
   },
   barBackground: {
     height: 8,
