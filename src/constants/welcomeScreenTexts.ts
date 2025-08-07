@@ -1,5 +1,6 @@
 /**
- * @file src/constants/welcomeScreenTexts.ts
+ * @file src/constants/wel    REALISTIC_DEMO_CREATING: "יוצר משתמש דמו חדש עם אלגוריתם חכם...",
+    REALISTIC_DEMO_READY: "🎲 משתמש דמו חדש + אלגוריתם חכם",meScreenTexts.ts
  * @brief קבועי טקסט למסך ברוכים הבאים - ריכוז כל המחרוזות והתרגומים
  * @brief Welcome screen text constants - centralizing all strings and translations
  * @notes תמיכה מלאה RTL, תרגומים מדויקים, נגישות משופרת
@@ -29,8 +30,8 @@ export const WELCOME_SCREEN_TEXTS = {
     START_NOW: "התחל עכשיו",
     CONTINUE_WITH_GOOGLE: "המשך עם Google",
     HAVE_ACCOUNT: "כבר יש לי חשבון",
-    REALISTIC_DEMO_CREATING: "יוצר דמו מציאותי...",
-    REALISTIC_DEMO_READY: "🎯 דמו מציאותי (6 חודשים)",
+    REALISTIC_DEMO_CREATING: "יוצר משתמש דמו חדש...",
+    REALISTIC_DEMO_READY: "� משתמש דמו חדש + היסטוריה",
   },
 
   // הודעות קידום / Promotional messages
@@ -60,8 +61,10 @@ export const WELCOME_SCREEN_TEXTS = {
     GOOGLE_SIGNIN_HINT: "לחץ כדי להתחבר באמצעות חשבון Google שלך",
     EXISTING_USER: "כניסה למשתמשים קיימים",
     EXISTING_USER_HINT: "לחץ אם כבר יש לך חשבון",
-    REALISTIC_DEMO: "כניסה מהירה לפיתוח עם דמו מציאותי מלא",
-    REALISTIC_DEMO_HINT: "לחץ לכניסה מהירה עם נתונים מדומים - רק למפתחים",
+    REALISTIC_DEMO:
+      "יצירת משתמש דמו חדש עם שאלון והיסטוריה מתקדמת באלגוריתם חכם",
+    REALISTIC_DEMO_HINT:
+      "לחץ ליצירת משתמש דמו חדש עם שאלון רנדומלי והיסטוריית אימונים חכמה עם מוטיבציה דינמית - למפתחים בלבד",
   },
 
   // הודעות קונסול / Console messages

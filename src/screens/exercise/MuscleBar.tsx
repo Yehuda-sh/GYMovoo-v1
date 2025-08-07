@@ -1,7 +1,7 @@
 /**
  * @file src/screens/exercise/MuscleBar.tsx
  * @brief בר בחירת שרירים לסינון תרגילים
- * @dependencies exerciseService (Muscle type)
+ * @dependencies local Muscle type definition
  * @notes רכיב זה מציג רשימה אופקית של כפתורי שרירים לסינון
  * @recurring_errors שכחה להעביר את כל ה-props הנדרשים (muscles, selected, onSelect)
  */
@@ -16,8 +16,14 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
-import { Muscle } from "../../services/exerciseService";
 import { theme } from "../../styles/theme";
+
+// טיפוס מקומי עבור שריר
+interface Muscle {
+  id: number;
+  name: string;
+  is_front: boolean;
+}
 
 // טיפוס שם חוקי של אייקון
 type MaterialCommunityIconName = ComponentProps<

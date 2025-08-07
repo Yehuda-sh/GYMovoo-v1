@@ -20,13 +20,16 @@ import {
   Platform,
   TouchableNativeFeedback,
   Pressable,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import type { SmartQuestionnaireData } from "../../types";
 import { fakeGoogleSignIn, realisticDemoService } from "../../services";
+import { workoutSimulationService } from "../../services/workoutSimulationService";
 import { RootStackParamList } from "../../navigation/types";
 import {
   WELCOME_SCREEN_TEXTS,
@@ -275,135 +278,271 @@ export default function WelcomeScreen() {
     }
   }, [setUser, navigation]);
 
-  // Realistic demo creation with comprehensive workout history simulation
-  // יצירת דמו מציאותי עם סימולציית היסטוריית אימונים מקיפה
+  // Advanced demo creation with FRESH random user each time + questionnaire + week history
+  // יצירת דמו מתקדם עם משתמש רנדומלי חדש בכל פעם + שאלון + היסטוריית שבוע
   const handleDevQuickLogin = useCallback(async () => {
-    console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_START);
+    console.log("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
     setIsDevLoading(true);
 
     try {
-      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_USER_CREATE);
+      // 🚀 שלב 1: יצירת משתמש בסיסי חדש
+      console.log("👤 יוצר משתמש בסיסי חדש...");
+      const basicUser = realisticDemoService.generateDemoUser();
 
-      // 🎯 בדוק אם יש משתמש דמו מותאם מהשאלון
-      const customDemoUser = getCustomDemoUser();
-      let demoUser;
+      // הוספת מזהה ייחודי למשתמש עם שם אנגלי ומייל
+      const uniqueId = Date.now() + Math.random();
+      const uniqueNumber = Math.floor(uniqueId % 1000);
 
-      if (customDemoUser) {
-        console.log(
-          "🎯 Using custom demo user from questionnaire:",
-          customDemoUser.name
+      // יצירת שם אנגלי רנדומלי
+      const englishNames = {
+        male: [
+          "David",
+          "Alex",
+          "John",
+          "Michael",
+          "Daniel",
+          "Ryan",
+          "Noah",
+          "Ethan",
+          "James",
+          "Lucas",
+        ],
+        female: [
+          "Sarah",
+          "Emily",
+          "Jessica",
+          "Ashley",
+          "Jennifer",
+          "Nicole",
+          "Rachel",
+          "Amanda",
+          "Amy",
+          "Lisa",
+        ],
+      };
+
+      const genderForName = basicUser.gender === "female" ? "female" : "male";
+      const namesList = englishNames[genderForName];
+      const randomName =
+        namesList[Math.floor(Math.random() * namesList.length)];
+      const uniqueName = `${randomName} ${uniqueNumber}`;
+      const userEmail = `${randomName.toLowerCase()}${uniqueNumber}@demo.gymovoo.com`;
+
+      // 🚀 שלב 2: יצירת שאלון רנדומלי מלא מותאם למשתמש הבסיסי
+      console.log("📋 יוצר שאלון רנדומלי מלא...");
+      const randomQuestionnaireData = generateRandomQuestionnaire(basicUser);
+
+      // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם workoutSimulationService
+      console.log("🏋️ יוצר היסטוריית אימונים מתקדמת עם האלגוריתם החכם...");
+      const advancedWorkoutHistory =
+        await workoutSimulationService.simulateHistoryCompatibleWorkouts(
+          basicUser.gender,
+          basicUser.experience
         );
-        // יצור משתמש מלא עם נתוני השאלון המותאמים
-        const baseDemoUser = {
-          id: customDemoUser.id,
-          name: customDemoUser.name,
-          gender: customDemoUser.gender,
-          age: customDemoUser.age,
-          experience: customDemoUser.experience,
-          height: customDemoUser.height,
-          weight: customDemoUser.weight,
-          fitnessGoals: customDemoUser.fitnessGoals,
-          availableDays: customDemoUser.availableDays,
-          sessionDuration: customDemoUser.sessionDuration,
-          equipment: customDemoUser.equipment,
-          preferredTime: customDemoUser.preferredTime,
-          workoutHistory: [],
-        };
 
-        // יצור משתמש מלא עם היסטוריית אימונים מבוססת השאלון
-        demoUser =
-          await realisticDemoService.generateRealisticUserFromCustomDemo(
-            baseDemoUser
-          );
-      } else {
-        // יצירת משתמש דמו רגיל אם אין נתוני שאלון
-        console.log(
-          "📝 No questionnaire data found, creating random demo user"
-        );
-        demoUser = await realisticDemoService.generateRealisticUser();
-      }
+      // 🚀 שלב 4: עדכון המשתמש עם כל הנתונים המשופרים
+      const enhancedUser = {
+        ...basicUser,
+        name: uniqueName,
+        email: userEmail,
+        id: `demo_user_${uniqueId}`,
+
+        // נתונים אישיים מהשאלון
+        age: randomQuestionnaireData.answers.age,
+        height: randomQuestionnaireData.answers.height,
+        weight: randomQuestionnaireData.answers.weight,
+        gender: randomQuestionnaireData.answers.gender || basicUser.gender,
+
+        // נתוני כושר ותוכנית
+        fitnessLevel:
+          randomQuestionnaireData.answers.fitnessLevel || basicUser.experience,
+        goals: randomQuestionnaireData.answers.goals,
+        equipment:
+          randomQuestionnaireData.answers.equipment || basicUser.equipment,
+        sessionDuration: randomQuestionnaireData.answers.sessionDuration,
+        availableDays: randomQuestionnaireData.answers.availability,
+        preferredTime: randomQuestionnaireData.answers.preferredTime,
+
+        // נתוני השאלון החכם
+        smartQuestionnaireData: randomQuestionnaireData,
+
+        // שאלון בסיסי לתאימות עם מסך הפרופיל
+        questionnaire: {
+          equipment: randomQuestionnaireData.answers.equipment, // מערך פשוט ללא עטיפה נוספת
+          available_equipment: randomQuestionnaireData.answers.equipment, // מערך פשוט ללא עטיפה נוספת
+          gender: randomQuestionnaireData.answers.gender,
+          age: randomQuestionnaireData.answers.age,
+          height: randomQuestionnaireData.answers.height,
+          weight: randomQuestionnaireData.answers.weight,
+          goal: randomQuestionnaireData.answers.goals,
+          experience: randomQuestionnaireData.answers.fitnessLevel,
+          location: randomQuestionnaireData.answers.workoutLocation,
+          frequency:
+            randomQuestionnaireData.answers.availability?.[0] ||
+            "3-4 times per week",
+          duration: randomQuestionnaireData.answers.sessionDuration,
+        },
+
+        // היסטוריית אימונים מתקדמת מהאלגוריתם החכם
+        activityHistory: {
+          workouts: advancedWorkoutHistory,
+        }, // מטא-דאטה
+        demoSessionId: `demo_session_${uniqueId}`,
+        createdAt: new Date().toISOString(),
+      };
 
       console.log(
-        WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SUCCESS,
-        demoUser.activityHistory?.workouts?.length || 0,
-        "workouts"
+        "✅ משתמש דמו מלא נוצר:",
+        enhancedUser.name,
+        "| מייל:",
+        enhancedUser.email
+      );
+      console.log(
+        "👤 נתונים אישיים:",
+        `גיל: ${enhancedUser.age}, גובה: ${enhancedUser.height}ס"מ, משקל: ${enhancedUser.weight}ק"ג`
+      );
+      console.log(
+        "🏋️ היסטוריית אימונים מתקדמת:",
+        advancedWorkoutHistory.length,
+        "אימונים עם אלגוריתם חכם"
+      );
+      console.log(
+        "📋 נתוני שאלון:",
+        randomQuestionnaireData.metadata.questionsAnswered,
+        "תשובות"
       );
 
-      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_SAVE);
-      // Save demo user to global store // שמירת משתמש דמו ב-store גלובלי
-      setUser(demoUser);
+      // שמירת המשתמש ב-store
+      setUser(enhancedUser);
 
-      // 🎯 אם יצרנו משתמש מותאם, וודא שנתוני השאלון נשמרים
-      if (customDemoUser) {
-        console.log("💾 Ensuring questionnaire data is preserved in store");
-
-        // יצור נתוני שאלון מלאים מהמשתמש המותאם
-        const simulatedQuestionnaireData = {
-          answers: {
-            experience: customDemoUser.experience,
-            gender: customDemoUser.gender,
-            equipment: customDemoUser.equipment,
-            goals: customDemoUser.fitnessGoals,
-            available_days: customDemoUser.availableDays.toString(),
-            workout_frequency:
-              customDemoUser.experience === "beginner"
-                ? "sometimes"
-                : customDemoUser.experience === "intermediate"
-                  ? "regularly"
-                  : "often",
-            preferred_time: customDemoUser.preferredTime,
-          },
-          completedAt: new Date().toISOString(),
-          metadata: {
-            completedAt: new Date().toISOString(),
-            version: "1.0",
-            sessionId: `demo_${Date.now()}`,
-            completionTime: 300, // 5 דקות סימולציה
-            questionsAnswered: 8,
-            totalQuestions: 8,
-            deviceInfo: {
-              platform: "mobile" as const,
-              screenWidth: 375,
-              screenHeight: 812,
-            },
-          },
-          insights: {
-            completionScore: 100,
-            equipmentReadinessLevel: customDemoUser.equipment.includes("none")
-              ? 3
-              : 5,
-            insights: [
-              `מותאם אישית עבור ${customDemoUser.experience === "beginner" ? "מתחיל" : customDemoUser.experience === "intermediate" ? "בינוני" : "מתקדם"}`,
-              `ציוד זמין: ${customDemoUser.equipment.length === 1 && customDemoUser.equipment[0] === "none" ? "אימוני משקל גוף" : customDemoUser.equipment.join(", ")}`,
-              `יעדי כושר: ${customDemoUser.fitnessGoals.slice(0, 2).join(", ")}`,
-            ],
-            trainingCapabilities: customDemoUser.fitnessGoals,
-          },
-        };
-
-        // עדכן את המשתמש עם נתוני השאלון
-        updateUser({
-          smartQuestionnaireData: simulatedQuestionnaireData,
-          customDemoUser: {
-            ...customDemoUser,
-            createdFromQuestionnaire: true,
-            questionnaireTimestamp:
-              customDemoUser.questionnaireTimestamp || new Date().toISOString(),
-          },
-        });
-      }
-
-      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_NAVIGATE);
-      // Navigate to main application interface // ניווט לממשק האפליקציה הראשי
+      // ניווט למסך הבית
+      console.log("🏠 מנווט למסך הבית...");
       navigation.navigate("MainApp");
-      console.log(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_COMPLETE);
     } catch (error) {
-      console.error(WELCOME_SCREEN_TEXTS.CONSOLE.DEMO_ERROR, error);
-      // Handle error silently in production
+      console.error("❌ שגיאה ביצירת משתמש דמו:", error);
+      Alert.alert("שגיאה", "אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.", [
+        { text: "אישור", style: "default" },
+      ]);
     } finally {
       setIsDevLoading(false);
     }
   }, [setUser, navigation]);
+
+  // פונקציה ליצירת שאלון רנדומלי עם כל הנתונים החיוניים מבוססת על המשתמש הבסיסי
+  const generateRandomQuestionnaire = (
+    baseUser: any
+  ): SmartQuestionnaireData => {
+    const genders: ("male" | "female")[] = ["male", "female"];
+    const experiences: ("beginner" | "intermediate" | "advanced")[] = [
+      "beginner",
+      "intermediate",
+      "advanced",
+    ];
+    const goals = [
+      ["build_muscle"],
+      ["lose_weight"],
+      ["improve_endurance"],
+      ["general_fitness"],
+      ["build_muscle", "lose_weight"],
+      ["improve_endurance", "general_fitness"],
+    ];
+    const equipmentOptions = [
+      ["bodyweight"],
+      ["dumbbells"],
+      ["resistance_bands"],
+      ["dumbbells", "resistance_bands"],
+      ["gym_access"],
+    ];
+    const dietPreferences = [
+      "balanced",
+      "keto",
+      "vegetarian",
+      "vegan",
+      "paleo",
+    ];
+    const timePreferences: ("morning" | "afternoon" | "evening")[] = [
+      "morning",
+      "afternoon",
+      "evening",
+    ];
+    const availabilityOptions = ["2_days", "3_days", "4_days", "5_days"];
+    const sessionDurations = [
+      "15_30_min",
+      "30_45_min",
+      "45_60_min",
+      "60_plus_min",
+    ];
+    const workoutLocations = [
+      "home_bodyweight",
+      "home_equipment",
+      "gym",
+      "mixed",
+    ];
+
+    // שימוש בנתונים מהמשתמש הבסיסי כבסיס + הוספת שדות נוספים
+    const randomAge = baseUser.age || Math.floor(Math.random() * 40) + 18; // 18-58
+    const randomHeight =
+      baseUser.height || Math.floor(Math.random() * 40) + 150; // 150-190 ס"מ
+    const randomWeight = baseUser.weight || Math.floor(Math.random() * 50) + 50; // 50-100 ק"ג
+    const randomGender =
+      baseUser.gender || genders[Math.floor(Math.random() * genders.length)];
+    const randomExperience =
+      baseUser.experience ||
+      experiences[Math.floor(Math.random() * experiences.length)];
+    const randomEquipment =
+      baseUser.equipment ||
+      equipmentOptions[Math.floor(Math.random() * equipmentOptions.length)];
+
+    // שדות חדשים שלא היו במשתמש הבסיסי
+    const randomGoals = goals[Math.floor(Math.random() * goals.length)];
+    const randomDiet =
+      dietPreferences[Math.floor(Math.random() * dietPreferences.length)];
+    const randomTime =
+      timePreferences[Math.floor(Math.random() * timePreferences.length)];
+    const randomAvailability =
+      availabilityOptions[
+        Math.floor(Math.random() * availabilityOptions.length)
+      ];
+    const randomSessionDuration =
+      sessionDurations[Math.floor(Math.random() * sessionDurations.length)];
+    const randomWorkoutLocation =
+      workoutLocations[Math.floor(Math.random() * workoutLocations.length)];
+
+    return {
+      answers: {
+        // נתונים בסיסיים חיוניים
+        gender: randomGender,
+        age: randomAge,
+        height: randomHeight,
+        weight: randomWeight,
+
+        // נתוני אימון ותוכנית
+        fitnessLevel: randomExperience,
+        goals: randomGoals,
+        equipment: randomEquipment, // תיקון: מערך פשוט ללא עטיפה נוספת
+        availability: [randomAvailability], // תיקון: מערך במקום מחרוזת
+        sessionDuration: randomSessionDuration,
+        workoutLocation: randomWorkoutLocation,
+
+        // תזונה והעדפות
+        nutrition: [randomDiet],
+        preferredTime: randomTime,
+      },
+      metadata: {
+        completedAt: new Date().toISOString(),
+        version: "2.0",
+        sessionId: `advanced_demo_${Date.now()}`,
+        completionTime: Math.floor(Math.random() * 600) + 120, // 2-12 דקות
+        questionsAnswered: 12, // עדכון למספר השאלות האמיתי
+        totalQuestions: 12,
+        deviceInfo: {
+          platform: "mobile" as const,
+          screenWidth: 375,
+          screenHeight: 812,
+        },
+      },
+    };
+  };
 
   // מסך טעינה בזמן בדיקת מצב התחברות
   // Loading screen while checking authentication status

@@ -1,548 +1,277 @@
 /**
- * @file src/screens/exercise/ExerciseListScreen.tsx
- * @brief מסך רשימת תרגילים עם אפשרות סינון לפי שרירים ומצב בחירה
- * @dependencies MuscleBar, ExerciseDetailsModal, exerciseService
- * @notes מסך זה מציג רשימת תרגילים מ-API עם אפשרות סינון דינמי ומצב בחירה לאימון
+ * @file ExerciseListScreen.tsx (Simplified Version)
+ * @description מסך רשימת תרגילים מפושט שמשתמש במערכת החדשה
+ * @dependencies React Native, Exercise data from /data/exercises
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
   Image,
   ActivityIndicator,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Toast from "react-native-toast-message"; // 🆕 הוספת Toast גלובלי
+import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
-import { EmptyState } from "../../components"; // 🆕 הוספת EmptyState
-import {
-  Exercise,
-  fetchRandomExercises,
-} from "../../data/exercises";
+import { Exercise, fetchRandomExercises } from "../../data/exercises";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
-import MuscleBar from "./MuscleBar";
 import BackButton from "../../components/common/BackButton";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
-import type { RootStackParamList } from "../../navigation/types";
 
-/**
- * טיפוס params של המסך הזה, לפי ה-AppNavigator
- */
-type ExerciseListScreenRouteProp = RouteProp<
-  RootStackParamList,
-  "ExerciseList"
->;
-
-export default function ExerciseListScreen() {
+const ExerciseListScreen: React.FC = () => {
   const navigation = useNavigation();
-  const route = useRoute<ExerciseListScreenRouteProp>();
-
-  // בדיקה אם אנחנו במצב בחירה
-  const params = route.params ?? {};
-  const isSelectionMode = params.mode === "selection";
-  const onSelectExercise = params.onSelectExercise;
-
-  // States
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Exercise | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMuscle, setSelectedMuscle] = useState<string | "all">("all");
-  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
-  const [showNoSelectionModal, setShowNoSelectionModal] = useState(false);
 
-  // טעינת נתונים
   useEffect(() => {
-    loadData();
+    loadExercises();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
+  const loadExercises = () => {
     try {
-      const muscles = await fetchMuscles();
-      setAllMuscles(muscles);
-      const data = await fetchExercisesSimple(); // הסרת הפרמטר הלא נדרש
-      if (data.length === 0) {
-        setError("לא נמצאו תרגילים. אנא בדוק את חיבור האינטרנט שלך.");
-      } else {
-        setExercises(data);
-      }
-    } catch {
-      setError(
-        "נכשלה טעינת התרגילים. אנא בדוק את חיבור האינטרנט שלך ונסה שנית."
-      );
+      setLoading(true);
+      const data = fetchRandomExercises(15);
+      setExercises(data);
+    } catch (error) {
+      console.error("Error loading exercises:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // סינון תרגילים לפי שריר - אופטימיזציה עם useMemo
-  const filteredExercises = React.useMemo(() => {
-    if (selectedMuscle === "all") return exercises;
-    return exercises.filter(
-      (ex) =>
-        ex.muscles?.some((m) => m.id === selectedMuscle) ||
-        ex.muscles_secondary?.some((m) => m.id === selectedMuscle)
-    );
-  }, [exercises, selectedMuscle]);
-
-  // עוזר להצגת שמות שרירים - אופטימיזציה עם useCallback
-  const getMuscleName = useCallback(
-    (muscles?: Muscle[]): string =>
-      !muscles || !muscles.length
-        ? "לא זמין"
-        : muscles.map((m) => m.name).join(", "),
-    []
-  );
-
-  // Toast הצגת - משופר עם Toast גלובלי
-  // Toast display - enhanced with global Toast
-  const showToastMessage = useCallback((message: string) => {
-    Toast.show({
-      type: "success",
-      text1: message,
-      position: "bottom",
-      visibilityTime: 2000,
-      autoHide: true,
-      bottomOffset: 100,
-    });
-  }, []);
-
-  // בעת לחיצה על תרגיל - אופטימיזציה עם useCallback
-  const handleExercisePress = useCallback(
-    (item: Exercise) => {
-      if (isSelectionMode && onSelectExercise) {
-        const exerciseId = item.id.toString();
-        if (selectedExercises.includes(exerciseId)) {
-          setSelectedExercises((prev) =>
-            prev.filter((id) => id !== exerciseId)
-          );
-          showToastMessage(`${item.name} הוסר מהרשימה`);
-        } else {
-          setSelectedExercises((prev) => [...prev, exerciseId]);
-          showToastMessage(`${item.name} נוסף לאימון! 💪`);
-
-          // המרת התרגיל מפורמט API לפורמט אימון
-          const workoutExercise = {
-            id: item.id.toString(),
-            name: item.name,
-            category: item.muscles?.[0]?.name || "כללי",
-            primaryMuscles: item.muscles?.map((m) => m.name) || [],
-            secondaryMuscles: item.muscles_secondary?.map((m) => m.name) || [],
-            equipment: "dumbbells", // ברירת מחדל - יכול להיות מותאם
-            sets: [
-              {
-                id: `${item.id}-set-1`,
-                type: "working" as const,
-                targetReps: 12,
-                targetWeight: 0,
-                completed: false,
-                restTime: 60,
-                isPR: false,
-              },
-            ],
-            restTime: 60,
-            notes: item.description || "",
-          };
-
-          // הוספה לאימון דרך הפונקציה מה-params
-          onSelectExercise(workoutExercise);
-        }
-      } else {
-        setSelected(item);
-      }
-    },
-    [isSelectionMode, onSelectExercise, selectedExercises, showToastMessage]
-  );
-
-  // סיום בחירת תרגילים - אופטימיזציה עם useCallback
-  const handleFinishSelection = useCallback(() => {
-    if (selectedExercises.length === 0) {
-      setShowNoSelectionModal(true);
-      return;
-    }
-    navigation.goBack();
-  }, [selectedExercises.length, navigation]);
-
-  // רכיב כרטיס תרגיל - אופטימיזציה עם useCallback
-  const renderExerciseItem = useCallback(
-    ({ item }: { item: Exercise }) => (
-      <TouchableOpacity
-        style={styles.exerciseCard}
-        onPress={() => handleExercisePress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.exerciseContent}>
-          <View style={styles.exerciseHeader}>
-            <Text style={styles.exerciseName} numberOfLines={2}>
-              {item.name}
-            </Text>
-            {item.muscles?.length > 0 && (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{item.muscles[0].name}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.muscleInfo}>
-            <View style={styles.muscleRow}>
-              <MaterialCommunityIcons
-                name="arm-flex"
-                size={16}
-                color={theme.colors.accent}
-              />
-              <Text style={styles.muscleText}>
-                {getMuscleName(item.muscles)}
-              </Text>
-            </View>
-            {item.muscles_secondary?.length > 0 && (
-              <View style={styles.muscleRow}>
-                <MaterialCommunityIcons
-                  name="arm-flex-outline"
-                  size={16}
-                  color={theme.colors.textSecondary}
-                />
-                <Text style={styles.muscleSecondaryText}>
-                  {getMuscleName(item.muscles_secondary)}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-        {item.image ? (
+  const renderExerciseItem = ({ item }: { item: Exercise }) => (
+    <TouchableOpacity
+      style={styles.exerciseCard}
+      onPress={() => setSelectedExercise(item)}
+    >
+      {/* תמונה */}
+      <View style={styles.imageContainer}>
+        {item.media?.image ? (
           <Image
-            source={{ uri: item.image }}
+            source={{ uri: item.media.image }}
             style={styles.exerciseImage}
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.exerciseImage, styles.placeholderImage]}>
-            <MaterialCommunityIcons
-              name="dumbbell"
-              size={24}
-              color={theme.colors.textSecondary}
-            />
+          <View style={styles.placeholderImage}>
+            <Text style={styles.placeholderText}>📸</Text>
           </View>
         )}
-        <MaterialCommunityIcons
-          name={
-            isSelectionMode
-              ? selectedExercises.includes(item.id.toString())
-                ? "check-circle"
-                : "plus-circle"
-              : "chevron-left"
-          }
-          size={24}
-          color={
-            isSelectionMode
-              ? selectedExercises.includes(item.id.toString())
-                ? theme.colors.success
-                : theme.colors.primary
-              : theme.colors.textSecondary
-          }
-          style={styles.chevron}
-        />
-      </TouchableOpacity>
-    ),
-    [handleExercisePress, getMuscleName, isSelectionMode, selectedExercises]
-  );
-
-  // Loading/Error
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={styles.loadingText}>טוען תרגילים...</Text>
-        <Text style={styles.loadingSubtext}>זה עשוי לקחת רגע</Text>
       </View>
-    );
-  }
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <MaterialCommunityIcons
-          name="alert-circle"
-          size={48}
-          color={theme.colors.error}
-          style={{ marginBottom: 16 }}
-        />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-          <Text style={styles.retryButtonText}>נסה שנית</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
-  // Main Render
-  return (
-    <View style={styles.container}>
-      {/* כותרת */}
-      <View style={styles.header}>
-        {isSelectionMode && <BackButton absolute={false} variant="minimal" />}
-        <Text style={styles.headerTitle}>
-          {isSelectionMode ? "בחר תרגילים להוספה" : "ספריית תרגילים"}
-        </Text>
-        {isSelectionMode ? (
-          <View style={styles.selectedBadge}>
-            <Text style={styles.selectedText}>
-              {selectedExercises.length} נבחרו
+      {/* פרטי התרגיל */}
+      <View style={styles.exerciseDetails}>
+        <Text style={styles.exerciseName}>{item.nameLocalized.he}</Text>
+        <Text style={styles.exerciseCategory}>{item.category}</Text>
+
+        {/* שרירים ראשיים */}
+        {item.primaryMuscles.length > 0 && (
+          <View style={styles.musclesContainer}>
+            <Text style={styles.musclesLabel}>שרירים: </Text>
+            <Text style={styles.musclesText}>
+              {item.primaryMuscles.slice(0, 2).join(", ")}
+              {item.primaryMuscles.length > 2 && " ועוד..."}
             </Text>
           </View>
-        ) : (
-          <Text style={styles.exerciseCount}>
-            {filteredExercises.length} תרגילים
-          </Text>
         )}
+
+        {/* קושי */}
+        <View style={styles.difficultyContainer}>
+          <Text style={styles.difficultyLabel}>רמת קושי: </Text>
+          <Text
+            style={[
+              styles.difficultyText,
+              item.difficulty === "beginner" && styles.beginnerDifficulty,
+              item.difficulty === "intermediate" &&
+                styles.intermediateDifficulty,
+              item.difficulty === "advanced" && styles.advancedDifficulty,
+            ]}
+          >
+            {item.difficulty === "beginner" && "מתחיל"}
+            {item.difficulty === "intermediate" && "בינוני"}
+            {item.difficulty === "advanced" && "מתקדם"}
+          </Text>
+        </View>
+
+        {/* ציוד */}
+        <Text style={styles.equipmentText}>
+          ציוד: {item.equipment === "none" ? "ללא ציוד" : item.equipment}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <BackButton onPress={() => navigation.goBack()} />
+          <Text style={styles.headerTitle}>רשימת תרגילים</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>טוען תרגילים...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <BackButton onPress={() => navigation.goBack()} />
+        <Text style={styles.headerTitle}>רשימת תרגילים</Text>
       </View>
 
-      {/* Muscle selection bar */}
-      {allMuscles.length > 0 && (
-        <MuscleBar
-          muscles={allMuscles}
-          selected={selectedMuscle}
-          onSelect={setSelectedMuscle}
-        />
-      )}
-
       <FlatList
-        data={filteredExercises}
-        keyExtractor={(item) => item.id.toString()}
+        data={exercises}
         renderItem={renderExerciseItem}
-        contentContainerStyle={styles.listContent}
-        removeClippedSubviews={true} // אופטימיזציה לביצועים
-        maxToRenderPerBatch={10} // מגבלת רינדור לאצווה
-        windowSize={10} // גודל חלון לאופטימיזציה
-        initialNumToRender={8} // מספר אלמנטים ראשוני לרינדור
-        getItemLayout={
-          (data, index) => ({
-            length: 92,
-            offset: 92 * index,
-            index,
-          }) // אופטימיזציה לגלילה
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="search-outline"
-            title="לא נמצאו תרגילים"
-            description="לא נמצאו תרגילים לקבוצת השרירים הזו. נסה לבחור קבוצת שרירים אחרת או לבטל את הסינון."
-            variant="compact"
-            testID="exercise-list-empty"
-          />
-        }
-        contentInset={{ bottom: isSelectionMode ? 100 : 0 }}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
       />
 
-      {/* כפתור סיום בחירה */}
-      {isSelectionMode && (
-        <TouchableOpacity
-          style={styles.finishButton}
-          onPress={handleFinishSelection}
-        >
-          <Text style={styles.finishButtonText}>סיים בחירה</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* דיאלוג פרטי תרגיל */}
-      {!isSelectionMode && selected && (
+      {/* Modal פרטי תרגיל */}
+      {selectedExercise && (
         <ExerciseDetailsModal
-          exercise={selected}
-          onClose={() => setSelected(null)}
+          exercise={selectedExercise}
+          onClose={() => setSelectedExercise(null)}
         />
       )}
-
-      {/* No Selection Confirmation Modal */}
-      <ConfirmationModal
-        visible={showNoSelectionModal}
-        onClose={() => setShowNoSelectionModal(false)}
-        onConfirm={() => setShowNoSelectionModal(false)}
-        title="לא נבחרו תרגילים"
-        message="בחר לפחות תרגיל אחד להוספה לאימון"
-        confirmText="בסדר"
-        icon="alert-circle-outline"
-        iconColor={theme.colors.warning}
-      />
-    </View>
+    </SafeAreaView>
   );
-}
-
-// --- styles ---
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.colors.background,
-    padding: 20,
-  },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
+    flexDirection: "row",
     alignItems: "center",
-  },
-  backButton: {
-    padding: 8,
-    marginLeft: 8,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
+    ...theme.typography.title2,
     color: theme.colors.text,
-  },
-  exerciseCount: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    backgroundColor: theme.colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  loadingText: {
-    color: theme.colors.textSecondary,
-    marginTop: 12,
-    fontSize: 16,
+    fontWeight: "700",
     textAlign: "center",
-  },
-  loadingSubtext: {
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-    fontSize: 14,
-    opacity: 0.7,
-    textAlign: "center",
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 20,
-    paddingHorizontal: 32,
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 16,
-    ...theme.shadows.medium,
-  },
-  retryButtonText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  exerciseCard: {
-    flexDirection: "row-reverse",
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.medium,
-  },
-  exerciseContent: {
     flex: 1,
-    marginLeft: 12,
+    writingDirection: "rtl",
   },
-  exerciseHeader: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
+  loadingContainer: {
     flex: 1,
-    textAlign: "right",
-    marginLeft: 8,
-  },
-  categoryBadge: {
-    backgroundColor: theme.colors.primaryGradientStart + "20",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: theme.colors.accent,
-    fontWeight: "500",
-  },
-  muscleInfo: {
-    gap: 4,
-  },
-  muscleRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-  },
-  muscleText: {
-    fontSize: 14,
-    color: theme.colors.accent,
-    textAlign: "right",
-  },
-  muscleSecondaryText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    textAlign: "right",
-  },
-  exerciseImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: theme.colors.backgroundAlt,
-  },
-  placeholderImage: {
     justifyContent: "center",
     alignItems: "center",
   },
-  chevron: {
-    marginRight: 8,
+  loadingText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.md,
+    writingDirection: "rtl",
   },
-  selectedBadge: {
-    backgroundColor: theme.colors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  listContainer: {
+    padding: theme.spacing.lg,
   },
-  selectedText: {
-    color: theme.colors.white,
-    fontSize: 14,
+  exerciseCard: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.md,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  imageContainer: {
+    width: 100,
+    height: 100,
+  },
+  exerciseImage: {
+    width: "100%",
+    height: "100%",
+  },
+  placeholderImage: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: theme.colors.backgroundElevated,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    fontSize: 24,
+  },
+  exerciseDetails: {
+    flex: 1,
+    padding: theme.spacing.md,
+  },
+  exerciseName: {
+    ...theme.typography.bodyLarge,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+    writingDirection: "rtl",
+  },
+  exerciseCategory: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
+  },
+  musclesContainer: {
+    flexDirection: "row",
+    marginBottom: theme.spacing.xs,
+  },
+  musclesLabel: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
     fontWeight: "600",
   },
-  finishButton: {
-    position: "absolute",
-    bottom: 30,
-    left: 16,
-    right: 16,
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    ...theme.shadows.large,
+  musclesText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
+    flex: 1,
+    writingDirection: "rtl",
   },
-  finishButtonText: {
-    color: theme.colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
+  difficultyContainer: {
+    flexDirection: "row",
+    marginBottom: theme.spacing.xs,
+  },
+  difficultyLabel: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
+    fontWeight: "600",
+  },
+  difficultyText: {
+    ...theme.typography.bodySmall,
+    fontWeight: "600",
+  },
+  beginnerDifficulty: {
+    color: theme.colors.success,
+  },
+  intermediateDifficulty: {
+    color: theme.colors.warning,
+  },
+  advancedDifficulty: {
+    color: theme.colors.error,
+  },
+  equipmentText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textTertiary,
+    writingDirection: "rtl",
   },
 });
+
+export default ExerciseListScreen;

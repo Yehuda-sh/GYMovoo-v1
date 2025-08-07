@@ -325,13 +325,24 @@ export interface SmartQuestionnaireData {
   // תשובות השאלון החכם
   // Smart questionnaire answers
   answers: {
+    // נתונים בסיסיים שאישיים
     gender?: "male" | "female" | "other";
+    age?: number;
+    height?: number; // ס"מ
+    weight?: number; // ק"ג
+
+    // נתוני אימון ותוכנית
     fitnessLevel?: "beginner" | "intermediate" | "advanced";
     goals?: string[];
     availability?: string[];
+    sessionDuration?: string;
+    workoutLocation?: string;
     preferences?: string[];
     equipment?: string[];
+
+    // תזונה והעדפות
     nutrition?: string[];
+    preferredTime?: string;
   };
 
   // מטאדאטה מורחבת

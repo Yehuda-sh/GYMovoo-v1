@@ -21,7 +21,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { Exercise } from "../../services/exerciseService";
+import { Exercise } from "../../data/exercises";
 import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -57,14 +57,10 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
    * מנקה תגי HTML מהתיאור
    * Removes HTML tags from description
    */
-  const cleanDescription = exercise.description
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .trim();
+  const cleanDescription =
+    exercise.instructions.he.join(". ") ||
+    exercise.instructions.en.join(". ") ||
+    "אין תיאור זמין";
 
   const handleClose = () => {
     // אנימציית יציאה משופרת // Enhanced exit animation
@@ -125,7 +121,7 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               contentContainerStyle={styles.scrollContent}
             >
               {/* תמונת תרגיל // Exercise Image */}
-              {exercise.image ? (
+              {exercise.media?.image ? (
                 <View style={styles.imageContainer}>
                   {imageLoading && (
                     <View style={styles.imageLoadingContainer}>
@@ -137,7 +133,7 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
                     </View>
                   )}
                   <Image
-                    source={{ uri: exercise.image }}
+                    source={{ uri: exercise.media.image }}
                     style={[
                       styles.exerciseImage,
                       { opacity: imageLoading ? 0 : 1 },
@@ -184,12 +180,14 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
                   <Text style={styles.sectionTitle}>שרירים ראשיים</Text>
                 </View>
                 <View style={styles.muscleTagsContainer}>
-                  {exercise.muscles.length > 0 ? (
-                    exercise.muscles.map((muscle, index) => (
-                      <View key={index} style={styles.muscleTag}>
-                        <Text style={styles.muscleTagText}>{muscle.name}</Text>
-                      </View>
-                    ))
+                  {exercise.primaryMuscles.length > 0 ? (
+                    exercise.primaryMuscles.map(
+                      (muscle: string, index: number) => (
+                        <View key={index} style={styles.muscleTag}>
+                          <Text style={styles.muscleTagText}>{muscle}</Text>
+                        </View>
+                      )
+                    )
                   ) : (
                     <Text style={styles.noDataText}>לא צוין</Text>
                   )}
@@ -197,28 +195,34 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               </View>
 
               {/* שרירים משניים // Secondary Muscles */}
-              {exercise.muscles_secondary.length > 0 && (
-                <View style={styles.muscleSection}>
-                  <View style={styles.sectionHeader}>
-                    <MaterialCommunityIcons
-                      name="arm-flex-outline"
-                      size={20}
-                      color={theme.colors.accent}
-                    />
-                    <Text style={styles.sectionTitle}>שרירים משניים</Text>
+              {exercise.secondaryMuscles &&
+                exercise.secondaryMuscles.length > 0 && (
+                  <View style={styles.muscleSection}>
+                    <View style={styles.sectionHeader}>
+                      <MaterialCommunityIcons
+                        name="arm-flex-outline"
+                        size={20}
+                        color={theme.colors.accent}
+                      />
+                      <Text style={styles.sectionTitle}>שרירים משניים</Text>
+                    </View>
+                    <View style={styles.muscleTagsContainer}>
+                      {exercise.secondaryMuscles.map(
+                        (muscle: string, index: number) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.muscleTag,
+                              styles.secondaryMuscleTag,
+                            ]}
+                          >
+                            <Text style={styles.muscleTagText}>{muscle}</Text>
+                          </View>
+                        )
+                      )}
+                    </View>
                   </View>
-                  <View style={styles.muscleTagsContainer}>
-                    {exercise.muscles_secondary.map((muscle, index) => (
-                      <View
-                        key={index}
-                        style={[styles.muscleTag, styles.secondaryMuscleTag]}
-                      >
-                        <Text style={styles.muscleTagText}>{muscle.name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
+                )}
 
               {/* קטגוריה // Category */}
               {exercise.category && (

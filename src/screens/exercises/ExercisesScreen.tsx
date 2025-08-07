@@ -22,7 +22,12 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
-import { fetchMuscles, Muscle } from "../../services/exerciseService";
+// יבוא מקומי של שרירים
+interface Muscle {
+  id: number;
+  name: string;
+  is_front: boolean;
+}
 import {
   EXERCISES_SCREEN_TEXTS,
   EXERCISES_MUSCLE_GROUPS,
@@ -86,7 +91,15 @@ export default function ExercisesScreen() {
 
   const loadMuscles = async () => {
     try {
-      const musclesData = await fetchMuscles();
+      // שימוש ברשימת שרירים מקומית במקום API
+      const musclesData: Muscle[] = [
+        { id: 1, name: "חזה", is_front: true },
+        { id: 2, name: "גב", is_front: false },
+        { id: 3, name: "כתפיים", is_front: true },
+        { id: 4, name: "ידיים", is_front: true },
+        { id: 5, name: "רגליים", is_front: true },
+        { id: 6, name: "ליבה", is_front: true },
+      ];
       setMuscles(musclesData);
     } catch (error) {
       console.error("Error loading muscles:", error);

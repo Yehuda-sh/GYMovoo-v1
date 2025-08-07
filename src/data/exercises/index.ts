@@ -39,6 +39,9 @@ import {
   EQUIPMENT_TYPES,
 } from "./exerciseFilters";
 
+// יבוא תמונות זמניות
+import { getTemporaryImage } from "./temporaryImages";
+
 // =====================================
 // 📊 מאגר תרגילים מאוחד
 // Unified Exercise Database
@@ -178,7 +181,45 @@ export function getQuietExercises(): Exercise[] {
 }
 
 // =====================================
-// 📈 סטטיסטיקות - משתמש במערכת המרכזית
+// �️ תמונות זמניות לתרגילים
+// Temporary Images for Exercises
+// =====================================
+
+/**
+ * מעדכן תרגילים עם תמונות זמניות
+ * Updates exercises with temporary images
+ */
+function addTemporaryImages(exercises: Exercise[]): Exercise[] {
+  return exercises.map((exercise) => ({
+    ...exercise,
+    media: {
+      ...exercise.media,
+      image: getTemporaryImage(exercise.name),
+      thumbnail: getTemporaryImage(exercise.name),
+    },
+  }));
+}
+
+/**
+ * מחזיר תרגילים רנדומליים עם תמונות זמניות
+ * Returns random exercises with temporary images
+ */
+export function fetchRandomExercises(count: number = 15): Exercise[] {
+  const shuffled = [...allExercises].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, count);
+  return addTemporaryImages(selected);
+}
+
+/**
+ * מחזיר כל התרגילים עם תמונות זמניות
+ * Returns all exercises with temporary images
+ */
+export function getAllExercisesWithImages(): Exercise[] {
+  return addTemporaryImages(allExercises);
+}
+
+// =====================================
+// �📈 סטטיסטיקות - משתמש במערכת המרכזית
 // Statistics - Using centralized system
 // =====================================
 
@@ -210,12 +251,3 @@ export {
 // 🎲 פונקציות תאימות ותמיכה במערכת הישנה
 // Compatibility Functions for Legacy Support
 // =====================================
-
-/**
- * החזרת תרגילים רנדומליים - תחליף ל-fetchRandomExercises הישן
- * Get random exercises - replacement for old fetchRandomExercises
- */
-export async function fetchRandomExercises(): Promise<Exercise[]> {
-  // החזר כל התרגילים - תוכל לסנן לפי הצורך
-  return allExercises;
-}
