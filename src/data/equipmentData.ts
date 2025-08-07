@@ -18,6 +18,7 @@ export interface Equipment {
   tags: string[];
   algorithmWeight?: number; // משקל באלגוריתם (1-10)
   recommendedFor?: string[]; // המלצות לפי רמת כושר
+  aliases?: string[]; // מזהים חלופיים לתאימות מערכות
 }
 
 // ==================== ציוד ביתי - 20 פריטים הכי נפוצים ====================
@@ -82,6 +83,7 @@ export const HOME_EQUIPMENT: Equipment[] = [
     tags: ["pullup", "bar", "משיכות", "מתח"],
     algorithmWeight: 9,
     recommendedFor: ["intermediate", "advanced"],
+    aliases: ["pullup_bar"],
   },
   {
     id: "exercise_ball",
@@ -154,6 +156,7 @@ export const HOME_EQUIPMENT: Equipment[] = [
     tags: ["TRX", "suspension", "תלייה", "רצועות"],
     algorithmWeight: 8,
     recommendedFor: ["intermediate", "advanced"],
+    aliases: ["trx"],
   },
   {
     id: "medicine_ball",
@@ -301,7 +304,7 @@ export const GYM_EQUIPMENT: Equipment[] = [
   },
   {
     id: "preacher_curl",
-    label: "מכונת ביצפס",
+    label: "מכונת בייספס",
     image: require("../../assets/preacher_curl.png"),
     description: "ספסל לתרגילי ביצפס מבודדים",
     category: "gym",
@@ -413,7 +416,7 @@ export const GYM_EQUIPMENT: Equipment[] = [
     id: "olympic_bar",
     label: "בר אולימפי",
     image: require("../../assets/barbell.png"),
-    description: "בר סטנדרטי 20 ק\"ג לתרגילי כוח",
+    description: 'בר סטנדרטי 20 ק"ג לתרגילי כוח',
     category: "gym",
     tags: ["olympic bar", "powerlifting", "אולימפי", "כוח"],
     algorithmWeight: 10,
@@ -472,6 +475,7 @@ export const CARDIO_EQUIPMENT: Equipment[] = [
     tags: ["bike", "cycling", "אופניים", "רכיבה"],
     algorithmWeight: 9,
     recommendedFor: ["beginner", "intermediate", "advanced"],
+    aliases: ["bike"],
   },
   {
     id: "spin_bike",
@@ -645,11 +649,16 @@ export const ALL_EQUIPMENT: Equipment[] = [
 // ==================== פונקציות עזר ====================
 
 export function getEquipmentById(equipmentId: string): Equipment | undefined {
-  const equipment = ALL_EQUIPMENT.find((eq) => eq.id === equipmentId);
+  const normalized = equipmentId.trim();
+  const equipment = ALL_EQUIPMENT.find(
+    (eq) => eq.id === normalized || eq.aliases?.includes(normalized)
+  );
   return equipment;
 }
 
-export function getEquipmentByCategory(category: "home" | "gym" | "cardio"): Equipment[] {
+export function getEquipmentByCategory(
+  category: "home" | "gym" | "cardio"
+): Equipment[] {
   switch (category) {
     case "home":
       return HOME_EQUIPMENT;
@@ -675,8 +684,13 @@ export function searchEquipment(query: string): Equipment[] {
   return ALL_EQUIPMENT.filter((eq) => {
     const labelMatch = eq.label.toLowerCase().includes(lowerQuery);
     const descriptionMatch = eq.description?.toLowerCase().includes(lowerQuery);
-    const tagMatch = eq.tags.some((tag) => tag.toLowerCase().includes(lowerQuery));
-    return labelMatch || descriptionMatch || tagMatch;
+    const tagMatch = eq.tags.some((tag) =>
+      tag.toLowerCase().includes(lowerQuery)
+    );
+    const aliasMatch = eq.aliases?.some((a) =>
+      a.toLowerCase().includes(lowerQuery)
+    );
+    return labelMatch || descriptionMatch || tagMatch || aliasMatch;
   });
 }
 
@@ -722,8 +736,13 @@ export function validateEquipmentDatabase(): {
     }
 
     // בדיקת משקל אלגוריתם
-    if (equipment.algorithmWeight && (equipment.algorithmWeight < 1 || equipment.algorithmWeight > 10)) {
-      warnings.push(`משקל אלגוריתם לא תקין עבור ${equipment.label}: ${equipment.algorithmWeight}`);
+    if (
+      equipment.algorithmWeight &&
+      (equipment.algorithmWeight < 1 || equipment.algorithmWeight > 10)
+    ) {
+      warnings.push(
+        `משקל אלגוריתם לא תקין עבור ${equipment.label}: ${equipment.algorithmWeight}`
+      );
     }
   });
 

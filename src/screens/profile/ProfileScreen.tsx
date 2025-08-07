@@ -1403,7 +1403,22 @@ function ProfileScreen() {
           </View>
 
           {/* ציוד זמין */}
-          {user?.questionnaire && (
+          {(() => {
+            // נרנדר אם יש מקור כלשהו לציוד: שאלון חכם, סטטיסטיקות אימון, או שאלון legacy
+            const smartEquip = user?.smartQuestionnaireData?.answers?.equipment;
+            const hasSmart = Array.isArray(smartEquip) && smartEquip.length > 0;
+            const trainingEquip = user?.trainingStats?.selectedEquipment;
+            const hasTrainingStats =
+              Array.isArray(trainingEquip) && trainingEquip.length > 0;
+            const legacyQuestionnaire = user?.questionnaire as any;
+            const availableLegacy = legacyQuestionnaire?.available_equipment;
+            const hasAvailableLegacy =
+              Array.isArray(availableLegacy) && availableLegacy.length > 0;
+            const hasLegacy = !!legacyQuestionnaire;
+            return (
+              hasSmart || hasTrainingStats || hasAvailableLegacy || hasLegacy
+            );
+          })() && (
             <View style={styles.equipmentContainer}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>
@@ -1428,7 +1443,7 @@ function ProfileScreen() {
                 {(() => {
                   // חילוץ הציוד מהשאלון החדש - תמיכה בשאלון החכם המעודכן
                   const questionnaire: Record<string, unknown> =
-                    user.questionnaire as Record<string, unknown>;
+                    (user?.questionnaire as Record<string, unknown>) || {};
 
                   let allEquipment: string[] = [];
 

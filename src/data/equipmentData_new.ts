@@ -1,5 +1,5 @@
 /**
- * @file src/data/equipmentData.ts
+ * @file src/data/equipmentData_new.ts
  * @brief מאגר ציוד מקיף ומאורגן לפי קטגוריות - ציוד ביתי, חדר כושר וקרדיו
  * @description Comprehensive and organized equipment database by categories - home, gym and cardio
  */
@@ -18,6 +18,7 @@ export interface Equipment {
   tags: string[];
   algorithmWeight?: number; // משקל באלגוריתם (1-10)
   recommendedFor?: string[]; // המלצות לפי רמת כושר
+  aliases?: string[]; // מזהים חלופיים לתאימות מערכות
 }
 
 // ==================== ציוד ביתי - 20 פריטים הכי נפוצים ====================
@@ -82,6 +83,7 @@ export const HOME_EQUIPMENT: Equipment[] = [
     tags: ["pullup", "bar", "משיכות", "מתח"],
     algorithmWeight: 9,
     recommendedFor: ["intermediate", "advanced"],
+  aliases: ["pullup_bar"],
   },
   {
     id: "exercise_ball",
@@ -154,6 +156,7 @@ export const HOME_EQUIPMENT: Equipment[] = [
     tags: ["TRX", "suspension", "תלייה", "רצועות"],
     algorithmWeight: 8,
     recommendedFor: ["intermediate", "advanced"],
+  aliases: ["trx"],
   },
   {
     id: "medicine_ball",
@@ -301,7 +304,7 @@ export const GYM_EQUIPMENT: Equipment[] = [
   },
   {
     id: "preacher_curl",
-    label: "מכונת ביצפס",
+  label: "מכונת בייספס",
     image: require("../../assets/preacher_curl.png"),
     description: "ספסל לתרגילי ביצפס מבודדים",
     category: "gym",
@@ -472,6 +475,7 @@ export const CARDIO_EQUIPMENT: Equipment[] = [
     tags: ["bike", "cycling", "אופניים", "רכיבה"],
     algorithmWeight: 9,
     recommendedFor: ["beginner", "intermediate", "advanced"],
+  aliases: ["bike"],
   },
   {
     id: "spin_bike",
@@ -645,7 +649,10 @@ export const ALL_EQUIPMENT: Equipment[] = [
 // ==================== פונקציות עזר ====================
 
 export function getEquipmentById(equipmentId: string): Equipment | undefined {
-  const equipment = ALL_EQUIPMENT.find((eq) => eq.id === equipmentId);
+  const normalized = equipmentId.trim();
+  const equipment = ALL_EQUIPMENT.find(
+    (eq) => eq.id === normalized || eq.aliases?.includes(normalized)
+  );
   return equipment;
 }
 
@@ -680,7 +687,8 @@ export function searchEquipment(query: string): Equipment[] {
     const tagMatch = eq.tags.some((tag) =>
       tag.toLowerCase().includes(lowerQuery)
     );
-    return labelMatch || descriptionMatch || tagMatch;
+  const aliasMatch = eq.aliases?.some((a) => a.toLowerCase().includes(lowerQuery));
+  return labelMatch || descriptionMatch || tagMatch || aliasMatch;
   });
 }
 

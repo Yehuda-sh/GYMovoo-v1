@@ -11,6 +11,7 @@
  */
 
 import { ImageSourcePropType } from "react-native";
+import type { SmartQuestionnaireData } from "../types";
 
 // ================== בסיסי - Basic Types ==================
 
@@ -119,7 +120,7 @@ export const HOME_EQUIPMENT_OPTIONS: QuestionOption[] = [
   },
   {
     id: "foam_roller",
-    label: "גליל פואם",
+    label: "גליל קצף",
     description: "להתאוששות",
   },
   {
@@ -596,6 +597,104 @@ export class UnifiedQuestionnaireManager {
     this.answers.clear();
     this.history = [];
     console.log("🔄 Questionnaire reset");
+  }
+
+  // ================== המרות פורמליות ל-Data Contracts ==================
+  // עזר: קבל מזהי תשובה לשאלה (מערך)
+  private getAnswerIds(questionId: string): string[] {
+    const ans = this.answers.get(questionId)?.answer;
+    if (!ans) return [];
+    return Array.isArray(ans) ? ans.map((o) => o.id) : [ans.id];
+  }
+
+  // עזר: קבל מזהה יחיד (אם יש)
+  private getAnswerId(questionId: string): string | undefined {
+    return this.getAnswerIds(questionId)[0];
+  }
+
+  // נרמול ציוד לפורמט string[] אחיד לשאר האפליקציה
+  private normalizeEquipment(): string[] {
+    const location = this.getAnswerId("workout_location");
+    const bodyweightIds = new Set(this.getAnswerIds("bodyweight_equipment"));
+    const homeIds = new Set(this.getAnswerIds("home_equipment"));
+    const gymIds = new Set(this.getAnswerIds("gym_equipment"));
+
+    const result = new Set<string>();
+
+    // משקל גוף — הוסף דגל כללי אם זה המיקום העיקרי
+    if (location === "home_bodyweight") {
+      result.add("bodyweight");
+    }
+
+    // מיפוי חפצי משקל גוף לפריטים סטנדרטיים (חלקם ממופים לציוד קיים, אחרים נשארים כ-bodyweight)
+    if (bodyweightIds.has("mat_available")) result.add("yoga_mat");
+    // פריטים אחרים נשארים בקטגוריית bodyweight הכללית
+
+    // ציוד ביתי — מזהים תואמים למפתחות אפליקציה
+    for (const id of homeIds) {
+      result.add(id);
+    }
+
+    // ציוד חדר כושר — מזהים תואמים למפתחות אפליקציה
+    for (const id of gymIds) {
+      result.add(id);
+    }
+
+    return Array.from(result);
+  }
+
+  // יצוא לשכבת הנתונים החכמה (SmartQuestionnaireData)
+  toSmartQuestionnaireData(): SmartQuestionnaireData {
+    const goalsId = this.getAnswerId("fitness_goal");
+    const experienceId = this.getAnswerId("experience_level");
+    const availabilityId = this.getAnswerId("availability");
+    const durationId = this.getAnswerId("session_duration");
+    const locationId = this.getAnswerId("workout_location");
+    const dietId = this.getAnswerId("diet_preferences");
+
+    const equipment = this.normalizeEquipment();
+
+    return {
+      answers: {
+        // נתונים זמינים בשאלון המאוחד; שדות אישיים (מין/גיל/גובה/משקל) לא נאספים כאן ונשארים אופציונליים
+        fitnessLevel: experienceId,
+        goals: goalsId ? [goalsId] : [],
+        equipment,
+        availability: availabilityId ? [availabilityId] : [],
+        sessionDuration: durationId,
+        workoutLocation: locationId,
+        nutrition: dietId ? [dietId] : [],
+      },
+      metadata: {
+        completedAt: new Date().toISOString(),
+        version: "2.0",
+        sessionId: `unified_${Date.now()}`,
+        completionTime: Math.max(60, this.answers.size * 10),
+        questionsAnswered: this.answers.size,
+        totalQuestions: this.getTotalRelevantQuestions(),
+        deviceInfo: {
+          platform: "mobile",
+          screenWidth: 0,
+          screenHeight: 0,
+        },
+      },
+    } as SmartQuestionnaireData;
+  }
+
+  // יצוא לשכבת תאימות לשאלון הישן (למסכי פרופיל ישנים)
+  toLegacyQuestionnaire(): Record<string, unknown> {
+    const smart = this.toSmartQuestionnaireData();
+    const a = smart.answers;
+    return {
+      equipment: a.equipment,
+      available_equipment: a.equipment,
+      goal: a.goals,
+      experience: a.fitnessLevel,
+      location: a.workoutLocation,
+      frequency: a.availability?.[0],
+      duration: a.sessionDuration,
+      nutrition: a.nutrition,
+    };
   }
 }
 

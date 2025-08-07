@@ -135,7 +135,17 @@ export const EXERCISES_SCREEN_TEXTS = {
  * Helper function to get muscle group color from theme
  * פונקציית עזר לקבלת צבע קבוצת שרירים מהנושא
  */
-type ThemeColorLike = { colors: Record<string, string> };
+type ThemeColorLike = {
+  colors: {
+    primary: string;
+    success: string;
+    error: string;
+    warning: string;
+    info: string;
+    accent: string;
+    [key: string]: unknown; // allow additional entries like gradients (string[])
+  };
+};
 
 export const getMuscleGroupColor = (
   theme: ThemeColorLike,
