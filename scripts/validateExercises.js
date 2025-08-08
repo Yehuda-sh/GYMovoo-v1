@@ -49,40 +49,110 @@ function main() {
     "cardio.ts",
     "flexibility.ts",
     "resistanceBands.ts",
+    "machines.ts",
   ];
   const allExercises = [];
   const idSet = new Set();
   const errors = [];
   const warnings = [];
 
+  const VALID_MUSCLES = [
+    "core",
+    "back",
+    "chest",
+    "shoulders",
+    "biceps",
+    "triceps",
+    "forearms",
+    "quadriceps",
+    "hamstrings",
+    "glutes",
+    "calves",
+    "hips",
+    "neck",
+  ];
+
+  function extractMuscleArrays(block) {
+    const primaryMatch = block.match(/primaryMuscles:\s*\[(.*?)\]/s);
+    const secondaryMatch = block.match(/secondaryMuscles:\s*\[(.*?)\]/s);
+    const toList = (m) =>
+      !m
+        ? []
+        : m[1]
+            .split(/[,\n]/)
+            .map((s) => s.replace(/['"`]/g, "").trim())
+            .filter(Boolean);
+    return { primary: toList(primaryMatch), secondary: toList(secondaryMatch) };
+  }
+
   function parseArrayLiteral(content, exportName) {
-    // naive split by '},' boundaries inside array assigned to export const <name>:
-    const match = content.match(
-      new RegExp(
-        `export const ${exportName}:[^{]*= \\[(\\[\\s\\S]*?\\])?([\\s\\S]*?)\\];`
-      )
-    );
-    // fallback: find first '[' after export
-    const arraySection = content.split("export const " + exportName)[1];
-    if (!arraySection) return [];
-    const bracketStart = arraySection.indexOf("[");
-    const bracketEnd = arraySection.indexOf("\n];");
-    if (bracketStart === -1 || bracketEnd === -1) return [];
-    const arrBody = arraySection.slice(bracketStart + 1, bracketEnd);
-    // crude split by '\n  },' pattern
-    const rawItems = arrBody
-      .split(/\},\s*\n/)
-      .map((s) => (s.trim().endsWith("}") ? s.trim() : s.trim() + "}"))
-      .filter((s) => s.includes("id:"));
-    const objs = rawItems.map((block) => {
-      // Very naive field extraction
-      const id = (block.match(/id:\s*"([^"]+)"/) || [])[1];
-      const equipment = (block.match(/equipment:\s*"([^"]+)"/) || [])[1];
-      const category = (block.match(/category:\s*"([^"]+)"/) || [])[1];
-      const difficulty = (block.match(/difficulty:\s*"([^"]+)"/) || [])[1];
-      return { id, equipment, category, difficulty, _raw: block };
-    });
-    return objs;
+    const marker = "export const " + exportName;
+    const idx = content.indexOf(marker);
+    if (idx === -1) return [];
+    const after = content.slice(idx);
+    // Skip potential type annotation brackets (e.g., : Exercise[] = [ ) by locating '=' then first '[' after it
+    const eqPosRel = after.indexOf("=");
+    if (eqPosRel === -1) return [];
+    const afterEq = after.slice(eqPosRel + 1);
+    const firstBracket = afterEq.indexOf("[");
+    if (firstBracket === -1) return [];
+    let depth = 0;
+    let endPos = -1;
+    for (let i = firstBracket; i < afterEq.length; i++) {
+      const ch = afterEq[i];
+      if (ch === "[") depth++;
+      else if (ch === "]") {
+        depth--;
+        if (depth === 0) {
+          endPos = i;
+          break;
+        }
+      }
+    }
+    if (endPos === -1) return [];
+    const arrayContent = afterEq.slice(firstBracket + 1, endPos);
+    // Extract objects by brace depth (not regex) to handle nested structures safely enough.
+    const objects = [];
+    let braceDepth = 0;
+    let current = "";
+    let inObject = false;
+    for (let i = 0; i < arrayContent.length; i++) {
+      const ch = arrayContent[i];
+      if (ch === "{") {
+        if (!inObject) {
+          inObject = true;
+          current = "";
+        }
+        braceDepth++;
+      }
+      if (inObject) current += ch;
+      if (ch === "}") {
+        braceDepth--;
+        if (braceDepth === 0 && inObject) {
+          objects.push(current);
+          inObject = false;
+          current = "";
+        }
+      }
+    }
+    return objects
+      .filter((block) => block.includes("id:"))
+      .map((block) => {
+        const id = (block.match(/id:\s*"([^"]+)"/) || [])[1];
+        const equipment = (block.match(/equipment:\s*"([^"]+)"/) || [])[1];
+        const category = (block.match(/category:\s*"([^"]+)"/) || [])[1];
+        const difficulty = (block.match(/difficulty:\s*"([^"]+)"/) || [])[1];
+        const { primary, secondary } = extractMuscleArrays(block);
+        return {
+          id,
+          equipment,
+          category,
+          difficulty,
+          primary,
+          secondary,
+          _raw: block,
+        };
+      });
   }
 
   for (const file of categoryFiles) {
@@ -92,17 +162,55 @@ function main() {
       continue;
     }
     const content = fs.readFileSync(full, "utf8");
-    // export const <name>Exercises: Exercise[] = [
-    const exportName = file.replace(".ts", "");
-    const arrayName = exportName + "Exercises";
+    // Determine export base name; some files have irregular export identifiers
+    const base = file.replace(".ts", "");
+    const exportBaseMap = {
+      dumbbells: "dumbbell", // file dumbbells.ts exports dumbbellExercises
+      resistanceBands: "resistanceBand", // resistanceBands.ts exports resistanceBandExercises
+      machines: "machine", // machines.ts exports machineExercises
+    };
+    const resolved = exportBaseMap[base] || base;
+    const arrayName = resolved + "Exercises"; // e.g., bodyweightExercises, dumbbellExercises
     const items = parseArrayLiteral(content, arrayName);
+    if (items.length === 0) {
+      console.log(
+        `${COLORS.YELLOW}[debug] No items parsed for ${file} using export '${arrayName}'${COLORS.RESET}`
+      );
+      // emit a snippet for inspection
+      const firstExportLine = content
+        .split(/\n/)
+        .find((l) => l.includes(arrayName));
+      if (firstExportLine)
+        console.log(
+          `${COLORS.YELLOW}[debug] Found line: ${firstExportLine.trim()}${COLORS.RESET}`
+        );
+    } else {
+      console.log(
+        `${COLORS.CYAN}[debug] Parsed ${items.length} from ${file}${COLORS.RESET}`
+      );
+    }
     items.forEach((obj) => {
       if (!obj.id) errors.push(`Missing id in ${file}`);
       if (idSet.has(obj.id)) errors.push(`Duplicate exercise id: ${obj.id}`);
       idSet.add(obj.id);
-      if (!obj.equipment) warnings.push(`Exercise ${obj.id} missing equipment`);
-      if (!obj.difficulty)
-        warnings.push(`Exercise ${obj.id} missing difficulty`);
+      if (!obj.equipment) {
+        warnings.push(`Exercise ${obj.id} missing equipment (set to 'none')`);
+        obj.equipment = "none";
+      }
+      if (!obj.difficulty) {
+        warnings.push(
+          `Exercise ${obj.id} missing difficulty (set to 'beginner')`
+        );
+        obj.difficulty = "beginner";
+      }
+      // Muscle validation
+      const allMuscles = [...obj.primary, ...obj.secondary];
+      const invalid = allMuscles.filter((m) => m && !VALID_MUSCLES.includes(m));
+      if (invalid.length) {
+        errors.push(
+          `Invalid muscle(s) in ${obj.id}: ${invalid.join(", ")} (allowed: ${VALID_MUSCLES.join(", ")})`
+        );
+      }
       allExercises.push(obj);
     });
   }
@@ -116,14 +224,29 @@ function main() {
   }
 
   const unmatchedEquipment = [];
+  const referencedEquipment = new Set();
   for (const ex of allExercises) {
     if (ex.equipment && !equipmentContent.includes(`id: "${ex.equipment}"`)) {
       unmatchedEquipment.push(ex.equipment);
     }
+    if (ex.equipment) referencedEquipment.add(ex.equipment);
   }
   if (unmatchedEquipment.length) {
     warnings.push(
       `Equipment ids not found in equipmentData.ts: ${[...new Set(unmatchedEquipment)].join(", ")}`
+    );
+  }
+
+  // Detect equipment defined but unused
+  const definedEquipMatches = [
+    ...equipmentContent.matchAll(/id:\s*"([^"]+)"/g),
+  ].map((m) => m[1]);
+  const unusedEquip = definedEquipMatches.filter(
+    (id) => id && !referencedEquipment.has(id)
+  );
+  if (unusedEquip.length) {
+    warnings.push(
+      `Equipment defined but not referenced by any exercise: ${[...new Set(unusedEquip)].join(", ")}`
     );
   }
 

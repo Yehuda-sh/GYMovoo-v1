@@ -6,7 +6,7 @@
  * @recurring_errors שכחה להעביר את כל ה-props הנדרשים (muscles, selected, onSelect)
  */
 
-import React from "react";
+import React, { useMemo, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -40,60 +40,120 @@ type MuscleBarProps = {
   muscles: Muscle[];
   selected: number | "all";
   onSelect: (id: number | "all") => void;
+  showAllOption?: boolean;
+  scrollToSelected?: boolean;
+  style?: object;
+  testID?: string;
 };
 
 const MuscleBar: React.FC<MuscleBarProps> = ({
   muscles,
   selected,
   onSelect,
+  showAllOption = true,
+  scrollToSelected = true,
+  style,
+  testID = "muscle-bar",
 }) => {
-  const buttons: MuscleButton[] = [
-    { id: "all", name: "הכל", icon: "view-grid" },
-    ...muscles.map((m) => ({
-      id: m.id,
-      name: m.name,
-      icon: "arm-flex" as MaterialCommunityIconName,
-    })),
-  ];
+  const listRef = useRef<FlatList<MuscleButton>>(null);
+
+  const buttons: MuscleButton[] = useMemo(
+    () => [
+      ...(showAllOption
+        ? [
+            {
+              id: "all" as const,
+              name: "הכל",
+              icon: "view-grid" as MaterialCommunityIconName,
+            },
+          ]
+        : []),
+      ...muscles.map((m) => ({
+        id: m.id,
+        name: m.name,
+        icon: "arm-flex" as MaterialCommunityIconName,
+      })),
+    ],
+    [muscles, showAllOption]
+  );
+
+  // גלילה אוטומטית לבחירה
+  useEffect(() => {
+    if (!scrollToSelected || !listRef.current) return;
+    const index = buttons.findIndex((b) => b.id === selected);
+    if (index > -1) {
+      try {
+        listRef.current.scrollToIndex({ index, animated: true });
+      } catch (e) {
+        // Silent fail acceptable (list not laid out yet)
+        if (__DEV__) console.warn("MuscleBar scrollToIndex fail", e);
+      }
+    }
+  }, [selected, buttons, scrollToSelected]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: MuscleButton }) => {
+      const isActive = selected === item.id;
+      return (
+        <TouchableOpacity
+          style={[styles.muscleButton, isActive && styles.muscleButtonActive]}
+          onPress={() => onSelect(item.id)}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityState={{ selected: isActive }}
+          accessibilityLabel={`שריר ${item.name}${isActive ? " נבחר" : ""}`}
+          testID={`muscle-btn-${item.id}`}
+        >
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={18}
+            color={isActive ? theme.colors.white : theme.colors.accent}
+          />
+          <Text
+            style={[
+              styles.muscleButtonText,
+              isActive && styles.muscleButtonTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [onSelect, selected]
+  );
+
+  const keyExtractor = useCallback(
+    (item: MuscleButton) => item.id.toString(),
+    []
+  );
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        horizontal
-        inverted
-        showsHorizontalScrollIndicator={false}
-        data={buttons}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => {
-          const isActive = selected === item.id;
-          return (
-            <TouchableOpacity
-              style={[
-                styles.muscleButton,
-                isActive && styles.muscleButtonActive,
-              ]}
-              onPress={() => onSelect(item.id)}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name={item.icon}
-                size={18}
-                color={isActive ? theme.colors.white : theme.colors.accent}
-              />
-              <Text
-                style={[
-                  styles.muscleButtonText,
-                  isActive && styles.muscleButtonTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        }}
-      />
+    <View style={[styles.container, style]} testID={testID}>
+      {buttons.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>אין שרירים להצגה</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          horizontal
+          inverted
+          showsHorizontalScrollIndicator={false}
+          data={buttons}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.listContent}
+          renderItem={renderItem}
+          initialNumToRender={8}
+          windowSize={4}
+          getItemLayout={(_, index) => ({
+            length: 70,
+            offset: 70 * index,
+            index,
+          })}
+        />
+      )}
     </View>
   );
 };
@@ -137,5 +197,13 @@ const styles = StyleSheet.create({
   },
   muscleButtonTextActive: {
     color: theme.colors.white,
+  },
+  emptyState: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  emptyStateText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
   },
 });

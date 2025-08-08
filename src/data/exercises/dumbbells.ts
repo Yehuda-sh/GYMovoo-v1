@@ -133,7 +133,7 @@ export const dumbbellExercises: Exercise[] = [
 
   {
     id: "dumbbell_row_1",
-    name: "חתירה עם משקולת",
+    name: "חתירה עם משקולת אחת",
     nameLocalized: {
       he: "חתירה עם משקולת אחת",
       en: "Single Dumbbell Row",
@@ -195,9 +195,9 @@ export const dumbbellExercises: Exercise[] = [
 
   {
     id: "dumbbell_shoulder_press_1",
-    name: "לחיצת כתפיים משקולות",
+    name: "לחיצת כתפיים עם משקולות",
     nameLocalized: {
-      he: "לחיצת כתפיים משקולות",
+      he: "לחיצת כתפיים עם משקולות",
       en: "Dumbbell Shoulder Press",
     },
     category: "strength",

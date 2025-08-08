@@ -4,7 +4,7 @@
  * @dependencies React Native, Exercise data from /data/exercises
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   SafeAreaView,
   Image,
   ActivityIndicator,
+  TextInput,
+  RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
@@ -23,11 +25,17 @@ import BackButton from "../../components/common/BackButton";
 
 const ExerciseListScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]); // filtered
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState<
+    "all" | "beginner" | "intermediate" | "advanced"
+  >("all");
 
   useEffect(() => {
     loadExercises();
@@ -37,7 +45,7 @@ const ExerciseListScreen: React.FC = () => {
     try {
       setLoading(true);
       const data = fetchRandomExercises(15);
-      setExercises(data);
+      setAllExercises(data);
     } catch (error) {
       console.error("Error loading exercises:", error);
     } finally {
@@ -45,66 +53,143 @@ const ExerciseListScreen: React.FC = () => {
     }
   };
 
-  const renderExerciseItem = ({ item }: { item: Exercise }) => (
-    <TouchableOpacity
-      style={styles.exerciseCard}
-      onPress={() => setSelectedExercise(item)}
+  // רענון (Pull to refresh)
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    try {
+      const data = fetchRandomExercises(15);
+      setAllExercises(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  // סינון + חיפוש
+  useEffect(() => {
+    let filtered = allExercises;
+    if (difficultyFilter !== "all") {
+      filtered = filtered.filter((e) => e.difficulty === difficultyFilter);
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (e) =>
+          e.nameLocalized.he.toLowerCase().includes(q) ||
+          e.nameLocalized.en.toLowerCase().includes(q) ||
+          e.primaryMuscles.some((m) => m.toLowerCase().includes(q))
+      );
+    }
+    setExercises(filtered);
+  }, [allExercises, search, difficultyFilter]);
+
+  const difficultyLabel = useCallback((d: Exercise["difficulty"]) => {
+    switch (d) {
+      case "beginner":
+        return "מתחיל";
+      case "intermediate":
+        return "בינוני";
+      case "advanced":
+        return "מתקדם";
+      default:
+        return d;
+    }
+  }, []);
+
+  const DifficultyBadge: React.FC<{ value: Exercise["difficulty"] }> = ({
+    value,
+  }) => (
+    <View
+      style={[
+        styles.difficultyBadge,
+        value === "beginner" && styles.beginnerBg,
+        value === "intermediate" && styles.intermediateBg,
+        value === "advanced" && styles.advancedBg,
+      ]}
+      accessibilityLabel={`רמת קושי: ${difficultyLabel(value)}`}
     >
-      {/* תמונה */}
-      <View style={styles.imageContainer}>
-        {item.media?.image ? (
-          <Image
-            source={{ uri: item.media.image }}
-            style={styles.exerciseImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderText}>📸</Text>
+      <Text style={styles.difficultyBadgeText}>{difficultyLabel(value)}</Text>
+    </View>
+  );
+
+  const ExerciseCard: React.FC<{ item: Exercise; onPress: () => void }> =
+    React.memo(({ item, onPress }) => (
+      <TouchableOpacity
+        style={styles.exerciseCard}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`פרטי תרגיל ${item.nameLocalized.he}`}
+      >
+        <View style={styles.imageContainer}>
+          {item.media?.image ? (
+            <Image
+              source={{ uri: item.media.image }}
+              style={styles.exerciseImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.placeholderImage}>
+              <Text style={styles.placeholderText}>📸</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.exerciseDetails}>
+          <Text style={styles.exerciseName}>{item.nameLocalized.he}</Text>
+          <View style={styles.rowSpace}>
+            <Text style={styles.exerciseCategory}>{item.category}</Text>
+            <DifficultyBadge value={item.difficulty} />
           </View>
-        )}
-      </View>
-
-      {/* פרטי התרגיל */}
-      <View style={styles.exerciseDetails}>
-        <Text style={styles.exerciseName}>{item.nameLocalized.he}</Text>
-        <Text style={styles.exerciseCategory}>{item.category}</Text>
-
-        {/* שרירים ראשיים */}
-        {item.primaryMuscles.length > 0 && (
-          <View style={styles.musclesContainer}>
-            <Text style={styles.musclesLabel}>שרירים: </Text>
-            <Text style={styles.musclesText}>
-              {item.primaryMuscles.slice(0, 2).join(", ")}
-              {item.primaryMuscles.length > 2 && " ועוד..."}
-            </Text>
-          </View>
-        )}
-
-        {/* קושי */}
-        <View style={styles.difficultyContainer}>
-          <Text style={styles.difficultyLabel}>רמת קושי: </Text>
-          <Text
-            style={[
-              styles.difficultyText,
-              item.difficulty === "beginner" && styles.beginnerDifficulty,
-              item.difficulty === "intermediate" &&
-                styles.intermediateDifficulty,
-              item.difficulty === "advanced" && styles.advancedDifficulty,
-            ]}
-          >
-            {item.difficulty === "beginner" && "מתחיל"}
-            {item.difficulty === "intermediate" && "בינוני"}
-            {item.difficulty === "advanced" && "מתקדם"}
+          {item.primaryMuscles.length > 0 && (
+            <View style={styles.musclesContainer}>
+              <Text style={styles.musclesLabel}>שרירים: </Text>
+              <Text style={styles.musclesText} numberOfLines={1}>
+                {item.primaryMuscles.slice(0, 3).join(", ")}
+                {item.primaryMuscles.length > 3 && " ועוד"}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.equipmentText} numberOfLines={1}>
+            ציוד: {item.equipment === "none" ? "ללא" : item.equipment}
           </Text>
         </View>
+      </TouchableOpacity>
+    ));
+  ExerciseCard.displayName = "ExerciseCard";
 
-        {/* ציוד */}
-        <Text style={styles.equipmentText}>
-          ציוד: {item.equipment === "none" ? "ללא ציוד" : item.equipment}
-        </Text>
-      </View>
-    </TouchableOpacity>
+  const renderExerciseItem = ({ item }: { item: Exercise }) => (
+    <ExerciseCard item={item} onPress={() => setSelectedExercise(item)} />
+  );
+
+  const DifficultyFilterBar = () => (
+    <View style={styles.filterBar}>
+      {[
+        { v: "all", label: "הכל" },
+        { v: "beginner", label: "מתחיל" },
+        { v: "intermediate", label: "בינוני" },
+        { v: "advanced", label: "מתקדם" },
+      ].map((d) => (
+        <TouchableOpacity
+          key={d.v}
+          accessibilityRole="button"
+          accessibilityLabel={`סינון ${d.label}`}
+          style={[
+            styles.filterChip,
+            difficultyFilter === d.v && styles.filterChipActive,
+          ]}
+          onPress={() => setDifficultyFilter(d.v as typeof difficultyFilter)}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              difficultyFilter === d.v && styles.filterChipTextActive,
+            ]}
+          >
+            {d.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 
   if (loading) {
@@ -129,12 +214,49 @@ const ExerciseListScreen: React.FC = () => {
         <Text style={styles.headerTitle}>רשימת תרגילים</Text>
       </View>
 
+      {/* חיפוש */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="חיפוש תרגיל / שריר..."
+          placeholderTextColor={theme.colors.textTertiary}
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+          accessibilityLabel="שדה חיפוש תרגילים"
+        />
+      </View>
+
+      <DifficultyFilterBar />
+
       <FlatList
         data={exercises}
         renderItem={renderExerciseItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>לא נמצאו תרגילים תואמים</Text>
+              <TouchableOpacity
+                style={styles.reloadButton}
+                onPress={onRefresh}
+                accessibilityRole="button"
+                accessibilityLabel="רענון רשימת תרגילים"
+              >
+                <Text style={styles.reloadButtonText}>רענן</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
       />
 
       {/* Modal פרטי תרגיל */}
@@ -245,32 +367,89 @@ const styles = StyleSheet.create({
     flex: 1,
     writingDirection: "rtl",
   },
-  difficultyContainer: {
-    flexDirection: "row",
-    marginBottom: theme.spacing.xs,
-  },
-  difficultyLabel: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-  },
-  difficultyText: {
-    ...theme.typography.bodySmall,
-    fontWeight: "600",
-  },
-  beginnerDifficulty: {
-    color: theme.colors.success,
-  },
-  intermediateDifficulty: {
-    color: theme.colors.warning,
-  },
-  advancedDifficulty: {
-    color: theme.colors.error,
-  },
   equipmentText: {
     ...theme.typography.bodySmall,
     color: theme.colors.textTertiary,
     writingDirection: "rtl",
+  },
+  // New styles
+  rowSpace: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.xs,
+  },
+  difficultyBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  beginnerBg: { backgroundColor: theme.colors.success + "22" },
+  intermediateBg: { backgroundColor: theme.colors.warning + "22" },
+  advancedBg: { backgroundColor: theme.colors.error + "22" },
+  difficultyBadgeText: {
+    ...theme.typography.caption,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  filterBar: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  filterChip: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surfaceVariant,
+    marginRight: theme.spacing.sm,
+  },
+  filterChipActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  filterChipText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
+  },
+  filterChipTextActive: {
+    color: theme.colors.white,
+    fontWeight: "600",
+  },
+  searchContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
+  },
+  searchInput: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    color: theme.colors.text,
+    ...theme.typography.body,
+  },
+  emptyState: {
+    padding: theme.spacing.xl,
+    alignItems: "center",
+  },
+  emptyStateText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.md,
+    writingDirection: "rtl",
+  },
+  reloadButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.full,
+  },
+  reloadButtonText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.white,
+    fontWeight: "600",
   },
 });
 

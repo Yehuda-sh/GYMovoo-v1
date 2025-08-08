@@ -8,7 +8,7 @@ import { Exercise } from "./types";
 
 export const flexibilityExercises: Exercise[] = [
   {
-    id: "child_pose_1",
+    id: "child_pose_restorative_1",
     name: "תנוחת הילד",
     nameLocalized: {
       he: "תנוחת הילד",

@@ -204,7 +204,7 @@ export const bodyweightExercises: Exercise[] = [
   },
 
   {
-    id: "mountain_climbers_1",
+    id: "mountain_climbers_bodyweight_1",
     name: "מטפסי הרים",
     nameLocalized: {
       he: "מטפסי הרים",

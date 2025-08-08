@@ -22,21 +22,17 @@ import { dumbbellExercises } from "./dumbbells";
 import { cardioExercises } from "./cardio";
 import { flexibilityExercises } from "./flexibility";
 import { resistanceBandExercises } from "./resistanceBands";
+import { machineExercises } from "./machines";
 
 // יבוא מערכת הסינון המרכזית - חיסכון בכפילות קוד!
 import {
   smartFilter,
-  customFilter,
   calculateExerciseStats,
-  getBodyweightExercises as getBodyweightFiltered,
-  getDumbbellExercises as getDumbbellFiltered,
-  getResistanceBandExercises as getResistanceBandFiltered,
-  getHomeCompatibleExercises as getHomeCompatibleFiltered,
-  getQuietExercises as getQuietFiltered,
   filterByEquipment,
   filterByCategory,
   filterByDifficulty,
-  EQUIPMENT_TYPES,
+  getHomeCompatibleExercises as getHomeCompatibleFiltered,
+  getQuietExercises as getQuietFiltered,
 } from "./exerciseFilters";
 
 // יבוא תמונות זמניות
@@ -53,6 +49,7 @@ export { dumbbellExercises } from "./dumbbells";
 export { cardioExercises } from "./cardio";
 export { flexibilityExercises } from "./flexibility";
 export { resistanceBandExercises } from "./resistanceBands";
+export { machineExercises } from "./machines";
 
 /**
  * מאגר תרגילים מאוחד - Single Source of Truth
@@ -64,6 +61,7 @@ export const allExercises: Exercise[] = [
   ...cardioExercises,
   ...flexibilityExercises,
   ...resistanceBandExercises,
+  ...machineExercises,
 ];
 
 // =====================================

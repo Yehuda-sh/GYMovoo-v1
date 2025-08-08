@@ -8,13 +8,12 @@
  * @updated 2025-07-30 שיפור אנימציות, הוספת gesture לסגירה, שיפור חווית משתמש
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   Modal,
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   TouchableOpacity,
   Animated,
@@ -31,8 +30,10 @@ type Props = {
 };
 
 export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current; // modal opacity
+  const overlayAnim = useRef(new Animated.Value(0)).current; // backdrop opacity
+  const imageOpacity = useRef(new Animated.Value(0)).current; // image fade-in
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -41,8 +42,8 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 12, // חלק יותר
-        tension: 60,
+        friction: 10,
+        tension: 90,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
@@ -50,29 +51,71 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
         duration: 300, // זמן ארוך יותר
         useNativeDriver: true,
       }),
+      Animated.timing(overlayAnim, {
+        toValue: 0.6,
+        duration: 280,
+        useNativeDriver: true,
+      }),
     ]).start();
+    // scaleAnim, fadeAnim, overlayAnim are stable refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
    * מנקה תגי HTML מהתיאור
    * Removes HTML tags from description
    */
-  const cleanDescription =
-    exercise.instructions.he.join(". ") ||
-    exercise.instructions.en.join(". ") ||
-    "אין תיאור זמין";
+  const cleanDescription = useMemo(() => {
+    const raw =
+      (exercise.instructions?.he?.length
+        ? exercise.instructions.he
+        : exercise.instructions.en) || [];
+    const txt = raw
+      .join(". ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return txt || "אין תיאור זמין";
+  }, [exercise.instructions]);
+
+  const capitalize = (s: string) =>
+    s.length < 2 ? s.toUpperCase() : s.charAt(0).toUpperCase() + s.slice(1);
+
+  const difficultyColors = {
+    beginner: {
+      bg: theme.colors.primary + "20",
+      border: theme.colors.primary + "40",
+      text: theme.colors.primary,
+    },
+    intermediate: {
+      bg: theme.colors.accent + "25",
+      border: theme.colors.accent + "40",
+      text: theme.colors.accent,
+    },
+    advanced: {
+      bg: theme.colors.error + "20",
+      border: theme.colors.error + "40",
+      text: theme.colors.error,
+    },
+  } as const;
 
   const handleClose = () => {
     // אנימציית יציאה משופרת // Enhanced exit animation
     Animated.parallel([
       Animated.timing(scaleAnim, {
-        toValue: 0.8, // קטן יותר לאפקט דרמטי
-        duration: 200,
+        toValue: 0.9,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayAnim, {
+        toValue: 0,
+        duration: 180,
         useNativeDriver: true,
       }),
     ]).start(() => onClose());
@@ -81,6 +124,11 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
   const handleImageLoad = () => {
     setImageLoading(false);
     setImageError(false);
+    Animated.timing(imageOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleImageError = () => {
@@ -90,190 +138,226 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
 
   return (
     <Modal visible animationType="none" transparent>
-      <Pressable
-        style={[theme.getModalOverlayStyle("center"), { opacity: fadeAnim }]}
-        onPress={handleClose}
+      <Animated.View
+        style={[
+          theme.getModalOverlayStyle("center"),
+          styles.overlayLayer,
+          { opacity: overlayAnim },
+        ]}
       >
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <Pressable onPress={() => {}} style={{ flex: 1 }}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleClose}
-                activeOpacity={0.7}
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.modalContainer,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+        ]}
+        accessibilityViewIsModal
+        accessibilityLabel="Exercise Details Modal"
+      >
+        <Pressable onPress={() => {}} style={styles.flexOne}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>פרטי תרגיל</Text>
+            <View style={styles.spacer40} />
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* תמונת תרגיל // Exercise Image */}
+            {exercise.media?.image ? (
+              <View style={styles.imageContainer}>
+                {imageLoading && (
+                  <View style={styles.imageLoadingContainer}>
+                    <ActivityIndicator
+                      size="large"
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.loadingText}>טוען תמונה...</Text>
+                  </View>
+                )}
+                <Animated.Image
+                  source={{ uri: exercise.media.image }}
+                  style={[
+                    styles.exerciseImage,
+                    imageLoading ? styles.imageHidden : null,
+                    { opacity: imageOpacity },
+                  ]}
+                  resizeMode="contain"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+                {imageError && (
+                  <View style={styles.imageErrorContainer}>
+                    <MaterialCommunityIcons
+                      name="image-broken-variant"
+                      size={48}
+                      color={theme.colors.error}
+                    />
+                    <Text style={styles.errorText}>שגיאה בטעינת התמונה</Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View
+                style={[styles.imageContainer, styles.placeholderContainer]}
               >
-                <Ionicons name="close" size={24} color={theme.colors.text} />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>פרטי תרגיל</Text>
-              <View style={{ width: 40 }} />
+                <MaterialCommunityIcons
+                  name="dumbbell"
+                  size={48}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.placeholderText}>אין תמונה זמינה</Text>
+              </View>
+            )}
+
+            {/* שם התרגיל // Exercise Name */}
+            <Text style={styles.exerciseName} accessibilityRole="header">
+              {exercise.name}
+            </Text>
+
+            {/* שרירים ראשיים // Primary Muscles */}
+            <View style={styles.muscleSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialCommunityIcons
+                  name="arm-flex"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.sectionTitle}>שרירים ראשיים</Text>
+              </View>
+              <View style={styles.muscleTagsContainer}>
+                {exercise.primaryMuscles.length > 0 ? (
+                  exercise.primaryMuscles.map(
+                    (muscle: string, index: number) => (
+                      <View key={index} style={styles.muscleTag}>
+                        <Text style={styles.muscleTagText}>
+                          {capitalize(muscle)}
+                        </Text>
+                      </View>
+                    )
+                  )
+                ) : (
+                  <Text style={styles.noDataText}>לא צוין</Text>
+                )}
+              </View>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {/* תמונת תרגיל // Exercise Image */}
-              {exercise.media?.image ? (
-                <View style={styles.imageContainer}>
-                  {imageLoading && (
-                    <View style={styles.imageLoadingContainer}>
-                      <ActivityIndicator
-                        size="large"
-                        color={theme.colors.primary}
-                      />
-                      <Text style={styles.loadingText}>טוען תמונה...</Text>
-                    </View>
-                  )}
-                  <Image
-                    source={{ uri: exercise.media.image }}
-                    style={[
-                      styles.exerciseImage,
-                      { opacity: imageLoading ? 0 : 1 },
-                    ]}
-                    resizeMode="contain"
-                    onLoad={handleImageLoad}
-                    onError={handleImageError}
-                  />
-                  {imageError && (
-                    <View style={styles.imageErrorContainer}>
-                      <MaterialCommunityIcons
-                        name="image-broken-variant"
-                        size={48}
-                        color={theme.colors.error}
-                      />
-                      <Text style={styles.errorText}>שגיאה בטעינת התמונה</Text>
-                    </View>
-                  )}
-                </View>
-              ) : (
-                <View
-                  style={[styles.imageContainer, styles.placeholderContainer]}
-                >
-                  <MaterialCommunityIcons
-                    name="dumbbell"
-                    size={48}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.placeholderText}>אין תמונה זמינה</Text>
+            {/* שרירים משניים // Secondary Muscles */}
+            {exercise.secondaryMuscles &&
+              exercise.secondaryMuscles.length > 0 && (
+                <View style={styles.muscleSection}>
+                  <View style={styles.sectionHeader}>
+                    <MaterialCommunityIcons
+                      name="arm-flex-outline"
+                      size={20}
+                      color={theme.colors.accent}
+                    />
+                    <Text style={styles.sectionTitle}>שרירים משניים</Text>
+                  </View>
+                  <View style={styles.muscleTagsContainer}>
+                    {exercise.secondaryMuscles.map(
+                      (muscle: string, index: number) => (
+                        <View
+                          key={index}
+                          style={[styles.muscleTag, styles.secondaryMuscleTag]}
+                        >
+                          <Text style={styles.muscleTagText}>
+                            {capitalize(muscle)}
+                          </Text>
+                        </View>
+                      )
+                    )}
+                  </View>
                 </View>
               )}
 
-              {/* שם התרגיל // Exercise Name */}
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
-
-              {/* שרירים ראשיים // Primary Muscles */}
-              <View style={styles.muscleSection}>
+            {/* קטגוריה // Category */}
+            {(exercise.category || exercise.difficulty) && (
+              <View style={styles.categorySection}>
                 <View style={styles.sectionHeader}>
-                  <MaterialCommunityIcons
-                    name="arm-flex"
+                  <Ionicons
+                    name="grid-outline"
                     size={20}
                     color={theme.colors.primary}
                   />
-                  <Text style={styles.sectionTitle}>שרירים ראשיים</Text>
+                  <Text style={styles.sectionTitle}>קטגוריה וקושי</Text>
                 </View>
-                <View style={styles.muscleTagsContainer}>
-                  {exercise.primaryMuscles.length > 0 ? (
-                    exercise.primaryMuscles.map(
-                      (muscle: string, index: number) => (
-                        <View key={index} style={styles.muscleTag}>
-                          <Text style={styles.muscleTagText}>{muscle}</Text>
-                        </View>
-                      )
-                    )
-                  ) : (
-                    <Text style={styles.noDataText}>לא צוין</Text>
+                <View style={styles.categoryRow}>
+                  {exercise.category && (
+                    <View style={styles.categoryContainer}>
+                      <Text style={styles.categoryText}>
+                        {capitalize(exercise.category)}
+                      </Text>
+                    </View>
+                  )}
+                  {exercise.difficulty && (
+                    <View
+                      style={[
+                        styles.difficultyChip,
+                        {
+                          backgroundColor:
+                            difficultyColors[exercise.difficulty].bg,
+                          borderColor:
+                            difficultyColors[exercise.difficulty].border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.difficultyChipText,
+                          { color: difficultyColors[exercise.difficulty].text },
+                        ]}
+                      >
+                        {exercise.difficulty === "beginner"
+                          ? "מתחיל"
+                          : exercise.difficulty === "intermediate"
+                            ? "בינוני"
+                            : "מתקדם"}
+                      </Text>
+                    </View>
                   )}
                 </View>
               </View>
+            )}
 
-              {/* שרירים משניים // Secondary Muscles */}
-              {exercise.secondaryMuscles &&
-                exercise.secondaryMuscles.length > 0 && (
-                  <View style={styles.muscleSection}>
-                    <View style={styles.sectionHeader}>
-                      <MaterialCommunityIcons
-                        name="arm-flex-outline"
-                        size={20}
-                        color={theme.colors.accent}
-                      />
-                      <Text style={styles.sectionTitle}>שרירים משניים</Text>
-                    </View>
-                    <View style={styles.muscleTagsContainer}>
-                      {exercise.secondaryMuscles.map(
-                        (muscle: string, index: number) => (
-                          <View
-                            key={index}
-                            style={[
-                              styles.muscleTag,
-                              styles.secondaryMuscleTag,
-                            ]}
-                          >
-                            <Text style={styles.muscleTagText}>{muscle}</Text>
-                          </View>
-                        )
-                      )}
-                    </View>
-                  </View>
-                )}
-
-              {/* קטגוריה // Category */}
-              {exercise.category && (
-                <View style={styles.categorySection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons
-                      name="grid-outline"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.sectionTitle}>קטגוריה</Text>
-                  </View>
-                  <View style={styles.categoryContainer}>
-                    <Text style={styles.categoryText}>
-                      קטגוריה #{exercise.category}
-                    </Text>
-                  </View>
+            {/* תיאור // Description */}
+            {cleanDescription && (
+              <View style={styles.descriptionSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.sectionTitle}>תיאור התרגיל</Text>
                 </View>
-              )}
-
-              {/* תיאור // Description */}
-              {cleanDescription && (
-                <View style={styles.descriptionSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons
-                      name="document-text-outline"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.sectionTitle}>תיאור התרגיל</Text>
-                  </View>
-                  <View style={styles.descriptionCard}>
-                    <Text style={styles.descriptionText}>
-                      {cleanDescription}
-                    </Text>
-                  </View>
+                <View style={styles.descriptionCard}>
+                  <Text style={styles.descriptionText}>{cleanDescription}</Text>
                 </View>
-              )}
+              </View>
+            )}
 
-              {/* כפתור סגירה תחתון // Bottom close button */}
-              <TouchableOpacity
-                style={styles.bottomCloseButton}
-                onPress={handleClose}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.bottomCloseText}>סגור</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Pressable>
-        </Animated.View>
-      </Pressable>
+            {/* כפתור סגירה תחתון // Bottom close button */}
+            <TouchableOpacity
+              style={styles.bottomCloseButton}
+              onPress={handleClose}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.bottomCloseText}>סגור</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Pressable>
+      </Animated.View>
     </Modal>
   );
 }
@@ -286,6 +370,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     ...theme.shadows.large,
     overflow: "hidden",
+    alignSelf: "center",
+    position: "absolute",
+    top: "8%",
+  },
+  overlayLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   header: {
     flexDirection: "row-reverse",
@@ -306,6 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
+    writingDirection: "rtl",
   },
   scrollContent: {
     padding: 16,
@@ -342,6 +437,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 20,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   muscleSection: {
     marginBottom: 20,
@@ -356,6 +452,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
+    writingDirection: "rtl",
   },
   muscleTagsContainer: {
     flexDirection: "row-reverse",
@@ -393,11 +490,29 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    minWidth: 90,
+  },
+  categoryRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
   },
   categoryText: {
     fontSize: 14,
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
+  },
+  difficultyChip: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  difficultyChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    writingDirection: "rtl",
   },
   descriptionSection: {
     marginBottom: 20,
@@ -414,6 +529,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 22,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   bottomCloseButton: {
     backgroundColor: theme.colors.card,
@@ -463,4 +579,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
+  flexOne: { flex: 1 },
+  spacer40: { width: 40 },
+  imageHidden: { opacity: 0 },
 });

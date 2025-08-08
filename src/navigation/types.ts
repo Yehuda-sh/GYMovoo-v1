@@ -109,9 +109,6 @@ export type RootStackParamList = {
   /** @description מסך מעקב התקדמות / Progress tracking screen */
   Progress: undefined;
 
-  /** @description מסך ספריית תרגילים / Exercise library screen */
-  Exercises: undefined;
-
   // ===============================================
   // 🧭 Bottom Navigation Tab Screens
   // מסכי ניווט תחתון (5 טאבים RTL)

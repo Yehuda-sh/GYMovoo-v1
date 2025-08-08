@@ -119,14 +119,6 @@ export default function AppNavigator() {
           }}
         />
 
-        <Stack.Screen
-          name="Exercises"
-          component={ExercisesScreen}
-          options={{
-            freezeOnBlur: true, // חיסכון בביצועים
-          }}
-        />
-
         {/* מסך פרטי תרגיל מפורט */}
         <Stack.Screen
           name="ExerciseDetails"
@@ -139,7 +131,7 @@ export default function AppNavigator() {
           }}
         />
 
-        {/* מסך ספריית תרגילים עם סינון */}
+        {/* מסך ספריית תרגילים עם סינון (יחיד – מנקה כפילות) */}
         <Stack.Screen
           name="ExercisesScreen"
           component={ExercisesScreen}
