@@ -26,6 +26,7 @@
     "check:data-flow": "node scripts/testDataFlow.js",
     "check:equipment": "node scripts/equipmentManager.js",
     "check:equipment:quick": "node scripts/equipmentManager.js --quick",
+    "validate:exercises": "node scripts/validateExercises.js",
     "check:demo-user": "node testRealisticUserQuestionnaireFix.js",
     "check:demo-user:email": "node testRealisticUserFix.js",
     "check:questionnaire": "node testQuestionnaireLogic.js",

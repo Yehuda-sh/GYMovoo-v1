@@ -29,6 +29,7 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import type { SmartQuestionnaireData } from "../../types";
 import { fakeGoogleSignIn, realisticDemoService } from "../../services";
+import { logger } from "../../utils/logger";
 import { workoutSimulationService } from "../../services/workoutSimulationService";
 import { RootStackParamList } from "../../navigation/types";
 import {
@@ -41,20 +42,8 @@ import {
 // קומפוננטת Skeleton לטעינת כפתור Google במהלך פעולות אסינכרוניות
 const GoogleButtonSkeleton = () => (
   <View style={styles.googleButton}>
-    <View
-      style={[
-        styles.googleLogo,
-        { backgroundColor: theme.colors.backgroundAlt },
-      ]}
-    />
-    <View
-      style={{
-        width: 100,
-        height: 16,
-        backgroundColor: theme.colors.backgroundAlt,
-        borderRadius: theme.radius.xs,
-      }}
-    />
+    <View style={[styles.googleLogo, styles.googleSkeletonLogo]} />
+    <View style={styles.googleSkeletonBar} />
   </View>
 );
 
@@ -138,8 +127,7 @@ const TouchableButton = ({
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser, user, isLoggedIn, getCustomDemoUser, updateUser } =
-    useUserStore();
+  const { setUser, user, isLoggedIn } = useUserStore();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isDevLoading, setIsDevLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -161,7 +149,7 @@ export default function WelcomeScreen() {
     const checkAuthStatus = async () => {
       try {
         // Log current authentication status for debugging
-        console.log(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
+        logger.debug(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
           hasUser: !!user,
           userEmail: user?.email,
           isLoggedInResult: isLoggedIn(),
@@ -172,7 +160,7 @@ export default function WelcomeScreen() {
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         if (isLoggedIn() && user) {
-          console.log(WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND, user.email);
+          logger.info(WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND, user.email);
           // בדוק אם למשתמש יש שאלון חכם
           if (user.smartQuestionnaireData) {
             navigation.navigate("MainApp");
@@ -182,10 +170,10 @@ export default function WelcomeScreen() {
           return;
         }
 
-        console.log(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
+        logger.info(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
         setIsCheckingAuth(false);
       } catch (error) {
-        console.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
+        logger.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
         setIsCheckingAuth(false);
       }
     };
@@ -262,12 +250,12 @@ export default function WelcomeScreen() {
       // 🎯 בדוק אם יש שאלון קיים - אם כן, דלג ישר לאפליקציה!
       // Check if user has existing questionnaire - if yes, skip directly to app!
       if (googleUser.questionnaire && googleUser.questionnaire.length > 0) {
-        console.log(
+        logger.info(
           "✅ Google user has existing questionnaire - skipping to MainApp"
         );
         navigation.navigate("MainApp");
       } else {
-        console.log("ℹ️ Google user needs questionnaire - navigating to setup");
+        logger.info("ℹ️ Google user needs questionnaire - navigating to setup");
         // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
         navigation.navigate("Questionnaire", { stage: "profile" });
       }
@@ -281,12 +269,12 @@ export default function WelcomeScreen() {
   // Advanced demo creation with FRESH random user each time + questionnaire + week history
   // יצירת דמו מתקדם עם משתמש רנדומלי חדש בכל פעם + שאלון + היסטוריית שבוע
   const handleDevQuickLogin = useCallback(async () => {
-    console.log("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
+    logger.debug("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
     setIsDevLoading(true);
 
     try {
       // 🚀 שלב 1: יצירת משתמש בסיסי חדש
-      console.log("👤 יוצר משתמש בסיסי חדש...");
+      logger.debug("👤 יוצר משתמש בסיסי חדש...");
       const basicUser = realisticDemoService.generateDemoUser();
 
       // הוספת מזהה ייחודי למשתמש עם שם אנגלי ומייל
@@ -329,11 +317,11 @@ export default function WelcomeScreen() {
       const userEmail = `${randomName.toLowerCase()}${uniqueNumber}@demo.gymovoo.com`;
 
       // 🚀 שלב 2: יצירת שאלון רנדומלי מלא מותאם למשתמש הבסיסי
-      console.log("📋 יוצר שאלון רנדומלי מלא...");
+      logger.debug("📋 יוצר שאלון רנדומלי מלא...");
       const randomQuestionnaireData = generateRandomQuestionnaire(basicUser);
 
       // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם workoutSimulationService
-      console.log("🏋️ יוצר היסטוריית אימונים מתקדמת עם האלגוריתם החכם...");
+      logger.debug("🏋️ יוצר היסטוריית אימונים מתקדמת עם האלגוריתם החכם...");
       const advancedWorkoutHistory =
         await workoutSimulationService.simulateHistoryCompatibleWorkouts(
           basicUser.gender,
@@ -391,22 +379,22 @@ export default function WelcomeScreen() {
         createdAt: new Date().toISOString(),
       };
 
-      console.log(
+      logger.info(
         "✅ משתמש דמו מלא נוצר:",
         enhancedUser.name,
         "| מייל:",
         enhancedUser.email
       );
-      console.log(
+      logger.debug(
         "👤 נתונים אישיים:",
         `גיל: ${enhancedUser.age}, גובה: ${enhancedUser.height}ס"מ, משקל: ${enhancedUser.weight}ק"ג`
       );
-      console.log(
+      logger.debug(
         "🏋️ היסטוריית אימונים מתקדמת:",
         advancedWorkoutHistory.length,
         "אימונים עם אלגוריתם חכם"
       );
-      console.log(
+      logger.debug(
         "📋 נתוני שאלון:",
         randomQuestionnaireData.metadata.questionsAnswered,
         "תשובות"
@@ -416,10 +404,10 @@ export default function WelcomeScreen() {
       setUser(enhancedUser);
 
       // ניווט למסך הבית
-      console.log("🏠 מנווט למסך הבית...");
+      logger.info("🏠 מנווט למסך הבית...");
       navigation.navigate("MainApp");
     } catch (error) {
-      console.error("❌ שגיאה ביצירת משתמש דמו:", error);
+      logger.error("❌ שגיאה ביצירת משתמש דמו:", error);
       Alert.alert("שגיאה", "אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.", [
         { text: "אישור", style: "default" },
       ]);
@@ -430,14 +418,17 @@ export default function WelcomeScreen() {
 
   // פונקציה ליצירת שאלון רנדומלי עם כל הנתונים החיוניים מבוססת על המשתמש הבסיסי
   const generateRandomQuestionnaire = (
-    baseUser: any
+    baseUser: Partial<{
+      age: number;
+      height: number;
+      weight: number;
+      gender: "male" | "female" | "other";
+      experience: "beginner" | "intermediate" | "advanced";
+      equipment: string[];
+    }>
   ): SmartQuestionnaireData => {
-    const genders: ("male" | "female")[] = ["male", "female"];
-    const experiences: ("beginner" | "intermediate" | "advanced")[] = [
-      "beginner",
-      "intermediate",
-      "advanced",
-    ];
+    const genders = ["male", "female"] as const;
+    const experiences = ["beginner", "intermediate", "advanced"] as const;
     const goals = [
       ["build_muscle"],
       ["lose_weight"],
@@ -484,10 +475,11 @@ export default function WelcomeScreen() {
     const randomHeight =
       baseUser.height || Math.floor(Math.random() * 40) + 150; // 150-190 ס"מ
     const randomWeight = baseUser.weight || Math.floor(Math.random() * 50) + 50; // 50-100 ק"ג
-    const randomGender =
-      baseUser.gender || genders[Math.floor(Math.random() * genders.length)];
-    const randomExperience =
-      baseUser.experience ||
+    const randomGender: (typeof genders)[number] =
+      (baseUser.gender as (typeof genders)[number]) ||
+      genders[Math.floor(Math.random() * genders.length)];
+    const randomExperience: (typeof experiences)[number] =
+      (baseUser.experience as (typeof experiences)[number]) ||
       experiences[Math.floor(Math.random() * experiences.length)];
     const randomEquipment =
       baseUser.equipment ||
@@ -550,22 +542,22 @@ export default function WelcomeScreen() {
     return (
       <LinearGradient
         colors={[theme.colors.background, theme.colors.backgroundAlt]}
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        style={styles.loadingWrapper}
       >
         <MaterialCommunityIcons
           name="weight-lifter"
           size={80}
           color={theme.colors.primary}
         />
-        <Text style={[styles.appName, { marginTop: 16 }]}>
+        <Text style={[styles.appName, styles.mt16]}>
           {WELCOME_SCREEN_TEXTS.HEADERS.APP_NAME}
         </Text>
         <ActivityIndicator
           size="large"
           color={theme.colors.primary}
-          style={{ marginTop: 24 }}
+          style={styles.mt24}
         />
-        <Text style={[styles.tagline, { marginTop: 16 }]}>
+        <Text style={[styles.tagline, styles.mt16]}>
           {WELCOME_SCREEN_TEXTS.HEADERS.LOADING_CHECK}
         </Text>
       </LinearGradient>
@@ -575,7 +567,7 @@ export default function WelcomeScreen() {
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={{ flex: 1 }}
+      style={styles.flexFull}
     >
       <ScrollView
         contentContainerStyle={styles.container}
@@ -1104,5 +1096,23 @@ export const styles = StyleSheet.create({
     color: theme.colors.primary,
     textDecorationLine: "underline",
     fontWeight: "500",
+  },
+  // Utility styles added during logger refactor / loading extraction
+  loadingWrapper: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mt16: { marginTop: 16 },
+  mt24: { marginTop: 24 },
+  flexFull: { flex: 1 },
+  googleSkeletonLogo: {
+    backgroundColor: theme.colors.backgroundAlt,
+  },
+  googleSkeletonBar: {
+    width: 100,
+    height: 16,
+    backgroundColor: theme.colors.backgroundAlt,
+    borderRadius: theme.radius.xs,
   },
 });

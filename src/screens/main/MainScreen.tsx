@@ -674,8 +674,8 @@ function MainScreen() {
               icon="fire"
               iconColor={theme.colors.primary}
               value={
-                profileData.currentStats?.streak ||
-                profileData.activityHistory?.streak ||
+                profileData.currentStats?.currentStreak ||
+                profileData.currentStats?.workoutStreak ||
                 0
               }
               label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}

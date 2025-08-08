@@ -315,6 +315,8 @@ export function calculateExerciseStats(exercises: Exercise[]) {
  * סינון מותאם אישית עם קריטריונים מרובים
  * Custom filter with multiple criteria
  */
+import { MuscleGroup } from "../../constants/exercise";
+
 export function customFilter(
   exercises: Exercise[],
   criteria: {
@@ -325,7 +327,7 @@ export function customFilter(
     quietOnly?: boolean;
     homeOnly?: boolean;
     maxSpace?: string;
-    primaryMuscles?: string[];
+    primaryMuscles?: MuscleGroup[];
   }
 ): Exercise[] {
   let filtered = [...exercises];
@@ -357,7 +359,7 @@ export function customFilter(
   if (criteria.primaryMuscles && criteria.primaryMuscles.length > 0) {
     filtered = filtered.filter((ex) =>
       criteria.primaryMuscles!.some((muscle) =>
-        ex.primaryMuscles.includes(muscle)
+        (ex.primaryMuscles as MuscleGroup[]).includes(muscle)
       )
     );
   }

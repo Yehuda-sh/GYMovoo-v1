@@ -409,6 +409,45 @@ export interface LegacyQuestionnaireData {
 // מערכת משתמש מאוחדת
 // =======================================
 
+// =======================================
+// 🧪 Supporting Profile & Stats Interfaces
+// =======================================
+
+/** פרופיל מדעי בסיסי / Basic scientific profile */
+export interface ScientificProfile {
+  available_days?: number;
+  fitnessTests?: {
+    overallLevel?: "beginner" | "intermediate" | "advanced";
+  };
+  // future fields can be appended here safely
+}
+
+/** היסטוריית פעילות / Activity history */
+export interface ActivityHistory {
+  // שימוש זמני ב-any עד יישור מלא של טיפוסי האימון בכל המערכת
+  // Temporary any until full workout type unification (History/Achievements/Main/Profile)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workouts: any[];
+  weeklyProgress?: number;
+}
+
+/** סטטיסטיקות משתמש נוכחיות / Current user stats */
+export interface CurrentStats {
+  totalWorkouts: number;
+  totalVolume?: number;
+  averageRating?: number; // unified rating
+  averageDifficulty?: number; // @deprecated – kept for backward compatibility (mapped into averageRating)
+  currentStreak?: number; // unified streak
+  workoutStreak?: number; // @deprecated – kept for backward compatibility
+}
+
+/** המלצות AI / AI driven recommendations */
+export interface AIRecommendations {
+  quickTip?: string;
+  insights?: string[];
+  updatedAt?: string; // ISO timestamp
+}
+
 /**
  * Comprehensive User interface - ממשק משתמש מקיף
  * Central user data structure for the entire application
@@ -433,10 +472,14 @@ export interface User {
 
   // נתונים מדעיים (לתאימות לאחור)
   // Scientific data (for backward compatibility)
-  scientificProfile?: any;
-  aiRecommendations?: any;
-  activityHistory?: any;
-  currentStats?: any;
+  /** פרופיל מדעי / Scientific profile */
+  scientificProfile?: ScientificProfile;
+  /** המלצות AI */
+  aiRecommendations?: AIRecommendations;
+  /** היסטוריית פעילות */
+  activityHistory?: ActivityHistory;
+  /** סטטיסטיקות נוכחיות */
+  currentStats?: CurrentStats;
 
   // העדפות משתמש
   // User preferences

@@ -473,10 +473,9 @@ export class WorkoutDataService {
 
     // סינון נוסף לפי שרירי היעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
+      const primary = exercise.primaryMuscles as unknown[] as string[];
       const muscleMatch = targetMuscles.some(
-        (muscle) =>
-          exercise.primaryMuscles.includes(muscle) ||
-          exercise.category === muscle
+        (muscle) => primary?.includes(muscle) || exercise.category === muscle
       );
       const levelMatch = exercise.difficulty === "beginner";
 
@@ -935,23 +934,25 @@ export class WorkoutDataService {
       // הגדרות חדשות עבור הימים בפועל
       דחיפה: ["chest", "shoulders", "triceps"],
       משיכה: ["back", "biceps"],
-      רגליים: ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+      רגליים: ["quadriceps", "hamstrings", "glutes", "calves"],
 
       // הגדרות קיימות
       "חזה ושלושי": ["chest", "triceps"],
       "גב ודו-ראשי": ["back", "biceps"],
-      כתפיים: ["shoulders", "deltoids"],
-      "בטן וליבה": ["abs", "core"],
+      כתפיים: ["shoulders"],
+      "בטן וליבה": ["core"],
       "גוף עליון": ["chest", "back", "shoulders", "biceps", "triceps"],
-      "גוף תחתון": ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+      "גוף תחתון": ["quadriceps", "hamstrings", "glutes", "calves"],
       "גוף מלא": [
         "chest",
         "back",
-        "legs",
+        "quadriceps",
+        "hamstrings",
+        "glutes",
         "shoulders",
         "biceps",
         "triceps",
-        "abs",
+        "core",
       ],
 
       // הגדרות נוספות עבור פיצולים אחרים
@@ -960,10 +961,19 @@ export class WorkoutDataService {
       חזה: ["chest"],
       גב: ["back"],
       ידיים: ["biceps", "triceps"],
-      בטן: ["abs", "core"],
-      "אימון מלא": ["chest", "back", "legs", "shoulders", "biceps", "triceps"],
+      בטן: ["core"],
+      "אימון מלא": [
+        "chest",
+        "back",
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "shoulders",
+        "biceps",
+        "triceps",
+      ],
       "פלג גוף עליון": ["chest", "back", "shoulders", "biceps", "triceps"],
-      "פלג גוף תחתון": ["legs", "quadriceps", "hamstrings", "glutes", "calves"],
+      "פלג גוף תחתון": ["quadriceps", "hamstrings", "glutes", "calves"],
 
       קרדיו: ["cardio"],
       "כושר וגמישות": ["flexibility", "core"],
@@ -983,7 +993,16 @@ export class WorkoutDataService {
     }
 
     // ברירת מחדל - גוף מלא
-    return ["chest", "back", "legs", "shoulders", "biceps", "triceps"];
+    return [
+      "chest",
+      "back",
+      "quadriceps",
+      "hamstrings",
+      "glutes",
+      "shoulders",
+      "biceps",
+      "triceps",
+    ];
   }
 
   /**
@@ -1005,10 +1024,12 @@ export class WorkoutDataService {
     // סינון נוסף לפי שרירי יעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
       // בדיקת התאמת שרירים
+      const primary = exercise.primaryMuscles as unknown[] as string[];
+      const secondary = exercise.secondaryMuscles as unknown[] as string[];
       const muscleMatch = targetMuscles.some(
         (muscle) =>
-          exercise.primaryMuscles?.includes(muscle) ||
-          exercise.secondaryMuscles?.includes(muscle) ||
+          primary?.includes(muscle) ||
+          secondary?.includes(muscle) ||
           exercise.category === muscle
       );
 
@@ -1195,11 +1216,13 @@ export class WorkoutDataService {
 
     // שלב 1: ודא כיסוי של כל שריר יעד בסדר מעורבב
     for (const muscle of shuffledMuscles) {
-      const muscleExercises = suitableExercises.filter(
-        (ex) =>
-          (ex.primaryMuscles?.includes(muscle) || ex.category === muscle) &&
+      const muscleExercises = suitableExercises.filter((ex) => {
+        const primary = ex.primaryMuscles as unknown[] as string[];
+        return (
+          (primary?.includes(muscle) || ex.category === muscle) &&
           !usedExercises.has(ex.id)
-      );
+        );
+      });
 
       if (muscleExercises.length > 0) {
         // בחר את התרגיל הטוב ביותר לשריר הזה

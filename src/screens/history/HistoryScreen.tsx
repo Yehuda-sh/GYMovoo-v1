@@ -123,75 +123,83 @@ export default function HistoryScreen() {
         user.activityHistory.workouts.length > 0
       ) {
         allHistoryData = user.activityHistory.workouts.map(
-          (workout: Record<string, unknown>) => ({
-            id: workout.id as string,
-            workout: workout as unknown as WorkoutData,
-            feedback: (workout.feedback as Record<string, unknown>) || {
-              completedAt: (() => {
-                // טיפול משופר בתאריכים
-                const endTime = workout.endTime as string;
-                const startTime = workout.startTime as string;
-                const feedbackTime = (
-                  workout.feedback as Record<string, unknown>
-                )?.completedAt as string;
+          (workout: Record<string, unknown>) =>
+            ({
+              id: workout.id as string,
+              workout: workout as unknown as WorkoutData,
+              feedback: (workout.feedback as Record<string, unknown>) || {
+                completedAt: (() => {
+                  // טיפול משופר בתאריכים
+                  const endTime = workout.endTime as string;
+                  const startTime = workout.startTime as string;
+                  const feedbackTime = (
+                    workout.feedback as Record<string, unknown>
+                  )?.completedAt as string;
 
-                // בדיקה לתאריך תקין
-                const possibleDates = [feedbackTime, endTime, startTime].filter(
-                  Boolean
-                );
+                  // בדיקה לתאריך תקין
+                  const possibleDates = [
+                    feedbackTime,
+                    endTime,
+                    startTime,
+                  ].filter(Boolean);
 
-                for (const dateStr of possibleDates) {
-                  if (dateStr && dateStr !== "Invalid Date") {
-                    const testDate = new Date(dateStr);
-                    if (!isNaN(testDate.getTime()) && testDate.getTime() > 0) {
-                      return dateStr;
+                  for (const dateStr of possibleDates) {
+                    if (dateStr && dateStr !== "Invalid Date") {
+                      const testDate = new Date(dateStr);
+                      if (
+                        !isNaN(testDate.getTime()) &&
+                        testDate.getTime() > 0
+                      ) {
+                        return dateStr;
+                      }
                     }
                   }
-                }
 
-                // ברירת מחדל - תאריך נוכחי
-                return new Date().toISOString();
-              })(),
-              difficulty:
-                ((workout.feedback as Record<string, unknown>)
-                  ?.overallRating as number) ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
-              feeling:
-                ((workout.feedback as Record<string, unknown>)
-                  ?.mood as string) || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
-              readyForMore: null,
-            },
-            stats: {
-              duration:
-                (workout.duration as number) ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_WORKOUT_DURATION,
-              personalRecords:
-                ((workout.plannedVsActual as Record<string, unknown>)
-                  ?.personalRecords as number) ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_PERSONAL_RECORDS,
-              totalSets:
-                ((workout.plannedVsActual as Record<string, unknown>)
-                  ?.totalSetsCompleted as number) ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_SETS,
-              totalPlannedSets:
-                ((workout.plannedVsActual as Record<string, unknown>)
-                  ?.totalSetsPlanned as number) ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_PLANNED_SETS,
-              totalVolume:
-                workout.totalVolume ||
-                HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_VOLUME,
-            },
-            metadata: {
-              userGender: getUserGender(user),
-              deviceInfo: {
-                platform: HISTORY_SCREEN_CONFIG.DEMO_METADATA.PLATFORM,
-                screenWidth: HISTORY_SCREEN_CONFIG.DEMO_METADATA.SCREEN_WIDTH,
-                screenHeight: HISTORY_SCREEN_CONFIG.DEMO_METADATA.SCREEN_HEIGHT,
+                  // ברירת מחדל - תאריך נוכחי
+                  return new Date().toISOString();
+                })(),
+                difficulty:
+                  ((workout.feedback as Record<string, unknown>)
+                    ?.overallRating as number) ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
+                feeling:
+                  ((workout.feedback as Record<string, unknown>)
+                    ?.mood as string) || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
+                readyForMore: null,
               },
-              version: HISTORY_SCREEN_CONFIG.DEMO_METADATA.VERSION,
-              workoutSource: HISTORY_SCREEN_CONFIG.DEMO_METADATA.WORKOUT_SOURCE,
-            },
-          })
+              stats: {
+                duration:
+                  (workout.duration as number) ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_WORKOUT_DURATION,
+                personalRecords:
+                  ((workout.plannedVsActual as Record<string, unknown>)
+                    ?.personalRecords as number) ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_PERSONAL_RECORDS,
+                totalSets:
+                  ((workout.plannedVsActual as Record<string, unknown>)
+                    ?.totalSetsCompleted as number) ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_SETS,
+                totalPlannedSets:
+                  ((workout.plannedVsActual as Record<string, unknown>)
+                    ?.totalSetsPlanned as number) ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_PLANNED_SETS,
+                totalVolume:
+                  workout.totalVolume ||
+                  HISTORY_SCREEN_CONFIG.DEFAULT_TOTAL_VOLUME,
+              },
+              metadata: {
+                userGender: getUserGender(user),
+                deviceInfo: {
+                  platform: HISTORY_SCREEN_CONFIG.DEMO_METADATA.PLATFORM,
+                  screenWidth: HISTORY_SCREEN_CONFIG.DEMO_METADATA.SCREEN_WIDTH,
+                  screenHeight:
+                    HISTORY_SCREEN_CONFIG.DEMO_METADATA.SCREEN_HEIGHT,
+                },
+                version: HISTORY_SCREEN_CONFIG.DEMO_METADATA.VERSION,
+                workoutSource:
+                  HISTORY_SCREEN_CONFIG.DEMO_METADATA.WORKOUT_SOURCE,
+              },
+            }) as WorkoutWithFeedback
         );
 
         // הסר כפילויות ומיין לפי תאריך

@@ -4,6 +4,12 @@
  * Shared types for exercises
  */
 
+import {
+  ExerciseCategory,
+  ExerciseDifficulty,
+  MuscleGroup,
+} from "../../constants/exercise";
+
 export interface Exercise {
   id: string;
   name: string;
@@ -11,11 +17,11 @@ export interface Exercise {
     he: string;
     en: string;
   };
-  category: "strength" | "cardio" | "flexibility" | "core";
-  primaryMuscles: string[];
-  secondaryMuscles?: string[];
+  category: ExerciseCategory;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
   equipment: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
+  difficulty: ExerciseDifficulty;
   instructions: {
     he: string[];
     en: string[];

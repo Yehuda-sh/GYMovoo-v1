@@ -83,9 +83,38 @@ interface AppUser {
   };
   currentStats?: {
     totalWorkouts: number;
-    averageDifficulty: number;
-    workoutStreak: number;
+    totalVolume?: number;
+    averageDifficulty: number; // legacy metric
+    averageRating?: number; // unified proxy
+    workoutStreak: number; // legacy name
+    currentStreak?: number; // unified name
   };
+}
+
+// מינימום שדות נצרכים מתשובות שאלון / Minimal questionnaire answers shape
+interface QuestionnaireAnswers {
+  [key: string]: string | number | string[] | undefined;
+  gender?: UserGender;
+  experience?: "beginner" | "intermediate" | "advanced";
+  fitness_level?: "beginner" | "intermediate" | "advanced";
+  workout_frequency?: string; // qualitative frequency labels
+  available_days?: string; // numeric as string
+}
+
+// ממשק למשתמש דמו מותאם שנוצר מהשאלון
+interface CustomDemoUser {
+  id: string;
+  name: string;
+  gender: UserGender;
+  age: number;
+  experience: "beginner" | "intermediate" | "advanced";
+  height: number;
+  weight: number;
+  fitnessGoals: string[];
+  availableDays: number;
+  sessionDuration: string;
+  equipment: string[];
+  preferredTime: "morning" | "afternoon" | "evening";
 }
 
 // הגדרות קבועות
@@ -325,7 +354,9 @@ class RealisticDemoService {
   /**
    * יוצר משתמש דמו מותאם לתשובות שאלון
    */
-  generateDemoUserFromQuestionnaire(questionnaireAnswers?: any): DemoUser {
+  generateDemoUserFromQuestionnaire(
+    questionnaireAnswers?: QuestionnaireAnswers
+  ): DemoUser {
     // אם יש תשובות שאלון, השתמש בהן
     if (questionnaireAnswers) {
       return this.createUserFromQuestionnaireAnswers(questionnaireAnswers);
@@ -338,12 +369,15 @@ class RealisticDemoService {
   /**
    * יוצר משתמש מותאם לתשובות השאלון
    */
-  private createUserFromQuestionnaireAnswers(answers: any): DemoUser {
+  private createUserFromQuestionnaireAnswers(
+    answers: QuestionnaireAnswers
+  ): DemoUser {
     const genders: UserGender[] = ["male", "female", "other"];
 
     // חלץ מידע מהתשובות
     const gender =
-      answers.gender || genders[Math.floor(Math.random() * genders.length)];
+      (answers.gender as UserGender) ||
+      genders[Math.floor(Math.random() * genders.length)];
     const experience = this.extractExperienceFromAnswers(answers);
     const fitnessGoals = this.extractFitnessGoalsFromAnswers(answers);
     const equipment = this.extractEquipmentFromAnswers(answers);
@@ -385,13 +419,15 @@ class RealisticDemoService {
    * מחלץ רמת ניסיון מתשובות השאלון
    */
   private extractExperienceFromAnswers(
-    answers: any
+    answers: QuestionnaireAnswers
   ): "beginner" | "intermediate" | "advanced" {
     // חפש שאלות הקשורות לרמת ניסיון
-    if (answers.experience) return answers.experience;
-    if (answers.fitness_level) return answers.fitness_level;
+    if (answers.experience)
+      return answers.experience as "beginner" | "intermediate" | "advanced";
+    if (answers.fitness_level)
+      return answers.fitness_level as "beginner" | "intermediate" | "advanced";
     if (answers.workout_frequency) {
-      const frequency = answers.workout_frequency;
+      const frequency = answers.workout_frequency as string;
       if (frequency === "never" || frequency === "rarely") return "beginner";
       if (frequency === "sometimes" || frequency === "regularly")
         return "intermediate";
@@ -405,7 +441,9 @@ class RealisticDemoService {
   /**
    * מחלץ יעדי כושר מתשובות השאלון
    */
-  private extractFitnessGoalsFromAnswers(answers: any): string[] {
+  private extractFitnessGoalsFromAnswers(
+    answers: QuestionnaireAnswers
+  ): string[] {
     const goalMapping: Record<string, string> = {
       lose_weight: "ירידה במשקל",
       gain_muscle: "הגדלת מסה שרירית",
@@ -423,11 +461,11 @@ class RealisticDemoService {
         const value = answers[key];
         if (Array.isArray(value)) {
           value.forEach((goal) => {
-            if (goalMapping[goal]) {
+            if (typeof goal === "string" && goalMapping[goal]) {
               goals.push(goalMapping[goal]);
             }
           });
-        } else if (goalMapping[value]) {
+        } else if (typeof value === "string" && goalMapping[value]) {
           goals.push(goalMapping[value]);
         }
       }
@@ -440,7 +478,7 @@ class RealisticDemoService {
   /**
    * מחלץ ציוד זמין מתשובות השאלון
    */
-  private extractEquipmentFromAnswers(answers: any): string[] {
+  private extractEquipmentFromAnswers(answers: QuestionnaireAnswers): string[] {
     const equipmentMapping: Record<string, string> = {
       dumbbells: "dumbbells",
       barbell: "barbell",
@@ -458,11 +496,11 @@ class RealisticDemoService {
         const value = answers[key];
         if (Array.isArray(value)) {
           value.forEach((item) => {
-            if (equipmentMapping[item]) {
+            if (typeof item === "string" && equipmentMapping[item]) {
               equipment.push(equipmentMapping[item]);
             }
           });
-        } else if (equipmentMapping[value]) {
+        } else if (typeof value === "string" && equipmentMapping[value]) {
           equipment.push(equipmentMapping[value]);
         }
       }
@@ -475,9 +513,12 @@ class RealisticDemoService {
   /**
    * מחלץ ימים זמינים מתשובות השאלון
    */
-  private extractAvailableDaysFromAnswers(answers: any): number {
+  private extractAvailableDaysFromAnswers(
+    answers: QuestionnaireAnswers
+  ): number {
     // חפש מידע על ימים זמינים
-    if (answers.available_days) return parseInt(answers.available_days) || 3;
+    if (answers.available_days && typeof answers.available_days === "string")
+      return parseInt(answers.available_days) || 3;
     if (answers.workout_frequency) {
       const frequency = answers.workout_frequency;
       if (frequency === "never" || frequency === "rarely") return 2;
@@ -583,7 +624,7 @@ class RealisticDemoService {
   private generateRealisticExercises(
     gender: UserGender,
     experience: "beginner" | "intermediate" | "advanced",
-    equipment: string[]
+    _equipment: string[]
   ): Exercise[] {
     const availableExercises = EXERCISES_BY_LEVEL[experience];
     const exerciseCount =
@@ -1040,8 +1081,14 @@ class RealisticDemoService {
       // סטטיסטיקות נוכחיות
       currentStats: {
         totalWorkouts: workouts.length,
+        totalVolume: workouts.reduce(
+          (sum, w) => sum + (w.stats?.totalVolume || 0),
+          0
+        ),
         averageDifficulty: this.calculateAverageDifficulty(workouts),
+        averageRating: this.calculateAverageDifficulty(workouts), // mapped from difficulty as proxy
         workoutStreak: this.calculateWorkoutStreak(workouts),
+        currentStreak: this.calculateWorkoutStreak(workouts),
       },
     };
 
@@ -1052,7 +1099,7 @@ class RealisticDemoService {
    * יוצר משתמש מלא מנתוני דמו מותאמים (מהשאלון)
    */
   async generateRealisticUserFromCustomDemo(
-    customDemoUser: any
+    customDemoUser: CustomDemoUser
   ): Promise<AppUser> {
     // יצור DemoUser מהנתונים המותאמים
     const demoUser: DemoUser = {
@@ -1156,8 +1203,11 @@ class RealisticDemoService {
       // סטטיסטיקות נוכחיות
       currentStats: {
         totalWorkouts: workouts.length,
+        totalVolume: 0, // TODO: compute aggregated volume
         averageDifficulty: this.calculateAverageDifficulty(workouts),
+        averageRating: this.calculateAverageDifficulty(workouts),
         workoutStreak: this.calculateWorkoutStreak(workouts),
+        currentStreak: this.calculateWorkoutStreak(workouts),
       },
     };
 
