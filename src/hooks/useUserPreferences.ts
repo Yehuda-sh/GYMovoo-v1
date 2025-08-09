@@ -11,6 +11,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { questionnaireService } from "../services/questionnaireService";
 import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
+import {
+  scoreFrequency,
+  calculateDataQuality,
+  generateFocusAreas,
+  generateWarningFlags,
+  createSmartWorkoutPlan,
+  SmartWorkoutPlan,
+} from "./userPreferencesHelpers";
 import { useUserStore } from "../stores/userStore";
 
 // ממשק מורחב לתוצאות חכמות
@@ -57,7 +65,7 @@ interface UseUserPreferencesReturn {
   // המלצות משופרות
   workoutRecommendations: WorkoutRecommendation[];
   quickWorkout: WorkoutRecommendation | null;
-  smartWorkoutPlan: unknown; // תוכנית מותאמת אישית
+  smartWorkoutPlan: SmartWorkoutPlan | null; // תוכנית מותאמת אישית טיפוסית
 
   // פונקציות חכמות נוספות
   refreshPreferences: () => Promise<void>;
@@ -102,7 +110,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   >([]);
   const [quickWorkout, setQuickWorkout] =
     useState<WorkoutRecommendation | null>(null);
-  const [smartWorkoutPlan, setSmartWorkoutPlan] = useState<unknown>(null);
+  const [smartWorkoutPlan, setSmartWorkoutPlan] =
+    useState<SmartWorkoutPlan | null>(null);
 
   // גישה ל-store
   const user = useUserStore((state) => state.user);
@@ -123,16 +132,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       }
 
       // חישוב ציון עקביות
-      const consistencyScore =
-        rawData.frequency === "יומי"
-          ? 10
-          : rawData.frequency === "5-6 פעמים בשבוע"
-            ? 9
-            : rawData.frequency === "3-4 פעמים בשבוע"
-              ? 7
-              : rawData.frequency === "2-3 פעמים בשבוע"
-                ? 5
-                : 3;
+      const consistencyScore = scoreFrequency(rawData.frequency);
 
       // חישוב מוכנות ציוד
       const equipmentCount =
@@ -199,43 +199,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     []
   );
 
-  // פונקציות עזר לאלגוריתם
-  const generateFocusAreas = (data: QuestionnaireMetadata): string[] => {
-    const areas: string[] = [];
-    if (data.goal?.includes("שריפת שומן")) areas.push("קרדיו");
-    if (data.goal?.includes("בניית שריר")) areas.push("כוח");
-    if (data.experience === "מתחיל") areas.push("טכניקה");
-    if (data.health_conditions?.length) areas.push("בטיחות");
-    return areas.length ? areas : ["כושר כללי"];
-  };
-
-  const generateWarningFlags = (
-    data: QuestionnaireMetadata,
-    motivation: number,
-    consistency: number
-  ): string[] => {
-    const warnings: string[] = [];
-    if (motivation < 4) warnings.push("מוטיבציה נמוכה");
-    if (consistency < 4) warnings.push("תדירות נמוכה");
-    if (data.health_conditions?.length) warnings.push("מצב בריאותי");
-    if (!data.home_equipment?.length && !data.gym_equipment?.length) {
-      warnings.push("ציוד מוגבל");
-    }
-    return warnings;
-  };
-
-  // פונקציות עזר נוספות
-  const calculateDataQuality = (data: QuestionnaireMetadata): number => {
-    let score = 0;
-    if (data.age) score += 1;
-    if (data.gender) score += 1;
-    if (data.goal) score += 2;
-    if (data.experience) score += 2;
-    if (data.frequency) score += 2;
-    if (data.duration) score += 1;
-    if (data.location) score += 1;
-    return Math.min(10, score);
-  };
+  // פונקציות עזר הועברו ל-userPreferencesHelpers.ts (generateFocusAreas, generateWarningFlags, calculateDataQuality)
 
   const generatePersonalizedInsights = (
     data: SmartUserPreferences
@@ -261,6 +225,33 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     return insights;
   };
 
+  const loadSpecificData = useCallback(async () => {
+    const [goal, experience, equipment, duration, completed] =
+      await Promise.all([
+        questionnaireService.getUserGoal(),
+        questionnaireService.getUserExperience(),
+        questionnaireService.getAvailableEquipment(),
+        questionnaireService.getPreferredDuration(),
+        questionnaireService.hasCompletedQuestionnaire(),
+      ]);
+
+    setUserGoal(goal);
+    setUserExperience(experience);
+    setAvailableEquipment(equipment);
+    setPreferredDuration(duration);
+    setHasCompletedQuestionnaire(completed);
+
+    if (completed) {
+      const [recommendations, quick] = await Promise.all([
+        questionnaireService.getWorkoutRecommendations(),
+        questionnaireService.getQuickWorkout(),
+      ]);
+      setWorkoutRecommendations(recommendations);
+      setQuickWorkout(quick);
+      setSmartWorkoutPlan(createSmartWorkoutPlan(recommendations, preferences));
+    }
+  }, [preferences]);
+
   /**
    * טעינת העדפות משתמש חכמות
    * Load smart user preferences
@@ -279,7 +270,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       // אם אין נתונים, נסה מהסטור הישן
       if (!rawPreferences && user?.questionnaire) {
         rawPreferences = convertOldStoreFormat(user.questionnaire as unknown[]);
-        console.log("📱 המר מפורמט store ישן");
+        console.warn("📱 המר מפורמט store ישן");
       }
 
       setSystemType(currentSystemType);
@@ -302,7 +293,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       await loadSpecificData();
 
       setIsInitialized(true);
-      console.log("✅ טעינה חכמה הושלמה בהצלחה");
+      console.warn("✅ טעינה חכמה הושלמה בהצלחה");
     } catch (err) {
       console.error("❌ שגיאה בטעינה חכמה:", err);
       setError(
@@ -311,7 +302,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user, calculateSmartAnalysis]);
+  }, [user, calculateSmartAnalysis, loadSpecificData]);
 
   // פונקציות המרה
   const convertOldStoreFormat = (
@@ -340,54 +331,9 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     };
   };
 
-  const loadSpecificData = async () => {
-    const [goal, experience, equipment, duration, completed] =
-      await Promise.all([
-        questionnaireService.getUserGoal(),
-        questionnaireService.getUserExperience(),
-        questionnaireService.getAvailableEquipment(),
-        questionnaireService.getPreferredDuration(),
-        questionnaireService.hasCompletedQuestionnaire(),
-      ]);
+  // loadSpecificData הועלה מעל loadPreferences
 
-    setUserGoal(goal);
-    setUserExperience(experience);
-    setAvailableEquipment(equipment);
-    setPreferredDuration(duration);
-    setHasCompletedQuestionnaire(completed);
-
-    // טען המלצות אם השלים שאלון
-    if (completed) {
-      const [recommendations, quick] = await Promise.all([
-        questionnaireService.getWorkoutRecommendations(),
-        questionnaireService.getQuickWorkout(),
-      ]);
-
-      setWorkoutRecommendations(recommendations);
-      setQuickWorkout(quick);
-
-      // צור תוכנית אימון חכמה
-      setSmartWorkoutPlan(createSmartWorkoutPlan(recommendations, preferences));
-    }
-  };
-
-  const createSmartWorkoutPlan = (
-    recommendations: WorkoutRecommendation[],
-    prefs: SmartUserPreferences | null
-  ) => {
-    if (!prefs) return null;
-
-    return {
-      weeklySchedule: recommendations.slice(0, 3),
-      personalityMatch: prefs.personalityProfile,
-      focusAreas: prefs.smartRecommendations.focusAreas,
-      progressionPace: prefs.smartRecommendations.progressionPace,
-      motivationalBoost:
-        prefs.motivationLevel >= 7
-          ? "מוכן לפריצת דרך!"
-          : "התקדמות יציבה היא המפתח",
-    };
-  };
+  // createSmartWorkoutPlan מיובא מה-helpers
 
   /**
    * רענון העדפות משתמש

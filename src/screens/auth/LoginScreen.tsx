@@ -8,13 +8,12 @@
  * @updated 2025-07-30 שיפור RTL, אנימציות מתקדמות, תמיכה ב-global navigation types
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import {
   Switch,
   Alert,
   ScrollView,
+  Pressable,
 } from "react-native";
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -30,6 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleSignIn } from "../../services/authService";
+import type { User } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 import {
   useNavigation,
@@ -38,6 +39,67 @@ import {
   RouteProp,
 } from "@react-navigation/native";
 import type { RootStackParamList } from "../../navigation/types";
+import {
+  validateEmail,
+  validateLoginForm,
+  AUTH_STRINGS,
+  LoginFieldErrors,
+} from "../../utils/authValidation";
+
+// Local strings object centralizing repeated literals (Hebrew only for now)
+const STRINGS = {
+  placeholders: {
+    email: "כתובת אימייל",
+    password: "סיסמה",
+  },
+  buttons: {
+    login: "התחבר",
+    loggingIn: "מתחבר...",
+    google: "התחבר עם Google",
+    googleLoading: "מתחבר עם Google...",
+    forgotPassword: "שכחתי סיסמה",
+    registerNow: "הרשם עכשיו",
+  },
+  ui: {
+    or: "או",
+    rememberMe: "זכור אותי",
+    welcomeBack: "ברוך הבא חזרה!",
+    subtitle: "התחבר כדי להמשיך באימונים שלך",
+    noAccount: "אין לך חשבון עדיין?",
+    pwdResetTitle: "שחזור סיסמה",
+    pwdResetMsg: "נשלח לך קישור לאיפוס הסיסמה לכתובת האימייל שלך",
+    sent: "נשלח!",
+    sentMsg: "קישור לאיפוס סיסמה נשלח לאימייל שלך",
+    cancel: "ביטול",
+    send: "שלח",
+  },
+  accessibility: {
+    emailInput: "שדה אימייל",
+    passwordInput: "שדה סיסמה",
+    togglePassword: "הצג או הסתר סיסמה",
+    loginButton: "כפתור התחברות",
+    googleButton: "כפתור התחברות עם גוגל",
+    rememberMeSwitch: "זכור אותי מתג",
+    forgotPassword: "כפתור שחזור סיסמה",
+    registerLink: "קישור להרשמה",
+    errorMessage: "הודעת שגיאה",
+  },
+};
+
+// Debounce helper
+const useDebouncedCallback = <T extends (...args: unknown[]) => void>(
+  fn: T,
+  delay: number
+) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => fn(...args), delay);
+    },
+    [fn, delay]
+  );
+};
 
 // פונקציות עזר לאנימציות // Animation helper functions
 /**
@@ -76,11 +138,10 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const loading = loginLoading || googleLoading; // retained for existing disable logic
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
 
   // אנימציות // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -109,11 +170,14 @@ export default function LoginScreen() {
 
     // הפעלת Google אוטומטי אם הגיע עם google: true
     if (route?.params?.google) {
+      // eslint-disable-next-line no-console
       console.log(
         "🔐 LoginScreen - Auto Google login triggered from route params"
       );
       handleGoogleAuth();
     }
+    // Intentionally only tracking route param trigger; animation refs stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.params?.google]);
 
   /**
@@ -138,54 +202,49 @@ export default function LoginScreen() {
    * בודק תקינות כתובת אימייל
    * Validates email format
    */
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  /**
-   * בודק תקינות סיסמה
-   * Validates password requirements
-   */
-  const validatePassword = (password: string): boolean => {
-    return password.length >= 6;
-  };
-
-  /**
-   * בודק תקינות כל הטופס
-   * Validates entire form
-   */
   const validateForm = (): boolean => {
-    const errors: typeof fieldErrors = {};
-
-    if (!email) {
-      errors.email = "אנא הזן כתובת אימייל";
-    } else if (!validateEmail(email)) {
-      errors.email = "כתובת אימייל לא תקינה";
-    }
-
-    if (!password) {
-      errors.password = "אנא הזן סיסמה";
-    } else if (!validatePassword(password)) {
-      errors.password = "הסיסמה חייבת להכיל לפחות 6 תווים";
-    }
-
+    const errors = validateLoginForm(email, password);
     setFieldErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).length) {
       createShakeAnimation(shakeAnim).start();
       return false;
     }
-
     return true;
   };
 
-  const handleLogin = async () => {
+  const routeAfterLogin = (hasQuestionnaire: boolean) => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: hasQuestionnaire ? "MainApp" : "Questionnaire" }],
+    });
+  };
+
+  interface MinimalUser {
+    email: string;
+    name: string;
+    id: string;
+    avatar?: string | undefined;
+    questionnaire?: unknown;
+    questionnaireData?: unknown;
+    smartQuestionnaireData?: unknown;
+  }
+
+  const handleSuccessfulLogin = (user: MinimalUser) => {
+    // Cast to User (minimal required fields for store); legacy optional questionnaire fields tolerated
+    useUserStore.getState().setUser(user as unknown as User);
+    const hasQuestionnaire = !!(
+      user?.questionnaire ||
+      user?.questionnaireData ||
+      user?.smartQuestionnaireData
+    );
+    routeAfterLogin(hasQuestionnaire);
+  };
+
+  const _handleLogin = async () => {
     if (!validateForm()) {
       return;
     }
-
-    setLoading(true);
+    setLoginLoading(true);
     setError(null);
     setFieldErrors({});
 
@@ -205,123 +264,82 @@ export default function LoginScreen() {
 
     try {
       // שמירת אימייל אם נבחר "זכור אותי" // Save email if remember me
-      if (rememberMe) {
-        await AsyncStorage.setItem("savedEmail", email);
-      } else {
-        await AsyncStorage.removeItem("savedEmail");
-      }
+      // Save only after success so moved inside success branch later
 
       // סימולציית התחברות משופרת // Enhanced login simulation
       setTimeout(async () => {
-        setLoading(false);
+        setLoginLoading(false);
         if (email === "test@example.com" && password === "123456") {
           const user = {
-            email,
+            email: email.trim(),
             name: "משתמש לדוגמה",
             id: "user123",
             avatar: undefined,
           };
-
-          // שמירה ב-Zustand // Save to Zustand
-          useUserStore.getState().setUser(user);
-
-          // בדיקה אם יש שאלון // Check if questionnaire exists
-          const currentUser = useUserStore.getState().user;
-          const hasQuestionnaire = !!(
-            currentUser?.questionnaire ||
-            currentUser?.questionnaireData ||
-            currentUser?.smartQuestionnaireData
-          );
-          console.log(
-            "🔐 LoginScreen - Has questionnaire?",
-            !!hasQuestionnaire
-          );
-
-          if (!hasQuestionnaire) {
-            navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+          // Persist email only if remember me after successful login
+          if (rememberMe) {
+            await AsyncStorage.setItem("savedEmail", email.trim());
           } else {
-            navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+            await AsyncStorage.removeItem("savedEmail");
           }
+          handleSuccessfulLogin(user);
         } else {
-          setError("פרטי ההתחברות שגויים. אנא בדוק את האימייל והסיסמה.");
+          setError(AUTH_STRINGS.errors.loginFailed);
           createShakeAnimation(shakeAnim).start();
         }
       }, 1200);
     } catch (e) {
       console.error("🔐 LoginScreen - Login error:", e);
-      setLoading(false);
-      setError("אירעה שגיאה בהתחברות");
+      setLoginLoading(false);
+      setError(AUTH_STRINGS.errors.generalLoginError);
     }
   };
 
+  const handleLogin = useDebouncedCallback(_handleLogin, 350);
+
   const handleGoogleAuth = async () => {
-    setLoading(true);
+    setGoogleLoading(true);
     setError(null);
 
     try {
       const googleUser = await fakeGoogleSignIn();
 
-      useUserStore.getState().setUser(googleUser);
-
-      // בדיקה אם יש גיל תקין ושאלון // Check age and questionnaire
-      console.log(
-        "🔐 LoginScreen - Checking questionnaire:",
-        googleUser.questionnaire
-      );
-      if (
-        !googleUser.questionnaire ||
-        !googleUser.questionnaire[0] ||
-        googleUser.questionnaire[0] === "מתחת ל-16"
-      ) {
-        console.log(
-          "🔐 LoginScreen - Google user needs questionnaire, navigating..."
-        );
-        navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      } else {
-        console.log(
-          "🔐 LoginScreen - Google user has questionnaire, navigating to Main"
-        );
-        navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
-      }
+      handleSuccessfulLogin(googleUser);
     } catch (e) {
       console.error("🔐 LoginScreen - Google auth failed:", e);
-      setError("ההתחברות עם Google נכשלה");
+      setError(AUTH_STRINGS.errors.googleFailed);
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      "שחזור סיסמה",
-      "נשלח לך קישור לאיפוס הסיסמה לכתובת האימייל שלך",
-      [
-        {
-          text: "ביטול",
-          style: "cancel",
+    Alert.alert(STRINGS.ui.pwdResetTitle, STRINGS.ui.pwdResetMsg, [
+      {
+        text: STRINGS.ui.cancel,
+        style: "cancel",
+      },
+      {
+        text: STRINGS.ui.send,
+        onPress: () => {
+          if (!email) {
+            setFieldErrors({ email: AUTH_STRINGS.errors.emailRequired });
+            return;
+          }
+          if (!validateEmail(email)) {
+            setFieldErrors({ email: AUTH_STRINGS.errors.emailInvalid });
+            return;
+          }
+          Alert.alert(STRINGS.ui.sent, STRINGS.ui.sentMsg);
         },
-        {
-          text: "שלח",
-          onPress: () => {
-            if (!email) {
-              setFieldErrors({ email: "אנא הזן כתובת אימייל לשחזור" });
-              return;
-            }
-            if (!validateEmail(email)) {
-              setFieldErrors({ email: "כתובת אימייל לא תקינה" });
-              return;
-            }
-            Alert.alert("נשלח!", "קישור לאיפוס סיסמה נשלח לאימייל שלך");
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={{ flex: 1 }}
+      style={styles.gradientFill}
     >
       <KeyboardAvoidingView
         style={styles.container}
@@ -358,8 +376,19 @@ export default function LoginScreen() {
             </View>
 
             {/* כותרות // Titles */}
-            <Text style={styles.title}>ברוך הבא חזרה!</Text>
-            <Text style={styles.subtitle}>התחבר כדי להמשיך באימונים שלך</Text>
+            <Text
+              style={styles.title}
+              accessibilityRole="header"
+              accessibilityLabel={STRINGS.ui.welcomeBack}
+            >
+              {STRINGS.ui.welcomeBack}
+            </Text>
+            <Text
+              style={styles.subtitle}
+              accessibilityLabel={STRINGS.ui.subtitle}
+            >
+              {STRINGS.ui.subtitle}
+            </Text>
 
             {/* שדה אימייל // Email field */}
             <View style={styles.inputContainer}>
@@ -377,11 +406,11 @@ export default function LoginScreen() {
                       ? theme.colors.error
                       : theme.colors.textSecondary
                   }
-                  style={{ marginEnd: 8 }} // שינוי RTL: marginEnd במקום marginStart
+                  style={styles.iconMargin}
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="כתובת אימייל"
+                  placeholder={STRINGS.placeholders.email}
                   placeholderTextColor={theme.colors.textSecondary}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -390,9 +419,12 @@ export default function LoginScreen() {
                   onChangeText={(text) => {
                     setEmail(text);
                     setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    if (error) setError(null);
                   }}
                   textAlign="right"
                   editable={!loading}
+                  accessibilityLabel={STRINGS.accessibility.emailInput}
+                  accessibilityHint="הזן אימייל"
                 />
               </View>
               {fieldErrors.email && (
@@ -408,10 +440,16 @@ export default function LoginScreen() {
                   fieldErrors.password && styles.inputError,
                 ]}
               >
-                <TouchableOpacity
+                <Pressable
                   onPress={() => setShowPassword(!showPassword)}
                   disabled={loading}
-                  style={styles.passwordToggle}
+                  style={({ pressed }) => [
+                    styles.passwordToggle,
+                    pressed && { opacity: 0.6 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={STRINGS.accessibility.togglePassword}
+                  accessibilityHint="הצגת או הסתרת טקסט הסיסמה"
                 >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -422,10 +460,10 @@ export default function LoginScreen() {
                         : theme.colors.textSecondary
                     }
                   />
-                </TouchableOpacity>
+                </Pressable>
                 <TextInput
                   style={styles.input}
-                  placeholder="סיסמה"
+                  placeholder={STRINGS.placeholders.password}
                   placeholderTextColor={theme.colors.textSecondary}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -437,9 +475,12 @@ export default function LoginScreen() {
                       ...prev,
                       password: undefined,
                     }));
+                    if (error) setError(null);
                   }}
                   textAlign="right"
                   editable={!loading}
+                  accessibilityLabel={STRINGS.accessibility.passwordInput}
+                  accessibilityHint="הזן סיסמה"
                 />
               </View>
               {fieldErrors.password && (
@@ -450,7 +491,13 @@ export default function LoginScreen() {
             {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
             <View style={styles.optionsRow}>
               <View style={styles.rememberMe}>
-                <Text style={styles.rememberMeText}>זכור אותי</Text>
+                <Text
+                  style={styles.rememberMeText}
+                  accessibilityRole="text"
+                  accessibilityLabel={STRINGS.ui.rememberMe}
+                >
+                  {STRINGS.ui.rememberMe}
+                </Text>
                 <Switch
                   value={rememberMe}
                   onValueChange={setRememberMe}
@@ -464,12 +511,16 @@ export default function LoginScreen() {
                   disabled={loading}
                 />
               </View>
-              <TouchableOpacity
+              <Pressable
                 onPress={handleForgotPassword}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={STRINGS.accessibility.forgotPassword}
               >
-                <Text style={styles.forgotPassword}>שכחתי סיסמה</Text>
-              </TouchableOpacity>
+                <Text style={styles.forgotPassword}>
+                  {STRINGS.buttons.forgotPassword}
+                </Text>
+              </Pressable>
             </View>
 
             {/* הודעת שגיאה כללית // General error message */}
@@ -479,6 +530,9 @@ export default function LoginScreen() {
                   styles.errorContainer,
                   { transform: [{ scale: scaleAnim }] },
                 ]}
+                accessibilityLiveRegion="polite"
+                accessibilityRole="alert"
+                accessibilityLabel={STRINGS.accessibility.errorMessage}
               >
                 <MaterialCommunityIcons
                   name="alert-circle"
@@ -490,14 +544,16 @@ export default function LoginScreen() {
             )}
 
             {/* כפתור התחברות // Login button */}
-            <TouchableOpacity
-              style={[
+            <Pressable
+              style={({ pressed }) => [
                 styles.loginButton,
-                loading && styles.loginButtonDisabled,
+                (loginLoading || googleLoading) && styles.loginButtonDisabled,
+                pressed && { opacity: 0.85 },
               ]}
               onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
+              disabled={loginLoading || googleLoading}
+              accessibilityRole="button"
+              accessibilityLabel={STRINGS.accessibility.loginButton}
             >
               <LinearGradient
                 colors={[
@@ -506,53 +562,65 @@ export default function LoginScreen() {
                 ]}
                 style={styles.gradientButton}
               >
-                {loading ? (
+                {loginLoading ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator color="#fff" size="small" />
-                    <Text style={styles.loadingText}>מתחבר...</Text>
+                    <Text style={styles.loadingText}>
+                      {STRINGS.buttons.loggingIn}
+                    </Text>
                   </View>
                 ) : (
-                  <Text style={styles.loginButtonText}>התחבר</Text>
+                  <Text style={styles.loginButtonText}>
+                    {STRINGS.buttons.login}
+                  </Text>
                 )}
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
 
             {/* או // OR */}
             <View style={styles.dividerContainer}>
               <View style={styles.divider} />
-              <Text style={styles.dividerText}>או</Text>
+              <Text style={styles.dividerText}>{STRINGS.ui.or}</Text>
               <View style={styles.divider} />
             </View>
 
             {/* כפתור Google // Google button */}
-            <TouchableOpacity
-              style={[
+            <Pressable
+              style={({ pressed }) => [
                 styles.googleButton,
-                loading && styles.googleButtonDisabled,
+                googleLoading && styles.googleButtonDisabled,
+                pressed && { opacity: 0.85 },
               ]}
               onPress={handleGoogleAuth}
-              disabled={loading}
-              activeOpacity={0.8}
+              disabled={googleLoading || loginLoading}
+              accessibilityRole="button"
+              accessibilityLabel={STRINGS.accessibility.googleButton}
             >
-              {loading ? (
+              {googleLoading ? (
                 <ActivityIndicator size="small" color="#DB4437" />
               ) : (
                 <Ionicons name="logo-google" size={20} color="#DB4437" />
               )}
               <Text style={styles.googleButtonText}>
-                {loading ? "מתחבר עם Google..." : "התחבר עם Google"}
+                {googleLoading
+                  ? STRINGS.buttons.googleLoading
+                  : STRINGS.buttons.google}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
 
             {/* קישור להרשמה // Registration link */}
             <View style={styles.linkRow}>
-              <Text style={styles.linkText}>אין לך חשבון עדיין?</Text>
-              <TouchableOpacity
+              <Text style={styles.linkText}>{STRINGS.ui.noAccount}</Text>
+              <Pressable
                 onPress={() => navigation.navigate("Register")}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={STRINGS.accessibility.registerLink}
               >
-                <Text style={styles.registerLink}>הרשם עכשיו</Text>
-              </TouchableOpacity>
+                <Text style={styles.registerLink}>
+                  {STRINGS.buttons.registerNow}
+                </Text>
+              </Pressable>
             </View>
           </Animated.View>
         </ScrollView>
@@ -662,9 +730,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  forgotPasswordButton: {
-    padding: 4, // אזור מגע גדול יותר
-  },
+  iconMargin: { marginEnd: 8 },
   forgotPassword: {
     color: theme.colors.primary,
     fontSize: 14,
@@ -767,4 +833,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
   },
+  gradientFill: { flex: 1 },
 });

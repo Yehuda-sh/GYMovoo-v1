@@ -1,61 +1,97 @@
-#======================================================================
-# GYMovoo Project Structure Initialization Script
-# סקריפט יצירת מבנה הפרויקט של GYMovoo
-#======================================================================
-# Description: Creates the complete folder and file structure for the GYMovoo fitness app
-# תיאור: יוצר את מבנה התיקיות והקבצים המלא עבור אפליקציית הכושר GYMovoo
-#======================================================================
+<#
+=======================================================================
+ GYMovoo Project Structure Initialization Script
+ סקריפט יצירת מבנה הפרויקט של GYMovoo
+=======================================================================
+ Description: Creates / reconciles the folder + file structure for GYMovoo.
+ תיאור: יוצר או משלים את מבנה התיקיות והקבצים (Idempotent)
+ Added Features (2025-08-09):
+  - Parameters: -DryRun -SkipPlaceholders -Verbose
+  - Centralized logging helpers (bilingual)
+  - Extended data folders (src/data/...)
+  - Safe: no overwrite of existing non-empty files
+  - Summary breakdown (Created / Existing / Skipped)
+ Future Option: external JSON manifest (structure.json)
+=======================================================================
+#>
 
-Write-Host "🏗️ Starting GYMovoo project structure initialization..." -ForegroundColor Green
-Write-Host "מתחיל יצירת מבנה פרויקט GYMovoo..." -ForegroundColor Green
+[CmdletBinding()]
+param(
+  [switch]$DryRun,
+  [switch]$SkipPlaceholders,
+  [switch]$Verbose
+)
+
+function Write-Info($msgHe, $msgEn) { Write-Host "ℹ️  $msgHe | $msgEn" -ForegroundColor Cyan }
+function Write-Ok($msgHe, $msgEn)   { Write-Host "✓ $msgHe | $msgEn" -ForegroundColor Green }
+function Write-WarnMsg($msgHe, $msgEn){ Write-Host "⚠️  $msgHe | $msgEn" -ForegroundColor Yellow }
+function Write-Action($msgHe,$msgEn){ Write-Host "➡ $msgHe | $msgEn" -ForegroundColor Magenta }
+function Write-Title($tHe,$tEn){ Write-Host "`n===== $tHe | $tEn =====" -ForegroundColor White }
+
+if ($DryRun) { Write-WarnMsg "מצב סימולציה בלבד – לא יבוצעו שינויים" "DryRun mode – no changes will be written" }
+
+Write-Title "התחלת יצירת / סנכרון מבנה הפרויקט" "Starting project structure sync"
 
 # הרץ בספריית הפרויקט שלך | Run in your project directory
 # רשימת תיקיות ליצירה | Folders to create
-$folders = @(
-    "src/screens/welcome/components",
-    "src/screens/auth/components", 
-    "src/screens/questionnaire/components",
-    "src/screens/summary/components",
-    "src/screens/plans/components",
-    "src/screens/plan-detail/components",
-    "src/screens/workout/components",
-    "src/components/common",
-    "src/components/forms",
-    "src/components/workout",
-    "src/components/ui",
-    "src/hooks",
-    "src/stores",
-    "src/services",
-    "src/types",
-    "src/utils",
-    "src/constants",
-    "src/styles",
-    "src/navigation",
-    "assets/equipment",
-    "assets/exercises", 
-    "assets/questionnaire",
-    "docs",
-    "scripts"
+${folders} = @(
+  # Screens & feature modules
+  "src/screens/welcome/components",
+  "src/screens/auth/components",
+  "src/screens/questionnaire/components",
+  "src/screens/summary/components",          # TODO: Validate still in use
+  "src/screens/plans/components",             # Legacy? keep pending cleanup
+  "src/screens/plan-detail/components",       # Legacy? mark for audit
+  "src/screens/workout/components",
+  "src/screens/exercises",                    # New consolidated exercises dir
+  "src/screens/exercise",                     # Transitional (legacy single list)
+  # Shared components & infra
+  "src/components/common",
+  "src/components/forms",
+  "src/components/workout",
+  "src/components/ui",
+  # Data & domain
+  "src/data",
+  "src/data/exercises",
+  "src/data/equipment",
+  "src/data/fixtures",
+  # Core support
+  "src/hooks",
+  "src/stores",
+  "src/services",
+  "src/types",
+  "src/utils",
+  "src/constants",
+  "src/styles",
+  "src/navigation",
+  # Assets / docs / scripts
+  "assets/equipment",
+  "assets/exercises",
+  "assets/questionnaire",
+  "docs",
+  "scripts"
 )
 
-Write-Host "📁 Creating directory structure..." -ForegroundColor Yellow
-Write-Host "יוצר מבנה תיקיות..." -ForegroundColor Yellow
+Write-Action "יוצר/מסנכרן תיקיות" "Creating / reconciling directories"
 
 $createdFolders = 0
 foreach ($folder in $folders) {
-    if (!(Test-Path $folder)) {
-        New-Item -ItemType Directory -Force -Path $folder | Out-Null
-        $createdFolders++
-        Write-Host "  ✓ Created: $folder" -ForegroundColor Green
+  if (!(Test-Path $folder)) {
+    if ($DryRun) {
+      Write-Host "  [DRY] Missing -> would create: $folder" -ForegroundColor DarkYellow
     } else {
-        Write-Host "  → Exists: $folder" -ForegroundColor DarkGray
+      New-Item -ItemType Directory -Force -Path $folder | Out-Null
+      $createdFolders++
+      Write-Host "  ✓ Created: $folder" -ForegroundColor Green
     }
+  } else {
+    Write-Host "  → Exists: $folder" -ForegroundColor DarkGray
+  }
 }
 Write-Host "📁 Created $createdFolders new folders" -ForegroundColor Cyan
 
 # יצירת קבצי app layout | Create app layout files
-Write-Host "📱 Creating app layout files..." -ForegroundColor Yellow
-Write-Host "יוצר קבצי app layout..." -ForegroundColor Yellow
+Write-Action "(מדלג) קבצי app layout (Expo Router הוסר)" "Skipping app layout (Expo Router removed)"
 
 $appLayoutContent = @"
 // _layout.tsx - Main app layout
@@ -87,10 +123,13 @@ export default function Index() {
 # Note: app/ directory removed - project uses Stack Navigator instead of Expo Router
 
 # רשימת קבצים ליצירה | Files to create  
-Write-Host "📄 Creating placeholder files..." -ForegroundColor Yellow
-Write-Host "יוצר קבצי placeholder..." -ForegroundColor Yellow
+if (-not $SkipPlaceholders) {
+  Write-Action "יוצר קבצי placeholder חסרים" "Creating missing placeholder files"
+} else {
+  Write-WarnMsg "דילוג על יצירת קבצי placeholder" "Skipping placeholder file generation"
+}
 
-$files = @(
+${files} = @(
   # Screens (existing)
   "src/screens/welcome/WelcomeScreen.tsx",
   "src/screens/auth/LoginScreen.tsx",
@@ -99,6 +138,10 @@ $files = @(
   "src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx",
   "src/screens/workout/ActiveWorkoutScreen.tsx",
   "src/screens/workout/WorkoutPlansScreen.tsx",
+  # Exercises (add if missing)
+  "src/screens/exercises/ExercisesScreen.tsx",
+  "src/screens/exercises/ExerciseDetailsScreen.tsx",
+  "src/screens/exercise/ExerciseListScreen.tsx",
 
   # Workout components (existing paths)
   "src/screens/workout/components/WorkoutHeader.tsx",
@@ -176,27 +219,31 @@ $placeholderContent = @"
 // English: Placeholder file for future implementation
 "@
 
-foreach ($file in $files) {
-  $parent = Split-Path -Path $file -Parent
-  if (!(Test-Path $file) -and (Test-Path $parent)) {
-    $placeholderContent | Set-Content -Path $file
-    $createdFiles++
-    Write-Host "  ✓ Created: $file" -ForegroundColor Green
-  } elseif (!(Test-Path $parent)) {
-    Write-Host "  → Skipped (missing parent folder): $file" -ForegroundColor DarkYellow
-  } else {
-    Write-Host "  → Exists: $file" -ForegroundColor DarkGray
+if (-not $SkipPlaceholders) {
+  foreach ($file in $files) {
+    $parent = Split-Path -Path $file -Parent
+    if (!(Test-Path $file) -and (Test-Path $parent)) {
+      if ($DryRun) {
+        Write-Host "  [DRY] Would create: $file" -ForegroundColor DarkYellow
+      } else {
+        $placeholderContent | Set-Content -Path $file
+        $createdFiles++
+        Write-Host "  ✓ Created: $file" -ForegroundColor Green
+      }
+    } elseif (!(Test-Path $parent)) {
+      Write-WarnMsg "דילוג (תיקיית אב חסרה): $file" "Skipped (missing parent folder): $file"
+    } else {
+      if ($Verbose) { Write-Host "  → Exists: $file" -ForegroundColor DarkGray }
+    }
   }
 }
 Write-Host "📄 Created $createdFiles new placeholder files" -ForegroundColor Cyan
 
 # סיכום | Summary
 Write-Host ""
-Write-Host "🎉 GYMovoo project structure initialization completed!" -ForegroundColor Green  
-Write-Host "✅ יצירת מבנה פרויקט GYMovoo הושלמה בהצלחה!" -ForegroundColor Green
-Write-Host ""
-Write-Host "📊 Summary | סיכום:" -ForegroundColor White
-Write-Host "  • Folders created: $createdFolders | תיקיות נוצרו: $createdFolders" -ForegroundColor Cyan
-Write-Host "  • Files created: $createdFiles | קבצים נוצרו: $createdFiles" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "🚀 Ready to start developing! | מוכן להתחיל לפתח!" -ForegroundColor Green
+Write-Title "הושלם" "Completed"
+Write-Ok "בדיקת מבנה הסתיימה" "Structure reconciliation complete"
+Write-Host "📊 Folders created: $createdFolders" -ForegroundColor Cyan
+if (-not $SkipPlaceholders) { Write-Host "📄 Files created: $createdFiles" -ForegroundColor Cyan }
+if ($DryRun) { Write-WarnMsg "לא בוצעו שינויים בפועל (DryRun)" "No actual changes were made (DryRun)" }
+Write-Host "🚀 מוכן להמשך פיתוח | Ready for development" -ForegroundColor Green

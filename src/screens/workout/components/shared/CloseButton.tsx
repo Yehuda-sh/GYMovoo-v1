@@ -21,7 +21,7 @@
  */
 
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 
@@ -31,14 +31,28 @@ interface CloseButtonProps {
   position?: "center" | "start" | "end";
   marginTop?: number;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
+  variant?: "solid" | "outline" | "ghost";
+  disabled?: boolean;
+  testID?: string;
+  iconName?: IconName; // allows reuse beyond close (e.g., "chevron-down")
+  style?: ViewStyle;
 }
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export const CloseButton: React.FC<CloseButtonProps> = ({
   onPress,
   size = "medium",
   position = "center",
   marginTop = theme.spacing.sm,
-  accessibilityLabel = "סגור דשבורד",
+  accessibilityLabel = "סגור",
+  accessibilityHint = "הקש כדי לסגור",
+  variant = "solid",
+  disabled = false,
+  testID = "close-button",
+  iconName = "close",
+  style,
 }) => {
   const sizeConfig = {
     small: { width: 28, height: 28, borderRadius: 14, iconSize: 14 },
@@ -54,31 +68,68 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 
   const config = sizeConfig[size];
 
+  const variantStyle = (() => {
+    switch (variant) {
+      case "outline":
+        return {
+          backgroundColor: theme.colors.transparent,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        } as ViewStyle;
+      case "ghost":
+        return {
+          backgroundColor: theme.colors.transparent,
+          borderWidth: 0,
+          shadowOpacity: 0,
+          elevation: 0,
+        } as ViewStyle;
+      default:
+        return {} as ViewStyle; // solid (default styles apply)
+    }
+  })();
+
+  const disabledStyle: ViewStyle | undefined = disabled
+    ? { opacity: 0.45 }
+    : undefined;
+
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      testID={testID}
+      onPress={disabled ? undefined : onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
+      hitSlop={10}
+      style={({ pressed }) => [
         styles.closeButton,
+        variantStyle,
         {
           width: config.width,
           height: config.height,
           borderRadius: config.borderRadius,
           marginTop,
           alignSelf: alignmentConfig[position],
+          transform: pressed ? [{ scale: 0.92 }] : undefined,
+          backgroundColor:
+            variant === "solid"
+              ? pressed
+                ? theme.colors.surfaceVariant
+                : theme.colors.background
+              : variantStyle.backgroundColor,
         },
+        disabledStyle,
+        style,
       ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint="הקש כדי להסתיר"
     >
       <MaterialCommunityIcons
-        name="close"
+        name={iconName}
         size={config.iconSize}
-        color={theme.colors.textSecondary}
+        color={
+          disabled ? theme.colors.textTertiary : theme.colors.textSecondary
+        }
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -88,10 +139,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,

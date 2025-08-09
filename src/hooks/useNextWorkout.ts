@@ -7,7 +7,7 @@
  * @updated 2025-08-05 שיפור לוגינג ותמיכה במאגר התרגילים החדש
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   nextWorkoutLogicService,
   NextWorkoutRecommendation,
@@ -36,6 +36,13 @@ export interface UseNextWorkoutReturn {
  * Hook לניהול האימון הבא במחזור
  * Hook for managing next workout in cycle
  */
+const DEBUG_NEXT_WORKOUT = false; // Toggle verbose logging
+const debug = (...args: unknown[]) => {
+  if (DEBUG_NEXT_WORKOUT) {
+    console.warn("[useNextWorkout]", ...args);
+  }
+};
+
 export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const { user } = useUserStore();
   const [nextWorkout, setNextWorkout] =
@@ -53,151 +60,121 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
    * יצירת תוכנית שבועית מהנתונים עם תמיכה במערכת החדשה
    * Create weekly plan from data with support for new system
    */
-  const getWeeklyPlanFromData = useCallback(() => {
-    // אם יש תוכנית ספציפית, השתמש בה
+  const weeklyPlan = useMemo(() => {
+    // Direct plan provided
     if (workoutPlan?.workouts) {
-      return workoutPlan.workouts.map((w) => w.name);
+      const plan = workoutPlan.workouts.map((w) => w.name);
+      debug("Using provided workoutPlan", plan);
+      return plan;
     }
 
-    // מיפוי WORKOUT_DAYS מותאם למערכת החדשה
-    const WORKOUT_DAYS_MAP = {
+    const WORKOUT_DAYS_MAP: Record<number, string[]> = {
       1: ["אימון מלא"],
       2: ["פלג גוף עליון", "פלג גוף תחתון"],
       3: ["דחיפה", "משיכה", "רגליים"],
       4: ["חזה + טריצפס", "גב + ביצפס", "רגליים", "כתפיים + בטן"],
       5: ["חזה", "גב", "רגליים", "כתפיים", "ידיים + בטן"],
       6: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן + קרדיו"],
+      7: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן", "קרדיו קל"],
     };
 
-    // קבלת נתוני משתמש מהמערכת הקיימת עם תמיכה מורחבת
-    const getUserFrequencyData = () => {
-
-      // נסה מכל המקורות האפשריים
-      let frequency = "";
-
-      // תמיכה במערכת החדשה (אם תתווסף בעתיד)
+    const extractRawFrequency = (): string => {
       if (user?.smartQuestionnaireData?.answers?.availability) {
         const availability = user.smartQuestionnaireData.answers.availability;
-        frequency = Array.isArray(availability)
+        const freq = Array.isArray(availability)
           ? availability[0]
           : availability;
-        console.log(
-          "📊 useNextWorkout: Found frequency in smartQuestionnaireData:",
-          frequency
-        );
+        debug("frequency from smartQuestionnaireData", freq);
+        return freq;
       }
-      // תמיכה בשאלון המורחב (אם יתווסף בעתיד)
-      else if (user?.trainingStats?.preferredWorkoutDays) {
-        frequency = user.trainingStats.preferredWorkoutDays.toString();
-        console.log(
-          "📊 useNextWorkout: Found frequency in trainingStats:",
-          frequency
-        );
+      if (user?.trainingStats?.preferredWorkoutDays) {
+        const freq = String(user.trainingStats.preferredWorkoutDays);
+        debug("frequency from trainingStats", freq);
+        return freq;
       }
-      // תמיכה במערכת הנוכחית
-      else if (user?.questionnaireData?.answers) {
+      if (user?.questionnaireData?.answers) {
         const answers = user.questionnaireData.answers as Record<
           string,
           unknown
         >;
-        frequency = (answers.frequency as string) || "";
-        console.log(
-          "📊 useNextWorkout: Found frequency in questionnaireData:",
-          frequency
-        );
+        const freq = String(answers.frequency || "");
+        debug("frequency from questionnaireData", freq);
+        return freq;
       }
-      // תמיכה בפורמט הישן
-      else if (user?.questionnaire) {
-        Object.entries(user.questionnaire).forEach(([key, value]) => {
-          const keyNum = parseInt(key);
-          if (keyNum >= 4 && keyNum <= 6 && typeof value === "string") {
-            if (value.includes("פעמים") || value.includes("times")) {
-              frequency = value;
-            }
+      if (user?.questionnaire) {
+        let legacy = "";
+        Object.values(user.questionnaire).forEach((value) => {
+          if (
+            typeof value === "string" &&
+            (value.includes("times") || value.includes("פעמים"))
+          ) {
+            legacy = value;
           }
         });
-        console.log(
-          "📊 useNextWorkout: Found frequency in legacy questionnaire:",
-          frequency
-        );
+        debug("frequency from legacy questionnaire", legacy);
+        return legacy;
       }
-
-      console.log(
-        `📊 useNextWorkout: Raw frequency data found: "${frequency}"`
-      );
-      return frequency;
+      return "";
     };
 
-    const frequency = getUserFrequencyData();
-
-    // המרת התדירות למספר ימים עם תמיכה בפורמטים השונים
-    let daysPerWeek = 3; // ברירת מחדל חכמה
-
-    // פורמט חדש מהשאלון החכם
-    if (frequency === "2-times" || frequency === "2_times") {
-      daysPerWeek = 2;
-    } else if (frequency === "3-times" || frequency === "3_times") {
-      daysPerWeek = 3;
-    } else if (frequency === "4-times" || frequency === "4_times") {
-      daysPerWeek = 4;
-    } else if (frequency === "5-plus" || frequency === "5_times") {
-      daysPerWeek = 5;
+    const raw = extractRawFrequency();
+    let days = 3; // default smart
+    const normalized = raw.trim().toLowerCase();
+    const directMap: Record<string, number> = {
+      "2-times": 2,
+      "2_times": 2,
+      "2 times per week": 2,
+      "3-times": 3,
+      "3_times": 3,
+      "3 times per week": 3,
+      "4-times": 4,
+      "4_times": 4,
+      "4 times per week": 4,
+      "5-plus": 5,
+      "5_times": 5,
+      "5 times per week": 5,
+      "6 times per week": 6,
+      "7 times per week": 7,
+      "1-2 פעמים": 2,
+      "3 פעמים": 3,
+      "4 פעמים": 4,
+      "5+ פעמים": 5,
+      "2 פעמים בשבוע": 2,
+      "3 פעמים בשבוע": 3,
+      "5 פעמים בשבוע": 5,
+      "כל יום": 6,
+      "6_times": 6,
+    };
+    if (directMap[normalized] != null) {
+      days = directMap[normalized];
+    } else if (/^\d$/.test(normalized)) {
+      days = Math.min(7, Math.max(1, Number(normalized)));
+    } else if (/5-6/.test(normalized)) {
+      days = 5;
+    } else if (/3-4/.test(normalized)) {
+      days = 3;
+    } else if (/1-2/.test(normalized)) {
+      days = 2;
     }
-    // 🔧 FIX: פורמט אנגלי עם רווחים מהשאלון החדש
-    else if (frequency === "2 times per week") {
-      daysPerWeek = 2;
-    } else if (frequency === "3 times per week") {
-      daysPerWeek = 3;
-    } else if (frequency === "4 times per week") {
-      daysPerWeek = 4; // 🔧 התיקון העיקרי!
-    } else if (frequency === "5 times per week") {
-      daysPerWeek = 5;
-    } else if (frequency === "6 times per week") {
-      daysPerWeek = 6;
-    } else if (frequency === "7 times per week") {
-      daysPerWeek = 7;
-    }
-    // פורמט מהשאלון המורחב
-    else if (frequency === "1-2 פעמים") {
-      daysPerWeek = 2;
-    } else if (frequency === "3 פעמים") {
-      daysPerWeek = 3;
-    } else if (frequency === "4 פעמים") {
-      daysPerWeek = 4;
-    } else if (frequency === "5+ פעמים") {
-      daysPerWeek = 5;
-    }
-    // פורמט ישן
-    else if (frequency.includes("1-2") || frequency === "2 פעמים בשבוע") {
-      daysPerWeek = 2;
-    } else if (frequency.includes("3-4") || frequency === "3 פעמים בשבוע") {
-      daysPerWeek = 3;
-    } else if (frequency.includes("5-6") || frequency === "5 פעמים בשבוע") {
-      daysPerWeek = 5;
-    } else if (frequency === "כל יום" || frequency === "6_times") {
-      daysPerWeek = 6;
-    }
+    debug("Parsed frequency", { raw, normalized, days });
 
-    console.log(
-      `🎯 useNextWorkout: Detected frequency: "${frequency}" -> ${daysPerWeek} days per week`
-    );
-    console.log(
-      `📅 useNextWorkout: Selected workout plan for ${daysPerWeek} days:`,
-      WORKOUT_DAYS_MAP[daysPerWeek as keyof typeof WORKOUT_DAYS_MAP] ||
-        WORKOUT_DAYS_MAP[3]
-    );
-
-    // החזרת התוכנית המתאימה
-    return (
-      WORKOUT_DAYS_MAP[daysPerWeek as keyof typeof WORKOUT_DAYS_MAP] ||
-      WORKOUT_DAYS_MAP[3]
-    );
+    const selected = WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
+    debug("Selected weekly plan", { days, selected });
+    return selected;
   }, [workoutPlan, user]);
 
   /**
    * רענון המלצת האימון הבא עם אלגוריתם חכם
    * Refresh next workout recommendation with smart algorithm
    */
+  const isMountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    []
+  );
+
   const refreshRecommendation = useCallback(async () => {
     try {
       // אל תכניס loading אם כבר טוען
@@ -206,20 +183,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       }
       setError(null);
 
-      const weeklyPlan = getWeeklyPlanFromData();
-      console.log(
-        "🔄 useNextWorkout: Getting next workout recommendation with smart plan:",
-        weeklyPlan
-      );
-      console.log("👤 useNextWorkout: User data available:", {
+      debug("🔄 Fetching next workout recommendation", {
+        weeklyPlan,
+        userPresent: !!user,
+      });
+      debug("👤 User data sources", {
         hasQuestionnaireData: !!user?.questionnaireData,
         hasQuestionnaire: !!user?.questionnaire,
         hasSmartData: !!user?.smartQuestionnaireData,
         hasExtendedData: !!user?.trainingStats,
       });
-      console.log(
-        "🔧 useNextWorkout: Integration with updated exercise database and services ready"
-      );
 
       // בדיקת בטיחות מתקדמת - וידוא שהשירות קיים
       if (
@@ -239,34 +212,24 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         }),
       ]);
 
-      setNextWorkout(recommendation);
-      setCycleStats(stats);
-
-      console.log("✅ useNextWorkout: Next workout recommendation received:", {
+      if (isMountedRef.current) {
+        setNextWorkout(recommendation);
+        setCycleStats(stats);
+      }
+      debug("✅ Recommendation received", {
         workoutName: recommendation.workoutName,
         workoutIndex: recommendation.workoutIndex,
         reason: recommendation.reason,
         intensity: recommendation.suggestedIntensity,
+        stats,
       });
-
-      if (stats) {
-        console.log("📊 useNextWorkout: Cycle statistics:", {
-          currentWeek: stats.currentWeek,
-          totalWorkouts: stats.totalWorkouts,
-          consistency: stats.consistency,
-        });
-      }
-
-      console.log(
-        "🎯 useNextWorkout: Ready to work with updated exercise services (workoutDataService, quickWorkoutGenerator)"
-      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
       console.error("❌ Error getting next workout:", err);
 
       // במקרה של שגיאה, צור המלצה בסיסית חכמה
-      const fallbackPlan = getWeeklyPlanFromData();
+      const fallbackPlan = weeklyPlan;
       const fallbackRecommendation = {
         workoutName: fallbackPlan[0] || "אימון מלא",
         workoutIndex: 0,
@@ -275,19 +238,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         daysSinceLastWorkout: 0,
         suggestedIntensity: "normal" as const,
       };
-      setNextWorkout(fallbackRecommendation);
-
-      console.log(
-        "🔄 useNextWorkout: Using fallback recommendation:",
-        fallbackRecommendation
-      );
-      console.log(
-        "💡 useNextWorkout: Even in fallback mode, updated exercise services will provide proper equipment filtering"
-      );
+      if (isMountedRef.current) setNextWorkout(fallbackRecommendation);
+      debug("🔄 Using fallback recommendation", fallbackRecommendation);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
-  }, [getWeeklyPlanFromData, isLoading, user]);
+  }, [weeklyPlan, isLoading, user]);
 
   /**
    * סימון אימון כהושלם with improved error handling
@@ -296,14 +252,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const markWorkoutCompleted = useCallback(
     async (workoutIndex: number, workoutName: string) => {
       try {
-        console.log(
-          `🏁 useNextWorkout: Starting to mark workout as completed:`,
-          {
-            workoutName,
-            workoutIndex,
-            timestamp: new Date().toISOString(),
-          }
-        );
+        debug("🏁 Mark workout completed", { workoutName, workoutIndex });
 
         // בדיקת בטיחות מתקדמת
         if (
@@ -322,24 +271,13 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           workoutName
         );
 
-        console.log(
-          `✅ useNextWorkout: Successfully marked workout completed:`,
-          {
-            workoutName,
-            workoutIndex,
-            completedAt: new Date().toISOString(),
-          }
-        );
+        debug("✅ Workout completion stored", { workoutName, workoutIndex });
 
         // רענון המלצה לאחר השלמת אימון
-        console.log(
-          "🔄 useNextWorkout: Refreshing recommendation after workout completion..."
-        );
+        debug("🔄 Refreshing recommendation after completion");
         await refreshRecommendation();
 
-        console.log(
-          "🎯 useNextWorkout: Recommendation refresh completed - next workout will use updated exercise database"
-        );
+        debug("🎯 Recommendation refresh completed");
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";

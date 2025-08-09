@@ -50,31 +50,42 @@ export const getDifficultyStars = (difficulty: number): string => {
  * מחזיר אמוג'י מתאים להרגשה
  */
 export const getFeelingEmoji = (feeling: string): string => {
+  if (!feeling) return HISTORY_SCREEN_CONFIG.DEFAULT_MOOD;
+  const normalized = feeling.trim().toLowerCase();
   const emojiMap: Record<string, string> = {
-    "😄": "😄", // שמח מאוד
-    "😊": "😊", // שמח
-    "😐": "😐", // ניטרלי
-    "😞": "😞", // עצוב
-    "😢": "😢", // עצוב מאוד
-    "💪": "💪", // חזק
-    "😴": "😴", // עייף
-    "🔥": "🔥", // מוטיבציה גבוהה
-    // ברירות מחדל לערכים לא מוכרים
+    "😄": "😄",
+    "😊": "😊",
+    "�": "😊",
+    "😀": "😄",
+    "😐": "😐",
+    "😞": "😞",
+    "😢": "😢",
+    "💪": "💪",
+    "😴": "😴",
+    "🔥": "🔥",
     happy: "😊",
+    veryhappy: "�",
     sad: "😞",
+    verysad: "😢",
     neutral: "😐",
     tired: "😴",
+    strong: "💪",
     motivated: "🔥",
+    motivation: "🔥",
   };
-
-  return emojiMap[feeling] || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD;
+  return (
+    emojiMap[feeling] ||
+    emojiMap[normalized] ||
+    HISTORY_SCREEN_CONFIG.DEFAULT_MOOD
+  );
 };
 
 /**
  * מעצב תאריך לתצוגה בעברית עם טיפול משופר בשגיאות
  */
 export const formatDateHebrew = (
-  dateString: string | undefined | null
+  dateString: string | undefined | null,
+  now: Date = new Date()
 ): string => {
   try {
     // בדיקות ראשוניות לערכים לא תקינים
@@ -113,7 +124,6 @@ export const formatDateHebrew = (
       return "תאריך לא תקין";
     }
 
-    const now = new Date();
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
@@ -172,9 +182,14 @@ export const calculateProgressPercentage = (
   current: number,
   total: number
 ): number => {
-  if (total === 0) return 0;
-  return Math.round(
-    (current / total) * HISTORY_SCREEN_FORMATS.PERCENTAGE_MULTIPLIER
+  const safeCurrent = Math.max(0, current);
+  const safeTotal = Math.max(0, total);
+  if (safeTotal === 0) return 0;
+  return Math.min(
+    HISTORY_SCREEN_FORMATS.PERCENTAGE_MULTIPLIER,
+    Math.round(
+      (safeCurrent / safeTotal) * HISTORY_SCREEN_FORMATS.PERCENTAGE_MULTIPLIER
+    )
   );
 };
 
@@ -182,12 +197,17 @@ export const calculateProgressPercentage = (
  * יוצר טקסט התקדמות
  */
 export const formatProgressText = (loaded: number, total: number): string => {
+  if (total <= 0) {
+    return HISTORY_SCREEN_FORMATS.PROGRESS_TEMPLATE.replace("{loaded}", "0")
+      .replace("{total}", "0")
+      .replace("{percentage}", "0");
+  }
   const percentage = calculateProgressPercentage(loaded, total);
   return HISTORY_SCREEN_FORMATS.PROGRESS_TEMPLATE.replace(
     "{loaded}",
-    loaded.toString()
+    Math.max(0, loaded).toString()
   )
-    .replace("{total}", total.toString())
+    .replace("{total}", Math.max(0, total).toString())
     .replace("{percentage}", percentage.toString());
 };
 
@@ -246,14 +266,39 @@ export const sortWorkoutsByDate = <
 /**
  * מוודא שנתוני האימון תקינים ומעדכן ערכים לא תקינים
  */
-export const validateWorkoutData = (workout: any): any => {
+interface RawWorkoutFeedback {
+  completedAt?: string;
+  difficulty?: number;
+  feeling?: string;
+}
+interface RawWorkoutStats {
+  duration?: number;
+  personalRecords?: number;
+  totalSets?: number;
+  totalPlannedSets?: number;
+  totalVolume?: number;
+}
+interface RawWorkoutInner {
+  name?: string;
+  exercises?: unknown[];
+}
+interface RawWorkoutRecord {
+  id?: string;
+  feedback?: RawWorkoutFeedback;
+  stats?: RawWorkoutStats;
+  workout?: RawWorkoutInner;
+  [key: string]: unknown;
+}
+
+export const validateWorkoutData = <T = unknown>(workout: T): T => {
   try {
+    const w = workout as unknown as RawWorkoutRecord;
     return {
       ...workout,
       feedback: {
-        ...workout.feedback,
+        ...w.feedback,
         completedAt: (() => {
-          const currentDate = workout.feedback?.completedAt;
+          const currentDate = w.feedback?.completedAt;
           if (!currentDate || currentDate === "Invalid Date") {
             return new Date().toISOString();
           }
@@ -264,30 +309,29 @@ export const validateWorkoutData = (workout: any): any => {
           return currentDate;
         })(),
         difficulty: (() => {
-          const diff = workout.feedback?.difficulty;
+          const diff = w.feedback?.difficulty;
           if (typeof diff !== "number" || isNaN(diff) || diff < 1 || diff > 5) {
             return HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING;
           }
           return diff;
         })(),
-        feeling:
-          workout.feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
+        feeling: w.feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
       },
       stats: {
-        duration: Math.max(0, workout.stats?.duration || 0),
-        personalRecords: Math.max(0, workout.stats?.personalRecords || 0),
-        totalSets: Math.max(0, workout.stats?.totalSets || 0),
-        totalPlannedSets: Math.max(0, workout.stats?.totalPlannedSets || 0),
-        totalVolume: Math.max(0, workout.stats?.totalVolume || 0),
+        duration: Math.max(0, w.stats?.duration || 0),
+        personalRecords: Math.max(0, w.stats?.personalRecords || 0),
+        totalSets: Math.max(0, w.stats?.totalSets || 0),
+        totalPlannedSets: Math.max(0, w.stats?.totalPlannedSets || 0),
+        totalVolume: Math.max(0, w.stats?.totalVolume || 0),
       },
       workout: {
-        ...workout.workout,
-        name: workout.workout?.name || "אימון",
-        exercises: Array.isArray(workout.workout?.exercises)
-          ? workout.workout.exercises
+        ...w.workout,
+        name: w.workout?.name || "אימון",
+        exercises: Array.isArray(w.workout?.exercises)
+          ? w.workout.exercises
           : [],
       },
-    };
+    } as T;
   } catch (error) {
     console.error("Error validating workout data:", error);
     return workout;

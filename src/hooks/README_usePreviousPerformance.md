@@ -7,6 +7,43 @@ Smart hook for getting previous exercise performances with advanced progression 
 
 **עדכון אוגוסט 2025**: שיפור לוגינג ותמיכה מלאה במאגר התרגילים החדש 🆕
 
+### מבנה אובייקט חכם / Smart Object Shape
+
+```typescript
+export interface SmartPreviousPerformance {
+  weight?: number; // משקל אחרון שנרשם
+  reps?: number; // חזרות אחרונות
+  sets?: number; // סטים אחרונים
+  date?: string | Date; // תאריך אימון אחרון
+  // שדות נגזרים
+  progressionTrend: "improving" | "stable" | "declining" | "new";
+  recommendedProgression: {
+    weight?: number;
+    reps?: number;
+    sets?: number;
+    reasoning: string; // הסבר טקסטואלי
+  };
+  consistencyScore: number; // 1-10
+  strengthGain: number; // אחוז שינוי נפח (%) בין שני אימונים אחרונים
+  lastWorkoutGap: number; // ימים מאז האימון האחרון
+  confidenceLevel: "high" | "medium" | "low";
+}
+```
+
+### חוזה Hook / Hook Contract
+
+```typescript
+interface UsePreviousPerformanceReturn {
+  previousPerformance: SmartPreviousPerformance | null;
+  loading: boolean;
+  error: string | null;
+  refetch(): Promise<void>;
+  getProgressionInsight(): string;
+  shouldIncreaseWeight(): boolean;
+  getMotivationalMessage(): string;
+}
+```
+
 ## שיפורים שנוספו / Added Enhancements
 
 ### 🎯 אלגוריתם התקדמות חכם / Smart Progression Algorithm
@@ -24,26 +61,16 @@ shouldIncreaseWeight(): boolean // האם להעלות משקל
 getMotivationalMessage(): string // הודעה מוטיבציונית
 ```
 
-### 🆕 שיפורי לוגינג (אוגוסט 2025) / Enhanced Logging
+### 🆕 לוגינג נשלט / Controlled Debug Logging
 
-- **מעקב מפורט**: לוגינג מקיף עם קידומת `usePreviousPerformance:`
-- **ניתוח ביצועים**: מעקב אחרי חישובי התקדמות בזמן אמת
-- **דיבוג חכם**: לוגים מסייעים לפיתוח ותחזוקה
-- **אינטגרציה**: הכנה לעבודה עם מאגר התרגילים החדש
+- ברירת מחדל: שקט (רק שגיאות console.error)
+- הפעלה: שינוי `DEBUG_PREV_PERF` בקובץ hook ל-`true`
+- כל הלוגים עוברים דרך פונקציה `debug()` מרכזית (קל לכבות / להחליף ללוגר מתקדם)
 
 ```typescript
-// דוגמאות לוגינג:
-console.log(
-  "🧠 usePreviousPerformance: Starting smart progression calculation for:",
-  exerciseName
-);
-console.log("📈 usePreviousPerformance: Progression analysis:", {
-  strengthGain,
-  trend,
-});
-console.log(
-  "🎯 usePreviousPerformance: Ready to work with updated exercise database"
-);
+// בתוך usePreviousPerformance.ts
+const DEBUG_PREV_PERF = true; // להפעיל בעת דיבוג
+// debug('� Progression', { name, strengthGain, trend });
 ```
 
 ### 💡 המלצות אוטומטיות / Automatic Recommendations
@@ -76,6 +103,17 @@ const shouldIncrease = shouldIncreaseWeight(); // true/false
 const motivation = getMotivationalMessage(); // "כל הכבוד! שיפור של 12.5% 🚀"
 ```
 
+### כללי לוגיקת המלצה / Recommendation Rules Summary
+
+| תנאי                             | פעולה          | נימוק                         |
+| -------------------------------- | -------------- | ----------------------------- |
+| trend=improving & consistency>=8 | weight +2.5%   | "מגמה מצוינת!"                |
+| trend=stable & consistency>=6    | +1 rep (עד 15) | "הוסף חזרה"                   |
+| trend=declining OR gap>7 ימים    | weight -10%    | "התמקד בטכניקה / חזרה מהפסקה" |
+| אחרת                             | שמור           | "שמור על הרמה"                |
+
+נפח מחושב כ: `weight * reps * sets`. אחוז שיפור = (ΔVolume / prevVolume)\*100.
+
 ### 🆕 עבודה עם מאגר התרגילים החדש / Working with New Exercise Database
 
 ```typescript
@@ -98,3 +136,17 @@ usePreviousPerformance("דחיפת חזה עם משקולות"); // תרגיל �
 ---
 
 ✨ **כל הכבוד על השדרוג החכם!** עכשיו המערכת יודעת לא רק מה עשית אלא גם מה כדאי לעשות הבא! 💪
+
+## הערות פיתוח / Dev Notes
+
+- מניעת setState לאחר unmount: שימוש ב-`isMountedRef`.
+- אלגוריתם מפורק לפונקציות קטנות: `calculateRecommendedProgression`, `getVolume`, `calculateSmartProgression` (טהור לפי input).
+- ניתן להרחיב בעתיד: תמיכה במגמת Rolling (ממוצע 3-5 אימונים), התאמות לפי זמן יום.
+
+## שיפורים מוצעים (אם תרצה שאממש – ציין מספרים)
+
+1. העברת DEBUG לפרמטר hook או ENV.
+2. הוספת cache פנימי לפי exerciseName מפחית חישובים.
+3. בדיקות יחידה ל-calculateSmartProgression (edge cases: אימון אחד, gap גדול, ירידה חדה).
+4. תמיכה ב-window ממוצע (EMA) לנפח כדי להחליק קפיצות.
+5. חשיפת גם raw history (אם יסופק בעתיד) לניתוח גרפי.

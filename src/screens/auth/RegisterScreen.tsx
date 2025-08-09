@@ -12,7 +12,13 @@
  * כל פעולה עיקרית מתועדת ב-console.log ו-console.group. ראה לוגים לכל שינוי state, הולידציה, try/catch, אנימציה, ניווט, ואירועי משתמש.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -33,43 +39,95 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
+import { validateEmail as sharedValidateEmail } from "../../utils/authValidation";
 import type { RootStackParamList } from "../../navigation/types";
 
-/**
- * מחשב את חוזק הסיסמה ומחזיר נתונים לתצוגה
- * Calculates password strength and returns display data
- */
-const getPasswordStrength = (
-  password: string
-): {
-  strength: "weak" | "medium" | "strong";
-  color: string;
-  text: string;
-  score: number;
-} => {
+// Debug toggle
+const DEBUG_REGISTER = false;
+const debug = (...args: unknown[]) => {
+  if (DEBUG_REGISTER) {
+    // eslint-disable-next-line no-console
+    console.log("[REGISTER]", ...args);
+  }
+};
+
+// Centralized strings (hebrew only as UX surface; could add i18n layer later)
+const STRINGS = {
+  errors: {
+    fullName: "אנא הזן שם מלא (לפחות 2 תווים)",
+    emailRequired: "אנא הזן כתובת אימייל",
+    emailInvalid: "כתובת אימייל לא תקינה",
+    passwordRequired: "אנא הזן סיסמה",
+    passwordShort: "הסיסמה חייבת להכיל לפחות 6 תווים",
+    confirmRequired: "אנא אשר את הסיסמה",
+    confirmMismatch: "הסיסמאות אינן תואמות",
+    age: "ההרשמה מותרת רק מגיל 16 ומעלה",
+    terms: "יש לאשר את תנאי השימוש",
+    generic: "אירעה שגיאה בהרשמה. אנא נסה שוב",
+    google: "ההרשמה עם Google נכשלה",
+  },
+  placeholders: {
+    fullName: "שם מלא (לפחות 2 תווים)",
+    email: "כתובת אימייל",
+    password: "סיסמה (לפחות 6 תווים)",
+    confirm: "אישור סיסמה",
+  },
+  buttons: {
+    create: "צור חשבון",
+    creating: "יוצר חשבון...",
+    google: "הרשמה עם Google",
+    googleLoading: "נרשם עם Google...",
+    loginLink: "התחבר עכשיו",
+  },
+  misc: {
+    or: "או",
+    hasAccount: "כבר יש לך חשבון?",
+    title: "יצירת חשבון חדש",
+    subtitle: "הצטרף למהפכת הכושר שלך",
+    ageConfirm: "אני מאשר/ת שאני בן/בת 16 ומעלה",
+    termsPrefix: "אני מסכים/ה ל",
+    termsLink: "תנאי השימוש",
+    passwordStrengthLabel: "סיסמה",
+  },
+  accessibility: {
+    fullNameField: "שדה שם מלא",
+    emailField: "שדה אימייל",
+    passwordField: "שדה סיסמה",
+    confirmPasswordField: "שדה אישור סיסמה",
+    createAccountButton: "כפתור יצירת חשבון",
+    googleButton: "כפתור הרשמה עם גוגל",
+    loginLink: "קישור התחברות",
+  },
+} as const;
+
+// Pure helper (outside component) to compute password strength
+const computePasswordStrength = (password: string) => {
   let score = 0;
   if (password.length >= 6) score++;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 2) {
-    return { strength: "weak", color: theme.colors.error, text: "חלשה", score };
-  } else if (score <= 3) {
+  if (score <= 2)
     return {
-      strength: "medium",
+      strength: "weak" as const,
+      color: theme.colors.error,
+      text: "חלשה",
+      score,
+    };
+  if (score <= 3)
+    return {
+      strength: "medium" as const,
       color: theme.colors.warning,
       text: "בינונית",
       score,
     };
-  } else {
-    return {
-      strength: "strong",
-      color: theme.colors.success,
-      text: "חזקה",
-      score,
-    };
-  }
+  return {
+    strength: "strong" as const,
+    color: theme.colors.success,
+    text: "חזקה",
+    score,
+  };
 };
 
 // קומפוננטת אינדיקטור ולידציה // Validation indicator component
@@ -96,7 +154,7 @@ const ValidationIndicator = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isValid, isChecking]);
+  }, [isValid, isChecking, scaleAnim]);
   if (isChecking) {
     return <ActivityIndicator size="small" color={theme.colors.primary} />;
   }
@@ -121,12 +179,7 @@ export default function RegisterScreen() {
 
   // ----------- DEBUG: MOUNT -----------
   useEffect(() => {
-    console.groupCollapsed(
-      "%c[REGISTER] Component mounted",
-      "color: #0077cc; font-weight: bold;"
-    );
-    console.log("Mount at:", new Date().toISOString());
-    console.groupEnd();
+    debug("Component mounted", { ts: new Date().toISOString() });
   }, []);
 
   // ----------- STATE -----------
@@ -171,39 +224,35 @@ export default function RegisterScreen() {
   const successRotateAnim = useRef(new Animated.Value(0)).current;
 
   // --- DEBUG: STATE CHANGE LOGGING ---
-  useEffect(() => {}, [fullName]);
-  useEffect(() => {}, [email]);
-  useEffect(() => {}, [password]);
-  useEffect(() => {}, [confirmPassword]);
-  useEffect(() => {}, [is16Plus]);
-  useEffect(() => {}, [acceptTerms]);
+  // Removed redundant empty effects
   useEffect(() => {
-    if (error) console.warn("[ERROR] error:", error);
+    if (error) console.warn("[REGISTER] error:", error);
   }, [error]);
   useEffect(() => {
-    if (loading) console.log("[LOADING] loading true");
-    else console.log("[LOADING] loading false");
+    debug("Loading state changed", { loading });
   }, [loading]);
 
   // Password strength
-  const passwordStrength = getPasswordStrength(password);
+  const passwordStrength = useMemo(
+    () => computePasswordStrength(password),
+    [password]
+  );
 
   // --- DEBUG: Animations ---
   useEffect(() => {
-    // אנימציית כניסה משופרת // Enhanced entry animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 800, // זמן ארוך יותר לחוויה חלקה
+      duration: 800,
       useNativeDriver: true,
-    }).start(() => {});
-  }, []);
+    }).start();
+  }, [fadeAnim]);
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: passwordStrength.score / 5,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [passwordStrength.score]);
+  }, [passwordStrength.score, progressAnim]);
 
   // --- DEBUG: Real-time field validation ---
   useEffect(() => {
@@ -214,8 +263,10 @@ export default function RegisterScreen() {
   }, [fullName]);
   useEffect(() => {
     if (email.length > 0) {
-      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      setFieldValidation((prev) => ({ ...prev, email: valid }));
+      setFieldValidation((prev) => ({
+        ...prev,
+        email: sharedValidateEmail(email),
+      }));
     }
   }, [email]);
   useEffect(() => {
@@ -231,11 +282,9 @@ export default function RegisterScreen() {
     }
   }, [confirmPassword, password]);
 
-  const validateEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const validateEmail = sharedValidateEmail; // reuse shared util
 
-  const createShakeAnimation = () => {
+  const createShakeAnimation = useCallback(() => {
     return Animated.sequence([
       Animated.timing(shakeAnim, {
         toValue: 10,
@@ -258,9 +307,9 @@ export default function RegisterScreen() {
         useNativeDriver: true,
       }),
     ]);
-  };
+  }, [shakeAnim]);
 
-  const createSuccessAnimation = () => {
+  const createSuccessAnimation = useCallback(() => {
     return Animated.parallel([
       Animated.spring(successScaleAnim, {
         toValue: 1,
@@ -274,33 +323,25 @@ export default function RegisterScreen() {
         useNativeDriver: true,
       }),
     ]);
-  };
+  }, [successRotateAnim, successScaleAnim]);
 
   // ----------- DEBUG: FORM VALIDATION -----------
   const validateForm = (): boolean => {
-    console.group("%c[FORM VALIDATION]", "color: purple; font-weight: bold;");
+    debug("Form validation start");
     const errors: typeof fieldErrors = {};
-    if (!fullName || fullName.length < 2) {
-      errors.fullName = "אנא הזן שם מלא (לפחות 2 תווים)";
-    }
-    if (!email) {
-      errors.email = "אנא הזן כתובת אימייל";
-    } else if (!validateEmail(email)) {
-      errors.email = "כתובת אימייל לא תקינה";
-    }
-    if (!password) {
-      errors.password = "אנא הזן סיסמה";
-    } else if (password.length < 6) {
-      errors.password = "הסיסמה חייבת להכיל לפחות 6 תווים";
-    }
-    if (!confirmPassword) {
-      errors.confirmPassword = "אנא אשר את הסיסמה";
-    } else if (password !== confirmPassword) {
-      errors.confirmPassword = "הסיסמאות אינן תואמות";
-    }
+    if (!fullName || fullName.length < 2)
+      errors.fullName = STRINGS.errors.fullName;
+    if (!email) errors.email = STRINGS.errors.emailRequired;
+    else if (!validateEmail(email)) errors.email = STRINGS.errors.emailInvalid;
+    if (!password) errors.password = STRINGS.errors.passwordRequired;
+    else if (password.length < 6)
+      errors.password = STRINGS.errors.passwordShort;
+    if (!confirmPassword)
+      errors.confirmPassword = STRINGS.errors.confirmRequired;
+    else if (password !== confirmPassword)
+      errors.confirmPassword = STRINGS.errors.confirmMismatch;
     setFieldErrors(errors);
-    console.log("Validation errors:", errors);
-    console.groupEnd();
+    debug("Validation errors", errors);
     if (Object.keys(errors).length > 0) {
       createShakeAnimation().start();
       return false;
@@ -310,11 +351,7 @@ export default function RegisterScreen() {
 
   // ----------- DEBUG: REGISTRATION -----------
   const handleRegister = async () => {
-    console.group(
-      "%c[REGISTER] handleRegister()",
-      "color: #00aa00; font-weight: bold;"
-    );
-    console.log("Form validation status:", {
+    debug("handleRegister invoked", {
       fullName: fullName ? "✓" : "✗",
       email: email ? "✓" : "✗",
       passwordEntered: password ? "✓" : "✗",
@@ -324,20 +361,21 @@ export default function RegisterScreen() {
     });
     if (!validateForm()) {
       console.warn("[REGISTER] Form validation failed.");
-      console.groupEnd();
       return;
     }
     if (!is16Plus) {
-      setError("ההרשמה מותרת רק מגיל 16 ומעלה");
+      setError(STRINGS.errors.age);
       console.warn("[REGISTER] User is under 16.");
-      console.groupEnd();
       return;
     }
     if (!acceptTerms) {
-      setError("יש לאשר את תנאי השימוש");
+      setError(STRINGS.errors.terms);
       console.warn("[REGISTER] Terms not accepted.");
-      console.groupEnd();
       return;
+    }
+    if (loading) {
+      debug("Double-submit prevented");
+      return; // guard
     }
     setLoading(true);
     setError(null);
@@ -352,35 +390,29 @@ export default function RegisterScreen() {
         avatar: undefined,
       };
       useUserStore.getState().setUser(newUser);
-      console.log("[REGISTER] Registration success. User saved:", newUser);
+      debug("Registration success", newUser);
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      console.log("[REGISTER] Navigated to Questionnaire");
+      debug("Navigated to Questionnaire");
     } catch (error) {
       console.error("[REGISTER] Registration failed:", error);
-      setError("אירעה שגיאה בהרשמה. אנא נסה שוב");
+      setError(STRINGS.errors.generic);
     } finally {
       setLoading(false);
-      console.groupEnd();
     }
   };
 
   // ----------- DEBUG: GOOGLE REGISTER -----------
   const handleGoogleRegister = async () => {
-    console.group(
-      "%c[REGISTER] handleGoogleRegister()",
-      "color: #e34b0a; font-weight: bold;"
-    );
+    debug("handleGoogleRegister invoked");
     if (!is16Plus) {
-      setError("ההרשמה מותרת רק מגיל 16 ומעלה");
+      setError(STRINGS.errors.age);
       console.warn("[REGISTER] Google - under 16.");
-      console.groupEnd();
       return;
     }
     if (!acceptTerms) {
-      setError("יש לאשר את תנאי השימוש");
+      setError(STRINGS.errors.terms);
       console.warn("[REGISTER] Google - terms not accepted.");
-      console.groupEnd();
       return;
     }
     setLoading(true);
@@ -391,13 +423,12 @@ export default function RegisterScreen() {
       useUserStore.getState().setUser(googleUser);
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      console.log("[REGISTER] Google success. Navigated to Questionnaire");
+      debug("Google registration success; navigated to Questionnaire");
     } catch (e) {
       console.error("[REGISTER] Google registration failed:", e);
-      setError("ההרשמה עם Google נכשלה");
+      setError(STRINGS.errors.google);
     } finally {
       setLoading(false);
-      console.groupEnd();
     }
   };
 
@@ -405,7 +436,7 @@ export default function RegisterScreen() {
   const handleNavigateToTerms = () => {
     try {
       navigation.navigate("Terms");
-      console.log("[NAVIGATE] To Terms");
+      debug("Navigate to Terms");
     } catch (error) {
       console.error("[NAVIGATE] Failed to Terms:", error);
     }
@@ -466,9 +497,9 @@ export default function RegisterScreen() {
             ]}
             style={styles.titleGradient}
           >
-            <Text style={styles.title}>יצירת חשבון חדש</Text>
+            <Text style={styles.title}>{STRINGS.misc.title}</Text>
           </LinearGradient>
-          <Text style={styles.subtitle}>הצטרף למהפכת הכושר שלך</Text>
+          <Text style={styles.subtitle}>{STRINGS.misc.subtitle}</Text>
 
           {/* --- שדה שם מלא --- */}
           <View style={styles.inputContainer}>
@@ -490,12 +521,13 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginEnd: 8 }} // שינוי RTL: marginEnd במקום marginStart
+                style={styles.iconMarginEnd}
               />
               <TextInput
                 style={styles.input}
-                placeholder="שם מלא (לפחות 2 תווים)"
+                placeholder={STRINGS.placeholders.fullName}
                 placeholderTextColor={theme.colors.textSecondary}
+                accessibilityLabel={STRINGS.accessibility.fullNameField}
                 autoCapitalize="words"
                 autoCorrect={false}
                 value={fullName}
@@ -535,13 +567,14 @@ export default function RegisterScreen() {
                       ? theme.colors.success
                       : theme.colors.accent
                 }
-                style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
+                style={styles.iconMarginEndSm}
               />
               <TextInput
                 ref={emailRef}
                 style={styles.input}
-                placeholder="כתובת אימייל"
+                placeholder={STRINGS.placeholders.email}
                 placeholderTextColor={theme.colors.textSecondary}
+                accessibilityLabel={STRINGS.accessibility.emailField}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -586,14 +619,15 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
+                  style={styles.iconMarginEndSm}
                 />
               </TouchableOpacity>
               <TextInput
                 ref={passwordRef}
                 style={styles.input}
-                placeholder="סיסמה (לפחות 6 תווים)"
+                placeholder={STRINGS.placeholders.password}
                 placeholderTextColor={theme.colors.textSecondary}
+                accessibilityLabel={STRINGS.accessibility.passwordField}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -665,14 +699,15 @@ export default function RegisterScreen() {
                         ? theme.colors.success
                         : theme.colors.accent
                   }
-                  style={{ marginEnd: 6 }} // שינוי RTL: marginEnd במקום marginStart
+                  style={styles.iconMarginEndSm}
                 />
               </TouchableOpacity>
               <TextInput
                 ref={confirmPasswordRef}
                 style={styles.input}
-                placeholder="אישור סיסמה"
+                placeholder={STRINGS.placeholders.confirm}
                 placeholderTextColor={theme.colors.textSecondary}
+                accessibilityLabel={STRINGS.accessibility.confirmPasswordField}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -700,9 +735,7 @@ export default function RegisterScreen() {
 
           {/* --- אישור גיל --- */}
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>
-              אני מאשר/ת שאני בן/בת 16 ומעלה
-            </Text>
+            <Text style={styles.switchLabel}>{STRINGS.misc.ageConfirm}</Text>
             <Switch
               value={is16Plus}
               onValueChange={setIs16Plus}
@@ -712,18 +745,18 @@ export default function RegisterScreen() {
               }}
               thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginStart: 8 }} // RTL: שמירה על marginStart כי זה Switch
+              style={styles.switchMarginStart}
             />
           </View>
           {/* --- אישור תנאים --- */}
           <View style={styles.switchRow}>
             <View style={styles.termsTextContainer}>
-              <Text style={styles.switchLabel}>אני מסכים/ה ל</Text>
+              <Text style={styles.switchLabel}>{STRINGS.misc.termsPrefix}</Text>
               <TouchableOpacity
                 onPress={handleNavigateToTerms}
                 disabled={loading}
               >
-                <Text style={styles.termsLink}>תנאי השימוש</Text>
+                <Text style={styles.termsLink}>{STRINGS.misc.termsLink}</Text>
               </TouchableOpacity>
             </View>
             <Switch
@@ -735,7 +768,7 @@ export default function RegisterScreen() {
               }}
               thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
               disabled={loading}
-              style={{ marginStart: 8 }} // RTL: שמירה על marginStart כי זה Switch
+              style={styles.switchMarginStart}
             />
           </View>
 
@@ -762,10 +795,14 @@ export default function RegisterScreen() {
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.registerLoadingText}>יוצר חשבון...</Text>
+                  <Text style={styles.registerLoadingText}>
+                    {STRINGS.buttons.creating}
+                  </Text>
                 </View>
               ) : (
-                <Text style={styles.registerButtonText}>צור חשבון</Text>
+                <Text style={styles.registerButtonText}>
+                  {STRINGS.buttons.create}
+                </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -773,7 +810,7 @@ export default function RegisterScreen() {
           {/* --- או --- */}
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>או</Text>
+            <Text style={styles.dividerText}>{STRINGS.misc.or}</Text>
             <View style={styles.divider} />
           </View>
 
@@ -790,11 +827,15 @@ export default function RegisterScreen() {
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#ea4335" />
-                <Text style={styles.googleLoadingText}>נרשם עם Google...</Text>
+                <Text style={styles.googleLoadingText}>
+                  {STRINGS.buttons.googleLoading}
+                </Text>
               </View>
             ) : (
               <>
-                <Text style={styles.googleButtonText}>הרשמה עם Google</Text>
+                <Text style={styles.googleButtonText}>
+                  {STRINGS.buttons.google}
+                </Text>
                 <Ionicons name="logo-google" size={22} color="#ea4335" />
               </>
             )}
@@ -802,12 +843,13 @@ export default function RegisterScreen() {
 
           {/* --- קישור להתחברות --- */}
           <View style={styles.linkRow}>
-            <Text style={styles.linkText}>כבר יש לך חשבון?</Text>
+            <Text style={styles.linkText}>{STRINGS.misc.hasAccount}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("Login", {})}
               disabled={loading}
+              accessibilityLabel={STRINGS.accessibility.loginLink}
             >
-              <Text style={styles.loginLink}>התחבר עכשיו</Text>
+              <Text style={styles.loginLink}>{STRINGS.buttons.loginLink}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1032,5 +1074,14 @@ const styles = StyleSheet.create({
     marginStart: -50, // RTL: שמירה על marginStart למיקום מרכזי
     marginTop: -50,
     zIndex: 1000,
+  },
+  iconMarginEnd: {
+    marginEnd: 8,
+  },
+  iconMarginEndSm: {
+    marginEnd: 6,
+  },
+  switchMarginStart: {
+    marginStart: 8,
   },
 });
