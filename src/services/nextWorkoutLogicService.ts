@@ -1,6 +1,24 @@
 /**
  * @file src/services/nextWorkoutLogicService.ts
- * @description שירות לוגיקת האימון הבא במחזור - מערכת חכמה לניהול תוכניות אימון
+ * @description שירות לוגיקת האימון הבא במחזור - מערכת חכמה לניהול תו      // 2. Calculate days since last workout with enhanced precision
+      const daysSinceLastWorkout = this.calculateDaysSinceLastWorkout(
+        cycleState.lastWorkoutDate
+      );
+
+      console.log(
+        `📊 NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
+      );
+
+      // ✅ TODO: עתידי - שימוש בנתונים האישיים לשיפור ההמלצות
+      // ניתן להשתמש ב-personalData לצורכים כמו:
+      // - התאמת עוצמה לגיל (age)
+      // - התאמת משקל עצמי לפי משקל גוף (weight) 
+      // - התאמת תרגילים לגובה (height)
+      // - התאמת תוכנית לפי מין (gender)
+      // - התאמת קושי לרמת כושר (fitnessLevel)
+
+      // Enhanced decision logic with comprehensive scenarios
+      return this.determineNextWorkout(
  * English: Next workout logic service - intelligent system for workout program management
  * @dependencies AsyncStorage for persistence, intelligent caching system
  * @notes מספק המלצות חכמות לאימון הבא על בסיס היסטוריה, דפוסי אימון ולוגיקה מתקדמת
@@ -80,17 +98,36 @@ class NextWorkoutLogicService {
    * פונקציה ראשית משופרת עם לוגיקת החלטה מתקדמת
    *
    * @param weeklyPlan - Array of workout names in weekly order
+   * @param personalData - ✅ נתונים אישיים לשיפור ההמלצות (גיל, משקל, גובה, מין)
    * @returns {Promise<NextWorkoutRecommendation>} Intelligent workout recommendation
    * @performance Optimized with caching and efficient calculations
    * @algorithm Uses advanced logic for workout progression, break detection, and intensity adjustment
    */
   async getNextWorkoutRecommendation(
-    weeklyPlan: string[]
+    weeklyPlan: string[],
+    personalData?: {
+      gender?: string;
+      age?: string;
+      weight?: string;
+      height?: string;
+      fitnessLevel?: string;
+    }
   ): Promise<NextWorkoutRecommendation> {
     try {
       console.log(
         "🚀 NextWorkoutLogic: Starting intelligent workout recommendation calculation"
       );
+
+      // ✅ הדפסת נתונים אישיים לצורך דיבוג ושיפור המלצות
+      if (personalData) {
+        console.warn("👤 Personal data available for recommendations:", {
+          gender: personalData.gender,
+          age: personalData.age,
+          weight: personalData.weight,
+          height: personalData.height,
+          fitnessLevel: personalData.fitnessLevel,
+        });
+      }
 
       // Enhanced weekly plan validation with fallback
       if (!weeklyPlan || weeklyPlan.length === 0) {

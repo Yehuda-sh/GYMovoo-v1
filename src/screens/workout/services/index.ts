@@ -12,7 +12,7 @@ export { default as autoSaveService } from "./autoSaveService";
 export { default as workoutValidationService } from "./workoutValidationService";
 export { default as workoutErrorHandlingService } from "./workoutErrorHandlingService";
 export { default as workoutFeedbackService } from "./workoutFeedbackService";
-export { default as workoutDataService } from "./workoutDataService";
+export { default as workoutStorageService } from "./workoutStorageService";
 
 /**
  * דוגמת שימוש:

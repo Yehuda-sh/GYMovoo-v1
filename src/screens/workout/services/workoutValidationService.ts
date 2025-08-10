@@ -3,17 +3,35 @@
  * @description שירות וידואי נתונים לאימונים
  * English: Workout data validation service
  * @inspired מתוך ההצלחה במסך ההיסטוריה עם validateWorkoutData
+ * @updated 2025-08-10 הוספת תמיכה בוידוא מותאם אישית לפי נתונים אישיים (גיל, משקל, גובה, מין)
  */
 
 import { WorkoutData, WorkoutDraft } from "../types/workout.types";
 import { AUTO_SAVE } from "../utils/workoutConstants";
+
+// Interface לנתוני אימון בסיסי - מותאם ל-WorkoutData
+interface BaseWorkoutData {
+  name?: string;
+  exercises?: unknown[];
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  plannedVsActual?: {
+    totalSetsPlanned?: number;
+    totalSetsCompleted?: number;
+  };
+}
 
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
   correctedData?: WorkoutData;
+  personalizedSuggestions?: string[]; // ✅ הצעות מותאמות אישית
 }
+
+// ✅ Import PersonalData from central utils
+import { PersonalData } from "../../../utils/personalDataUtils";
 
 class WorkoutValidationService {
   private static instance: WorkoutValidationService;
@@ -28,7 +46,7 @@ class WorkoutValidationService {
   /**
    * וידוא נתוני אימון מלאים (מבוסס על validateWorkoutData מההיסטוריה)
    */
-  validateWorkoutData(workout: any): ValidationResult {
+  validateWorkoutData(workout: BaseWorkoutData): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
     let isValid = true;
@@ -121,39 +139,130 @@ class WorkoutValidationService {
   }
 
   /**
+   * ✅ וידוא נתוני אימון מותאם אישית עם נתונים אישיים
+   */
+  validateWorkoutDataWithPersonalData(
+    workout: BaseWorkoutData,
+    personalData?: PersonalData
+  ): ValidationResult {
+    // התחל עם הוידוא הבסיסי
+    const baseValidation = this.validateWorkoutData(workout);
+
+    if (!personalData) {
+      return baseValidation;
+    }
+
+    const personalizedWarnings: string[] = [];
+    const personalizedSuggestions: string[] = [];
+
+    // ✅ בדיקות מותאמות לגיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        // בדיקות לגיל מבוגר
+        if (workout.duration && workout.duration > 90) {
+          personalizedWarnings.push("אימון ארוך מהמומלץ לגילך - שקול להקצר");
+        }
+        if (workout.exercises && workout.exercises.length > 8) {
+          personalizedWarnings.push("מספר רב של תרגילים - שקול לפשט");
+        }
+        personalizedSuggestions.push(
+          "💡 זכור: מנוחה נאותה בין הסטים חשובה בגילך"
+        );
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        // המלצות לצעירים
+        if (workout.duration && workout.duration < 30) {
+          personalizedWarnings.push("אימון קצר - אתה יכול יותר!");
+        }
+        personalizedSuggestions.push(
+          "🚀 באופן האנרגיה שלך - שקול להגדיל את האתגר"
+        );
+      }
+    }
+
+    // ✅ בדיקות מותאמות למין
+    if (personalData.gender === "female") {
+      personalizedSuggestions.push(
+        "💪 זכרי: חיזוק ליבה וגלוטאוס יכול להיות מעולה עבורך"
+      );
+    } else if (personalData.gender === "male") {
+      personalizedSuggestions.push("🏋️ שקול: איזון בין פלג גוף עליון ותחתון");
+    }
+
+    // ✅ בדיקות לפי משקל גוף (התאמת עומסים)
+    if (personalData.weight && workout.exercises) {
+      if (
+        personalData.weight.includes("under_") ||
+        personalData.weight.includes("50_")
+      ) {
+        personalizedSuggestions.push(
+          "🎯 התחל עם משקלים קלים יותר ותגדל בהדרגה"
+        );
+      } else if (
+        personalData.weight.includes("over_90") ||
+        personalData.weight.includes("over_100")
+      ) {
+        personalizedSuggestions.push(
+          "💡 שים דגש על חימום מקיף לפני תרגילי כוח"
+        );
+      }
+    }
+
+    // ✅ בדיקות לפי רמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      if (workout.exercises && workout.exercises.length > 6) {
+        personalizedWarnings.push("הרבה תרגילים למתחיל - התחל עם פחות");
+      }
+      personalizedSuggestions.push(
+        "🌱 כמתחיל: התמקד בטכניקה נכונה על פני כמות"
+      );
+    } else if (personalData.fitnessLevel === "advanced") {
+      personalizedSuggestions.push("🎖️ כמתקדם: שקול להוסיף וריאציות מתקדמות");
+    }
+
+    return {
+      ...baseValidation,
+      warnings: [...baseValidation.warnings, ...personalizedWarnings],
+      personalizedSuggestions,
+    };
+  }
+
+  /**
    * יצירת נתונים מתוקנים (מבוסס על ההצלחה בהיסטוריה)
    */
-  private createCorrectedWorkoutData(workout: any): WorkoutData {
+  private createCorrectedWorkoutData(workout: BaseWorkoutData): WorkoutData {
+    const workoutAsData = workout as unknown as WorkoutData;
     return {
-      ...workout,
+      id: workoutAsData.id || `workout_${Date.now()}`,
       name: workout.name || "אימון",
-      exercises: Array.isArray(workout.exercises) ? workout.exercises : [],
       startTime:
         this.validateDate(workout.startTime) || new Date().toISOString(),
-      endTime: this.validateDate(workout.endTime) || new Date().toISOString(),
+      endTime: this.validateDate(workout.endTime) || undefined,
       duration: Math.max(0, workout.duration || 0),
-      plannedVsActual: {
-        ...workout.plannedVsActual,
-        totalSetsPlanned: Math.max(
-          0,
-          workout.plannedVsActual?.totalSetsPlanned || 0
-        ),
-        totalSetsCompleted: Math.max(
-          0,
-          workout.plannedVsActual?.totalSetsCompleted || 0
-        ),
-        personalRecords: Math.max(
-          0,
-          workout.plannedVsActual?.personalRecords || 0
-        ),
-      },
+      exercises: Array.isArray(workout.exercises)
+        ? (workout.exercises as WorkoutData["exercises"])
+        : [],
+      totalVolume: workoutAsData.totalVolume || 0,
+      totalSets: workout.plannedVsActual?.totalSetsPlanned || 0,
+      completedSets: workout.plannedVsActual?.totalSetsCompleted || 0,
+      caloriesBurned: workoutAsData.caloriesBurned || 0,
+      notes: workoutAsData.notes || "",
+      rating: workoutAsData.rating || undefined,
+      location: workoutAsData.location || undefined,
+      weather: workoutAsData.weather || undefined,
+      mood: workoutAsData.mood || undefined,
     };
   }
 
   /**
    * וידוא תאריך (מבוסס על הטיפול המוצלח בהיסטוריה)
    */
-  private validateDate(dateString: any): string | null {
+  private validateDate(dateString: string | unknown): string | null {
     if (!dateString) return null;
 
     try {
@@ -176,7 +285,7 @@ class WorkoutValidationService {
           date = new Date(cleanDateString);
         }
       } else {
-        date = new Date(dateString);
+        date = new Date(dateString as string);
       }
 
       // בדיקה שהתאריך תקין
@@ -195,7 +304,9 @@ class WorkoutValidationService {
    * וידוא טיוטת אימון
    */
   validateWorkoutDraft(draft: WorkoutDraft): ValidationResult {
-    const workoutValidation = this.validateWorkoutData(draft.workout);
+    const workoutValidation = this.validateWorkoutData(
+      draft.workout as BaseWorkoutData
+    );
 
     // בדיקות נוספות לטיוטה
     const additionalWarnings: string[] = [];
@@ -243,7 +354,7 @@ class WorkoutValidationService {
    * ניקוי נתונים לפני שמירה
    */
   sanitizeWorkoutForSave(workout: WorkoutData): WorkoutData {
-    const validation = this.validateWorkoutData(workout);
+    const validation = this.validateWorkoutData(workout as BaseWorkoutData);
     return validation.correctedData || workout;
   }
 }

@@ -2,7 +2,7 @@
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @brief מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות | Main welcome screen with sign-up and sign-in options
  * @description כולל אנימציות מתקדמות, Google Sign-in מדומה, ודמו מציאותי עם סימולציית היסטוריה | Features advanced animations, mock Google Sign-in, and realistic demo with history simulation
- * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, realisticDemoService, workoutSimulationService
+ * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, demoUserService, demoWorkoutService
  * @features אנימציות fade-in/scale, אפקטי Ripple, מיקרו-אינטראקציות, נגישות משופרת, Skeleton loading, מונה משתמשים חי | Fade-in/scale animations, Ripple effects, micro-interactions, enhanced accessibility, Skeleton loading, live user counter
  * @performance מותאם עם useCallback, אנימציות עם useNativeDriver, טעינה אסינכרונית | Optimized with useCallback, native driver animations, async loading
  * @accessibility תמיכה מלאה ב-screen readers, תוויות נגישות, רמזי נגישות | Full screen reader support, accessibility labels and hints
@@ -28,9 +28,9 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import type { SmartQuestionnaireData } from "../../types";
-import { fakeGoogleSignIn, realisticDemoService } from "../../services";
+import { fakeGoogleSignIn } from "../../services";
+import { demoUserService, demoWorkoutService } from "../../services/demo";
 import { logger } from "../../utils/logger";
-import { workoutSimulationService } from "../../services/workoutSimulationService";
 import { RootStackParamList } from "../../navigation/types";
 import {
   WELCOME_SCREEN_TEXTS,
@@ -277,7 +277,7 @@ export default function WelcomeScreen() {
     try {
       // 🚀 שלב 1: יצירת משתמש בסיסי חדש
       logger.debug("👤 יוצר משתמש בסיסי חדש...");
-      const basicUser = realisticDemoService.generateDemoUser();
+      const basicUser = demoUserService.generateDemoUser();
 
       // הוספת מזהה ייחודי למשתמש עם שם אנגלי ומייל
       const uniqueId = Date.now() + Math.random();
@@ -322,10 +322,10 @@ export default function WelcomeScreen() {
       logger.debug("📋 יוצר שאלון רנדומלי מלא...");
       const randomQuestionnaireData = generateRandomQuestionnaire(basicUser);
 
-      // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם workoutSimulationService
-      logger.debug("🏋️ יוצר היסטוריית אימונים מתקדמת עם האלגוריתם החכם...");
+      // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם דמו
+      logger.debug("🏋️ יוצר היסטוריית אימונים דמו...");
       const advancedWorkoutHistory =
-        await workoutSimulationService.simulateHistoryCompatibleWorkouts(
+        await demoWorkoutService.generateDemoWorkoutHistory(
           basicUser.gender,
           basicUser.experience
         );

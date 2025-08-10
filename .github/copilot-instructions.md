@@ -144,6 +144,21 @@
 - **Unified Systems**: העדף קובץ אחד עם מנהל מרכזי (UnifiedManager) על פני מספר קבצים קטנים.
 - **נקה תוך כדי**: כשבונה מערכת חדשה, הסר את הישנה מיד כדי למנוע קונפליקטים.
 
+## 🐛 דיבוג בעיות ניווט וכפתורים
+
+- **כפתורים לא עובדים**: אם כפתור לא מגיב, בדוק קודם שהפונקציה מחוברת (`onPress={handleFunction}`) לפני שחושדים ברכיב עצמו.
+- **בדיקת פונקציונליות**: הוסף `console.warn` זמני או `alert` לוודא שהפונקציה נקראת.
+- **כפתור חזרה לא עובד**: אם BackButton לא עובד, צור פונקציה מותאמת עם `navigation.goBack()` והעבר ב-`onPress`.
+- **בדיקת navigation**: השתמש ב-`navigation.canGoBack()` לבדיקה אם יש היסטוריה לפני `goBack()`.
+- **פתרון חירום**: תמיד הכן ניווט חלופי אם אין היסטוריה (למשל חזרה למסך הבית או רשימה).
+
+## 💡 שיפורי חוויית משתמש מיידיים
+
+- **תיקוני RTL מהירים**: כשמשתמש מדווח על בעיות RTL, הוסף מיד `writingDirection: "rtl"` לכל הטקסטים העבריים במסך.
+- **Safe Area כברירת מחדל**: אם יש התלוננות על UI שחופף למצלמה/משפך, החלף `View` ב-`SafeAreaView` מיד.
+- **בדיקה מהירה**: אחרי תיקוני RTL/SafeArea, הרץ `npx tsc --noEmit` לוודא שהקוד תקין.
+- **עדכון הנחיות**: כל לקח חדש מפתרון בעיות אמיתיות - הוסף מיד להנחיות למניעת חזרות.
+
 ## 🧹 ניקוי ו-Cleanup מקיף
 
 - **מחיקת קבצים ישנים**: אחרי החלפת מערכת, בדוק index.ts files להסרת exports מיותרים.

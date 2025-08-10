@@ -37,7 +37,7 @@ import {
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
-import { realisticDemoService } from "../../services/realisticDemoService";
+import { demoUserService } from "../../services/demo";
 
 // =====================================
 // 🎯 המסך החדש - פשוט ויעיל
@@ -331,7 +331,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       });
 
       const customDemoUser =
-        realisticDemoService.generateDemoUserFromQuestionnaire(answersMap);
+        demoUserService.generateDemoUserFromQuestionnaire(answersMap);
 
       console.log("👤 Generated demo user:", {
         name: customDemoUser.name,

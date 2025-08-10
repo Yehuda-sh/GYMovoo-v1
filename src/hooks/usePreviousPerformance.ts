@@ -4,7 +4,21 @@
  * @description Smart hook for getting previous exercise performances with progression algorithm
  * @notes משתמש באלגוריתם חכם לחישוב התקדמות והמלצות לביצועים הבאים
  * @notes Uses smart algorithm for calculating progression and recommendations for next performances
- * @updated 2025-08-05 שיפור לוגינג ותמיכה במאגר התרגילים החדש
+ * @updated 2025-08-10 הוספת תמיכה בנתונים אישיים (גיל, משקל, גובה, מין) לשיפור ההמלצות
+ *
+ * @example
+ * // שימוש בסיסי
+ * const { previousPerformance, loading } = usePreviousPerformance("Bench Press");
+ *
+ * // שימוש עם נתונים אישיים לשיפור ההמלצות
+ * const personalData = {
+ *   gender: "female",
+ *   age: "35_44",
+ *   weight: "60_69",
+ *   height: "160_169",
+ *   fitnessLevel: "intermediate"
+ * };
+ * const { previousPerformance, getMotivationalMessage } = usePreviousPerformance("Squat", personalData);
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -57,12 +71,65 @@ interface WorkoutEntryLike {
 }
 
 export const usePreviousPerformance = (
-  exerciseName: string
+  exerciseName: string,
+  personalData?: {
+    gender?: string;
+    age?: string;
+    weight?: string;
+    height?: string;
+    fitnessLevel?: string;
+  }
 ): UsePreviousPerformanceReturn => {
   const [previousPerformance, setPreviousPerformance] =
     useState<SmartPreviousPerformance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ Helper לחישוב גורמי התאמה אישית
+  const getPersonalAdjustmentFactors = useCallback(() => {
+    if (!personalData)
+      return { progressionRate: 1.0, repPreference: "balanced" as const };
+
+    let progressionRate = 1.0; // ברירת מחדל
+    let repPreference: "low" | "balanced" | "high" = "balanced";
+
+    // התאמה לגיל - אנשים מבוגרים יותר מתקדמים לאט יותר
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        progressionRate *= 0.8; // התקדמות איטית יותר
+        repPreference = "high"; // יותר חזרות, פחות משקל
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        progressionRate *= 1.1; // התקדמות מהירה יותר
+      }
+    }
+
+    // התאמה למין - נשים לפעמים מעדיפות יותר חזרות
+    if (personalData.gender === "female") {
+      repPreference = "high";
+    }
+
+    // התאמה לרמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      progressionRate *= 0.9; // התקדמות זהירה יותר
+    } else if (personalData.fitnessLevel === "advanced") {
+      progressionRate *= 1.05; // התקדמות מעט מהירה יותר
+    }
+
+    debug("🎯 Personal adjustment factors", {
+      age: personalData.age,
+      gender: personalData.gender,
+      progressionRate,
+      repPreference,
+    });
+
+    return { progressionRate, repPreference };
+  }, [personalData]);
 
   // Recommendation algorithm extracted above usage for clarity
   const calculateRecommendedProgression = useCallback(
@@ -83,20 +150,31 @@ export const usePreviousPerformance = (
       const baseReps = entry?.reps != null ? Number(entry.reps) || 8 : 8;
       const baseSets = entry?.sets != null ? Number(entry.sets) || 3 : 3;
 
+      // ✅ השתמש בגורמי התאמה אישית
+      const { progressionRate, repPreference } = getPersonalAdjustmentFactors();
+
       if (trend === "improving" && consistency >= 8) {
+        const weightIncrease = 1.025 * progressionRate; // התאמה אישית לקצב התקדמות
         return {
-          weight: Math.round(baseWeight * 1.025),
-          reps: baseReps,
+          weight: Math.round(baseWeight * weightIncrease),
+          reps:
+            repPreference === "high" ? Math.min(baseReps + 1, 15) : baseReps,
           sets: baseSets,
-          reasoning: "מגמה מצוינת! העלה משקל ב-2.5%",
+          reasoning: `מגמה מצוינת! העלה משקל ב-${((weightIncrease - 1) * 100).toFixed(1)}%${repPreference === "high" ? " + חזרה נוספת" : ""}`,
         };
       }
       if (trend === "stable" && consistency >= 6) {
         return {
           weight: baseWeight,
-          reps: Math.min(baseReps + 1, 15),
+          reps:
+            repPreference === "high"
+              ? Math.min(baseReps + 2, 15)
+              : Math.min(baseReps + 1, 15),
           sets: baseSets,
-          reasoning: "הוסף חזרה להגדלת נפח",
+          reasoning:
+            repPreference === "high"
+              ? "הוסף 2 חזרות להגדלת נפח"
+              : "הוסף חזרה להגדלת נפח",
         };
       }
       if (trend === "declining" || daysSince > 7) {
@@ -116,7 +194,7 @@ export const usePreviousPerformance = (
         reasoning: "שמור על הרמה הנוכחית",
       };
     },
-    []
+    [getPersonalAdjustmentFactors]
   );
 
   // Small helper to get training volume
@@ -331,20 +409,47 @@ export const usePreviousPerformance = (
     const { progressionTrend, strengthGain, lastWorkoutGap } =
       previousPerformance;
 
+    // ✅ התאמה אישית למסרים מוטיבציוניים
+    const getPersonalizedMessage = (baseMessage: string) => {
+      if (!personalData) return baseMessage;
+
+      if (
+        personalData.age &&
+        (personalData.age.includes("50_") || personalData.age.includes("over_"))
+      ) {
+        return baseMessage + " הגיל הוא רק מספר! 💪";
+      }
+      if (personalData.gender === "female") {
+        return baseMessage
+          .replace("חזק", "חזקה")
+          .replace("להשתפר", "להשתפר ולזרוח");
+      }
+      if (personalData.fitnessLevel === "beginner") {
+        return baseMessage + " כל התחלה קשה אבל את/ה בדרך הנכונה! 🌱";
+      }
+      return baseMessage;
+    };
+
     let message = "";
     if (lastWorkoutGap > 14) {
-      message = "חזרת! זמן להרגיש שוב חזק 🔥";
+      message = getPersonalizedMessage("חזרת! זמן להרגיש שוב חזק 🔥");
     } else if (progressionTrend === "improving") {
-      message = `כל הכבוד! שיפור של ${strengthGain.toFixed(1)}% 🚀`;
+      message = getPersonalizedMessage(
+        `כל הכבוד! שיפור של ${strengthGain.toFixed(1)}% 🚀`
+      );
     } else if (progressionTrend === "stable") {
-      message = "יציבות היא הבסיס להתקדמות! 💯";
+      message = getPersonalizedMessage("יציבות היא הבסיס להתקדמות! 💯");
     } else {
-      message = "כל יום הוא הזדמנות חדשה להשתפר 🌟";
+      message = getPersonalizedMessage("כל יום הוא הזדמנות חדשה להשתפר 🌟");
     }
 
-    debug("🎉 Motivational message generated", { exerciseName, message });
+    debug("🎉 Personalized motivational message generated", {
+      exerciseName,
+      message,
+      personalData,
+    });
     return message;
-  }, [previousPerformance, exerciseName]);
+  }, [previousPerformance, exerciseName, personalData]);
 
   return {
     previousPerformance,

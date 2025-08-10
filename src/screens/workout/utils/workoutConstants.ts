@@ -2,7 +2,11 @@
  * @file src/screens/workout/utils/workoutConstants.ts
  * @description קבועים ואפשרויות למערכת האימון
  * English: Constants and options for workout system
+ * @updated 2025-08-10 הוספת קבועים מותאמים אישית לפי נתונים אישיים
  */
+
+// ✅ Import PersonalData from central utils
+import { PersonalData } from "../../../utils/personalDataUtils";
 
 // זמני מנוחה דיפולטיביים לפי סוג תרגיל (בשניות)
 // Default rest times by exercise type (in seconds)
@@ -13,6 +17,45 @@ export const DEFAULT_REST_TIMES = {
   abs: 45, // תרגילי בטן
   warmup: 30, // חימום
 } as const;
+
+// ✅ זמני מנוחה מותאמים אישית
+export const getPersonalizedRestTimes = (personalData?: PersonalData) => {
+  const baseTimes = { ...DEFAULT_REST_TIMES };
+
+  if (!personalData) return baseTimes;
+
+  // התאמה לגיל
+  if (personalData.age) {
+    if (
+      personalData.age.includes("50_") ||
+      personalData.age.includes("over_")
+    ) {
+      // מבוגרים זקוקים למנוחה יותר ארוכה
+      baseTimes.compound += 30; // 210 שניות
+      baseTimes.isolation += 15; // 105 שניות
+    } else if (
+      personalData.age.includes("18_") ||
+      personalData.age.includes("25_")
+    ) {
+      // צעירים יכולים עם מנוחה קצרה יותר
+      baseTimes.compound -= 15; // 165 שניות
+      baseTimes.isolation -= 10; // 80 שניות
+    }
+  }
+
+  // התאמה לרמת כושר
+  if (personalData.fitnessLevel === "beginner") {
+    // מתחילים זקוקים למנוחה יותר ארוכה
+    baseTimes.compound += 20;
+    baseTimes.isolation += 15;
+  } else if (personalData.fitnessLevel === "advanced") {
+    // מתקדמים יכולים עם מנוחה קצרה יותר
+    baseTimes.compound -= 10;
+    baseTimes.isolation -= 5;
+  }
+
+  return baseTimes;
+};
 
 // סוגי סטים
 // Set types
@@ -35,6 +78,107 @@ export const RPE_SCALE = [
   { value: 9.5, label: "כמעט מקסימום", color: "#C7253E" },
   { value: 10, label: "מקסימום", color: "#8B0000" },
 ] as const;
+
+// ✅ המלצות RPE מותאמות אישית
+export const getPersonalizedRPERecommendations = (
+  personalData?: PersonalData
+) => {
+  const recommendations = {
+    warmup: { min: 6, max: 7, description: "חימום קל" },
+    working: { min: 7.5, max: 8.5, description: "סטי עבודה" },
+    intensity: { min: 8.5, max: 9.5, description: "סטים אינטנסיביים" },
+    maxEffort: { min: 9.5, max: 10, description: "מאמץ מקסימלי" },
+  };
+
+  if (!personalData) return recommendations;
+
+  // התאמה לגיל
+  if (personalData.age) {
+    if (
+      personalData.age.includes("50_") ||
+      personalData.age.includes("over_")
+    ) {
+      // מבוגרים - יותר זהירים עם אינטנסיביות
+      recommendations.working = {
+        min: 7,
+        max: 8,
+        description: "סטי עבודה (מתואם לגיל)",
+      };
+      recommendations.intensity = {
+        min: 8,
+        max: 9,
+        description: "סטים אינטנסיביים (זהירות)",
+      };
+      recommendations.maxEffort = {
+        min: 9,
+        max: 9.5,
+        description: "מאמץ גבוה (לא מקסימלי)",
+      };
+    } else if (
+      personalData.age.includes("18_") ||
+      personalData.age.includes("25_")
+    ) {
+      // צעירים - יכולים ללכת יותר חזק
+      recommendations.working = {
+        min: 8,
+        max: 9,
+        description: "סטי עבודה (אנרגיה צעירה)",
+      };
+      recommendations.intensity = {
+        min: 9,
+        max: 10,
+        description: "סטים אינטנסיביים (מלא גז)",
+      };
+    }
+  }
+
+  // התאמה לרמת כושר
+  if (personalData.fitnessLevel === "beginner") {
+    // מתחילים - מתחילים עם RPE נמוך יותר
+    recommendations.warmup = {
+      min: 6,
+      max: 6.5,
+      description: "חימום עדין למתחיל",
+    };
+    recommendations.working = {
+      min: 7,
+      max: 8,
+      description: "סטי עבודה (למידה)",
+    };
+    recommendations.intensity = { min: 8, max: 8.5, description: "אתגר מתון" };
+    recommendations.maxEffort = {
+      min: 8.5,
+      max: 9,
+      description: "מאמץ גבוה (לא מקסימלי)",
+    };
+  } else if (personalData.fitnessLevel === "advanced") {
+    // מתקדמים - יכולים ללכת חזק יותר
+    recommendations.working = {
+      min: 8,
+      max: 9,
+      description: "סטי עבודה מתקדמים",
+    };
+    recommendations.intensity = {
+      min: 9,
+      max: 10,
+      description: "אינטנסיביות גבוהה",
+    };
+    recommendations.maxEffort = {
+      min: 9.5,
+      max: 10,
+      description: "מאמץ מקסימלי מתקדם",
+    };
+  }
+
+  // התאמה לפי מין - נשים לפעמים נוטות להיות זהירות יותר
+  if (personalData.gender === "female") {
+    // עידוד לנשים ללכת חזק יותר (שבירת מחסומים מנטליים)
+    recommendations.working.description += " - את יכולה יותר!";
+    recommendations.intensity.description += " - שברי מחסומים!";
+  }
+
+  return recommendations;
+};
 
 // הודעות עידוד
 // Encouragement messages
@@ -59,6 +203,139 @@ export const ENCOURAGEMENT_MESSAGES = {
   ],
 } as const;
 
+// ✅ הודעות עידוד מותאמות אישית
+export const getPersonalizedEncouragement = (
+  type: keyof typeof ENCOURAGEMENT_MESSAGES,
+  personalData?: PersonalData
+): string => {
+  const baseMessages = ENCOURAGEMENT_MESSAGES[type];
+
+  if (!personalData) {
+    return baseMessages[Math.floor(Math.random() * baseMessages.length)];
+  }
+
+  let personalizedMessages: string[] = [];
+
+  // הודעות מותאמות למין
+  if (personalData.gender === "female") {
+    switch (type) {
+      case "newPR":
+        personalizedMessages = [
+          "👑 שיא חדש! את פשוט מדהימה!",
+          "💎 יופי של שיא! girl power!",
+          "🌟 את שוברת גבולות! כל הכבוד!",
+          "✨ שיא אישי חדש! את מלכה!",
+        ];
+        break;
+      case "workoutComplete":
+        personalizedMessages = [
+          "🌸 סיימת! את לוחמת אמיתית!",
+          "💖 אימון מושלם! את מעוררת השראה!",
+          "🦋 מדהים! ממשיכה להאמין בעצמך!",
+          "👸 אלופה! עוד אימון מאחוריך!",
+        ];
+        break;
+    }
+  } else if (personalData.gender === "male") {
+    switch (type) {
+      case "newPR":
+        personalizedMessages = [
+          "🔥 שיא חדש! אלוף אמיתי!",
+          "⚡ מפלצת! שברת את השיא!",
+          "🏆 גבר של פלדה! כל הכבוד!",
+          "💀 חיה! שיא אישי חדש!",
+        ];
+        break;
+      case "workoutComplete":
+        personalizedMessages = [
+          "⚔️ סיימת! לוחם אמיתי!",
+          "🔨 אימון של גיבור! כל הכבוד!",
+          "🗿 סולידי! עוד אימון מאחוריך!",
+          "👑 מלך! המשך לשלוט!",
+        ];
+        break;
+    }
+  }
+
+  // הודעות מותאמות לגיל
+  if (personalData.age) {
+    if (
+      personalData.age.includes("50_") ||
+      personalData.age.includes("over_")
+    ) {
+      switch (type) {
+        case "newPR":
+          personalizedMessages.push(
+            "🏅 שיא מרשים בגילך! מעורר השראה!",
+            "💎 ותיק מנצח! שיא חדש!",
+            "👴 גיל זה רק מספר! שיא מדהים!"
+          );
+          break;
+        case "workoutComplete":
+          personalizedMessages.push(
+            "🌟 אימון מופתי! מוכיח שגיל זה רק מספר!",
+            "🏆 מעורר השראה! המשך ככה!",
+            "💪 חזק ובריא! כל הכבוד!"
+          );
+          break;
+      }
+    } else if (
+      personalData.age.includes("18_") ||
+      personalData.age.includes("25_")
+    ) {
+      switch (type) {
+        case "newPR":
+          personalizedMessages.push(
+            "🚀 צעיר ועוצמתי! שיא מדהים!",
+            "⚡ אנרגיה צעירה! שבירת גבולות!",
+            "🔥 דור הזהב! שיא חדש!"
+          );
+          break;
+      }
+    }
+  }
+
+  // הודעות מותאמות לרמת כושר
+  if (personalData.fitnessLevel === "beginner") {
+    switch (type) {
+      case "newPR":
+        personalizedMessages.push(
+          "🌱 התקדמות מעולה למתחיל! שיא ראשון!",
+          "📈 בדרך הנכונה! שיא מדהים!",
+          "🎯 התחלה מושלמת! שיא חדש!"
+        );
+        break;
+      case "workoutComplete":
+        personalizedMessages.push(
+          "👶 מתחיל מוצלח! כל אימון הוא ניצחון!",
+          "🌟 בונה בסיס חזק! המשך ככה!",
+          "📚 לומד ומתקדם! מעולה!"
+        );
+        break;
+    }
+  } else if (personalData.fitnessLevel === "advanced") {
+    switch (type) {
+      case "newPR":
+        personalizedMessages.push(
+          "🎖️ מתקדם אמיתי! שיא ברמה גבוהה!",
+          "🏆 אליטה! שיא של מקצוען!",
+          "⚡ רמה עליונה! שיא מדהים!"
+        );
+        break;
+    }
+  }
+
+  // אם יש הודעות מותאמות אישית, בחר מהן
+  if (personalizedMessages.length > 0) {
+    return personalizedMessages[
+      Math.floor(Math.random() * personalizedMessages.length)
+    ];
+  }
+
+  // אחרת, חזור להודעות הבסיסיות
+  return baseMessages[Math.floor(Math.random() * baseMessages.length)];
+};
+
 // משקלי פלטות סטנדרטיים (ק"ג)
 // Standard plate weights (kg)
 export const PLATE_WEIGHTS = [
@@ -70,6 +347,100 @@ export const PLATE_WEIGHTS = [
   { weight: 2.5, color: "#FF9500", label: "2.5" },
   { weight: 1.25, color: "#8E8E93", label: "1.25" },
 ] as const;
+
+// ✅ המלצות משקל התחלתי מותאמות אישית
+export const getPersonalizedStartingWeights = (personalData?: PersonalData) => {
+  const recommendations = {
+    // משקלים בק"ג לתרגילים בסיסיים
+    squat: 20,
+    deadlift: 25,
+    benchPress: 15,
+    overheadPress: 10,
+    row: 15,
+    curl: 5,
+    lateralRaise: 2.5,
+  };
+
+  if (!personalData) return recommendations;
+
+  // התאמה לפי מין
+  if (personalData.gender === "female") {
+    // נשים בדרך כלל מתחילות עם משקלים נמוכים יותר
+    recommendations.squat = 15;
+    recommendations.deadlift = 20;
+    recommendations.benchPress = 10;
+    recommendations.overheadPress = 7.5;
+    recommendations.row = 10;
+    recommendations.curl = 3;
+    recommendations.lateralRaise = 2;
+  } else if (personalData.gender === "male") {
+    // גברים יכולים להתחיל עם משקלים גבוהים יותר
+    recommendations.squat = 25;
+    recommendations.deadlift = 30;
+    recommendations.benchPress = 20;
+    recommendations.overheadPress = 12.5;
+    recommendations.row = 20;
+    recommendations.curl = 7.5;
+    recommendations.lateralRaise = 3;
+  }
+
+  // התאמה לפי משקל גוף
+  if (personalData.weight) {
+    const multiplier =
+      personalData.weight.includes("under_60") ||
+      personalData.weight.includes("50_")
+        ? 0.8
+        : personalData.weight.includes("over_90") ||
+            personalData.weight.includes("over_100")
+          ? 1.2
+          : 1;
+
+    Object.keys(recommendations).forEach((key) => {
+      recommendations[key as keyof typeof recommendations] *= multiplier;
+    });
+  }
+
+  // התאמה לפי גיל
+  if (personalData.age) {
+    if (
+      personalData.age.includes("50_") ||
+      personalData.age.includes("over_")
+    ) {
+      // מבוגרים מתחילים עם משקלים נמוכים יותר
+      Object.keys(recommendations).forEach((key) => {
+        recommendations[key as keyof typeof recommendations] *= 0.85;
+      });
+    } else if (
+      personalData.age.includes("18_") ||
+      personalData.age.includes("25_")
+    ) {
+      // צעירים יכולים להתחיל עם משקלים גבוהים יותר
+      Object.keys(recommendations).forEach((key) => {
+        recommendations[key as keyof typeof recommendations] *= 1.1;
+      });
+    }
+  }
+
+  // התאמה לרמת כושר
+  if (personalData.fitnessLevel === "beginner") {
+    Object.keys(recommendations).forEach((key) => {
+      recommendations[key as keyof typeof recommendations] *= 0.75;
+    });
+  } else if (personalData.fitnessLevel === "advanced") {
+    Object.keys(recommendations).forEach((key) => {
+      recommendations[key as keyof typeof recommendations] *= 1.3;
+    });
+  }
+
+  // עיגול למשקלי פלטות סטנדרטיים
+  Object.keys(recommendations).forEach((key) => {
+    const value = recommendations[key as keyof typeof recommendations];
+    recommendations[key as keyof typeof recommendations] =
+      Math.round(value * 4) / 4; // עיגול לרבעי ק"ג
+  });
+
+  return recommendations;
+};
 
 // הגדרות צלילים
 // Sound settings

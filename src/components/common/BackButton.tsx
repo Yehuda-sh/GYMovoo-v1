@@ -3,7 +3,7 @@
  * @brief ✨ כפתור חזרה אוניברסלי משופר עם אינטגרציה מלאה ל-theme
  * @dependencies React Navigation, Ionicons, theme
  * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, ללא כפילויות
- * @version 2.1 - Performance optimized with memoization
+ * @version 2.2 - Added navigation.canGoBack() check to prevent navigation errors
  */
 
 import React, { useMemo } from "react";
@@ -62,7 +62,13 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
       if (onPress) {
         onPress();
       } else {
-        navigation.goBack();
+        // בדיקה אם יש היסטוריה לחזרה לפני ביצוע goBack
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // אין מקום לחזור אליו - אפשר לוודא שזה לא יוצר בעיות
+          console.warn("⚠️ BackButton: No history to go back to");
+        }
       }
     };
 

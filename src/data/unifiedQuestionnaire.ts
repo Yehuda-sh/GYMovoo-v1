@@ -236,6 +236,178 @@ export const DIET_OPTIONS: QuestionOption[] = [
 // ================== השאלות - Questions ==================
 
 export const UNIFIED_QUESTIONS: Question[] = [
+  // שאלה 0.1: מין
+  {
+    id: "gender",
+    title: "👤 מה המין שלך?",
+    subtitle: "מידע זה יעזור לנו להתאים את התוכנית",
+    question: "בחר את המין שלך",
+    helpText: "התוכנית תותאם למין שבחרת",
+    icon: "👤",
+    type: "single",
+    options: [
+      {
+        id: "male",
+        label: "זכר",
+        description: "תוכנית מותאמת לגברים",
+      },
+      {
+        id: "female",
+        label: "נקבה",
+        description: "תוכנית מותאמת לנשים",
+      },
+      {
+        id: "prefer_not_to_say",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
+    ],
+  },
+
+  // שאלה 0.2: גיל
+  {
+    id: "age",
+    title: "🎂 כמה אתה בן/בת?",
+    subtitle: "הגיל יעזור לנו להתאים את עצימות האימונים",
+    question: "בחר את קבוצת הגיל שלך",
+    helpText: "האימונים יותאמו לגיל שלך",
+    icon: "🎂",
+    type: "single",
+    options: [
+      {
+        id: "under_18",
+        label: "מתחת ל-18",
+        description: "אימונים מותאמים לצעירים",
+      },
+      {
+        id: "18_25",
+        label: "18-25",
+        description: "אימונים אנרגטיים",
+      },
+      {
+        id: "26_35",
+        label: "26-35",
+        description: "איזון בין עצימות למניעה",
+      },
+      {
+        id: "36_50",
+        label: "36-50",
+        description: "דגש על מניעת פציעות",
+      },
+      {
+        id: "51_65",
+        label: "51-65",
+        description: "שמירה על כושר ותפקוד",
+      },
+      {
+        id: "over_65",
+        label: "מעל 65",
+        description: "אימונים עדינים ובטוחים",
+      },
+    ],
+  },
+
+  // שאלה 0.3: משקל (אופציונלי)
+  {
+    id: "weight",
+    title: "⚖️ כמה אתה שוקל/ת?",
+    subtitle: "מידע זה יעזור לחישוב עומס אימון מדויק (אופציונלי)",
+    question: "בחר את טווח המשקל שלך",
+    helpText: "המידע יסייע בהתאמת עצימות התרגילים",
+    icon: "⚖️",
+    type: "single",
+    options: [
+      {
+        id: "under_50",
+        label: 'מתחת ל-50 ק"ג',
+        description: "משקל קל",
+      },
+      {
+        id: "50_60",
+        label: '50-60 ק"ג',
+        description: "משקל נמוך-בינוני",
+      },
+      {
+        id: "61_70",
+        label: '61-70 ק"ג',
+        description: "משקל בינוני",
+      },
+      {
+        id: "71_80",
+        label: '71-80 ק"ג',
+        description: "משקל בינוני-גבוה",
+      },
+      {
+        id: "81_90",
+        label: '81-90 ק"ג',
+        description: "משקל גבוה",
+      },
+      {
+        id: "91_100",
+        label: '91-100 ק"ג',
+        description: "משקל גבוה יותר",
+      },
+      {
+        id: "over_100",
+        label: 'מעל 100 ק"ג',
+        description: "משקל כבד",
+      },
+      {
+        id: "prefer_not_to_say_weight",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
+    ],
+  },
+
+  // שאלה 0.4: גובה (אופציונלי)
+  {
+    id: "height",
+    title: "📏 מה הגובה שלך?",
+    subtitle: "מידע זה יעזור להתאמת תרגילים (אופציונלי)",
+    question: "בחר את טווח הגובה שלך",
+    helpText: "הגובה משפיע על מנפי תנועה ובחירת תרגילים",
+    icon: "📏",
+    type: "single",
+    options: [
+      {
+        id: "under_150",
+        label: 'מתחת ל-150 ס"מ',
+        description: "גובה נמוך",
+      },
+      {
+        id: "150_160",
+        label: '150-160 ס"מ',
+        description: "גובה נמוך-בינוני",
+      },
+      {
+        id: "161_170",
+        label: '161-170 ס"מ',
+        description: "גובה בינוני",
+      },
+      {
+        id: "171_180",
+        label: '171-180 ס"מ',
+        description: "גובה בינוני-גבוה",
+      },
+      {
+        id: "181_190",
+        label: '181-190 ס"מ',
+        description: "גובה גבוה",
+      },
+      {
+        id: "over_190",
+        label: 'מעל 190 ס"מ',
+        description: "גובה גבוה מאוד",
+      },
+      {
+        id: "prefer_not_to_say_height",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
+    ],
+  },
+
   // שאלה 1: מטרת כושר
   {
     id: "fitness_goal",
@@ -467,7 +639,7 @@ export class UnifiedQuestionnaireManager {
   private history: number[] = [];
 
   constructor() {
-    console.log("🎯 UnifiedQuestionnaireManager initialized");
+    console.warn("🎯 UnifiedQuestionnaireManager initialized"); // ✅ שונה ל-console.warn עפ"י הנחיות
   }
 
   // קבל שאלה נוכחית
@@ -529,7 +701,7 @@ export class UnifiedQuestionnaireManager {
     };
 
     this.answers.set(questionId, questionAnswer);
-    console.log(`✅ Answered question: ${questionId}`, answer);
+    console.warn(`✅ Answered question: ${questionId}`, answer); // ✅ שונה ל-console.warn
   }
 
   // עבור לשאלה הבאה
@@ -611,7 +783,7 @@ export class UnifiedQuestionnaireManager {
     this.currentQuestionIndex = 0;
     this.answers.clear();
     this.history = [];
-    console.log("🔄 Questionnaire reset");
+    console.warn("🔄 Questionnaire reset"); // ✅ שונה ל-console.warn
   }
 
   // ================== המרות פורמליות ל-Data Contracts ==================
@@ -636,14 +808,18 @@ export class UnifiedQuestionnaireManager {
 
     const result = new Set<string>();
 
-    // משקל גוף — הוסף דגל כללי אם זה המיקום העיקרי
-    if (location === "home_bodyweight") {
-      result.add("bodyweight");
+    // ✅ תיקון חשוב: ודא שתמיד יש ציוד זמין, גם אם המשתמש לא בחר כלום
+    // משקל גוף — הוסף דגל כללי אם זה המיקום העיקרי או אם אין ציוד אחר
+    if (
+      location === "home_bodyweight" ||
+      (homeIds.size === 0 && gymIds.size === 0)
+    ) {
+      result.add("none"); // ✅ תואם לתיקון ב-workoutDataService - "none" עבור משקל גוף
     }
 
-    // מיפוי חפצי משקל גוף לפריטים סטנדרטיים (חלקם ממופים לציוד קיים, אחרים נשארים כ-bodyweight)
+    // מיפוי חפצי משקל גוף לפריטים סטנדרטיים
     if (bodyweightIds.has("mat_available")) result.add("yoga_mat");
-    // פריטים אחרים נשארים בקטגוריית bodyweight הכללית
+    if (bodyweightIds.has("resistance_bands")) result.add("resistance_bands");
 
     // ציוד ביתי — מזהים תואמים למפתחות אפליקציה
     for (const id of homeIds) {
@@ -655,7 +831,15 @@ export class UnifiedQuestionnaireManager {
       result.add(id);
     }
 
-    return Array.from(result);
+    // ✅ תיקון חשוב: ודא שתמיד יש לפחות ציוד אחד
+    if (result.size === 0) {
+      result.add("none"); // ברירת מחדל לתרגילי משקל גוף
+    }
+
+    const equipmentArray = Array.from(result);
+    console.warn("🔧 Equipment normalized:", equipmentArray); // ✅ דיבוג לעקוב אחר הציוד
+
+    return equipmentArray;
   }
 
   // יצוא לשכבת הנתונים החכמה (SmartQuestionnaireData)
@@ -667,11 +851,22 @@ export class UnifiedQuestionnaireManager {
     const locationId = this.getAnswerId("workout_location");
     const dietId = this.getAnswerId("diet_preferences");
 
+    // ✅ נתונים אישיים חדשים
+    const genderId = this.getAnswerId("gender");
+    const ageId = this.getAnswerId("age");
+    const weightId = this.getAnswerId("weight");
+    const heightId = this.getAnswerId("height");
+
     const equipment = this.normalizeEquipment();
 
     return {
       answers: {
-        // נתונים זמינים בשאלון המאוחד; שדות אישיים (מין/גיל/גובה/משקל) לא נאספים כאן ונשארים אופציונליים
+        // ✅ נתונים אישיים - עכשיו נאספים בשאלון המאוחד
+        gender: genderId,
+        age: ageId,
+        weight: weightId,
+        height: heightId,
+        // נתונים קיימים
         fitnessLevel: experienceId,
         goals: goalsId ? [goalsId] : [],
         equipment,
@@ -682,7 +877,7 @@ export class UnifiedQuestionnaireManager {
       },
       metadata: {
         completedAt: new Date().toISOString(),
-        version: "2.0",
+        version: "2.1", // ✅ עדכון גרסה עם הנתונים החדשים
         sessionId: `unified_${Date.now()}`,
         completionTime: Math.max(60, this.answers.size * 10),
         questionsAnswered: this.answers.size,
@@ -701,6 +896,12 @@ export class UnifiedQuestionnaireManager {
     const smart = this.toSmartQuestionnaireData();
     const a = smart.answers;
     return {
+      // ✅ נתונים אישיים זמינים מהשאלון החדש
+      gender: a.gender,
+      age: a.age,
+      weight: a.weight,
+      height: a.height,
+      // נתונים קיימים
       equipment: a.equipment,
       available_equipment: a.equipment,
       goal: a.goals,

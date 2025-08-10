@@ -1,7 +1,7 @@
 /**
- * @file src/screens/workout/services/workoutDataService.ts
- * @description שירות לניהול נתונים מתקדם של אימונים
- * English: Advanced workout data management service
+ * @file src/screens/workout/services/workoutStorageService.ts
+ * @description שירות לניהול אחסון נתונים מתקדם של אימונים
+ * English: Advanced workout data storage and persistence service
  * @inspired מהטיפול המוצלח בנתונים מורכבים במסך ההיסטוריה
  */
 

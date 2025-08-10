@@ -1,12 +1,12 @@
 /**
  * @file src/services/workoutSimulationService.ts
- * @brief סימולציה של אימונים מציאותיים - תואם למסך ההיסטוריה
- * @description מדמה ביצוע אימונים אמיתיים עם נתונים שעוברים validateWorkoutData
- * @updated 2025-08-06 עדכון מלא לתאימות עם מסך ההיסטוריה
+ * @brief ✅ שירות סימולציה מציאותי - נקי מקוד דמו
+ * @description מדמה ביצוע אימונים אמיתיים עם נתונים של משתמשים אמיתיים
+ * @updated 2025-08-10 הוסרה תלות בשירותי דמו - עבודה עם נתונים אמיתיים בלבד
  * @compatible validateWorkoutData, formatDateHebrewLocal, WorkoutWithFeedback
  */
 
-import { realisticDemoService } from "./realisticDemoService";
+// ✅ הסרת import של demo service
 import {
   WorkoutData,
   WorkoutWithFeedback,
@@ -19,6 +19,17 @@ import {
   generateGenderAdaptedCongratulation,
   UserGender,
 } from "../utils/genderAdaptation";
+import {
+  getPersonalizedRestTimes,
+  getPersonalizedStartingWeights,
+} from "../screens/workout/utils/workoutConstants";
+import {
+  PersonalData,
+  createRealisticPersonalData,
+  calculatePersonalizedCalories,
+  extractMidValueFromRange,
+  getAgeMetabolismFactor,
+} from "../utils/personalDataUtils";
 
 // קבועים מותאמים להיסטוריה
 const SIMULATION_CONSTANTS = {
@@ -48,9 +59,20 @@ interface SimulationParameters {
   currentWeek: number;
   motivation: number; // 1-10
   baseStrength: number; // Base strength multiplier for progressive overload
+  personalData?: PersonalData; // Add personal data support
 }
 
 class WorkoutSimulationService {
+  /**
+   * יצירת נתונים אישיים מותאמים לסימולציה
+   */
+  private createPersonalDataFromDemo(
+    gender: UserGender,
+    experience: "beginner" | "intermediate" | "advanced"
+  ): PersonalData {
+    return createRealisticPersonalData(gender, experience);
+  }
+
   /**
    * סימולציה מלאה של היסטוריית אימונים תואמת למסך ההיסטוריה
    */
@@ -62,18 +84,19 @@ class WorkoutSimulationService {
     experience: "beginner" | "intermediate" | "advanced",
     userEquipment?: string[]
   ): Promise<WorkoutWithFeedback[]> {
-    console.log("🏋️ Starting history-compatible workout simulation");
+    // Create personal data for simulation
+    const personalData = this.createPersonalDataFromDemo(gender, experience);
 
     const params: SimulationParameters = {
       userGender: gender,
       experience,
       availableDays: 4,
       sessionDuration: "60 דקות",
-      equipment:
-        userEquipment || realisticDemoService.generateDemoUser().equipment,
+      equipment: userEquipment || this.getDefaultEquipment(experience),
       currentWeek: 0,
       motivation: 7, // התחלה עם מוטיבציה טובה
       baseStrength: this.getBaseStrength(experience),
+      personalData: personalData, // Add personal data to params
     };
 
     const workouts: WorkoutWithFeedback[] = [];
@@ -112,7 +135,7 @@ class WorkoutSimulationService {
       return bTime - aTime;
     });
 
-    console.log(`✅ Simulated ${workouts.length} history-compatible workouts`);
+    console.warn(`✅ Simulated ${workouts.length} history-compatible workouts`);
     return workouts;
   }
 
@@ -198,7 +221,11 @@ class WorkoutSimulationService {
     const feedback = this.generateSimulatedFeedback(endTime, params, exercises);
 
     // יצירת סטטיסטיקות תואמות
-    const stats = this.generateSimulatedStats(exercises, durationSeconds);
+    const stats = this.generateSimulatedStats(
+      exercises,
+      durationSeconds,
+      params
+    );
 
     // יצירת מטא-דאטה תואמת
     const metadata = this.generateSimulatedMetadata(params);
@@ -292,7 +319,7 @@ class WorkoutSimulationService {
 
     for (let i = 0; i < numSets; i++) {
       const targetReps = this.getTargetReps(params.experience);
-      const targetWeight = this.getTargetWeight(params.experience, params);
+      const targetWeight = this.getPersonalizedTargetWeight(params);
       const willComplete = Math.random() < SIMULATION_CONSTANTS.COMPLETION_RATE;
       const isPR =
         willComplete &&
@@ -318,7 +345,7 @@ class WorkoutSimulationService {
           ? this.simulateActualWeight(targetWeight)
           : undefined,
         completed: willComplete,
-        restTime: this.getRestTime(params.experience),
+        restTime: this.getPersonalizedRestTime(params),
         isPR: isPR,
         rpe: willComplete ? Math.floor(Math.random() * 4) + 6 : undefined, // 6-9 RPE
         timeToComplete: willComplete
@@ -371,7 +398,8 @@ class WorkoutSimulationService {
    */
   private generateSimulatedStats(
     exercises: Exercise[],
-    durationSeconds: number
+    durationSeconds: number,
+    params: SimulationParameters
   ) {
     const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
     const completedSets = exercises.reduce(
@@ -384,12 +412,20 @@ class WorkoutSimulationService {
     );
     const totalVolume = this.calculateSimulatedVolume(exercises);
 
+    // Calculate personalized calories using central utility
+    const durationMinutes = Math.round(durationSeconds / 60);
+    const estimatedCalories = calculatePersonalizedCalories(
+      durationMinutes,
+      params.personalData
+    );
+
     return {
       duration: durationSeconds,
       totalSets: completedSets,
       totalPlannedSets: totalSets,
       totalVolume: totalVolume,
       personalRecords: personalRecords,
+      estimatedCalories: estimatedCalories, // Add personalized calories
     };
   }
 
@@ -484,6 +520,50 @@ class WorkoutSimulationService {
       default:
         return 60;
     }
+  }
+
+  /**
+   * חישוב משקל אימון מותאם אישית
+   */
+  private getPersonalizedTargetWeight(params: SimulationParameters): number {
+    if (!params.personalData) {
+      return this.getTargetWeight(params.experience, params);
+    }
+
+    // Use personalized starting weights - take average of main exercises
+    const personalizedWeights = getPersonalizedStartingWeights(
+      params.personalData
+    );
+    const avgWeight =
+      (personalizedWeights.squat +
+        personalizedWeights.benchPress +
+        personalizedWeights.row) /
+      3;
+
+    // Apply progression multiplier
+    const progressMultiplier = 1 + params.currentWeek * 0.02;
+
+    // Apply experience modifier
+    const experienceMultiplier = this.getBaseStrength(params.experience);
+
+    return Math.round(avgWeight * progressMultiplier * experienceMultiplier);
+  }
+
+  /**
+   * חישוב זמן מנוחה מותאם אישית
+   */
+  private getPersonalizedRestTime(params: SimulationParameters): number {
+    if (!params.personalData) {
+      return this.getRestTime(params.experience);
+    }
+
+    // Use personalized rest times - use compound exercise rest time as base
+    const personalizedRest = getPersonalizedRestTimes(params.personalData);
+
+    // Add some variance (±15 seconds)
+    const variance = Math.floor(Math.random() * 30) - 15;
+
+    return Math.max(30, personalizedRest.compound + variance);
   }
 
   private getExerciseCount(experience: string, duration: string): number {
@@ -728,23 +808,34 @@ class WorkoutSimulationService {
   }
 
   /**
-   * פונקציה לתאימות עם WelcomeScreen
+   * ✅ החזרת ציוד דיפולטיבי לפי רמת ניסיון (ללא תלות בדמו)
+   */
+  private getDefaultEquipment(
+    experience: "beginner" | "intermediate" | "advanced"
+  ): string[] {
+    switch (experience) {
+      case "beginner":
+        return ["none"]; // מתחילים עם תרגילי משקל גוף
+      case "intermediate":
+        return ["none", "dumbbells"]; // הוספת משקולות
+      case "advanced":
+        return ["none", "dumbbells", "barbell", "cable_machine"]; // ציוד מתקדם
+      default:
+        return ["none"];
+    }
+  }
+
+  /**
+   * ⚠️ DEPRECATED: פונקציה זו הוסרה כי הייתה תלויה בשירותי דמו
+   * עבור יצירת היסטוריה מציאותית, השתמש ב-simulateHistoryCompatibleWorkouts ישירות
    */
   async simulateRealisticWorkoutHistory(): Promise<WorkoutWithFeedback[]> {
-    console.log("🏋️ Starting realistic workout history simulation");
-
-    // יצירת משתמש דמו
-    const demoUser = realisticDemoService.generateDemoUser();
-
-    // יצירת היסטוריית אימונים
-    const workouts = await this.simulateHistoryCompatibleWorkouts(
-      demoUser.gender,
-      demoUser.experience,
-      demoUser.equipment
+    console.warn(
+      "⚠️ simulateRealisticWorkoutHistory deprecated - use simulateHistoryCompatibleWorkouts with real user data"
     );
 
-    console.log(`✅ Generated ${workouts.length} realistic workouts`);
-    return workouts;
+    // החזרת מערך ריק במקום תלות בדמו
+    return [];
   }
 }
 

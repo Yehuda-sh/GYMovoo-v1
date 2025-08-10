@@ -6,6 +6,14 @@
  * @notes Hook מרכזי לכל הפעולות הקשורות להעדפות משתמש עם תמיכה במערכת החדשה
  * @notes Central hook for all user preferences operations with new system support
  * @features Smart analysis, multi-system support, Hebrew UX, algorithm scoring
+ * @updated 2025-08-10 הוספת תמיכה מלאה בנתונים אישיים (גיל, משקל, גובה, מין) מהשאלון החדש
+ *
+ * שיפורים חדשים:
+ * - אלגוריתם חכם מותאם אישית לפי גיל, מין, משקל וגובה
+ * - תוכניות אימון מותאמות אישית עם הפונקציות החדשות
+ * - חישוב איכות נתונים משופר עם הנתונים האישיים
+ * - המלצות חכמות ותחומי התמקדות מותאמים אישית
+ * - מסרים מוטיבציוניים מותאמים לפרופיל האישי
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -17,6 +25,12 @@ import {
   generateFocusAreas,
   generateWarningFlags,
   createSmartWorkoutPlan,
+  // ✅ הוספת הפונקציות החדשות המותאמות אישית
+  calculateEnhancedDataQuality,
+  generatePersonalizedFocusAreas,
+  calculatePersonalizedProgressionPace,
+  generatePersonalizedMotivation,
+  createPersonalizedWorkoutPlan,
   SmartWorkoutPlan,
 } from "./userPreferencesHelpers";
 import { useUserStore } from "../stores/userStore";
@@ -62,6 +76,15 @@ interface UseUserPreferencesReturn {
   completionQuality: number; // 1-10
   personalizedInsights: string[];
 
+  // ✅ נתונים אישיים מהשאלון החדש
+  personalData: {
+    gender?: string;
+    age?: string;
+    weight?: string;
+    height?: string;
+    fitnessLevel?: string;
+  } | null;
+
   // המלצות משופרות
   workoutRecommendations: WorkoutRecommendation[];
   quickWorkout: WorkoutRecommendation | null;
@@ -104,6 +127,15 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     []
   );
 
+  // ✅ נתונים אישיים מהשאלון החדש
+  const [personalData, setPersonalData] = useState<{
+    gender?: string;
+    age?: string;
+    weight?: string;
+    height?: string;
+    fitnessLevel?: string;
+  } | null>(null);
+
   // המלצות משופרות
   const [workoutRecommendations, setWorkoutRecommendations] = useState<
     WorkoutRecommendation[]
@@ -116,10 +148,19 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   // גישה ל-store
   const user = useUserStore((state) => state.user);
 
-  // פונקציה לחישוב אלגוריתם חכם מנתוני שאלון
+  // פונקציה לחישוב אלגוריתם חכם מנתוני שאלון עם תמיכה בנתונים אישיים
   const calculateSmartAnalysis = useCallback(
-    (rawData: QuestionnaireMetadata): SmartUserPreferences => {
-      // חישוב ציון מוטיבציה (1-10)
+    (
+      rawData: QuestionnaireMetadata,
+      personalData?: {
+        gender?: string;
+        age?: string;
+        weight?: string;
+        height?: string;
+        fitnessLevel?: string;
+      } | null
+    ): SmartUserPreferences => {
+      // חישוב ציון מוטיבציה (1-10) עם שיפורים אישיים
       let motivationLevel = 5; // ברירת מחדל
       if (
         rawData.goal?.includes("שריפת שומן") ||
@@ -129,6 +170,19 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       }
       if (rawData.experience === "מתקדם" || rawData.experience === "מקצועי") {
         motivationLevel += 1;
+      }
+
+      // ✅ התאמות מוטיבציה לפי נתונים אישיים
+      if (personalData) {
+        if (
+          personalData.age &&
+          (personalData.age.includes("18_") || personalData.age.includes("25_"))
+        ) {
+          motivationLevel += 1; // צעירים בדרך כלל יותר מוטיבציה
+        }
+        if (personalData.fitnessLevel === "advanced") {
+          motivationLevel += 1;
+        }
       }
 
       // חישוב ציון עקביות
@@ -154,8 +208,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
         personalityProfile = "מחפש איזון";
       }
 
-      // חישוב רמת ביטחון באלגוריתם
-      const totalData =
+      // חישוב רמת ביטחון באלגוריתם עם נתונים אישיים
+      let totalData =
         (rawData.age ? 1 : 0) +
         (rawData.gender ? 1 : 0) +
         (rawData.goal ? 1 : 0) +
@@ -163,22 +217,34 @@ export function useUserPreferences(): UseUserPreferencesReturn {
         (rawData.frequency ? 1 : 0) +
         equipmentCount;
 
-      const algorithmConfidence: SmartUserPreferences["algorithmConfidence"] =
-        totalData >= 8 ? "high" : totalData >= 5 ? "medium" : "low";
+      // ✅ הוספת ניקוד לנתונים אישיים
+      if (personalData) {
+        totalData +=
+          (personalData.gender ? 1 : 0) +
+          (personalData.age ? 1 : 0) +
+          (personalData.weight ? 1 : 0) +
+          (personalData.height ? 1 : 0) +
+          (personalData.fitnessLevel ? 1 : 0);
+      }
 
-      // המלצות חכמות
+      const algorithmConfidence: SmartUserPreferences["algorithmConfidence"] =
+        totalData >= 10 ? "high" : totalData >= 6 ? "medium" : "low";
+
+      // ✅ המלצות חכמות עם נתונים אישיים
+      const progressionPaceData = personalData
+        ? calculatePersonalizedProgressionPace(personalData)
+        : { pace: "בינוני", description: "קצב סטנדרטי" };
+
       const smartRecommendations = {
         idealWorkoutTime: (motivationLevel >= 8
           ? "בוקר"
           : rawData.location === "בית"
             ? "ערב"
             : "צהריים") as "בוקר" | "צהריים" | "ערב",
-        progressionPace: (rawData.experience === "מתחיל"
-          ? "איטי"
-          : consistencyScore >= 8
-            ? "מהיר"
-            : "בינוני") as "איטי" | "בינוני" | "מהיר",
-        focusAreas: generateFocusAreas(rawData),
+        progressionPace: progressionPaceData.pace as "איטי" | "בינוני" | "מהיר",
+        focusAreas: personalData
+          ? generatePersonalizedFocusAreas(rawData, personalData)
+          : generateFocusAreas(rawData),
         warningFlags: generateWarningFlags(
           rawData,
           motivationLevel,
@@ -202,7 +268,14 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   // פונקציות עזר הועברו ל-userPreferencesHelpers.ts (generateFocusAreas, generateWarningFlags, calculateDataQuality)
 
   const generatePersonalizedInsights = (
-    data: SmartUserPreferences
+    data: SmartUserPreferences,
+    personalData?: {
+      gender?: string;
+      age?: string;
+      weight?: string;
+      height?: string;
+      fitnessLevel?: string;
+    } | null
   ): string[] => {
     const insights: string[] = [];
 
@@ -222,6 +295,13 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     }
 
     insights.push(`🎯 מתאים לך: ${data.personalityProfile}`);
+
+    // ✅ הוספת מסר מוטיבציוני מותאם אישית
+    if (personalData) {
+      const personalMotivation = generatePersonalizedMotivation(personalData);
+      insights.push(`💪 ${personalMotivation}`);
+    }
+
     return insights;
   };
 
@@ -248,9 +328,18 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       ]);
       setWorkoutRecommendations(recommendations);
       setQuickWorkout(quick);
-      setSmartWorkoutPlan(createSmartWorkoutPlan(recommendations, preferences));
+
+      // ✅ שימוש בתוכנית מותאמת אישית עם נתונים אישיים
+      const workoutPlan = personalData
+        ? createPersonalizedWorkoutPlan(
+            recommendations,
+            preferences,
+            personalData
+          )
+        : createSmartWorkoutPlan(recommendations, preferences);
+      setSmartWorkoutPlan(workoutPlan);
     }
-  }, [preferences]);
+  }, [preferences, personalData]);
 
   /**
    * טעינת העדפות משתמש חכמות
@@ -276,16 +365,38 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       setSystemType(currentSystemType);
 
       if (rawPreferences) {
-        // הפוך לנתונים חכמים
-        const smartPreferences = calculateSmartAnalysis(rawPreferences);
+        // ✅ טען נתונים אישיים מהשאלון החדש
+        const userPersonalData = user?.smartQuestionnaireData?.answers
+          ? {
+              gender: user.smartQuestionnaireData.answers.gender as string,
+              age: String(user.smartQuestionnaireData.answers.age || ""),
+              weight: String(user.smartQuestionnaireData.answers.weight || ""),
+              height: String(user.smartQuestionnaireData.answers.height || ""),
+              fitnessLevel: user.smartQuestionnaireData.answers
+                .fitnessLevel as string,
+            }
+          : null;
+
+        setPersonalData(userPersonalData);
+
+        // הפוך לנתונים חכמים עם תמיכה בנתונים אישיים
+        const smartPreferences = calculateSmartAnalysis(
+          rawPreferences,
+          userPersonalData
+        );
         setPreferences(smartPreferences);
 
-        // חשב איכות השלמה
-        const quality = calculateDataQuality(rawPreferences);
+        // ✅ חשב איכות השלמה משופרת עם נתונים אישיים
+        const quality = userPersonalData
+          ? calculateEnhancedDataQuality(rawPreferences, userPersonalData)
+          : calculateDataQuality(rawPreferences);
         setCompletionQuality(quality);
 
-        // צור תובנות מותאמות אישית
-        const insights = generatePersonalizedInsights(smartPreferences);
+        // צור תובנות מותאמות אישית עם הנתונים האישיים
+        const insights = generatePersonalizedInsights(
+          smartPreferences,
+          userPersonalData
+        );
         setPersonalizedInsights(insights);
       }
 
@@ -418,6 +529,9 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     systemType,
     completionQuality,
     personalizedInsights,
+
+    // ✅ נתונים אישיים מהשאלון החדש
+    personalData,
 
     // המלצות משופרות
     workoutRecommendations,

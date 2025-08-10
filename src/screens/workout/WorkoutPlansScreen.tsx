@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Core System Imports
 import { theme } from "../../styles/theme";
@@ -1798,21 +1799,21 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   // Loading screen
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <LoadingSpinner
           size="large"
           text="טוען תוכנית אימון..."
           variant="pulse"
           testID="workout-plans-loading"
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Error screen
   if (!workoutPlan) {
     return (
-      <View style={styles.errorContainer}>
+      <SafeAreaView style={styles.errorContainer}>
         <MaterialCommunityIcons
           name="alert-circle"
           size={64}
@@ -1828,13 +1829,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         >
           <Text style={styles.retryButtonText}>נסה שוב</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Main screen
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <BackButton />
 
       <ScrollView
@@ -1973,7 +1974,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         confirmText={modalConfig.confirmText}
         destructive={modalConfig.destructive}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

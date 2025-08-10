@@ -19,6 +19,13 @@ import {
   PreviousPerformance,
   PersonalRecord,
 } from "../screens/workout/types/workout.types";
+import {
+  PersonalData,
+  calculatePersonalizedCalories,
+  calculatePersonalizedBMI,
+  analyzePersonalizedPerformance,
+  getAgeStrengthFactor,
+} from "../utils/personalDataUtils";
 
 // Export types for external use
 export type { PreviousPerformance, PersonalRecord };
@@ -32,10 +39,20 @@ class WorkoutHistoryService {
    */
   async saveWorkoutWithFeedback(
     workoutWithFeedback: Omit<WorkoutWithFeedback, "id">,
-    userGender?: UserGender
+    userGender?: UserGender,
+    personalData?: PersonalData
   ): Promise<void> {
     try {
       const id = Date.now().toString();
+
+      // חישוב קלוריות מותאם אישית
+      const durationMinutes = Math.round(
+        (workoutWithFeedback.workout.duration || 0) / 60
+      );
+      const estimatedCalories = calculatePersonalizedCalories(
+        durationMinutes,
+        personalData
+      );
 
       // יצירת מטא-דאטה מורחבת
       const metadata = {
@@ -45,7 +62,10 @@ class WorkoutHistoryService {
           screenHeight: Dimensions.get("window").height,
         },
         userGender,
-        version: "workout-history-v2",
+        personalData,
+        estimatedCalories,
+        bmi: personalData ? calculatePersonalizedBMI(personalData) : undefined,
+        version: "workout-history-v3", // Updated version
         workoutSource: "manual" as const, // רוב האימונים הם ידניים
       };
 
@@ -95,6 +115,195 @@ class WorkoutHistoryService {
   }
 
   /**
+   * יצוא נתוני ביצועים מותאמים אישית ל-CSV
+   */
+  async exportPersonalizedPerformanceData(
+    personalData?: PersonalData
+  ): Promise<string> {
+    try {
+      const history = await this.getWorkoutHistory();
+
+      let csvContent =
+        "Date,Workout Name,Duration (min),Volume (kg),Calories,Personal Records,BMI\n";
+
+      history.forEach((workout) => {
+        const date = new Date(
+          workout.feedback?.completedAt || 0
+        ).toLocaleDateString("he-IL");
+        const name = workout.workout?.name || "אימון";
+        const duration = Math.round((workout.workout?.duration || 0) / 60);
+        const volume = workout.stats?.totalVolume || 0;
+        const calories = calculatePersonalizedCalories(duration, personalData);
+        const personalRecords = workout.stats?.personalRecords || 0;
+        const bmi = personalData ? calculatePersonalizedBMI(personalData) : "";
+
+        csvContent += `${date},${name},${duration},${volume},${calories},${personalRecords},${bmi}\n`;
+      });
+
+      return csvContent;
+    } catch (error) {
+      console.error("Error exporting personalized data:", error);
+      return "Error generating export data";
+    }
+  }
+
+  /**
+   * קבלת תובנות מותאמות אישית עבור האימון הבא
+   */
+  async getPersonalizedNextWorkoutInsights(
+    personalData?: PersonalData
+  ): Promise<{
+    suggestedDuration: number; // minutes
+    suggestedIntensity: "low" | "moderate" | "high";
+    recoveryRecommendation: string;
+    focusAreas: string[];
+    expectedCalorieBurn: number;
+  }> {
+    try {
+      const history = await this.getWorkoutHistory();
+      const recentWorkouts = history.slice(0, 5); // Last 5 workouts
+
+      if (recentWorkouts.length === 0) {
+        return {
+          suggestedDuration: 45,
+          suggestedIntensity: "moderate",
+          recoveryRecommendation: "התחל בעדינות עם אימון ראשון",
+          focusAreas: ["גוף מלא"],
+          expectedCalorieBurn: personalData
+            ? calculatePersonalizedCalories(45, personalData)
+            : 360,
+        };
+      }
+
+      // Calculate average duration and intensity
+      const avgDuration =
+        recentWorkouts.reduce(
+          (sum, w) => sum + Math.round((w.workout?.duration || 0) / 60),
+          0
+        ) / recentWorkouts.length;
+
+      const avgVolume =
+        recentWorkouts.reduce(
+          (sum, w) => sum + (w.stats?.totalVolume || 0),
+          0
+        ) / recentWorkouts.length;
+
+      // Age-adjusted recommendations
+      const ageFactor = personalData
+        ? getAgeStrengthFactor(personalData.age)
+        : 1.0;
+      const genderFactor = personalData?.gender === "female" ? 0.9 : 1.0;
+
+      // Suggest duration (with age adjustments)
+      const suggestedDuration = Math.round(
+        avgDuration * ageFactor * genderFactor
+      );
+
+      // Suggest intensity based on recent performance
+      let suggestedIntensity: "low" | "moderate" | "high" = "moderate";
+      if (avgVolume > 2000) {
+        suggestedIntensity = ageFactor < 0.9 ? "moderate" : "high";
+      } else if (avgVolume < 800) {
+        suggestedIntensity = "low";
+      }
+
+      // Recovery recommendations
+      const daysSinceLastWorkout = this.getDaysSinceLastWorkout(recentWorkouts);
+      let recoveryRecommendation = "מוכן לאימון!";
+
+      if (daysSinceLastWorkout < 1) {
+        recoveryRecommendation = "שקול יום מנוחה נוסף";
+      } else if (daysSinceLastWorkout > 3) {
+        recoveryRecommendation = "התחל בעדינות אחרי ההפסקה";
+      }
+
+      // Focus areas based on recent training
+      const focusAreas = this.suggestFocusAreas(recentWorkouts, personalData);
+
+      // Expected calorie burn
+      const expectedCalorieBurn = calculatePersonalizedCalories(
+        suggestedDuration,
+        personalData
+      );
+
+      return {
+        suggestedDuration,
+        suggestedIntensity,
+        recoveryRecommendation,
+        focusAreas,
+        expectedCalorieBurn,
+      };
+    } catch (error) {
+      console.error("Error generating next workout insights:", error);
+      return {
+        suggestedDuration: 45,
+        suggestedIntensity: "moderate",
+        recoveryRecommendation: "נסה שוב מאוחר יותר",
+        focusAreas: ["גוף מלא"],
+        expectedCalorieBurn: 360,
+      };
+    }
+  }
+
+  /**
+   * חישוב ימים מאז האימון האחרון
+   */
+  private getDaysSinceLastWorkout(workouts: WorkoutWithFeedback[]): number {
+    if (workouts.length === 0) return 7;
+
+    const lastWorkout = new Date(workouts[0].feedback?.completedAt || 0);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastWorkout.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  /**
+   * הצעת אזורי התמקדות לאימון הבא
+   */
+  private suggestFocusAreas(
+    recentWorkouts: WorkoutWithFeedback[],
+    personalData?: PersonalData
+  ): string[] {
+    const focusAreas: string[] = [];
+
+    // Analyze recent muscle groups trained
+    const recentMuscleGroups = new Set<string>();
+    recentWorkouts.forEach((w) => {
+      w.workout?.exercises?.forEach((ex) => {
+        if (ex.primaryMuscles) {
+          ex.primaryMuscles.forEach((muscle) => recentMuscleGroups.add(muscle));
+        }
+      });
+    });
+
+    // Suggest areas that haven't been trained recently
+    const allMuscleGroups = [
+      "chest",
+      "back",
+      "legs",
+      "shoulders",
+      "arms",
+      "core",
+    ];
+    const undertrainedGroups = allMuscleGroups.filter(
+      (group) => !recentMuscleGroups.has(group)
+    );
+
+    if (undertrainedGroups.length > 0) {
+      focusAreas.push(...undertrainedGroups.slice(0, 2));
+    } else {
+      // If all groups were trained, suggest based on fitness level
+      if (personalData?.fitnessLevel === "beginner") {
+        focusAreas.push("גוף מלא");
+      } else {
+        focusAreas.push("כוח", "סיבולת");
+      }
+    }
+
+    return focusAreas.length > 0 ? focusAreas : ["גוף מלא"];
+  }
+
+  /**
    * תיעוד זמן התחלת אימון
    */
   async recordWorkoutStart(workoutId: string): Promise<void> {
@@ -130,9 +339,242 @@ class WorkoutHistoryService {
   }
 
   /**
+   * ניתוח סטטיסטיקות מתקדמות עם נתונים אישיים
+   */
+  async getPersonalizedWorkoutAnalytics(personalData?: PersonalData): Promise<{
+    totalWorkouts: number;
+    averageCaloriesPerWorkout: number;
+    strengthProgression: number; // Percentage improvement over time
+    volumeProgression: number;
+    bmi?: number;
+    fitnessScore: number; // 1-100 based on performance vs expectations
+    personalRecordsThisMonth: number;
+    consistencyScore: number; // Based on workout frequency
+    recommendations: string[];
+  }> {
+    try {
+      const history = await this.getWorkoutHistory();
+
+      if (history.length === 0) {
+        return {
+          totalWorkouts: 0,
+          averageCaloriesPerWorkout: 0,
+          strengthProgression: 0,
+          volumeProgression: 0,
+          bmi: personalData
+            ? calculatePersonalizedBMI(personalData)
+            : undefined,
+          fitnessScore: 50,
+          personalRecordsThisMonth: 0,
+          consistencyScore: 0,
+          recommendations: ["התחל עם אימון ראשון!"],
+        };
+      }
+
+      // Calculate basic metrics
+      const totalWorkouts = history.length;
+      const totalCalories = history.reduce((sum, w) => {
+        const duration = Math.round((w.workout?.duration || 0) / 60);
+        return sum + calculatePersonalizedCalories(duration, personalData);
+      }, 0);
+      const averageCaloriesPerWorkout = Math.round(
+        totalCalories / totalWorkouts
+      );
+
+      // Calculate progression (last 30 days vs previous 30 days)
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+      const recentWorkouts = history.filter(
+        (w) => new Date(w.feedback?.completedAt || 0) >= thirtyDaysAgo
+      );
+      const previousWorkouts = history.filter((w) => {
+        const date = new Date(w.feedback?.completedAt || 0);
+        return date >= sixtyDaysAgo && date < thirtyDaysAgo;
+      });
+
+      const recentAvgVolume = this.calculateAverageVolume(recentWorkouts);
+      const previousAvgVolume = this.calculateAverageVolume(previousWorkouts);
+      const volumeProgression =
+        previousAvgVolume > 0
+          ? Math.round(
+              ((recentAvgVolume - previousAvgVolume) / previousAvgVolume) * 100
+            )
+          : 0;
+
+      // Calculate strength progression (similar logic for max weights)
+      const recentMaxWeight = this.calculateMaxWeight(recentWorkouts);
+      const previousMaxWeight = this.calculateMaxWeight(previousWorkouts);
+      const strengthProgression =
+        previousMaxWeight > 0
+          ? Math.round(
+              ((recentMaxWeight - previousMaxWeight) / previousMaxWeight) * 100
+            )
+          : 0;
+
+      // Personal records this month
+      const personalRecordsThisMonth = history
+        .filter((w) => {
+          const date = new Date(w.feedback?.completedAt || 0);
+          return date >= thirtyDaysAgo && (w.stats?.personalRecords || 0) > 0;
+        })
+        .reduce((sum, w) => sum + (w.stats?.personalRecords || 0), 0);
+
+      // Consistency score (workouts per week vs target)
+      const workoutsThisMonth = recentWorkouts.length;
+      const weeksInMonth = 4.33;
+      const workoutsPerWeek = workoutsThisMonth / weeksInMonth;
+      const targetWorkoutsPerWeek =
+        personalData?.fitnessLevel === "advanced"
+          ? 5
+          : personalData?.fitnessLevel === "intermediate"
+            ? 4
+            : 3;
+      const consistencyScore = Math.min(
+        100,
+        Math.round((workoutsPerWeek / targetWorkoutsPerWeek) * 100)
+      );
+
+      // Fitness score based on performance vs expectations
+      const avgPerformance = analyzePersonalizedPerformance(
+        recentAvgVolume,
+        "volume",
+        personalData
+      );
+      const fitnessScore = avgPerformance.percentile;
+
+      // Generate recommendations
+      const recommendations = this.generatePersonalizedRecommendations({
+        volumeProgression,
+        strengthProgression,
+        consistencyScore,
+        fitnessScore,
+        personalData,
+      });
+
+      return {
+        totalWorkouts,
+        averageCaloriesPerWorkout,
+        strengthProgression,
+        volumeProgression,
+        bmi: personalData ? calculatePersonalizedBMI(personalData) : undefined,
+        fitnessScore,
+        personalRecordsThisMonth,
+        consistencyScore,
+        recommendations,
+      };
+    } catch (error) {
+      console.error("Error calculating personalized analytics:", error);
+      // Return default values on error
+      return {
+        totalWorkouts: 0,
+        averageCaloriesPerWorkout: 0,
+        strengthProgression: 0,
+        volumeProgression: 0,
+        bmi: personalData ? calculatePersonalizedBMI(personalData) : undefined,
+        fitnessScore: 50,
+        personalRecordsThisMonth: 0,
+        consistencyScore: 0,
+        recommendations: ["נסה שוב מאוחר יותר"],
+      };
+    }
+  }
+
+  /**
+   * חישוב נפח ממוצע מרשימת אימונים
+   */
+  private calculateAverageVolume(workouts: WorkoutWithFeedback[]): number {
+    if (workouts.length === 0) return 0;
+
+    const totalVolume = workouts.reduce(
+      (sum, w) => sum + (w.stats?.totalVolume || 0),
+      0
+    );
+    return totalVolume / workouts.length;
+  }
+
+  /**
+   * חישוב משקל מקסימלי מרשימת אימונים
+   */
+  private calculateMaxWeight(workouts: WorkoutWithFeedback[]): number {
+    let maxWeight = 0;
+
+    workouts.forEach((w) => {
+      w.workout?.exercises?.forEach((ex) => {
+        ex.sets?.forEach((set) => {
+          if (set.actualWeight && set.actualWeight > maxWeight) {
+            maxWeight = set.actualWeight;
+          }
+        });
+      });
+    });
+
+    return maxWeight;
+  }
+
+  /**
+   * יצירת המלצות מותאמות אישית
+   */
+  private generatePersonalizedRecommendations(data: {
+    volumeProgression: number;
+    strengthProgression: number;
+    consistencyScore: number;
+    fitnessScore: number;
+    personalData?: PersonalData;
+  }): string[] {
+    const recommendations: string[] = [];
+
+    // Consistency recommendations
+    if (data.consistencyScore < 70) {
+      recommendations.push("נסה לשמור על קביעות - 3-4 אימונים בשבוע אידיאליים");
+    }
+
+    // Progression recommendations
+    if (data.volumeProgression < 5 && data.strengthProgression < 5) {
+      recommendations.push("הגדל בהדרגה את המשקל או מספר החזרות");
+    }
+
+    // Age-specific recommendations
+    if (data.personalData) {
+      const ageFactor = getAgeStrengthFactor(data.personalData.age);
+      if (ageFactor < 0.9) {
+        recommendations.push("התמקד ביציבות ומניעת פציעות - איכות על פני כמות");
+      }
+
+      // Fitness level recommendations
+      if (
+        data.personalData.fitnessLevel === "beginner" &&
+        data.fitnessScore > 70
+      ) {
+        recommendations.push("מצוין! אתה מוכן לעבור לרמת ביניים");
+      }
+
+      if (
+        data.personalData.fitnessLevel === "advanced" &&
+        data.fitnessScore < 60
+      ) {
+        recommendations.push("שקול להוריד את העצימות ולהתמקד בריכוז");
+      }
+    }
+
+    // Performance recommendations
+    if (data.fitnessScore > 80) {
+      recommendations.push("ביצועים מעולים! המשך כך");
+    } else if (data.fitnessScore < 40) {
+      recommendations.push("קח יום מנוחה נוסף בין האימונים");
+    }
+
+    return recommendations.length > 0 ? recommendations : ["המשך לעבוד קשה!"];
+  }
+
+  /**
    * זיהוי שיאים חדשים באימון הנוכחי
    */
-  async detectPersonalRecords(workout: WorkoutData): Promise<PersonalRecord[]> {
+  async detectPersonalRecords(
+    workout: WorkoutData,
+    personalData?: PersonalData
+  ): Promise<PersonalRecord[]> {
     try {
       const existingPerformances = await this.getPreviousPerformances();
       const newRecords: PersonalRecord[] = [];
@@ -159,6 +601,8 @@ class WorkoutHistoryService {
           );
 
           if (maxWeight > 0) {
+            // Analyze performance for internal use
+            analyzePersonalizedPerformance(maxWeight, "weight", personalData);
             newRecords.push({
               exerciseName: exercise.name,
               type: "weight",
@@ -170,6 +614,7 @@ class WorkoutHistoryService {
           }
 
           if (maxReps > 0) {
+            analyzePersonalizedPerformance(maxReps, "reps", personalData);
             newRecords.push({
               exerciseName: exercise.name,
               type: "reps",
@@ -181,6 +626,7 @@ class WorkoutHistoryService {
           }
 
           if (maxVolume > 0) {
+            analyzePersonalizedPerformance(maxVolume, "volume", personalData);
             newRecords.push({
               exerciseName: exercise.name,
               type: "volume",

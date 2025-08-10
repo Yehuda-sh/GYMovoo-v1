@@ -17,8 +17,11 @@ import {
   QuestionnaireMetadata,
   DynamicQuestion,
   WorkoutRecommendation,
-  WorkoutExerciseBase,
 } from "../types";
+import {
+  getPersonalizedRestTimes,
+  getPersonalizedStartingWeights,
+} from "../screens/workout/utils/workoutConstants";
 
 // =======================================
 // 🔑 Enhanced Storage Configuration
@@ -43,6 +46,9 @@ interface EquipmentOption {
     equipment?: string[];
   };
 }
+
+// ✅ Import PersonalData from central utils
+import { PersonalData } from "../utils/personalDataUtils";
 
 // =======================================
 // 🧠 Enhanced Questionnaire Service
@@ -353,59 +359,70 @@ class QuestionnaireService {
     const equipment = await this.getAvailableEquipment();
     const duration = await this.getPreferredDuration();
 
+    // ✅ קבלת נתונים אישיים מהשאלון החכם
+    const personalData = this.extractPersonalData(prefs);
+
     // המלצות לפי מטרה - תמיכה בפורמטים ישנים וחדשים
     // Recommendations by goal - support old and new formats
     switch (prefs.goal) {
       case "ירידה במשקל":
       case "weight_loss":
         recommendations.push(
-          this.createCardioWorkout(duration, equipment, prefs),
-          this.createHIITWorkout(Math.min(duration, 30), equipment, prefs),
-          this.createCircuitWorkout(duration, equipment, prefs)
+          this.createCardioWorkout(duration, equipment, prefs, personalData),
+          this.createHIITWorkout(
+            Math.min(duration, 30),
+            equipment,
+            prefs,
+            personalData
+          )
+          // this.createCircuitWorkout(duration, equipment, prefs, personalData)
         );
         break;
 
       case "עליה במסת שריר":
       case "muscle_gain":
         recommendations.push(
-          this.createUpperBodyWorkout(duration, equipment, prefs),
-          this.createLowerBodyWorkout(duration, equipment, prefs),
-          this.createPushPullWorkout(duration, equipment, prefs)
+          // this.createUpperBodyWorkout(duration, equipment, prefs, personalData),
+          // this.createLowerBodyWorkout(duration, equipment, prefs, personalData),
+          // this.createPushPullWorkout(duration, equipment, prefs, personalData)
+          this.createStrengthWorkout(duration, equipment, prefs, personalData)
         );
         break;
 
       case "שיפור כוח":
       case "strength_improvement":
         recommendations.push(
-          this.createStrengthWorkout(duration, equipment, prefs),
-          this.createPowerWorkout(duration, equipment, prefs),
-          this.createCompoundWorkout(duration, equipment, prefs)
+          this.createStrengthWorkout(duration, equipment, prefs, personalData),
+          this.createPowerWorkout(duration, equipment, prefs, personalData)
+          // this.createCompoundWorkout(duration, equipment, prefs, personalData)
         );
         break;
 
       case "שיפור סיבולת":
       case "endurance_improvement":
         recommendations.push(
-          this.createEnduranceWorkout(duration, equipment, prefs),
-          this.createCardioWorkout(duration, equipment, prefs),
-          this.createMetabolicWorkout(duration, equipment, prefs)
+          // this.createEnduranceWorkout(duration, equipment, prefs, personalData),
+          this.createCardioWorkout(duration, equipment, prefs, personalData)
+          // this.createMetabolicWorkout(duration, equipment, prefs, personalData)
         );
         break;
 
       case "בריאות כללית":
       case "general_health":
         recommendations.push(
-          this.createFullBodyWorkout(duration, equipment, prefs),
-          this.createFunctionalWorkout(duration, equipment, prefs),
-          this.createBalancedWorkout(duration, equipment, prefs)
+          // this.createFullBodyWorkout(duration, equipment, prefs, personalData),
+          // this.createFunctionalWorkout(duration, equipment, prefs, personalData),
+          // this.createBalancedWorkout(duration, equipment, prefs, personalData)
+          this.createGeneralWorkout(duration, equipment, prefs)
         );
         break;
 
       case "שיקום מפציעה":
         recommendations.push(
-          this.createRehabWorkout(duration, equipment, prefs),
-          this.createMobilityWorkout(duration, equipment, prefs),
-          this.createLowImpactWorkout(duration, equipment, prefs)
+          // this.createRehabWorkout(duration, equipment, prefs, personalData),
+          // this.createMobilityWorkout(duration, equipment, prefs, personalData),
+          // this.createLowImpactWorkout(duration, equipment, prefs, personalData)
+          this.createGeneralWorkout(duration, equipment, prefs)
         );
         break;
 
@@ -422,6 +439,27 @@ class QuestionnaireService {
         (eq) => equipment.includes(eq) || eq === "bodyweight"
       )
     );
+  }
+
+  /**
+   * ✅ חילוץ נתונים אישיים מהשאלון
+   */
+  private extractPersonalData(prefs: QuestionnaireMetadata): PersonalData {
+    return {
+      gender: (prefs.gender as "male" | "female") || "male",
+      age: prefs.age || "25_34",
+      weight:
+        typeof prefs.weight === "number"
+          ? `${prefs.weight}_${prefs.weight + 9}`
+          : prefs.weight || "70_79",
+      height:
+        typeof prefs.height === "number"
+          ? `${prefs.height}_${prefs.height + 9}`
+          : prefs.height || "170_179",
+      fitnessLevel:
+        (prefs.experience as "beginner" | "intermediate" | "advanced") ||
+        "beginner",
+    };
   }
 
   /**
@@ -617,7 +655,17 @@ class QuestionnaireService {
    * יצירת תובנות אישיות על בסיס ביצועי האימון
    */
   private generatePersonalizedInsights(
-    completionData: any,
+    completionData: {
+      userFeedback?: {
+        overallRating?: number;
+        difficultyRating?: number;
+        readyForMore?: boolean;
+        enjoymentRating?: number;
+        fatigueLevelAfter?: number;
+      };
+      completedSets?: number;
+      totalSets?: number;
+    },
     overallScore: number
   ): string[] {
     const insights: string[] = [];
@@ -627,15 +675,19 @@ class QuestionnaireService {
       insights.push("🔥 ביצוע מעולה! אתה מתקדם מהר");
     }
 
-    if (userFeedback.readyForMore && completedSets === totalSets) {
+    if (userFeedback?.readyForMore && completedSets === totalSets) {
       insights.push("💪 נראה שאתה מוכן לאתגר גדול יותר");
     }
 
-    if (userFeedback.enjoymentRating >= 4) {
+    if (userFeedback?.enjoymentRating && userFeedback.enjoymentRating >= 4) {
       insights.push("😊 אתה נהנה מהאימונים - זה המפתח להצלחה!");
     }
 
-    if (userFeedback.fatigueLevelAfter <= 4 && completedSets === totalSets) {
+    if (
+      userFeedback?.fatigueLevelAfter &&
+      userFeedback.fatigueLevelAfter <= 4 &&
+      completedSets === totalSets
+    ) {
       insights.push("⚡ יש לך עוד אנרגיה - אפשר להוסיף עצימות");
     }
 
@@ -647,14 +699,25 @@ class QuestionnaireService {
    * בדיקת הישגים על בסיס השלמת האימון
    */
   private async checkForAchievements(
-    completionData: any,
+    completionData: {
+      completedSets?: number;
+      totalSets?: number;
+      userFeedback?: {
+        difficultyRating?: number;
+        overallRating?: number;
+      };
+    },
     overallScore: number
   ): Promise<string[]> {
     const achievements: string[] = [];
     const { completedSets, totalSets, userFeedback } = completionData;
 
     // Perfect completion achievement
-    if (completedSets === totalSets && userFeedback.difficultyRating >= 4) {
+    if (
+      completedSets === totalSets &&
+      userFeedback?.difficultyRating &&
+      userFeedback.difficultyRating >= 4
+    ) {
       achievements.push("🏆 השלמה מושלמת באתגר קשה!");
     }
 
@@ -679,7 +742,11 @@ class QuestionnaireService {
    */
   private calculateConfidenceLevel(
     completionRate: number,
-    userFeedback: any
+    userFeedback: {
+      overallRating?: number;
+      difficultyRating?: number;
+      enjoymentRating?: number;
+    }
   ): number {
     let confidence = 0.5; // Base confidence
 
@@ -689,8 +756,8 @@ class QuestionnaireService {
     }
 
     if (
-      userFeedback.difficultyRating <= 2 ||
-      userFeedback.difficultyRating >= 4
+      (userFeedback.difficultyRating && userFeedback.difficultyRating <= 2) ||
+      (userFeedback.difficultyRating && userFeedback.difficultyRating >= 4)
     ) {
       confidence += 0.2; // Clear difficulty feedback
     }
@@ -726,31 +793,41 @@ class QuestionnaireService {
     type: string,
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata
+    prefs: QuestionnaireMetadata,
+    personalData?: PersonalData
   ): WorkoutRecommendation {
-    // Enhanced base workout structure with dynamic analysis
+    // ✅ Enhanced base workout structure with personal data integration
+    const personalizedRestTimes = personalData
+      ? getPersonalizedRestTimes(personalData)
+      : null;
+    const personalizedWeights = personalData
+      ? getPersonalizedStartingWeights(personalData)
+      : null;
+
     const baseWorkout = {
       duration,
       equipment: this.optimizeEquipmentSelection(equipment, type),
       difficulty: this.getDifficultyByExperience(prefs.experience),
-      estimatedCalories: this.calculateEstimatedCalories(duration, type),
+      estimatedCalories: this.calculateEstimatedCaloriesLegacy(duration, type),
+      restTimes: personalizedRestTimes, // ✅ זמני מנוחה מותאמים אישית
+      startingWeights: personalizedWeights, // ✅ משקלי התחלה מותאמים
     };
 
-    // Workout type factory with enhanced logic
+    // ✅ Workout type factory with enhanced personalized logic
     const workoutFactories = {
       cardio: () => ({
         id: "cardio-1",
-        name: "אימון קרדיו שורף קלוריות",
-        description: "אימון אירובי לשריפת קלוריות ושיפור סיבולת לב-ריאה",
+        name: this.getPersonalizedWorkoutName("cardio", personalData),
+        description: this.getPersonalizedDescription("cardio", personalData),
         targetMuscles: ["לב", "ריאות"],
         type: "cardio" as const,
       }),
 
       hiit: () => ({
         id: "hiit-1",
-        name: "HIIT אינטנסיבי",
-        description: "אימון אינטרוולים בעצימות גבוהה לשריפת קלוריות מקסימלית",
-        duration: Math.min(duration, 30),
+        name: this.getPersonalizedWorkoutName("hiit", personalData),
+        description: this.getPersonalizedDescription("hiit", personalData),
+        duration: this.getPersonalizedDuration(duration, "hiit", personalData),
         targetMuscles: ["גוף מלא"],
         type: "hiit" as const,
       }),
@@ -763,10 +840,11 @@ class QuestionnaireService {
 
         return {
           id: "strength-1",
-          name: hasGymAccess ? "אימון כוח מתקדם - חדר כושר" : "אימון כוח ביתי",
-          description: isBeginnerLevel
-            ? "אימון כוח מותאם למתחילים עם תרגילים בסיסיים"
-            : "אימון כוח מתקדם עם דגש על תרגילים מורכבים",
+          name: this.getPersonalizedStrengthName(hasGymAccess, personalData),
+          description: this.getPersonalizedStrengthDescription(
+            isBeginnerLevel,
+            personalData
+          ),
           difficulty: "advanced" as const,
           targetMuscles: ["גוף מלא"],
           type: "strength" as const,
@@ -889,7 +967,7 @@ class QuestionnaireService {
    * Enhanced calorie calculation with workout type considerations
    * חישוב קלוריות משופר עם התחשבות בסוג האימון
    */
-  private calculateEstimatedCalories(
+  private calculateEstimatedCaloriesLegacy(
     duration: number,
     workoutType: string
   ): number {
@@ -914,26 +992,46 @@ class QuestionnaireService {
   private createCardioWorkout = (
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata
-  ) => this.createWorkoutByType("cardio", duration, equipment, prefs);
+    prefs: QuestionnaireMetadata,
+    personalData?: PersonalData
+  ) =>
+    this.createWorkoutByType(
+      "cardio",
+      duration,
+      equipment,
+      prefs,
+      personalData
+    );
 
   private createHIITWorkout = (
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata
-  ) => this.createWorkoutByType("hiit", duration, equipment, prefs);
+    prefs: QuestionnaireMetadata,
+    personalData?: PersonalData
+  ) =>
+    this.createWorkoutByType("hiit", duration, equipment, prefs, personalData);
 
   private createStrengthWorkout = (
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata
-  ) => this.createWorkoutByType("strength", duration, equipment, prefs);
+    prefs: QuestionnaireMetadata,
+    personalData?: PersonalData
+  ) =>
+    this.createWorkoutByType(
+      "strength",
+      duration,
+      equipment,
+      prefs,
+      personalData
+    );
 
   private createPowerWorkout = (
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata
-  ) => this.createWorkoutByType("power", duration, equipment, prefs);
+    prefs: QuestionnaireMetadata,
+    personalData?: PersonalData
+  ) =>
+    this.createWorkoutByType("power", duration, equipment, prefs, personalData);
 
   private createMobilityWorkout = (
     duration: number,
@@ -1012,7 +1110,10 @@ class QuestionnaireService {
     id: "circuit-1",
     name: "אימון מעגלים",
     description: "אימון מעגלים המשלב כוח וסיבולת",
-    estimatedCalories: this.calculateEstimatedCalories(duration, "cardio"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(
+      duration,
+      "cardio"
+    ),
     type: "mixed" as const,
   });
 
@@ -1026,7 +1127,10 @@ class QuestionnaireService {
     name: "תרגילים מורכבים",
     description: "אימון המתמקד בתרגילים מורכבים רב-מפרקיים",
     equipment: ["barbell", "dumbbells"],
-    estimatedCalories: this.calculateEstimatedCalories(duration, "strength"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(
+      duration,
+      "strength"
+    ),
   });
 
   private createEnduranceWorkout = (
@@ -1038,7 +1142,10 @@ class QuestionnaireService {
     id: "endurance-1",
     name: "אימון סיבולת",
     description: "אימון לשיפור סיבולת שרירית ולב-ריאה",
-    estimatedCalories: this.calculateEstimatedCalories(duration, "endurance"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(
+      duration,
+      "endurance"
+    ),
   });
 
   private createMetabolicWorkout = (
@@ -1051,7 +1158,7 @@ class QuestionnaireService {
     name: "אימון מטבולי",
     description: "אימון להאצת חילוף החומרים",
     equipment: ["bodyweight", "dumbbells"],
-    estimatedCalories: this.calculateEstimatedCalories(duration, "hiit"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(duration, "hiit"),
   });
 
   private createPushPullWorkout = (
@@ -1076,7 +1183,10 @@ class QuestionnaireService {
     id: "functional-1",
     name: "אימון פונקציונלי",
     description: "אימון לשיפור תנועות יומיומיות",
-    estimatedCalories: this.calculateEstimatedCalories(duration, "general"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(
+      duration,
+      "general"
+    ),
   });
 
   private createBalancedWorkout = (
@@ -1088,7 +1198,10 @@ class QuestionnaireService {
     id: "balanced-1",
     name: "אימון מאוזן",
     description: "אימון המשלב כוח, סיבולת וגמישות",
-    estimatedCalories: this.calculateEstimatedCalories(duration, "general"),
+    estimatedCalories: this.calculateEstimatedCaloriesLegacy(
+      duration,
+      "general"
+    ),
   });
 
   // =======================================
@@ -1214,9 +1327,7 @@ class QuestionnaireService {
     // If user has good ratings for this preference type, reinforce it
     const baseType = mapping[preference] || "mixed";
     if (preferenceRatings.averageRating > 4) {
-      console.log(
-        `🎯 User shows high satisfaction (${preferenceRatings.averageRating}) with ${preference} - reinforcing preference`
-      );
+      // User shows high satisfaction - reinforcing preference
     }
 
     return baseType;
@@ -1282,9 +1393,7 @@ class QuestionnaireService {
           0
         ) / rehabHistory.length;
       if (avgRating > 4) {
-        console.log(
-          `🏥 User shows good rehab progress (${avgRating}) - can expand target areas`
-        );
+        // User shows good rehab progress - can expand target areas
         return [...targets, "גוף מלא"]; // Add full body progression
       }
     }
@@ -1398,6 +1507,192 @@ class QuestionnaireService {
     } else {
       return "אימון מאוזן המותאם לרמתך הנוכחית";
     }
+  }
+
+  // =======================================
+  // ✅ Personal Data Helper Functions
+  // פונקציות עזר לנתונים אישיים
+  // =======================================
+
+  /**
+   * קבלת שם אימון מותאם אישית
+   */
+  private getPersonalizedWorkoutName(
+    type: string,
+    personalData?: PersonalData
+  ): string {
+    const baseNames = {
+      cardio: "אימון קרדיו שורף קלוריות",
+      hiit: "HIIT אינטנסיבי",
+      strength: "אימון כוח",
+      general: "אימון כללי",
+    };
+
+    const baseName = baseNames[type as keyof typeof baseNames] || "אימון";
+
+    if (!personalData) return baseName;
+
+    // התאמה לפי מין
+    if (personalData.gender === "female") {
+      return baseName.replace("אימון", "אימון נשי מותאם");
+    } else if (personalData.gender === "male") {
+      return baseName + " - גברים";
+    }
+
+    // התאמה לפי גיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        return baseName + " - מבוגרים";
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        return baseName + " - צעירים";
+      }
+    }
+
+    return baseName;
+  }
+
+  /**
+   * קבלת תיאור מותאם אישית
+   */
+  private getPersonalizedDescription(
+    type: string,
+    personalData?: PersonalData
+  ): string {
+    const baseDescriptions = {
+      cardio: "אימון אירובי לשריפת קלוריות ושיפור סיבולת לב-ריאה",
+      hiit: "אימון אינטרוולים בעצימות גבוהה לשריפת קלוריות מקסימלית",
+      strength: "אימון כוח עם דגש על תרגילים מורכבים",
+      general: "אימון מאוזן לכושר כללי",
+    };
+
+    let description =
+      baseDescriptions[type as keyof typeof baseDescriptions] || "אימון מותאם";
+
+    if (!personalData) return description;
+
+    // התאמה לפי גיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        description += ". מותאם לגיל מבוגר עם דגש על בטיחות ושיקום";
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        description += ". אנרגיה צעירה עם אתגר מוגבר";
+      }
+    }
+
+    // התאמה לרמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      description += ". מותאם למתחילים עם הסברים מפורטים";
+    } else if (personalData.fitnessLevel === "advanced") {
+      description += ". רמה מתקדמת עם אתגרים מורכבים";
+    }
+
+    return description;
+  }
+
+  /**
+   * קבלת שם אימון כוח מותאם
+   */
+  private getPersonalizedStrengthName(
+    hasGymAccess: boolean,
+    personalData?: PersonalData
+  ): string {
+    const baseName = hasGymAccess
+      ? "אימון כוח מתקדם - חדר כושר"
+      : "אימון כוח ביתי";
+
+    if (!personalData) return baseName;
+
+    if (personalData.gender === "female") {
+      return baseName.replace("כוח", "חיטוב ועיצוב");
+    }
+
+    if (
+      personalData.age &&
+      (personalData.age.includes("50_") || personalData.age.includes("over_"))
+    ) {
+      return baseName + " - מבוגרים";
+    }
+
+    return baseName;
+  }
+
+  /**
+   * קבלת תיאור אימון כוח מותאם
+   */
+  private getPersonalizedStrengthDescription(
+    isBeginnerLevel: boolean,
+    personalData?: PersonalData
+  ): string {
+    let description = isBeginnerLevel
+      ? "אימון כוח מותאם למתחילים עם תרגילים בסיסיים"
+      : "אימון כוח מתקדם עם דגש על תרגילים מורכבים";
+
+    if (!personalData) return description;
+
+    if (personalData.gender === "female") {
+      description = description.replace("כוח", "חיטוב ועיצוב גוף");
+      description += ". דגש על חיזוק ליבה וגלוטאוס";
+    }
+
+    if (
+      personalData.age &&
+      (personalData.age.includes("50_") || personalData.age.includes("over_"))
+    ) {
+      description += ". עם דגש מיוחד על שמירת צפיפות עצם";
+    }
+
+    return description;
+  }
+
+  /**
+   * קבלת משך אימון מותאם אישית
+   */
+  private getPersonalizedDuration(
+    baseDuration: number,
+    type: string,
+    personalData?: PersonalData
+  ): number {
+    if (!personalData) return baseDuration;
+
+    let adjustedDuration = baseDuration;
+
+    // התאמה לפי גיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        // מבוגרים - משך קצר יותר
+        adjustedDuration = Math.min(baseDuration, type === "hiit" ? 20 : 45);
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        // צעירים - יכולים יותר
+        adjustedDuration = Math.min(baseDuration * 1.2, 60);
+      }
+    }
+
+    // התאמה לרמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      adjustedDuration = Math.min(adjustedDuration, 30);
+    } else if (personalData.fitnessLevel === "advanced") {
+      adjustedDuration = Math.min(adjustedDuration * 1.3, 75);
+    }
+
+    return Math.round(adjustedDuration);
   }
 }
 

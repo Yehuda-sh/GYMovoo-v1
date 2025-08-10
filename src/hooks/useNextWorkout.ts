@@ -194,6 +194,20 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         hasExtendedData: !!user?.trainingStats,
       });
 
+      // ✅ הכנת נתונים אישיים מהשאלון החדש לשיפור המלצות
+      const personalData = user?.smartQuestionnaireData?.answers
+        ? {
+            gender: user.smartQuestionnaireData.answers.gender as string,
+            age: String(user.smartQuestionnaireData.answers.age || ""),
+            weight: String(user.smartQuestionnaireData.answers.weight || ""),
+            height: String(user.smartQuestionnaireData.answers.height || ""),
+            fitnessLevel: user.smartQuestionnaireData.answers
+              .fitnessLevel as string,
+          }
+        : undefined;
+
+      debug("🎯 Personal data for recommendations", personalData);
+
       // בדיקת בטיחות מתקדמת - וידוא שהשירות קיים
       if (
         !nextWorkoutLogicService ||
@@ -203,9 +217,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         throw new Error("nextWorkoutLogicService is not properly initialized");
       }
 
-      // הרץ במקביל עם טיפול בשגיאות חכם
+      // הרץ במקביל עם טיפול בשגיאות חכם - כולל נתונים אישיים
       const [recommendation, stats] = await Promise.all([
-        nextWorkoutLogicService.getNextWorkoutRecommendation(weeklyPlan),
+        nextWorkoutLogicService.getNextWorkoutRecommendation(
+          weeklyPlan,
+          personalData
+        ),
         nextWorkoutLogicService.getCycleStatistics().catch((err) => {
           console.warn("⚠️ Could not get cycle stats:", err.message);
           return null; // החזר null במקום לכשל

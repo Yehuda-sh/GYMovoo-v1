@@ -1,34 +1,27 @@
 /**
- * import { 
-  WorkoutData, 
-  WorkoutWithFeedback, 
-  Exercise,
-  Set
-} from "../screens/workout/types/workout.types";
-import type { User } from "../types";
-import {
-  adaptExerciseNameToGender,
-  generateSingleGenderAdaptedNote,
-  generateGenderAdaptedCongratulation,
-  UserGender,
-} from "../utils/genderAdaptation";rvices/realisticDemoService.ts
- * @brief שירות הדמיה מציאותית של משתמשים ואימונים - מלא תואם למסך ההיסטוריה
- * @description יוצר נתוני דמו שעוברים validateWorkoutData ופועלים עם formatDateHebrewLocal
- * @updated 2025-08-06 עדכון מלא לתאימות עם מסך ההיסטוריה
- * @compatible validateWorkoutData, formatDateHebrewLocal, WorkoutWithFeedback
+ * @file src/services/demo/demoUserService.ts
+ * @brief 🔴 DEMO ONLY - שירות יצירת משתמשים דמו למטרות פיתוח בלבד
+ * @description יוצר נתוני דמו מציאותיים לבדיקות ופיתוח - לא לשימוש בפרודקשן!
+ * @updated 2025-08-10 הועבר לתיקיית demo להפרדת קוד פיתוח מפרודקשן
+ * @warning NOT FOR PRODUCTION - DEMO DATA ONLY
  */
+
+// 🔴 DEMO ONLY - הגנה מפני שימוש בפרודקשן
+if (!__DEV__) {
+  throw new Error("Demo service should not be used in production");
+}
 
 import {
   WorkoutData,
   WorkoutWithFeedback,
   Exercise,
   Set,
-} from "../screens/workout/types/workout.types";
+} from "../../screens/workout/types/workout.types";
 import {
   adaptExerciseNameToGender,
   generateSingleGenderAdaptedNote,
   UserGender,
-} from "../utils/genderAdaptation";
+} from "../../utils/genderAdaptation";
 
 // טיפוסים נוספים נדרשים
 export interface DemoUser {
@@ -273,16 +266,16 @@ const EXERCISES_BY_LEVEL = {
 //   neutral: { male: [...], female: [...], other: [...] },
 // } as const;
 
-class RealisticDemoService {
-  private static instance: RealisticDemoService;
+class DemoUserService {
+  private static instance: DemoUserService;
 
   private constructor() {}
 
-  static getInstance(): RealisticDemoService {
-    if (!RealisticDemoService.instance) {
-      RealisticDemoService.instance = new RealisticDemoService();
+  static getInstance(): DemoUserService {
+    if (!DemoUserService.instance) {
+      DemoUserService.instance = new DemoUserService();
     }
-    return RealisticDemoService.instance;
+    return DemoUserService.instance;
   }
 
   /**
@@ -1303,5 +1296,8 @@ class RealisticDemoService {
 }
 
 // יצוא singleton instance
-export const realisticDemoService = RealisticDemoService.getInstance();
-export default realisticDemoService;
+export const demoUserService = DemoUserService.getInstance();
+export default demoUserService;
+
+// ✅ Backward compatibility export (לזמן מעבר)
+export const realisticDemoService = demoUserService;

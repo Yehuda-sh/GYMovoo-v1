@@ -6,17 +6,20 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { WorkoutData, WorkoutWithFeedback } from "../types/workout.types";
-import workoutValidationService from "./workoutValidationService";
+import { WorkoutWithFeedback } from "../types/workout.types";
 import workoutErrorHandlingService from "./workoutErrorHandlingService";
 
 // טיפוס משוב נפרד בהתבסס על WorkoutWithFeedback
 type WorkoutFeedback = WorkoutWithFeedback["feedback"];
 
+// ✅ Import PersonalData from central utils
+import { PersonalData } from "../../../utils/personalDataUtils";
+
 interface FeedbackValidationResult {
   isValid: boolean;
   correctedFeedback?: WorkoutFeedback;
   warnings: string[];
+  personalizedSuggestions?: string[]; // ✅ הצעות מותאמות אישית
 }
 
 interface FeedbackMetrics {
@@ -24,6 +27,7 @@ interface FeedbackMetrics {
   mostCommonFeeling: string;
   completionTrend: "improving" | "stable" | "declining";
   personalRecordCount: number;
+  personalizedInsights?: string[]; // ✅ תובנות מותאמות אישית
 }
 
 class WorkoutFeedbackService {
@@ -40,9 +44,10 @@ class WorkoutFeedbackService {
   /**
    * וידואי נתוני משוב (מבוסס על validateWorkoutData מההיסטוריה)
    */
-  validateFeedback(feedback: any): FeedbackValidationResult {
+  validateFeedback(
+    feedback: Partial<WorkoutFeedback>
+  ): FeedbackValidationResult {
     const warnings: string[] = [];
-    const isValid = true;
 
     try {
       // וידואי זמן השלמה
@@ -117,6 +122,97 @@ class WorkoutFeedbackService {
         warnings: ["שגיאה בוידוא המשוב"],
       };
     }
+  }
+
+  /**
+   * ✅ וידוא משוב מותאם אישית עם נתונים אישיים
+   */
+  validateFeedbackWithPersonalData(
+    feedback: Partial<WorkoutFeedback>,
+    personalData?: PersonalData
+  ): FeedbackValidationResult {
+    // התחל עם הוידוא הבסיסי
+    const baseValidation = this.validateFeedback(feedback);
+
+    if (!personalData || !baseValidation.correctedFeedback) {
+      return baseValidation;
+    }
+
+    const personalizedSuggestions: string[] = [];
+
+    // ✅ הצעות מותאמות לגיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        if (baseValidation.correctedFeedback.difficulty >= 4) {
+          personalizedSuggestions.push(
+            "💡 מעולה! אימון מאתגר בגילך - זה מפתח לשמירה על הכושר"
+          );
+        }
+        if (baseValidation.correctedFeedback.feeling === "😴") {
+          personalizedSuggestions.push(
+            "💤 זכור: מנוחה איכותית חשובה במיוחד בגילך לשיקום"
+          );
+        }
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        if (baseValidation.correctedFeedback.difficulty <= 2) {
+          personalizedSuggestions.push(
+            "🚀 אתה יכול יותר! נסה להגדיל את האתגר בפעם הבאה"
+          );
+        }
+        if (baseValidation.correctedFeedback.feeling === "💪") {
+          personalizedSuggestions.push(
+            "🔥 אנרגיה צעירה! זה הזמן לדחוף את הגבולות"
+          );
+        }
+      }
+    }
+
+    // ✅ הצעות מותאמות למין
+    if (personalData.gender === "female") {
+      if (baseValidation.correctedFeedback.feeling === "💪") {
+        personalizedSuggestions.push("👑 אלופה! ההתקדמות שלך מעוררת השראה");
+      }
+      if (baseValidation.correctedFeedback.difficulty >= 4) {
+        personalizedSuggestions.push("💪 כוח אמיתי! זה מה שנקרא girl power");
+      }
+    } else if (personalData.gender === "male") {
+      if (baseValidation.correctedFeedback.readyForMore === true) {
+        personalizedSuggestions.push(
+          "🏋️ אנרגיה גבוהה! שקול להוסיף אימון נוסף השבוע"
+        );
+      }
+    }
+
+    // ✅ הצעות לפי רמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      if (baseValidation.correctedFeedback.difficulty >= 3) {
+        personalizedSuggestions.push(
+          "🌱 התקדמות מצוינת למתחיל! ממשיך בכיוון הנכון"
+        );
+      }
+      if (baseValidation.correctedFeedback.feeling === "😞") {
+        personalizedSuggestions.push(
+          "🤗 זה נורמלי בהתחלה - כל אלוף התחיל כמתחיל"
+        );
+      }
+    } else if (personalData.fitnessLevel === "advanced") {
+      if (baseValidation.correctedFeedback.difficulty <= 3) {
+        personalizedSuggestions.push(
+          "🎖️ כמתקדם - יכול להיות שתרצה אתגר גדול יותר"
+        );
+      }
+    }
+
+    return {
+      ...baseValidation,
+      personalizedSuggestions,
+    };
   }
 
   /**
@@ -217,7 +313,7 @@ class WorkoutFeedbackService {
 
       const feelingCounts: Record<string, number> = {};
       feelings.forEach((feeling) => {
-        feelingCounts[feeling] = (feelingCounts[feeling] || 0) + 1;
+        feelingCounts[feeling!] = (feelingCounts[feeling!] || 0) + 1;
       });
 
       const mostCommonFeeling = Object.keys(feelingCounts).reduce(
@@ -249,6 +345,84 @@ class WorkoutFeedbackService {
         personalRecordCount: 0,
       };
     }
+  }
+
+  /**
+   * ✅ חישוב מדדי משוב מותאמים אישית
+   */
+  async calculatePersonalizedFeedbackMetrics(
+    workouts: WorkoutWithFeedback[],
+    personalData?: PersonalData
+  ): Promise<FeedbackMetrics> {
+    const baseMetrics = await this.calculateFeedbackMetrics(workouts);
+
+    if (!personalData) {
+      return baseMetrics;
+    }
+
+    const personalizedInsights: string[] = [];
+
+    // ✅ תובנות מותאמות לגיל
+    if (personalData.age) {
+      if (
+        personalData.age.includes("50_") ||
+        personalData.age.includes("over_")
+      ) {
+        if (baseMetrics.averageDifficulty >= 3.5) {
+          personalizedInsights.push("🏆 מרשים! שמירה על רמה גבוהה בגילך");
+        }
+        if (baseMetrics.completionTrend === "improving") {
+          personalizedInsights.push("📈 מגמה מעלה מעוררת השראה בגילך");
+        }
+      } else if (
+        personalData.age.includes("18_") ||
+        personalData.age.includes("25_")
+      ) {
+        if (baseMetrics.averageDifficulty < 3) {
+          personalizedInsights.push(
+            "🚀 יש מקום לעלות ברמה - האנרגיה הצעירה יכולה יותר"
+          );
+        }
+        if (baseMetrics.personalRecordCount > 0) {
+          personalizedInsights.push("💥 שיאים בגיל צעיר - המשך לדחוף!");
+        }
+      }
+    }
+
+    // ✅ תובנות מותאמות למין
+    if (personalData.gender === "female") {
+      if (baseMetrics.mostCommonFeeling === "💪") {
+        personalizedInsights.push("👑 כוח נשי אמיתי - את מעוררת השראה!");
+      }
+    } else if (personalData.gender === "male") {
+      if (baseMetrics.completionTrend === "improving") {
+        personalizedInsights.push("💪 התקדמות עקבית - זה מה שנקרא דיסציפלינה");
+      }
+    }
+
+    // ✅ תובנות לפי רמת כושר
+    if (personalData.fitnessLevel === "beginner") {
+      if (baseMetrics.completionTrend === "improving") {
+        personalizedInsights.push(
+          "🌱 התקדמות מצוינת למתחיל - ממשיך בכיוון הנכון!"
+        );
+      }
+      if (baseMetrics.averageDifficulty >= 3) {
+        personalizedInsights.push("📊 רמת קושי טובה למתחיל - בונה בסיס חזק");
+      }
+    } else if (personalData.fitnessLevel === "advanced") {
+      if (baseMetrics.averageDifficulty < 4) {
+        personalizedInsights.push("🎖️ כמתקדם, שקול להעלות את רמת האתגר");
+      }
+      if (baseMetrics.personalRecordCount >= 5) {
+        personalizedInsights.push("🏅 מספר שיאים מרשים לרמתך המתקדמת");
+      }
+    }
+
+    return {
+      ...baseMetrics,
+      personalizedInsights,
+    };
   }
 
   /**
@@ -316,10 +490,10 @@ class WorkoutFeedbackService {
 
             if (savedDate < cutoffDate) {
               await AsyncStorage.removeItem(key);
-              console.log("🧹 Removed old feedback:", key);
+              console.warn("🧹 Removed old feedback:", key);
             }
           }
-        } catch (error) {
+        } catch {
           // אם יש שגיאה בקריאה, מחק את הפריט
           await AsyncStorage.removeItem(key);
           console.warn("🗑️ Removed corrupted feedback:", key);
@@ -333,7 +507,7 @@ class WorkoutFeedbackService {
   /**
    * יצוא נתוני משוב לניתוח
    */
-  async exportFeedbackData(): Promise<any[]> {
+  async exportFeedbackData(): Promise<Record<string, unknown>[]> {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const feedbackKeys = keys.filter((key) =>
@@ -343,7 +517,7 @@ class WorkoutFeedbackService {
       const allFeedback = await AsyncStorage.multiGet(feedbackKeys);
 
       return allFeedback
-        .map(([key, value]) => {
+        .map(([_key, value]) => {
           try {
             return value ? JSON.parse(value) : null;
           } catch {

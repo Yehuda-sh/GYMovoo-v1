@@ -41,7 +41,12 @@ export type {
   NextWorkoutRecommendation,
 } from "./nextWorkoutLogicService";
 
-export { realisticDemoService } from "./realisticDemoService";
+// 🔴 Demo services (DEV ONLY)
+export {
+  demoUserService,
+  realisticDemoService,
+  demoWorkoutService,
+} from "./demo/index";
 
 // =======================================
 // 🤖 AI and Scientific Services
@@ -74,7 +79,7 @@ export {
   workoutValidationService,
   workoutErrorHandlingService,
   workoutFeedbackService,
-  workoutDataService as WorkoutScreenDataService, // Renamed to avoid conflicts
+  workoutStorageService as WorkoutScreenStorageService, // Renamed to avoid conflicts
 } from "../screens/workout/services";
 
 // =======================================
