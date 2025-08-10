@@ -155,6 +155,63 @@ export const getBasicRTLContainerStyle = (): ViewStyle => ({
   flexDirection: getFlexDirection(),
 });
 
+// ✨ פונקציות סגנון חדשות ומומלצות | New and recommended style functions
+const propertyMap: { [key: string]: string } = {
+  marginLeft: "marginStart",
+  marginRight: "marginEnd",
+  paddingLeft: "paddingStart",
+  paddingRight: "paddingEnd",
+  borderLeftWidth: "borderStartWidth",
+  borderRightWidth: "borderEndWidth",
+  borderLeftColor: "borderStartColor",
+  borderRightColor: "borderEndColor",
+  left: "start",
+  right: "end",
+};
+
+/**
+ * Converts a style object to use RTL-aware logical properties.
+ * Replaces `marginLeft` with `marginStart`, `right` with `end`, etc.
+ * This is the modern and recommended way to handle layout styles.
+ * @param style The style object to convert.
+ * @returns A new style object with logical properties.
+ */
+export const rtlify = <T extends ViewStyle | TextStyle>(style: T): T => {
+  const rtlStyle = {} as T;
+  for (const key in style) {
+    const styleKey = key as keyof T;
+    const mappedKey = propertyMap[key];
+    if (mappedKey) {
+      const rtlKey = mappedKey as keyof T;
+      rtlStyle[rtlKey] = style[styleKey];
+    } else {
+      rtlStyle[styleKey] = style[styleKey];
+    }
+  }
+  return rtlStyle;
+};
+
+/**
+ * Adjusts the `transform` style property for RTL layouts.
+ * Specifically, it negates `translateX` values.
+ * @param transforms The array of transform objects.
+ * @returns A new array of transform objects adjusted for RTL.
+ */
+export const rtlifyTransform = (
+  transforms: ViewStyle["transform"]
+): ViewStyle["transform"] => {
+  if (!isRTL || !Array.isArray(transforms)) {
+    return transforms;
+  }
+  return transforms.map((transform) => {
+    if ("translateX" in transform && transform.translateX !== undefined) {
+      return { ...transform, translateX: -transform.translateX };
+    }
+    // Future: handle rotate, skewX, etc. if needed
+    return transform;
+  });
+};
+
 // ✨ פונקציות מתקדמות הועברו ל-theme.ts לטובת איחוד המערכת
 // Advanced functions moved to theme.ts for system unification
 

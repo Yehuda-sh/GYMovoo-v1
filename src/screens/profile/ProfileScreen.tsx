@@ -42,7 +42,6 @@ import {
   Dimensions,
   RefreshControl,
   TextInput,
-  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
@@ -56,7 +55,6 @@ import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
-import type { ComponentProps } from "react";
 import { User } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
@@ -69,14 +67,10 @@ import {
 import {
   PROFILE_UI_COLORS,
   STATS_COLORS,
-  EQUIPMENT_COLORS,
-  BUTTON_COLORS,
   getStatsGradient,
 } from "../../constants/profileScreenColors";
 import {
   calculateAchievements,
-  getUnlockedCount,
-  getNextAchievement,
   type Achievement,
 } from "../../constants/achievementsConfig";
 
@@ -84,14 +78,6 @@ import {
 // 🎯 TypeScript Interfaces & Types
 // ממשקי טייפסקריפט וטיפוסים
 // =======================================
-
-/**
- * Material Community Icon name type for type safety
- * טיפוס לשם אייקון מ-Material Community עבור בטיחות טיפוסים
- */
-type MaterialCommunityIconName = ComponentProps<
-  typeof MaterialCommunityIcons
->["name"];
 
 /**
  * Workout interface with rating and feedback support
@@ -216,9 +202,7 @@ function ProfileScreen() {
 
   // 🎉 מצבים להתראות הישגים / Achievement notification states
   const [showAchievementModal, setShowAchievementModal] = useState(false);
-  const [newAchievement, setNewAchievement] = useState<Achievement | null>(
-    null
-  );
+  const [newAchievement] = useState<Achievement | null>(null);
   const [achievementTooltip, setAchievementTooltip] = useState<{
     achievement: Achievement;
     visible: boolean;
@@ -333,6 +317,17 @@ function ProfileScreen() {
     }
   }, [user?.avatar, selectedAvatar]);
 
+  // 🔄 מימוש מעקב אחר שינויים בנתוני המשתמש / Track user data changes
+  useEffect(() => {
+    // Only refresh when critical user data changes
+    // ציוד ונתונים רק כאשר נתוני המשתמש הקריטיים משתנים
+  }, [
+    user?.smartQuestionnaireData,
+    user?.questionnaire,
+    user?.trainingStats,
+    user?.customDemoUser,
+  ]);
+
   // רענון הנתונים // Data refresh
   const onRefresh = useCallback(async () => {
     try {
@@ -423,82 +418,6 @@ function ProfileScreen() {
     return now - lastNameEdit >= oneWeek;
   }, [lastNameEdit]);
 
-  // 🎉 פונקציה להצגת הישג חדש עם אנימציות
-  const showNewAchievement = useCallback(
-    (achievement: Achievement) => {
-      console.log("ProfileScreen: 🎉 הישג חדש נפתח:", achievement.title);
-
-      setNewAchievement(achievement);
-
-      // אנימציית זיקוקים
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(fireworksOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.delay(2000),
-          Animated.timing(fireworksOpacity, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(fireworksScale, {
-            toValue: 1.2,
-            duration: 400,
-            easing: Easing.out(Easing.back(1.7)),
-            useNativeDriver: true,
-          }),
-          Animated.timing(fireworksScale, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start(() => {
-        // הצגת מודל ההישג אחרי האנימציה
-        setTimeout(() => {
-          setShowAchievementModal(true);
-        }, 500);
-      });
-    },
-    [fireworksOpacity, fireworksScale]
-  );
-
-  // 🔍 טיפול בלחיצה ארוכה על הישג (Tooltip)
-  const handleAchievementLongPress = useCallback((achievement: Achievement) => {
-    console.log("ProfileScreen: הצגת תיאור הישג:", achievement.title);
-    setAchievementTooltip({ achievement, visible: true });
-
-    // סגירה אוטומטית אחרי 3 שניות
-    setTimeout(() => {
-      setAchievementTooltip(null);
-    }, 3000);
-  }, []);
-
-  // 🎯 בדיקה והשוואה של הישגים חדשים
-  const checkForNewAchievements = useCallback(
-    (oldAchievements: Achievement[], newAchievements: Achievement[]) => {
-      const newUnlocked = newAchievements.filter(
-        (newAch) =>
-          newAch.unlocked &&
-          !oldAchievements.find(
-            (oldAch) => oldAch.id === newAch.id && oldAch.unlocked
-          )
-      );
-
-      // הצגת הישג חדש אם יש
-      if (newUnlocked.length > 0) {
-        // הצגת ההישג הראשון (אפשר לשנות להצגת כולם)
-        showNewAchievement(newUnlocked[0]);
-      }
-    },
-    [showNewAchievement]
-  );
-
   // 💾 שמירת שם חדש
   const handleSaveName = useCallback(async () => {
     const error = validateName(editedName);
@@ -532,7 +451,7 @@ function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [editedName, lastNameEdit, updateUser]);
+  }, [editedName, updateUser, canEditName, validateName]);
 
   // ===============================================
   // 📊 User Info Calculation - חישוב נתוני משתמש
@@ -547,7 +466,16 @@ function ProfileScreen() {
     // Helper to get nested values (e.g., goals[0], nutrition[0])
     const getNested = (obj: any, key: string) => {
       if (!obj) return undefined;
-      if (key === "goal") return obj.goal || obj.goals?.[0];
+      if (key === "goal") {
+        // אם יש goal יחיד - החזר אותו
+        if (obj.goal) return obj.goal;
+        // אם יש goals רבים - החזר רשימה או הודעה מתאימה
+        if (obj.goals && Array.isArray(obj.goals)) {
+          if (obj.goals.length === 1) return obj.goals[0];
+          if (obj.goals.length > 1) return obj.goals.join(", ");
+        }
+        return undefined;
+      }
       if (key === "diet_type" || key === "diet")
         return obj.diet_type || obj.diet || obj.nutrition?.[0];
       if (key === "experience")
@@ -688,7 +616,96 @@ function ProfileScreen() {
         return formatQuestionnaireValue("availability", val);
       })(),
     };
-  }, [user, formatQuestionnaireValue]);
+  }, [user]);
+
+  // 🔧 פונקציה מרכזית לחילוץ ציוד / Centralized equipment extraction function
+  const extractUserEquipment = useCallback((currentUser: User | null) => {
+    if (!currentUser) return [];
+
+    const equipment: string[] = [];
+
+    // 1. Smart questionnaire data (priority source)
+    if (currentUser.smartQuestionnaireData?.answers?.equipment) {
+      equipment.push(...currentUser.smartQuestionnaireData.answers.equipment);
+    }
+
+    // 2. Training stats selected equipment
+    if (currentUser.trainingStats?.selectedEquipment) {
+      equipment.push(...currentUser.trainingStats.selectedEquipment);
+    }
+
+    // 3. Custom demo user equipment
+    if (currentUser.customDemoUser?.equipment) {
+      equipment.push(...currentUser.customDemoUser.equipment);
+    }
+
+    // 4. Legacy questionnaire equipment fields
+    const questionnaire = currentUser.questionnaire as Record<string, unknown>;
+    if (questionnaire) {
+      // Direct equipment field
+      if (questionnaire.equipment) {
+        if (Array.isArray(questionnaire.equipment)) {
+          equipment.push(...questionnaire.equipment);
+        } else if (typeof questionnaire.equipment === "string") {
+          equipment.push(questionnaire.equipment);
+        }
+      }
+
+      // Available equipment field
+      if (Array.isArray(questionnaire.available_equipment)) {
+        equipment.push(...questionnaire.available_equipment);
+      }
+
+      // Dynamic questions equipment
+      const dynamicQuestions = [
+        "bodyweight_equipment_options",
+        "home_equipment_options",
+        "gym_equipment_options",
+      ];
+      dynamicQuestions.forEach((questionId) => {
+        const answer = questionnaire[questionId];
+        if (Array.isArray(answer)) {
+          answer.forEach((option: unknown) => {
+            if (
+              option &&
+              typeof option === "object" &&
+              "metadata" in option &&
+              option.metadata &&
+              typeof option.metadata === "object" &&
+              "equipment" in option.metadata &&
+              Array.isArray(option.metadata.equipment)
+            ) {
+              equipment.push(...(option.metadata.equipment as string[]));
+            }
+          });
+        }
+      });
+
+      // Legacy home/gym equipment
+      ["home_equipment", "gym_equipment"].forEach((field) => {
+        if (Array.isArray(questionnaire[field])) {
+          equipment.push(...(questionnaire[field] as string[]));
+        }
+      });
+    }
+
+    // Remove duplicates and filter out 'none' if we have real equipment
+    const deduped = [...new Set(equipment)];
+    if (deduped.length > 1 && deduped.includes("none")) {
+      return deduped.filter((e) => e !== "none");
+    }
+
+    return deduped;
+  }, []);
+
+  // 📊 מימוש מותאם של נתוני פרופיל עם ציוד / Memoized profile data with equipment
+  const profileData = useMemo(() => {
+    const userEquipment = extractUserEquipment(user);
+    return {
+      equipment: userEquipment,
+      hasEquipment: userEquipment.length > 0,
+    };
+  }, [user, extractUserEquipment]);
 
   // פונקציה למניעת כפילויות בתצוגת המידע - כל השדות דינמיים
   const getDisplayFields = (userInfo: any) => {
@@ -1441,137 +1458,8 @@ function ProfileScreen() {
                 contentContainerStyle={styles.equipmentScrollContent}
               >
                 {(() => {
-                  // חילוץ הציוד מהשאלון החדש - תמיכה בשאלון החכם המעודכן
-                  const questionnaire: Record<string, unknown> =
-                    (user?.questionnaire as Record<string, unknown>) || {};
-
-                  let allEquipment: string[] = [];
-
-                  console.log("ProfileScreen: חילוץ ציוד מהשאלון:", {
-                    questionnaire: Object.keys(questionnaire || {}),
-                    smartData: user?.smartQuestionnaireData?.answers?.equipment,
-                    trainingStats: user?.trainingStats?.selectedEquipment,
-                  });
-
-                  // 🆕 השיטה החדשה - ציוד מהשדה החכם
-                  if (user?.smartQuestionnaireData?.answers?.equipment) {
-                    allEquipment.push(
-                      ...user.smartQuestionnaireData.answers.equipment
-                    );
-                    console.log(
-                      "ProfileScreen: נמצא ציוד בשאלון החכם:",
-                      user.smartQuestionnaireData.answers.equipment
-                    );
-                  }
-
-                  // 🔧 תמיכה בשדה trainingStats
-                  if (user?.trainingStats?.selectedEquipment) {
-                    allEquipment.push(...user.trainingStats.selectedEquipment);
-                    console.log(
-                      "ProfileScreen: נמצא ציוד ב-trainingStats:",
-                      user.trainingStats.selectedEquipment
-                    );
-                  }
-
-                  // 🆕 השיטה החדשה - ציוד מהשאלות הדינמיות
-                  const dynamicQuestions = [
-                    "bodyweight_equipment_options", // ציוד ביתי בסיסי
-                    "home_equipment_options", // ציוד ביתי מתקדם
-                    "gym_equipment_options", // ציוד חדר כושר
-                  ];
-
-                  dynamicQuestions.forEach((questionId) => {
-                    const answer = questionnaire?.[questionId];
-                    if (Array.isArray(answer)) {
-                      answer.forEach((option: unknown) => {
-                        if (
-                          option &&
-                          typeof option === "object" &&
-                          "metadata" in option &&
-                          option.metadata &&
-                          typeof option.metadata === "object" &&
-                          "equipment" in option.metadata &&
-                          Array.isArray(option.metadata.equipment)
-                        ) {
-                          allEquipment.push(
-                            ...(option.metadata.equipment as string[])
-                          );
-                        }
-                      });
-                    }
-                  });
-
-                  // 🔧 תמיכה בשדה available_equipment החדש
-                  if (
-                    questionnaire?.available_equipment &&
-                    Array.isArray(questionnaire.available_equipment)
-                  ) {
-                    allEquipment.push(...questionnaire.available_equipment);
-                    console.log(
-                      "ProfileScreen: נמצא ציוד ב-available_equipment:",
-                      questionnaire.available_equipment
-                    );
-                  }
-
-                  // 🔧 תמיכה לאחור - פורמטים ישנים
-                  if (allEquipment.length === 0) {
-                    // פורמט רגיל
-                    if (questionnaire?.home_equipment) {
-                      const homeEq = Array.isArray(questionnaire.home_equipment)
-                        ? questionnaire.home_equipment
-                        : [];
-                      allEquipment.push(...homeEq);
-                      console.log("ProfileScreen: נמצא ציוד בית:", homeEq);
-                    }
-                    if (questionnaire?.gym_equipment) {
-                      const gymEq = Array.isArray(questionnaire.gym_equipment)
-                        ? questionnaire.gym_equipment
-                        : [];
-                      allEquipment.push(...gymEq);
-                      console.log("ProfileScreen: נמצא ציוד חדר כושר:", gymEq);
-                    }
-
-                    // פורמט ישן עם מספרים
-                    if (allEquipment.length === 0 && questionnaire[10]) {
-                      const oldHomeEq = Array.isArray(questionnaire[10])
-                        ? questionnaire[10]
-                        : [];
-                      allEquipment.push(...oldHomeEq);
-                      console.log(
-                        "ProfileScreen: נמצא ציוד בפורמט ישן (10):",
-                        oldHomeEq
-                      );
-                    }
-                    if (allEquipment.length === 0 && questionnaire[11]) {
-                      const oldGymEq = Array.isArray(questionnaire[11])
-                        ? questionnaire[11]
-                        : [];
-                      allEquipment.push(...oldGymEq);
-                      console.log(
-                        "ProfileScreen: נמצא ציוד בפורמט ישן (11):",
-                        oldGymEq
-                      );
-                    }
-                  }
-
-                  // אם עדיין אין ציוד, בואו נבדוק עוד מקורות
-                  if (allEquipment.length === 0) {
-                    // בדיקת כל השדות בשאלון
-                    Object.keys(questionnaire).forEach((key) => {
-                      const value = questionnaire[key];
-                      if (Array.isArray(value) && key.includes("equipment")) {
-                        console.log(`ProfileScreen: בדיקת שדה ${key}:`, value);
-                        allEquipment.push(
-                          ...value.filter((v) => typeof v === "string")
-                        );
-                      }
-                    });
-                  }
-
-                  // הסרת כפילויות // Remove duplicates
-                  allEquipment = [...new Set(allEquipment)];
-
-                  console.log("ProfileScreen: ציוד סופי שנמצא:", allEquipment);
+                  // 🔧 שימוש בפונקציה המרכזית לחילוץ ציוד - מחליפה את הלוגיקה המורכבת
+                  const allEquipment = extractUserEquipment(user);
 
                   if (allEquipment.length === 0) {
                     return (

@@ -831,9 +831,21 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 user.smartQuestionnaireData.answers.fitnessLevel ||
                 "intermediate",
               gender: user.smartQuestionnaireData.answers.gender || "other",
-              equipment: user.smartQuestionnaireData.answers.equipment || [
-                "none",
-              ],
+              // Bridge equipment sources: equipment / gym_equipment (array of objects) / bodyweight_equipment
+              equipment: (() => {
+                const direct = user.smartQuestionnaireData.answers.equipment;
+                const gymEqRaw = (user.smartQuestionnaireData.answers as any)
+                  .gym_equipment;
+                const gymEq = Array.isArray(gymEqRaw)
+                  ? gymEqRaw.map((o: any) => o.id || o)
+                  : [];
+                const merged = (direct || gymEq || []).filter(Boolean);
+                const real = merged.filter(
+                  (e: string) => e !== "none" && e !== "no_equipment"
+                );
+                return real.length > 0 ? Array.from(new Set(real)) : ["none"];
+              })(),
+              // Bridge goals: goals array or single fitness_goal
               goals: user.smartQuestionnaireData.answers.goals || [
                 "muscle_gain",
               ],
@@ -943,8 +955,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const frequencyValue = Array.isArray(metadata.frequency)
         ? metadata.frequency[0]
         : metadata.frequency;
-      const daysPerWeek =
-        FREQUENCY_MAP[frequencyValue as keyof typeof FREQUENCY_MAP] || 3;
+      // Support new pattern like "2_days" etc.
+      let daysPerWeek =
+        FREQUENCY_MAP[frequencyValue as keyof typeof FREQUENCY_MAP];
+      if (!daysPerWeek && /_days$/.test(frequencyValue || "")) {
+        const parsed = parseInt(String(frequencyValue).split("_", 1)[0], 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 7) daysPerWeek = parsed;
+      }
+      if (!daysPerWeek) daysPerWeek = 3;
 
       console.log("🏗️ WorkoutPlansScreen: Days per week:", daysPerWeek);
       console.log("🏗️ WorkoutPlansScreen: About to create workout plan...");
@@ -1275,14 +1293,54 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const difficultyFilter = getDifficultyFilter(experience);
     console.log("🎯 WorkoutPlansScreen: Difficulty filter:", difficultyFilter);
 
-    let selectedExercises = availableExercises
-      .filter((ex: any) =>
-        difficultyFilter.includes(ex.difficulty || "beginner")
-      )
-      .slice(0, exerciseCount);
+    // Filter by difficulty
+    const difficultyFilteredExercises = availableExercises.filter((ex: any) =>
+      difficultyFilter.includes(ex.difficulty || "beginner")
+    );
+
+    // ✅ FIX: Prioritize equipment-based exercises over bodyweight for users with equipment
+    const realEquipment = equipment.filter(
+      (item) =>
+        item !== "none" && item !== "bodyweight" && item !== "no_equipment"
+    );
+
+    let selectedExercises: any[] = [];
+
+    if (realEquipment.length > 0) {
+      // User has real equipment - prioritize equipment-based exercises
+      const equipmentExercises = difficultyFilteredExercises.filter((ex: any) =>
+        realEquipment.includes(ex.equipment)
+      );
+
+      const bodyweightExercises = difficultyFilteredExercises.filter(
+        (ex: any) => ex.equipment === "none" || ex.equipment === "bodyweight"
+      );
+
+      // Take mostly equipment exercises, fill with bodyweight if needed
+      const equipmentCount = Math.min(
+        equipmentExercises.length,
+        Math.ceil(exerciseCount * 0.8)
+      );
+      const bodyweightCount = Math.min(
+        bodyweightExercises.length,
+        exerciseCount - equipmentCount
+      );
+
+      selectedExercises = [
+        ...equipmentExercises.slice(0, equipmentCount),
+        ...bodyweightExercises.slice(0, bodyweightCount),
+      ];
+
+      console.log(
+        `🏋️ WorkoutPlansScreen: Prioritized equipment exercises: ${equipmentCount} equipment + ${bodyweightCount} bodyweight`
+      );
+    } else {
+      // User has no equipment - use bodyweight exercises
+      selectedExercises = difficultyFilteredExercises.slice(0, exerciseCount);
+    }
 
     console.log(
-      "🎯 WorkoutPlansScreen: Selected exercises after difficulty filtering:",
+      "🎯 WorkoutPlansScreen: Selected exercises after equipment prioritization:",
       selectedExercises.map((ex: any) => `${ex.name} (${ex.equipment})`)
     );
 
@@ -1569,21 +1627,30 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const validEquipment =
         equipment && equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT;
 
-      // Check if user selected "home without equipment" - should only get bodyweight exercises
-      const hasNoEquipment =
-        equipment?.includes("none") || equipment?.includes("bodyweight");
-      if (hasNoEquipment) {
+      // Filter out special values to check for real equipment
+      const realEquipment = validEquipment.filter(
+        (item) =>
+          item !== "none" && item !== "bodyweight" && item !== "no_equipment"
+      );
+
+      // ✅ FIX: Only return bodyweight if user has NO real equipment at all
+      if (realEquipment.length === 0) {
         console.log(
-          "🏠 WorkoutPlansScreen: User selected home without equipment - filtering to bodyweight only"
+          "🏠 WorkoutPlansScreen: User has no real equipment - using bodyweight only"
         );
-        return ["none", "bodyweight"]; // Ensure bodyweight exercises are available
+        return ["none", "bodyweight"];
       }
 
+      // Always include bodyweight as option alongside real equipment
+      const finalEquipment = [...realEquipment, "none", "bodyweight"];
+
+      console.log("🔧 WorkoutPlansScreen: User has equipment:", realEquipment);
       console.log(
         "🔧 WorkoutPlansScreen: Final equipment list:",
-        validEquipment
+        finalEquipment
       );
-      return validEquipment;
+
+      return finalEquipment;
     } catch (error) {
       console.error("❌ WorkoutPlansScreen: Error getting equipment:", error);
       setError(error instanceof Error ? error.message : "שגיאה בטעינת ציוד");
@@ -1872,6 +1939,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 return (
                   <View key={exercise.exerciseId} style={styles.exerciseCard}>
                     <TouchableOpacity
+                      style={styles.exerciseTouchable}
                       onPress={() =>
                         handleExerciseDetailsToggle(
                           exercise.exerciseId,
@@ -1942,12 +2010,14 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     marginTop: 16,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   errorMessage: {
     fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     color: theme.colors.text,
     marginTop: 8,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   retryButton: {
     marginTop: 24,
@@ -1960,6 +2030,7 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: 18, // הוגדל מ-16 לבולטות במסך הנייד
     fontWeight: "bold",
+    writingDirection: "rtl", // ✅ RTL support
   },
   header: {
     padding: 20,
@@ -1971,14 +2042,16 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: 8,
+    writingDirection: "rtl", // ✅ RTL support
   },
   description: {
     fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   daySelector: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // ✅ RTL support - שינוי מ-"row"
     flexWrap: "wrap",
     justifyContent: "center",
     padding: 16,
@@ -1999,6 +2072,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginTop: 4,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   selectedDayButtonText: {
     color: theme.colors.surface,
@@ -2017,6 +2091,7 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: 20, // הוגדל מ-18 לבולטות במסך הנייד
     fontWeight: "bold",
+    writingDirection: "rtl", // ✅ RTL support
   },
   exercisesList: {
     gap: 8,
@@ -2025,26 +2100,37 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 8,
     padding: 16,
+    alignItems: "flex-end", // ✅ RTL support - יישור לימין
+  },
+  exerciseTouchable: {
+    width: "100%",
+    alignItems: "flex-end", // ✅ RTL support - יישור לימין
   },
   exerciseName: {
     fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 4,
+    textAlign: "right", // ✅ RTL support
+    writingDirection: "rtl", // ✅ RTL support
+    width: "100%", // ✅ RTL support - רוחב מלא
   },
   exerciseDetails: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.textSecondary,
+    textAlign: "right", // ✅ RTL support
+    writingDirection: "rtl", // ✅ RTL support
+    width: "100%", // ✅ RTL support - רוחב מלא
   },
   actionButtons: {
-    flexDirection: "row",
+    flexDirection: "row-reverse", // ✅ RTL support - שינוי מ-"row"
     justifyContent: "center",
     gap: 12,
     marginTop: 16,
   },
   aiButton: {
     backgroundColor: theme.colors.primary,
-    flexDirection: "row",
+    flexDirection: "row-reverse", // ✅ RTL support - שינוי מ-"row"
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -2055,10 +2141,11 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "bold",
+    writingDirection: "rtl", // ✅ RTL support
   },
   regenerateButton: {
     backgroundColor: theme.colors.surface,
-    flexDirection: "row",
+    flexDirection: "row-reverse", // ✅ RTL support - שינוי מ-"row"
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -2071,21 +2158,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "bold",
-  },
-  testButton: {
-    backgroundColor: theme.colors.surface,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.warning,
-    gap: 6,
-  },
-  testButtonText: {
-    color: theme.colors.warning,
-    fontSize: 14,
-    fontWeight: "bold",
+    writingDirection: "rtl", // ✅ RTL support
   },
 });

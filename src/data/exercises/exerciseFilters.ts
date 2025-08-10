@@ -19,6 +19,12 @@ export const EQUIPMENT_TYPES = {
   PULLUP_BAR: "pullup_bar",
   BARBELL: "barbell",
   CABLE_MACHINE: "cable_machine",
+  KETTLEBELL: "kettlebell",
+  TRX: "trx",
+  WATER_BOTTLES: "water_bottles",
+  WATER_GALLON: "water_gallon",
+  SANDBAG: "sandbag",
+  TIRE: "tire",
   NONE: "none",
 } as const;
 

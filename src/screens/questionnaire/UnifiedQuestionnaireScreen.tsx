@@ -367,6 +367,51 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         diet_preferences: getAnswerValue(answersMap, "diet_preferences"),
       });
 
+      // 🔍 Equipment extraction: scan all answer keys containing 'equipment'
+      const extractedEquipmentIds: string[] = [];
+      Object.entries(answersMap).forEach(([key, value]) => {
+        if (!key.includes("equipment")) return;
+        if (Array.isArray(value)) {
+          value.forEach((opt: any) => {
+            if (opt && typeof opt === "object") {
+              // direct id/value
+              if (opt.id || opt.value) {
+                extractedEquipmentIds.push(opt.id || opt.value);
+              }
+              // nested metadata.equipment array
+              if (
+                opt.metadata &&
+                typeof opt.metadata === "object" &&
+                Array.isArray(opt.metadata.equipment)
+              ) {
+                opt.metadata.equipment.forEach((e: any) => {
+                  if (typeof e === "string") extractedEquipmentIds.push(e);
+                });
+              }
+            } else if (typeof opt === "string") {
+              extractedEquipmentIds.push(opt);
+            }
+          });
+        } else if (value && typeof value === "object") {
+          if ((value as any).id) extractedEquipmentIds.push((value as any).id);
+        }
+      });
+      const dedup = Array.from(new Set(extractedEquipmentIds));
+      const realEquipment = dedup.filter(
+        (id) => id && !["none", "no_equipment"].includes(id)
+      );
+      const finalEquipment =
+        realEquipment.length > 0 ? realEquipment : ["none"];
+      console.log("🛠️ Equipment extraction (unified):", {
+        keysScanned: Object.keys(answersMap).filter((k) =>
+          k.includes("equipment")
+        ),
+        extractedEquipmentIds,
+        dedup,
+        realEquipment,
+        finalEquipment,
+      });
+
       // Save to store AND AsyncStorage
       const userProfileData = {
         id: customDemoUser.id,
@@ -379,7 +424,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         fitnessGoals: customDemoUser.fitnessGoals,
         availableDays: customDemoUser.availableDays,
         sessionDuration: customDemoUser.sessionDuration,
-        equipment: customDemoUser.equipment,
+        equipment: finalEquipment, // override demo equipment with actual questionnaire selection
         preferredTime: customDemoUser.preferredTime,
         createdFromQuestionnaire: true,
         questionnaireTimestamp: new Date().toISOString(),
@@ -396,7 +441,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           experience:
             getAnswerValue(answersMap, "experience_level") ||
             customDemoUser.experience,
-          equipment: customDemoUser.equipment || [], // מתורגם מהמיקום
+          equipment: finalEquipment, // normalized
           frequency:
             getAnswerValue(answersMap, "availability") ||
             (Array.isArray(customDemoUser.availableDays)
@@ -447,8 +492,8 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           experience: customDemoUser.experience,
           height: customDemoUser.height,
           weight: customDemoUser.weight,
-          equipment: customDemoUser.equipment || [],
-          available_equipment: customDemoUser.equipment || [],
+          equipment: finalEquipment,
+          available_equipment: finalEquipment,
           sessionDuration: customDemoUser.sessionDuration,
           availableDays: customDemoUser.availableDays,
           preferredTime: customDemoUser.preferredTime,

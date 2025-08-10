@@ -111,7 +111,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
-import { Set, Exercise } from "../../types/workout.types";
+import { Set } from "../../types/workout.types";
 
 // ייבוא ממשק מרכזי במקום הגדרה מקומית
 import { ExtendedSet } from "../types";
@@ -164,7 +164,6 @@ interface SetRowProps {
   onComplete: () => void;
   onLongPress: () => void;
   isActive?: boolean;
-  exercise: Exercise;
   // מצב עריכה
   isEditMode?: boolean;
   onMoveUp?: () => void;
@@ -175,6 +174,16 @@ interface SetRowProps {
   isLast?: boolean;
 }
 
+// Debug flag (enable with EXPO_PUBLIC_DEBUG_SETROW=1)
+const DEBUG = process.env.EXPO_PUBLIC_DEBUG_SETROW === "1";
+const dlog = (msg: string, data?: unknown) => {
+  if (DEBUG) {
+    console.warn(
+      `🏷️ SetRow: ${msg}` + (data ? ` -> ${JSON.stringify(data)}` : "")
+    );
+  }
+};
+
 const SetRow: React.FC<SetRowProps> = ({
   set,
   setNumber,
@@ -183,7 +192,6 @@ const SetRow: React.FC<SetRowProps> = ({
   onComplete,
   onLongPress,
   isActive,
-  // exercise, // לא בשימוש כרגע
   isEditMode = false,
   onMoveUp,
   onMoveDown,
@@ -210,6 +218,7 @@ const SetRow: React.FC<SetRowProps> = ({
   const [showTargetHint, setShowTargetHint] = useState(false);
   const [weightFocused, setWeightFocused] = useState(false);
   const [repsFocused, setRepsFocused] = useState(false);
+  const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
@@ -266,23 +275,26 @@ const SetRow: React.FC<SetRowProps> = ({
     }).start();
   }, [isActive, scaleAnim]);
 
+  const parseNumeric = (raw: string, isInt = false) => {
+    if (raw === "") return undefined;
+    const n = isInt ? parseInt(raw) : parseFloat(raw);
+    return isNaN(n) ? undefined : n;
+  };
+
   const handleWeightChange = React.useCallback(
     (value: string) => {
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue) || value === "") {
-        wrappedOnUpdate({ actualWeight: value === "" ? undefined : numValue });
-      }
+      const parsed = parseNumeric(value, false);
+      wrappedOnUpdate({ actualWeight: parsed });
+      dlog("weightChange", { value, parsed });
     },
     [wrappedOnUpdate]
   );
 
   const handleRepsChange = React.useCallback(
     (value: string) => {
-      const numValue = parseInt(value);
-      if (!isNaN(numValue) || value === "") {
-        const updateValue = value === "" ? undefined : numValue;
-        wrappedOnUpdate({ actualReps: updateValue });
-      }
+      const parsed = parseNumeric(value, true);
+      wrappedOnUpdate({ actualReps: parsed });
+      dlog("repsChange", { value, parsed });
     },
     [wrappedOnUpdate]
   );
@@ -328,6 +340,7 @@ const SetRow: React.FC<SetRowProps> = ({
     if (set.completed) {
       // בטל השלמה - חזור למצב לא מושלם
       wrappedOnUpdate({ completed: false });
+      dlog("uncompleteSet", { setNumber });
       return;
     }
 
@@ -341,6 +354,7 @@ const SetRow: React.FC<SetRowProps> = ({
     }
 
     // השלם את הסט
+    dlog("completeSet", { setNumber });
     onComplete();
   };
 
@@ -348,13 +362,21 @@ const SetRow: React.FC<SetRowProps> = ({
     if (Platform.OS !== "web") {
       triggerVibration("short");
     }
+    dlog("deleteSet", { setNumber });
     onDelete();
   };
 
   const showHint = () => {
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     setShowTargetHint(true);
-    setTimeout(() => setShowTargetHint(false), 2000);
+    hintTimerRef.current = setTimeout(() => setShowTargetHint(false), 2000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
 
   // רכיב עזר לשדות קלט כדי לחסוך בכפילויות
   const renderInputField = React.useCallback(
@@ -411,21 +433,22 @@ const SetRow: React.FC<SetRowProps> = ({
   // Calculate performance indicator
   const performanceIndicator = React.useMemo(() => {
     if (!set.actualWeight || !set.previousWeight) return null;
-
     const diff =
       ((set.actualWeight - set.previousWeight) / set.previousWeight) * 100;
-
     if (diff > PERFORMANCE_THRESHOLDS.SIGNIFICANT_IMPROVEMENT) {
-      return { icon: "trending-up", color: theme.colors.success };
-    } else if (diff < PERFORMANCE_THRESHOLDS.SIGNIFICANT_DECLINE) {
-      return { icon: "trending-down", color: theme.colors.error };
-    } else {
-      return { icon: "trending-neutral", color: theme.colors.textSecondary };
+      return { icon: "trending-up", color: theme.colors.success } as const;
     }
+    if (diff < PERFORMANCE_THRESHOLDS.SIGNIFICANT_DECLINE) {
+      return { icon: "trending-down", color: theme.colors.error } as const;
+    }
+    return {
+      icon: "trending-neutral",
+      color: theme.colors.textSecondary,
+    } as const;
   }, [set.actualWeight, set.previousWeight]);
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={styles.wrapper}>
       <Animated.View
         style={[
           styles.container,
@@ -476,6 +499,9 @@ const SetRow: React.FC<SetRowProps> = ({
           onPress={showHint}
           onLongPress={onLongPress}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="ביצוע קודם"
+          accessibilityHint="הקש להצגת יעד הסט"
         >
           <Text style={styles.previousText}>
             {set.previousWeight && set.previousReps
@@ -484,9 +510,7 @@ const SetRow: React.FC<SetRowProps> = ({
           </Text>
           {performanceIndicator && (
             <MaterialCommunityIcons
-              name={
-                performanceIndicator.icon as "trending-up" | "trending-down"
-              }
+              name={performanceIndicator.icon}
               size={12}
               color={performanceIndicator.color}
               style={styles.trendIcon}
@@ -527,7 +551,11 @@ const SetRow: React.FC<SetRowProps> = ({
               onPress={handleComplete}
               style={styles.actionButton}
               hitSlop={HIT_SLOP}
-              accessibilityLabel={set.completed ? "בטל השלמת סט" : "סמן כהושלם"}
+              accessibilityRole="button"
+              accessibilityState={{ selected: !!set.completed }}
+              accessibilityLabel={
+                set.completed ? "בטל השלמת סט" : "סמן סט כהושלם"
+              }
             >
               <View
                 style={[
@@ -551,9 +579,13 @@ const SetRow: React.FC<SetRowProps> = ({
             <>
               {/* שכפל סט */}
               <TouchableOpacity
-                onPress={onDuplicate}
+                onPress={() => {
+                  dlog("duplicateSet", { setNumber });
+                  onDuplicate?.();
+                }}
                 style={styles.actionButton}
                 hitSlop={HIT_SLOP}
+                accessibilityRole="button"
                 accessibilityLabel="שכפל סט"
               >
                 <MaterialCommunityIcons
@@ -568,9 +600,13 @@ const SetRow: React.FC<SetRowProps> = ({
                 {/* רכיב עזר לכפתורי מעלית */}
                 {!isFirst && (
                   <TouchableOpacity
-                    onPress={onMoveUp}
+                    onPress={() => {
+                      dlog("moveUp", { setNumber });
+                      onMoveUp?.();
+                    }}
                     style={[styles.elevatorButton, styles.elevatorButtonUp]}
                     hitSlop={ELEVATOR_HIT_SLOP}
+                    accessibilityRole="button"
                     accessibilityLabel="הזז סט למעלה"
                   >
                     <MaterialCommunityIcons
@@ -584,9 +620,13 @@ const SetRow: React.FC<SetRowProps> = ({
 
                 {!isLast && (
                   <TouchableOpacity
-                    onPress={onMoveDown}
+                    onPress={() => {
+                      dlog("moveDown", { setNumber });
+                      onMoveDown?.();
+                    }}
                     style={[styles.elevatorButton, styles.elevatorButtonDown]}
                     hitSlop={ELEVATOR_HIT_SLOP}
+                    accessibilityRole="button"
                     accessibilityLabel="הזז סט למטה"
                   >
                     <MaterialCommunityIcons
@@ -604,6 +644,7 @@ const SetRow: React.FC<SetRowProps> = ({
                 onPress={handleDelete}
                 style={[styles.actionButton, styles.actionButtonDanger]}
                 hitSlop={HIT_SLOP}
+                accessibilityRole="button"
                 accessibilityLabel="מחק סט"
               >
                 <Ionicons
@@ -718,9 +759,7 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
   },
-  actionButtonDisabled: {
-    opacity: 0.4,
-  },
+  wrapper: { marginBottom: 8 },
   actionButtonDanger: {
     backgroundColor: theme.colors.error + "10",
     borderRadius: 6,

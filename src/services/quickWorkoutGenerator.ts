@@ -414,13 +414,14 @@ export class QuickWorkoutGenerator {
   }
 
   /**
-   * בחירת תרגילי סיבולת (העדפה למשקל גוף) - מעודכן לטיפוס החדש
+   * בחירת תרגילי סיבולת (העדפה למשקל גוף אבל כולל ציוד) - מעודכן לטיפוס החדש
    */
   private static selectEnduranceExercises(
     exercises: Exercise[],
     count: number
   ): Exercise[] {
-    return this.prioritizeByEquipment(exercises, "none", count); // 🏠 עודכן לטיפוס החדש
+    // ✅ FIX: Don't force "none" equipment - use balanced selection for endurance
+    return this.selectBalancedExercises(exercises, count);
   }
 
   /**

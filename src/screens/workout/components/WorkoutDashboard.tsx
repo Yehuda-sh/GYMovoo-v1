@@ -71,6 +71,10 @@ import { theme } from "../../../styles/theme";
 import { CloseButton, StatItem, type StatItemProps } from "./shared";
 import type { WorkoutDashboardProps } from "./types";
 
+// Constants (avoid magic numbers)
+const BAR_TOP_OFFSET = 60;
+const FLOATING_TOP_OFFSET = 100;
+
 export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   totalVolume,
   completedSets,
@@ -87,6 +91,11 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   const completionPercentage = useMemo(
     () => (totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0),
     [completedSets, totalSets]
+  );
+
+  const barProgressFillDynamic = useMemo(
+    () => ({ width: `${completionPercentage}%` as const }),
+    [completionPercentage]
   );
 
   // אופטימיזציה של נתוני הסטטיסטיקות עם useMemo
@@ -149,7 +158,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Thin bar style (like NextExerciseBar)
   if (variant === "bar") {
     return (
-      <View style={styles.defaultContainer}>
+      <View style={styles.defaultContainer} testID="WorkoutDashboard-bar">
         <TouchableOpacity
           style={styles.barContainer}
           onPress={onHide}
@@ -208,12 +217,19 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
                 )}
               </View>
 
-              <View style={styles.barProgress}>
+              <View
+                style={styles.barProgress}
+                accessibilityRole="progressbar"
+                accessibilityLabel="התקדמות סטים"
+                accessibilityValue={{
+                  min: 0,
+                  max: 100,
+                  now: completionPercentage,
+                  text: `${completionPercentage}%`,
+                }}
+              >
                 <View
-                  style={[
-                    styles.barProgressFill,
-                    { width: `${completionPercentage}%` },
-                  ]}
+                  style={[styles.barProgressFill, barProgressFillDynamic]}
                 />
               </View>
             </View>
@@ -238,7 +254,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Compact style
   if (variant === "compact") {
     return (
-      <View style={styles.defaultContainer}>
+      <View style={styles.defaultContainer} testID="WorkoutDashboard-compact">
         <TouchableOpacity
           style={styles.compactContainer}
           onPress={onHide}
@@ -301,7 +317,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // Floating style
   if (variant === "floating") {
     return (
-      <View style={styles.defaultContainer}>
+      <View style={styles.defaultContainer} testID="WorkoutDashboard-floating">
         <TouchableOpacity
           style={styles.floatingContainer}
           onPress={onHide}
@@ -372,7 +388,7 @@ export const WorkoutDashboard: React.FC<WorkoutDashboardProps> = ({
   // ברירת מחדל - סגנון מקורי משופר
   // Default - improved original style
   return (
-    <View style={styles.defaultContainer}>
+    <View style={styles.defaultContainer} testID="WorkoutDashboard-default">
       <TouchableOpacity
         style={styles.container}
         onPress={() => {
@@ -432,7 +448,7 @@ const styles = StyleSheet.create({
   // Bar style
   barContainer: {
     position: "absolute",
-    top: 60,
+    top: BAR_TOP_OFFSET,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -517,7 +533,7 @@ const styles = StyleSheet.create({
   // Floating style
   floatingContainer: {
     position: "absolute",
-    top: 100,
+    top: FLOATING_TOP_OFFSET,
     left: theme.spacing.lg,
     right: theme.spacing.lg,
     zIndex: 10,

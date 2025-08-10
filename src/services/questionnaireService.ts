@@ -262,6 +262,27 @@ class QuestionnaireService {
     });
 
     const result = Array.from(new Set(equipment)); // Professional deduplication
+    if (result.length === 0) {
+      // Fallback: legacy or simplified field name 'gym_equipment'
+      const raw = (prefs as any).gym_equipment;
+      if (Array.isArray(raw)) {
+        raw.forEach((item) => {
+          if (!item) return;
+          // object with id or metadata.equipment
+          if (typeof item === "string") {
+            equipment.push(item);
+          } else if (item.id && typeof item.id === "string") {
+            equipment.push(item.id);
+          } else if (
+            item.metadata?.equipment &&
+            Array.isArray(item.metadata.equipment)
+          ) {
+            equipment.push(...item.metadata.equipment);
+          }
+        });
+      }
+      return Array.from(new Set(equipment));
+    }
     return result;
   }
 

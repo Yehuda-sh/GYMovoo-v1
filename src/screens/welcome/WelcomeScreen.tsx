@@ -38,6 +38,8 @@ import {
   formatActiveUsersText,
 } from "../../constants/welcomeScreenTexts";
 
+// Helper function was removed - inline logic used instead for better performance
+
 // Skeleton loading component for Google authentication button during async operations
 // קומפוננטת Skeleton לטעינת כפתור Google במהלך פעולות אסינכרוניות
 const GoogleButtonSkeleton = () => (
@@ -348,7 +350,24 @@ export default function WelcomeScreen() {
         equipment:
           randomQuestionnaireData.answers.equipment || basicUser.equipment,
         sessionDuration: randomQuestionnaireData.answers.sessionDuration,
-        availableDays: randomQuestionnaireData.answers.availability,
+        availableDays: (() => {
+          const availability = randomQuestionnaireData.answers.availability;
+          const availabilityStr = Array.isArray(availability)
+            ? availability[0]
+            : availability;
+          switch (availabilityStr) {
+            case "2_days":
+              return 2;
+            case "3_days":
+              return 3;
+            case "4_days":
+              return 4;
+            case "5_days":
+              return 5;
+            default:
+              return 3;
+          }
+        })(),
         preferredTime: randomQuestionnaireData.answers.preferredTime,
 
         // נתוני השאלון החכם
@@ -429,13 +448,14 @@ export default function WelcomeScreen() {
   ): SmartQuestionnaireData => {
     const genders = ["male", "female"] as const;
     const experiences = ["beginner", "intermediate", "advanced"] as const;
+    // 🎯 תיקון: השאלון מאפשר רק מטרה אחת - המשתמש הדמו צריך להיות עקבי
     const goals = [
       ["build_muscle"],
       ["lose_weight"],
       ["improve_endurance"],
       ["general_fitness"],
-      ["build_muscle", "lose_weight"],
-      ["improve_endurance", "general_fitness"],
+      ["athletic_performance"],
+      ["tone_muscles"],
     ];
     const equipmentOptions = [
       ["bodyweight"],

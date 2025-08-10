@@ -13,15 +13,38 @@ import {
 } from "../types/workout.types";
 
 // Common Types למניעת חזרה
+/**
+ * רשימת כל ה-variants הגלובליים (חלקם לא נתמכים בכל קומפוננטה)
+ * Global superset of workout visual variants.
+ * NOTE: "pills" משמש כרגע רק ב-NextExerciseBar (ייתכן הסרה עתידית) | may be removed later.
+ */
 export type WorkoutVariant =
   | "default"
   | "minimal"
   | "gradient"
-  | "integrated"
-  | "floating"
-  | "pills"
-  | "compact"
-  | "bar";
+  | "integrated" // Header בלבד כרגע
+  | "floating" // StatusBar, Dashboard, NextExerciseBar
+  | "pills" // NEXT_EXERCISE_BAR ONLY (deprecated candidate)
+  | "compact" // StatusBar + Dashboard (timer size logic)
+  | "bar"; // Dashboard בלבד
+
+// טיפוסים מצומצמים לכל קומפוננטה – מונעים שימוש בערכים לא נתמכים
+export type WorkoutHeaderVariant = Extract<
+  WorkoutVariant,
+  "default" | "minimal" | "gradient" | "integrated"
+>;
+export type WorkoutDashboardVariant = Extract<
+  WorkoutVariant,
+  "default" | "compact" | "floating" | "bar"
+>;
+export type NextExerciseBarVariant = Extract<
+  WorkoutVariant,
+  "gradient" | "minimal" | "floating" | "pills"
+>;
+export type WorkoutStatusBarVariant = Extract<
+  WorkoutVariant,
+  "default" | "minimal" | "floating" | "compact"
+>;
 
 export type ButtonVariant =
   | "primary"
@@ -46,7 +69,7 @@ export interface WorkoutHeaderProps {
   onTimerPress: () => void;
   onNamePress: () => void;
   onMenuPress?: () => void;
-  variant?: WorkoutVariant;
+  variant?: WorkoutHeaderVariant;
   // Props לסגנון integrated
   completedSets?: number;
   totalSets?: number;
@@ -62,7 +85,7 @@ export interface WorkoutDashboardProps {
   pace: number;
   personalRecords: number;
   elapsedTime?: string;
-  variant?: WorkoutVariant;
+  variant?: WorkoutDashboardVariant;
   onHide?: () => void; // פונקציה להעלמת הדשבורד | Function to hide dashboard
   isEditMode?: boolean; // מצב עריכה | Edit mode
 }
@@ -136,7 +159,7 @@ export interface ExerciseMenuProps {
 export interface NextExerciseBarProps {
   nextExercise: Exercise | null;
   onSkipToNext?: () => void;
-  variant?: WorkoutVariant;
+  variant?: NextExerciseBarVariant;
 }
 
 // WorkoutStatusBar Props - עדכון עם טיפוסים משופרים
@@ -153,7 +176,7 @@ export interface WorkoutStatusBarProps {
   onSkipToNext?: () => void;
 
   // Common Props
-  variant?: WorkoutVariant;
+  variant?: WorkoutStatusBarVariant;
 }
 
 // WorkoutSummary Props - עדכון לפי המימוש הנוכחי

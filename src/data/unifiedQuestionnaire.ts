@@ -89,6 +89,21 @@ export const BODYWEIGHT_OPTIONS: QuestionOption[] = [
     label: "תיק עם ספרים",
     description: "להוספת משקל לתרגילים",
   },
+  {
+    id: "water_gallon",
+    label: "כד מים גדול",
+    description: "כמשקולת כבדה יותר",
+  },
+  {
+    id: "sandbag",
+    label: "שק חול/אורז",
+    description: "להוספת משקל משתנה",
+  },
+  {
+    id: "tire",
+    label: "צמיג רכב",
+    description: "לאימוני כוח ופונקציונליים",
+  },
 ];
 
 // ציוד ביתי - מתקדם

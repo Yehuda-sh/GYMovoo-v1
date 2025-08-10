@@ -27,24 +27,18 @@
  */
 
 import React, { useEffect, useRef, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from "react-native";
+import { View, Text, StyleSheet, Animated } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
 import {
-  formatTime,
   triggerVibration,
   animationConfig,
   workoutLogger,
 } from "../../../utils";
 import { SkipButton } from "./shared/SkipButton";
-import { TimeButton } from "./shared/TimeButton";
+import { TimeAdjustButton, TimerDisplay } from "./shared";
+import { REST_ADJUST_STEP_SECONDS } from "../../../constants/restTimer";
 import type { WorkoutStatusBarProps } from "./types";
 
 export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
@@ -107,17 +101,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
     }, []);
 
     // אופטימיזציה של כפתורי זמן עם useCallback ולוגים
-    const handleAddTime = useCallback(() => {
-      workoutLogger.info("WorkoutStatusBar", "הוספת 10 שניות לטיימר מנוחה");
-      handleVibrate();
-      onAddRestTime?.(10);
-    }, [onAddRestTime, handleVibrate]);
-
-    const handleSubtractTime = useCallback(() => {
-      workoutLogger.info("WorkoutStatusBar", "הפחתת 10 שניות מטיימר מנוחה");
-      handleVibrate();
-      onSubtractRestTime?.(10);
-    }, [onSubtractRestTime, handleVibrate]);
+    // Removed local add/subtract handlers (handled inline via TimeAdjustButton)
 
     const handleSkipRest = useCallback(() => {
       workoutLogger.info("WorkoutStatusBar", "דילוג על טיימר מנוחה");
@@ -184,7 +168,15 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
       return () => {
         pulseAnimationRef.current?.stop();
       };
-    }, [shouldShow, isRestActive, onSkipRest, onSkipToNext, variant]);
+    }, [
+      shouldShow,
+      isRestActive,
+      onSkipRest,
+      onSkipToNext,
+      variant,
+      pulseAnim,
+      slideAnim,
+    ]);
 
     if (!shouldShow) {
       return null;
@@ -206,34 +198,41 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
             style={styles.gradientBackground}
           >
             <View style={styles.content}>
-              {/* כפתור -10 שניות | -10 seconds button */}
+              {/* כפתור -10 שניות | Unified TimeAdjustButton subtract */}
               {onSubtractRestTime && (
-                <TimeButton
-                  onPress={handleSubtractTime}
-                  text="-10"
-                  color={theme.colors.error}
-                  accessibilityLabel="הפחת 10 שניות מהטיימר"
+                <TimeAdjustButton
+                  type="subtract"
+                  size="compact"
+                  onPress={(value) => onSubtractRestTime?.(Math.abs(value))}
+                  seconds={REST_ADJUST_STEP_SECONDS}
+                  testID="WorkoutStatusBar-subtract"
                 />
               )}
 
-              {/* טיימר מרכזי | Central timer */}
-              <View style={styles.timerContainer}>
+              {/* טיימר מרכזי מאוחד */}
+              <View style={styles.timerWrapper}>
                 <MaterialCommunityIcons
                   name="timer-sand"
                   size={20}
                   color={theme.colors.success}
+                  style={styles.timerIcon}
                 />
-                <Text style={styles.timerText}>{formatTime(restTimeLeft)}</Text>
-                <Text style={styles.timerLabel}>מנוחה</Text>
+                <TimerDisplay
+                  timeLeft={restTimeLeft}
+                  size="compact"
+                  label="מנוחה"
+                  testID="WorkoutStatusBar-timer"
+                />
               </View>
 
-              {/* כפתור +10 שניות | +10 seconds button */}
+              {/* כפתור +10 שניות | Unified TimeAdjustButton add */}
               {onAddRestTime && (
-                <TimeButton
-                  onPress={handleAddTime}
-                  text="+10"
-                  color={theme.colors.success}
-                  accessibilityLabel="הוסף 10 שניות לטיימר"
+                <TimeAdjustButton
+                  type="add"
+                  size="compact"
+                  onPress={(value) => onAddRestTime?.(value)}
+                  seconds={REST_ADJUST_STEP_SECONDS}
+                  testID="WorkoutStatusBar-add"
                 />
               )}
 
@@ -307,6 +306,8 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
   }
 );
 
+WorkoutStatusBar.displayName = "WorkoutStatusBar";
+
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
@@ -345,23 +346,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // טיימר מנוחה | Rest timer styles
-  timerContainer: {
+  // Removed legacy inline timer styles after unifying with TimerDisplay
+  timerWrapper: {
     alignItems: "center",
     flex: 1,
-    gap: 4,
   },
-  timerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.success,
-    textAlign: "center",
-  },
-  timerLabel: {
-    fontSize: 12,
-    color: theme.colors.success,
-    fontWeight: "500",
-  },
+  timerIcon: { marginBottom: 4 },
 
   // תרגיל הבא | Next exercise styles
   exerciseInfo: {

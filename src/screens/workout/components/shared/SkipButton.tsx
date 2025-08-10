@@ -1,78 +1,134 @@
 /**
  * @file src/screens/workout/components/shared/SkipButton.tsx
- * @brief רכיב כפתור דילוג משותף
- * @description מונע כפילויות בין WorkoutStatusBar, RestTimer ו-NextExerciseBar
+ * @brief כפתור דילוג / פעולה קצרה לשימוש חוזר (מניעת כפילויות)
+ * @features
+ * - מצב loading + disabled
+ * - תמיכה ברטט (haptic)
+ * - reducedMotion (השבתת אנימציות חיצוניות)
+ * - טיפוס אייקון בטוח
  */
-
-import React from "react";
-import { TouchableOpacity, Animated } from "react-native";
+import React, { useMemo } from "react";
+import {
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  StyleProp,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../styles/theme";
+import { triggerVibration } from "../../../../utils/workoutHelpers";
 
-interface SkipButtonProps {
+export interface SkipButtonProps {
   onPress: () => void;
-  icon: string;
+  onLongPress?: () => void;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   colors: [string, string, ...string[]];
   size?: number;
   accessibilityLabel: string;
+  accessibilityHint?: string;
   pulseAnimation?: Animated.Value;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   iconColor?: string;
+  disabled?: boolean;
+  loading?: boolean;
+  haptic?: boolean;
+  testID?: string;
+  reducedMotion?: boolean;
 }
 
 export const SkipButton: React.FC<SkipButtonProps> = React.memo(
   ({
     onPress,
+    onLongPress,
     icon,
     colors,
     size = 20,
     accessibilityLabel,
+    accessibilityHint,
     pulseAnimation,
     style,
-    iconColor = "white",
+    iconColor = theme.colors.white,
+    disabled = false,
+    loading = false,
+    haptic = false,
+    testID,
+    reducedMotion = false,
   }) => {
-    const ButtonWrapper = pulseAnimation ? Animated.View : React.Fragment;
-    const wrapperProps = pulseAnimation
-      ? { style: { transform: [{ scale: pulseAnimation }] } }
-      : {};
+    const animatedStyle = useMemo(() => {
+      if (!pulseAnimation || reducedMotion) return undefined;
+      return { transform: [{ scale: pulseAnimation }] };
+    }, [pulseAnimation, reducedMotion]);
+
+    const mergedContainerStyle = useMemo(
+      () => [
+        styles.container,
+        disabled && styles.disabled,
+        loading && styles.loading,
+        style,
+      ],
+      [disabled, loading, style]
+    );
+
+    const handlePress = () => {
+      if (disabled || loading) return;
+      if (haptic) triggerVibration("short");
+      onPress();
+    };
 
     return (
-      <ButtonWrapper {...wrapperProps}>
+      <Animated.View style={animatedStyle} testID={testID || "SkipButton"}>
         <TouchableOpacity
-          style={[
-            {
-              borderRadius: theme.radius.xl,
-              overflow: "hidden",
-              borderWidth: 2,
-              borderColor: theme.colors.primary + "30",
-              ...theme.shadows.medium,
-            },
-            style,
-          ]}
-          onPress={onPress}
+          style={mergedContainerStyle}
+          onPress={handlePress}
+          onLongPress={onLongPress}
           activeOpacity={0.7}
           accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
           accessibilityRole="button"
+          accessibilityState={{ disabled, busy: loading }}
+          disabled={disabled || loading}
         >
-          <LinearGradient
-            colors={colors}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              alignItems: "center",
-              justifyContent: "center",
-              minWidth: 50,
-            }}
-          >
-            <MaterialCommunityIcons
-              name={icon as any}
-              size={size}
-              color={iconColor}
-            />
+          <LinearGradient colors={colors} style={styles.gradient}>
+            {loading ? (
+              <ActivityIndicator size="small" color={iconColor} />
+            ) : (
+              <MaterialCommunityIcons
+                name={icon}
+                size={size}
+                color={iconColor}
+              />
+            )}
           </LinearGradient>
         </TouchableOpacity>
-      </ButtonWrapper>
+      </Animated.View>
     );
   }
 );
+
+SkipButton.displayName = "SkipButton";
+
+const styles = StyleSheet.create({
+  container: {
+    borderRadius: theme.radius.xl,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: theme.colors.primary + "30",
+    ...(theme.shadows.medium as object),
+  },
+  gradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 50,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  loading: {
+    opacity: 0.85,
+  },
+});

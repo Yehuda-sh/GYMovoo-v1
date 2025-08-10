@@ -31,6 +31,12 @@ const SIMULATION_CONSTANTS = {
   MAX_START_HOUR_RANGE: 5,
   COMPLETION_RATE: 0.85, // 85% השלמה
   PERSONAL_RECORD_CHANCE: 0.15, // 15% סיכוי לשיא
+  // 💡 קבועים חדשים לשיפור הסימולציה
+  PROGRESSIVE_OVERLOAD_FACTOR: 1.01, // עלייה של 1% במשקל כל שבוע
+  MOTIVATION_PR_BOOST: 0.5,
+  MOTIVATION_MISS_PENALTY: 0.2,
+  SET_TIME_BASE: 45, // 45 שניות בסיס לסט
+  SET_TIME_VARIANCE: 30, // תוספת של עד 30 שניות
 } as const;
 
 interface SimulationParameters {
@@ -41,6 +47,7 @@ interface SimulationParameters {
   equipment: string[];
   currentWeek: number;
   motivation: number; // 1-10
+  baseStrength: number; // Base strength multiplier for progressive overload
 }
 
 class WorkoutSimulationService {
@@ -52,7 +59,8 @@ class WorkoutSimulationService {
    */
   async simulateHistoryCompatibleWorkouts(
     gender: UserGender,
-    experience: "beginner" | "intermediate" | "advanced"
+    experience: "beginner" | "intermediate" | "advanced",
+    userEquipment?: string[]
   ): Promise<WorkoutWithFeedback[]> {
     console.log("🏋️ Starting history-compatible workout simulation");
 
@@ -61,9 +69,11 @@ class WorkoutSimulationService {
       experience,
       availableDays: 4,
       sessionDuration: "60 דקות",
-      equipment: realisticDemoService.generateDemoUser().equipment,
+      equipment:
+        userEquipment || realisticDemoService.generateDemoUser().equipment,
       currentWeek: 0,
       motivation: 7, // התחלה עם מוטיבציה טובה
+      baseStrength: this.getBaseStrength(experience),
     };
 
     const workouts: WorkoutWithFeedback[] = [];
@@ -125,6 +135,13 @@ class WorkoutSimulationService {
       baseWorkouts,
       params.motivation
     );
+
+    // 💡 עדכון מוטיבציה על בסיס אימונים שבוצעו מול מתוכננים
+    if (actualWorkouts < baseWorkouts) {
+      params.motivation -=
+        (baseWorkouts - actualWorkouts) *
+        SIMULATION_CONSTANTS.MOTIVATION_MISS_PENALTY;
+    }
 
     // יצירת ימי אימון מפוזרים בשבוע
     const workoutDays = this.generateWorkoutDays(actualWorkouts);
@@ -275,8 +292,19 @@ class WorkoutSimulationService {
 
     for (let i = 0; i < numSets; i++) {
       const targetReps = this.getTargetReps(params.experience);
-      const targetWeight = this.getTargetWeight(params.experience);
+      const targetWeight = this.getTargetWeight(params.experience, params);
       const willComplete = Math.random() < SIMULATION_CONSTANTS.COMPLETION_RATE;
+      const isPR =
+        willComplete &&
+        Math.random() < SIMULATION_CONSTANTS.PERSONAL_RECORD_CHANCE;
+
+      // 💡 עדכון מוטיבציה אם יש שיא אישי
+      if (isPR) {
+        params.motivation = Math.min(
+          10,
+          params.motivation + SIMULATION_CONSTANTS.MOTIVATION_PR_BOOST
+        );
+      }
 
       const set: Set = {
         id: `sim_set_${Date.now()}_${i}`,
@@ -291,10 +319,11 @@ class WorkoutSimulationService {
           : undefined,
         completed: willComplete,
         restTime: this.getRestTime(params.experience),
-        isPR:
-          willComplete &&
-          Math.random() < SIMULATION_CONSTANTS.PERSONAL_RECORD_CHANCE,
+        isPR: isPR,
         rpe: willComplete ? Math.floor(Math.random() * 4) + 6 : undefined, // 6-9 RPE
+        timeToComplete: willComplete
+          ? Math.floor(Math.random() * 60) + 30
+          : undefined, // 30-90 seconds
       };
 
       sets.push(set);
@@ -381,6 +410,19 @@ class WorkoutSimulationService {
   }
 
   // פונקציות עזר
+
+  private getBaseStrength(experience: string): number {
+    switch (experience) {
+      case "beginner":
+        return 1.0;
+      case "intermediate":
+        return 1.3;
+      case "advanced":
+        return 1.6;
+      default:
+        return 1.0;
+    }
+  }
 
   private calculateWeeklyMotivation(
     week: number,
@@ -505,7 +547,16 @@ class WorkoutSimulationService {
     }
   }
 
-  private getTargetWeight(experience: string): number {
+  private getTargetWeight(
+    experience: string,
+    params: SimulationParameters
+  ): number {
+    const baseWeight = this.getBaseWeight(experience);
+    const progressMultiplier = 1 + params.currentWeek * 0.02; // 2% increase per week
+    return Math.round(baseWeight * params.baseStrength * progressMultiplier);
+  }
+
+  private getBaseWeight(experience: string): number {
     switch (experience) {
       case "beginner":
         return 10 + Math.floor(Math.random() * 20); // 10-30 ק"ג
@@ -578,7 +629,7 @@ class WorkoutSimulationService {
     }, 0);
   }
 
-  private generateSimulatedWorkoutName(params: SimulationParameters): string {
+  private generateSimulatedWorkoutName(_params: SimulationParameters): string {
     const workoutTypes = [
       "אימון כוח עליון",
       "אימון כוח תחתון",
@@ -688,7 +739,8 @@ class WorkoutSimulationService {
     // יצירת היסטוריית אימונים
     const workouts = await this.simulateHistoryCompatibleWorkouts(
       demoUser.gender,
-      demoUser.experience
+      demoUser.experience,
+      demoUser.equipment
     );
 
     console.log(`✅ Generated ${workouts.length} realistic workouts`);

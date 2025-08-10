@@ -1017,9 +1017,30 @@ export class WorkoutDataService {
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
 
-    // שלב 1: סינון תרגילים מתאימים לציוד ושרירים - עם פונקציה חכמה
+    // שלב 1: סינון תרגילים מתאימים לציוד ושרירים - עם פונקציה חכמה משופרת
     const environments: ("home" | "gym" | "outdoor")[] = ["home"]; // ברירת מחדל
+
+    // ✅ FIX: Use improved equipment filtering similar to WorkoutPlansScreen
+    const realEquipment = equipment.filter(
+      (item) =>
+        item !== "none" && item !== "bodyweight" && item !== "no_equipment"
+    );
+
     let suitableExercises = getSmartFilteredExercises(environments, equipment);
+
+    // ✅ FIX: If user has real equipment, prioritize equipment-based exercises
+    if (realEquipment.length > 0) {
+      const equipmentExercises = suitableExercises.filter((ex: Exercise) =>
+        realEquipment.includes(ex.equipment)
+      );
+      const bodyweightExercises = suitableExercises.filter(
+        (ex: Exercise) =>
+          ex.equipment === "none" || ex.equipment === "bodyweight"
+      );
+
+      // Combine with priority to equipment-based exercises
+      suitableExercises = [...equipmentExercises, ...bodyweightExercises];
+    }
 
     // סינון נוסף לפי שרירי יעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
@@ -1271,25 +1292,65 @@ export class WorkoutDataService {
     dayIndex: number = 0,
     exercisePosition: number = 0
   ): ExerciseFromDB {
-    // העדפה לתרגילים מורכבים אם האינטנסיביות גבוהה
-    if (workoutMatrix.intensityLevel === "high") {
-      const compoundExercises = exercises.filter((ex) =>
-        ex.category?.includes("מורכב")
-      ); // או בדיקה אחרת לתרגילים מורכבים
-      if (compoundExercises.length > 0) {
-        // בחירה עם זרע קבוע
-        const seed = dayIndex * 7777 + exercisePosition * 333 + 9999;
+    // ✅ FIX: Strong preference for equipment-based exercises if user has equipment
+    const realEquipmentExercises = exercises.filter(
+      (ex) => ex.equipment !== "none" && ex.equipment !== "bodyweight"
+    );
+
+    const bodyweightExercises = exercises.filter(
+      (ex) => ex.equipment === "none" || ex.equipment === "bodyweight"
+    );
+
+    // If user has equipment, strongly prefer equipment exercises (90% of the time)
+    if (realEquipmentExercises.length > 0) {
+      const seed = dayIndex * 7777 + exercisePosition * 333 + 9999;
+      const shouldUseEquipment = this.seededRandom(seed) > 0.1; // 90% chance for equipment
+
+      if (shouldUseEquipment) {
+        // For equipment exercises, prefer compound movements if high intensity
+        if (workoutMatrix.intensityLevel === "high") {
+          const compoundEquipmentExercises = realEquipmentExercises.filter(
+            (ex) =>
+              ex.category?.includes("מורכב") || this.isCompoundMovement(ex)
+          );
+          if (compoundEquipmentExercises.length > 0) {
+            const index = Math.floor(
+              this.seededRandom(seed + 100) * compoundEquipmentExercises.length
+            );
+            return compoundEquipmentExercises[index];
+          }
+        }
+
+        // Select from equipment exercises
         const index = Math.floor(
-          this.seededRandom(seed) * compoundExercises.length
+          this.seededRandom(seed + 200) * realEquipmentExercises.length
         );
-        return compoundExercises[index];
+        return realEquipmentExercises[index];
       }
     }
 
-    // אחרת, בחר עם זרע קבוע
+    // Fallback to any exercise (including bodyweight)
     const seed = dayIndex * 8888 + exercisePosition * 444 + 11111;
     const index = Math.floor(this.seededRandom(seed) * exercises.length);
     return exercises[index];
+  }
+
+  /**
+   * Check if exercise is a compound movement
+   */
+  private static isCompoundMovement(exercise: ExerciseFromDB): boolean {
+    const compoundKeywords = [
+      "squat",
+      "deadlift",
+      "press",
+      "row",
+      "pull",
+      "חזה",
+      "גב",
+      "רגליים",
+    ];
+    const name = exercise.name.toLowerCase();
+    return compoundKeywords.some((keyword) => name.includes(keyword));
   }
 
   /**

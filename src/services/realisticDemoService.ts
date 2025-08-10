@@ -27,7 +27,6 @@ import {
 import {
   adaptExerciseNameToGender,
   generateSingleGenderAdaptedNote,
-  generateGenderAdaptedCongratulation,
   UserGender,
 } from "../utils/genderAdaptation";
 
@@ -46,6 +45,8 @@ export interface DemoUser {
   equipment: string[];
   preferredTime: "morning" | "afternoon" | "evening";
   workoutHistory: WorkoutWithFeedback[];
+  // מסמן שזהו משתמש דמו (נדרש לצורך זיהוי וניקוי בפרודקשן)
+  isDemo: boolean;
 }
 
 // ממשק משתמש פשוט לצורך התאימות
@@ -89,6 +90,16 @@ interface AppUser {
     workoutStreak: number; // legacy name
     currentStreak?: number; // unified name
   };
+}
+
+// 💡 הוספת ממשק לנתוני תרגיל במאגר המרכזי
+export interface ExerciseData {
+  name: string;
+  category: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  equipment: string;
+  baseWeight: number; // משקל בסיס למתחילים
 }
 
 // מינימום שדות נצרכים מתשובות שאלון / Minimal questionnaire answers shape
@@ -256,46 +267,11 @@ const EXERCISES_BY_LEVEL = {
   ],
 } as const;
 
-// הודעות פידבק מותאמות מגדר
-const FEEDBACK_MESSAGES = {
-  positive: {
-    male: [
-      "אימון מעולה! הרגשתי חזק והשגתי יעדים אמיתיים",
-      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
-      "אימון נהדר! הגעתי לשיא חדש",
-      "רמה גבוהה של אנרגיה והתמדה",
-    ],
-    female: [
-      "אימון מעולה! הרגשתי חזקה והשגתי יעדים אמיתיים",
-      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
-      "אימון נהדר! הגעתי לשיא חדש",
-      "רמה גבוהה של אנרגיה והתמדה",
-    ],
-    other: [
-      "אימון מעולה! הרגשתי חזק/ה והשגתי יעדים אמיתיים",
-      "כוח מדהים היום, ממש הרגשתי את הפרוגרס",
-      "אימון נהדר! הגעתי לשיא חדש",
-      "רמה גבוהה של אנרגיה והתמדה",
-    ],
-  },
-  neutral: {
-    male: [
-      "אימון סביר, צריך להתרכז יותר בפעם הבאה",
-      "הרגשתי קצת עייפות אבל סיימתי את האימון",
-      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
-    ],
-    female: [
-      "אימון סביר, צריכה להתרכז יותר בפעם הבאה",
-      "הרגשתי קצת עייפות אבל סיימתי את האימון",
-      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
-    ],
-    other: [
-      "אימון סביר, צריך/ה להתרכז יותר בפעם הבאה",
-      "הרגשתי קצת עייפות אבל סיימתי את האימון",
-      "אימון סטנדרטי, לא רע אבל יכול להיות יותר טוב",
-    ],
-  },
-} as const;
+// הודעות פידבק מותאמות מגדר (הוסרו זמנית כדי לצמצם משקל קובץ ולהימנע משימוש לא נחוץ)
+// const FEEDBACK_MESSAGES = {
+//   positive: { male: [...], female: [...], other: [...] },
+//   neutral: { male: [...], female: [...], other: [...] },
+// } as const;
 
 class RealisticDemoService {
   private static instance: RealisticDemoService;
@@ -313,6 +289,25 @@ class RealisticDemoService {
    * יוצר משתמש דמו מציאותי
    */
   generateDemoUser(): DemoUser {
+    // הגנה: אם נקרא בסביבת פרודקשן, החזר אובייקט דמה מינימלי מסומן isDemo
+    if (!__DEV__) {
+      return {
+        id: "demo_disabled",
+        name: "Demo Disabled",
+        gender: "other",
+        age: 0,
+        experience: "beginner",
+        height: 0,
+        weight: 0,
+        fitnessGoals: [],
+        availableDays: 0,
+        sessionDuration: "30",
+        equipment: [],
+        preferredTime: "morning",
+        workoutHistory: [],
+        isDemo: true,
+      };
+    }
     const genders: UserGender[] = ["male", "female", "other"];
     const gender = genders[Math.floor(Math.random() * genders.length)];
     const experiences = ["beginner", "intermediate", "advanced"] as const;
@@ -343,11 +338,12 @@ class RealisticDemoService {
           ? 70 + Math.floor(Math.random() * 25)
           : 55 + Math.floor(Math.random() * 20),
       fitnessGoals: this.generateFitnessGoals(),
-      availableDays: 3 + Math.floor(Math.random() * 3), // 3-5 ימים
+      availableDays: this.generateAvailableDays(), // תואם לשאלון
       sessionDuration: this.generateSessionDuration(),
       equipment: this.generateEquipment(experience),
       preferredTime: this.generatePreferredTime(),
       workoutHistory: [], // יאוכלס בנפרד
+      isDemo: true,
     };
   }
 
@@ -412,6 +408,7 @@ class RealisticDemoService {
       equipment,
       preferredTime: this.generatePreferredTime(),
       workoutHistory: [], // יאוכלס בנפרד
+      isDemo: true,
     };
   }
 
@@ -516,9 +513,30 @@ class RealisticDemoService {
   private extractAvailableDaysFromAnswers(
     answers: QuestionnaireAnswers
   ): number {
-    // חפש מידע על ימים זמינים
+    // נסה לחלץ מהשאלון החדש - availability field
+    if (answers.availability) {
+      const availability = Array.isArray(answers.availability)
+        ? answers.availability[0]
+        : answers.availability;
+
+      switch (availability) {
+        case "2_days":
+          return 2;
+        case "3_days":
+          return 3;
+        case "4_days":
+          return 4;
+        case "5_days":
+          return 5;
+        default:
+          break;
+      }
+    }
+
+    // נסה לחלץ מתשובות שאלון ישן
     if (answers.available_days && typeof answers.available_days === "string")
       return parseInt(answers.available_days) || 3;
+
     if (answers.workout_frequency) {
       const frequency = answers.workout_frequency;
       if (frequency === "never" || frequency === "rarely") return 2;
@@ -709,31 +727,21 @@ class RealisticDemoService {
   }
 
   /**
-   * יוצר פידבק מציאותי ומותאם מגדר
+   * פידבק מציאותי בסיסי (פונקציה חסרה שגרמה לשגיאת קומפילציה)
    */
   private generateRealisticFeedback(
     gender: UserGender,
     experience: "beginner" | "intermediate" | "advanced",
     workoutData: WorkoutData
   ) {
-    const isPositive = Math.random() < DEMO_CONSTANTS.FEEDBACK_POSITIVE_CHANCE;
-    const messageType = isPositive ? "positive" : "neutral";
-    const messages = FEEDBACK_MESSAGES[messageType][gender];
-    const selectedMessage =
-      messages[Math.floor(Math.random() * messages.length)];
-
-    const difficulty = this.calculateDifficultyByExperience(experience);
-    const feeling = this.generateFeeling();
-
     return {
-      difficulty,
-      feeling,
-      readyForMore: Math.random() > 0.3, // 70% מוכנים ליותר
+      difficulty: Math.min(5, 3 + Math.floor(Math.random() * 3)), // 3-5
+      feeling: ["😀", "💪", "😅", "🔥"][Math.floor(Math.random() * 4)],
+      readyForMore: Math.random() > 0.3,
       completedAt: workoutData.endTime || new Date().toISOString(),
-      genderAdaptedNotes: selectedMessage,
-      congratulationMessage:
-        Math.random() < 0.4
-          ? generateGenderAdaptedCongratulation(gender)
+      genderAdaptedNotes:
+        Math.random() < 0.5
+          ? generateSingleGenderAdaptedNote(gender)
           : undefined,
     };
   }
@@ -768,13 +776,26 @@ class RealisticDemoService {
       "שיפור סיבולת",
       "הגדרת השרירים",
     ];
-    const goalCount = 2 + Math.floor(Math.random() * 3); // 2-4 יעדים
-    return this.shuffleArray(allGoals).slice(0, goalCount);
+    // 🎯 תיקון: משתמש דמו צריך מטרה אחת בלבד - בדיוק כמו השאלון האמיתי
+    // השאלון מאפשר רק single choice, אז גם הדמו צריך להיות עקבי
+    const randomGoal = allGoals[Math.floor(Math.random() * allGoals.length)];
+    return [randomGoal]; // רק מטרה אחת!
   }
 
   private generateSessionDuration(): string {
     const durations = ["30-45 דקות", "45-60 דקות", "60-90 דקות"];
     return durations[Math.floor(Math.random() * durations.length)];
+  }
+
+  /**
+   * יוצר מספר ימי אימון תואם לשאלון החדש
+   * בהתאמה לאפשרויות: 2_days, 3_days, 4_days, 5_days
+   */
+  private generateAvailableDays(): number {
+    const availabilityOptions = [2, 3, 4, 5]; // תואם לשאלון החדש
+    return availabilityOptions[
+      Math.floor(Math.random() * availabilityOptions.length)
+    ];
   }
 
   private generateEquipment(experience: string): string[] {
@@ -1116,6 +1137,7 @@ class RealisticDemoService {
       equipment: customDemoUser.equipment,
       preferredTime: customDemoUser.preferredTime,
       workoutHistory: [],
+      isDemo: true,
     };
 
     // יצור היסטוריית אימונים מבוססת הנתונים המותאמים

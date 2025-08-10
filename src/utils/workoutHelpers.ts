@@ -259,7 +259,16 @@ export const getGenderIcon = (gender?: "male" | "female" | "other") => {
  * חילוץ מגדר משתמש
  * Extract user gender from questionnaire data
  */
-export const getUserGender = (user?: any): "male" | "female" | "other" => {
+interface UserGenderSource {
+  smartQuestionnaireData?: {
+    answers?: { gender?: "male" | "female" | "other" };
+  };
+  questionnaire?: Record<number, unknown>;
+}
+
+export const getUserGender = (
+  user?: UserGenderSource
+): "male" | "female" | "other" => {
   if (!user) return "other";
 
   // בדיקה של מגדר מתוך smartQuestionnaireData (חדש) או questionnaire רגיל (ישן)
@@ -295,13 +304,6 @@ export const sharedButtonStyles = {
     borderRadius: 24,
     overflow: "hidden" as const,
     borderWidth: 2,
-  },
-  // כפתור זמן
-  timeButton: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
   },
   // כפתור קומפקטי
   compactButton: {

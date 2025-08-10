@@ -15,6 +15,50 @@ export interface WorkoutStats {
   totalReps: number;
   progressPercentage: number;
   personalRecords?: number;
+  // 💡 New advanced stats
+  averageVolumePerSet: number;
+  averageRepsPerSet: number;
+  timeToComplete?: number; // in seconds
+}
+
+/**
+ * Processes a single exercise's sets to calculate its contribution to the total stats.
+ * @param sets - The array of sets for a single exercise.
+ * @returns An object with stats for the given sets.
+ */
+function processExerciseSets(sets: Set[]) {
+  let completedSets = 0;
+  let totalVolume = 0;
+  let totalReps = 0;
+  let personalRecords = 0;
+  let timeToComplete = 0;
+
+  sets.forEach((set: Set) => {
+    if (set.completed) {
+      completedSets++;
+
+      const reps = set.actualReps || set.targetReps || 0;
+      const weight = set.actualWeight || set.targetWeight || 0;
+
+      totalReps += reps;
+      totalVolume += reps * weight;
+      if (set.timeToComplete) {
+        timeToComplete += set.timeToComplete;
+      }
+
+      if (set.isPR) {
+        personalRecords++;
+      }
+    }
+  });
+
+  return {
+    completedSets,
+    totalVolume,
+    totalReps,
+    personalRecords,
+    timeToComplete,
+  };
 }
 
 /**
@@ -29,39 +73,29 @@ export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
   let totalVolume = 0;
   let totalReps = 0;
   let personalRecords = 0;
+  let totalTimeToComplete = 0;
 
   exercises.forEach((exercise) => {
-    if (!exercise.sets) return;
+    if (!exercise.sets || exercise.sets.length === 0) return;
 
-    let exerciseCompletedSets = 0;
-    let exerciseHasAnySets = false;
+    totalSets += exercise.sets.length;
 
-    exercise.sets.forEach((set: Set) => {
-      totalSets++;
-      exerciseHasAnySets = true;
+    const exerciseStats = processExerciseSets(exercise.sets);
 
-      if (set.completed) {
-        completedSets++;
-        exerciseCompletedSets++;
+    completedSets += exerciseStats.completedSets;
+    totalVolume += exerciseStats.totalVolume;
+    totalReps += exerciseStats.totalReps;
+    personalRecords += exerciseStats.personalRecords;
+    totalTimeToComplete += exerciseStats.timeToComplete;
 
-        const reps = set.actualReps || set.targetReps || 0;
-        const weight = set.actualWeight || set.targetWeight || 0;
-
-        totalReps += reps;
-        totalVolume += reps * weight;
-
-        // חישוב שיאים אישיים
-        if (set.isPR) {
-          personalRecords++;
-        }
-      }
-    });
-
-    // תרגיל נחשב מושלם אם יש לו לפחות סט אחד מושלם
-    if (exerciseCompletedSets > 0 && exerciseHasAnySets) {
+    // An exercise is considered complete if at least one of its sets is completed.
+    if (exerciseStats.completedSets > 0) {
       completedExercises++;
     }
   });
+
+  const progressPercentage =
+    totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
   return {
     totalExercises,
@@ -70,9 +104,12 @@ export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
     completedSets,
     totalVolume,
     totalReps,
-    progressPercentage:
-      totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0,
+    progressPercentage,
     personalRecords,
+    // 💡 Add new stats to the return object
+    averageVolumePerSet: completedSets > 0 ? totalVolume / completedSets : 0,
+    averageRepsPerSet: completedSets > 0 ? totalReps / completedSets : 0,
+    timeToComplete: totalTimeToComplete,
   };
 }
 

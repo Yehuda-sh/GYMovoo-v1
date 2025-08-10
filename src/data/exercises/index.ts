@@ -23,6 +23,10 @@ import { cardioExercises } from "./cardio";
 import { flexibilityExercises } from "./flexibility";
 import { resistanceBandExercises } from "./resistanceBands";
 import { machineExercises } from "./machines";
+import { kettlebellExercises } from "./kettlebells";
+import { trxExercises } from "./trx";
+import { israeliMilitaryExercises } from "./israeli_military";
+import { waterWeightExercises } from "./water_weights";
 
 // יבוא מערכת הסינון המרכזית - חיסכון בכפילות קוד!
 import {
@@ -50,6 +54,10 @@ export { cardioExercises } from "./cardio";
 export { flexibilityExercises } from "./flexibility";
 export { resistanceBandExercises } from "./resistanceBands";
 export { machineExercises } from "./machines";
+export { kettlebellExercises } from "./kettlebells";
+export { trxExercises } from "./trx";
+export { israeliMilitaryExercises } from "./israeli_military";
+export { waterWeightExercises } from "./water_weights";
 
 /**
  * מאגר תרגילים מאוחד - Single Source of Truth
@@ -62,6 +70,10 @@ export const allExercises: Exercise[] = [
   ...flexibilityExercises,
   ...resistanceBandExercises,
   ...machineExercises,
+  ...kettlebellExercises,
+  ...trxExercises,
+  ...israeliMilitaryExercises,
+  ...waterWeightExercises,
 ];
 
 // =====================================

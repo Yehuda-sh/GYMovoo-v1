@@ -170,8 +170,31 @@ export const useUserStore = create<UserStore>()(
             // עדכון נתוני אימון
             trainingStats: {
               ...state.user?.trainingStats,
-              preferredWorkoutDays: data.answers.availability?.length || 3,
-              selectedEquipment: data.answers.equipment || [],
+              // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
+              preferredWorkoutDays: (() => {
+                const arr = data.answers.availability;
+                if (Array.isArray(arr) && arr.length > 0) {
+                  const token = arr[0];
+                  if (typeof token === "string" && /_days$/.test(token)) {
+                    const n = parseInt(token.split("_", 1)[0], 10);
+                    if (!isNaN(n) && n >= 1 && n <= 7) return n;
+                  }
+                  return arr.length; // fallback: מספר פריטים במערך (מודל ישן)
+                }
+                return 3;
+              })(),
+              selectedEquipment: (() => {
+                if (data.answers.equipment && data.answers.equipment.length)
+                  return data.answers.equipment;
+                const ge: any = (data.answers as any).gym_equipment;
+                if (Array.isArray(ge) && ge.length) {
+                  const mapped = ge
+                    .map((g) => (typeof g === "string" ? g : g.id || g.label))
+                    .filter(Boolean);
+                  if (mapped.length) return mapped;
+                }
+                return [];
+              })(),
               fitnessGoals: data.answers.goals || [],
               currentFitnessLevel: data.answers.fitnessLevel,
             },
@@ -538,6 +561,7 @@ export const useUserStore = create<UserStore>()(
       // Custom demo user actions
       setCustomDemoUser: (demoUser) => {
         if (!demoUser) return;
+        const qd: any = (demoUser as any).questionnaireData; // עשוי להגיע מ-UnifiedQuestionnaireScreen
 
         set((state) => ({
           user: state.user
@@ -562,8 +586,143 @@ export const useUserStore = create<UserStore>()(
                   createdFromQuestionnaire: true,
                   questionnaireTimestamp: new Date().toISOString(),
                 },
+                questionnaire: qd || state.user.questionnaire,
+                smartQuestionnaireData: (() => {
+                  const existing = state.user.smartQuestionnaireData;
+                  if (qd) {
+                    const realEquip = Array.isArray(qd.equipment)
+                      ? qd.equipment.filter(
+                          (e: string) =>
+                            e && e !== "none" && e !== "no_equipment"
+                        )
+                      : [];
+                    if (existing) {
+                      if (realEquip.length > 0) {
+                        return {
+                          ...existing,
+                          answers: {
+                            ...existing.answers,
+                            equipment: realEquip,
+                          },
+                        };
+                      }
+                      return existing;
+                    }
+                    return {
+                      answers: {
+                        goal: qd.goal,
+                        gender: qd.gender,
+                        experience: qd.experience,
+                        availability: [qd.frequency].filter(Boolean),
+                        duration: qd.duration,
+                        location: qd.location,
+                        diet: qd.diet,
+                        equipment:
+                          realEquip.length > 0 ? realEquip : qd.equipment,
+                      },
+                      metadata: qd.metadata || { source: "customDemo" },
+                    };
+                  }
+                  return existing;
+                })(),
+                trainingStats: (() => {
+                  if (!qd) return state.user.trainingStats;
+                  const freq = qd.frequency;
+                  let preferredDays =
+                    state.user.trainingStats?.preferredWorkoutDays || 3;
+                  if (typeof freq === "string" && /_days$/.test(freq)) {
+                    const n = parseInt(freq.split("_", 1)[0], 10);
+                    if (!isNaN(n)) preferredDays = n;
+                  }
+                  return {
+                    ...state.user.trainingStats,
+                    preferredWorkoutDays: preferredDays,
+                    selectedEquipment: (() => {
+                      if (qd.equipment && Array.isArray(qd.equipment)) {
+                        const real = qd.equipment.filter(
+                          (e: string) =>
+                            e && e !== "none" && e !== "no_equipment"
+                        );
+                        if (real.length > 0) return real;
+                      }
+                      return state.user.trainingStats?.selectedEquipment || [];
+                    })(),
+                    fitnessGoals: qd.goal
+                      ? [qd.goal]
+                      : state.user.trainingStats?.fitnessGoals || [],
+                    currentFitnessLevel:
+                      demoUser.experience ||
+                      state.user.trainingStats?.currentFitnessLevel,
+                  };
+                })(),
               }
-            : null,
+            : {
+                // Create baseline user object when state.user is null
+                id: `demo_${Date.now()}`,
+                email: "",
+                name: demoUser.name || "משתמש דמו",
+                customDemoUser: {
+                  id: demoUser.id || `demo_${Date.now()}`,
+                  name: demoUser.name || "משתמש דמו",
+                  gender: demoUser.gender || "other",
+                  age: demoUser.age || 30,
+                  experience: demoUser.experience || "intermediate",
+                  height: demoUser.height || 170,
+                  weight: demoUser.weight || 70,
+                  fitnessGoals: demoUser.fitnessGoals || [],
+                  availableDays: demoUser.availableDays || 3,
+                  sessionDuration:
+                    typeof demoUser.sessionDuration === "string"
+                      ? demoUser.sessionDuration
+                      : String(demoUser.sessionDuration),
+                  equipment: demoUser.equipment || [],
+                  preferredTime: demoUser.preferredTime || "evening",
+                  createdFromQuestionnaire: true,
+                  questionnaireTimestamp: new Date().toISOString(),
+                },
+                questionnaire: qd,
+                smartQuestionnaireData: qd
+                  ? {
+                      answers: {
+                        goal: qd.goal,
+                        gender: qd.gender,
+                        experience: qd.experience,
+                        availability: [qd.frequency].filter(Boolean),
+                        duration: qd.duration,
+                        location: qd.location,
+                        diet: qd.diet,
+                        equipment: Array.isArray(qd.equipment)
+                          ? qd.equipment.filter(
+                              (e: string) =>
+                                e && e !== "none" && e !== "no_equipment"
+                            )
+                          : qd.equipment,
+                      },
+                      metadata: qd.metadata || { source: "customDemo" },
+                    }
+                  : undefined,
+                trainingStats: (() => {
+                  if (!qd) return { totalWorkouts: 0 };
+                  const freq = qd.frequency;
+                  let preferredDays = 3;
+                  if (typeof freq === "string" && /_days$/.test(freq)) {
+                    const n = parseInt(freq.split("_", 1)[0], 10);
+                    if (!isNaN(n)) preferredDays = n;
+                  }
+                  return {
+                    totalWorkouts: 0,
+                    preferredWorkoutDays: preferredDays,
+                    selectedEquipment: Array.isArray(qd.equipment)
+                      ? qd.equipment.filter(
+                          (e: string) =>
+                            e && e !== "none" && e !== "no_equipment"
+                        )
+                      : [],
+                    fitnessGoals: qd.goal ? [qd.goal] : [],
+                    currentFitnessLevel: demoUser.experience || "intermediate",
+                  };
+                })(),
+              },
         }));
         console.log("✅ Custom demo user saved:", demoUser?.name);
       },

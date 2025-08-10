@@ -4,7 +4,7 @@
  * @description מציג הישגים חדשים, שיפורים ומעקב אחר התקדמות
  */
 
-import React from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -37,186 +37,249 @@ interface AchievementsSectionProps {
     duration: number;
     completedExercises: number;
   };
+  reducedMotion?: boolean;
+  onAchievementPress?: (achievement: Achievement) => void;
+  testID?: string;
 }
 
+// Icon & color maps (hoisted for stability)
+type MCIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+const ACHIEVEMENT_ICON_MAP: Record<Achievement["type"], MCIconName> = {
+  new_pr: "trophy-award",
+  volume_record: "chart-line",
+  streak: "fire",
+  consistency: "calendar-check",
+};
+
+const ACHIEVEMENT_COLOR_MAP: Record<Achievement["type"], string> = {
+  new_pr: theme.colors.warning,
+  volume_record: theme.colors.success,
+  streak: "#FF6B35",
+  consistency: theme.colors.primary,
+};
+
+const SUMMARY_ITEMS: Array<{
+  key: string;
+  icon: MCIconName;
+  color: string;
+  value: (stats: AchievementsSectionProps["workoutStats"]) => string | number;
+  label: string;
+}> = [
+  {
+    key: "sets",
+    icon: "weight-lifter",
+    color: theme.colors.primary,
+    value: (s) => s.totalSets,
+    label: "סטים",
+  },
+  {
+    key: "volume",
+    icon: "chart-bar",
+    color: theme.colors.success,
+    value: (s) => (s.totalVolume / 1000).toFixed(1) + "K",
+    label: "נפח",
+  },
+  {
+    key: "duration",
+    icon: "clock-outline",
+    color: theme.colors.warning,
+    value: (s) => Math.round(s.duration / 60),
+    label: "דקות",
+  },
+  {
+    key: "exercises",
+    icon: "check-circle",
+    color: theme.colors.error,
+    value: (s) => s.completedExercises,
+    label: "תרגילים",
+  },
+];
+
 export const AchievementsSection: React.FC<AchievementsSectionProps> =
-  React.memo(({ achievements, personalRecords, workoutStats }) => {
-    const animatedValue = new Animated.Value(0);
+  React.memo(
+    ({
+      achievements,
+      personalRecords,
+      workoutStats,
+      reducedMotion = false,
+      onAchievementPress,
+      testID,
+    }) => {
+      const animatedValueRef = useRef(new Animated.Value(0));
+      const animatedValue = animatedValueRef.current;
 
-    React.useEffect(() => {
-      if (achievements.length > 0) {
-        Animated.timing(animatedValue, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }).start();
-      }
-    }, [achievements.length]);
+      useEffect(() => {
+        if (achievements.length > 0 && !reducedMotion) {
+          animatedValue.setValue(0);
+          Animated.timing(animatedValue, {
+            toValue: 1,
+            duration: 650,
+            useNativeDriver: true,
+          }).start();
+        }
+      }, [achievements.length, reducedMotion, animatedValue]);
 
-    const getAchievementIcon = (type: Achievement["type"]) => {
-      const iconMap: Record<Achievement["type"], string> = {
-        new_pr: "trophy-award",
-        volume_record: "chart-line",
-        streak: "fire",
-        consistency: "calendar-check",
-      };
-      return iconMap[type] || "star";
-    };
+      const animatedContainerStyle = useMemo(
+        () => ({
+          opacity: animatedValue,
+          transform: [
+            {
+              translateY: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [16, 0],
+              }),
+            },
+          ],
+        }),
+        [animatedValue]
+      );
 
-    const getAchievementColor = (type: Achievement["type"]) => {
-      const colorMap: Record<Achievement["type"], string> = {
-        new_pr: theme.colors.warning,
-        volume_record: theme.colors.success,
-        streak: "#FF6B35",
-        consistency: theme.colors.primary,
-      };
-      return colorMap[type] || theme.colors.primary;
-    };
+      const renderedSummary = useMemo(
+        () =>
+          SUMMARY_ITEMS.map((item) => (
+            <View
+              key={item.key}
+              style={styles.summaryItem}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`${item.label}: ${item.value(workoutStats)}`}
+            >
+              <MaterialCommunityIcons
+                name={item.icon}
+                size={20}
+                color={item.color}
+              />
+              <Text style={styles.summaryValue}>
+                {item.value(workoutStats)}
+              </Text>
+              <Text style={styles.summaryLabel}>{item.label}</Text>
+            </View>
+          )),
+        [workoutStats]
+      );
 
-    if (achievements.length === 0 && personalRecords.length === 0) {
-      return null;
-    }
+      if (achievements.length === 0 && personalRecords.length === 0)
+        return null;
 
-    return (
-      <View style={styles.achievementsSection}>
-        <Text style={styles.sectionTitle}>הישגים והתקדמות 🏆</Text>
+      return (
+        <View
+          style={styles.achievementsSection}
+          testID={testID || "AchievementsSection"}
+        >
+          <Text style={styles.sectionTitle}>הישגים והתקדמות 🏆</Text>
 
-        {/* הישגים כלליים */}
-        {achievements.length > 0 && (
-          <Animated.View
-            style={[
-              styles.achievementsList,
-              {
-                opacity: animatedValue,
-                transform: [
-                  {
-                    translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {achievements.map((achievement, index) => (
-              <View key={index} style={styles.achievementCard}>
-                <View style={styles.achievementIcon}>
-                  <MaterialCommunityIcons
-                    name={getAchievementIcon(achievement.type) as any}
-                    size={24}
-                    color={getAchievementColor(achievement.type)}
-                  />
-                </View>
-                <View style={styles.achievementContent}>
-                  <Text style={styles.achievementTitle}>
-                    {achievement.title}
-                  </Text>
-                  <Text style={styles.achievementSubtitle}>
-                    {achievement.subtitle}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-left"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={{ transform: [{ scaleX: theme.isRTL ? -1 : 1 }] }}
-                />
-              </View>
-            ))}
-          </Animated.View>
-        )}
-
-        {/* שיאים אישיים */}
-        {personalRecords.length > 0 && (
-          <View style={styles.personalRecordsSection}>
-            <Text style={styles.subsectionTitle}>שיאים אישיים חדשים! 🎯</Text>
-            {personalRecords.map((record, index) => (
-              <View key={index} style={styles.prCard}>
-                <View style={styles.prHeader}>
-                  <Text style={styles.prExercise}>{record.exercise}</Text>
-                  <View style={styles.prImprovement}>
+          {achievements.length > 0 && (
+            <Animated.View
+              style={[
+                styles.achievementsList,
+                !reducedMotion && animatedContainerStyle,
+              ]}
+              accessibilityRole="list"
+              accessibilityLabel="רשימת הישגים"
+            >
+              {achievements.map((achievement, index) => {
+                const iconName: MCIconName =
+                  ACHIEVEMENT_ICON_MAP[achievement.type];
+                const iconColor =
+                  ACHIEVEMENT_COLOR_MAP[achievement.type] ||
+                  theme.colors.primary;
+                return (
+                  <TouchableOpacity
+                    key={achievement.title + index}
+                    style={styles.achievementCard}
+                    activeOpacity={0.75}
+                    onPress={
+                      onAchievementPress
+                        ? () => onAchievementPress(achievement)
+                        : undefined
+                    }
+                    disabled={!onAchievementPress}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${achievement.title}: ${achievement.subtitle}`}
+                  >
+                    <View style={styles.achievementIcon}>
+                      <MaterialCommunityIcons
+                        name={iconName}
+                        size={24}
+                        color={iconColor}
+                      />
+                    </View>
+                    <View style={styles.achievementContent}>
+                      <Text style={styles.achievementTitle}>
+                        {achievement.title}
+                      </Text>
+                      <Text style={styles.achievementSubtitle}>
+                        {achievement.subtitle}
+                      </Text>
+                    </View>
                     <MaterialCommunityIcons
-                      name="trending-up"
-                      size={16}
-                      color={theme.colors.success}
+                      name="chevron-left"
+                      size={20}
+                      color={theme.colors.textSecondary}
+                      style={styles.chevron}
                     />
-                    <Text style={styles.prImprovementText}>
-                      +{record.improvement}%
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.View>
+          )}
+
+          {personalRecords.length > 0 && (
+            <View
+              style={styles.personalRecordsSection}
+              accessibilityRole="list"
+              accessibilityLabel="שיאים אישיים חדשים"
+            >
+              <Text style={styles.subsectionTitle}>שיאים אישיים חדשים! 🎯</Text>
+              {personalRecords.map((record, index) => (
+                <View
+                  key={record.exercise + index}
+                  style={styles.prCard}
+                  accessibilityRole="text"
+                  accessibilityLabel={`תרגיל ${record.exercise} שיא חדש ${record.newRecord} קילוגרם, שיפור ${record.improvement} אחוזים`}
+                >
+                  <View style={styles.prHeader}>
+                    <Text style={styles.prExercise}>{record.exercise}</Text>
+                    <View style={styles.prImprovement}>
+                      <MaterialCommunityIcons
+                        name="trending-up"
+                        size={16}
+                        color={theme.colors.success}
+                      />
+                      <Text style={styles.prImprovementText}>
+                        +{record.improvement}%
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.prComparison}>
+                    <Text style={styles.prPrevious}>
+                      הקודם: {record.previousBest} ק"ג
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="arrow-left"
+                      size={16}
+                      color={theme.colors.textSecondary}
+                      style={styles.arrowIcon}
+                    />
+                    <Text style={styles.prNew}>
+                      חדש: {record.newRecord} ק"ג
                     </Text>
                   </View>
                 </View>
-                <View style={styles.prComparison}>
-                  <Text style={styles.prPrevious}>
-                    הקודם: {record.previousBest} ק"ג
-                  </Text>
-                  <MaterialCommunityIcons
-                    name="arrow-left"
-                    size={16}
-                    color={theme.colors.textSecondary}
-                    style={{
-                      marginHorizontal: theme.spacing.xs,
-                      transform: [{ scaleX: theme.isRTL ? -1 : 1 }],
-                    }}
-                  />
-                  <Text style={styles.prNew}>חדש: {record.newRecord} ק"ג</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+              ))}
+            </View>
+          )}
 
-        {/* סיכום מהיר */}
-        <View style={styles.quickSummary}>
-          <Text style={styles.summaryTitle}>סיכום מהיר</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <MaterialCommunityIcons
-                name="weight-lifter"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.summaryValue}>{workoutStats.totalSets}</Text>
-              <Text style={styles.summaryLabel}>סטים</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <MaterialCommunityIcons
-                name="chart-bar"
-                size={20}
-                color={theme.colors.success}
-              />
-              <Text style={styles.summaryValue}>
-                {(workoutStats.totalVolume / 1000).toFixed(1)}K
-              </Text>
-              <Text style={styles.summaryLabel}>נפח</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={20}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.summaryValue}>
-                {Math.round(workoutStats.duration / 60)}
-              </Text>
-              <Text style={styles.summaryLabel}>דקות</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <MaterialCommunityIcons
-                name="check-circle"
-                size={20}
-                color={theme.colors.error}
-              />
-              <Text style={styles.summaryValue}>
-                {workoutStats.completedExercises}
-              </Text>
-              <Text style={styles.summaryLabel}>תרגילים</Text>
-            </View>
+          <View style={styles.quickSummary}>
+            <Text style={styles.summaryTitle}>סיכום מהיר</Text>
+            <View style={styles.summaryGrid}>{renderedSummary}</View>
           </View>
         </View>
-      </View>
-    );
-  });
+      );
+    }
+  );
+AchievementsSection.displayName = "AchievementsSection";
 
 const styles = StyleSheet.create({
   achievementsSection: {
@@ -370,5 +433,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
     writingDirection: theme.isRTL ? "rtl" : "ltr",
+  },
+  chevron: {
+    transform: [{ scaleX: theme.isRTL ? -1 : 1 }],
+  },
+  arrowIcon: {
+    marginHorizontal: theme.spacing.xs,
+    transform: [{ scaleX: theme.isRTL ? -1 : 1 }],
   },
 });

@@ -25,11 +25,17 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { PLATE_WEIGHTS } from "../utils/workoutConstants";
+import { triggerVibration } from "../../../utils/workoutHelpers";
 
 interface PlateCalculatorModalProps {
   visible: boolean;
   onClose: () => void;
   currentWeight?: number;
+  reducedMotion?: boolean;
+  testID?: string;
+  haptic?: boolean;
+  quickIncrements?: number[]; // e.g. [2.5,5,10]
+  onWeightChange?: (weight: number) => void; // live update callback
 }
 
 // הגדרות המחשבון
@@ -44,41 +50,73 @@ const getPlateColor = (weight: number): string => {
   return plateInfo?.color || theme.colors.primary;
 };
 
+// Dynamic plate style generator (avoids inline style objects in JSX)
+const getPlateDynamicStyle = (weight: number) => ({
+  backgroundColor: getPlateColor(weight),
+  height: 40 + weight * 2.5,
+  borderWidth: weight === 5 ? 1 : 0,
+});
+
 export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   visible,
   onClose,
   currentWeight = 60,
+  reducedMotion = false,
+  testID = "PlateCalculatorModal",
+  haptic = true,
+  quickIncrements = [2.5, 5, 10],
+  onWeightChange,
 }) => {
   const [targetWeight, setTargetWeight] = useState(currentWeight);
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   // Optimized weight change handler
-  const handleWeightChange = useCallback((increment: number) => {
-    setTargetWeight((prev) => Math.max(0, prev + increment));
-  }, []);
+  const handleWeightChange = useCallback(
+    (increment: number) => {
+      setTargetWeight((prev) => {
+        const next = Math.max(0, prev + increment);
+        onWeightChange?.(next);
+        if (haptic) triggerVibration(10);
+        return next;
+      });
+    },
+    [onWeightChange, haptic]
+  );
 
   // Optimized text input handler
-  const handleTextChange = useCallback((text: string) => {
-    const numericValue = parseFloat(text) || 0;
-    setTargetWeight(numericValue);
-  }, []);
+  const handleTextChange = useCallback(
+    (text: string) => {
+      const numericValue = parseFloat(text) || 0;
+      setTargetWeight(numericValue);
+      onWeightChange?.(numericValue);
+    },
+    [onWeightChange]
+  );
 
   useEffect(() => {
     if (visible) {
       setTargetWeight(currentWeight);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
+      if (reducedMotion) {
+        slideAnim.setValue(0);
+      } else {
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+      }
     } else {
-      Animated.timing(slideAnim, {
-        toValue: 300,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      if (reducedMotion) {
+        slideAnim.setValue(300);
+      } else {
+        Animated.timing(slideAnim, {
+          toValue: 300,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  }, [visible, currentWeight, slideAnim]);
+  }, [visible, currentWeight, slideAnim, reducedMotion]);
 
   const plateCalculation = useMemo(() => {
     const weight = targetWeight || 0;
@@ -108,6 +146,13 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     };
   }, [targetWeight]);
 
+  // Quick adjustment buttons (positive then negative)
+  const quickButtons = useMemo(() => {
+    const positives = quickIncrements;
+    const negatives = quickIncrements.map((v) => -v).reverse();
+    return { positives, negatives };
+  }, [quickIncrements]);
+
   return (
     <Modal
       visible={visible}
@@ -116,6 +161,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
       onRequestClose={onClose}
       accessible={true}
       accessibilityLabel="מחשבון פלטות למשקולות"
+      testID={testID}
     >
       <TouchableOpacity
         style={theme.getModalOverlayStyle("bottom")}
@@ -125,15 +171,12 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
         <Animated.View
           style={[
             theme.getModalContentStyle("bottom"),
-            {
-              backgroundColor: theme.colors.background,
-              maxHeight: "90%",
-              transform: [{ translateY: slideAnim }],
-            },
+            styles.modalContentBase,
+            { transform: [{ translateY: slideAnim }] },
           ]}
         >
           <TouchableOpacity activeOpacity={1}>
-            <View style={styles.header}>
+            <View style={styles.header} accessibilityRole="header">
               <TouchableOpacity
                 onPress={onClose}
                 activeOpacity={0.7}
@@ -147,7 +190,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                 />
               </TouchableOpacity>
               <Text style={styles.title}>מחשבון פלטות</Text>
-              <View style={{ width: 28 }} />
+              <View style={styles.headerSpacer} />
             </View>
 
             <ScrollView
@@ -162,6 +205,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel="הוסף משקל"
+                  testID={testID + "-inc"}
                 >
                   <Ionicons name="add" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
@@ -174,6 +218,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   selectTextOnFocus
                   accessibilityLabel="משקל יעד בקילוגרמים"
                   accessibilityHint="הקלד או השתמש בכפתורים לשינוי המשקל"
+                  testID={testID + "-input"}
                 />
                 <TouchableOpacity
                   style={styles.incrementButton}
@@ -181,6 +226,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel="הפחת משקל"
+                  testID={testID + "-dec"}
                 >
                   <Ionicons
                     name="remove"
@@ -190,39 +236,67 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.barVisualization}>
+              {/* Quick increments */}
+              <View
+                style={styles.quickAdjustRow}
+                accessibilityRole="adjustable"
+                accessibilityLabel="התאמות מהירות למשקל"
+              >
+                {quickButtons.positives.map((v) => (
+                  <TouchableOpacity
+                    key={"q+" + v}
+                    style={styles.quickAdjustButton}
+                    onPress={() => handleWeightChange(v)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`הוסף ${v} קילוגרם`}
+                    testID={`${testID}-qplus-${v}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickAdjustText}>+{v}</Text>
+                  </TouchableOpacity>
+                ))}
+                {quickButtons.negatives.map((v) => (
+                  <TouchableOpacity
+                    key={"q" + v}
+                    style={styles.quickAdjustButton}
+                    onPress={() => handleWeightChange(v)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`הפחת ${Math.abs(v)} קילוגרם`}
+                    testID={`${testID}-qminus-${Math.abs(v)}`}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickAdjustText}>{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View
+                style={styles.barVisualization}
+                accessibilityLabel="הדמיית מוט ופלטות"
+                accessibilityRole="image"
+              >
                 <View style={styles.barEnd} />
                 {plateCalculation.plates.map((p, i) => (
                   <View
                     key={`l-${i}`}
-                    style={[
-                      styles.plate,
-                      {
-                        backgroundColor: getPlateColor(p),
-                        height: 40 + p * 2.5,
-                        borderWidth: p === 5 ? 1 : 0,
-                      },
-                    ]}
+                    style={[styles.plate, getPlateDynamicStyle(p)]}
                   />
                 ))}
                 <View style={styles.bar} />
                 {[...plateCalculation.plates].reverse().map((p, i) => (
                   <View
                     key={`r-${i}`}
-                    style={[
-                      styles.plate,
-                      {
-                        backgroundColor: getPlateColor(p),
-                        height: 40 + p * 2.5,
-                        borderWidth: p === 5 ? 1 : 0,
-                      },
-                    ]}
+                    style={[styles.plate, getPlateDynamicStyle(p)]}
                   />
                 ))}
                 <View style={styles.barEnd} />
               </View>
 
-              <View style={styles.summary}>
+              <View
+                style={styles.summary}
+                accessibilityRole="summary"
+                accessibilityLabel="סיכום חישוב פלטות"
+              >
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>פלטות לכל צד:</Text>
                   <Text style={styles.summaryValue}>
@@ -237,7 +311,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
                   </Text>
                 </View>
                 {plateCalculation.remaining !== 0 && (
-                  <Text style={styles.warningText}>
+                  <Text style={styles.warningText} accessibilityRole="alert">
                     {plateCalculation.remaining > 0 ? `* חסר: ` : `* עודף: `}
                     {Math.abs(plateCalculation.remaining).toFixed(2)} ק"ג
                   </Text>
@@ -251,7 +325,16 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   );
 };
 
+PlateCalculatorModal.displayName = "PlateCalculatorModal";
+
 const styles = StyleSheet.create({
+  modalContentBase: {
+    backgroundColor: theme.colors.background,
+    maxHeight: "90%",
+  },
+  headerSpacer: {
+    width: 28,
+  },
   scrollContent: {
     padding: theme.spacing.lg,
     paddingTop: 0,
@@ -390,5 +473,25 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
     marginTop: theme.spacing.sm,
     fontWeight: "500",
+  },
+  quickAdjustRow: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginTop: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
+  quickAdjustButton: {
+    backgroundColor: theme.colors.primary + "10",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    minWidth: 48,
+    alignItems: "center",
+  },
+  quickAdjustText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.primary,
   },
 });

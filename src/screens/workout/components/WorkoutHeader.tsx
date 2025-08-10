@@ -12,15 +12,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  I18nManager,
   Animated,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
 import BackButton from "../../../components/common/BackButton";
 import type { WorkoutHeaderProps } from "./types";
+
+const HEADER_TOP_PADDING = 50; // קבוע מרכזי ל-padding עליון (מונע מספר קסם כפול)
 
 export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   workoutName,
@@ -34,14 +34,8 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   totalVolume = 0,
   personalRecords = 0,
 }) => {
-  const navigation = useNavigation();
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  // אופטימיזציה של RTL direction עם useMemo
-  const backIconName = useMemo(
-    () => (I18nManager.isRTL ? "chevron-forward" : "chevron-back"),
-    []
-  );
+  // הוסר backIconName וניווט לא בשימוש לניקוי
 
   // אופטימיזציה של handlers עם useCallback
   const handleNamePress = useCallback(() => {
@@ -99,13 +93,17 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
       animation.start();
       return () => animation.stop();
     }
-  }, [variant]);
+  }, [variant, scaleAnim]);
 
   // סגנון מינימלי
   // Minimal style
   if (variant === "minimal") {
     return (
-      <View style={styles.minimalContainer}>
+      <View
+        style={styles.minimalContainer}
+        accessibilityRole="header"
+        accessibilityLabel={`כותרת אימון: ${workoutName}`}
+      >
         <BackButton absolute={false} variant="minimal" />
 
         <View style={styles.minimalCenter}>
@@ -149,6 +147,8 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
       <LinearGradient
         colors={[theme.colors.primary + "15", theme.colors.background]}
         style={styles.gradientContainer}
+        accessibilityRole="header"
+        accessibilityLabel={`כותרת אימון גרדיאנט: ${workoutName}`}
       >
         <View style={styles.gradientContent}>
           <BackButton absolute={false} variant="large" />
@@ -211,7 +211,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   // Integrated style with stats
   if (variant === "integrated") {
     return (
-      <View style={styles.integratedContainer}>
+      <View
+        style={styles.integratedContainer}
+        accessibilityRole="header"
+        accessibilityLabel={`כותרת אימון עם סטטיסטיקות: ${workoutName}`}
+      >
         {/* שורה עליונה */}
         {/* Top row */}
         <View style={styles.integratedTop}>
@@ -309,7 +313,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
             name="chevron-down"
             size={20}
             color={theme.colors.textSecondary}
-            style={{ marginStart: theme.spacing.xs }}
+            style={styles.integratedChevron}
           />
         </TouchableOpacity>
 
@@ -324,7 +328,11 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   // ברירת מחדל - הסגנון המקורי משופר
   // Default - improved original style
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessibilityRole="header"
+      accessibilityLabel={`כותרת אימון: ${workoutName}`}
+    >
       {/* כפתור תפריט - בצד ימין */}
       {/* Menu button - right side */}
       <TouchableOpacity
@@ -391,7 +399,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    paddingTop: HEADER_TOP_PADDING,
     paddingBottom: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.background,
@@ -440,7 +448,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    paddingTop: HEADER_TOP_PADDING,
     paddingBottom: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.background,
@@ -467,7 +475,7 @@ const styles = StyleSheet.create({
   // סגנון גרדיאנט
   // Gradient style
   gradientContainer: {
-    paddingTop: 50,
+    paddingTop: HEADER_TOP_PADDING,
     paddingBottom: theme.spacing.md,
   },
   gradientContent: {
@@ -515,7 +523,7 @@ const styles = StyleSheet.create({
   // Integrated style
   integratedContainer: {
     backgroundColor: theme.colors.background,
-    paddingTop: 50,
+    paddingTop: HEADER_TOP_PADDING,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.divider,
   },
@@ -570,4 +578,5 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: theme.colors.primary,
   },
+  integratedChevron: { marginStart: theme.spacing.xs },
 });

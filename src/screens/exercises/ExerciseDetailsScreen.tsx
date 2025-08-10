@@ -1,6 +1,43 @@
 /**
  * @file src/screens/exercises/ExerciseDetailsScreen.tsx
- * @brief מסך פרטי התרגיל - הצגת מידע מפורט על תרגיל ספציפי
+ * @brief מסך פרטי התרגיל   // פונקציה לחזרה   // פונקציה לחזרה אחורה
+  const handleGoBack = () => {
+    console.warn("🔙 Back button clicked!"); // דיבוג
+    console.warn("📱 Navigation object:", navigation);
+    console.warn("🔙 Can go back:", navigation.canGoBack());
+    
+    alert("Button clicked!"); // בדיקה נוספת
+    
+    try {
+      if (navigation.canGoBack()) {
+        console.warn("✅ Going back...");
+        navigation.goBack();
+      } else {
+        console.warn("❌ Cannot go back, navigating to ExercisesScreen");
+        navigation.navigate("ExercisesScreen");
+      }
+    } catch (error) {
+      console.error("❌ Navigation error:", error);
+    }
+  };andleGoBack = () => {
+    console.warn("🔙 Button pressed - handleGoBack called!"); // דיבוג מיידי
+    alert("Button clicked!"); // הודעה מיידית לוודא שהפונקציה נקראת
+    
+    try {
+      console.warn("🔍 Navigation canGoBack:", navigation.canGoBack());
+      
+      if (navigation.canGoBack()) {
+        console.warn("✅ Going back...");
+        navigation.goBack();
+      } else {
+        console.warn("❌ Cannot go back, navigating to ExercisesScreen");
+        navigation.navigate("ExercisesScreen");
+      }
+    } catch (error) {
+      console.error("❌ Navigation error:", error);
+      alert("Navigation error: " + error);
+    }
+  };ט על תרגיל ספציפי
  * @version 1.0.0
  * @author GYMovoo Development Team
  * @created 2025-08-06
@@ -41,6 +78,7 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 
@@ -72,6 +110,7 @@ type RootStackParamList = {
     returnScreen?: string;
   };
   ExerciseDetails: ExerciseDetailsScreenParams;
+  Home: undefined;
 };
 
 type ExerciseDetailsNavigationProp = StackNavigationProp<
@@ -85,6 +124,22 @@ const ExerciseDetailsScreen: React.FC = () => {
 
   const { exerciseId, exerciseName, muscleGroup, exerciseData } =
     (route.params as ExerciseDetailsScreenParams) || {};
+
+  // פונקציה לחזרה אחורה
+  const handleGoBack = () => {
+    try {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        // אם אין היסטוריה, נחזור למסך התרגילים
+        navigation.navigate("ExercisesScreen", {});
+      }
+    } catch (error) {
+      console.error("❌ Navigation error:", error);
+      // כפתרון חירום, ננסה לנווט למסך התרגילים
+      navigation.navigate("ExercisesScreen", {});
+    }
+  };
 
   // דיבוג לעזרה בפתרון בעיות
   console.log("🔍 ExerciseDetailsScreen Debug:", {
@@ -197,8 +252,8 @@ const ExerciseDetailsScreen: React.FC = () => {
   // בדיקה אם יש מידע בסיסי לתצוגה
   if (!exerciseId || !exerciseName) {
     return (
-      <View style={styles.container}>
-        <BackButton absolute={false} variant="minimal" />
+      <SafeAreaView style={styles.container}>
+        <BackButton absolute={false} variant="minimal" onPress={handleGoBack} />
         <View style={styles.errorContainer}>
           <MaterialCommunityIcons
             name="alert-circle-outline"
@@ -210,15 +265,15 @@ const ExerciseDetailsScreen: React.FC = () => {
             לא נמצא מידע על התרגיל המבוקש. אנא נסה שוב מאוחר יותר.
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <BackButton absolute={false} variant="minimal" />
+        <BackButton absolute={false} variant="minimal" onPress={handleGoBack} />
 
         <View style={styles.headerInfo}>
           <Text style={styles.exerciseTitle}>{exerciseDetails.name}</Text>
@@ -483,7 +538,7 @@ const ExerciseDetailsScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -512,11 +567,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.xs,
+    writingDirection: "rtl", // ✅ RTL support
   },
   muscleGroupText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   headerActions: {
     flexDirection: "row-reverse",
@@ -573,6 +630,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   infoValue: {
     fontSize: 14,
@@ -580,6 +638,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: theme.spacing.xs,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
   section: {
     backgroundColor: theme.colors.card,
@@ -594,6 +653,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "right",
+    writingDirection: "rtl", // ✅ RTL support
   },
   listItem: {
     flexDirection: "row-reverse",
@@ -616,6 +676,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     lineHeight: 20,
     marginLeft: theme.spacing.sm,
+    writingDirection: "rtl", // ✅ RTL support
   },
   bottomActions: {
     padding: theme.spacing.md,
@@ -631,11 +692,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.md,
     gap: theme.spacing.sm,
+    marginHorizontal: theme.spacing.sm, // ✅ הוספת רווח צדדי
   },
   similarExercisesText: {
     color: theme.colors.card,
     fontSize: 16,
     fontWeight: "600",
+    writingDirection: "rtl", // ✅ RTL support
   },
   // סטיילים למסך "בבנייה"
   constructionContainer: {

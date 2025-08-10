@@ -17,7 +17,7 @@
  * - ✅ נגישות מלאה
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -32,7 +32,7 @@ import { formatTime } from "../../../../utils";
 
 type TimerSize = "compact" | "full";
 
-interface TimerDisplayProps {
+export interface TimerDisplayProps {
   timeLeft: number;
   size?: TimerSize;
   onPress?: () => void;
@@ -40,6 +40,9 @@ interface TimerDisplayProps {
   label?: string;
   pulseAnimation?: Animated.Value;
   countdownAnimation?: Animated.Value;
+  urgentThreshold?: number; // ערך סף להתראה אדומה
+  reducedMotion?: boolean; // ביטול אנימציות
+  testID?: string;
 }
 
 const SIZE_CONFIG = {
@@ -62,6 +65,11 @@ const SIZE_CONFIG = {
   },
 } as const;
 
+const DEBUG = process.env.EXPO_PUBLIC_DEBUG_TIMER === "1";
+const dlog = (m: string, data?: unknown) => {
+  if (DEBUG) console.warn(`⏲️ TimerDisplay: ${m}`, data || "");
+};
+
 export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   timeLeft,
   size = "full",
@@ -70,14 +78,39 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   label = "זמן מנוחה",
   pulseAnimation,
   countdownAnimation,
+  urgentThreshold = 5,
+  reducedMotion = false,
+  testID,
 }) => {
   const config = SIZE_CONFIG[size];
-  const isUrgent = timeLeft <= 5;
+  const isUrgent = timeLeft <= urgentThreshold;
   const textColor = isUrgent ? theme.colors.error : theme.colors.text;
+
+  const formattedTime = useMemo(() => formatTime(timeLeft), [timeLeft]);
+
+  if (DEBUG) {
+    dlog("render", { timeLeft, size, isPaused, isUrgent });
+  }
+
+  // Full size with animations and circle background (hooks above ensure order)
+  const animatedStyle = useMemo(() => {
+    if (reducedMotion) return undefined;
+    const transforms = [
+      ...(pulseAnimation ? [{ scale: pulseAnimation }] : []),
+      ...(countdownAnimation ? [{ scale: countdownAnimation }] : []),
+    ];
+    return transforms.length ? { transform: transforms } : undefined;
+  }, [pulseAnimation, countdownAnimation, reducedMotion]);
 
   if (size === "compact") {
     return (
-      <View style={config.containerStyle}>
+      <View
+        style={config.containerStyle}
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`${label}: נותרו ${timeLeft} שניות`}
+        testID={testID || "TimerDisplay-compact"}
+      >
         <Text
           style={[
             config.textStyle,
@@ -87,7 +120,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
             },
           ]}
         >
-          {formatTime(timeLeft)}
+          {formattedTime}
         </Text>
         <Text
           style={[config.labelStyle, { color: theme.colors.textSecondary }]}
@@ -98,16 +131,15 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     );
   }
 
-  // Full size with animations and circle background
-  const animatedStyle = {
-    transform: [
-      ...(pulseAnimation ? [{ scale: pulseAnimation }] : []),
-      ...(countdownAnimation ? [{ scale: countdownAnimation }] : []),
-    ],
-  };
-
   return (
-    <Animated.View style={[config.containerStyle, animatedStyle]}>
+    <Animated.View
+      style={[config.containerStyle, animatedStyle]}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`${label}: ${isPaused ? "מושהה, " : ""}נותרו ${timeLeft} שניות`}
+      accessibilityState={{ disabled: false, busy: false }}
+      testID={testID || "TimerDisplay-full"}
+    >
       <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.8}
@@ -135,7 +167,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
               },
             ]}
           >
-            {formatTime(timeLeft)}
+            {formattedTime}
           </Text>
 
           {isPaused && (

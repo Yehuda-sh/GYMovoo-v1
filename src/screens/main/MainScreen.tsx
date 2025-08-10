@@ -148,6 +148,71 @@ function MainScreen() {
   /** @description ברכה דינמית לפי שעה / Dynamic greeting based on time */
   const timeBasedGreeting = useMemo(() => getTimeBasedGreeting(), []);
 
+  /** @description מספר ימי האימון על בסיס השאלון / Number of training days based on questionnaire */
+  const availableTrainingDays = useMemo(() => {
+    // נסה לחלץ מהשאלון החדש
+    const answers = user?.questionnaireData?.answers as any;
+    const availability = answers?.availability?.[0];
+
+    if (availability) {
+      switch (availability) {
+        case "2_days":
+          return 2;
+        case "3_days":
+          return 3;
+        case "4_days":
+          return 4;
+        case "5_days":
+          return 5;
+        default:
+          return 3;
+      }
+    }
+
+    // fallback - נסה לחלץ מהשאלון הישן (questionnaire.frequency)
+    const oldQuestionnaire = user?.questionnaire as any;
+    const frequency = oldQuestionnaire?.frequency;
+
+    if (frequency) {
+      switch (frequency) {
+        case "2_days":
+          return 2;
+        case "3_days":
+          return 3;
+        case "4_days":
+          return 4;
+        case "5_days":
+          return 5;
+        default:
+          return 3;
+      }
+    }
+
+    // fallback - נסה לחלץ מפרופיל מדעי
+    const availableDays = user?.scientificProfile?.available_days;
+
+    if (
+      typeof availableDays === "number" &&
+      availableDays >= 2 &&
+      availableDays <= 5
+    ) {
+      return availableDays;
+    }
+
+    // ברירת מחדל
+    return 3;
+  }, [
+    user?.questionnaireData?.answers,
+    user?.questionnaire,
+    user?.scientificProfile?.available_days,
+  ]);
+
+  /** @description מערך הימים להצגה / Array of days to display */
+  const daysToShow = useMemo(() => {
+    const days = Array.from({ length: availableTrainingDays }, (_, i) => i + 1);
+    return days;
+  }, [availableTrainingDays]);
+
   /** @description נתונים מדעיים ומקצועיים ממוחזרים / Memoized scientific and professional data */
   const profileData = useMemo(
     () => ({
@@ -189,39 +254,41 @@ function MainScreen() {
     const lastWorkout = workouts[workouts.length - 1];
     const lastWorkoutType = lastWorkout?.type || lastWorkout?.workoutName || "";
 
-    // לוגיקה פשוטה - מחזור של 4 ימים
+    // לוגיקה דינמית לפי מספר הימים הזמינים
     if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
       return 2;
     } else if (
       lastWorkoutType.includes("2") ||
       lastWorkoutType.includes("יום 2")
     ) {
-      return 3;
+      return availableTrainingDays >= 3 ? 3 : 1; // אם יש רק 2 ימים, חוזרים ליום 1
     } else if (
       lastWorkoutType.includes("3") ||
       lastWorkoutType.includes("יום 3")
     ) {
-      return 4;
+      return availableTrainingDays >= 4 ? 4 : 1; // אם יש פחות מ-4 ימים, חוזרים ליום 1
     } else if (
       lastWorkoutType.includes("4") ||
       lastWorkoutType.includes("יום 4")
     ) {
-      return 1;
+      return availableTrainingDays >= 5 ? 5 : 1; // אם יש פחות מ-5 ימים, חוזרים ליום 1
+    } else if (
+      lastWorkoutType.includes("5") ||
+      lastWorkoutType.includes("יום 5")
+    ) {
+      return 1; // אחרי יום 5 תמיד חוזרים ליום 1
     }
 
     // ברירת מחדל - יום 1
     return 1;
-  }, [profileData.activityHistory?.workouts]);
+  }, [profileData.activityHistory?.workouts, availableTrainingDays]);
 
   /** @description נתוני התקדמות שבועית מעובדים / Processed weekly progress data */
   const weeklyProgressData = useMemo(() => {
     const completed = profileData.activityHistory?.weeklyProgress || 0;
-    const target = profileData.scientificProfile?.available_days || 3;
+    const target = availableTrainingDays; // משתמש בימים מהשאלון
     return formatWeeklyProgress(completed, target);
-  }, [
-    profileData.activityHistory?.weeklyProgress,
-    profileData.scientificProfile?.available_days,
-  ]);
+  }, [profileData.activityHistory?.weeklyProgress, availableTrainingDays]);
 
   useEffect(() => {
     // אנימציות כניסה חלקה // Smooth entry animations
@@ -255,8 +322,6 @@ function MainScreen() {
       if (!userState.user) {
         throw new Error(MAIN_SCREEN_TEXTS.STATUS.NO_USER_FOUND);
       }
-
-      console.log("✅ MainScreen - נתונים נטענו בהצלחה");
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -289,12 +354,10 @@ function MainScreen() {
   );
 
   const handleProfilePress = useCallback(() => {
-    console.log("👤 MainScreen - כפתור פרופיל נלחץ!");
     navigation.navigate("Profile");
   }, [navigation]);
 
   const handleHistoryPress = useCallback(() => {
-    console.log("📊 MainScreen - צפייה בהיסטוריה נלחצה!");
     navigation.navigate("History");
   }, [navigation]);
 
@@ -614,7 +677,7 @@ function MainScreen() {
           </View>
 
           <DayButtonGrid
-            days={[1, 2, 3, 4]}
+            days={daysToShow}
             onDayPress={handleDayWorkout}
             variant="default"
             testID="day-selection-grid"
@@ -661,7 +724,7 @@ function MainScreen() {
               label={MAIN_SCREEN_TEXTS.STATS.WEEKLY_GOAL}
               subtitle={formatProgressRatio(
                 profileData.activityHistory?.weeklyProgress || 0,
-                profileData.scientificProfile?.available_days || 3,
+                availableTrainingDays, // משתמש בימים מהשאלון
                 MAIN_SCREEN_TEXTS.ACTIONS.WORKOUTS
               )}
               showProgress={true}

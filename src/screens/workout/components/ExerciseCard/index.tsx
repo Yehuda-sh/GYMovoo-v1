@@ -43,7 +43,6 @@ import { LinearGradient } from "expo-linear-gradient";
 // קומפוננטות פנימיות
 // Internal components
 import SetRow from "./SetRow";
-import ExerciseMenu from "./ExerciseMenu";
 
 // ייבוא ה-theme
 // Import theme
@@ -54,6 +53,13 @@ import { triggerVibration } from "../../../../utils/workoutHelpers";
 // Import types
 import { Exercise, Set as WorkoutSet } from "../../types/workout.types";
 
+// ייבוא מיפוי אייקוני ציוד
+// Import equipment icon mapping
+import {
+  getEquipmentIcon,
+  getEquipmentHebrewName,
+} from "../../../../utils/equipmentIconMapping";
+
 // אפשור LayoutAnimation באנדרואיד
 // Enable LayoutAnimation on Android
 if (
@@ -63,11 +69,14 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Debug mode
-const DEBUG = true;
+// Debug mode (enable via EXPO_PUBLIC_DEBUG_EXERCISECARD=1)
+const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISECARD === "1";
 const log = (message: string, data?: object) => {
   if (DEBUG) {
-    console.log(`🏋️ ExerciseCard: ${message}`, data || "");
+    console.warn(
+      `🏋️ ExerciseCard: ${message}` +
+        (data ? ` -> ${JSON.stringify(data)}` : "")
+    );
   }
 };
 
@@ -109,12 +118,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onCompleteSet,
   onRemoveExercise,
   // onStartRest, // לא בשימוש כרגע
-  onMoveUp,
-  onMoveDown,
+  onMoveUp: _onMoveUp,
+  onMoveDown: _onMoveDown,
   // onShowTips, // מוסר - הפונקציה לא משמשת עוד
   onTitlePress, // עבור מעבר לתרגיל יחיד
-  isFirst = false,
-  isLast = false,
+  isFirst: _isFirst = false,
+  isLast: _isLast = false,
   // isPaused = false, // לא בשימוש כרגע
   showHistory = false,
   showNotes = false,
@@ -127,7 +136,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // מצבים מקומיים
   // Local states
   const [isExpanded, setIsExpanded] = useState(true);
-  const [menuVisible, setMenuVisible] = useState(false);
+  // const [menuVisible, setMenuVisible] = useState(false); // תפריט אופציות הוסר זמנית – לא בשימוש כעת
   const [isEditMode, setIsEditMode] = useState(false); // מצב עריכה חדש
   const [selectedSets, setSelectedSets] = useState<globalThis.Set<string>>(
     new globalThis.Set()
@@ -158,11 +167,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }, 0);
   }, [sets]);
 
-  // חישוב סטים שהושלמו
-  // Calculate completed sets
-  const completedSets = useMemo(() => {
-    return sets.filter((set) => set.completed).length;
-  }, [sets]);
+  // חישוב סטים שהושלמו + אחוז התקדמות ממורכז (memo)
+  const completedSets = useMemo(
+    () => sets.filter((set) => set.completed).length,
+    [sets]
+  );
+
+  const progressPercentage = useMemo(() => {
+    if (sets.length === 0) return 0;
+    return (completedSets / sets.length) * 100;
+  }, [completedSets, sets.length]);
 
   // חישוב חזרות כוללות
   // Calculate total reps
@@ -427,7 +441,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       {/* Selection bar */}
       {isSelectionMode && (
         <View style={styles.selectionBar}>
-          <View style={{ flexDirection: "row-reverse", gap: 12 }}>
+          <View style={styles.selectionButtonsRow}>
             <TouchableOpacity
               onPress={cancelSelectionMode}
               style={styles.selectionButton}
@@ -492,6 +506,17 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               accessibilityLabel={`לחץ לעבור לאימון ${exercise.name}`}
               accessibilityHint="פותח את התרגיל במסך נפרד לפוקוס מלא"
             >
+              {/* אייקון ציוד לתרגיל */}
+              <MaterialCommunityIcons
+                name={
+                  getEquipmentIcon(
+                    exercise.equipment
+                  ) as keyof typeof MaterialCommunityIcons.glyphMap
+                }
+                size={20}
+                color={theme.colors.primary}
+                style={styles.equipmentIcon}
+              />
               <Text
                 style={[
                   styles.exerciseName,
@@ -516,6 +541,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 />
               )}
             </TouchableOpacity>
+
+            {/* תווית ציוד */}
+            <Text style={styles.equipmentLabel}>
+              {getEquipmentHebrewName(exercise.equipment)}
+            </Text>
 
             <View style={styles.statsRow}>
               <View style={styles.stat}>
@@ -613,10 +643,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 end={{ x: 1, y: 0 }}
                 style={[
                   styles.progressFill,
-                  { width: `${(completedSets / sets.length) * 100}%` },
+                  { width: `${progressPercentage}%` },
                 ]}
               />
             </View>
+            {/* Accessibility element for screen readers */}
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel="התקדמות סטים"
+              accessibilityValue={{
+                now: Math.round(progressPercentage),
+                min: 0,
+                max: 100,
+                text: `${completedSets} מתוך ${sets.length} סטים הושלמו`,
+              }}
+              style={styles.visuallyHidden}
+            />
           </View>
         )}
       </TouchableOpacity>
@@ -773,41 +816,41 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </View>
             </View>
 
-            {sets.map((set, index) => (
-              <SetRow
-                key={set.id}
-                set={set}
-                setNumber={index + 1}
-                onUpdate={(updates: Partial<WorkoutSet>) => {
-                  console.log("🔴 ExerciseCard onUpdate called:", {
-                    setId: set.id,
-                    updates,
-                  });
-                  onUpdateSet(set.id, updates);
-                }}
-                onDelete={() => onDeleteSet?.(set.id)}
-                onComplete={() => {
-                  const currentSet = sets.find((s) => s.id === set.id);
-                  const isCompleting = !currentSet?.completed; // אם הסט לא מושלם, זה אומר שאנחנו משלימים אותו
-                  onCompleteSet(set.id, isCompleting);
-                }}
-                onLongPress={() => handleSetLongPress(set.id)}
-                isActive={index === 0 && !set.completed}
-                exercise={exercise}
-                // מצב עריכה ופונקציות עזר
-                isEditMode={isEditMode}
-                onMoveUp={index > 0 ? () => handleMoveSetUp(index) : undefined}
-                onMoveDown={
-                  index < sets.length - 1
-                    ? () => handleMoveSetDown(index)
-                    : undefined
-                }
-                onDuplicate={() => handleDuplicateSet(index)}
-                // מידע על מיקום - חשוב לחצים
-                isFirst={index === 0}
-                isLast={index === sets.length - 1}
-              />
-            ))}
+            {sets.map((set, index) => {
+              const handleUpdate = (updates: Partial<WorkoutSet>) => {
+                log("Set update", { setId: set.id, updates });
+                onUpdateSet(set.id, updates);
+              };
+              const handleComplete = () => {
+                const currentSet = sets.find((s) => s.id === set.id);
+                const isCompleting = !currentSet?.completed;
+                onCompleteSet(set.id, isCompleting);
+              };
+              return (
+                <SetRow
+                  key={set.id}
+                  set={set}
+                  setNumber={index + 1}
+                  onUpdate={handleUpdate}
+                  onDelete={() => onDeleteSet?.(set.id)}
+                  onComplete={handleComplete}
+                  onLongPress={() => handleSetLongPress(set.id)}
+                  isActive={index === 0 && !set.completed}
+                  isEditMode={isEditMode}
+                  onMoveUp={
+                    index > 0 ? () => handleMoveSetUp(index) : undefined
+                  }
+                  onMoveDown={
+                    index < sets.length - 1
+                      ? () => handleMoveSetDown(index)
+                      : undefined
+                  }
+                  onDuplicate={() => handleDuplicateSet(index)}
+                  isFirst={index === 0}
+                  isLast={index === sets.length - 1}
+                />
+              );
+            })}
           </View>
 
           {/* כפתור הוספת סט - נוסף אחרי רשימת הסטים, רק אם יש סטים ולא במצב עריכה */}
@@ -841,30 +884,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </Animated.View>
       )}
 
-      {/* תפריט אפשרויות - רק אם לא במצב עריכה */}
-      {/* Options menu - only if not in edit mode */}
-      {!isEditMode && (
-        <ExerciseMenu
-          visible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-          onDelete={onRemoveExercise}
-          onMoveUp={onMoveUp}
-          onMoveDown={onMoveDown}
-          onDuplicate={onDuplicate || (() => {})}
-          onReplace={onReplace || (() => {})}
-          onAddSet={onAddSet}
-          onDeleteLastSet={() => {
-            // מחק את הסט האחרון
-            if (sets.length > 0) {
-              const lastSet = sets[sets.length - 1];
-              onDeleteSet?.(lastSet.id);
-            }
-          }}
-          hasLastSet={sets.length > 0}
-          canMoveUp={!isFirst}
-          canMoveDown={!isLast}
-        />
-      )}
+      {/* ExerciseMenu הוסר זמנית כדי להפחית מורכבות – אם נדרש נחזיר בגרסה עתידית */}
     </View>
   );
 };
@@ -882,6 +902,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: 16,
     marginBottom: theme.spacing.md,
+    alignItems: "flex-end", // ✅ RTL support - יישור תוכן לימין
   },
   header: {
     padding: theme.spacing.md,
@@ -909,12 +930,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: theme.spacing.xs,
   },
+  equipmentIcon: {
+    marginEnd: theme.spacing.xs, // מרווח מימין לאייקון
+  },
+  equipmentLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+    textAlign: "right",
+  },
   exerciseName: {
     fontSize: 18,
     fontWeight: "600",
     color: theme.colors.text,
     marginStart: theme.spacing.sm, // שינוי RTL: marginStart במקום marginLeft
     textAlign: "right",
+    writingDirection: "rtl", // ✅ RTL support
   },
   statsRow: {
     flexDirection: "row-reverse",
@@ -1126,6 +1157,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.primary,
     letterSpacing: 0.5,
+  },
+  // אלמנט מוסתר לנגישות (ויזואלית 0 גודל)
+  visuallyHidden: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    margin: -1,
+    padding: 0,
+    borderWidth: 0,
+    overflow: "hidden",
+  },
+  selectionButtonsRow: {
+    flexDirection: "row-reverse",
+    gap: 12,
   },
 });
 

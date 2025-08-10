@@ -19,6 +19,7 @@ export interface Set {
   notes?: string;
   isPR?: boolean; // האם זה שיא אישי
   rpe?: number; // Rate of Perceived Exertion (1-10)
+  timeToComplete?: number; // Time to complete the set in seconds
 }
 
 // תרגיל

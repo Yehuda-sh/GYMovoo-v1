@@ -395,16 +395,183 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       return "אפשרויות תרגיל";
     }, [isBatchMode, selectedExercises.length, isEditMode]);
 
-    // Enhanced accessibility for disabled items
-    const getAccessibilityHint = useCallback(
-      (disabled: boolean, label: string) => {
-        if (disabled) {
-          return `${label} - לא זמין כרגע`;
-        }
-        return `הקש פעמיים לביצוע ${label}`;
-      },
-      []
-    );
+    // Config-driven menu sections to reduce duplication
+    interface ConfigItem {
+      key: string;
+      icon: string;
+      label: string;
+      action?: () => void;
+      disabled?: boolean;
+      danger?: boolean;
+      iconFamily?: "ionicons" | "material";
+      dynamic?: boolean; // indicates label may change per render (e.g., batch count)
+    }
+    type MenuSection = ConfigItem[];
+
+    const menuSections: MenuSection[] = useMemo(() => {
+      if (isBatchMode) {
+        return [
+          [
+            {
+              key: "batch_up",
+              icon: "arrow-up",
+              label: "הזז למעלה",
+              action: handleBatchMoveUp,
+            },
+            {
+              key: "batch_down",
+              icon: "arrow-down",
+              label: "הזז למטה",
+              action: handleBatchMoveDown,
+            },
+          ],
+          [
+            {
+              key: "batch_delete",
+              icon: "trash",
+              label: `מחק ${selectedExercises.length} תרגילים`,
+              action: confirmDelete,
+              danger: true,
+              dynamic: true,
+            },
+          ],
+        ];
+      }
+      if (isEditMode) {
+        return [
+          [
+            {
+              key: "add_set",
+              icon: "add-circle",
+              label: "הוסף סט",
+              action: handleAddSet,
+              disabled: !onAddSet,
+            },
+            {
+              key: "delete_last_set",
+              icon: "remove-circle",
+              label: "מחק סט אחרון",
+              action: handleDeleteLastSet,
+              disabled: !onDeleteLastSet || !hasLastSet,
+            },
+          ],
+          [
+            {
+              key: "move_up",
+              icon: "keyboard-arrow-up",
+              iconFamily: "material",
+              label: "הזז תרגיל למעלה",
+              action: handleMoveUp,
+              disabled: !canMoveUp,
+            },
+            {
+              key: "move_down",
+              icon: "keyboard-arrow-down",
+              iconFamily: "material",
+              label: "הזז תרגיל למטה",
+              action: handleMoveDown,
+              disabled: !canMoveDown,
+            },
+          ],
+          [
+            {
+              key: "duplicate",
+              icon: "content-copy",
+              iconFamily: "material",
+              label: "שכפל תרגיל",
+              action: handleDuplicate,
+            },
+            {
+              key: "delete",
+              icon: "trash",
+              label: "מחק תרגיל",
+              action: confirmDelete,
+              danger: true,
+            },
+          ],
+        ];
+      }
+      // Regular mode
+      return [
+        [
+          {
+            key: "add_set",
+            icon: "add-circle",
+            label: "הוסף סט",
+            action: handleAddSet,
+            disabled: !onAddSet,
+          },
+          {
+            key: "delete_last_set",
+            icon: "remove-circle",
+            label: "מחק סט אחרון",
+            action: handleDeleteLastSet,
+            disabled: !onDeleteLastSet || !hasLastSet,
+          },
+        ],
+        [
+          {
+            key: "duplicate",
+            icon: "content-copy",
+            iconFamily: "material",
+            label: "שכפל תרגיל",
+            action: handleDuplicate,
+          },
+          {
+            key: "replace",
+            icon: "swap-horizontal",
+            iconFamily: "material",
+            label: "החלף תרגיל",
+            action: handleReplace,
+            disabled: !onReplace,
+          },
+        ],
+        [
+          {
+            key: "move_up",
+            icon: "arrow-up",
+            label: "הזז למעלה",
+            action: handleMoveUp,
+            disabled: !canMoveUp,
+          },
+          {
+            key: "move_down",
+            icon: "arrow-down",
+            label: "הזז למטה",
+            action: handleMoveDown,
+            disabled: !canMoveDown,
+          },
+        ],
+        [
+          {
+            key: "delete",
+            icon: "trash",
+            label: "מחק תרגיל",
+            action: confirmDelete,
+            danger: true,
+          },
+        ],
+      ];
+    }, [
+      isBatchMode,
+      isEditMode,
+      selectedExercises.length,
+      handleBatchMoveUp,
+      handleBatchMoveDown,
+      confirmDelete,
+      handleAddSet,
+      handleDeleteLastSet,
+      onAddSet,
+      onDeleteLastSet,
+      hasLastSet,
+      handleMoveUp,
+      handleMoveDown,
+      canMoveUp,
+      canMoveDown,
+      handleDuplicate,
+      handleReplace,
+      onReplace,
+    ]);
 
     return (
       <Modal
@@ -472,151 +639,36 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
                 ]}
                 accessibilityRole="menu"
               >
-                {isBatchMode ? (
-                  // Batch mode actions
-                  <>
-                    <MenuItem
-                      icon="arrow-up"
-                      label="הזז למעלה"
-                      onPress={handleBatchMoveUp}
-                    />
-                    <MenuItem
-                      icon="arrow-down"
-                      label="הזז למטה"
-                      onPress={handleBatchMoveDown}
-                    />
-                    <View style={styles.separator} />
-                    <MenuItem
-                      icon="trash"
-                      label={`מחק ${selectedExercises.length} תרגילים`}
-                      onPress={confirmDelete}
-                      danger
-                    />
-                  </>
-                ) : isEditMode ? (
-                  // 🎯 Edit mode actions - פעולות מיוחדות למצב עריכה
-                  <>
-                    {/* פעולות עדיפות במצב עריכה */}
+                {menuSections.map((section, sIdx) => (
+                  <React.Fragment key={`section_${sIdx}`}>
                     <View style={styles.section}>
-                      <MenuItem
-                        icon="add-circle"
-                        label="הוסף סט"
-                        onPress={handleAddSet}
-                        disabled={!onAddSet}
-                      />
-                      <MenuItem
-                        icon="remove-circle"
-                        label="מחק סט אחרון"
-                        onPress={handleDeleteLastSet}
-                        disabled={!onDeleteLastSet || !hasLastSet}
-                      />
+                      {section.map(
+                        ({
+                          key,
+                          icon,
+                          label,
+                          action,
+                          disabled,
+                          danger,
+                          iconFamily,
+                        }) => (
+                          <MenuItem
+                            key={key}
+                            icon={icon}
+                            iconFamily={iconFamily}
+                            label={label}
+                            onPress={action || (() => {})}
+                            disabled={!!disabled || isProcessing}
+                            danger={danger}
+                          />
+                        )
+                      )}
                     </View>
-
-                    <View style={styles.separator} />
-
-                    {/* פעולות מיקום - עם אייקוני משולש כמו במעלית */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="keyboard-arrow-up"
-                        iconFamily="material"
-                        label="הזז תרגיל למעלה"
-                        onPress={handleMoveUp}
-                        disabled={!canMoveUp}
-                      />
-                      <MenuItem
-                        icon="keyboard-arrow-down"
-                        iconFamily="material"
-                        label="הזז תרגיל למטה"
-                        onPress={handleMoveDown}
-                        disabled={!canMoveDown}
-                      />
-                    </View>
-
-                    <View style={styles.separator} />
-
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="content-copy"
-                        iconFamily="material"
-                        label="שכפל תרגיל"
-                        onPress={handleDuplicate}
-                      />
-                      <MenuItem
-                        icon="trash"
-                        label="מחק תרגיל"
-                        onPress={confirmDelete}
-                        danger
-                      />
-                    </View>
-                  </>
-                ) : (
-                  // Regular mode actions - התפריט הרגיל
-                  <>
-                    {/* פעולות סטים */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="add-circle"
-                        label="הוסף סט"
-                        onPress={handleAddSet}
-                        disabled={!onAddSet}
-                      />
-                      <MenuItem
-                        icon="remove-circle"
-                        label="מחק סט אחרון"
-                        onPress={handleDeleteLastSet}
-                        disabled={!onDeleteLastSet || !hasLastSet}
-                      />
-                    </View>
-
-                    <View style={styles.separator} />
-
-                    {/* פעולות תרגיל */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="content-copy"
-                        iconFamily="material"
-                        label="שכפל תרגיל"
-                        onPress={handleDuplicate}
-                      />
-                      <MenuItem
-                        icon="swap-horizontal"
-                        iconFamily="material"
-                        label="החלף תרגיל"
-                        onPress={handleReplace}
-                        disabled={!onReplace}
-                      />
-                    </View>
-
-                    <View style={styles.separator} />
-
-                    {/* פעולות מיקום */}
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="arrow-up"
-                        label="הזז למעלה"
-                        onPress={handleMoveUp}
-                        disabled={!canMoveUp}
-                      />
-                      <MenuItem
-                        icon="arrow-down"
-                        label="הזז למטה"
-                        onPress={handleMoveDown}
-                        disabled={!canMoveDown}
-                      />
-                    </View>
-
-                    <View style={styles.separator} />
-
-                    <View style={styles.section}>
-                      <MenuItem
-                        icon="trash"
-                        label="מחק תרגיל"
-                        onPress={confirmDelete}
-                        danger
-                      />
-                    </View>
-                  </>
-                )}
+                    {sIdx < menuSections.length - 1 && (
+                      <View style={styles.separator} />
+                    )}
+                  </React.Fragment>
+                ))}
               </View>
             </Animated.View>
           </PanGestureHandler>

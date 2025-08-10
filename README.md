@@ -123,6 +123,60 @@ npx expo start --tunnel
 - **🔧 שירותים:** 15 שירותים פעילים כולל workoutHistoryService
 - **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי)
 
+> עדכון סטטיסטיקות אחרון: 2025-08-10 (לבדיקה מחודשת לפני ריליס גדול)
+
+### 🗺️ מפת קוד (High-Level Code Map)
+
+| שכבה                      | מיקום                          | מטרה עיקרית                                                 | הערות תחזוקה                                 |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------- | -------------------------------------------- |
+| Screens                   | `src/screens/*`                | לוגיקת תצוגה לכל דומיין (auth, workout, questionnaire וכו') | לבדוק פיצול עתידי אם מסך > 500 שורות         |
+| Components /common        | `src/components/common`        | רכיבי UI קטנים לשימוש רחב                                   | שמור נטול לוגיקה עסקית                       |
+| Components /ui            | `src/components/ui`            | אלמנטים ויזואליים מורחבים                                   | לרכז סטנדרטים (Spacing / Shadows)            |
+| Components /workout       | `src/components/workout`       | רכיבי אימון (טיימר, סטים, ברים)                             | טיימר מאוחד – אין RestTimer ישן              |
+| Components /questionnaire | `src/components/questionnaire` | רכיבי שאלון דינמי                                           | לאחר איחוד – לתעד זרימת סטייט                |
+| Navigation                | `src/navigation`               | App / Bottom navigators + טיפוסים                           | לוודא סנכרון עם מסכים חדשים                  |
+| Services                  | `src/services`                 | לוגיקה עסקית: שאלון, היסטוריה, דמו, סימולציה                | מועמדי איחוד: demo / simulation / scientific |
+| Store                     | `src/stores`                   | Zustand stores (כעת userStore יחיד)                         | לייצר index אם נוספים מתווספים               |
+| Data                      | `src/data`                     | מקורות סטטיים (תרגילים, ציוד, unifiedQuestionnaire)         | שני קבצי ציוד – דורש החלטה                   |
+| Utils                     | `src/utils`                    | פונקציות עזר (format, gender, stats, logger)                | לרכז pure logic בלבד                         |
+| Constants                 | `src/constants`                | טקסטים / קונפיג UI פר-מסך                                   | לאחד naming (texts/config/colors)            |
+| Styles                    | `src/styles/theme.ts`          | Theme מרכזי                                                 | שקול פירוק light/dark אם יתרחב               |
+| Types                     | `src/types + inline types`     | מודלי דטה גלובליים                                          | להתחיל הקשחת variant scopes                  |
+| Assets                    | `assets/*`                     | אייקונים / תמונות / ציוד                                    | לבדוק כפילויות (icons דומים)                 |
+| Docs                      | `docs/*`                       | מדריכים, דוחות, אופטימיזציות                                | להעביר דוחות לתיקיית reports/                |
+
+### 🛠 הערות תחזוקה קריטיות (Maintenance Notes)
+
+1. איחוד טיימר: כל הלוגיקה עוברת דרך `WorkoutStatusBar` + `shared/TimerDisplay` + `TimeAdjustButton`. רכיב RestTimer הוסר – אין להוסיף חדש נפרד.
+2. Variants: האיחוד הבא מתוכנן – צמצום `WorkoutVariant` לפי שימוש אמיתי (pills בשימוש רק ב-NextExerciseBar). ראו TODO.
+3. שאלון: קבצים מרובים (FINAL*QUESTIONNAIRE_SOLUTION / DYNAMIC_FLOW / DETECTION_FIX / SERVICE_OPTIMIZATION / REALISTIC_USER*\*) – מיזוג מתוכנן למסמך יחיד.
+4. Demo Services: `advancedDemoService` + `realisticDemoService` + סימולציה → יעד: DEMO_SYSTEM_GUIDE + בחינת איחוד.
+5. ציוד: שני קבצים (`equipmentData.ts`, `equipmentData_new.ts`) – החלטה: לשמור רק אחד אחרי בדיקת שימוש ב-import בפועל.
+6. דוחות Root (BUG*FIXES*_, OPTIMIZATION*REPORT*_) – יעברו ל-`docs/reports/` לשמירה היסטורית.
+7. טיפוסים: לבצע הקשחה פר קומפוננט (HeaderVariant, DashboardVariant וכו') מבלי לשבור API חיצוני – שלב ראשון תיעוד, שלב שני שינוי קוד.
+8. סטטיסטיקות README: נתפסות כצילום מצב – לא להבטיח עדכניות בלי ריצת סקריפט איסוף.
+9. נגישות: רכיבים חדשים – חובה `accessibilityLabel` בעברית + סימון role היכן רלוונטי.
+10. RTL: כל טקסט חדש – לוודא `writingDirection: 'rtl'` אם אינו יורש סגנון גלובלי.
+
+### 📂 סטטוס תיעוד – מועמדי איחוד / סידור
+
+| קבוצה                | קבצים נוכחיים                                                                                                                                                                              | פעולה מוצעת                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| Questionnaire        | FINAL_QUESTIONNAIRE_SOLUTION.md, QUESTIONNAIRE_DYNAMIC_FLOW_ANALYSIS.md, QUESTIONNAIRE_DETECTION_FIX.md, QUESTIONNAIRE_SERVICE_OPTIMIZATION_REPORT.md, REALISTIC_USER_QUESTIONNAIRE_FIX.md | למזג ל-`docs/questionnaire/QUESTIONNAIRE_SYSTEM.md` + נספח FLOW |
+| Demo / Realistic     | REALISTIC_DEMO_FLOW_ANALYSIS.md, REALISTIC_USER_FIXES_REPORT.md, advancedDemoService, realisticDemoService                                                                                 | ליצור `DEMO_SYSTEM_GUIDE.md` + לבדוק איחוד שירותים              |
+| Optimization Reports | OPTIMIZATION*REPORT*_ + BUG*FIXES*_ + WORKOUTDASHBOARD_OPTIMIZATION_REPORT.md                                                                                                              | להעביר ל-`docs/reports/` ולהוסיף אינדקס                         |
+| Equipment            | equipmentData.ts, equipmentData_new.ts                                                                                                                                                     | לבדוק שימוש; לסמן unused כ-deprecated                           |
+| Variants Typing      | types.ts (WorkoutVariant)                                                                                                                                                                  | להוסיף הערות JSDoc + לפצל בהמשך                                 |
+
+### 🧪 צעדי אימות מוצעים בעת שינויים מבניים
+
+1. `npm run type-check` – לפני ואחרי שינוי טיפוסים
+2. `npm run check:performance` – לאחר איחוד קבצים גדולים
+3. Grep ל-imports של קבצים שסומנו למחיקה לפני הסרה
+4. פתיחת מסכי Workout + Questionnaire באמולטור לבדיקת RTL וסטייט
+
+---
+
 ### מבנה התיקיות
 
 ```
@@ -311,6 +365,7 @@ GYMovoo/
 - 📝 **הנחיות פיתוח** - `docs/DEVELOPMENT_GUIDELINES.md`
 - 📊 **סיכום מאסטר** - `docs/PROJECT_MASTER_SUMMARY.md`
 - 📑 **אינדקס תיעוד** - `docs/DOCUMENTATION_INDEX_MASTER.md`
+- 🗂️ **דוחות אופטימיזציה ותיקונים (הועברו)** - `docs/reports/`
 
 ## 🔧 פיתוח
 

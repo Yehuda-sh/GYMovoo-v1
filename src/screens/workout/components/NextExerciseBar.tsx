@@ -16,13 +16,21 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
 import { triggerVibration } from "../../../utils/workoutHelpers";
-import { Exercise } from "../types/workout.types";
 import type { NextExerciseBarProps } from "./types";
 
-export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
+interface ExtraProps {
+  reducedMotion?: boolean;
+  testID?: string;
+  haptic?: boolean; // enable/disable vibration
+}
+
+export const NextExerciseBar: React.FC<NextExerciseBarProps & ExtraProps> = ({
   nextExercise,
   onSkipToNext,
   variant = "gradient", // ברירת מחדל מהתכונות הפופולריות ביותר | Most popular variant as default
+  reducedMotion = false,
+  testID = "NextExerciseBar",
+  haptic = true,
 }) => {
   const slideAnim = useRef(new Animated.Value(100)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -37,25 +45,24 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       useNativeDriver: true,
     }).start();
 
-    // אנימציית פעימה לכפתור - עם ניקוי משופר | Pulse animation with improved cleanup
-    if (nextExercise && onSkipToNext) {
+    // אנימציית פעימה (מכובה ב-reducedMotion) | Pulse animation (disabled when reducedMotion)
+    if (nextExercise && onSkipToNext && !reducedMotion) {
       pulseAnimationRef.current = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.05,
-            duration: 1000,
+            duration: 950,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1000,
+            duration: 950,
             useNativeDriver: true,
           }),
         ])
       );
       pulseAnimationRef.current.start();
     } else {
-      // עצירת האנימציה כשאין תרגיל או כפתור | Stop animation when no exercise or button
       if (pulseAnimationRef.current) {
         pulseAnimationRef.current.stop();
         pulseAnimationRef.current = null;
@@ -63,14 +70,13 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
       pulseAnim.setValue(1);
     }
 
-    // ניקוי בעת unmount | Cleanup on unmount
     return () => {
       if (pulseAnimationRef.current) {
         pulseAnimationRef.current.stop();
         pulseAnimationRef.current = null;
       }
     };
-  }, [nextExercise, onSkipToNext, slideAnim, pulseAnim]);
+  }, [nextExercise, onSkipToNext, slideAnim, pulseAnim, reducedMotion]);
 
   // בדיקת תקינות נתונים | Data validation
   if (!nextExercise || !nextExercise.name) {
@@ -86,6 +92,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
           styles.containerGradient,
           { transform: [{ translateY: slideAnim }] },
         ]}
+        testID={testID + "-gradient"}
+        accessibilityRole="summary"
+        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
       >
         <LinearGradient
           colors={[
@@ -116,11 +125,12 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
                 <TouchableOpacity
                   style={styles.skipButtonGradient}
                   onPress={() => {
-                    // הוספת haptic feedback | Add haptic feedback
-                    triggerVibration(50); // רטט קצר | Short vibration
+                    if (haptic) triggerVibration(50); // רטט קצר | Short vibration
                     onSkipToNext?.();
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="עבור לתרגיל הבא"
                 >
                   <LinearGradient
                     colors={[
@@ -156,6 +166,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
           styles.containerMinimal,
           { transform: [{ translateY: slideAnim }] },
         ]}
+        testID={testID + "-minimal"}
+        accessibilityRole="summary"
+        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
       >
         <View style={styles.contentMinimal}>
           <Text style={styles.exerciseNameMinimal}>{nextExercise.name} ←</Text>
@@ -164,6 +177,8 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
               style={styles.skipButtonMinimal}
               onPress={onSkipToNext}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="דלג לתרגיל הבא"
             >
               <Text style={styles.skipTextMinimal}>דלג</Text>
             </TouchableOpacity>
@@ -188,6 +203,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
             }),
           },
         ]}
+        testID={testID + "-floating"}
+        accessibilityRole="summary"
+        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
       >
         <View style={styles.floatingCard}>
           <View style={styles.floatingHeader}>
@@ -204,6 +222,8 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
               style={styles.floatingButton}
               onPress={onSkipToNext}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="עבור לתרגיל הבא"
             >
               <Text style={styles.floatingButtonText}>עבור לתרגיל ←</Text>
             </TouchableOpacity>
@@ -222,6 +242,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
           styles.containerPills,
           { transform: [{ translateY: slideAnim }] },
         ]}
+        testID={testID + "-pills"}
+        accessibilityRole="summary"
+        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
       >
         <View style={styles.contentPills}>
           <View style={styles.pillsLeft}>
@@ -240,6 +263,8 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
               style={styles.pillButton}
               onPress={onSkipToNext}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="דלג לתרגיל הבא"
             >
               <MaterialCommunityIcons
                 name="skip-next"
@@ -258,6 +283,9 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
   return (
     <Animated.View
       style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+      testID={testID + "-default"}
+      accessibilityRole="summary"
+      accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
     >
       <View style={styles.content}>
         <View style={styles.textContainer}>
@@ -271,6 +299,8 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
             style={styles.skipButton}
             onPress={onSkipToNext}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="דלג לתרגיל הבא"
           >
             <MaterialCommunityIcons
               name="play-speed"
@@ -284,6 +314,8 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
     </Animated.View>
   );
 };
+
+NextExerciseBar.displayName = "NextExerciseBar";
 
 const styles = StyleSheet.create({
   // סגנון מקורי
