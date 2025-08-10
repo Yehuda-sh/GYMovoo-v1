@@ -27,8 +27,6 @@ import {
   PersonalData,
   createRealisticPersonalData,
   calculatePersonalizedCalories,
-  extractMidValueFromRange,
-  getAgeMetabolismFactor,
 } from "../utils/personalDataUtils";
 
 // קבועים מותאמים להיסטוריה
@@ -684,17 +682,30 @@ class WorkoutSimulationService {
         return sum + avgRPE;
       }, 0) / exercises.length;
 
-    // המרה מ-RPE (6-9) לקושי (1-5)
-    return Math.round(((baseRPE - 6) / 3) * 4 + 1);
+    // המרה מ-RPE (6-9) לקושי (1-5) עם יותר וריאציה
+    let difficulty = Math.round(((baseRPE - 6) / 3) * 4 + 1);
+
+    // הוספת וריאציה רנדומלית
+    const variance = Math.random() * 0.8 - 0.4; // -0.4 עד +0.4
+    difficulty = Math.max(1, Math.min(5, difficulty + variance));
+
+    return Math.round(difficulty * 10) / 10; // עיגול לעשירית
   }
 
   private getRandomFeeling(motivation: number): string {
     const feelings = ["😄", "😊", "😐", "😞", "💪", "😴", "🔥"];
 
-    // הרגשה מושפעת ממוטיבציה
-    if (motivation >= 8) return feelings[Math.floor(Math.random() * 3)]; // 😄, 😊, 😐
-    if (motivation >= 6) return feelings[2 + Math.floor(Math.random() * 3)]; // 😐, 😞, 💪
-    return feelings[3 + Math.floor(Math.random() * 3)]; // 😞, 💪, 😴
+    // יותר וריאציה בהרגשות
+    const randomIndex = Math.floor(Math.random() * feelings.length);
+
+    // הרגשה מושפעת ממוטיבציה אבל עם יותר וריאציה
+    if (motivation >= 8) {
+      return feelings[randomIndex % 4]; // 😄, 😊, 😐, 😞
+    } else if (motivation >= 6) {
+      return feelings[(randomIndex + 2) % feelings.length]; // יותר מגוון
+    } else {
+      return feelings[(randomIndex + 4) % feelings.length]; // עייפות/מאמץ
+    }
   }
 
   private calculateSimulatedVolume(exercises: Exercise[]): number {
@@ -709,7 +720,7 @@ class WorkoutSimulationService {
     }, 0);
   }
 
-  private generateSimulatedWorkoutName(_params: SimulationParameters): string {
+  private generateSimulatedWorkoutName(params: SimulationParameters): string {
     const workoutTypes = [
       "אימון כוח עליון",
       "אימון כוח תחתון",
@@ -718,8 +729,27 @@ class WorkoutSimulationService {
       "אימון HIIT",
       "אימון יסוד",
       "אימון כוח וסיבולת",
+      "אימון חזה וכתפיים",
+      "אימון גב ודו-ראשי",
+      "אימון רגליים ועכוז",
+      "אימון ליבה וקור",
+      "אימון פונקציונלי",
+      "אימון סיבולת",
+      "אימון כוח מקסימלי",
+      "אימון חיטוב",
     ];
-    return workoutTypes[Math.floor(Math.random() * workoutTypes.length)];
+
+    // התאמה לרמת המתאמן
+    let availableWorkouts = workoutTypes;
+    if (params.experience === "beginner") {
+      availableWorkouts = workoutTypes.slice(0, 8); // אימונים בסיסיים יותר
+    } else if (params.experience === "advanced") {
+      availableWorkouts = workoutTypes; // כל האימונים
+    }
+
+    return availableWorkouts[
+      Math.floor(Math.random() * availableWorkouts.length)
+    ];
   }
 
   // פונקציות עזר לקטגוריות תרגילים (זהות לrealisticDemoService)

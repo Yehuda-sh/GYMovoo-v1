@@ -170,8 +170,7 @@ export default function LoginScreen() {
 
     // הפעלת Google אוטומטי אם הגיע עם google: true
     if (route?.params?.google) {
-      // eslint-disable-next-line no-console
-      console.log(
+      console.warn(
         "🔐 LoginScreen - Auto Google login triggered from route params"
       );
       handleGoogleAuth();

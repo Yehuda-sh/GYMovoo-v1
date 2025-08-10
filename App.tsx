@@ -2,12 +2,12 @@
  * @file App.tsx
  * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo
  * @brief Main entry point for GYMovoo application
- * @description מטפל באתחול RTL, ניקוי אחסון, וניווט ראשי
- * @description Handles RTL initialization, storage cleanup, and main navigation
- * @dependencies AppNavigator, StorageCleanup, rtlHelpers, Toast
- * @notes אתחול RTL אוטומטי, ניקוי אחסון אסינכרוני, Toast גלובלי
- * @notes Automatic RTL init, async storage cleanup, global Toast
- * @updated 2025-08-05 עדכון אחרי מיזוג rtlConfig.ts לתוך rtlHelpers.ts
+ * @description מטפל באתחול RTL, ניקוי אחסון, מנהל נתונים וניווט ראשי
+ * @description Handles RTL initialization, storage cleanup, data manager and main navigation
+ * @dependencies AppNavigator, StorageCleanup, dataManager, rtlHelpers, Toast
+ * @notes אתחול RTL אוטומטי, ניקוי אחסון אסינכרוני, אתחול מנהל נתונים, Toast גלובלי
+ * @notes Automatic RTL init, async storage cleanup, data manager init, global Toast
+ * @updated 2025-08-10 הוספת מנהל נתונים מרכזי למערכת
  */
 
 import React, { useEffect } from "react";
@@ -22,6 +22,8 @@ import Toast from "react-native-toast-message";
 // 🔧 Utilities & Configuration - כלים והגדרות
 // ===============================================
 import { StorageCleanup } from "./src/utils/storageCleanup";
+import { dataManager } from "./src/services/core";
+import { useUserStore } from "./src/stores/userStore";
 import "./src/utils/rtlHelpers"; // 🌍 אתחול RTL אוטומטי / Automatic RTL initialization
 
 // ===============================================
@@ -34,10 +36,12 @@ import "react-native-gesture-handler"; // 👆 טיפול במחוות / Gesture
  * רכיב האפליקציה הראשי
  * Main application component
  *
- * @returns {React.FC} רכיב האפליקציה עם ניווט וניקוי אחסון
- * @returns {React.FC} Application component with navigation and storage cleanup
+ * @returns {React.FC} רכיב האפליקציה עם ניווט, ניקוי אחסון ומנהל נתונים
+ * @returns {React.FC} Application component with navigation, storage cleanup and data manager
  */
 export default function App(): React.JSX.Element {
+  const { user } = useUserStore();
+
   useEffect(() => {
     /**
      * אתחול ניקוי אחסון בהפעלה
@@ -62,10 +66,35 @@ export default function App(): React.JSX.Element {
       }
     };
 
+    /**
+     * אתחול מנהל הנתונים המרכזי
+     * Initialize central data manager
+     */
+    const initDataManager = async (): Promise<void> => {
+      if (!user?.id) {
+        console.warn("🔄 App: Waiting for user to initialize data manager...");
+        return;
+      }
+
+      try {
+        console.warn("🚀 App: Starting data manager initialization...");
+        await dataManager.initialize(user);
+        console.warn("✅ App: Data manager initialization completed");
+      } catch (error) {
+        console.error("❌ App: Data manager initialization failed:", error);
+      }
+    };
+
     // הרץ ניקוי בצורה אסינכרונית כדי לא לחסום את האפליקציה
     // Run cleanup asynchronously to avoid blocking the app
     initStorageCleanup();
-  }, []);
+
+    // אתחל מנהל נתונים כשיש משתמש
+    // Initialize data manager when user is available
+    if (user?.id) {
+      initDataManager();
+    }
+  }, [user]);
 
   return (
     <>

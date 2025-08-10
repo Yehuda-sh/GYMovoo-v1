@@ -8,12 +8,16 @@ import {
   HISTORY_SCREEN_CONFIG,
   HISTORY_SCREEN_FORMATS,
 } from "../../../constants/historyScreenConfig";
-import { HISTORY_SCREEN_ICONS } from "../../../constants/historyScreenTexts";
 
 /**
  * מחזיר אייקון מתאים למגדר המשתמש
  */
 export const getGenderIcon = (gender: string): string => {
+  // הפונקציה הועברה ל־workoutHelpers לשימוש כללי
+  // נשארת כאן לצורך backward compatibility
+  const {
+    HISTORY_SCREEN_ICONS,
+  } = require("../../../constants/historyScreenTexts");
   switch (gender) {
     case "male":
       return HISTORY_SCREEN_ICONS.MALE_ICON;
@@ -28,6 +32,7 @@ export const getGenderIcon = (gender: string): string => {
 
 /**
  * מחזיר כוכבים לייצוג רמת קושי
+ * פונקציה מתקדמת יותר מהגרסה ב־workoutHelpers
  */
 export const getDifficultyStars = (difficulty: number): string => {
   const clampedDifficulty = Math.max(
@@ -48,6 +53,7 @@ export const getDifficultyStars = (difficulty: number): string => {
 
 /**
  * מחזיר אמוג'י מתאים להרגשה
+ * פונקציה מתקדמת יותר מהגרסה ב־workoutHelpers
  */
 export const getFeelingEmoji = (feeling: string): string => {
   if (!feeling) return HISTORY_SCREEN_CONFIG.DEFAULT_MOOD;
@@ -82,6 +88,7 @@ export const getFeelingEmoji = (feeling: string): string => {
 
 /**
  * מעצב תאריך לתצוגה בעברית עם טיפול משופר בשגיאות
+ * פונקציה מתקדמת יותר מהגרסה ב־workoutHelpers
  */
 export const formatDateHebrew = (
   dateString: string | undefined | null,
@@ -127,20 +134,15 @@ export const formatDateHebrew = (
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // תאריך עתידי
+    // תאריך עתידי - זה לא אמור לקרות באימונים
     if (diffDays < 0) {
-      const futureDays = Math.abs(diffDays);
-      if (futureDays === 1) {
-        return "מחר";
-      } else if (futureDays < 7) {
-        return `בעוד ${futureDays} ימים`;
-      } else {
-        return date.toLocaleDateString("he-IL", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
-      }
+      console.warn("Future date found in workout history:", dateString);
+      // נציג את התאריך המלא במקום "מחר"
+      return date.toLocaleDateString("he-IL", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
     }
 
     // תאריכים קרובים

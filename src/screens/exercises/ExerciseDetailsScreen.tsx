@@ -1,43 +1,7 @@
 /**
  * @file src/screens/exercises/ExerciseDetailsScreen.tsx
- * @brief מסך פרטי התרגיל   // פונקציה לחזרה   // פונקציה לחזרה אחורה
-  const handleGoBack = () => {
-    console.warn("🔙 Back button clicked!"); // דיבוג
-    console.warn("📱 Navigation object:", navigation);
-    console.warn("🔙 Can go back:", navigation.canGoBack());
-    
-    alert("Button clicked!"); // בדיקה נוספת
-    
-    try {
-      if (navigation.canGoBack()) {
-        console.warn("✅ Going back...");
-        navigation.goBack();
-      } else {
-        console.warn("❌ Cannot go back, navigating to ExercisesScreen");
-        navigation.navigate("ExercisesScreen");
-      }
-    } catch (error) {
-      console.error("❌ Navigation error:", error);
-    }
-  };andleGoBack = () => {
-    console.warn("🔙 Button pressed - handleGoBack called!"); // דיבוג מיידי
-    alert("Button clicked!"); // הודעה מיידית לוודא שהפונקציה נקראת
-    
-    try {
-      console.warn("🔍 Navigation canGoBack:", navigation.canGoBack());
-      
-      if (navigation.canGoBack()) {
-        console.warn("✅ Going back...");
-        navigation.goBack();
-      } else {
-        console.warn("❌ Cannot go back, navigating to ExercisesScreen");
-        navigation.navigate("ExercisesScreen");
-      }
-    } catch (error) {
-      console.error("❌ Navigation error:", error);
-      alert("Navigation error: " + error);
-    }
-  };ט על תרגיל ספציפי
+ * @brief מסך פרטי התרגיל
+ * @description מסך מפורט על תרגיל ספציפי
  * @version 1.0.0
  * @author GYMovoo Development Team
  * @created 2025-08-06
@@ -74,7 +38,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -83,11 +46,7 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 
 // Types
-import { Exercise } from "../workout/types/workout.types";
 import { StackNavigationProp } from "@react-navigation/stack";
-
-// Constants
-import { EXERCISES_SCREEN_TEXTS } from "../../constants/exercisesScreenTexts";
 
 interface ExerciseDetailsScreenParams {
   exerciseId: string;
@@ -142,7 +101,7 @@ const ExerciseDetailsScreen: React.FC = () => {
   };
 
   // דיבוג לעזרה בפתרון בעיות
-  console.log("🔍 ExerciseDetailsScreen Debug:", {
+  console.warn("🔍 ExerciseDetailsScreen Debug:", {
     exerciseId,
     exerciseName,
     muscleGroup,

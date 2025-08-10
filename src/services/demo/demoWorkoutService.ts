@@ -13,6 +13,7 @@ if (!__DEV__) {
 
 import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
 import { UserGender } from "../../utils/genderAdaptation";
+import { User } from "../../types";
 import { demoUserService } from "./demoUserService";
 import { workoutSimulationService } from "../workoutSimulationService";
 
@@ -26,6 +27,39 @@ class DemoWorkoutService {
       DemoWorkoutService.instance = new DemoWorkoutService();
     }
     return DemoWorkoutService.instance;
+  }
+
+  /**
+   * ✅ יצירת היסטוריית אימוני דמו מבוססת על נתוני משתמש אמיתיים
+   */
+  async generateDemoWorkoutHistoryForUser(
+    user: User
+  ): Promise<WorkoutWithFeedback[]> {
+    console.warn(
+      "🔴 Generating DEMO workout history based on REAL user data - DEV ONLY"
+    );
+
+    if (!user) {
+      return this.generateDemoWorkoutHistory();
+    }
+
+    // שימוש בנתוני המשתמש האמיתיים
+    const gender =
+      user.preferences?.gender || user.questionnaire?.["1"] || "other";
+    const experience = user.questionnaire?.["3"] || "beginner";
+    const equipment = (user.questionnaire?.["4"] as string[]) || ["none"];
+
+    console.warn("🔍 Using real user data for demo:", {
+      gender,
+      experience,
+      equipment: equipment.length,
+    });
+
+    return await workoutSimulationService.simulateHistoryCompatibleWorkouts(
+      gender as UserGender,
+      experience as "beginner" | "intermediate" | "advanced",
+      equipment
+    );
   }
 
   /**

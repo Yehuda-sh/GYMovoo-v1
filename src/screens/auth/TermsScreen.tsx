@@ -16,17 +16,12 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
-import { RootStackParamList } from "../../navigation/types";
-import { NavigationProp } from "@react-navigation/native";
 import BackButton from "../../components/common/BackButton";
 
 export default function TermsScreen() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
   // אנימציות // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -46,7 +41,7 @@ export default function TermsScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   return (
     <View style={styles.container}>
@@ -56,7 +51,7 @@ export default function TermsScreen() {
 
         <Text style={styles.title}>תנאי שימוש</Text>
 
-        <View style={{ width: 40 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <Animated.ScrollView
@@ -199,7 +194,7 @@ export default function TermsScreen() {
               activeOpacity={0.7}
               onPress={() => {
                 // אפשרות לפתיחת אפליקציית מייל
-                console.log("Opening email app...");
+                console.warn("Opening email app...");
               }}
             >
               <Text style={styles.contactEmail}>support@gymovoo.com</Text>
@@ -227,7 +222,7 @@ export default function TermsScreen() {
           </LinearGradient>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={styles.bottomSpacer} />
       </Animated.ScrollView>
     </View>
   );
@@ -249,8 +244,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.divider,
   },
-  backButton: {
-    padding: 4,
+  headerSpacer: {
+    width: 40,
   },
   title: {
     flex: 1,
@@ -388,5 +383,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
+  },
+  bottomSpacer: {
+    height: 40,
   },
 });

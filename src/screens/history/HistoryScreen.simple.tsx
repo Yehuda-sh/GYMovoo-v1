@@ -39,9 +39,7 @@ import {
   HISTORY_SCREEN_ACCESSIBILITY,
   HISTORY_SCREEN_ICONS,
 } from "../../constants/historyScreenTexts";
-import {
-  HISTORY_SCREEN_CONFIG,
-} from "../../constants/historyScreenConfig";
+import { HISTORY_SCREEN_CONFIG } from "../../constants/historyScreenConfig";
 import {
   formatDateHebrew,
   getDifficultyStars,
@@ -82,7 +80,9 @@ export default function HistoryScreen() {
           console.warn("📊 HistoryScreen: Initializing data manager...");
           await dataManager.initialize(user);
         } else {
-          console.warn("⚠️ HistoryScreen: No user available for initialization");
+          console.warn(
+            "⚠️ HistoryScreen: No user available for initialization"
+          );
           return;
         }
       }

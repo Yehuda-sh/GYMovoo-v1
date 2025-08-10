@@ -12,6 +12,8 @@ if (!__DEV__) {
 
 export { demoUserService, realisticDemoService } from "./demoUserService";
 export { demoWorkoutService } from "./demoWorkoutService";
+export { demoHistoryService } from "./demoHistoryService";
+export { demoWorkoutDurationService } from "./demoWorkoutDurationService";
 
 // Export types for demo data
 export type { DemoUser } from "./demoUserService";
