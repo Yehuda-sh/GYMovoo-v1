@@ -57,7 +57,7 @@ export interface SmartUserPreferences extends QuestionnaireMetadata {
   };
 }
 
-interface UseUserPreferencesReturn {
+export interface UseUserPreferencesReturn {
   // נתונים בסיסיים
   preferences: SmartUserPreferences | null;
   isLoading: boolean;

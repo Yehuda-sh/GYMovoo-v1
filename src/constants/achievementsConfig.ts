@@ -60,6 +60,27 @@ export interface AchievementConfig {
 }
 
 /**
+ * Constants for calculations
+ * קבועים לחישובים
+ */
+const WORKOUT_CONSTANTS = {
+  DEFAULT_DURATION_MINUTES: 45,
+  SECONDS_TO_MINUTES_THRESHOLD: 180,
+  MAX_STREAK_GAP_DAYS: 2, // Allow for 1 day gap in streak
+  TIME_RANGES: {
+    MORNING_START: 5,
+    MORNING_END: 12,
+    NIGHT_START: 22,
+    NIGHT_END: 5,
+  },
+  SPECIAL_TARGETS: {
+    weekend: 5,
+    morning: 10,
+    night: 8,
+  },
+} as const;
+
+/**
  * Workout interface with rating and feedback support
  * ממשק אימון עם תמיכה בדירוג ומשוב
  */
@@ -370,8 +391,8 @@ const calculateStreak = (workouts: WorkoutWithRating[]): number => {
       (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (diffDays <= 2) {
-      // Allow for 1 day gap
+    if (diffDays <= WORKOUT_CONSTANTS.MAX_STREAK_GAP_DAYS) {
+      // Allow for reasonable gap between workouts
       currentStreak++;
       checkDate = workoutDate;
     } else {
@@ -387,11 +408,14 @@ const calculateStreak = (workouts: WorkoutWithRating[]): number => {
  * חישוב זמן אימון כולל בדקות
  */
 const calculateTotalTime = (workouts: WorkoutWithRating[]): number => {
-  // Normalize duration to minutes. If value looks like seconds (> 180), convert to minutes.
+  // Normalize duration to minutes. If value looks like seconds (> threshold), convert to minutes.
   return workouts.reduce((sum: number, workout: WorkoutWithRating) => {
     const raw = workout.duration;
-    if (raw == null) return sum + 45; // sensible default in minutes
-    const minutes = raw > 180 ? Math.round(raw / 60) : raw; // heuristic seconds→minutes
+    if (raw == null) return sum + WORKOUT_CONSTANTS.DEFAULT_DURATION_MINUTES;
+    const minutes =
+      raw > WORKOUT_CONSTANTS.SECONDS_TO_MINUTES_THRESHOLD
+        ? Math.round(raw / 60)
+        : raw;
     return sum + minutes;
   }, 0);
 };
@@ -430,7 +454,7 @@ const countPerfectRatings = (workouts: WorkoutWithRating[]): number => {
  */
 const calculateDaysSinceRegistration = (user: User): number => {
   // Prefer actual creation date if available; fallback to 30 days
-  const createdAt = (user as any)?.createdAt as string | undefined;
+  const createdAt = (user as User & { createdAt?: string })?.createdAt;
   if (!createdAt) return 30;
   const created = new Date(createdAt);
   if (isNaN(created.getTime())) return 30;
@@ -446,6 +470,8 @@ const countWorkoutsByTime = (
   workouts: WorkoutWithRating[],
   timeType: string
 ): number => {
+  const { TIME_RANGES } = WORKOUT_CONSTANTS;
+
   return workouts.filter((workout) => {
     const workoutDate = new Date(workout.date || workout.completedAt || "");
     if (isNaN(workoutDate.getTime())) return false;
@@ -454,9 +480,11 @@ const countWorkoutsByTime = (
 
     switch (timeType) {
       case "morning":
-        return hour >= 5 && hour < 12;
+        return (
+          hour >= TIME_RANGES.MORNING_START && hour < TIME_RANGES.MORNING_END
+        );
       case "night":
-        return hour >= 22 || hour < 5;
+        return hour >= TIME_RANGES.NIGHT_START || hour < TIME_RANGES.NIGHT_END;
       case "weekend":
         return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
       default:
@@ -482,7 +510,9 @@ const checkRequirement = (
       // Consider either legacy questionnaire or the new smartQuestionnaireData presence
       const hasLegacy =
         !!user.questionnaire && Object.keys(user.questionnaire).length > 5;
-      const hasSmart = !!(user as any)?.smartQuestionnaireData?.answers;
+      const hasSmart = !!(
+        user as User & { smartQuestionnaireData?: { answers?: unknown } }
+      )?.smartQuestionnaireData?.answers;
       const hasQuestionnaire = hasLegacy || hasSmart;
       return { met: hasQuestionnaire, progress: hasQuestionnaire ? 100 : 0 };
     }
@@ -544,12 +574,10 @@ const checkRequirement = (
     case "timeOfDay": {
       const timeValue = requirement.value as string;
       const timeCount = countWorkoutsByTime(workouts, timeValue);
-      const specialTargets: Record<string, number> = {
-        weekend: 5,
-        morning: 10,
-        night: 8,
-      };
-      const specialTimeTarget = specialTargets[timeValue] ?? 10;
+      const specialTimeTarget =
+        WORKOUT_CONSTANTS.SPECIAL_TARGETS[
+          timeValue as keyof typeof WORKOUT_CONSTANTS.SPECIAL_TARGETS
+        ] ?? 10;
       return {
         met: timeCount >= specialTimeTarget,
         progress: Math.min((timeCount / specialTimeTarget) * 100, 100),

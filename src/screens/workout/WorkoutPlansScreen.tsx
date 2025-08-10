@@ -45,7 +45,6 @@ import {
 
 import { allExercises as ALL_EXERCISES } from "../../data/exercises";
 import { Exercise } from "../../data/exercises/types";
-import { QuickWorkoutTemplate as DatabaseExercise } from "../../types";
 import { useModalManager } from "./hooks/useModalManager";
 
 // Workout day templates
@@ -109,13 +108,6 @@ if (typeof global !== "undefined") {
 }
 
 export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
-  console.log(
-    "🏋️ WorkoutPlansScreen: Initializing with internal exercise database"
-  );
-  console.log(
-    "🏋️ WorkoutPlansScreen: Supporting 'none' equipment for bodyweight exercises"
-  );
-
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
 
@@ -126,7 +118,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
-  const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
 
   // Modal management using the new hook
   const {
@@ -135,7 +126,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     showError,
     showSuccess,
     showConfirm,
-    showComingSoon,
     hideModal,
   } = useModalManager();
 
@@ -155,17 +145,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     );
 
     const map = ALL_EXERCISES.reduce(
-      (acc: Record<string, any>, ex: any) => {
+      (acc: Record<string, Exercise>, ex: Exercise) => {
         acc[ex.id] = ex;
         return acc;
       },
-      {} as Record<string, any>
-    );
-
-    console.log(
-      "🗃️ WorkoutPlansScreen: Exercise map created with",
-      Object.keys(map).length,
-      "entries"
+      {} as Record<string, Exercise>
     );
 
     // Log first few exercises
@@ -263,13 +247,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   }, [loading]);
 
   // Load available equipment
-  useEffect(() => {
-    const loadEquipment = async () => {
-      const equipment = await getAvailableEquipment();
-      setAvailableEquipment(equipment);
-    };
-    loadEquipment();
-  }, []);
+  // Removed equipment loading - using internal database only
 
   // Removed WGER exercises loading - using internal database only
   // useEffect(() => {
@@ -330,9 +308,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       "🤖 WorkoutPlansScreen: Available exercises count:",
       ALL_EXERCISES.length
     );
-    console.log("🤖 WorkoutPlansScreen: Equipment types in database:", [
-      ...new Set(ALL_EXERCISES.map((ex: any) => ex.equipment)),
-    ]);
     generateAIWorkoutPlan(true);
   };
 
@@ -395,9 +370,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       exerciseData: {
         equipment: exercise.equipment || "ציוד חופשי",
         difficulty: exercise.difficulty || "בינוני",
-        instructions: exercise.instructions || [],
-        benefits: exercise.benefits || [],
-        tips: exercise.tips || [],
+        instructions: exercise.instructions?.he || exercise.instructions || [],
+        benefits:
+          (exercise as any).benefits?.he || (exercise as any).benefits || [],
+        tips: exercise.tips?.he || exercise.tips || [],
       },
     });
   };
@@ -634,8 +610,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     };
 
     // Validate Exercise Database
-    console.log("🧪 Validating exercise database...");
-    ALL_EXERCISES.forEach((exercise: any, index: number) => {
+    ALL_EXERCISES.forEach((exercise: Exercise, index: number) => {
       const issues: string[] = [];
 
       if (!exercise.id) issues.push(`Missing ID at index ${index}`);

@@ -36,14 +36,3 @@ export const MUSCLE_GROUPS = [
   "neck",
 ] as const;
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
-
-// Utility guards (runtime safety for dynamic inputs)
-export function isExerciseCategory(v: string): v is ExerciseCategory {
-  return (EXERCISE_CATEGORIES as readonly string[]).includes(v);
-}
-export function isDifficulty(v: string): v is ExerciseDifficulty {
-  return (DIFFICULTY_LEVELS as readonly string[]).includes(v);
-}
-export function isMuscleGroup(v: string): v is MuscleGroup {
-  return (MUSCLE_GROUPS as readonly string[]).includes(v);
-}

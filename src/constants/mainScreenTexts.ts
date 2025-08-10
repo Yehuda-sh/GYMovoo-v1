@@ -2,15 +2,7 @@
  * @file src/constants/mainScreenTexts.ts
  * @brief טקסטים קבועים למסך הראשי - MainScreen
  * @brief Constant texts for MainScreen
- * @features טקסטים מרוכזים, תמיכה  // Accessibility labels // תוויות נגישות
-  A11Y: {
-    PROFILE_BUTTON: "כפתור פרופיל משתמש",
-    PROFILE_HINT: "לחץ לצפייה ועריכת הפרופיל האישי",
-    QUICK_WORKOUT: "התחל אימון מהיר",
-    QUICK_WORKOUT_HINT: "לחץ להתחלת אימון מהיר מותאם אישית",
-    VIEW_HISTORY: "צפה בכל ההיסטוריה",
-    VIEW_HISTORY_HINT: "לחץ לצפייה בהיסטוריית האימונים המלאה",
-    DAY_WORKOUT: (day: number) => `יום ${day} אימון`,וני
+ * @features טקסטים מרוכזים, תמיכה RTL, דו-לשוני
  * @features Centralized texts, RTL support, bilingual
  * @version 1.0.0
  * @created 2025-08-06

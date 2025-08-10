@@ -222,7 +222,11 @@
 - **4 מסמכים מרכזיים** - כל היסודות הטכניים
 - **8 מסמכים משלימים** - מדריכים ייעודיים
 - **4 מסמכי Root** - הגדרות והנחיות בסיסיות
-- **עדכון אחרון:** 4 באוגוסט 2025 (RTL_SETUP_GUIDE נוסף)
+- **עדכון אחרון:** 6 באוגוסט 2025 (כלי בדיקת הפרדת דמו-production נוסף)
+
+### 🧪 כלי בדיקה ואיכות:
+
+- **VALIDATION_TOOL_GUIDE.md** - מדריך כלי בדיקת הפרדת דמו-production
 
 ### 🔄 תחזוקת המדריך:
 

@@ -815,8 +815,7 @@ export type {
 
 export const useUser = () => useUserStore((state) => state.user);
 export const useIsLoggedIn = () => useUserStore((state) => state.user !== null);
-export const useUserPreferences = () =>
-  useUserStore((state) => state.user?.preferences);
+// useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
 export const useQuestionnaireCompleted = () =>
   useUserStore(
     (state) =>
