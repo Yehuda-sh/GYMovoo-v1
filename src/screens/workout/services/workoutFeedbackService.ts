@@ -272,12 +272,16 @@ class WorkoutFeedbackService {
 
       return validation.correctedFeedback || parsed.feedback;
     } catch (error) {
-      const result = await workoutErrorHandlingService.handleDataLoadError(
-        error,
-        "feedback_load"
-      );
+      const result = await workoutErrorHandlingService.handleDataLoadError<{
+        difficulty: number;
+        feeling: string;
+        readyForMore: boolean | null;
+        completedAt: string;
+        genderAdaptedNotes?: string;
+        congratulationMessage?: string;
+      }>(error, "feedback_load");
 
-      return result.success ? result.data : null;
+      return result.success && result.data ? result.data : null;
     }
   }
 

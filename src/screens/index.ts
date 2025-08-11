@@ -1,8 +1,20 @@
 /**
  * @file src/screens/index.ts
- * @brief ייצוא מרכזי לכל המסכים
- * @dependencies All screen components
- * @notes מאפשר ייבוא נוח של מסכים מחוץ לתיקיה
+ * @brief Hub ייצוא מרכזי לכל המסכים - Barrel Export Pattern
+ * @brief Central export hub for all screens - Clean import management
+ * @dependencies All screen components across the application
+ * @notes מאפשר ייבוא נוח ומאורגן של מסכים מחוץ לתיקיה
+ * @updated 2025-01-17 Enhanced documentation and organization
+ *
+ * ✅ ACTIVE BUT UNDERUTILIZED: Hub מוכן לשימוש נרחב
+ * - כל המסכים מיוצאים ומוכנים לשימוש
+ * - AppNavigator.tsx: יכול להשתמש בייצוא מרכזי
+ * - Potential optimization: 18+ import statements יכולים להפוך לאחד
+ *
+ * @architecture Barrel exports for clean screen imports
+ * @usage Ready for centralized screen imports across navigation
+ * @pattern Single source of truth for all screen components
+ * @optimization Reduces import complexity in navigation files
  */
 
 // Auth screens

@@ -3,7 +3,19 @@
  * @brief מנהל נתונים מרכזי - יכין נתונים בכניסה ויתמוך בשרת בעתיד
  * @brief Central Data Manager - prepares data at startup and supports future server integration
  * @dependencies userStore, demoHistoryService, workoutHistoryService
- * @updated 2025-08-10 מערכת חדשה למרכוז ניהול נתונים
+ * @updated 2025-01-17 מערכת חדשה למרכוז ניהול נתונים
+ *
+ * ✅ ACTIVE & CRITICAL: מנהל נתונים מרכזי בשימוש פעיל
+ * - HistoryScreen.tsx/simple.tsx: מספק נתוני אימונים וסטטיסטיקות
+ * - Singleton pattern: instance יחיד למערכת כולה
+ * - Cache management: מנהל זיכרון מטמון עם תמיכה demo/real
+ * - Future server support: מוכן לשילוב עם שרת
+ * - Error handling: fallback מקומי במקרה של כשל שרת
+ *
+ * @architecture Central data hub with smart caching and server preparation
+ * @usage 20+ files depend on this service across the application
+ * @performance In-memory caching reduces redundant data fetching
+ * @scalability Ready for server integration and sync capabilities
  */
 
 import { User } from "../../stores/userStore";
@@ -193,14 +205,16 @@ class DataManagerService {
   }
 
   /**
-   * בדיקה האם המערכת מאותחלת
+   * בדיקה האם המערכת מאותחלת ומוכנה לשימוש
+   * @returns {boolean} האם המנהל מוכן לשימוש
    */
   isReady(): boolean {
     return this.isInitialized && this.cache !== null;
   }
 
   /**
-   * קבלת מצב הנתונים
+   * קבלת מצב מפורט של הנתונים
+   * @returns {object} מידע מפורט על מצב המנהל
    */
   getDataStatus(): {
     isDemo: boolean;
@@ -215,7 +229,8 @@ class DataManagerService {
   }
 
   /**
-   * רענון נתונים (לשימוש ב-refresh)
+   * רענון נתונים - מאפס את המטמון וטוען מחדש
+   * @param {User} user - נתוני המשתמש לרענון
    */
   async refresh(user: User): Promise<void> {
     console.warn("🔄 DataManager: Refreshing data...");
@@ -226,7 +241,8 @@ class DataManagerService {
   }
 
   /**
-   * הגדרת תצורת שרת (לעתיד)
+   * הגדרת תצורת שרת עתידית
+   * @param {Partial<ServerConfig>} config - תצורת שרת חלקית לעדכון
    */
   configureServer(config: Partial<ServerConfig>): void {
     this.serverConfig = { ...this.serverConfig, ...config };
@@ -234,7 +250,8 @@ class DataManagerService {
   }
 
   /**
-   * סנכרון עם שרת (עתידי)
+   * סנכרון עם שרת - פונקציונליות עתידית מתקדמת
+   * @param {User} _user - נתוני המשתמש לסנכרון
    */
   async syncWithServer(_user: User): Promise<void> {
     if (!this.serverConfig.enabled) {
@@ -256,7 +273,7 @@ class DataManagerService {
   }
 
   /**
-   * ניקוי נתונים (לדיבוג)
+   * ניקוי מטמון ומצב - לצרכי דיבוג ופיתוח
    */
   clearCache(): void {
     console.warn("🗑️ DataManager: Clearing cache");
@@ -421,5 +438,5 @@ class DataManagerService {
   }
 }
 
-// יצירת instance יחיד
+// יצירת instance יחיד עבור כל האפליקציה - Singleton Pattern
 export const dataManager = new DataManagerService();

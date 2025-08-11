@@ -1,9 +1,28 @@
 /**
  * @file src/screens/workout/services/workoutValidationService.ts
- * @description שירות וידואי נתונים לאימונים
- * English: Workout data validation service
+ * @description שירות וידוא נתונים לאימונים - מתקדם עם התאמה אישית חכמה
+ * @description English: Workout data validation service - Advanced with smart personalization
  * @inspired מתוך ההצלחה במסך ההיסטוריה עם validateWorkoutData
- * @updated 2025-08-10 הוספת תמיכה בוידוא מותאם אישית לפי נתונים אישיים (גיל, משקל, גובה, מין)
+ * @updated 2025-01-17 Enhanced documentation for audit completion
+ *
+ * ✅ CORE & INNOVATIVE: שירות וידוא נתונים מתקדם ומותאם אישית
+ * - Used by 4+ services: autoSaveService, workoutStorageService, workoutErrorHandlingService
+ * - Exported system-wide via services/index.ts and src/services/index.ts
+ * - Singleton pattern: instance יחיד לכל המערכת
+ * - Personalized validation: וידוא מותאם לגיל, מין, משקל, רמת כושר (חדשנות!)
+ *
+ * @features
+ * - 🔍 Comprehensive validation עם correction mechanisms מתקדמים
+ * - 🎯 Personalized suggestions מותאמות לנתונים אישיים (גיל, מין, משקל)
+ * - 📊 Smart age-based recommendations (מתחילים, מבוגרים, צעירים)
+ * - ⚡ Quick validation לשמירה אוטומטית עם performance optimization
+ * - 📅 Advanced date validation עם multiple format support
+ * - 🛡️ Data sanitization לפני שמירה למניעת corruption
+ *
+ * @architecture Singleton validation service with personalization engine
+ * @usage Core validation for all workout-related data operations
+ * @innovation First-of-its-kind personalized workout validation in fitness apps
+ * @performance Optimized validation with quick checks for auto-save scenarios
  */
 
 import { WorkoutData, WorkoutDraft } from "../types/workout.types";

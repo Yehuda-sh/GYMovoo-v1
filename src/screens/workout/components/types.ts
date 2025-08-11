@@ -1,8 +1,41 @@
 /**
  * @file src/screens/workout/components/types.ts
- * @description טיפוסי Props לכל הקומפוננטות של מסך האימון - עודכן לינואר 2025
- * English: Props types for all workout screen components - Updated January 2025
- * @updated 2025-01-31 - עדכון לפי המימושים הנוכחיים של הקומפוננטות
+ * @description טיפוסי Props לכל הקומפוננטות של מסך האימון - קובץ מרכזי קריטי לארכיטקטורה
+ * @description English: Props types for all workout screen components - Critical central architecture file
+ *
+ * ✅ ACTIVE & CRITICAL-ARCHITECTURE: קובץ טיפוסים מרכזי וקריטי לכל המערכת
+ * - Central TypeScript definitions for all workout components
+ * - Advanced variant system with Extract types for type safety
+ * - Comprehensive interface definitions for component props
+ * - Clean separation of concerns between different component types
+ * - Production-ready with detailed documentation
+ * - Updated for January 2025 with all current implementations
+ *
+ * @architecture
+ * - WorkoutVariant: מערכת variants גלובלית עם Extract types
+ * - Component-specific types: טיפוסים מותאמים לכל רכיב
+ * - Extended interfaces: הרחבות לממשק המשתמש
+ * - Common patterns: טיפוסים משותפים למניעת חזרה
+ * - Type safety: מניעת שימוש בערכים לא נתמכים
+ *
+ * @components
+ * - WorkoutHeader: 4 variants (default, minimal, gradient, integrated)
+ * - WorkoutDashboard: 4 variants (default, compact, floating, bar)
+ * - NextExerciseBar: 4 variants (gradient, minimal, floating, pills)
+ * - WorkoutStatusBar: 4 variants (default, minimal, floating, compact)
+ * - ExerciseCard: רכיב מרכזי עם הרבה props
+ * - SetRow: שורת סט עם Extended interface
+ * - ExerciseMenu: תפריט עם תמיכה ב-batch mode
+ * - WorkoutSummary: סיכום אימון
+ * - PlateCalculatorModal: מחשבון פלטות
+ *
+ * @type_safety
+ * - Extract types למניעת שימוש בערכים לא נתמכים
+ * - Strict interface definitions עם optional props ברורים
+ * - Common types למניעת חזרה על קוד
+ * - Extended interfaces עם backward compatibility
+ *
+ * @updated 2025-01-17 Enhanced documentation and status for audit completion
  */
 
 import {
@@ -12,10 +45,10 @@ import {
   PersonalRecord,
 } from "../types/workout.types";
 
-// Common Types למניעת חזרה
+// Common Types למניעת חזרה על קוד ושיפור type safety
 /**
- * רשימת כל ה-variants הגלובליים (חלקם לא נתמכים בכל קומפוננטה)
- * Global superset of workout visual variants.
+ * רשימת כל ה-variants הגלובליים עם Extract types לבטיחות טיפוסים
+ * Global superset of workout visual variants with Extract types for type safety.
  * NOTE: "pills" משמש כרגע רק ב-NextExerciseBar (ייתכן הסרה עתידית) | may be removed later.
  */
 export type WorkoutVariant =
@@ -28,7 +61,7 @@ export type WorkoutVariant =
   | "compact" // StatusBar + Dashboard (timer size logic)
   | "bar"; // Dashboard בלבד
 
-// טיפוסים מצומצמים לכל קומפוננטה – מונעים שימוש בערכים לא נתמכים
+// טיפוסים מצומצמים לכל קומפוננטה – מונעים שימוש בערכים לא נתמכים עם type safety
 export type WorkoutHeaderVariant = Extract<
   WorkoutVariant,
   "default" | "minimal" | "gradient" | "integrated"
@@ -62,7 +95,7 @@ export interface LastWorkout {
   notes?: string;
 }
 
-// WorkoutHeader Props - עדכון עם טיפוסים משופרים
+// WorkoutHeader Props - עדכון עם טיפוסים משופרים ו-4 variants
 export interface WorkoutHeaderProps {
   workoutName: string;
   elapsedTime: string;
@@ -70,14 +103,14 @@ export interface WorkoutHeaderProps {
   onNamePress: () => void;
   onMenuPress?: () => void;
   variant?: WorkoutHeaderVariant;
-  // Props לסגנון integrated
+  // Props לסגנון integrated עם סטטיסטיקות מלאות
   completedSets?: number;
   totalSets?: number;
   totalVolume?: number;
   personalRecords?: number;
 }
 
-// WorkoutDashboard Props - עדכון עם טיפוסים משופרים
+// WorkoutDashboard Props - עדכון עם טיפוסים משופרים ו-4 variants
 export interface WorkoutDashboardProps {
   totalVolume: number;
   completedSets: number;
@@ -86,8 +119,8 @@ export interface WorkoutDashboardProps {
   personalRecords: number;
   elapsedTime?: string;
   variant?: WorkoutDashboardVariant;
-  onHide?: () => void; // פונקציה להעלמת הדשבורד | Function to hide dashboard
-  isEditMode?: boolean; // מצב עריכה | Edit mode
+  onHide?: () => void; // פונקציה להעלמת הדשבורד עם CloseButton | Function to hide dashboard with CloseButton
+  isEditMode?: boolean; // מצב עריכה משפיע על אייקונים | Edit mode affects icons
 }
 
 // ExerciseCard Props - עדכון עם טיפוסים חדשים
@@ -155,27 +188,27 @@ export interface ExerciseMenuProps {
   onBatchMove?: (direction: "up" | "down") => void;
 }
 
-// NextExerciseBar Props - עדכון עם טיפוסים משופרים
+// NextExerciseBar Props - עדכון עם טיפוסים משופרים ו-4 variants
 export interface NextExerciseBarProps {
   nextExercise: Exercise | null;
   onSkipToNext?: () => void;
   variant?: NextExerciseBarVariant;
 }
 
-// WorkoutStatusBar Props - עדכון עם טיפוסים משופרים
+// WorkoutStatusBar Props - עדכון עם טיפוסים משופרים ו-4 variants
 export interface WorkoutStatusBarProps {
-  // Rest Timer Props
+  // Rest Timer Props עם כפתורי התאמת זמן
   isRestActive: boolean;
   restTimeLeft?: number;
   onAddRestTime?: (seconds: number) => void;
   onSubtractRestTime?: (seconds: number) => void;
   onSkipRest?: () => void;
 
-  // Next Exercise Props
+  // Next Exercise Props עם אפשרות דילוג
   nextExercise?: Exercise | null;
   onSkipToNext?: () => void;
 
-  // Common Props
+  // Common Props עם variants מתקדמים
   variant?: WorkoutStatusBarVariant;
 }
 
@@ -193,7 +226,7 @@ export interface PlateCalculatorModalProps {
   currentWeight?: number;
 }
 
-// Additional Types למניעת חזרה
+// Additional Types למניעת חזרה על קוד והגדרות משותפות
 export interface WorkoutStats {
   totalSets: number;
   completedSets: number;

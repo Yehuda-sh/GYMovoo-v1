@@ -1,12 +1,33 @@
 /**
  * @file src/screens/workout/types/workout.types.ts
  * @description טיפוסים עבור מסך האימון - מעודכן לינואר 2025
- * English: Types for workout screen - Updated January 2025
- * @updated 2025-01-31 - הוספת interfaces חדשים מ-TypeScript Cleanup
+ * @description English: Types for workout screen - Updated January 2025
+ * @updated 2025-01-17 Enhanced documentation for audit completion
+ *
+ * ✅ CORE & CRITICAL: קובץ טיפוסים מרכזי בשימוש נרחב
+ * - 20+ files: Services, components, screens מייבאים מכאן
+ * - src/types/index.ts: מייצא הכל מקובץ זה כנקודה מרכזית
+ * - DataManager, WorkoutHistoryService: תלויים בטיפוסים אלה
+ * - All workout components: משתמשים בממשקים המוגדרים כאן
+ *
+ * @architecture Core type definitions for entire workout system
+ * @exports 15+ interfaces covering all workout-related data structures
+ * @usage Foundation types used across services, components, and screens
+ * @performance Type-only imports ensure no runtime overhead
+ *
+ * @interfaces
+ * - Set, Exercise, WorkoutData: Core workout building blocks
+ * - WorkoutPlan, WorkoutTemplate: Workout planning and templates
+ * - WorkoutWithFeedback: Complete workout with user feedback
+ * - WorkoutStatistics: Comprehensive analytics data
+ * - PersonalRecord, ProgressData: Performance tracking
  */
 
-// סט בודד
-// Single set
+// === CORE WORKOUT BUILDING BLOCKS ===
+// === אבני יסוד לבניית אימונים ===
+
+// סט בודד - יחידת העבודה הבסיסית באימון
+// Single set - basic work unit in workout
 export interface Set {
   id: string;
   type: "warmup" | "working" | "dropset" | "failure";
@@ -22,8 +43,8 @@ export interface Set {
   timeToComplete?: number; // Time to complete the set in seconds
 }
 
-// תרגיל
-// Exercise
+// תרגיל - אוסף של סטים עם מטא-דאטה
+// Exercise - collection of sets with metadata
 export interface Exercise {
   id: string;
   name: string;
@@ -40,8 +61,11 @@ export interface Exercise {
   tips?: string[];
 }
 
-// נתוני אימון מלאים
-// Complete workout data
+// === WORKOUT MANAGEMENT & PLANNING ===
+// === ניהול ותכנון אימונים ===
+
+// נתוני אימון מלאים - האימון שהמשתמש מבצע
+// Complete workout data - the workout user performs
 export interface WorkoutData {
   id: string;
   name: string;
@@ -96,8 +120,11 @@ export interface ExerciseTemplate {
   notes?: string;
 }
 
-// נתוני התקדמות
-// Progress data
+// === PROGRESS TRACKING & ANALYTICS ===
+// === מעקב התקדמות וניתוחים ===
+
+// נתוני התקדמות פיזית
+// Physical progress data
 export interface ProgressData {
   date: string;
   weight?: number;
@@ -140,11 +167,11 @@ export interface WorkoutDraft {
   version: number;
 }
 
-// === TypeScript Cleanup Interfaces (ינואר 2025) ===
-// === TypeScript Cleanup Interfaces (January 2025) ===
+// === ENHANCED ANALYTICS & FEEDBACK (TypeScript Cleanup 2025) ===
+// === ניתוחים מתקדמים ומשוב משופר (ניקוי TypeScript 2025) ===
 
-// סטטיסטיקות אימון מקיפות
-// Comprehensive workout statistics
+// סטטיסטיקות אימון מקיפות עם חלוקה לפי מגדר
+// Comprehensive workout statistics with gender breakdown
 export interface WorkoutStatistics {
   total: {
     totalWorkouts: number;

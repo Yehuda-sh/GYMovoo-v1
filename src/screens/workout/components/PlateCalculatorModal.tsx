@@ -1,7 +1,56 @@
 /**
  * @file src/screens/workout/components/PlateCalculatorModal.tsx
- * @description מודל מחשבון פלטות משופר
- * English: Improved plate calculator modal
+ * @description מודל מחשבון פלטות משופר - רכיב מתמחה מתקדם למשקולות
+ * @description English: Improved plate calculator modal - Advanced specialized component for weightlifting
+ *
+ * ✅ ACTIVE & SPECIALIZED: רכיב מתמחה מתקדם עם אלגוריתם חישוב פלטות
+ * - Specialized weightlifting tool with plate calculation algorithm
+ * - Interactive bar visualization with dynamic plate rendering
+ * - Performance optimized with useCallback and useMemo patterns
+ * - Complete accessibility support and RTL compliance
+ * - Advanced user interactions with haptic feedback
+ * - Reduced motion support for accessibility preferences
+ *
+ * @features
+ * - ✅ אלגוריתם חישוב פלטות אוטומטי ומדויק
+ * - ✅ ויזואליזציה אינטראקטיבית של מוט ופלטות
+ * - ✅ כפתורי התאמה מהירה (+/-2.5, 5, 10)
+ * - ✅ קלט טקסט דינמי עם validation
+ * - ✅ אנימציות חלקות עם תמיכה ב-reduced motion
+ * - ✅ Haptic feedback על פעולות משתמש
+ * - ✅ תמיכה מלאה ב-RTL ונגישות
+ * - ✅ חישוב פער משקל ואזהרות משתמש
+ * - ✅ תצוגת צבעי פלטות סטנדרטיים
+ * - ✅ Callback functions לעדכונים חיים
+ *
+ * @algorithm
+ * - משקל בר: 20 ק"ג (BAR_WEIGHT)
+ * - גידול מינימלי: 2.5 ק"ג (WEIGHT_INCREMENT)
+ * - חישוב פלטות: (משקל יעד - משקל בר) / 2 = משקל לכל צד
+ * - התאמה לפלטות זמינות מ-PLATE_WEIGHTS constants
+ * - תצוגת פער אם לא ניתן להשיג משקל מדויק
+ *
+ * @performance
+ * - useCallback למניעת re-renders של handlers
+ * - useMemo לחישובי פלטות ומערכי כפתורים
+ * - אנימציות מותנות לפי העדפות נגישות
+ * - Dynamic styling functions מחוץ ל-JSX
+ * - Optimized plate calculation algorithm
+ *
+ * @accessibility
+ * - תמיכה מלאה ב-screen readers
+ * - AccessibilityRole מדויק לכל אלמנט
+ * - Accessibility hints מפורטים
+ * - תמיכה ב-reduced motion
+ * - RTL support מלא עם writingDirection
+ *
+ * @integrations
+ * - PLATE_WEIGHTS: קבועי משקלי פלטות וצבעים
+ * - triggerVibration: משוב הפטי על פעולות
+ * - theme system: שילוב מושלם עם מערכת העיצוב
+ * - Modal patterns: שימוש בתבניות modal סטנדרטיות
+ *
+ * @updated 2025-01-17 Enhanced documentation and status for audit completion
  */
 // cspell:ignore פלטות
 
@@ -38,19 +87,19 @@ interface PlateCalculatorModalProps {
   onWeightChange?: (weight: number) => void; // live update callback
 }
 
-// הגדרות המחשבון
-// Calculator settings
+// הגדרות המחשבון - קבועים למניעת magic numbers
+// Calculator settings - constants to prevent magic numbers
 const BAR_WEIGHT = 20;
 const WEIGHT_INCREMENT = 2.5;
 
-// פונקציית עזר לקבלת צבע הפלטה
-// Helper function to get plate color
+// פונקציית עזר לקבלת צבע הפלטה מ-PLATE_WEIGHTS
+// Helper function to get plate color from PLATE_WEIGHTS constants
 const getPlateColor = (weight: number): string => {
   const plateInfo = PLATE_WEIGHTS.find((plate) => plate.weight === weight);
   return plateInfo?.color || theme.colors.primary;
 };
 
-// Dynamic plate style generator (avoids inline style objects in JSX)
+// Dynamic plate style generator למניעת inline style objects ב-JSX
 const getPlateDynamicStyle = (weight: number) => ({
   backgroundColor: getPlateColor(weight),
   height: 40 + weight * 2.5,
@@ -70,7 +119,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
   const [targetWeight, setTargetWeight] = useState(currentWeight);
   const slideAnim = useRef(new Animated.Value(300)).current;
 
-  // Optimized weight change handler
+  // Optimized weight change handler עם callback memoization
   const handleWeightChange = useCallback(
     (increment: number) => {
       setTargetWeight((prev) => {
@@ -83,7 +132,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     [onWeightChange, haptic]
   );
 
-  // Optimized text input handler
+  // Optimized text input handler עם validation
   const handleTextChange = useCallback(
     (text: string) => {
       const numericValue = parseFloat(text) || 0;
@@ -131,6 +180,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     const plates: number[] = [];
     let remaining = weightPerSide;
 
+    // אלגוריתם חישוב פלטות: מפלטות כבדות לקלות
     for (const plate of PLATE_WEIGHTS) {
       const count = Math.floor(remaining / plate.weight);
       for (let i = 0; i < count; i++) {
@@ -146,7 +196,7 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
     };
   }, [targetWeight]);
 
-  // Quick adjustment buttons (positive then negative)
+  // Quick adjustment buttons אופטימיזציה (positive then negative)
   const quickButtons = useMemo(() => {
     const positives = quickIncrements;
     const negatives = quickIncrements.map((v) => -v).reverse();

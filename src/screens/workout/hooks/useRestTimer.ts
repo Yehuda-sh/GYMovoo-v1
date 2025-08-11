@@ -1,13 +1,35 @@
 /**
  * @file src/screens/workout/hooks/useRestTimer.ts
- * @description הוק לניהול טיימר מנוחה בין סטים עם שיפורי ביצועים
- * English: Hook for managing rest timer between sets with performance improvements
- * @updated 2025-01-31 שיפורי ביצועים ועקביות עם useWorkoutTimer
+ * @description הוק לניהול טיימר מנוחה בין סטים עם שיפורי ביצועים מתקדמים
+ * @description English: Hook for managing rest timer between sets with advanced performance improvements
+ * @updated 2025-01-17 Enhanced documentation for audit completion
+ *
+ * ✅ ACTIVE & OPTIMIZED: Hook טיימר מנוחה מתקדם בשימוש פעיל
+ * - ActiveWorkoutScreen.tsx: ניהול זמני מנוחה בין סטים
+ * - README.md: תיעוד מקיף עם דוגמאות שימוש
+ * - Vibration integration: רטט חכם בהתחלה, אזהרות וסיום
+ * - Performance optimized: 100ms intervals, memory leak prevention
+ *
+ * @features
+ * - ⏱️ טיימר מדויק עם עדכון כל 100ms
+ * - 📳 רטט חכם: התחלה, אזהרות (3 שניות אחרונות), סיום
+ * - ⏸️ pause/resume מלא עם שמירת זמן
+ * - ➕➖ הוספה/הפחתה דינמית של זמן
+ * - 🔄 דילוג על טיימר
+ * - 🛡️ הגנה מפני memory leaks
+ *
+ * @architecture High-precision timer with vibration feedback and memory management
+ * @usage Core component for workout rest period management
+ * @performance 100ms intervals for smooth UX, optimized callbacks with useMemo
+ * @reliability Memory leak prevention, mount state tracking
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { triggerVibration } from "../../../utils";
 
+/**
+ * ממשק החזרה של Hook עם פונקציונליות מלאה לניהול טיימר מנוחה
+ */
 export interface UseRestTimerReturn {
   isRestTimerActive: boolean;
   restTimeRemaining: number;
@@ -20,6 +42,10 @@ export interface UseRestTimerReturn {
   currentExerciseName?: string;
 }
 
+/**
+ * Hook מתקדם לניהול טיימר מנוחה עם אופטימיזציות ביצועים
+ * @returns {UseRestTimerReturn} ממשק מלא לניהול טיימר מנוחה
+ */
 export const useRestTimer = (): UseRestTimerReturn => {
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
   const [restTimeRemaining, setRestTimeRemaining] = useState(0);

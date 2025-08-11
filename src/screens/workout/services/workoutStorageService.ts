@@ -6,10 +6,9 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { WorkoutData, WorkoutWithFeedback } from "../types/workout.types";
+import { WorkoutData } from "../types/workout.types";
 import workoutValidationService from "./workoutValidationService";
 import workoutErrorHandlingService from "./workoutErrorHandlingService";
-import workoutFeedbackService from "./workoutFeedbackService";
 
 interface DataSyncStatus {
   lastSync: string;
@@ -138,12 +137,13 @@ class WorkoutDataService {
 
       return null;
     } catch (error) {
-      const result = await workoutErrorHandlingService.handleDataLoadError(
-        error,
-        "workout_load"
-      );
+      const result =
+        await workoutErrorHandlingService.handleDataLoadError<WorkoutData>(
+          error,
+          "workout_load"
+        );
 
-      return result.success ? result.data : null;
+      return result.success && result.data ? result.data : null;
     }
   }
 

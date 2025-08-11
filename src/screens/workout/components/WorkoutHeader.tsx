@@ -1,8 +1,57 @@
 /**
  * @file src/screens/workout/components/WorkoutHeader.tsx
- * @brief הדר אימון קומפקטי ומשופר עם אפשרויות עיצוב
- * @dependencies Ionicons, useNavigation, theme
- * @notes תומך במספר סגנונות ושילוב עם WorkoutDashboard
+ * @description הדר אימון קומפקטי ומשופר עם 4 variants מתקדמים - רכיב מרכזי משופר
+ * @description English: Compact and enhanced workout header with 4 advanced variants - Enhanced central component
+ *
+ * ✅ ACTIVE & FEATURE-RICH: רכיב מרכזי קריטי עם ארכיטקטורה מתקדמת
+ * - Central workout header component with 4 distinct variants
+ * - Performance optimized with React patterns and memoization
+ * - Full RTL support and accessibility compliance
+ * - Integrated statistics display and progress tracking
+ * - Smooth animations and haptic feedback
+ *
+ * @variants
+ * - default: כותרת סטנדרטית עם שם ו-טיימר
+ * - minimal: גרסה מינימלית לחיסכון במקום
+ * - gradient: עיצוב גרדיאנט עם אנימציות
+ * - integrated: הצגת סטטיסטיקות מלאות עם progress bar
+ *
+ * @features
+ * - ✅ 4 distinct visual variants for different contexts
+ * - ✅ Interactive workout name editing
+ * - ✅ Timer display with press functionality
+ * - ✅ Statistics integration (sets, volume, personal records)
+ * - ✅ Progress bar visualization
+ * - ✅ Menu and navigation integration
+ * - ✅ Optimized with useCallback and useMemo
+ * - ✅ Full RTL support and accessibility
+ * - ✅ Smooth animations with proper cleanup
+ * - ✅ Responsive design for different screen sizes
+ *
+ * @performance
+ * - useCallback for stable function references
+ * - useMemo for expensive calculations (completion %, formatted volume)
+ * - Conditional rendering based on variant
+ * - Optimized animation lifecycle management
+ * - Constants to prevent magic numbers
+ *
+ * @accessibility
+ * - Full screen reader support with descriptive labels
+ * - Clear button roles and interaction hints
+ * - RTL text alignment and layout
+ * - Proper header role definition
+ * - Accessible statistics announcements
+ *
+ * @integrations
+ * - BackButton: כפתור חזרה משותף
+ * - theme: מערכת עיצוב מרכזית
+ * - Ionicons & MaterialCommunityIcons: אייקונים
+ * - LinearGradient: אפקטי גרדיאנט
+ * - WorkoutHeaderProps: טיפוסי TypeScript
+ *
+ * @dependencies Ionicons, MaterialCommunityIcons, useNavigation, theme, BackButton
+ * @notes תומך במספר סגנונות ושילוב עם WorkoutDashboard וכל מסכי האימון
+ * @updated 2025-01-17 Enhanced documentation and status for audit completion
  */
 // cspell:ignore אימון, עריכת, תפריט, חזרה
 
@@ -35,9 +84,8 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   personalRecords = 0,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  // הוסר backIconName וניווט לא בשימוש לניקוי
 
-  // אופטימיזציה של handlers עם useCallback
+  // אופטימיזציה של handlers עם useCallback לביצועים מיטביים
   const handleNamePress = useCallback(() => {
     onNamePress();
   }, [onNamePress]);
@@ -50,13 +98,13 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
     onMenuPress?.();
   }, [onMenuPress]);
 
-  // חישוב אחוז השלמה ואופטימיזציות
+  // חישוב אחוז השלמה ואופטימיזציות ביצועים
   const completionPercentage = useMemo(
     () => (totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0),
     [completedSets, totalSets]
   );
 
-  // אופטימיזציה של התקדמות בר style עם useMemo
+  // אופטימיזציה של התקדמות בר style עם useMemo למניעת re-calculations
   const progressBarStyle = useMemo(
     () => ({
       ...styles.integratedProgressFill,
@@ -73,7 +121,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
     [personalRecords]
   );
 
-  // אנימציית דופק לטיימר - רק כשצריך
+  // אנימציית דופק לטיימר - רק כשצריך (variant גרדיאנט)
   useEffect(() => {
     if (variant === "gradient") {
       const animation = Animated.loop(

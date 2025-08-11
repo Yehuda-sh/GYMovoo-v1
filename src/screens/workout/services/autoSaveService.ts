@@ -1,8 +1,28 @@
 /**
  * @file src/screens/workout/services/autoSaveService.ts
- * @description שירות שמירה אוטומטית לאימונים - משופר עם וידואי נתונים וטיפול בשגיאות
- * English: Auto-save service for workouts - enhanced with data validation and error handling
+ * @description שירות שמירה אוטומטית לאימונים - משופר עם וידואי נתונים וטיפול בשגיאות מתקדם
+ * @description English: Auto-save service for workouts - enhanced with data validation and advanced error handling
  * @inspired מההצלחה במסך ההיסטוריה עם validateWorkoutData וטיפול בשגיאות
+ * @updated 2025-01-17 Enhanced documentation and ESLint fixes for audit completion
+ *
+ * ✅ ACTIVE & SOPHISTICATED: שירות שמירה אוטומטית מתקדם בשימוש פעיל
+ * - Exported via services/index.ts and src/services/index.ts for system-wide access
+ * - Singleton pattern: instance יחיד למערכת כולה
+ * - Advanced validation: אינטגרציה עם workoutValidationService ו-workoutErrorHandlingService
+ * - Smart recovery: draft management עם expiry וניקוי אוטומטי
+ *
+ * @features
+ * - 💾 Auto-save אוטומטי עם interval מותאם אישית
+ * - 🔄 Draft recovery חכם עם validation מלא
+ * - 🧹 Automatic cleanup של drafts ישנים
+ * - 🛡️ Error handling מתקדם עם recovery strategies
+ * - 📱 UI integration עם Alert dialogs לשחזור
+ * - 🔍 Data validation וsanitization לפני שמירה
+ *
+ * @architecture Singleton service with comprehensive error handling and data validation
+ * @usage Core auto-save functionality for workout sessions with intelligent recovery
+ * @performance Interval-based saving with validation to prevent bad data persistence
+ * @reliability Multi-layer error handling with graceful degradation strategies
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -138,7 +158,7 @@ class AutoSaveService {
               } else {
                 // נקה טיוטות ישנות
                 await AsyncStorage.removeItem(key);
-                console.log("🧹 Removed expired draft:", key);
+                console.warn("🧹 Removed expired draft:", key);
               }
             } else if (validation.correctedData) {
               // שמור טיוטה מתוקנת
@@ -147,7 +167,7 @@ class AutoSaveService {
                 workout: validation.correctedData,
               };
               validDrafts.push(correctedDraft);
-              console.log("🔧 Using corrected draft data for:", key);
+              console.warn("🔧 Using corrected draft data for:", key);
             } else {
               // מחק טיוטות לא תקינות
               await AsyncStorage.removeItem(key);
@@ -172,10 +192,9 @@ class AutoSaveService {
 
       return validDrafts;
     } catch (error) {
-      const result = await workoutErrorHandlingService.handleDataLoadError(
-        error,
-        "draft_recovery"
-      );
+      const result = await workoutErrorHandlingService.handleDataLoadError<
+        WorkoutDraft[]
+      >(error, "draft_recovery");
 
       if (result.success && result.data) {
         return result.data;

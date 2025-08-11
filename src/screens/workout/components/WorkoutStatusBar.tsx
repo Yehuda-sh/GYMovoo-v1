@@ -1,29 +1,55 @@
-// cspell:ignore גרדיאנט, מינימליסטי, כדורים, דמבל, מוטיבציה, טיימר/**
-/* @file src/screens/workout/components/WorkoutStatusBar.tsx
- * @description רכיב משולב המציג טיימר מנוחה או התרגיל הבא בהתאם למצב
- * English: Combined component showing rest timer or next exercise based on workout state
+// cspell:ignore גרדיאנט, מינימליסטי, כדורים, דמבל, מוטיבציה, טיימר
+/**
+ * @file src/screens/workout/components/WorkoutStatusBar.tsx
+ * @description רכיב משולב המציג טיימר מנוחה או התרגיל הבא בהתאם למצב - רכיב מתקדם משופר
+ * @description English: Combined component showing rest timer or next exercise based on workout state - Enhanced advanced component
+ *
+ * ✅ ACTIVE & WELL-OPTIMIZED: רכיב מתקדם ומאופטם למצבי אימון שונים
+ * - Advanced state-based component with dual functionality
+ * - Performance optimized with React patterns and animation cleanup
+ * - Modular architecture using shared components
+ * - Multiple variants for different UI contexts
+ * - Full integration with workout services and utilities
  *
  * @features
- * - ✅ Rest timer with add/subtract time controls
+ * - ✅ Rest timer with add/subtract time controls (+/-10s)
  * - ✅ Next exercise preview with skip functionality
  * - ✅ Multiple variants: default, minimal, floating
  * - ✅ Optimized with React.memo and useCallback
  * - ✅ Centralized helper functions (formatTime, triggerVibration)
  * - ✅ Full RTL support and accessibility
- * - ✅ Smooth animations with cleanup
+ * - ✅ Smooth animations with proper cleanup
+ * - ✅ Integrated logging system
+ * - ✅ Haptic feedback on interactions
  *
  * @performance
  * - React.memo for re-render prevention
  * - useCallback for stable function references
+ * - useRef for animation values persistence
  * - Centralized animation configuration
  * - Proper cleanup in useEffect
+ * - Conditional rendering based on state
  *
  * @accessibility
  * - Screen reader support with proper labels
  * - Clear button roles and hints
  * - RTL text alignment and layout
+ * - Descriptive accessibility labels
  *
- * @updated 2025-08-02 - Code optimization and helper functions integration
+ * @variants
+ * - default: Bottom-positioned with full features
+ * - minimal: Simplified version with reduced padding
+ * - floating: Card-style floating above content
+ *
+ * @integrations
+ * - SkipButton: כפתור דילוג משותף
+ * - TimeAdjustButton: כפתורי הוספה/הפחתה של זמן
+ * - TimerDisplay: תצוגת טיימר מאוחדת
+ * - workoutLogger: מערכת לוגינג מותנית
+ * - triggerVibration: משוב הפטי
+ * - animationConfig: קונפיגורציות אנימציה מרכזיות
+ *
+ * @updated 2025-01-17 Enhanced documentation and status for audit completion
  */
 
 import React, { useEffect, useRef, useCallback } from "react";
@@ -100,9 +126,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
       triggerVibration(50);
     }, []);
 
-    // אופטימיזציה של כפתורי זמן עם useCallback ולוגים
-    // Removed local add/subtract handlers (handled inline via TimeAdjustButton)
-
+    // אופטימיזציה של כפתורי דילוג עם useCallback ולוגים
     const handleSkipRest = useCallback(() => {
       workoutLogger.info("WorkoutStatusBar", "דילוג על טיימר מנוחה");
       handleVibrate();
@@ -351,7 +375,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  timerIcon: { marginBottom: 4 },
+  timerIcon: {
+    marginBottom: 4,
+  },
 
   // תרגיל הבא | Next exercise styles
   exerciseInfo: {

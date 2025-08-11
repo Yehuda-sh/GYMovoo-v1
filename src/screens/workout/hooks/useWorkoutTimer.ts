@@ -1,14 +1,36 @@
 /**
  * @file src/screens/workout/hooks/useWorkoutTimer.ts
- * @description הוק לניהול זמן האימון הכללי עם שיפורי ביצועים ועקביות
- * English: Hook for managing overall workout duration with performance improvements
- * @updated 2025-01-31 שיפורי ביצועים, דיוק זמן, וטיפול בשגיאות
+ * @description הוק לניהול זמן האימון הכללי עם שיפורי ביצועים ועקביות מתקדמים
+ * @description English: Hook for managing overall workout duration with advanced performance improvements
+ * @updated 2025-01-17 Enhanced documentation and dependency fix for audit completion
+ *
+ * ✅ ACTIVE & CRITICAL: Hook טיימר אימון מרכזי בשימוש קריטי
+ * - ActiveWorkoutScreen.tsx: מנהל את זמן האימון הכללי
+ * - README.md: תיעוד מקיף עם דוגמאות שימוש
+ * - AsyncStorage persistence: שמירה אוטומטית כל 10 שניות
+ * - Error handling: טיפול מתקדם בבעיות storage וזיכרון
+ *
+ * @features
+ * - ⏱️ טיימר מדויק עם עדכון כל 100ms (עקבי עם useRestTimer)
+ * - 💾 שמירה אוטומטית ב-AsyncStorage עם recovery
+ * - 🔄 lap timing למדידת זמן בין תרגילים
+ * - 🛡️ הגנה מפני memory leaks ובעיות storage
+ * - 📱 ניהול חכם של quota exceeded ו-storage full
+ * - ⏸️ pause/resume עם שמירה מיידית
+ *
+ * @architecture High-precision persistent timer with intelligent error handling
+ * @usage Core workout timing component with automatic state persistence
+ * @performance 100ms intervals, optimized AsyncStorage operations
+ * @reliability Memory leak prevention, storage quota management, graceful degradation
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { formatTime } from "../../../utils";
 
+/**
+ * ממשק החזרה של Hook עם פונקציונליות מלאה לניהול טיימר אימון
+ */
 interface UseWorkoutTimerReturn {
   elapsedTime: number;
   formattedTime: string;
@@ -19,6 +41,11 @@ interface UseWorkoutTimerReturn {
   lapTime: () => number; // זמן בין תרגילים
 }
 
+/**
+ * Hook מתקדם לניהול טיימר אימון עם persistence ו-error handling
+ * @param {string} workoutId - מזהה האימון לשמירה ב-AsyncStorage
+ * @returns {UseWorkoutTimerReturn} ממשק מלא לניהול טיימר אימון
+ */
 export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -28,22 +55,18 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
   const startTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
-  // טען זמן שמור אם יש
-  // Load saved time if exists
-  useEffect(() => {
-    if (workoutId) {
-      loadSavedTime();
-    }
+  // התחל טיימר עם שיפור דיוק - הגדרה מוקדמת
+  // Start timer with improved accuracy - early definition
+  const startTimer = useCallback(() => {
+    if (!isMountedRef.current) return;
 
-    // Cleanup flag on unmount
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [workoutId]);
+    setIsRunning(true);
+    startTimeRef.current = Date.now() - elapsedTime * 1000;
+  }, [elapsedTime]);
 
-  // טען זמן מ-AsyncStorage
-  // Load time from AsyncStorage
-  const loadSavedTime = async () => {
+  // טען זמן מ-AsyncStorage עם useCallback לפתרון dependency warning
+  // Load time from AsyncStorage with useCallback to fix dependency warning
+  const loadSavedTime = useCallback(async () => {
     try {
       const savedTime = await AsyncStorage.getItem(`workout_time_${workoutId}`);
       if (savedTime) {
@@ -56,7 +79,20 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
     } catch (error) {
       console.error("Error loading saved time:", error);
     }
-  };
+  }, [workoutId, startTimer]);
+
+  // טען זמן שמור אם יש
+  // Load saved time if exists
+  useEffect(() => {
+    if (workoutId) {
+      loadSavedTime();
+    }
+
+    // Cleanup flag on unmount
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [workoutId, loadSavedTime]);
 
   // שמור זמן ל-AsyncStorage עם טיפול מחוזק בשגיאות
   // Save time to AsyncStorage with enhanced error handling
@@ -147,15 +183,6 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
 
     return () => clearInterval(saveInterval);
   }, [isRunning, saveTime, workoutId]);
-
-  // התחל טיימר עם שיפור דיוק
-  // Start timer with improved accuracy
-  const startTimer = useCallback(() => {
-    if (!isMountedRef.current) return;
-
-    setIsRunning(true);
-    startTimeRef.current = Date.now() - elapsedTime * 1000;
-  }, [elapsedTime]);
 
   // השהה טיימר עם שמירה מיידית
   // Pause timer with immediate save
