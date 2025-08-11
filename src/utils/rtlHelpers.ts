@@ -2,9 +2,8 @@
  * @file src/utils/rtlHelpers.ts
  * @brief כלי עזר מלאים לתמיכה ב-RTL | Complete RTL support utilities
  * @dependencies react-native I18nManager, genderAdaptation
- * @notes כולל פונקציות בסיסיות וגישה לRTL - פונקציות מתקדמות ב-theme.ts
- * @recurring_errors שימוש ב-marginLeft/Right במקום Start/End, חסר textAlign: "right"
- * @updated 2025-08-05 מיזוג מלא עם rtlConfig.ts - קובץ מאוחד יחיד לכל RTL
+ * @notes מקור מרכזי יחיד לכל פונקציות RTL - פונקציות מתקדמות ב-theme.ts
+ * @updated 2025-08-11 ניקוי deprecated functions ושיפור תיעוד
  */
 
 import { I18nManager, TextStyle, ViewStyle } from "react-native";
@@ -78,26 +77,6 @@ export const getArrowIcon = (forward: boolean = true): string => {
     return isRTL ? "chevron-right" : "chevron-left";
   }
 };
-
-/**
- * המרת margin ישן ל-Start/End | Convert old margin to Start/End
- * @deprecated מומלץ להשתמש ישירות ב-marginStart/marginEnd
- * @deprecated Recommended to use marginStart/marginEnd directly
- */
-export const convertMargin = (left?: number, right?: number) => ({
-  marginStart: isRTL ? right : left,
-  marginEnd: isRTL ? left : right,
-});
-
-/**
- * המרת padding ישן ל-Start/End | Convert old padding to Start/End
- * @deprecated מומלץ להשתמש ישירות ב-paddingStart/paddingEnd
- * @deprecated Recommended to use paddingStart/paddingEnd directly
- */
-export const convertPadding = (left?: number, right?: number) => ({
-  paddingStart: isRTL ? right : left,
-  paddingEnd: isRTL ? left : right,
-});
 
 /**
  * טיפול בטקסט מעורב עברית-אנגלית | Handle mixed Hebrew-English text
@@ -241,10 +220,8 @@ export default {
   // פונקציות סגנון בסיסי | Basic style functions
   getBasicRTLTextStyle,
   getBasicRTLContainerStyle,
-
-  // פונקציות המרה (deprecated) | Conversion functions (deprecated)
-  convertMargin,
-  convertPadding,
+  rtlify,
+  rtlifyTransform,
 
   // פונקציות טקסט | Text functions
   wrapMixedText,

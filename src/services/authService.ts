@@ -2,11 +2,14 @@
  * @file src/services/authService.ts
  * @description שירותי אימות דמה משופרים עבור האפליקציה
  * English: Enhanced mock authentication services for the app
+ * @status ACTIVE - Core authentication service with extensive usage
  * @dependencies React Native, AsyncStorage
+ * @usedBy WelcomeScreen, LoginScreen, RegisterScreen (primary authentication flow)
  * @notes מספק פונקציונליות אימות מדומה עם נתונים רנדומליים איכותיים
  * @performance Optimized with minimal resource usage and proper error handling
  * @rtl Full RTL support for Hebrew names and data generation
  * @accessibility Compatible with screen readers and accessibility features
+ * @development Includes dev-only functions for testing with pre-filled questionnaire
  */
 
 // =======================================
@@ -24,12 +27,12 @@ export interface User {
   name: string;
   provider: "google" | "manual";
   avatar?: string;
-  questionnaire?: any[];
+  questionnaire?: string[];
   questionnaireData?: {
-    answers: any[];
+    answers: string[];
     completedAt: string;
     version: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   };
   metadata: {
     createdAt: string;
@@ -240,7 +243,7 @@ export const fakeGoogleSignIn = async (): Promise<User> => {
     },
   };
 
-  console.log(
+  console.warn(
     "✅ fakeGoogleSignIn - Created user with questionnaire to skip onboarding:",
     {
       email: result.email,

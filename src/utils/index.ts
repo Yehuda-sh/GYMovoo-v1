@@ -2,11 +2,11 @@
  * @file src/utils/index.ts
  * @description נקודת כניסה מרכזית לכלי העזר של GYMovoo
  * English: Central entry point for GYMovoo utility functions
- * @exports Gender adaptation, RTL helpers, Storage management, Workout naming, Workout statistics, Logger, Muscle mapping
+ * @exports Gender adaptation, RTL helpers, Storage management, Workout naming, Workout statistics, Logger
  * @usage import { StorageCleanup, genderAdaptation, calculateWorkoutStats, workoutLogger } from '@/utils'
  *
  * @optimization 2025-08-05:
- * - Added missing exports: workoutStatsCalculator, workoutLogger, muscleGroupsMap
+ * - Added missing exports: workoutStatsCalculator, workoutLogger
  * - Consolidated duplicate functions between workoutHelpers and workoutStatsCalculator
  * - All statistical calculations now centralized in workoutStatsCalculator
  * - Improved import consistency across the project
@@ -32,13 +32,10 @@ export * from "./storageCleanup";
 
 // =======================================
 // 🏋️ Workout Naming Synchronization
-// סנכרון שמות אימונים
-// =======================================
-export * from "./workoutNamesSync";
-
 // =======================================
 // 🏋️ Workout Helper Functions
 // פונקציות עזר לאימון
+// Note: workoutNamesSync removed - functionality consolidated in WorkoutPlansScreen
 // =======================================
 export * from "./workoutHelpers";
 
@@ -55,7 +52,7 @@ export * from "./workoutStatsCalculator";
 export { logger, workoutLogger } from "./logger";
 
 // =======================================
-// 💪 Muscle Groups Mapping
-// מיפוי קבוצות שרירים
+// 💪 Exercise Constants (from constants/)
+// קבועי תרגילים (מ-constants/)
 // =======================================
-export * from "./muscleGroupsMap";
+// Note: Muscle groups are available in src/constants/exercise.ts and exercisesScreenTexts.ts

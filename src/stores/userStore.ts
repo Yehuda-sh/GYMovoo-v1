@@ -1,12 +1,19 @@
 /**
  * @file src/stores/userStore.ts
- * @brief Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם
- * @brief Central store for managing user state with smart questionnaire support
+ * @description Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם
+ * English: Central store for managing user state with smart questionnaire support
+ *
+ * @features
+ * - ניהול מצב משתמש מרכזי עם Zustand ו-AsyncStorage persistence
+ * - תמיכה מלאה בשאלון חכם חדש (SmartQuestionnaireData)
+ * - תאימות לאחור עם שאלון ישן (LegacyQuestionnaireData)
+ * - פונקציות התאמת מגדר והעדפות מותאמות אישית
+ * - ניהול משתמש דמו מותאם עם אפשרויות ניקוי מתקדמות
+ * - Hooks נוספים לנוחות ובדיקות מצב
+ *
  * @dependencies zustand, AsyncStorage, types/index
- * @notes מבנה מפושט ומאוחד עם הסרת כפילויות וטיפוסים מרכזיים
- * @notes Simplified and unified structure with removed duplications and centralized types
- * @updated 2025-01-08 איחוד טיפוסים, פישוט מבנה, הסרת קוד מיותר
- * @optimization הוסרו כפילויות, טיפוסים הועברו ל-types/index.ts, פונקציות פושטו
+ * @usage Used throughout application for user state management
+ * @updated 2025-08-11 ניקוי תיעוד ושיפור ארגון - Store פעיל ומרכזי
  */
 
 import { create } from "zustand";

@@ -1,23 +1,27 @@
 /**
  * @file src/services/quickWorkoutGenerator.ts
- * @brief שירות ליצירת אימונים מהירים מותאמים אישית עם סינון מדויק ומטריצות נתונים מרכזיות
- * @dependencies questionnaireService, exerciseDatabase (מערכת חדשה), types/index
- * @notes יוצר אימונים דינמיים על בסיס נתוני המשתמש עם סינון חכם לפי ציוד ומטריצות נתונים מאוחדות
- * @optimization שימוש במאגר התרגילים החדש עם סינון מדויק, מטריצות נתונים מרכזיות, הסרת כפילות קוד
- * @algorithm עם התחשבות בדרישה המרכזית: אימון בית ללא ציוד = רק תרגילי משקל גוף
- * @refactoring מרכוז קונסטנטים, הסרת פונקציות כפולות, שיפור קריאות וארגון קוד
+ * @description שירות ליצירת אימונים מהירים מותאמים אישית (חלקית פעיל)
+ * English: Quick workout generation service with personalized adaptations (partially active)
+ *
+ * @features
+ * - יצירת אימונים מהירים עם סינון חכם | Quick workout generation with smart filtering
+ * - מטריצות נתונים מרכזיות לסטים וחזרות | Centralized data matrices for sets and reps
+ * - בחירת תרגילים לפי מטרה ומיקום | Exercise selection by goal and location
+ * - חישוב משקלים ומנוחה מותאמים | Adaptive weight and rest calculations
+ * - תמיכה בסביבות אימון שונות | Multiple workout environment support
+ *
+ * @status ⚠️ PARTIALLY ACTIVE - Exported but not used in production
+ * @used_by services/index.ts export, mentioned in WORKOUT_SCREENS_GUIDE.md
+ * @overlap ⚠️ Significant overlap with WorkoutDataService functionality
+ * @alternative WorkoutPlansScreen uses WorkoutDataService for similar functionality
+ * @recommendation Consider consolidating with WorkoutDataService or mark as deprecated
+ * @updated 2025-08-11 Added usage status and consolidation recommendations
  */
 
 import { questionnaireService } from "./questionnaireService";
 import { WorkoutExercise, ExerciseSet } from "../types";
 import { Exercise } from "../data/exercises/types";
 import {
-  allExercises,
-  getBodyweightExercises,
-  getDumbbellExercises,
-  getCardioExercises,
-  getFlexibilityExercises,
-  getResistanceBandExercises,
   getSmartFilteredExercises,
   filterExercisesByEquipment,
 } from "../data/exercises";
@@ -143,6 +147,8 @@ const ExperienceUtils = {
 
 /**
  * מחלקה ליצירת אימונים מהירים
+ * Quick workout generation class
+ * @deprecated Consider using WorkoutDataService.generateAIWorkoutPlan() instead
  */
 export class QuickWorkoutGenerator {
   /**
@@ -217,11 +223,11 @@ export class QuickWorkoutGenerator {
       return true; // advanced can do all
     });
 
-    console.log(
+    console.warn(
       `🎯 Available exercises after filtering: ${availableExercises.length}`
     );
-    console.log(`📍 Environments: ${environments.join(", ")}`);
-    console.log(`🔧 Equipment: ${equipment.join(", ") || "None"}`);
+    console.warn(`📍 Environments: ${environments.join(", ")}`);
+    console.warn(`🔧 Equipment: ${equipment.join(", ") || "None"}`);
 
     // מטריצת בחירה לפי מטרה - מעודכנת
     const goalToSelectionMethod = {
@@ -415,6 +421,7 @@ export class QuickWorkoutGenerator {
 
   /**
    * בחירת תרגילי סיבולת (העדפה למשקל גוף אבל כולל ציוד) - מעודכן לטיפוס החדש
+   * @deprecated Functionality overlaps with WorkoutDataService
    */
   private static selectEnduranceExercises(
     exercises: Exercise[],
@@ -536,6 +543,8 @@ export class QuickWorkoutGenerator {
 }
 
 // יצוא פונקציה נוחה
+// Convenience export function
+// @deprecated Use WorkoutDataService.generateAIWorkoutPlan() for better results
 export async function generateQuickWorkout(): Promise<WorkoutExercise[]> {
   return QuickWorkoutGenerator.generateQuickWorkout();
 }

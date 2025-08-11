@@ -2,7 +2,16 @@
  * @file src/utils/storageCleanup.ts
  * @description ניקוי זיכרון ומסד נתונים מלא עם תמיכה בנתוני שאלון חכם
  * English: Storage cleanup utility for full database with smart questionnaire support
- * @updated 2025-07-30 תמיכה בניקוי נתוני השאלון החכם והתאמת המגדר
+ *
+ * @features
+ * - ניטור גודל אחסון וזיהוי מפתחות גדולים
+ * - ניקוי אוטומטי של נתונים זמניים ישנים
+ * - תמיכה מיוחדת בנתוני שאלון חכם והתאמת מגדר
+ * - ניקוי חירום בזמן אחסון מלא
+ * - גיבוי ושחזור נתונים חיוניים
+ *
+ * @usage Used in App.tsx for automatic storage management on startup
+ * @updated 2025-08-11 עדכון תיעוד ושיפור ביצועים
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -250,20 +259,20 @@ export class StorageCleanup {
   static async logStorageStatus(): Promise<void> {
     try {
       const info = await this.getStorageInfo();
-      console.log("📊 Storage Status:");
-      console.log(`  Total keys: ${info.totalKeys}`);
-      console.log(`  Estimated size: ${info.estimatedSize.toFixed(2)} KB`);
-      console.log(`  Is full: ${await this.isStorageFull()}`);
-      console.log(`  🧠 Smart Questionnaire keys: ${info.questionnaireKeys}`);
-      console.log(`  👥 Gender adaptation keys: ${info.genderAdaptationKeys}`);
-      console.log(
+      console.warn("📊 Storage Status:");
+      console.warn(`  Total keys: ${info.totalKeys}`);
+      console.warn(`  Estimated size: ${info.estimatedSize.toFixed(2)} KB`);
+      console.warn(`  Is full: ${await this.isStorageFull()}`);
+      console.warn(`  🧠 Smart Questionnaire keys: ${info.questionnaireKeys}`);
+      console.warn(`  👥 Gender adaptation keys: ${info.genderAdaptationKeys}`);
+      console.warn(
         `  ⚙️ User preferences size: ${info.userPreferencesSize.toFixed(2)} KB`
       );
 
       if (info.largestItems.length > 0) {
-        console.log("  Largest items:");
+        console.warn("  Largest items:");
         info.largestItems.slice(0, 5).forEach((item, index) => {
-          console.log(
+          console.warn(
             `    ${index + 1}. ${item.key}: ${item.size.toFixed(2)} KB`
           );
         });

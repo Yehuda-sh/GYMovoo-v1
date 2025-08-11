@@ -1,26 +1,10 @@
 /**
  * @file src/services/nextWorkoutLogicService.ts
- * @description שירות לוגיקת האימון הבא במחזור - מערכת חכמה לניהול תו      // 2. Calculate days since last workout with enhanced precision
-      const daysSinceLastWorkout = this.calculateDaysSinceLastWorkout(
-        cycleState.lastWorkoutDate
-      );
-
-      console.log(
-        `📊 NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
-      );
-
-      // ✅ TODO: עתידי - שימוש בנתונים האישיים לשיפור ההמלצות
-      // ניתן להשתמש ב-personalData לצורכים כמו:
-      // - התאמת עוצמה לגיל (age)
-      // - התאמת משקל עצמי לפי משקל גוף (weight) 
-      // - התאמת תרגילים לגובה (height)
-      // - התאמת תוכנית לפי מין (gender)
-      // - התאמת קושי לרמת כושר (fitnessLevel)
-
-      // Enhanced decision logic with comprehensive scenarios
-      return this.determineNextWorkout(
+ * @description שירות לוגיקת האימון הבא במחזור - מערכת חכמה לניהול תוכניות אימון
  * English: Next workout logic service - intelligent system for workout program management
+ * @status ACTIVE - Core service with intensive usage in useNextWorkout hook
  * @dependencies AsyncStorage for persistence, intelligent caching system
+ * @usedBy useNextWorkout hook (primary), exported via services/index.ts
  * @notes מספק המלצות חכמות לאימון הבא על בסיס היסטוריה, דפוסי אימון ולוגיקה מתקדמת
  * @performance Optimized with intelligent caching (5s), efficient date calculations, memory management
  * @rtl Full Hebrew workout names and reason explanations support
@@ -114,7 +98,7 @@ class NextWorkoutLogicService {
     }
   ): Promise<NextWorkoutRecommendation> {
     try {
-      console.log(
+      console.warn(
         "🚀 NextWorkoutLogic: Starting intelligent workout recommendation calculation"
       );
 
@@ -131,7 +115,7 @@ class NextWorkoutLogicService {
 
       // Enhanced weekly plan validation with fallback
       if (!weeklyPlan || weeklyPlan.length === 0) {
-        console.log(
+        console.warn(
           "⚠️ NextWorkoutLogic: No weekly plan provided, using enhanced default"
         );
         weeklyPlan = ["דחיפה", "משיכה", "רגליים"];
@@ -145,8 +129,8 @@ class NextWorkoutLogicService {
         cycleState.lastWorkoutDate
       );
 
-      console.log(
-        `� NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
+      console.warn(
+        `📊 NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
       );
 
       // Enhanced decision logic with comprehensive scenarios
@@ -192,7 +176,7 @@ class NextWorkoutLogicService {
   ): NextWorkoutRecommendation {
     // New user scenario - enhanced welcome experience
     if (!cycleState.lastWorkoutDate || daysSinceLastWorkout >= 999) {
-      console.log(
+      console.warn(
         "👋 NextWorkoutLogic: New user detected - starting first workout with enhanced onboarding"
       );
       return this.createRecommendation(
@@ -207,7 +191,7 @@ class NextWorkoutLogicService {
 
     // Same day workout - recovery recommendation
     if (daysSinceLastWorkout === 0) {
-      console.log(
+      console.warn(
         "🛑 NextWorkoutLogic: Same day workout detected - recommending recovery"
       );
       return this.createRecommendation(
@@ -224,7 +208,7 @@ class NextWorkoutLogicService {
     if (daysSinceLastWorkout === 1) {
       const nextDayIndex =
         (cycleState.currentDayInWeek + 1) % weeklyPlan.length;
-      console.log(
+      console.warn(
         `✅ NextWorkoutLogic: Regular progression to workout ${nextDayIndex}`
       );
       return this.createRecommendation(
@@ -241,7 +225,7 @@ class NextWorkoutLogicService {
     if (daysSinceLastWorkout >= 2 && daysSinceLastWorkout <= 4) {
       const nextDayIndex =
         (cycleState.currentDayInWeek + 1) % weeklyPlan.length;
-      console.log(
+      console.warn(
         `⏰ NextWorkoutLogic: Short break detected (${daysSinceLastWorkout} days) - continuing progression`
       );
       return this.createRecommendation(
@@ -256,7 +240,7 @@ class NextWorkoutLogicService {
 
     // Medium break - 5-7 days restart week
     if (daysSinceLastWorkout >= 5 && daysSinceLastWorkout <= 7) {
-      console.log(
+      console.warn(
         `🔄 NextWorkoutLogic: Medium break detected (${daysSinceLastWorkout} days) - restarting week`
       );
       return this.createRecommendation(
@@ -271,7 +255,7 @@ class NextWorkoutLogicService {
 
     // Long break - over 7 days gradual return
     if (daysSinceLastWorkout > 7) {
-      console.log(
+      console.warn(
         `🏃‍♂️ NextWorkoutLogic: Long break detected (${daysSinceLastWorkout} days) - gradual return protocol`
       );
       return this.createRecommendation(
@@ -285,7 +269,7 @@ class NextWorkoutLogicService {
     }
 
     // Fallback scenario
-    console.log("🔧 NextWorkoutLogic: Using fallback scenario");
+    console.warn("🔧 NextWorkoutLogic: Using fallback scenario");
     return this.createRecommendation(
       weeklyPlan[0],
       0,
@@ -322,11 +306,11 @@ class NextWorkoutLogicService {
         JSON.stringify(this.cachedCycleState.weeklyPlan) ===
           JSON.stringify(weeklyPlan)
       ) {
-        console.log("🚀 NextWorkoutLogic: Using optimized cached cycle state");
+        console.warn("🚀 NextWorkoutLogic: Using optimized cached cycle state");
         return this.cachedCycleState;
       }
 
-      console.log(
+      console.warn(
         "📀 NextWorkoutLogic: Loading cycle state from persistent storage"
       );
       const savedState = await AsyncStorage.getItem(WORKOUT_CYCLE_KEY);
@@ -336,14 +320,14 @@ class NextWorkoutLogicService {
 
         // Enhanced plan validation with detailed logging
         if (JSON.stringify(state.weeklyPlan) === JSON.stringify(weeklyPlan)) {
-          console.log(
+          console.warn(
             "✅ NextWorkoutLogic: Weekly plan matches, using saved state"
           );
           this.cachedCycleState = state;
           this.cacheTimestamp = now;
           return state;
         } else {
-          console.log(
+          console.warn(
             "🔄 NextWorkoutLogic: Weekly plan changed, creating new state"
           );
         }
@@ -365,7 +349,7 @@ class NextWorkoutLogicService {
       this.cachedCycleState = newState;
       this.cacheTimestamp = now;
 
-      console.log("🆕 NextWorkoutLogic: Created new cycle state", {
+      console.warn("🆕 NextWorkoutLogic: Created new cycle state", {
         weekNumber: newState.currentWeekNumber,
         planLength: newState.weeklyPlan.length,
       });
@@ -400,7 +384,7 @@ class NextWorkoutLogicService {
    */
   private calculateDaysSinceLastWorkout(lastWorkoutDate: string): number {
     if (!lastWorkoutDate || lastWorkoutDate === "") {
-      console.log("📅 NextWorkoutLogic: No previous workout history found");
+      console.warn("📅 NextWorkoutLogic: No previous workout history found");
       return 999; // Special code for new users
     }
 
@@ -410,7 +394,7 @@ class NextWorkoutLogicService {
 
       // Enhanced date validation with detailed error reporting
       if (isNaN(lastDate.getTime())) {
-        console.log(
+        console.warn(
           "⚠️ NextWorkoutLogic: Invalid workout date format detected"
         );
         return 999;
@@ -420,7 +404,7 @@ class NextWorkoutLogicService {
       const timeDiff = today.getTime() - lastDate.getTime();
       const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
 
-      console.log(
+      console.warn(
         `📅 NextWorkoutLogic: Calculated ${daysDiff} days since last workout (${lastWorkoutDate})`
       );
       return Math.max(0, daysDiff); // Ensure non-negative result
@@ -468,7 +452,7 @@ class NextWorkoutLogicService {
       suggestedIntensity,
     };
 
-    console.log(
+    console.warn(
       `✅ NextWorkoutLogic: Created enhanced recommendation - "${workoutName}" (index: ${workoutIndex}, intensity: ${suggestedIntensity})`
     );
 
@@ -494,7 +478,7 @@ class NextWorkoutLogicService {
     workoutName: string
   ): Promise<void> {
     try {
-      console.log(
+      console.warn(
         `🎯 NextWorkoutLogic: Updating workout completion - "${workoutName}" (index: ${workoutIndex})`
       );
 
@@ -522,7 +506,7 @@ class NextWorkoutLogicService {
       this.cachedCycleState = null;
       this.cacheTimestamp = 0;
 
-      console.log(
+      console.warn(
         `✅ NextWorkoutLogic: Workout cycle updated successfully - Week ${updatedState.currentWeekNumber}, Total workouts: ${updatedState.totalWorkoutsCompleted}`
       );
     } catch (error) {
@@ -548,7 +532,7 @@ class NextWorkoutLogicService {
    */
   async resetWorkoutCycle(): Promise<void> {
     try {
-      console.log(
+      console.warn(
         "🔄 NextWorkoutLogic: Performing comprehensive workout cycle reset"
       );
 
@@ -562,7 +546,7 @@ class NextWorkoutLogicService {
       this.cachedCycleState = null;
       this.cacheTimestamp = 0;
 
-      console.log(
+      console.warn(
         "✅ NextWorkoutLogic: Workout cycle reset completed successfully"
       );
     } catch (error) {
@@ -593,7 +577,7 @@ class NextWorkoutLogicService {
     consistency: number; // Percentage consistency score
   }> {
     try {
-      console.log(
+      console.warn(
         "📊 NextWorkoutLogic: Calculating comprehensive cycle statistics"
       );
 
@@ -622,7 +606,7 @@ class NextWorkoutLogicService {
         consistency: Math.min(100, Math.max(0, Math.round(consistency))),
       };
 
-      console.log("✅ NextWorkoutLogic: Statistics calculated", {
+      console.warn("✅ NextWorkoutLogic: Statistics calculated", {
         week: statistics.currentWeek,
         workouts: statistics.totalWorkouts,
         consistency: `${statistics.consistency}%`,

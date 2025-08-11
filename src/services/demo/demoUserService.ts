@@ -2,7 +2,11 @@
  * @file src/services/demo/demoUserService.ts
  * @brief 🔴 DEMO ONLY - שירות יצירת משתמשים דמו למטרות פיתוח בלבד
  * @description יוצר נתוני דמו מציאותיים לבדיקות ופיתוח - לא לשימוש בפרודקשן!
- * @updated 2025-08-10 הועבר לתיקיית demo להפרדת קוד פיתוח מפרודקשן
+ * @updated 2025-08-11 ✅ OPTIMIZED - שופר תיעוד, זוהו נקודות שיפור לעתיד
+ * @status ⚠️ ACTIVE BUT NEEDS REFACTORING - קובץ גדול (1304 שורות) עם פונקציונליות קריטית
+ * @used_by demoWorkoutService.ts, services export hub, demo ecosystem
+ * @critical_functions generateDemoUserFromQuestionnaire, generateRealisticWorkout, generateWorkoutHistory
+ * @todo REFACTOR: פיצול לקבצים קטנים יותר, השלמת TODO בקוד, ניקוי קוד מיותר
  * @warning NOT FOR PRODUCTION - DEMO DATA ONLY
  */
 
@@ -341,7 +345,11 @@ class DemoUserService {
   }
 
   /**
-   * יוצר משתמש דמו מותאם לתשובות שאלון
+   * 🎯 יוצר משתמש דמו מותאם לתשובות שאלון
+   * @description פונקציה קריטית להמרת תשובות שאלון למשתמש דמו מציאותי
+   * @param questionnaireAnswers - תשובות שאלון אופציונליות
+   * @returns משתמש דמו מותאם או רנדומלי
+   * @critical_usage מבסיס יצירת דמו לכל השאלונים במערכת
    */
   generateDemoUserFromQuestionnaire(
     questionnaireAnswers?: QuestionnaireAnswers
@@ -542,7 +550,14 @@ class DemoUserService {
   }
 
   /**
-   * יוצר אימון מציאותי שעובר validateWorkoutData
+   * 🏋️ יוצר אימון מציאותי שעובר validateWorkoutData
+   * @description פונקציה מרכזית ליצירת אימונים מותאמי מגדר ורמת ניסיון
+   * @param gender - מגדר המשתמש לצורך התאמות
+   * @param experience - רמת ניסיון (beginner/intermediate/advanced)
+   * @param equipment - ציוד זמין למשתמש
+   * @param customDate - תאריך מותאם (אופציונלי)
+   * @returns אימון מלא עם פידבק וסטטיסטיקות
+   * @critical_usage demoWorkoutService ו-generateWorkoutHistory משתמשים בפונקציה זו
    */
   generateRealisticWorkout(
     gender: UserGender,
@@ -949,7 +964,12 @@ class DemoUserService {
   }
 
   /**
-   * יוצר היסטוריית אימונים מלאה למשתמש
+   * 📈 יוצר היסטוריית אימונים מלאה למשתמש
+   * @description מייצר היסטוריה מציאותית עם התפלגות טבעית של אימונים
+   * @param user - משתמש דמו ליצירת היסטוריה מותאמת
+   * @param weeksBack - מספר שבועות אחורה (ברירת מחדל: 12)
+   * @returns רשימת אימונים ממוינת לפי תאריך
+   * @performance יוצר בין 24-48 אימונים (2-4 אימונים בשבוע)
    */
   generateWorkoutHistory(
     user: DemoUser,
@@ -1010,7 +1030,11 @@ class DemoUserService {
   }
 
   /**
-   * יוצר משתמש מלא תואם לממשק User של המערכת
+   * 👤 יוצר משתמש מלא תואם לממשק User של המערכת
+   * @description המיר משתמש דמו למבנה נתונים מלא של המערכת הראשית
+   * @returns משתמש מלא עם כל השדות הנדרשים למערכת
+   * @includes אימייל, סטטיסטיקות, העדפות, פרופיל מגדר והיסטוריית פעילות
+   * @critical_system פונקציה מרכזית לחיבור מערכת הדמו למערכת הראשית
    */
   async generateRealisticUser(): Promise<AppUser> {
     const demoUser = this.generateDemoUser();
@@ -1218,7 +1242,10 @@ class DemoUserService {
       // סטטיסטיקות נוכחיות
       currentStats: {
         totalWorkouts: workouts.length,
-        totalVolume: 0, // TODO: compute aggregated volume
+        totalVolume: workouts.reduce(
+          (sum, w) => sum + (w.stats?.totalVolume || 0),
+          0
+        ), // ✅ FIXED: חישוב נפח מלא במקום TODO
         averageDifficulty: this.calculateAverageDifficulty(workouts),
         averageRating: this.calculateAverageDifficulty(workouts),
         workoutStreak: this.calculateWorkoutStreak(workouts),
@@ -1295,9 +1322,11 @@ class DemoUserService {
   }
 }
 
-// יצוא singleton instance
+// 🔴 DEMO ONLY - ייצוא singleton instance למשתמשי דמו
+// ✅ ACTIVE: שירות קריטי למערכת הדמו - demoWorkoutService תלוי בו
+// ⚠️ NEEDS REFACTORING: קובץ גדול (1304 שורות) צריך פיצול עתידי
 export const demoUserService = DemoUserService.getInstance();
 export default demoUserService;
 
-// ✅ Backward compatibility export (לזמן מעבר)
+// ✅ Backward compatibility export (לזמן מעבר מ-realisticDemoService)
 export const realisticDemoService = demoUserService;

@@ -1,8 +1,17 @@
 /**
  * @file src/types/index.ts
- * @brief טיפוסים ראשיים לפרויקט GYMovoo
- * @dependencies None
- * @notes יבוא טיפוסים ראשיים מכל החלקים בפרויקט
+ * @description טיפוסים ראשיים לפרויקט GYMovoo - ממשקים מרכזיים לכל המערכת
+ * English: Main types for GYMovoo project - central interfaces for the entire system
+ *
+ * @features
+ * - טיפוסי ניווט ואימון מאוחדים
+ * - ממשקי שאלון חכם ומערכת legacy
+ * - פרופיל משתמש מקיף עם תמיכה לאחור
+ * - סטטיסטיקות אימון מתקדמות
+ * - מערכת תרגילים היררכית
+ *
+ * @dependencies Navigation types, workout types from screens
+ * @updated 2025-08-11 ניקוי כפילויות ושיפור ארגון
  */
 
 // טיפוסי ניווט
@@ -76,6 +85,15 @@ export interface WorkoutStatistics {
   };
 }
 
+// =======================================
+// 📋 Questionnaire Data - CONSOLIDATED (ינואר 2025)
+// נתוני שאלון וסקרים - מאוחד ללא כפילויות
+// =======================================
+
+/**
+ * Questionnaire Basic Data - נתוני שאלון בסיסיים (מאוחד)
+ * Core questionnaire data for fitness assessment - SINGLE DEFINITION
+ */
 export interface QuestionnaireBasicData {
   age?: number;
   height?: number;
@@ -269,6 +287,7 @@ export interface HistoryExercise extends BaseExercise {
  * Primary Exercise type - הטיפוס הראשי
  * Main exercise type used throughout the application
  * @deprecated Use WorkoutExercise for active workouts or HistoryExercise for history
+ * @note This type is maintained for backward compatibility only
  */
 export type Exercise = WorkoutExercise;
 
@@ -280,28 +299,6 @@ export interface WorkoutHistoryItem {
   exercises: HistoryExercise[];
   rating?: number;
   notes?: string;
-}
-
-// =======================================
-// 📋 Questionnaire Data (ינואר 2025)
-// נתוני שאלון וסקרים
-// =======================================
-
-/**
- * Questionnaire Basic Data - נתוני שאלון בסיסיים
- * Core questionnaire data for fitness assessment
- */
-export interface QuestionnaireBasicData {
-  age?: number;
-  height?: number;
-  weight?: number;
-  gender?: string;
-  fitnessLevel?: string;
-  goals?: string[];
-  daysPerWeek?: number;
-  duration?: string;
-  equipment?: string[];
-  completedAt?: Date;
 }
 
 /**
@@ -451,6 +448,14 @@ export interface AIRecommendations {
 /**
  * Comprehensive User interface - ממשק משתמש מקיף
  * Central user data structure for the entire application
+ *
+ * @structure
+ * - Basic data: id, name, email, avatar
+ * - Smart questionnaire data (primary): smartQuestionnaireData
+ * - Legacy questionnaire support: questionnaire, questionnaireData
+ * - User preferences: theme, notifications, language
+ * - Training statistics: workouts, volume, goals
+ * - Gender adaptation: personalized messages and workout names
  */
 export interface User {
   // נתוני בסיס

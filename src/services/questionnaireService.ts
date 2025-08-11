@@ -2,13 +2,16 @@
  * @file src/services/questionnaireService.ts
  * @description שירות מקיף לניהול נתוני השאלון ובחירת אימונים מותאמים אישית
  * English: Comprehensive service for questionnaire data management and personalized workout selection
+ * @status ACTIVE - Core service with extensive usage across the application
  * @dependencies AsyncStorage for persistence, userStore for state management, centralized types system
+ * @usedBy WorkoutPlansScreen, quickWorkoutGenerator, workoutDataService, useUserPreferences hook
  * @notes שירות מרכזי לכל הפעולות הקשורות לנתוני השאלון עם תמיכה בפורמטים מרובים
  * English: Central service for all questionnaire operations with multi-format support
  * @performance Optimized with intelligent caching, efficient data merging, and smart recommendations
  * @rtl Full Hebrew workout names, descriptions, and user preference support
  * @accessibility Compatible with screen readers and comprehensive workout metadata
  * @algorithm Advanced workout recommendation engine with goal-based personalization
+ * @overlaps May have some overlap with workoutDataService for workout generation - consider consolidation
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -87,7 +90,7 @@ class QuestionnaireService {
           version: user.questionnaireData?.version || "smart-questionnaire-v1",
         };
 
-        console.log(
+        console.warn(
           "� QuestionnaireService: Created metadata from questionnaire"
         );
         await this.saveQuestionnaireData(fullMetadata);
@@ -96,7 +99,7 @@ class QuestionnaireService {
 
       // Priority 2: Check for enhanced questionnaireData
       if (user?.questionnaireData) {
-        console.log(
+        console.warn(
           "✅ QuestionnaireService: Found questionnaireData in userStore, merging..."
         );
 
@@ -106,7 +109,7 @@ class QuestionnaireService {
           completedAt: user.questionnaireData.completedAt,
         };
 
-        console.log(
+        console.warn(
           "� QuestionnaireService: Created metadata from questionnaireData"
         );
         await this.saveQuestionnaireData(fullMetadata);
@@ -114,7 +117,7 @@ class QuestionnaireService {
       }
 
       // Priority 3: Fallback to AsyncStorage
-      console.log(
+      console.warn(
         "📱 QuestionnaireService: Checking AsyncStorage for cached data..."
       );
       const metadata = await AsyncStorage.getItem(
@@ -123,13 +126,13 @@ class QuestionnaireService {
 
       if (metadata) {
         const parsed = JSON.parse(metadata);
-        console.log(
+        console.warn(
           "✅ QuestionnaireService: Found cached data in AsyncStorage"
         );
         return parsed;
       }
 
-      console.log(
+      console.warn(
         "❌ QuestionnaireService: No questionnaire data found in any source"
       );
       return null;
@@ -238,7 +241,7 @@ class QuestionnaireService {
   private static extractEquipmentFromQuestionnaire(
     prefs: QuestionnaireMetadata
   ): string[] {
-    console.log(
+    console.warn(
       "🔍 extractEquipmentFromQuestionnaire - Enhanced extraction starting"
     );
     const equipment: string[] = [];
@@ -257,7 +260,7 @@ class QuestionnaireService {
       if (Array.isArray(answer)) {
         answer.forEach((option: EquipmentOption) => {
           if (option?.metadata?.equipment) {
-            console.log(
+            console.warn(
               `🔍 Adding equipment array:`,
               option.metadata.equipment
             );
@@ -270,7 +273,7 @@ class QuestionnaireService {
     const result = Array.from(new Set(equipment)); // Professional deduplication
     if (result.length === 0) {
       // Fallback: legacy or simplified field name 'gym_equipment'
-      const raw = (prefs as any).gym_equipment;
+      const raw = (prefs as Record<string, unknown>).gym_equipment;
       if (Array.isArray(raw)) {
         raw.forEach((item) => {
           if (!item) return;
@@ -328,7 +331,7 @@ class QuestionnaireService {
     const prefs = await this.getUserPreferences();
     const hasCompleted = prefs !== null && prefs.completedAt !== undefined;
 
-    console.log("Questionnaire completion status:", {
+    console.warn("Questionnaire completion status:", {
       prefs,
       hasCompleted,
       completedAt: prefs?.completedAt,
@@ -1272,13 +1275,19 @@ class QuestionnaireService {
    * Calculate recent workout completion rate for dynamic difficulty adjustment
    * חישוב שיעור השלמת אימונים אחרונים להתאמת קושי דינמית
    */
-  private calculateRecentCompletionRate(recentWorkouts: any[]): number {
+  private calculateRecentCompletionRate(
+    recentWorkouts: Array<{
+      exercises?: Array<{
+        sets?: Array<{ completed?: boolean }>;
+      }>;
+    }>
+  ): number {
     if (recentWorkouts.length === 0) return 0.7; // Default moderate completion rate
 
     const totalSets = recentWorkouts.reduce((sum, workout) => {
       return (
         sum +
-        (workout.exercises?.reduce((exerciseSum: number, exercise: any) => {
+        (workout.exercises?.reduce((exerciseSum: number, exercise) => {
           return exerciseSum + (exercise.sets?.length || 0);
         }, 0) || 0)
       );
@@ -1287,10 +1296,10 @@ class QuestionnaireService {
     const completedSets = recentWorkouts.reduce((sum, workout) => {
       return (
         sum +
-        (workout.exercises?.reduce((exerciseSum: number, exercise: any) => {
+        (workout.exercises?.reduce((exerciseSum: number, exercise) => {
           return (
             exerciseSum +
-            (exercise.sets?.filter((set: any) => set.completed)?.length || 0)
+            (exercise.sets?.filter((set) => set.completed)?.length || 0)
           );
         }, 0) || 0)
       );
@@ -1338,7 +1347,12 @@ class QuestionnaireService {
    * ניתוח דירוגי משתמש להעדפות אימון ספציפיות
    */
   private analyzePreferenceRatings(
-    workoutHistory: any[],
+    workoutHistory: Array<{
+      name?: string;
+      type?: string;
+      feedback?: { overallRating?: number };
+      rating?: number;
+    }>,
     preference: string
   ): { averageRating: number; count: number } {
     const relevantWorkouts = workoutHistory.filter(
@@ -1370,7 +1384,7 @@ class QuestionnaireService {
     const user = useUserStore.getState().user;
     const rehabHistory =
       user?.activityHistory?.workouts?.filter(
-        (w: any) => w.type === "rehabilitation"
+        (w: { type?: string }) => w.type === "rehabilitation"
       ) || [];
 
     // Base target muscles by injury type
@@ -1389,7 +1403,8 @@ class QuestionnaireService {
     if (rehabHistory.length > 5) {
       const avgRating =
         rehabHistory.reduce(
-          (sum: number, w: any) => sum + (w.feedback?.overallRating || 3),
+          (sum: number, w: { feedback?: { overallRating?: number } }) =>
+            sum + (w.feedback?.overallRating || 3),
           0
         ) / rehabHistory.length;
       if (avgRating > 4) {

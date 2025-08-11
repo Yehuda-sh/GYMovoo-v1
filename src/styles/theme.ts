@@ -1,13 +1,22 @@
 /**
  * @file src/styles/theme.ts
- * @brief ערכת נושא מרכזית של האפליקציה עם תמיכה מלאה ב-RTL והתאמת מגדר
- * @dependencies React Native, Dimensions
- * @notes כולל צבעים, רווחים, טיפוגרפיה, צללים ורכיבים מוכנים עם תמיכה בהתאמת מגדר
- * @recurring_errors אין להשתמש בערכים קשיחים - הכל דרך theme בלבד
- * @updated 2025-08-07 עדכון למערכת שאלון אחודה חדשה והסרת קוד מיותר
+ * @description ערכת נושא מרכזית של האפליקציה עם תמיכה מלאה ב-RTL והתאמת מגדר
+ * English: Central theme system with full RTL support and gender adaptation
+ *
+ * @features
+ * - מערכת עיצוב מקיפה: צבעים, רווחים, טיפוגרפיה, צללים
+ * - תמיכה מלאה ב-RTL עם helpers מתקדמים
+ * - רכיבים מוכנים עם סגנונות מרכזיים
+ * - התאמת מגדר למשתמשים שונים
+ * - מערכת animation ו-layout מתקדמת
+ *
+ * @dependencies React Native Dimensions, Platform, rtlHelpers
+ * @usage Used throughout the entire application for consistent design
+ * @updated 2025-08-11 ניקוי legacy code ושיפור ארגון
  */
 
 import { Dimensions, Platform } from "react-native";
+import type { ViewStyle } from "react-native";
 // ייבוא isRTL מהמקום המרכזי | Import isRTL from central location
 import { isRTL } from "../utils/rtlHelpers";
 
@@ -64,16 +73,11 @@ export const colors = {
   workoutCardStart: "#2d5a7a",
   workoutCardEnd: "#1a3a5a",
 
-  // Questionnaire & Gender Adaptation Colors (Legacy - רוב לא בשימוש)
-  questionnaireCard: "#1f2937",
-  questionnaireBorder: "#374151",
-  selectedOption: "#4f46e5",
-  selectedOptionBg: "rgba(79, 70, 229, 0.1)",
+  // Questionnaire & Gender Adaptation Colors - CLEANED
+  // קבצי שאלון חכם ישן - נוקה (רק הצבעים החיוניים נשארו)
   genderMale: "#3b82f6",
   genderFemale: "#ec4899",
   genderNeutral: "#8b5cf6",
-  progressFill: "#10b981",
-  progressBg: "#374151",
 
   // Gradient Colors
   primaryGradientStart: "#4e9eff",
@@ -83,9 +87,7 @@ export const colors = {
   accentGradientStart: "#ff6b6b",
   accentGradientEnd: "#d84848",
 
-  // Smart Questionnaire Gradients
-  questionnaireGradientStart: "#1f2937",
-  questionnaireGradientEnd: "#111827",
+  // Smart Questionnaire Gradients - CLEANED (only gender gradients remain)
   genderGradientMale: ["#3b82f6", "#1d4ed8"],
   genderGradientFemale: ["#ec4899", "#be185d"],
   genderGradientNeutral: ["#8b5cf6", "#7c3aed"],
@@ -293,14 +295,16 @@ export const components = {
     ...shadows.medium,
   },
 
-  // Smart Questionnaire Components (Legacy - לא בשימוש במערכת האחודה)
+  // Legacy Smart Questionnaire Components - DEPRECATED
+  // קומפוננטות שאלון חכם ישנות - מיועדות למחיקה
+  // Note: These are kept temporarily for backward compatibility
   questionnaireCard: {
-    backgroundColor: colors.questionnaireCard,
+    backgroundColor: colors.card, // Changed from non-existent color
     borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.questionnaireBorder,
+    borderColor: colors.border, // Changed from non-existent color
     ...shadows.medium,
   },
 
@@ -317,8 +321,8 @@ export const components = {
   },
 
   questionnaireOptionSelected: {
-    backgroundColor: colors.selectedOptionBg,
-    borderColor: colors.selectedOption,
+    backgroundColor: colors.primary + "20", // Changed from non-existent color
+    borderColor: colors.primary, // Changed from non-existent color
     borderWidth: 2,
   },
 
@@ -361,7 +365,7 @@ export const components = {
 
   progressIndicator: {
     height: 4,
-    backgroundColor: colors.progressBg,
+    backgroundColor: colors.backgroundElevated, // Changed from non-existent color
     borderRadius: 2,
     overflow: "hidden" as const,
     marginBottom: spacing.md,
@@ -369,7 +373,7 @@ export const components = {
 
   progressIndicatorFill: {
     height: "100%",
-    backgroundColor: colors.progressFill,
+    backgroundColor: colors.primary, // Changed from non-existent color
     borderRadius: 2,
   },
 
@@ -647,7 +651,7 @@ export const components = {
   }: {
     absolute?: boolean;
     variant?: "default" | "minimal" | "large";
-    customStyle?: any;
+    customStyle?: ViewStyle; // Proper ViewStyle type
   }) => {
     const baseStyle = {
       backgroundColor: colors.card + "CC",
@@ -777,47 +781,6 @@ const getAvatarStyle = (
   overflow: "hidden" as const,
   ...shadows.small,
 });
-
-const getAvatarTextStyle = (size: number) => ({
-  fontSize: size * 0.4,
-  fontWeight: "700" as const,
-  color: colors.text,
-  textAlign: "center" as const,
-});
-
-const sectionHeader = {
-  backgroundColor: colors.background,
-  paddingHorizontal: spacing.xl,
-  paddingVertical: spacing.sm,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.divider,
-};
-
-const toast = {
-  position: "absolute" as const,
-  bottom: 100,
-  left: spacing.xl,
-  right: spacing.xl,
-  backgroundColor: colors.card,
-  borderRadius: radius.lg,
-  padding: spacing.md,
-  flexDirection: isRTL ? "row-reverse" : "row",
-  alignItems: "center" as const,
-  ...shadows.large,
-};
-
-const progressBar = {
-  height: 8,
-  backgroundColor: colors.backgroundElevated,
-  borderRadius: 4,
-  overflow: "hidden" as const,
-};
-
-const progressBarFill = {
-  height: "100%",
-  backgroundColor: colors.primary,
-  borderRadius: 4,
-};
 
 // --- Layout Helpers ---
 export const layout = {
@@ -1078,7 +1041,41 @@ export const theme = {
 
   // Avatar helpers
   getAvatarStyle,
-  getAvatarTextStyle,
+
+  // Utility styles (previously unused constants - now part of components)
+  sectionHeader: {
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+
+  toast: {
+    position: "absolute" as const,
+    bottom: 100,
+    left: spacing.xl,
+    right: spacing.xl,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    flexDirection: isRTL ? "row-reverse" : "row",
+    alignItems: "center" as const,
+    ...shadows.large,
+  },
+
+  progressBar: {
+    height: 8,
+    backgroundColor: colors.backgroundElevated,
+    borderRadius: 4,
+    overflow: "hidden" as const,
+  },
+
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
 };
 
 export default theme;

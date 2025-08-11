@@ -1,9 +1,20 @@
 /**
  * @file src/services/workoutSimulationService.ts
- * @brief ✅ שירות סימולציה מציאותי - נקי מקוד דמו
- * @description מדמה ביצוע אימונים אמיתיים עם נתונים של משתמשים אמיתיים
- * @updated 2025-08-10 הוסרה תלות בשירותי דמו - עבודה עם נתונים אמיתיים בלבד
- * @compatible validateWorkoutData, formatDateHebrewLocal, WorkoutWithFeedback
+ * @description ✅ שירות סימולציה מציאותי - נקי מקוד דמו
+ * English: Realistic workout simulation service - clean from demo code
+ *
+ * @features
+ * - סימולציה מציאותית של היסטוריית אימונים (26 שבועות)
+ * - אלגוריתמים מתקדמים: Progressive overload, מוטיבציה משתנה
+ * - התאמה אישית: מגדר, רמת ניסיון, ציוד זמין
+ * - נתונים אישיים מותאמים עם PersonalData integration
+ * - תואמות מלאה למסך ההיסטוריה ו-WorkoutWithFeedback
+ * - תמיכה בvalidateWorkoutData, formatDateHebrewLocal
+ *
+ * @dependencies workout.types, genderAdaptation, personalDataUtils, workoutConstants
+ * @usage Used by demoWorkoutService, workoutHistoryService for realistic data
+ * @updated 2025-08-11 ניקוי תיעוד ואימות פעילות - שירות מרכזי ופעיל
+ * @performance 874 lines - consider modular refactoring for maintainability
  */
 
 // ✅ הסרת import של demo service
@@ -856,8 +867,9 @@ class WorkoutSimulationService {
   }
 
   /**
-   * ⚠️ DEPRECATED: פונקציה זו הוסרה כי הייתה תלויה בשירותי דמו
-   * עבור יצירת היסטוריה מציאותית, השתמש ב-simulateHistoryCompatibleWorkouts ישירות
+   * ⚠️ DEPRECATED: פונקציה זו deprecated - השתמש ב-simulateHistoryCompatibleWorkouts
+   * @deprecated Use simulateHistoryCompatibleWorkouts with real user data instead
+   * @removed Due to demo service dependency - now returns empty array
    */
   async simulateRealisticWorkoutHistory(): Promise<WorkoutWithFeedback[]> {
     console.warn(

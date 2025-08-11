@@ -11,9 +11,10 @@
  * - ✅ Gender and date utilities moved from HistoryScreen
  *
  * @usage
- * import { formatTime, formatTimeExtended, triggerVibration, animationConfig } from '@/utils/workoutHelpers'
+ * import { formatWorkoutTime, formatWorkoutTimeExtended, triggerVibration, animationConfig } from '@/utils/workoutHelpers'
  *
  * @note Statistical calculation functions moved to workoutStatsCalculator.ts to avoid duplication
+ * @note formatTime renamed to formatWorkoutTime to avoid conflict with formatters.ts
  *
  * @dependencies
  * - react-native: Platform, Vibration
@@ -27,25 +28,35 @@
  * @created 2025-08-02 - Initial implementation for code deduplication
  * @updated 2025-08-04 - Enhanced with advanced formatting and vibration patterns
  * @updated 2025-08-05 - Moved statistical functions to workoutStatsCalculator.ts
+ * @updated 2025-08-11 - Renamed formatTime functions to avoid conflict with formatters.ts
  */
 
 import { Platform, Vibration } from "react-native";
 
 /**
- * פורמט זמן מתוך שניות לפורמט MM:SS (פשוט)
- * Format time from seconds to MM:SS format (simple)
+ * פורמט זמן מתוך שניות לפורמט MM:SS (לאימונים)
+ * Format workout time from seconds to MM:SS format (for workouts)
  */
-export const formatTime = (seconds: number): string => {
+export const formatWorkoutTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 /**
+ * @deprecated Use formatWorkoutTime instead to avoid conflict with formatters.ts
+ * פורמט זמן מתוך שניות לפורמט MM:SS (פשוט)
+ * Format time from seconds to MM:SS format (simple)
+ */
+export const formatTime = (seconds: number): string => {
+  return formatWorkoutTime(seconds);
+};
+
+/**
  * פורמט זמן מתוך שניות לפורמט HH:MM:SS (מתקדם)
  * Format time from seconds to HH:MM:SS format (advanced)
  */
-export const formatTimeExtended = (seconds: number): string => {
+export const formatWorkoutTimeExtended = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -56,6 +67,15 @@ export const formatTimeExtended = (seconds: number): string => {
       .padStart(2, "0")}`;
   }
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
+};
+
+/**
+ * @deprecated Use formatWorkoutTimeExtended instead for clarity
+ * פורמט זמן מתוך שניות לפורמט HH:MM:SS (מתקדם)
+ * Format time from seconds to HH:MM:SS format (advanced)
+ */
+export const formatTimeExtended = (seconds: number): string => {
+  return formatWorkoutTimeExtended(seconds);
 };
 
 /**

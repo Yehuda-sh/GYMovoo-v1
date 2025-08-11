@@ -1,8 +1,21 @@
 /**
  * @file src/services/workoutHistoryService.ts
- * @description שירות לניהול היסטוריית אימונים עם משוב ותמיכה בהתאמת מגדר
- * English: Workout history service with feedback management and gender adaptation support
- * @updated 2025-07-30 הוספת תמיכה בהתאמת מגדר ואינטגרציה עם userStore
+ * @description שירות מרכזי לניהול היסטוריית אימונים עם משוב מתקדם והתאמת מגדר
+ * English: Central workout history service with advanced feedback and gender adaptation
+ *
+ * @features
+ * - שמירת אימונים עם משוב מותאם למגדר | Gender-adapted workout feedback storage
+ * - זיהוי שיאים אישיים | Personal records detection
+ * - ניתוח ביצועים מותאם אישית | Personalized performance analytics
+ * - המלצות אימון חכמות | Smart workout recommendations
+ * - יצוא נתונים ל-CSV | CSV data export
+ * - חישוב קלוריות מותאם | Personalized calorie calculations
+ * - רצף אימונים וקביעות | Workout streaks and consistency tracking
+ *
+ * @dependencies workoutSimulationService, genderAdaptation, personalDataUtils
+ * @used_by HistoryScreen, demoHistoryService, WorkoutPlansScreen, ActiveWorkoutScreen
+ * @performance 1096 lines - consider modular organization for large service
+ * @updated 2025-08-11 Enhanced documentation and service organization
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -36,6 +49,7 @@ const PREVIOUS_PERFORMANCES_KEY = "previous_performances";
 class WorkoutHistoryService {
   /**
    * שמירת אימון עם משוב להיסטוריה (משופר עם תמיכה בהתאמת מגדר)
+   * Save workout with feedback to history (enhanced with gender adaptation support)
    */
   async saveWorkoutWithFeedback(
     workoutWithFeedback: Omit<WorkoutWithFeedback, "id">,
@@ -116,6 +130,7 @@ class WorkoutHistoryService {
 
   /**
    * יצוא נתוני ביצועים מותאמים אישית ל-CSV
+   * Export personalized performance data to CSV format
    */
   async exportPersonalizedPerformanceData(
     personalData?: PersonalData
@@ -149,6 +164,7 @@ class WorkoutHistoryService {
 
   /**
    * קבלת תובנות מותאמות אישית עבור האימון הבא
+   * Get personalized insights for next workout recommendation
    */
   async getPersonalizedNextWorkoutInsights(
     personalData?: PersonalData
@@ -340,6 +356,7 @@ class WorkoutHistoryService {
 
   /**
    * ניתוח סטטיסטיקות מתקדמות עם נתונים אישיים
+   * Advanced personalized workout analytics with BMI and fitness scoring
    */
   async getPersonalizedWorkoutAnalytics(personalData?: PersonalData): Promise<{
     totalWorkouts: number;

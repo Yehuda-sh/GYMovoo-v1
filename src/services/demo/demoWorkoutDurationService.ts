@@ -2,7 +2,10 @@
  * @file src/services/demo/demoWorkoutDurationService.ts
  * @brief 🔴 DEMO ONLY - שירות יצירת זמני אימון מציאותיים ומגוונים
  * @description יוצר זמני אימון שמשקפים מציאות - לא תמיד מסיימים בדיוק לפי התכנון
- * @updated 2025-08-10 נוצר לטיפול במציאות של אימונים
+ * @updated 2025-08-11 ✅ ENHANCED - שירות פעיל בשימוש ישיר במסכי היסטוריה
+ * @status ✅ ACTIVE - פונקציונליות ייחודית וקריטית שלא קיימת במקום אחר
+ * @used_by HistoryScreen.backup.tsx, testDemoWorkoutDuration.js, demo ecosystem
+ * @unique_value חישוב זמני אימון מציאותיים מבוסס ביצוע בפועל, מגדר ורמת ניסיון
  * @warning NOT FOR PRODUCTION - DEMO DATA ONLY
  */
 
@@ -28,6 +31,10 @@ interface WorkoutDurationParams {
 class DemoWorkoutDurationService {
   /**
    * ✅ יצירת זמן אימון מציאותי מבוסס על ביצוע בפועל
+   * @description אלגוריתם מתוחכם המתחשב ביחס השלמה, ניסיון, מגדר ווריאציה מציאותית
+   * @param params - פרמטרי אימון כולל זמן מתוכנן, סטים ונתוני משתמש
+   * @returns זמן אימון מציאותי בשניות (מוגבל 10 דקות - 2 שעות)
+   * @algorithm 6 שלבים: יחס השלמה → בסיס זמן → ניסיון → מגדר → וריאציה → הגבלות
    */
   generateRealisticDuration(params: WorkoutDurationParams): number {
     const {
@@ -144,6 +151,13 @@ class DemoWorkoutDurationService {
 
   /**
    * ✅ יצירת זמן מציאותי מנתוני משתמש
+   * @description ממשק נוח ליצירת זמני אימון מותאמים למשתמש ספציפי
+   * @param user - נתוני משתמש לחילוץ מגדר ורמת ניסיון
+   * @param plannedDuration - זמן מתוכנן בשניות
+   * @param totalSetsPlanned - סטים מתוכננים (ברירת מחדל: 12)
+   * @param totalSetsCompleted - סטים שהושלמו (ברירת מחדל: 10)
+   * @returns זמן אימון מציאותי מותאם אישית
+   * @critical_usage HistoryScreen משתמש בפונקציה זו ליצירת זמני אימון מציאותיים
    */
   generateRealisticDurationForUser(
     user: User,
@@ -204,6 +218,10 @@ class DemoWorkoutDurationService {
 
   /**
    * ✅ דוגמאות לזמני אימון שונים
+   * @description מייצר תרחישי אימון מגוונים לבדיקות ותצוגה
+   * @param user - משתמש ליצירת דוגמאות מותאמות
+   * @returns מערך תרחישים עם זמנים מציאותיים ותיאורים
+   * @scenarios אימון מושלם, חלקי, קצר ומורחב
    */
   getExampleDurations(user: User): {
     scenario: string;
@@ -238,6 +256,10 @@ class DemoWorkoutDurationService {
 
   /**
    * ✅ פורמט יפה לזמן
+   * @description ממיר שניות לפורמט קריא בעברית
+   * @param durationSeconds - זמן בשניות
+   * @returns מחרוזת מפורמטת (דקות או שעות:דקות)
+   * @examples "45 דקות", "1:30 שעות", "2 שעות"
    */
   formatDuration(durationSeconds: number): string {
     const minutes = Math.round(durationSeconds / 60);
@@ -257,5 +279,7 @@ class DemoWorkoutDurationService {
   }
 }
 
-// יצוא יחיד של המחלקה
+// 🔴 DEMO ONLY - ייצוא שירות זמני אימון מציאותיים
+// ✅ ACTIVE: בשימוש ישיר ב-HistoryScreen.backup.tsx ובקבצי בדיקה
+// 🎯 UNIQUE: פונקציונליות ייחודית שלא קיימת במקום אחר במערכת
 export const demoWorkoutDurationService = new DemoWorkoutDurationService();

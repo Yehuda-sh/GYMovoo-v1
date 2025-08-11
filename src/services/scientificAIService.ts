@@ -1,10 +1,21 @@
 /**
  * @file src/services/scientificAIService.ts
- * @brief שירות AI מבוסס מחקר מדעי לייעוץ כושר מקצועי
- * @description מספק המלצות מבוססות מחקר מדעי לאימונים, תזונה ושיפור ביצועים
- * @updated 2025-07-31 יצירת שירות AI מקיף עם בסיס מדעי איתן
- * @safety מקפיד על בטיחות רפואית - לא מספק ייעוץ רפואי, רק המלצות כושר כלליות
- * @algorithms אלגוריתמים מבוססי מחקר מדעי בתחום פיזיולוגיה ומדעי הספורט
+ * @description שירות AI מבוסס מחקר מדעי לייעוץ כושר מקצועי (ניסיוני)
+ * English: Scientific AI service for professional fitness consulting (experimental)
+ *
+ * @features
+ * - הערכת כושר מדעית מקיפה | Comprehensive scientific fitness assessment
+ * - אלגוריתמי BMI, VO2 Max וחישובי כוח | BMI, VO2 Max and strength calculation algorithms
+ * - תוכניות אימון מבוססות מחקר | Research-based workout plans
+ * - המלצות תזונה כלליות | General nutrition guidelines
+ * - פרוטוקול התאוששות מדעי | Scientific recovery protocol
+ *
+ * @status ⚠️ EXPERIMENTAL - Limited production usage
+ * @used_by MainScreen (scientificProfile reference), services/index.ts export
+ * @overlap Overlaps with personalDataUtils, workoutHistoryService functions
+ * @complexity 939 lines - high complexity with extensive scientific calculations
+ * @recommendation Consider simplifying or extracting core functions to existing services
+ * @updated 2025-08-11 Added usage status and recommendations
  */
 
 import {
@@ -12,7 +23,6 @@ import {
   generateSingleGenderAdaptedNote,
   UserGender,
 } from "../utils/genderAdaptation";
-import { UserProfile as BaseUserProfile } from "../types";
 
 // Scientific exercise recommendation interface
 // ממשק המלצות תרגילים מדעיות
@@ -280,6 +290,7 @@ class ScientificAIService {
   /**
    * Generate scientific workout plan based on assessment
    * יצירת תוכנית אימון מדעית על בסיס ההערכה
+   * @experimental High complexity scientific algorithm - consider simplifying
    */
   async generateScientificWorkoutPlan(
     assessment: FitnessAssessment
@@ -324,6 +335,7 @@ class ScientificAIService {
   /**
    * Get exercise recommendations with gender adaptation
    * קבלת המלצות תרגילים עם התאמת מגדר
+   * @deprecated Consider using existing exercise selection from workoutDataService
    */
   async getExerciseRecommendations(
     userProfile: ScientificUserProfile,
@@ -889,7 +901,7 @@ class ScientificAIService {
 
   private async storeAssessment(assessment: FitnessAssessment): Promise<void> {
     // Store assessment data (would use AsyncStorage in real implementation)
-    console.log(
+    console.warn(
       `📊 Fitness assessment completed for user ${assessment.userId}`
     );
   }
@@ -911,7 +923,7 @@ class ScientificAIService {
     userId: string,
     _progressData: { workouts: number; improvements: string[] }
   ): Promise<void> {
-    console.log(`📈 Updating progress for user ${userId}`);
+    console.warn(`📈 Updating progress for user ${userId}`);
   }
 
   /**

@@ -1,24 +1,27 @@
 /**
  * @file src/services/workoutDataService.ts
- * @brief שירות פשוט לניהול נתוני אימון - גרסה בסיסית שעובדת
- * @dependencies questionnaireService, userStore
- * @notes גרסה פשוטה ויציבה לניהול נתוני אימון
+ * @description שירות מתקדם לניהול נתוני אימון עם אלגוריתמי AI חכמים
+ * English: Advanced workout data service with smart AI algorithms
+ *
+ * @features
+ * - אלגוריתמי AI מתקדמים ליצירת תוכניות אימון | Advanced AI algorithms for workout plan generation
+ * - ניתוח פרופיל משתמש מותאם אישית | Personalized user profile analysis
+ * - בחירת תרגילים חכמה עם זרע קבוע | Smart exercise selection with deterministic seeding
+ * - תמיכה בהמרת פורמטים ישנים | Legacy format conversion support
+ * - ניתוח ציוד זמין ותאימות | Equipment analysis and compatibility
+ * - מטריקס אימון חכם | Smart workout matrix system
+ *
+ * @dependencies questionnaireService, userStore, exerciseDatabase
+ * @used_by WorkoutPlansScreen, services/index.ts
+ * @performance 1641 lines - consider modular organization for better maintainability
+ * @note ⚠️ Name conflict with workout/services/workoutStorageService.ts WorkoutDataService class
+ * @updated 2025-08-11 Enhanced documentation and conflict warning
  */
 
 import { questionnaireService } from "./questionnaireService";
 import { useUserStore } from "../stores/userStore";
 import { Exercise } from "../data/exercises/types";
-import {
-  allExercises,
-  getBodyweightExercises,
-  getDumbbellExercises,
-  getCardioExercises,
-  getFlexibilityExercises,
-  getResistanceBandExercises,
-  getSmartFilteredExercises,
-  filterExercisesByEquipment,
-} from "../data/exercises";
-import { UserProfile as BaseUserProfile } from "../types";
+import { getSmartFilteredExercises } from "../data/exercises";
 
 // אליאס עבור תרגיל מהמאגר החדש
 type ExerciseFromDB = Exercise;
@@ -113,7 +116,8 @@ interface EquipmentAnalysis {
   varietyScore: number;
 }
 
-// מחלקת נתוני אימון פשוטה
+// מחלקת נתוני אימון מתקדמת עם AI
+// Advanced workout data service with AI capabilities
 export class WorkoutDataService {
   /**
    * ערבוב מערך עם זרע קבוע
@@ -144,6 +148,7 @@ export class WorkoutDataService {
 
   /**
    * קבלת נתוני משתמש מאוחדים מכל המקורות
+   * Get unified user workout data from all sources
    */
   static async getUserWorkoutData() {
     const { user } = useUserStore.getState();
@@ -213,6 +218,7 @@ export class WorkoutDataService {
 
   /**
    * יצירת תוכנית אימון AI מתקדמת - האלגוריתם החדש!
+   * Create advanced AI workout plan - the new algorithm!
    */
   static async generateAIWorkoutPlan(): Promise<AIWorkoutPlan | null> {
     const userDataResult = await this.getUserWorkoutData();
@@ -380,6 +386,8 @@ export class WorkoutDataService {
 
   /**
    * יצירת תוכנית אימון בסיסית (הפונקציה הישנה)
+   * Create basic workout plan (legacy function)
+   * @deprecated Consider using generateAIWorkoutPlan for better results
    */
   static async generateBasicWorkoutPlan(): Promise<WorkoutPlan | null> {
     const userDataResult = await this.getUserWorkoutData();
@@ -1033,13 +1041,9 @@ export class WorkoutDataService {
       const equipmentExercises = suitableExercises.filter((ex: Exercise) =>
         realEquipment.includes(ex.equipment)
       );
-      const bodyweightExercises = suitableExercises.filter(
-        (ex: Exercise) =>
-          ex.equipment === "none" || ex.equipment === "bodyweight"
-      );
 
       // Combine with priority to equipment-based exercises
-      suitableExercises = [...equipmentExercises, ...bodyweightExercises];
+      suitableExercises = [...equipmentExercises];
     }
 
     // סינון נוסף לפי שרירי יעד
@@ -1295,10 +1299,6 @@ export class WorkoutDataService {
     // ✅ FIX: Strong preference for equipment-based exercises if user has equipment
     const realEquipmentExercises = exercises.filter(
       (ex) => ex.equipment !== "none" && ex.equipment !== "bodyweight"
-    );
-
-    const bodyweightExercises = exercises.filter(
-      (ex) => ex.equipment === "none" || ex.equipment === "bodyweight"
     );
 
     // If user has equipment, strongly prefer equipment exercises (90% of the time)
