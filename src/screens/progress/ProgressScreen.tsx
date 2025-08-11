@@ -17,29 +17,17 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 
 export default function ProgressScreen(): JSX.Element {
-  const navigation = useNavigation();
-
   // Debug logging for screen lifecycle
   console.log(PROGRESS_SCREEN_TEXTS.CONSOLE.SCREEN_LOADED);
 
-  const handleBackPress = () => {
-    console.log(PROGRESS_SCREEN_TEXTS.CONSOLE.NAVIGATION_BACK);
-    navigation.goBack();
-  };
-
   return (
     <View style={styles.container}>
-      <BackButton
-        absolute={false}
-        variant="minimal"
-        onPress={handleBackPress}
-      />
+      <BackButton absolute={false} variant="minimal" />
 
       <View style={styles.content}>
         <MaterialCommunityIcons

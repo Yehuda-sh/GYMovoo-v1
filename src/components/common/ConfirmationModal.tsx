@@ -2,7 +2,8 @@
  * @file src/components/common/ConfirmationModal.tsx
  * @brief מודל אישור פעולות עם תמיכה מלאה ב-RTL ונגישות
  * @dependencies React Native Modal, Ionicons, theme
- * @notes תומך במצב destructive, אייקונים מותאמים אישית, ונגישות מלאה
+ * @notes תומך במצב destructive, variants, כפתור יחיד, אייקונים אוטומטיים ונגישות מלאה
+ * @version 2.0 - Added variants, single button mode, auto icons
  * @recurring_errors וודא accessibility labels, RTL בכפתורים, theme colors
  */
 
@@ -10,6 +11,13 @@ import React from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+
+type ConfirmationModalVariant =
+  | "default"
+  | "error"
+  | "success"
+  | "warning"
+  | "info";
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -25,6 +33,10 @@ interface ConfirmationModalProps {
   confirmButtonColor?: string;
   cancelButtonColor?: string;
   destructive?: boolean;
+  /** סוג המודל - משפיע על אייקון וצבעים ברירת מחדל */
+  variant?: ConfirmationModalVariant;
+  /** האם להציג רק כפתור אישור (עבור הודעות מידע/שגיאה) */
+  singleButton?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -41,6 +53,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmButtonColor,
   cancelButtonColor,
   destructive = false,
+  variant = "default",
+  singleButton = false,
 }) => {
   const handleConfirm = () => {
     onConfirm();
@@ -54,12 +68,57 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     onClose();
   };
 
-  const defaultConfirmColor = destructive
-    ? theme.colors.error
-    : theme.colors.primary;
-  const defaultIconColor = destructive
-    ? theme.colors.error
-    : theme.colors.primary;
+  // אייקונים ברירת מחדל לפי variant
+  const getDefaultIcon = (): keyof typeof Ionicons.glyphMap => {
+    switch (variant) {
+      case "error":
+        return "alert-circle";
+      case "success":
+        return "checkmark-circle";
+      case "warning":
+        return "warning";
+      case "info":
+        return "information-circle";
+      default:
+        return "help-circle";
+    }
+  };
+
+  // צבעים ברירת מחדל לפי variant
+  const getDefaultColors = () => {
+    switch (variant) {
+      case "error":
+        return {
+          icon: theme.colors.error,
+          confirm: theme.colors.error,
+        };
+      case "success":
+        return {
+          icon: theme.colors.success,
+          confirm: theme.colors.success,
+        };
+      case "warning":
+        return {
+          icon: theme.colors.warning,
+          confirm: theme.colors.warning,
+        };
+      case "info":
+        return {
+          icon: theme.colors.info,
+          confirm: theme.colors.info,
+        };
+      default:
+        return {
+          icon: destructive ? theme.colors.error : theme.colors.primary,
+          confirm: destructive ? theme.colors.error : theme.colors.primary,
+        };
+    }
+  };
+
+  const defaultColors = getDefaultColors();
+  const displayIcon = icon || getDefaultIcon();
+  const displayIconColor = iconColor || defaultColors.icon;
+  const displayConfirmColor = confirmButtonColor || defaultColors.confirm;
 
   return (
     <Modal
@@ -82,13 +141,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           accessibilityRole="alert"
           accessibilityLabel={`דיאלוג אישור: ${title}`}
         >
-          {icon && (
+          {(icon || variant !== "default") && (
             <View style={{ marginBottom: theme.spacing.lg }}>
-              <Ionicons
-                name={icon}
-                size={48}
-                color={iconColor || defaultIconColor}
-              />
+              <Ionicons name={displayIcon} size={48} color={displayIconColor} />
             </View>
           )}
 
@@ -97,33 +152,40 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           {message && <Text style={styles.message}>{message}</Text>}
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: cancelButtonColor || theme.colors.surface },
-              ]}
-              onPress={handleCancel}
-              accessibilityRole="button"
-              accessibilityLabel={`כפתור ${cancelText}`}
-              accessibilityHint="לחץ כדי לבטל את הפעולה"
-            >
-              <Text style={[styles.buttonText, styles.cancelButtonText]}>
-                {cancelText}
-              </Text>
-            </TouchableOpacity>
+            {!singleButton && (
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  {
+                    backgroundColor: cancelButtonColor || theme.colors.surface,
+                  },
+                ]}
+                onPress={handleCancel}
+                accessibilityRole="button"
+                accessibilityLabel={`כפתור ${cancelText}`}
+                accessibilityHint="לחץ כדי לבטל את הפעולה"
+              >
+                <Text style={[styles.buttonText, styles.cancelButtonText]}>
+                  {cancelText}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: confirmButtonColor || defaultConfirmColor },
+                singleButton && styles.singleButton,
+                { backgroundColor: displayConfirmColor },
               ]}
               onPress={handleConfirm}
               accessibilityRole="button"
               accessibilityLabel={`כפתור ${confirmText}`}
               accessibilityHint={
-                destructive
+                destructive || variant === "error"
                   ? "זהירות! פעולה זו אינה הפיכה"
-                  : "לחץ כדי לאשר את הפעולה"
+                  : variant === "warning"
+                    ? "אישור פעולה עם אזהרה"
+                    : "לחץ כדי לאשר את הפעולה"
               }
             >
               <Text style={styles.buttonText}>{confirmText}</Text>
@@ -147,6 +209,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     borderRadius: theme.radius.md,
     alignItems: "center",
+  },
+  singleButton: {
+    flex: 0,
+    minWidth: 120,
+    alignSelf: "center",
   },
   buttonText: {
     fontSize: 16,

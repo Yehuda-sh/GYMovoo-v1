@@ -2,9 +2,9 @@
  * @file src/components/common/DayButton.tsx
  * @brief רכיב כפתור יום משותף עם תמיכה בעיצובים שונים
  * @brief Shared day button component with support for different designs
- * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה
- * @features RTL support, accessibility, animations, selection states
- * @version 1.0.0
+ * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה, טקסט מותאם אישית
+ * @features RTL support, accessibility, animations, selection states, custom text
+ * @version 2.0.0 - Added customText support and workout-plan variant
  * @created 2025-08-06
  */
 
@@ -41,6 +41,9 @@ interface DayButtonProps {
   /** @description אייקון אופציונלי / Optional icon */
   icon?: string;
 
+  /** @description טקסט מותאם אישית במקום "יום X" / Custom text instead of "Day X" */
+  customText?: string;
+
   /** @description האם הכפתור מושבת / Whether button is disabled */
   disabled?: boolean;
 
@@ -54,7 +57,7 @@ interface DayButtonProps {
   size?: "small" | "medium" | "large";
 
   /** @description סוג הכפתור / Button variant */
-  variant?: "default" | "compact" | "grid";
+  variant?: "default" | "compact" | "grid" | "workout-plan";
 
   // נגישות / Accessibility
   accessibilityLabel?: string;
@@ -73,6 +76,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     onPress,
     subtitle,
     icon = "dumbbell",
+    customText,
     disabled = false,
     style,
     textStyle,
@@ -115,10 +119,11 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     // ===============================================
 
     const workoutType = subtitle || getDayWorkoutType(dayNumber);
+    const displayText = customText || `יום ${dayNumber}`;
     const defaultAccessibilityLabel =
-      accessibilityLabel || `יום ${dayNumber} אימון`;
+      accessibilityLabel || `${displayText} אימון`;
     const defaultAccessibilityHint =
-      accessibilityHint || `לחץ להתחלת אימון יום ${dayNumber} - ${workoutType}`;
+      accessibilityHint || `לחץ להתחלת אימון ${displayText} - ${workoutType}`;
 
     // ===============================================
     // 🎯 Event Handlers - טיפול באירועים
@@ -149,7 +154,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
         {/* אייקון אופציונלי / Optional icon */}
         {icon && (
           <MaterialCommunityIcons
-            name={icon as any}
+            name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
             size={variant === "compact" ? 20 : 24}
             color={
               disabled
@@ -163,7 +168,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
         )}
 
         {/* טקסט יום / Day text */}
-        <Text style={dayTextStyle}>יום {dayNumber}</Text>
+        <Text style={dayTextStyle}>{displayText}</Text>
 
         {/* תיאור משני / Subtitle */}
         {workoutType && <Text style={subtitleTextStyle}>{workoutType}</Text>}
@@ -206,6 +211,14 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     maxWidth: "48%",
     marginBottom: theme.spacing.sm,
+  },
+
+  "workout-plan": {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    minWidth: 80,
+    alignItems: "center",
   },
 
   // Size styles // סטיילי גדלים

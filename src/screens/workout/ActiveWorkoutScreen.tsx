@@ -49,12 +49,12 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 // Components
 import ExerciseCard from "./components/ExerciseCard";
@@ -104,6 +104,13 @@ const ActiveWorkoutScreen: React.FC = () => {
     workoutData?.exercises || []
   );
   const [expandedExercises, setExpandedExercises] = useState<string[]>([]);
+
+  // Modal states
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
 
   // פונקציות להרחבה וכיווץ של תרגילים
   const toggleExerciseExpansion = useCallback((exerciseId: string) => {
@@ -251,7 +258,8 @@ const ActiveWorkoutScreen: React.FC = () => {
     (exerciseId: string, setId: string) => {
       const exercise = exercises.find((ex) => ex.id === exerciseId);
       if (exercise && exercise.sets.length <= 1) {
-        Alert.alert("שגיאה", "חייב להיות לפחות סט אחד בתרגיל");
+        setErrorMessage("חייב להיות לפחות סט אחד בתרגיל");
+        setShowErrorModal(true);
         return;
       }
 
@@ -299,26 +307,12 @@ const ActiveWorkoutScreen: React.FC = () => {
     const hasCompletedExercises = workoutStats.completedExercises > 0;
 
     if (!hasCompletedExercises) {
-      Alert.alert(
-        "אין תרגילים שהושלמו",
-        "יש להשלים לפחות תרגיל אחד לפני סיום האימון",
-        [{ text: "בסדר", style: "default" }]
-      );
+      setErrorMessage("יש להשלים לפחות תרגיל אחד לפני סיום האימון");
+      setShowErrorModal(true);
       return;
     }
 
-    Alert.alert(
-      "סיום אימון",
-      `האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`,
-      [
-        { text: "המשך באימון", style: "cancel" },
-        {
-          text: "סיים אימון",
-          style: "destructive",
-          onPress: () => navigation.goBack(),
-        },
-      ]
-    );
+    setShowExitModal(true);
   }, [workoutStats, navigation]);
 
   // הוספת תרגיל חדש לאימון הפעיל
@@ -467,22 +461,8 @@ const ActiveWorkoutScreen: React.FC = () => {
               handleReorderSets(exercise.id, fromIndex, toIndex)
             }
             onRemoveExercise={() => {
-              Alert.alert(
-                "מחיקת תרגיל",
-                "האם אתה בטוח שברצונך למחוק את התרגיל?",
-                [
-                  { text: "ביטול", style: "cancel" },
-                  {
-                    text: "מחק",
-                    style: "destructive",
-                    onPress: () => {
-                      setExercises((prev) =>
-                        prev.filter((ex) => ex.id !== exercise.id)
-                      );
-                    },
-                  },
-                ]
-              );
+              setDeleteExerciseId(exercise.id);
+              setShowDeleteModal(true);
             }}
             onStartRest={(duration: number) => {
               startRestTimer(duration, exercise.name);
@@ -521,6 +501,57 @@ const ActiveWorkoutScreen: React.FC = () => {
         size="medium"
         accessibilityLabel="הוסף תרגיל חדש לאימון"
         accessibilityHint="לחץ כדי לבחור תרגיל חדש להוספה לאימון הנוכחי"
+      />
+
+      {/* Error Modal */}
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="שגיאה"
+        message={errorMessage}
+        variant="error"
+        singleButton={true}
+        confirmText="הבנתי"
+      />
+
+      {/* Exit Confirmation Modal */}
+      <ConfirmationModal
+        visible={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        onConfirm={() => {
+          setShowExitModal(false);
+          navigation.goBack();
+        }}
+        onCancel={() => setShowExitModal(false)}
+        title="סיום אימון"
+        message={`האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`}
+        confirmText="סיים אימון"
+        cancelText="המשך באימון"
+        destructive={true}
+        icon="fitness"
+      />
+
+      {/* Delete Exercise Modal */}
+      <ConfirmationModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          if (deleteExerciseId) {
+            setExercises((prev) =>
+              prev.filter((ex) => ex.id !== deleteExerciseId)
+            );
+            setDeleteExerciseId(null);
+          }
+          setShowDeleteModal(false);
+        }}
+        onCancel={() => setShowDeleteModal(false)}
+        title="מחיקת תרגיל"
+        message="האם אתה בטוח שברצונך למחוק את התרגיל?"
+        confirmText="מחק"
+        cancelText="ביטול"
+        destructive={true}
+        icon="trash"
       />
     </View>
   );

@@ -34,6 +34,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 // Component & UI Imports
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import DayButton from "../../components/common/DayButton";
 import { UniversalModal } from "../../components/common/UniversalModal";
 
 // Data & Type Imports
@@ -1852,37 +1853,21 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
         <View style={styles.daySelector}>
           {workoutPlan.workouts.map((workout, index) => (
-            <TouchableOpacity
+            <DayButton
               key={workout.id}
-              style={[
-                styles.dayButton,
-                selectedDay === index && styles.selectedDayButton,
-              ]}
+              dayNumber={index + 1}
+              customText={workout.name}
+              selected={selectedDay === index}
               onPress={() => handleDaySelection(index, workout.name)}
-            >
-              <MaterialCommunityIcons
-                name={
-                  (DAY_ICONS[
-                    workout.name
-                  ] as keyof typeof MaterialCommunityIcons.glyphMap) ||
-                  "dumbbell"
-                }
-                size={24}
-                color={
-                  selectedDay === index
-                    ? theme.colors.surface
-                    : theme.colors.primary
-                }
-              />
-              <Text
-                style={[
-                  styles.dayButtonText,
-                  selectedDay === index && styles.selectedDayButtonText,
-                ]}
-              >
-                {workout.name}
-              </Text>
-            </TouchableOpacity>
+              variant="workout-plan"
+              icon={
+                (DAY_ICONS[
+                  workout.name
+                ] as keyof typeof MaterialCommunityIcons.glyphMap) || "dumbbell"
+              }
+              accessibilityLabel={`אימון ${workout.name}`}
+              accessibilityHint={`לחץ לבחירת אימון ${workout.name}`}
+            />
           ))}
         </View>
 
@@ -2031,27 +2016,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     padding: 16,
-  },
-  dayButton: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    margin: 4,
-    alignItems: "center",
-    minWidth: 80,
-  },
-  selectedDayButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  dayButtonText: {
-    fontSize: 14, // הוגדל מ-12 לקריאות טובה יותר
-    color: theme.colors.text,
-    marginTop: 4,
-    textAlign: "center",
-    writingDirection: "rtl", // ✅ RTL support
-  },
-  selectedDayButtonText: {
-    color: theme.colors.surface,
   },
   workoutDetails: {
     padding: 16,

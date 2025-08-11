@@ -84,22 +84,6 @@ const ExerciseDetailsScreen: React.FC = () => {
   const { exerciseId, exerciseName, muscleGroup, exerciseData } =
     (route.params as ExerciseDetailsScreenParams) || {};
 
-  // פונקציה לחזרה אחורה
-  const handleGoBack = () => {
-    try {
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        // אם אין היסטוריה, נחזור למסך התרגילים
-        navigation.navigate("ExercisesScreen", {});
-      }
-    } catch (error) {
-      console.error("❌ Navigation error:", error);
-      // כפתרון חירום, ננסה לנווט למסך התרגילים
-      navigation.navigate("ExercisesScreen", {});
-    }
-  };
-
   // דיבוג לעזרה בפתרון בעיות
   console.warn("🔍 ExerciseDetailsScreen Debug:", {
     exerciseId,
@@ -212,7 +196,12 @@ const ExerciseDetailsScreen: React.FC = () => {
   if (!exerciseId || !exerciseName) {
     return (
       <SafeAreaView style={styles.container}>
-        <BackButton absolute={false} variant="minimal" onPress={handleGoBack} />
+        <BackButton
+          absolute={false}
+          variant="minimal"
+          fallbackScreen="ExercisesScreen"
+          fallbackParams={{}}
+        />
         <View style={styles.errorContainer}>
           <MaterialCommunityIcons
             name="alert-circle-outline"
@@ -232,7 +221,12 @@ const ExerciseDetailsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <BackButton absolute={false} variant="minimal" onPress={handleGoBack} />
+        <BackButton
+          absolute={false}
+          variant="minimal"
+          fallbackScreen="ExercisesScreen"
+          fallbackParams={{}}
+        />
 
         <View style={styles.headerInfo}>
           <Text style={styles.exerciseTitle}>{exerciseDetails.name}</Text>

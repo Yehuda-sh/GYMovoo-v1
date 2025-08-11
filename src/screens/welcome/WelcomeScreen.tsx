@@ -20,13 +20,13 @@ import {
   Platform,
   TouchableNativeFeedback,
   Pressable,
-  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import type { SmartQuestionnaireData } from "../../types";
 import { fakeGoogleSignIn } from "../../services";
 import { demoUserService, demoWorkoutService } from "../../services/demo";
@@ -133,6 +133,8 @@ export default function WelcomeScreen() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isDevLoading, setIsDevLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Generate realistic active users count based on time of day
   // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
@@ -427,9 +429,8 @@ export default function WelcomeScreen() {
       navigation.navigate("MainApp");
     } catch (error) {
       logger.error("❌ שגיאה ביצירת משתמש דמו:", error);
-      Alert.alert("שגיאה", "אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.", [
-        { text: "אישור", style: "default" },
-      ]);
+      setErrorMessage("אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.");
+      setShowErrorModal(true);
     } finally {
       setIsDevLoading(false);
     }
@@ -854,6 +855,18 @@ export default function WelcomeScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Error Modal */}
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="שגיאה"
+        message={errorMessage}
+        variant="error"
+        singleButton={true}
+        confirmText="אישור"
+      />
     </LinearGradient>
   );
 }

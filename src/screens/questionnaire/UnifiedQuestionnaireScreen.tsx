@@ -36,7 +36,6 @@ import {
 
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
-import BackButton from "../../components/common/BackButton";
 import { demoUserService } from "../../services/demo";
 
 // =====================================
@@ -759,9 +758,11 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
               style={styles.backButton}
               onPress={handlePrevious}
               disabled={isLoading}
+              accessibilityLabel="חזור לשאלה הקודמת"
+              accessibilityRole="button"
             >
               <Ionicons
-                name="chevron-back"
+                name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
                 size={16}
                 color={theme.colors.textSecondary}
               />

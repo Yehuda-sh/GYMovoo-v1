@@ -2,8 +2,8 @@
  * @file src/components/common/BackButton.tsx
  * @brief ✨ כפתור חזרה אוניברסלי משופר עם אינטגרציה מלאה ל-theme
  * @dependencies React Navigation, Ionicons, theme
- * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, ללא כפילויות
- * @version 2.2 - Added navigation.canGoBack() check to prevent navigation errors
+ * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, fallback navigation
+ * @version 2.3 - Added fallback navigation support for better UX
  */
 
 import React, { useMemo } from "react";
@@ -19,6 +19,10 @@ interface BackButtonProps {
   absolute?: boolean;
   /** פונקציה מותאמת אישית לטיפול בלחיצה */
   onPress?: () => void;
+  /** מסך חלופי לניווט אם אין היסטוריה */
+  fallbackScreen?: string;
+  /** פרמטרים למסך החלופי */
+  fallbackParams?: Record<string, any>;
   /** גודל האייקון המותאם אישית */
   size?: number;
   /** וריאנט עיצובי של הכפתור */
@@ -33,6 +37,8 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
   ({
     absolute = true,
     onPress,
+    fallbackScreen,
+    fallbackParams,
     size,
     variant = "default",
     style,
@@ -65,9 +71,14 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
         // בדיקה אם יש היסטוריה לחזרה לפני ביצוע goBack
         if (navigation.canGoBack()) {
           navigation.goBack();
+        } else if (fallbackScreen) {
+          // ניווט למסך חלופי אם הוגדר
+          (navigation as any).navigate(fallbackScreen, fallbackParams || {});
         } else {
-          // אין מקום לחזור אליו - אפשר לוודא שזה לא יוצר בעיות
-          console.warn("⚠️ BackButton: No history to go back to");
+          // אין מקום לחזור אליו ואין fallback
+          console.warn(
+            "⚠️ BackButton: No history to go back to and no fallback screen provided"
+          );
         }
       }
     };

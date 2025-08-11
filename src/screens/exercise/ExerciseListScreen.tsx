@@ -196,7 +196,7 @@ const ExerciseListScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton />
           <Text style={styles.headerTitle}>רשימת תרגילים</Text>
         </View>
         <View style={styles.loadingContainer}>
@@ -210,7 +210,7 @@ const ExerciseListScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <BackButton onPress={() => navigation.goBack()} />
+        <BackButton />
         <Text style={styles.headerTitle}>רשימת תרגילים</Text>
       </View>
 

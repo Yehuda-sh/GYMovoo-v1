@@ -19,6 +19,7 @@ export { default as IconButton } from "./common/IconButton"; // 3 variants - כ�
 export { default as DefaultAvatar } from "./common/DefaultAvatar"; // אווטר ברירת מחדל עם נגישות
 export { default as InputField } from "./common/InputField"; // שדה קלט מתקדם עם תיקוף
 export { default as ConfirmationModal } from "./common/ConfirmationModal"; // חלון אישור RTL-friendly
+export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום עם 4 variants + grid
 
 // ===============================================
 // 🎨 UI Components - רכיבי ממשק משתמש
