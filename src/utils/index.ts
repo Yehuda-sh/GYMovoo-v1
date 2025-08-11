@@ -49,10 +49,10 @@ export * from "./workoutHelpers";
 export * from "./workoutStatsCalculator";
 
 // =======================================
-// 📝 Workout Logger Utilities
-// כלי לוגים לאימון
+// 📝 Logger Utilities
+// כלי לוגים מאוחדים
 // =======================================
-export * from "./workoutLogger";
+export { logger, workoutLogger } from "./logger";
 
 // =======================================
 // 💪 Muscle Groups Mapping

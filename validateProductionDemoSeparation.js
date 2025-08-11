@@ -22,6 +22,8 @@ const config = {
   demoServices: [
     "src/services/demo/demoUserService.ts",
     "src/services/demo/demoWorkoutService.ts",
+    "src/services/demo/demoHistoryService.ts",
+    "src/services/demo/demoWorkoutDurationService.ts",
   ],
   bannedInProduction: [
     "import.*realisticDemoService",

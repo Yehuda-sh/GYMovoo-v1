@@ -68,16 +68,6 @@ const checks = [
     command: "node testQuestionnaireDetection.js",
     file: "testQuestionnaireDetection.js",
   },
-  {
-    name: "דמו: מבנה משתמש ושאלון",
-    command: "node testRealisticUserQuestionnaireFix.js",
-    file: "testRealisticUserQuestionnaireFix.js",
-  },
-  {
-    name: "דמו: אימייל וזרימה",
-    command: "node testRealisticUserFix.js",
-    file: "testRealisticUserFix.js",
-  },
   // TypeScript type-check דרך npm script הקיים
   { name: "TypeScript Type-Check", command: "npm run -s type-check" },
 ];

@@ -294,31 +294,6 @@ export const formatFitnessLevel = (level: string): string => {
 };
 
 // ===============================================
-// 🏷️ Demo Data Formatters - פורמטי נתוני דמו
-// ===============================================
-
-/**
- * Generate demo workout entry with proper formatting
- * יצירת רשומת אימון דמו עם פורמט נכון
- */
-export const generateDemoWorkout = (
-  name: string,
-  daysAgo: number,
-  duration: number,
-  rating: number
-) => {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-
-  return {
-    name,
-    date: formatWorkoutDate(date, duration),
-    rating: formatRating(rating),
-    icon: getWorkoutIcon(undefined, name),
-  };
-};
-
-// ===============================================
 // 🔧 Utility Functions - פונקציות עזר
 // ===============================================
 
@@ -377,7 +352,6 @@ export default {
   formatWeeklyProgress,
   formatProgressRatio,
   formatFitnessLevel,
-  generateDemoWorkout,
   safeFormat,
   formatEquipmentList,
 };

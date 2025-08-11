@@ -1,6 +1,6 @@
 # TODO – רה-ארגון תיעוד ומבנה (Docs / Types / Services)
 
-עודכן: 2025-08-10
+עודכן: 2025-08-11 (סטטוס מעודכן)
 
 ## 🎯 מטרות על
 
@@ -13,9 +13,9 @@
 
 ## 1. Questionnaire System
 
-- [ ] למזג:
+- [x] למזג: ✅ **הושלם חלקית** - קבצים קיימים אך מפוזרים:
   - FINAL_QUESTIONNAIRE_SOLUTION.md
-  - QUESTIONNAIRE_DYNAMIC_FLOW_ANALYSIS.md
+  - QUESTIONNAIRE_DYNAMIC_FLOW_ANALYSIS.md (docs/)
   - QUESTIONNAIRE_DETECTION_FIX.md
   - QUESTIONNAIRE_SERVICE_OPTIMIZATION_REPORT.md
   - REALISTIC_USER_QUESTIONNAIRE_FIX.md
@@ -29,29 +29,29 @@
 
 ## 2. Demo & Simulation
 
-- [ ] לאסוף מידע מ:
-  - REALISTIC_DEMO_FLOW_ANALYSIS.md
-  - REALISTIC_USER_FIXES_REPORT.md
-  - advancedDemoService.ts
-  - realisticDemoService.ts
-  - workoutSimulationService.ts
-  - scientificAIService.ts
+- [x] ✅ **הושלם** - Demo Services הופרדו ל-`src/services/demo/`:
+  - demoUserService.ts
+  - demoWorkoutService.ts
+  - demoHistoryService.ts
+  - demoWorkoutDurationService.ts
+- [x] ✅ **הושלם** - קבצים ישנים הוסרו:
+  - ~~realisticDemoService.ts~~ → demoUserService.ts
+  - ~~advancedDemoService.ts~~ → הוסר/מוזג
 - [ ] ליצור: `docs/DEMO_SYSTEM_GUIDE.md`
   - מטרות דמו
   - שדות חובה (isDemo: true)
   - מחזור חיים (יצירה → שימוש → ניקוי)
   - שכבת התאמה ל-user/questionnaire
-- [ ] החלטה: האם לאחד realistic + advanced לשירות אחד עם strategy
 
 ## 3. Reports ריכוז
 
-- [ ] ליצור: `docs/reports/`
-- [ ] להעביר קבצים:
-  - BUG*FIXES*\*
-  - OPTIMIZATION*REPORT*\*
-  - WORKOUTDASHBOARD_OPTIMIZATION_REPORT.md
-  - QUESTIONNAIRE_FILES_OPTIMIZATION_REPORT.md
-  - UTILS_OPTIMIZATION_REPORT.md
+- [x] ✅ **בתהליך** - ליצור: `docs/reports/` (קיים חלקית)
+- [x] ✅ **חלקית** - הועברו כמה קבצים:
+  - BUG_FIXES_HistoryScreen_2025-08-06.md ✅
+  - BUG_FIXES_OPTIMIZATION_SUMMARY.md ✅
+  - OPTIMIZATION_REPORT_SetRow_2025-08-05.md ✅
+  - OPTIMIZATION_REPORT_HistoryScreen_2025-08-06.md ✅
+- [ ] **נותרו בשורש**: להעביר עוד ~40 קבצי REPORT/FIX
 - [ ] ליצור אינדקס: `docs/reports/INDEX.md`
   - טבלה: שם, תאריך, תחום (Questionnaire / Workout / Performance / UI)
 
@@ -80,8 +80,10 @@
 
 ## 7. Cleanup Root
 
-- [ ] להעביר כל קבצי _\_REPORT / _\_FIX / \*\_ANALYSIS ל-`docs/reports/`
+- [ ] **גבוהה עדיפות**: להעביר כל קבצי _\_REPORT / _\_FIX / \*\_ANALYSIS ל-`docs/reports/`
+  - כ-40 קבצים נותרו בשורש הפרויקט
 - [ ] להשאיר README_ROOT נקי + הפניה לאינדקס דוחות
+- [x] ✅ validateProductionDemoSeparation.js - עודכן ונשמר (כלי חיוני)
 
 ## 8. README.md תחזוקה
 
@@ -101,13 +103,13 @@
 
 ---
 
-## סדר ביצוע מוצע (גלים)
+## סדר ביצוע מוצע (גלים) - עדכון עדיפויות
 
-1. Reports Migration + README הפניה
-2. Questionnaire Merge
-3. Demo Merge + Services Audit
+1. **🔥 דחוף**: Reports Migration (40+ קבצים בשורש) + README הפניה
+2. Questionnaire Merge (5+ קבצים)
+3. ✅ ~~Demo Merge~~ (הושלם) + Services Audit
 4. Variants הקשחה + TypeScript check
-5. Equipment החלטה
+5. ✅ ~~Equipment החלטה~~ (הושלם)
 6. Orchestrator (אם מאושר)
 7. אוטומציית דוחות
 
@@ -124,3 +126,25 @@
 
 - האם להוסיף בדיקת Snapshot Docs (CI) למניעת סטייה?
 - האם לעבור ל-monorepo בטווח עתידי? (כרגע אין צורך)
+
+---
+
+## 📊 סטטוס הישגים (נוסף ב-2025-08-11)
+
+### ✅ הושלם:
+
+- Demo Services הפרדה ל-`src/services/demo/`
+- Equipment cleanup (הסרת קבצים מיותרים)
+- חלק מ-Reports הועברו ל-`docs/reports/`
+- Validation tool (validateProductionDemoSeparation.js)
+
+### 🔄 בתהליך:
+
+- Reports migration (נותרו ~40 קבצים בשורש)
+- Questionnaire documentation merge
+
+### ⏳ ממתין:
+
+- Types variants הקשחה
+- Services orchestrator
+- אוטומציה

@@ -41,11 +41,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import {
   formatTime,
-  formatDuration,
   formatVolume,
   calculateWorkoutStats,
   workoutLogger,
 } from "../../../utils";
+import { formatDuration } from "../../../utils/formatters";
 import { WorkoutData } from "../types/workout.types";
 import { useModalManager } from "../hooks/useModalManager";
 import { UniversalModal } from "../../../components/common/UniversalModal";

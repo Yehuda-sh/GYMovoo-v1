@@ -153,7 +153,7 @@ export default function WelcomeScreen() {
     const checkAuthStatus = async () => {
       try {
         // Log current authentication status for debugging
-        logger.debug(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
+        logger.simple.debug(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
           hasUser: !!user,
           userEmail: user?.email,
           isLoggedInResult: isLoggedIn(),
@@ -164,7 +164,10 @@ export default function WelcomeScreen() {
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         if (isLoggedIn() && user) {
-          logger.info(WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND, user.email);
+          logger.simple.info(
+            WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND,
+            user.email
+          );
           // בדוק אם למשתמש יש שאלון חכם
           if (user.smartQuestionnaireData) {
             navigation.navigate("MainApp");
@@ -174,10 +177,10 @@ export default function WelcomeScreen() {
           return;
         }
 
-        logger.info(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
+        logger.simple.info(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
         setIsCheckingAuth(false);
       } catch (error) {
-        logger.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
+        logger.simple.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
         setIsCheckingAuth(false);
       }
     };
@@ -254,12 +257,14 @@ export default function WelcomeScreen() {
       // 🎯 בדוק אם יש שאלון קיים - אם כן, דלג ישר לאפליקציה!
       // Check if user has existing questionnaire - if yes, skip directly to app!
       if (googleUser.questionnaire && googleUser.questionnaire.length > 0) {
-        logger.info(
+        logger.simple.info(
           "✅ Google user has existing questionnaire - skipping to MainApp"
         );
         navigation.navigate("MainApp");
       } else {
-        logger.info("ℹ️ Google user needs questionnaire - navigating to setup");
+        logger.simple.info(
+          "ℹ️ Google user needs questionnaire - navigating to setup"
+        );
         // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
         navigation.navigate("Questionnaire", { stage: "profile" });
       }
@@ -273,12 +278,12 @@ export default function WelcomeScreen() {
   // Advanced demo creation with FRESH random user each time + questionnaire + week history
   // יצירת דמו מתקדם עם משתמש רנדומלי חדש בכל פעם + שאלון + היסטוריית שבוע
   const handleDevQuickLogin = useCallback(async () => {
-    logger.debug("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
+    logger.simple.debug("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
     setIsDevLoading(true);
 
     try {
       // 🚀 שלב 1: יצירת משתמש בסיסי חדש
-      logger.debug("👤 יוצר משתמש בסיסי חדש...");
+      logger.simple.debug("👤 יוצר משתמש בסיסי חדש...");
       const basicUser = demoUserService.generateDemoUser();
 
       // הוספת מזהה ייחודי למשתמש עם שם אנגלי ומייל
@@ -321,11 +326,11 @@ export default function WelcomeScreen() {
       const userEmail = `${randomName.toLowerCase()}${uniqueNumber}@demo.gymovoo.com`;
 
       // 🚀 שלב 2: יצירת שאלון רנדומלי מלא מותאם למשתמש הבסיסי
-      logger.debug("📋 יוצר שאלון רנדומלי מלא...");
+      logger.simple.debug("📋 יוצר שאלון רנדומלי מלא...");
       const randomQuestionnaireData = generateRandomQuestionnaire(basicUser);
 
       // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם דמו
-      logger.debug("🏋️ יוצר היסטוריית אימונים דמו...");
+      logger.simple.debug("🏋️ יוצר היסטוריית אימונים דמו...");
       const advancedWorkoutHistory =
         await demoWorkoutService.generateDemoWorkoutHistory(
           basicUser.gender,
@@ -400,35 +405,30 @@ export default function WelcomeScreen() {
         createdAt: new Date().toISOString(),
       };
 
-      logger.info(
+      logger.simple.debug(
         "✅ משתמש דמו מלא נוצר:",
         enhancedUser.name,
         "| מייל:",
         enhancedUser.email
       );
-      logger.debug(
-        "👤 נתונים אישיים:",
+      logger.simple.debug(
         `גיל: ${enhancedUser.age}, גובה: ${enhancedUser.height}ס"מ, משקל: ${enhancedUser.weight}ק"ג`
       );
-      logger.debug(
-        "🏋️ היסטוריית אימונים מתקדמת:",
-        advancedWorkoutHistory.length,
-        "אימונים עם אלגוריתם חכם"
+      logger.simple.debug(
+        `${advancedWorkoutHistory.length} אימונים עם אלגוריתם חכם`
       );
-      logger.debug(
-        "📋 נתוני שאלון:",
-        randomQuestionnaireData.metadata.questionsAnswered,
-        "תשובות"
+      logger.simple.debug(
+        `${randomQuestionnaireData.metadata.questionsAnswered || 0} תשובות`
       );
 
       // שמירת המשתמש ב-store
       setUser(enhancedUser);
 
       // ניווט למסך הבית
-      logger.info("🏠 מנווט למסך הבית...");
+      logger.simple.info("🏠 מנווט למסך הבית...");
       navigation.navigate("MainApp");
     } catch (error) {
-      logger.error("❌ שגיאה ביצירת משתמש דמו:", error);
+      logger.simple.error("❌ שגיאה ביצירת משתמש דמו:", error);
       setErrorMessage("אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.");
       setShowErrorModal(true);
     } finally {

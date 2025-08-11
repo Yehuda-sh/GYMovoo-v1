@@ -172,19 +172,6 @@ export const animationConfig = {
 } as const;
 
 /**
- * פורמט משך זמן מדקות לפורמט קריא
- * Format duration from minutes to readable format
- */
-export const formatDuration = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours} שעות ו-${mins} דקות`;
-  }
-  return `${mins} דקות`;
-};
-
-/**
  * פורמט נפח במספרים גדולים עם פסיקים
  * Format volume with thousand separators
  */

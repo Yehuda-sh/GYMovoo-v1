@@ -2,7 +2,78 @@
  * @file src/utils/genderAdaptation.ts
  * @brief כלי עזר מרכזיים להתאמת תכנים למגדר המשתמש
  * @description פונקציות משותפות להתאמת שמות תרגילים והודעות למגדר
- * @updated 2025-08-05 שיפור ואיחוד הלוגיקה, הסרת כפילויות
+ * @updated 2025-08-11 שיפור והרחבת הפונקציונליות, הוספת תיעוד מפורט
+ *
+ * ## 📖 תיאור הקובץ
+ *
+ * קובץ זה מספק פונקציות מרכזיות להתאמת תוכן האפליקציה למגדר המשתמש,
+ * כולל שמות תרגילים, הודעות פידבק, וטקסטים כלליים. הקובץ מאפשר יצירת
+ * חוויית משתמש מותאמת אישית תוך הימנעות מסטריאוטיפים מיותרים.
+ *
+ * ## 🎯 תכונות עיקריות
+ *
+ * ### 1. התאמת שמות תרגילים
+ * - התאמה מודרנית ומעצימה לכל המגדרים
+ * - מתמקדת בביצועים ובכוח במקום סטריאוטיפים
+ * - תמיכה ב-3 מגדרים: male, female, other
+ *
+ * ### 2. הודעות פידבק מותאמות
+ * - הודעות מעודדות בהתאם לרמת הקושי
+ * - שפה מעצימה ומחזקת ביטחון עצמי
+ * - מגוון רחב של הודעות למניעת חזרות
+ *
+ * ### 3. ברכות והודעות הצלחה
+ * - ברכות מותאמות עם או בלי שיאים אישיים
+ * - טון חיובי ומעצים לכל המגדרים
+ *
+ * ### 4. התאמות טקסט כלליות
+ * - המרה בין צורות זכר ונקבה בעברית
+ * - יצירת טקסט ניטרלי מגדרית
+ * - טיפול דינמי בטקסטים מותאמים
+ *
+ * ## 💡 דוגמאות שימוש
+ *
+ * ```typescript
+ * import {
+ *   adaptExerciseNameToGender,
+ *   generateSingleGenderAdaptedNote,
+ *   generateGenderAdaptedCongratulation,
+ *   adaptBasicTextToGender
+ * } from '@/utils/genderAdaptation';
+ *
+ * // התאמת שם תרגיל
+ * const exerciseName = adaptExerciseNameToGender("Push-ups", "female");
+ * // תוצאה: "שכיבות סמיכה מעצימות"
+ *
+ * // יצירת הודעת פידבק
+ * const feedback = generateSingleGenderAdaptedNote("male", 5);
+ * // תוצאה: "אימון עוצמתי מעולה"
+ *
+ * // ברכה על הישגים
+ * const congrats = generateGenderAdaptedCongratulation("female", 2);
+ * // תוצאה: "מזל טוב גיבורה! שברת היום 2 שיאים אישיים! את מדהימה!"
+ *
+ * // התאמת טקסט כללי
+ * const adapted = adaptBasicTextToGender("מתחיל נלהב", "female");
+ * // תוצאה: "מתחילה נלהבת"
+ * ```
+ *
+ * ## 🔧 פרמטרים ותצוגות
+ *
+ * ### UserGender Type:
+ * - `"male"` - זכר
+ * - `"female"` - נקבה
+ * - `"other"` - אחר/ניטרלי
+ *
+ * ### רמות קושי:
+ * - `1-3`: אימון בסיסי/קל - הודעות מעודדות ורגועות
+ * - `4-5`: אימון קשה/אינטנסיבי - הודעות עוצמתיות ומתגמלות
+ *
+ * ## 📚 קבצים קשורים
+ * - `workoutSimulationService.ts` - שימוש בהתאמת תרגילים
+ * - `workoutHistoryService.ts` - הודעות פידבק היסטוריה
+ * - `rtlHelpers.ts` - פונקציות עזר RTL
+ * - `demoUserService.ts` - יצירת נתוני דמו מותאמים
  */
 
 export type UserGender = "male" | "female" | "other";
@@ -48,29 +119,32 @@ export function adaptExerciseNameToGender(
 ): string {
   if (!gender) return exerciseName;
 
-  // התאמות לנשים
+  // התאמות לנשים - מתמקדות בכוח ובביטחון
   if (gender === "female") {
     const femaleAdaptations: Record<string, string> = {
-      "Push-ups": "שכיבות סמיכה מותאמות",
-      Squats: "כפיפות ברכיים נשיות",
-      Planks: "פלאנק מחזק",
-      Lunges: "צעדי נשים",
-      Burpees: "בורפי מותאם",
-      "Pull-ups": "מתח נשי מותאם",
-      Deadlift: "הרמת משקל נשית",
+      "Push-ups": "שכיבות סמיכה מעצימות",
+      Squats: "כפיפות ברכיים מחזקות",
+      Planks: "פלאנק לחיזוק הליבה",
+      Lunges: "צעדי חיזוק ויציבות",
+      Burpees: "בורפי כוח ואנרגיה",
+      "Pull-ups": "מתח מעצים",
+      Deadlift: "הרמת משקל פונקציונלית",
+      "Bench Press": "פרס חזה מחזק",
     };
     return femaleAdaptations[exerciseName] || exerciseName;
   }
 
-  // התאמות לגברים
+  // התאמות לגברים - מתמקדות בביצועים ובעוצמה
   if (gender === "male") {
     const maleAdaptations: Record<string, string> = {
-      "Push-ups": "שכיבות סמיכה חזקות",
-      "Pull-ups": "מתח לגברים",
-      Deadlift: "הרמת משקל כבד",
-      "Bench Press": "פרס חזה מתקדם",
-      Squats: "כפיפות ברכיים גבריות",
-      Burpees: "בורפי חזק",
+      "Push-ups": "שכיבות סמיכה לכוח",
+      "Pull-ups": "מתח לעוצמה עליונה",
+      Deadlift: "הרמת משקל מקסימלית",
+      "Bench Press": "פרס חזה לביצועים",
+      Squats: "כפיפות ברכיים לכוח",
+      Burpees: "בורפי אינטנסיבי",
+      Planks: "פלאנק לייצוב הליבה",
+      Lunges: "צעדי כוח ויציבות",
     };
     return maleAdaptations[exerciseName] || exerciseName;
   }
@@ -106,14 +180,18 @@ export function generateGenderAdaptedFeedbackNotes(
           "הרגשתי כמו אריה היום",
           "המשקלים היו כבדים אבל התמדתי",
           "כוח וסיבולת בשיא",
-          "אימון גברי מעולה",
+          "אימון עוצמתי מעולה",
           "דחפתי את הגבולות היום - הרגשתי את הכוח שלי",
+          "ביצועים מרשימים! התגברתי על כל אתגר",
+          "אימון אינטנסיבי ומתגמל - הרגשתי בשליטה מלאה",
         ]
       : [
           "אימון נעים, הרגשתי חזק ובשליטה",
           "זרימה טובה היום, הכל הלך חלק",
           "אימון בסיסי אבל יעיל",
           "התחלה טובה לשיפור הביצועים",
+          "אימון קבוע ועקבי - הבסיס להצלחה",
+          "בניתי את הכוח שלי בהדרגה ובביטחון",
         ];
   }
 
@@ -126,12 +204,16 @@ export function generateGenderAdaptedFeedbackNotes(
           "גאה בעצמי על ההישג",
           "אימון מעצים ומחזק",
           "אימון קשה אבל הרגשתי כמו גיבורה!",
+          "כוח נפשי ופיזי מדהים - התגברתי על הכל",
+          "ביטחון וכוח בכל תנועה - הרגשתי בלתי מנוצחת",
         ]
       : [
           "אימון נעים והרגשתי בטובה",
           "זרימה יפה, נהנתי מכל רגע",
           "אימון מתון שעזר לי להרגיש טוב",
           "התחלה מצויינת למסע הכושר שלי",
+          "אימון איכותי שחיזק אותי מבפנים ומבחוץ",
+          "הרגשתי את ההתקדמות בכל תנועה - מעצים!",
         ];
   }
 

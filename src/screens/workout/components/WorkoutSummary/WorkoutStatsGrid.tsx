@@ -8,7 +8,8 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
-import { formatDuration, formatVolume } from "../../../../utils";
+import { formatVolume } from "../../../../utils";
+import { formatDuration } from "../../../../utils/formatters";
 
 interface WorkoutStatsGridProps {
   totalExercises: number;
