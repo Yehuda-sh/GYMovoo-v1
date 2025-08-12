@@ -499,7 +499,7 @@ function ProfileScreen() {
       return val !== undefined ? val : "לא צוין";
     };
     // Log for debug
-    console.log("ProfileScreen: נתוני משתמש לתרגום:", {
+    console.warn("ProfileScreen: נתוני משתמש לתרגום:", {
       age: getOrDefault("age", questionnaire, smartData, user),
       goal: getOrDefault("goal", questionnaire, smartData, user),
       experience: getOrDefault("experience", questionnaire, smartData, user),
@@ -699,167 +699,183 @@ function ProfileScreen() {
   }, []);
 
   // 📊 מימוש מותאם של נתוני פרופיל עם ציוד / Memoized profile data with equipment
-  const profileData = useMemo(() => {
-    const userEquipment = extractUserEquipment(user);
-    return {
-      equipment: userEquipment,
-      hasEquipment: userEquipment.length > 0,
-    };
-  }, [user, extractUserEquipment]);
+  // removed unused profileData to reduce lint warnings
 
   // פונקציה למניעת כפילויות בתצוגת המידע - כל השדות דינמיים
-  const getDisplayFields = (userInfo: any) => {
-    const fields = [];
-
-    // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
-    const basicFields = [
-      { key: "goal", icon: "target", label: "מטרה", value: userInfo.goal },
-      { key: "age", icon: "calendar", label: "גיל", value: userInfo.age },
-      {
-        key: "experience",
-        icon: "arm-flex",
-        label: "ניסיון",
-        value: userInfo.experience,
-      },
-      {
-        key: "location",
-        icon: "map-marker",
-        label: "מיקום",
-        value: userInfo.location,
-      },
-    ];
-
-    // הוספת שדות בסיסיים
-    basicFields.forEach((field) => {
-      if (field.value !== "לא צוין") {
-        fields.push(field);
-      }
-    });
-
-    // בדיקת כפילויות משך אימון - עדיפות ל-duration על פני session_duration
-    if (userInfo.duration !== "לא צוין") {
-      fields.push({
-        key: "duration",
-        icon: "clock-outline",
-        label: "משך אימון",
-        value: userInfo.duration,
-      });
-    } else if (userInfo.session_duration !== "לא צוין") {
-      fields.push({
-        key: "session_duration",
-        icon: "timer",
-        label: "משך מועדף",
-        value: userInfo.session_duration,
-      });
-    }
-
-    // בדיקת כפילויות תדירות - יכול להיות frequency או availability
-    if (userInfo.frequency !== "לא צוין") {
-      fields.push({
-        key: "frequency",
-        icon: "calendar-week",
-        label: "תדירות",
-        value: userInfo.frequency,
-      });
-    } else if (userInfo.availability !== "לא צוין") {
-      fields.push({
-        key: "availability",
-        icon: "calendar-check",
-        label: "זמינות לאימונים",
-        value: userInfo.availability,
-      });
-    }
-
-    // שדות פיזיים אופציונליים
-    const physicalFields = [
-      {
-        key: "height",
-        icon: "human-male-height",
-        label: "גובה",
-        value: userInfo.height,
-      },
-      { key: "weight", icon: "weight", label: "משקל", value: userInfo.weight },
-      { key: "gender", icon: "human", label: "מגדר", value: userInfo.gender },
-    ];
-
-    physicalFields.forEach((field) => {
-      if (field.value !== "לא צוין") {
-        fields.push(field);
-      }
-    });
-
-    // שדות תזונה ואורח חיים
-    const lifestyleFields = [
-      { key: "diet", icon: "food-apple", label: "תזונה", value: userInfo.diet },
-      {
-        key: "activity_level",
-        icon: "run",
-        label: "רמת פעילות",
-        value: userInfo.activity_level,
-      },
-      {
-        key: "workout_time",
-        icon: "clock-time-four",
-        label: "שעת אימון",
-        value: userInfo.workout_time,
-      },
-      {
-        key: "motivation",
-        icon: "heart-pulse",
-        label: "מוטיבציה",
-        value: userInfo.motivation,
-      },
-      {
-        key: "body_type",
-        icon: "human-male-board",
-        label: "סוג גוף",
-        value: userInfo.body_type,
-      },
-      {
-        key: "sleep_hours",
-        icon: "sleep",
-        label: "שעות שינה",
-        value: userInfo.sleep_hours,
-      },
-      {
-        key: "stress_level",
-        icon: "alert-circle",
-        label: "רמת לחץ",
-        value: userInfo.stress_level,
-      },
-      {
-        key: "health_conditions",
-        icon: "medical-bag",
-        label: "מגבלות רפואיות",
-        value: userInfo.health_conditions,
-      },
-    ];
-
-    lifestyleFields.forEach((field) => {
-      if (field.value !== "לא צוין") {
-        fields.push(field);
-      }
-    });
-
-    console.log(
-      'ProfileScreen: כל השדות דינמיים - סה"כ:',
-      fields.length,
-      "שדות:",
-      fields.map((f) => f.key)
-    );
-    console.log("ProfileScreen: ערכי משך אימון:", {
-      duration: userInfo.duration,
-      session_duration: userInfo.session_duration,
-      frequency: userInfo.frequency,
-      availability: userInfo.availability,
-    });
-    return fields;
+  type DisplayField = {
+    key: string;
+    icon: string;
+    label: string;
+    value: string;
   };
+  const getDisplayFields = React.useCallback(
+    (userInfo: Record<string, string>) => {
+      const fields: DisplayField[] = [];
+
+      // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
+      const basicFields = [
+        { key: "goal", icon: "target", label: "מטרה", value: userInfo.goal },
+        { key: "age", icon: "calendar", label: "גיל", value: userInfo.age },
+        {
+          key: "experience",
+          icon: "arm-flex",
+          label: "ניסיון",
+          value: userInfo.experience,
+        },
+        {
+          key: "location",
+          icon: "map-marker",
+          label: "מיקום",
+          value: userInfo.location,
+        },
+      ];
+
+      // הוספת שדות בסיסיים
+      basicFields.forEach((field) => {
+        if (field.value !== "לא צוין") {
+          fields.push(field);
+        }
+      });
+
+      // בדיקת כפילויות משך אימון - עדיפות ל-duration על פני session_duration
+      if (userInfo.duration !== "לא צוין") {
+        fields.push({
+          key: "duration",
+          icon: "clock-outline",
+          label: "משך אימון",
+          value: userInfo.duration,
+        });
+      } else if (userInfo.session_duration !== "לא צוין") {
+        fields.push({
+          key: "session_duration",
+          icon: "timer",
+          label: "משך מועדף",
+          value: userInfo.session_duration,
+        });
+      }
+
+      // בדיקת כפילויות תדירות - יכול להיות frequency או availability
+      if (userInfo.frequency !== "לא צוין") {
+        fields.push({
+          key: "frequency",
+          icon: "calendar-week",
+          label: "תדירות",
+          value: userInfo.frequency,
+        });
+      } else if (userInfo.availability !== "לא צוין") {
+        fields.push({
+          key: "availability",
+          icon: "calendar-check",
+          label: "זמינות לאימונים",
+          value: userInfo.availability,
+        });
+      }
+
+      // שדות פיזיים אופציונליים
+      const physicalFields = [
+        {
+          key: "height",
+          icon: "human-male-height",
+          label: "גובה",
+          value: userInfo.height,
+        },
+        {
+          key: "weight",
+          icon: "weight",
+          label: "משקל",
+          value: userInfo.weight,
+        },
+        { key: "gender", icon: "human", label: "מגדר", value: userInfo.gender },
+      ];
+
+      physicalFields.forEach((field) => {
+        if (field.value !== "לא צוין") {
+          fields.push(field);
+        }
+      });
+
+      // שדות תזונה ואורח חיים
+      const lifestyleFields = [
+        {
+          key: "diet",
+          icon: "food-apple",
+          label: "תזונה",
+          value: userInfo.diet,
+        },
+        {
+          key: "activity_level",
+          icon: "run",
+          label: "רמת פעילות",
+          value: userInfo.activity_level,
+        },
+        {
+          key: "workout_time",
+          icon: "clock-time-four",
+          label: "שעת אימון",
+          value: userInfo.workout_time,
+        },
+        {
+          key: "motivation",
+          icon: "heart-pulse",
+          label: "מוטיבציה",
+          value: userInfo.motivation,
+        },
+        {
+          key: "body_type",
+          icon: "human-male-board",
+          label: "סוג גוף",
+          value: userInfo.body_type,
+        },
+        {
+          key: "sleep_hours",
+          icon: "sleep",
+          label: "שעות שינה",
+          value: userInfo.sleep_hours,
+        },
+        {
+          key: "stress_level",
+          icon: "alert-circle",
+          label: "רמת לחץ",
+          value: userInfo.stress_level,
+        },
+        {
+          key: "health_conditions",
+          icon: "medical-bag",
+          label: "מגבלות רפואיות",
+          value: userInfo.health_conditions,
+        },
+      ];
+
+      lifestyleFields.forEach((field) => {
+        if (field.value !== "לא צוין") {
+          fields.push(field);
+        }
+      });
+
+      console.warn(
+        'ProfileScreen: כל השדות דינמיים - סה"כ:',
+        fields.length,
+        "שדות:",
+        fields.map((f) => f.key)
+      );
+      console.warn("ProfileScreen: ערכי משך אימון:", {
+        duration: userInfo.duration,
+        session_duration: userInfo.session_duration,
+        frequency: userInfo.frequency,
+        availability: userInfo.availability,
+      });
+      return fields;
+    },
+    []
+  );
 
   // ===============================================
   // 📋 Display Fields Calculation - חישוב שדות תצוגה
   // ===============================================
-  const displayFields = useMemo(() => getDisplayFields(userInfo), [userInfo]);
+  const displayFields = useMemo(
+    () => getDisplayFields(userInfo),
+    [userInfo, getDisplayFields]
+  );
 
   // חישוב סטטיסטיקות מהנתונים המדעיים
   const stats = useMemo(() => {
@@ -945,12 +961,12 @@ function ProfileScreen() {
   // =======================================
 
   const handleLogout = useCallback(() => {
-    console.log("ProfileScreen: Logout initiated");
+    console.warn("ProfileScreen: Logout initiated");
     setShowLogoutModal(true);
   }, []);
 
   const confirmLogout = useCallback(async () => {
-    console.log("ProfileScreen: Logout confirmed - מתחיל התנתקות מלאה");
+    console.warn("ProfileScreen: Logout confirmed - מתחיל התנתקות מלאה");
 
     try {
       // הצגת הודעת טעינה
@@ -960,7 +976,7 @@ function ProfileScreen() {
       // התנתקות מלאה עם ניקוי כל הנתונים
       await userLogout();
 
-      console.log("✅ ProfileScreen: התנתקות הושלמה בהצלחה");
+      console.warn("✅ ProfileScreen: התנתקות הושלמה בהצלחה");
 
       // ניווט למסך הפתיחה עם איפוס מלא של המחסנית
       navigation.reset({
@@ -985,14 +1001,14 @@ function ProfileScreen() {
   const validateAvatarImage = (uri: string) => {
     // בדיקות בסיסיות לתמונות (אופציונלי)
     // Basic image validation (optional)
-    console.log("ProfileScreen: Avatar selected locally:", uri);
+    console.warn("ProfileScreen: Avatar selected locally:", uri);
     return true; // תמיד מקבל כי זה מקומי
   };
 
   // בחר מהגלריה // Pick from gallery
   const pickImageFromGallery = useCallback(async () => {
     try {
-      console.log("ProfileScreen: Gallery picker opened");
+      console.warn("ProfileScreen: Gallery picker opened");
       setError(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -1011,7 +1027,7 @@ function ProfileScreen() {
           // 💾 אחסון מקומי בלבד - לא נשלח לשרת
           updateUser({ avatar: newAvatar });
           setShowAvatarModal(false);
-          console.log(
+          console.warn(
             "ProfileScreen: Avatar updated locally (not uploaded to server)"
           );
         }
@@ -1025,7 +1041,7 @@ function ProfileScreen() {
   // בחר מהמצלמה // Take photo
   const takePhoto = useCallback(async () => {
     try {
-      console.log("ProfileScreen: Camera opened");
+      console.warn("ProfileScreen: Camera opened");
       setError(null);
 
       const result = await ImagePicker.launchCameraAsync({
@@ -1043,7 +1059,7 @@ function ProfileScreen() {
           // 💾 אחסון מקומי בלבד - לא נשלח לשרת
           updateUser({ avatar: newAvatar });
           setShowAvatarModal(false);
-          console.log(
+          console.warn(
             "ProfileScreen: Avatar updated locally from camera (not uploaded to server)"
           );
         }
@@ -1057,7 +1073,7 @@ function ProfileScreen() {
   // בחר אימוג'י // Select emoji
   const selectPresetAvatar = useCallback(
     (avatar: string) => {
-      console.log("ProfileScreen: Preset avatar selected:", avatar);
+      console.warn("ProfileScreen: Preset avatar selected:", avatar);
       setSelectedAvatar(avatar);
       updateUser({ avatar });
       setShowAvatarModal(false);
@@ -1358,6 +1374,7 @@ function ProfileScreen() {
                 {displayFields.map((field) => (
                   <View key={field.key} style={styles.infoItem}>
                     <MaterialCommunityIcons
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       name={field.icon as any}
                       size={20}
                       color={theme.colors.primary}
@@ -1435,7 +1452,10 @@ function ProfileScreen() {
             const trainingEquip = user?.trainingStats?.selectedEquipment;
             const hasTrainingStats =
               Array.isArray(trainingEquip) && trainingEquip.length > 0;
-            const legacyQuestionnaire = user?.questionnaire as any;
+            const legacyQuestionnaire = user?.questionnaire as Record<
+              string,
+              unknown
+            >;
             const availableLegacy = legacyQuestionnaire?.available_equipment;
             const hasAvailableLegacy =
               Array.isArray(availableLegacy) && availableLegacy.length > 0;
@@ -1584,7 +1604,7 @@ function ProfileScreen() {
                     </Text>
                     <TouchableOpacity
                       onPress={() =>
-                        console.log("ProfileScreen: Show all achievements")
+                        console.warn("ProfileScreen: Show all achievements")
                       }
                       accessible={true}
                       accessibilityRole="button"
@@ -1700,7 +1720,7 @@ function ProfileScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => {
-                console.log("ProfileScreen: Edit questionnaire");
+                console.warn("ProfileScreen: Edit questionnaire");
                 navigation.navigate("Questionnaire", { stage: "training" });
               }}
               activeOpacity={0.7}
@@ -1729,7 +1749,7 @@ function ProfileScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => {
-                console.log("ProfileScreen: Notifications settings");
+                console.warn("ProfileScreen: Notifications settings");
                 showComingSoon("הגדרות התראות");
               }}
               activeOpacity={0.7}

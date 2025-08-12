@@ -53,9 +53,7 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
 }) => {
   const { user } = useUserStore();
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
-  const [selectedReplaceType, setSelectedReplaceType] = useState<
-    "basic" | "smart" | "additional" | null
-  >(null);
+  // removed unused selectedReplaceType state
 
   // בדיקת תוכניות קיימות
   const existingPlans: PlanSlot[] = [
@@ -115,7 +113,6 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
   const handleReplaceSelection = (
     replaceType: "basic" | "smart" | "additional"
   ) => {
-    setSelectedReplaceType(replaceType);
     const targetSlot = existingPlans.find((slot) => slot.type === replaceType);
 
     showConfirmDialog(
@@ -124,11 +121,8 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
       () => {
         onSave(true, replaceType);
         setShowReplaceDialog(false);
-        setSelectedReplaceType(null);
       },
-      () => {
-        setSelectedReplaceType(null);
-      }
+      () => {}
     );
   };
 

@@ -8,6 +8,64 @@
 // ✅ Import PersonalData from central utils
 import { PersonalData } from "../../../utils/personalDataUtils";
 
+// ===== Helpers: normalize ranges from different ID schemes =====
+// Support both unifiedQuestionnaire (e.g., "51_65", "over_65", "under_50")
+// and personalDataUtils (e.g., "55_64", "65_plus", "70_79").
+
+const isOlderAgeRange = (age?: string): boolean => {
+  if (!age) return false;
+  const s = String(age);
+  // Unified
+  if (s === "over_65" || s.startsWith("51_")) return true;
+  // Legacy/personalDataUtils
+  if (s === "65_plus" || s.startsWith("55_")) return true;
+  return false;
+};
+
+const isYoungerAgeRange = (age?: string): boolean => {
+  if (!age) return false;
+  const s = String(age);
+  // Unified
+  if (s === "under_18" || s.startsWith("18_") || s.startsWith("25_"))
+    return true;
+  // Legacy/personalDataUtils
+  if (s.startsWith("18_") || s.startsWith("25_")) return true;
+  return false;
+};
+
+const parseNumericRange = (
+  range?: string
+): { min: number; max: number } | null => {
+  if (!range) return null;
+  const s = String(range);
+  let m = s.match(/^(\d+)_([\d]+)/);
+  if (m) {
+    return { min: parseInt(m[1], 10), max: parseInt(m[2], 10) };
+  }
+  m = s.match(/^under_(\d+)/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    return { min: 0, max: n };
+  }
+  m = s.match(/^over_(\d+)/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    return { min: n, max: Number.POSITIVE_INFINITY };
+  }
+  // Special case: "65_plus"
+  if (s === "65_plus") return { min: 65, max: Number.POSITIVE_INFINITY };
+  return null;
+};
+
+const getWeightCategory = (weight?: string): "low" | "mid" | "high" => {
+  const r = parseNumericRange(weight);
+  if (!r) return "mid";
+  // Consider <= 60kg as low, >= 90kg as high
+  if (r.max <= 60) return "low";
+  if (r.min >= 90) return "high";
+  return "mid";
+};
+
 // זמני מנוחה דיפולטיביים לפי סוג תרגיל (בשניות)
 // Default rest times by exercise type (in seconds)
 export const DEFAULT_REST_TIMES = {
@@ -25,22 +83,14 @@ export const getPersonalizedRestTimes = (personalData?: PersonalData) => {
   if (!personalData) return baseTimes;
 
   // התאמה לגיל
-  if (personalData.age) {
-    if (
-      personalData.age.includes("50_") ||
-      personalData.age.includes("over_")
-    ) {
-      // מבוגרים זקוקים למנוחה יותר ארוכה
-      baseTimes.compound += 30; // 210 שניות
-      baseTimes.isolation += 15; // 105 שניות
-    } else if (
-      personalData.age.includes("18_") ||
-      personalData.age.includes("25_")
-    ) {
-      // צעירים יכולים עם מנוחה קצרה יותר
-      baseTimes.compound -= 15; // 165 שניות
-      baseTimes.isolation -= 10; // 80 שניות
-    }
+  if (isOlderAgeRange(personalData.age)) {
+    // מבוגרים זקוקים למנוחה יותר ארוכה
+    baseTimes.compound += 30; // 210 שניות
+    baseTimes.isolation += 15; // 105 שניות
+  } else if (isYoungerAgeRange(personalData.age)) {
+    // צעירים יכולים עם מנוחה קצרה יותר
+    baseTimes.compound -= 15; // 165 שניות
+    baseTimes.isolation -= 10; // 80 שניות
   }
 
   // התאמה לרמת כושר
@@ -94,10 +144,7 @@ export const getPersonalizedRPERecommendations = (
 
   // התאמה לגיל
   if (personalData.age) {
-    if (
-      personalData.age.includes("50_") ||
-      personalData.age.includes("over_")
-    ) {
+    if (isOlderAgeRange(personalData.age)) {
       // מבוגרים - יותר זהירים עם אינטנסיביות
       recommendations.working = {
         min: 7,
@@ -114,10 +161,7 @@ export const getPersonalizedRPERecommendations = (
         max: 9.5,
         description: "מאמץ גבוה (לא מקסימלי)",
       };
-    } else if (
-      personalData.age.includes("18_") ||
-      personalData.age.includes("25_")
-    ) {
+    } else if (isYoungerAgeRange(personalData.age)) {
       // צעירים - יכולים ללכת יותר חזק
       recommendations.working = {
         min: 8,
@@ -259,10 +303,7 @@ export const getPersonalizedEncouragement = (
 
   // הודעות מותאמות לגיל
   if (personalData.age) {
-    if (
-      personalData.age.includes("50_") ||
-      personalData.age.includes("over_")
-    ) {
+    if (isOlderAgeRange(personalData.age)) {
       switch (type) {
         case "newPR":
           personalizedMessages.push(
@@ -279,10 +320,7 @@ export const getPersonalizedEncouragement = (
           );
           break;
       }
-    } else if (
-      personalData.age.includes("18_") ||
-      personalData.age.includes("25_")
-    ) {
+    } else if (isYoungerAgeRange(personalData.age)) {
       switch (type) {
         case "newPR":
           personalizedMessages.push(
@@ -386,15 +424,8 @@ export const getPersonalizedStartingWeights = (personalData?: PersonalData) => {
 
   // התאמה לפי משקל גוף
   if (personalData.weight) {
-    const multiplier =
-      personalData.weight.includes("under_60") ||
-      personalData.weight.includes("50_")
-        ? 0.8
-        : personalData.weight.includes("over_90") ||
-            personalData.weight.includes("over_100")
-          ? 1.2
-          : 1;
-
+    const cat = getWeightCategory(personalData.weight);
+    const multiplier = cat === "low" ? 0.8 : cat === "high" ? 1.2 : 1;
     Object.keys(recommendations).forEach((key) => {
       recommendations[key as keyof typeof recommendations] *= multiplier;
     });

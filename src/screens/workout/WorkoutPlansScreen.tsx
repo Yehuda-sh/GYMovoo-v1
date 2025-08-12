@@ -618,17 +618,18 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               })(),
               // Bridge goals: goals array or single fitness_goal
               goals: user.smartQuestionnaireData.answers.goals || [
-                "muscle_gain",
+                "build_muscle",
               ],
               frequency:
                 user.smartQuestionnaireData.answers.availability?.[0] ||
-                "3_times_week",
+                "3_times",
               duration: "45_60_min",
               goal:
-                user.smartQuestionnaireData.answers.goals?.[0] || "muscle_gain",
-              age: "25-35",
-              height: "170",
-              weight: "70",
+                user.smartQuestionnaireData.answers.goals?.[0] ||
+                "build_muscle",
+              age: "26_35",
+              height: "171_180",
+              weight: "71_80",
               location: "home",
             }
           : {});
@@ -902,8 +903,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       },
       requiresSubscription: false,
       id: `plan-${Date.now()}`,
-      name: `תוכנית AI ל${goalValue}`,
-      description: `תוכנית חכמה מותאמת אישית ל${goalValue} - ${daysPerWeek} ימים בשבוע`,
+      name: `תוכנית בסיסית ל${goalValue}`,
+      description: `תוכנית בסיסית מותאמת אישית ל${goalValue} - ${daysPerWeek} ימים בשבוע`,
       // difficulty: mapExperienceToDifficulty(experienceValue),
       duration: parseInt(durationValue.split("-")[0] || "45"),
       frequency: daysPerWeek,
@@ -1221,6 +1222,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     return exerciseTemplates;
   };
+};
 
   const getMuscleGroupsForDay = (dayName: string): string[] => {
     console.log(
@@ -1381,10 +1383,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
   // Duration mapping - consolidate duplicate mappings
   const DURATION_MAP: { [key: string]: string } = {
+    // Legacy/simple tokens
     "30_min": "30-45 דקות",
     "45_min": "45-60 דקות",
     "60_min": "60-75 דקות",
     "90_min": "75-90 דקות",
+    // Unified questionnaire tokens
+    "30_45_min": "30-45 דקות",
+    "45_60_min": "45-60 דקות",
+    "60_plus_min": "60-90 דקות",
   };
 
   // Goal mapping - consolidate duplicate mappings
@@ -1393,6 +1400,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     strength: "שיפור כוח",
     weight_loss: "ירידה במשקל",
     muscle_gain: "עליה במסת שריר",
+    build_muscle: "עליה במסת שריר", // unified
+    lose_weight: "ירידה במשקל", // unified
+    athletic_performance: "שיפור ביצועים", // unified
     general_fitness: "בריאות כללית",
   };
 
@@ -1408,6 +1418,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     "5_times": 5,
     "6_times": 6,
     daily: 7,
+    // Variants sometimes seen
+    "2_times_week": 2,
+    "3_times_week": 3,
+    "4_times_week": 4,
+    "5_times_week": 5,
+    "6_times_week": 6,
     "2 times per week": 2,
     "3 times per week": 3,
     "4 times per week": 4,

@@ -12,7 +12,6 @@ import React, { useEffect, useRef } from "react";
 import {
   View,
   ActivityIndicator,
-  Text,
   StyleSheet,
   ViewStyle,
   Animated,
@@ -127,12 +126,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
     // 🎨 חישוב סגנונות דינמיים // Dynamic styles calculation
     const { containerStyle, spinnerTransform, textStyle } =
       React.useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const baseContainerStyle = [styles.container] as any[];
 
         if (fullScreen) baseContainerStyle.push(styles.fullScreen);
         if (style) baseContainerStyle.push(style);
 
         // Transform animations
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transforms: any[] = [];
 
         if (variant === "fade") {
@@ -150,6 +151,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         return {
           containerStyle: baseContainerStyle,
           spinnerTransform: transforms.length > 0 ? transforms : undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           textStyle: [
             styles.loadingText,
             variant === "fade" && { opacity: fadeAnim },
