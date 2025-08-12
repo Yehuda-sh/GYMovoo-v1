@@ -41,6 +41,7 @@ import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 import { validateEmail as sharedValidateEmail } from "../../utils/authValidation";
 import type { RootStackParamList } from "../../navigation/types";
+import { localDataService } from "../../services/localDataService";
 
 // Debug toggle
 const DEBUG_REGISTER = false;
@@ -388,8 +389,32 @@ export default function RegisterScreen() {
         name: fullName,
         id: `user_${Date.now()}`,
         avatar: undefined,
+        provider: "manual" as const,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          isRandom: false,
+          sessionId: `register_${Date.now()}`,
+        },
       };
+
+      // שמירה ב-Zustand store
       useUserStore.getState().setUser(newUser);
+
+      // שמירה גם ב-localDataService כדי שיהיה זמין להתחברות מהירה
+      try {
+        localDataService.addUser(newUser);
+        console.warn("✅ RegisterScreen: User saved to localDataService", {
+          email: newUser.email,
+          name: newUser.name,
+        });
+      } catch (saveError) {
+        console.warn(
+          "⚠️ RegisterScreen: Failed to save to localDataService:",
+          saveError
+        );
+        // לא נעצור את התהליך אם השמירה המקומית נכשלה
+      }
+
       debug("Registration success", newUser);
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
@@ -420,7 +445,29 @@ export default function RegisterScreen() {
     try {
       const googleUser = await fakeGoogleRegister();
       createSuccessAnimation().start();
+
+      // שמירה ב-Zustand store
       useUserStore.getState().setUser(googleUser);
+
+      // שמירה גם ב-localDataService כדי שיהיה זמין להתחברות מהירה
+      try {
+        localDataService.addUser(googleUser);
+        console.warn(
+          "✅ RegisterScreen: Google user saved to localDataService",
+          {
+            email: googleUser.email,
+            name: googleUser.name,
+            provider: googleUser.provider,
+          }
+        );
+      } catch (saveError) {
+        console.warn(
+          "⚠️ RegisterScreen: Failed to save Google user to localDataService:",
+          saveError
+        );
+        // לא נעצור את התהליך אם השמירה המקומית נכשלה
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       debug("Google registration success; navigated to Questionnaire");

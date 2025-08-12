@@ -27,6 +27,9 @@ interface UniversalModalProps {
   onConfirm?: () => void;
   confirmText?: string;
   destructive?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 const { width } = Dimensions.get("window");
@@ -40,6 +43,9 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
   onConfirm,
   confirmText = "אישור",
   destructive = false,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }) => {
   const getModalConfig = () => {
     switch (type) {
@@ -79,6 +85,43 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
   const config = getModalConfig();
   const showConfirmButton = type === "confirm" && onConfirm;
 
+  /**
+   * יצירת תווית נגישות דינמית
+   * Generate dynamic accessibility label
+   */
+  const generateAccessibilityLabel = (): string => {
+    if (accessibilityLabel) return accessibilityLabel;
+
+    let label = `${
+      type === "error"
+        ? "שגיאה"
+        : type === "success"
+          ? "הצלחה"
+          : type === "confirm"
+            ? "אישור"
+            : type === "comingSoon"
+              ? "בקרוב"
+              : "הודעה"
+    }`;
+
+    label += `, ${title}`;
+    return label;
+  };
+
+  /**
+   * יצירת רמז נגישות דינמי
+   * Generate dynamic accessibility hint
+   */
+  const generateAccessibilityHint = (): string => {
+    if (accessibilityHint) return accessibilityHint;
+
+    if (showConfirmButton) {
+      return "בחר אישור או ביטול";
+    }
+
+    return "לחץ סגור כדי לסגור את ההודעה";
+  };
+
   return (
     <Modal
       animationType="fade"
@@ -87,7 +130,14 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
       onRequestClose={onClose}
       accessibilityViewIsModal={true}
     >
-      <View style={styles.modalContainer}>
+      <View
+        style={styles.modalContainer}
+        accessible={true}
+        accessibilityLabel={generateAccessibilityLabel()}
+        accessibilityHint={generateAccessibilityHint()}
+        accessibilityRole="alert"
+        testID={testID || `universal-modal-${type}`}
+      >
         <View style={styles.modalContent}>
           {/* אייקון */}
           <MaterialCommunityIcons
@@ -95,15 +145,27 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
             size={64}
             color={config.iconColor}
             style={styles.icon}
+            accessible={false}
+            importantForAccessibility="no"
           />
 
           {/* כותרת */}
-          <Text style={[styles.title, { color: config.titleColor }]}>
+          <Text
+            style={[styles.title, { color: config.titleColor }]}
+            accessible={false}
+            importantForAccessibility="no"
+          >
             {title}
           </Text>
 
           {/* הודעה */}
-          <Text style={styles.message}>{message}</Text>
+          <Text
+            style={styles.message}
+            accessible={false}
+            importantForAccessibility="no"
+          >
+            {message}
+          </Text>
 
           {/* כפתורים */}
           <View style={styles.buttonContainer}>
@@ -114,6 +176,11 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                   style={[styles.button, styles.cancelButton]}
                   onPress={onClose}
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="ביטול"
+                  accessibilityHint="לחץ כדי לבטל את הפעולה"
+                  testID={`${testID || "universal-modal"}-cancel-button`}
                 >
                   <Text style={styles.cancelButtonText}>ביטול</Text>
                 </TouchableOpacity>
@@ -129,6 +196,15 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                     onClose();
                   }}
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={confirmText}
+                  accessibilityHint={
+                    destructive
+                      ? "פעולה זו אינה ניתנת לביטול"
+                      : "לחץ כדי לאשר את הפעולה"
+                  }
+                  testID={`${testID || "universal-modal"}-confirm-button`}
                 >
                   <Text
                     style={
@@ -147,6 +223,11 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                 style={[styles.button, styles.singleButton]}
                 onPress={onClose}
                 activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="סגור"
+                accessibilityHint="לחץ כדי לסגור את ההודעה"
+                testID={`${testID || "universal-modal"}-close-button`}
               >
                 <Text style={styles.singleButtonText}>סגור</Text>
               </TouchableOpacity>

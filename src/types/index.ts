@@ -1,3 +1,28 @@
+// =============================
+// Unified Workout & Questionnaire Types (אוגוסט 2025)
+// =============================
+
+/** Workout type - אימון מלא */
+export interface Workout {
+  id: string;
+  name: string;
+  date?: Date;
+  duration?: number;
+  exercises?: WorkoutExercise[];
+  notes?: string;
+  rating?: number;
+  estimatedCalories?: number;
+  type?: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
+}
+
+/** Questionnaire type - שאלון מלא */
+export interface Questionnaire {
+  id: string;
+  userId?: string;
+  answers: QuestionnaireAnswers;
+  completedAt?: Date;
+  version?: string;
+}
 /**
  * @file src/types/index.ts
  * @description טיפוסים ראשיים לפרויקט GYMovoo - ממשקים מרכזיים לכל המערכת

@@ -12,6 +12,7 @@ import React from "react";
 import {
   TouchableOpacity,
   Text,
+  View,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -120,10 +121,46 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
 
     const workoutType = subtitle || getDayWorkoutType(dayNumber);
     const displayText = customText || `יום ${dayNumber}`;
-    const defaultAccessibilityLabel =
-      accessibilityLabel || `${displayText} אימון`;
-    const defaultAccessibilityHint =
-      accessibilityHint || `לחץ להתחלת אימון ${displayText} - ${workoutType}`;
+
+    // ===============================================
+    // 🎯 Accessibility Enhancement - שיפור נגישות
+    // ===============================================
+
+    const generateAccessibilityLabel = (): string => {
+      if (accessibilityLabel) return accessibilityLabel;
+
+      let label = displayText;
+      if (workoutType) {
+        label += `, ${workoutType}`;
+      }
+
+      if (selected) {
+        label += ", נבחר";
+      }
+
+      if (disabled) {
+        label += ", לא זמין";
+      }
+
+      return label;
+    };
+
+    const generateAccessibilityHint = (): string => {
+      if (accessibilityHint) return accessibilityHint;
+
+      if (disabled) {
+        return "כפתור זה אינו זמין כרגע";
+      }
+
+      if (selected) {
+        return `${displayText} נבחר כרגע. לחץ כדי לבטל בחירה`;
+      }
+
+      return `לחץ כדי לבחור ${displayText}${workoutType ? ` - ${workoutType}` : ""}`;
+    };
+
+    const defaultAccessibilityLabel = generateAccessibilityLabel();
+    const defaultAccessibilityHint = generateAccessibilityHint();
 
     // ===============================================
     // 🎯 Event Handlers - טיפול באירועים
@@ -148,7 +185,13 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
         accessibilityLabel={defaultAccessibilityLabel}
         accessibilityHint={defaultAccessibilityHint}
         accessibilityRole="button"
-        accessibilityState={{ selected, disabled }}
+        accessibilityState={{
+          selected,
+          disabled,
+          checked: selected,
+        }}
+        accessible={true}
+        importantForAccessibility="yes"
         testID={testID || `day-button-${dayNumber}`}
       >
         {/* אייקון אופציונלי / Optional icon */}
@@ -164,14 +207,29 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
                   : theme.colors.primary
             }
             accessibilityElementsHidden={true}
+            importantForAccessibility="no"
           />
         )}
 
         {/* טקסט יום / Day text */}
-        <Text style={dayTextStyle}>{displayText}</Text>
+        <Text
+          style={dayTextStyle}
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no"
+        >
+          {displayText}
+        </Text>
 
         {/* תיאור משני / Subtitle */}
-        {workoutType && <Text style={subtitleTextStyle}>{workoutType}</Text>}
+        {workoutType && (
+          <Text
+            style={subtitleTextStyle}
+            accessibilityElementsHidden={true}
+            importantForAccessibility="no"
+          >
+            {workoutType}
+          </Text>
+        )}
       </TouchableOpacity>
     );
   }
@@ -255,20 +313,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
     marginTop: theme.spacing.xs,
     marginBottom: 4,
   },
 
   smallText: {
     fontSize: 14,
+    lineHeight: 18,
   },
 
   mediumText: {
     fontSize: 18,
+    lineHeight: 24,
   },
 
   largeText: {
     fontSize: 22,
+    lineHeight: 28,
   },
 
   selectedText: {
@@ -284,18 +346,22 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",
+    lineHeight: 16,
   },
 
   smallSubtitle: {
     fontSize: 10,
+    lineHeight: 14,
   },
 
   mediumSubtitle: {
     fontSize: 13,
+    lineHeight: 18,
   },
 
   largeSubtitle: {
     fontSize: 15,
+    lineHeight: 20,
   },
 
   selectedSubtitle: {
@@ -316,6 +382,8 @@ export const DayButtonGrid: React.FC<{
   size?: "small" | "medium" | "large";
   style?: ViewStyle;
   testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }> = React.memo(
   ({
     days,
@@ -325,6 +393,8 @@ export const DayButtonGrid: React.FC<{
     size = "medium",
     style,
     testID,
+    accessibilityLabel,
+    accessibilityHint,
   }) => {
     const gridStyle: ViewStyle = StyleSheet.flatten([
       {
@@ -338,8 +408,21 @@ export const DayButtonGrid: React.FC<{
       style,
     ]);
 
+    // Accessibility for grid container
+    const defaultAccessibilityLabel =
+      accessibilityLabel || `בחירת יום אימון, ${days.length} אפשרויות זמינות`;
+    const defaultAccessibilityHint =
+      accessibilityHint || "גלול או בחר יום לתכנון האימון";
+
     return (
-      <TouchableOpacity style={gridStyle} testID={testID} activeOpacity={1}>
+      <View
+        style={gridStyle}
+        testID={testID}
+        accessibilityLabel={defaultAccessibilityLabel}
+        accessibilityHint={defaultAccessibilityHint}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+      >
         {days.map((dayNum) => (
           <DayButton
             key={dayNum}
@@ -351,7 +434,7 @@ export const DayButtonGrid: React.FC<{
             testID={`${testID}-day-${dayNum}`}
           />
         ))}
-      </TouchableOpacity>
+      </View>
     );
   }
 );

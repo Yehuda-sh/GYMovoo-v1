@@ -1,48 +1,40 @@
 /**
  * @file src/screens/welcome/WelcomeScreen.tsx
- * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות - מסך מרכזי קריטי
- * @description English: Main welcome screen with sign-up and sign-in options - Critical central screen
+ * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות מהירה - מסך מרכזי קריטי
+ * @description English: Main welcome screen with sign-up and quick login options - Critical central screen
  *
- * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מתקדמת
+ * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מותאמת לייצור
  * - Critical entry point for the entire application
- * - Advanced authentication system with multiple methods
- * - Sophisticated animation system with micro-interactions
+ * - Simplified authentication system with local data integration
  * - Production-ready with comprehensive error handling
  * - Full accessibility compliance and RTL support
- * - Real-time features with live user counter
- * - Complete demo ecosystem integration
+ * - Live user counter display
+ * - Clean UI without legacy demo systems
  *
- * @description כולל אנימציות מתקדמות, Google Sign-in מדומה, ודמו מציאותי עם סימולציית היסטוריה
- * Features advanced animations, mock Google Sign-in, and realistic demo with history simulation
+ * @description התחברות מהירה למשתמש אמיתי ממאגר מקומי + הרשמה חדשה
+ * Features quick login to real stored user from local data service + new registration
  *
  * @features
- * - ✅ מערכת אימות מתקדמת עם Google Sign-in ו-email
- * - ✅ אנימציות מתוחכמות: fade-in/scale, ripple effects, pulse
- * - ✅ דמו מציאותי עם משתמש רנדומלי ושאלון מלא
- * - ✅ Live user counter עם אנימציות בזמן אמת
- * - ✅ Skeleton loading states לחוויית משתמש חלקה
+ * - ✅ התחברות מהירה למשתמש אמיתי ממאגר מקומי
+ * - ✅ הרשמה חדשה לאפליקציה
+ * - ✅ Live user counter עם תצוגה סטטית
  * - ✅ Cross-platform TouchableButton עם native feedback
  * - ✅ נגישות מלאה עם screen readers ו-RTL support
  * - ✅ Error handling מקיף עם modals אינפורמטיביים
  * - ✅ Features showcase עם אייקונים אינטראקטיביים
- * - ✅ Legal compliance עם links למדיניות
- * - ✅ Auto-navigation לפי מצב משתמש קיים
- * - ✅ Production optimization עם useCallback patterns
+ * - ✅ Production optimization עם clean imports
  *
  * @architecture
- * - Authentication: Google OAuth + Email + Demo system
- * - Animations: Coordinated entrance animations + micro-interactions
+ * - Authentication: Quick login with localDataService + Registration flow
  * - State Management: Zustand integration עם user store
- * - Navigation: Auto-routing based on user state
- * - Demo System: Complete integration עם demo services
- * - Error Handling: Comprehensive error states עם user feedback
+ * - Navigation: Simple routing to Register or MainApp
+ * - Error Handling: Modal feedback for missing users
+ * - Local Data: Integration with localDataService for stored users
  *
  * @performance
- * - useCallback for stable function references
- * - useNativeDriver for smooth animations
- * - Skeleton loading for perceived performance
- * - Async operations with loading states
- * - Memory efficient animation management
+ * - Minimal imports and dependencies
+ * - Static UI elements (no animations)
+ * - Direct service integration
  * - Optimized re-render patterns
  *
  * @accessibility
@@ -51,30 +43,24 @@
  * - RTL layout support עם writingDirection
  * - Accessibility roles and hints מפורטים
  * - High contrast support עם theme colors
- * - Reduced motion considerations
  *
  * @integrations
  * - userStore: Zustand state management
  * - React Navigation: Multi-screen navigation
- * - demoUserService: Advanced demo user generation
- * - demoWorkoutService: Demo workout history simulation
- * - fakeGoogleSignIn: Mock authentication service
- * - logger: Comprehensive logging system
+ * - localDataService: Local user data management
  * - theme: Complete design system integration
+ * - WELCOME_SCREEN_TEXTS: Localized text constants
  *
- * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, demoUserService, demoWorkoutService
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, localDataService
+ * @updated 2025-08-12 Modernized and simplified after cleanup - removed animations, demo, Google auth
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
-  ActivityIndicator,
-  Animated,
   Platform,
   TouchableNativeFeedback,
   Pressable,
@@ -86,27 +72,16 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
-import type { SmartQuestionnaireData } from "../../types";
-import { fakeGoogleSignIn } from "../../services";
-import { demoUserService, demoWorkoutService } from "../../services/demo";
-import { logger } from "../../utils/logger";
+// Removed unused demo/google auth imports
 import { RootStackParamList } from "../../navigation/types";
 import {
   WELCOME_SCREEN_TEXTS,
   generateActiveUsersCount,
   formatActiveUsersText,
 } from "../../constants/welcomeScreenTexts";
+import { localDataService } from "../../services/localDataService";
 
 // Helper function was removed - inline logic used instead for better performance optimization
-
-// Skeleton loading component for Google authentication button during async operations
-// קומפוננטת Skeleton לטעינת כפתור Google במהלך פעולות אסינכרוניות עם אנימציות
-const GoogleButtonSkeleton = () => (
-  <View style={styles.googleButton}>
-    <View style={[styles.googleLogo, styles.googleSkeletonLogo]} />
-    <View style={styles.googleSkeletonBar} />
-  </View>
-);
 
 // Enhanced TouchableButton props interface with comprehensive accessibility support
 // ממשק מורחב לכפתור מגע עם תמיכה מקיפה בנגישות
@@ -129,69 +104,36 @@ const TouchableButton = ({
   accessibilityLabel,
   accessibilityHint,
 }: TouchableButtonProps) => {
-  const scaleValue = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleValue, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleValue]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleValue]);
-
+  // Native feedback for Android, fallback for iOS
   if (Platform.OS === "android") {
     return (
       <TouchableNativeFeedback
         onPress={onPress}
         disabled={disabled}
-        background={TouchableNativeFeedback.Ripple(
-          theme.colors.primary + "20",
-          false
-        )}
-        accessible={true}
+        background={TouchableNativeFeedback.Ripple(theme.colors.primary, false)}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
-        accessibilityRole="button"
       >
-        <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
-          {children}
-        </Animated.View>
+        <View style={style}>{children}</View>
       </TouchableNativeFeedback>
     );
   }
-
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
       disabled={disabled}
-      accessible={true}
+      style={style}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
-      accessibilityRole="button"
     >
-      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
-        {children}
-      </Animated.View>
+      {children}
     </Pressable>
   );
 };
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser, user, isLoggedIn } = useUserStore();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isDevLoading, setIsDevLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const { setUser } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -199,451 +141,7 @@ export default function WelcomeScreen() {
   // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
   const [activeUsers] = useState(() => generateActiveUsersCount());
 
-  // Animation references for enhanced UI transitions // רפרנסי אנימציה למעברי UI משופרים
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.9)).current;
-  const counterAnimation = useRef(new Animated.Value(0)).current;
-  const buttonSlide = useRef(new Animated.Value(50)).current;
-  const pulseAnimation = useRef(new Animated.Value(0.3)).current;
-
-  // בדיקת מצב התחברות קיים - ניווט אוטומטי למשתמש מחובר
-  // Check existing authentication state - auto-navigate for logged-in user
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        // Log current authentication status for debugging
-        logger.simple.debug(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_CHECK_START, {
-          hasUser: !!user,
-          userEmail: user?.email,
-          isLoggedInResult: isLoggedIn(),
-        });
-
-        // נתן זמן קצר ל-store להתחזר מ-AsyncStorage
-        // Give store time to rehydrate from AsyncStorage
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        if (isLoggedIn() && user) {
-          logger.simple.info(
-            WELCOME_SCREEN_TEXTS.CONSOLE.USER_FOUND,
-            user.email
-          );
-          // בדוק אם למשתמש יש שאלון חכם
-          if (user.smartQuestionnaireData) {
-            navigation.navigate("MainApp");
-          } else {
-            navigation.navigate("Questionnaire", { stage: "profile" });
-          }
-          return;
-        }
-
-        logger.simple.info(WELCOME_SCREEN_TEXTS.CONSOLE.NO_USER);
-        setIsCheckingAuth(false);
-      } catch (error) {
-        logger.simple.error(WELCOME_SCREEN_TEXTS.CONSOLE.AUTH_ERROR, error);
-        setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuthStatus();
-  }, [user, isLoggedIn, navigation]);
-
-  useEffect(() => {
-    if (isCheckingAuth) return; // לא להתחיל אנימציות בזמן בדיקת התחברות
-
-    // Coordinated entrance animations with optimized timing // אנימציות כניסה מתואמות עם זמנים מותאמים
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(counterAnimation, {
-        toValue: 1,
-        duration: 1200,
-        delay: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonSlide, {
-        toValue: 0,
-        duration: 600,
-        delay: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Continuous pulse animation for live activity indicator // אנימציית פעימה רציפה למחוון פעילות חי
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnimation, {
-          toValue: 0.6,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnimation, {
-          toValue: 0.3,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [
-    fadeAnim,
-    logoScale,
-    counterAnimation,
-    buttonSlide,
-    pulseAnimation,
-    isCheckingAuth,
-  ]);
-
-  // Google Sign-In with randomized user simulation for demo purposes
-  // התחברות עם Google עם סימולציית משתמש רנדומלי למטרות הדגמה - אופטימיזציה מתקדמת
-  const handleGoogleSignIn = useCallback(async () => {
-    setIsGoogleLoading(true);
-
-    try {
-      // Generate randomized demo user through auth service // יצירת משתמש דמו רנדומלי דרך שירות האימות
-      const googleUser = await fakeGoogleSignIn();
-
-      // Save user data to global store // שמירת נתוני משתמש ב-store גלובלי
-      setUser(googleUser);
-
-      // 🎯 בדוק אם יש שאלון קיים - אם כן, דלג ישר לאפליקציה!
-      // Check if user has existing questionnaire - if yes, skip directly to app!
-      if (googleUser.questionnaire && googleUser.questionnaire.length > 0) {
-        logger.simple.info(
-          "✅ Google user has existing questionnaire - skipping to MainApp"
-        );
-        navigation.navigate("MainApp");
-      } else {
-        logger.simple.info(
-          "ℹ️ Google user needs questionnaire - navigating to setup"
-        );
-        // Navigate to questionnaire for new user setup // ניווט לשאלון להגדרת משתמש חדש
-        navigation.navigate("Questionnaire", { stage: "profile" });
-      }
-    } catch {
-      // Handle error silently in production
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  }, [setUser, navigation]);
-
-  // Advanced demo creation with FRESH random user each time + questionnaire + week history
-  // יצירת דמו מתקדם עם משתמש רנדומלי חדש בכל פעם + שאלון + היסטוריית שבוע - מערכת דמו מתוחכמת
-  const handleDevQuickLogin = useCallback(async () => {
-    logger.simple.debug("🎲 יוצר משתמש דמו חדש ומלא עם שאלון והיסטוריה...");
-    setIsDevLoading(true);
-
-    try {
-      // 🚀 שלב 1: יצירת משתמש בסיסי חדש
-      logger.simple.debug("👤 יוצר משתמש בסיסי חדש...");
-      const basicUser = demoUserService.generateDemoUser();
-
-      // הוספת מזהה ייחודי למשתמש עם שם אנגלי ומייל
-      const uniqueId = Date.now() + Math.random();
-      const uniqueNumber = Math.floor(uniqueId % 1000);
-
-      // יצירת שם אנגלי רנדומלי
-      const englishNames = {
-        male: [
-          "David",
-          "Alex",
-          "John",
-          "Michael",
-          "Daniel",
-          "Ryan",
-          "Noah",
-          "Ethan",
-          "James",
-          "Lucas",
-        ],
-        female: [
-          "Sarah",
-          "Emily",
-          "Jessica",
-          "Ashley",
-          "Jennifer",
-          "Nicole",
-          "Rachel",
-          "Amanda",
-          "Amy",
-          "Lisa",
-        ],
-      };
-
-      const genderForName = basicUser.gender === "female" ? "female" : "male";
-      const namesList = englishNames[genderForName];
-      const randomName =
-        namesList[Math.floor(Math.random() * namesList.length)];
-      const uniqueName = `${randomName} ${uniqueNumber}`;
-      const userEmail = `${randomName.toLowerCase()}${uniqueNumber}@demo.gymovoo.com`;
-
-      // 🚀 שלב 2: יצירת שאלון רנדומלי מלא מותאם למשתמש הבסיסי
-      logger.simple.debug("📋 יוצר שאלון רנדומלי מלא...");
-      const randomQuestionnaireData = generateRandomQuestionnaire(basicUser);
-
-      // 🚀 שלב 3: יצירת היסטוריית אימונים מתקדמת עם דמו
-      logger.simple.debug("🏋️ יוצר היסטוריית אימונים דמו...");
-      const advancedWorkoutHistory =
-        await demoWorkoutService.generateDemoWorkoutHistory(
-          basicUser.gender,
-          basicUser.experience
-        );
-
-      // 🚀 שלב 4: עדכון המשתמש עם כל הנתונים המשופרים
-      const enhancedUser = {
-        ...basicUser,
-        name: uniqueName,
-        email: userEmail,
-        id: `demo_user_${uniqueId}`,
-
-        // נתונים אישיים מהשאלון
-        age: randomQuestionnaireData.answers.age,
-        height: randomQuestionnaireData.answers.height,
-        weight: randomQuestionnaireData.answers.weight,
-        gender: randomQuestionnaireData.answers.gender || basicUser.gender,
-
-        // נתוני כושר ותוכנית
-        fitnessLevel:
-          randomQuestionnaireData.answers.fitnessLevel || basicUser.experience,
-        goals: randomQuestionnaireData.answers.goals,
-        equipment:
-          randomQuestionnaireData.answers.equipment || basicUser.equipment,
-        sessionDuration: randomQuestionnaireData.answers.sessionDuration,
-        availableDays: (() => {
-          const availability = randomQuestionnaireData.answers.availability;
-          const availabilityStr = Array.isArray(availability)
-            ? availability[0]
-            : availability;
-          switch (availabilityStr) {
-            case "2_days":
-              return 2;
-            case "3_days":
-              return 3;
-            case "4_days":
-              return 4;
-            case "5_days":
-              return 5;
-            default:
-              return 3;
-          }
-        })(),
-        preferredTime: randomQuestionnaireData.answers.preferredTime,
-
-        // נתוני השאלון החכם
-        smartQuestionnaireData: randomQuestionnaireData,
-
-        // שאלון בסיסי לתאימות עם מסך הפרופיל
-        questionnaire: {
-          equipment: randomQuestionnaireData.answers.equipment, // מערך פשוט ללא עטיפה נוספת
-          available_equipment: randomQuestionnaireData.answers.equipment, // מערך פשוט ללא עטיפה נוספת
-          gender: randomQuestionnaireData.answers.gender,
-          age: randomQuestionnaireData.answers.age,
-          height: randomQuestionnaireData.answers.height,
-          weight: randomQuestionnaireData.answers.weight,
-          goal: randomQuestionnaireData.answers.goals,
-          experience: randomQuestionnaireData.answers.fitnessLevel,
-          location: randomQuestionnaireData.answers.workoutLocation,
-          frequency:
-            randomQuestionnaireData.answers.availability?.[0] ||
-            "3-4 times per week",
-          duration: randomQuestionnaireData.answers.sessionDuration,
-        },
-
-        // היסטוריית אימונים מתקדמת מהאלגוריתם החכם
-        activityHistory: {
-          workouts: advancedWorkoutHistory,
-        }, // מטא-דאטה
-        demoSessionId: `demo_session_${uniqueId}`,
-        createdAt: new Date().toISOString(),
-      };
-
-      logger.simple.debug(
-        "✅ משתמש דמו מלא נוצר:",
-        enhancedUser.name,
-        "| מייל:",
-        enhancedUser.email
-      );
-      logger.simple.debug(
-        `גיל: ${enhancedUser.age}, גובה: ${enhancedUser.height}ס"מ, משקל: ${enhancedUser.weight}ק"ג`
-      );
-      logger.simple.debug(
-        `${advancedWorkoutHistory.length} אימונים עם אלגוריתם חכם`
-      );
-      logger.simple.debug(
-        `${randomQuestionnaireData.metadata.questionsAnswered || 0} תשובות`
-      );
-
-      // שמירת המשתמש ב-store
-      setUser(enhancedUser);
-
-      // ניווט למסך הבית
-      logger.simple.info("🏠 מנווט למסך הבית...");
-      navigation.navigate("MainApp");
-    } catch (error) {
-      logger.simple.error("❌ שגיאה ביצירת משתמש דמו:", error);
-      setErrorMessage("אירעה שגיאה ביצירת משתמש הדמו. אנא נסה שוב.");
-      setShowErrorModal(true);
-    } finally {
-      setIsDevLoading(false);
-    }
-  }, [setUser, navigation]);
-
-  // פונקציה ליצירת שאלון רנדומלי עם כל הנתונים החיוניים מבוססת על המשתמש הבסיסי
-  // Function to generate random questionnaire with all essential data based on base user - advanced algorithm
-  const generateRandomQuestionnaire = (
-    baseUser: Partial<{
-      age: number;
-      height: number;
-      weight: number;
-      gender: "male" | "female" | "other";
-      experience: "beginner" | "intermediate" | "advanced";
-      equipment: string[];
-    }>
-  ): SmartQuestionnaireData => {
-    const genders = ["male", "female"] as const;
-    const experiences = ["beginner", "intermediate", "advanced"] as const;
-    // 🎯 תיקון: השאלון מאפשר רק מטרה אחת - המשתמש הדמו צריך להיות עקבי
-    const goals = [
-      ["build_muscle"],
-      ["lose_weight"],
-      ["improve_endurance"],
-      ["general_fitness"],
-      ["athletic_performance"],
-      ["tone_muscles"],
-    ];
-    const equipmentOptions = [
-      ["bodyweight"],
-      ["dumbbells"],
-      ["resistance_bands"],
-      ["dumbbells", "resistance_bands"],
-      ["gym_access"],
-    ];
-    const dietPreferences = [
-      "balanced",
-      "keto",
-      "vegetarian",
-      "vegan",
-      "paleo",
-    ];
-    const timePreferences: ("morning" | "afternoon" | "evening")[] = [
-      "morning",
-      "afternoon",
-      "evening",
-    ];
-    const availabilityOptions = ["2_days", "3_days", "4_days", "5_days"];
-    const sessionDurations = [
-      "15_30_min",
-      "30_45_min",
-      "45_60_min",
-      "60_plus_min",
-    ];
-    const workoutLocations = [
-      "home_bodyweight",
-      "home_equipment",
-      "gym",
-      "mixed",
-    ];
-
-    // שימוש בנתונים מהמשתמש הבסיסי כבסיס + הוספת שדות נוספים
-    const randomAge = baseUser.age || Math.floor(Math.random() * 40) + 18; // 18-58
-    const randomHeight =
-      baseUser.height || Math.floor(Math.random() * 40) + 150; // 150-190 ס"מ
-    const randomWeight = baseUser.weight || Math.floor(Math.random() * 50) + 50; // 50-100 ק"ג
-    const randomGender: (typeof genders)[number] =
-      (baseUser.gender as (typeof genders)[number]) ||
-      genders[Math.floor(Math.random() * genders.length)];
-    const randomExperience: (typeof experiences)[number] =
-      (baseUser.experience as (typeof experiences)[number]) ||
-      experiences[Math.floor(Math.random() * experiences.length)];
-    const randomEquipment =
-      baseUser.equipment ||
-      equipmentOptions[Math.floor(Math.random() * equipmentOptions.length)];
-
-    // שדות חדשים שלא היו במשתמש הבסיסי
-    const randomGoals = goals[Math.floor(Math.random() * goals.length)];
-    const randomDiet =
-      dietPreferences[Math.floor(Math.random() * dietPreferences.length)];
-    const randomTime =
-      timePreferences[Math.floor(Math.random() * timePreferences.length)];
-    const randomAvailability =
-      availabilityOptions[
-        Math.floor(Math.random() * availabilityOptions.length)
-      ];
-    const randomSessionDuration =
-      sessionDurations[Math.floor(Math.random() * sessionDurations.length)];
-    const randomWorkoutLocation =
-      workoutLocations[Math.floor(Math.random() * workoutLocations.length)];
-
-    return {
-      answers: {
-        // נתונים בסיסיים חיוניים
-        gender: randomGender,
-        age: randomAge,
-        height: randomHeight,
-        weight: randomWeight,
-
-        // נתוני אימון ותוכנית
-        fitnessLevel: randomExperience,
-        goals: randomGoals,
-        equipment: randomEquipment, // תיקון: מערך פשוט ללא עטיפה נוספת
-        availability: [randomAvailability], // תיקון: מערך במקום מחרוזת
-        sessionDuration: randomSessionDuration,
-        workoutLocation: randomWorkoutLocation,
-
-        // תזונה והעדפות
-        nutrition: [randomDiet],
-        preferredTime: randomTime,
-      },
-      metadata: {
-        completedAt: new Date().toISOString(),
-        version: "2.0",
-        sessionId: `advanced_demo_${Date.now()}`,
-        completionTime: Math.floor(Math.random() * 600) + 120, // 2-12 דקות
-        questionsAnswered: 12, // עדכון למספר השאלות האמיתי
-        totalQuestions: 12,
-        deviceInfo: {
-          platform: "mobile" as const,
-          screenWidth: 375,
-          screenHeight: 812,
-        },
-      },
-    };
-  };
-
-  // מסך טעינה בזמן בדיקת מצב התחברות
-  // Loading screen while checking authentication status
-  if (isCheckingAuth) {
-    return (
-      <LinearGradient
-        colors={[theme.colors.background, theme.colors.backgroundAlt]}
-        style={styles.loadingWrapper}
-      >
-        <MaterialCommunityIcons
-          name="weight-lifter"
-          size={80}
-          color={theme.colors.primary}
-        />
-        <Text style={[styles.appName, styles.mt16]}>
-          {WELCOME_SCREEN_TEXTS.HEADERS.APP_NAME}
-        </Text>
-        <ActivityIndicator
-          size="large"
-          color={theme.colors.primary}
-          style={styles.mt24}
-        />
-        <Text style={[styles.tagline, styles.mt16]}>
-          {WELCOME_SCREEN_TEXTS.HEADERS.LOADING_CHECK}
-        </Text>
-      </LinearGradient>
-    );
-  }
+  // Removed legacy loading & questionnaire generation logic
 
   return (
     <SafeAreaView style={styles.flexFull} edges={["top"]}>
@@ -655,16 +153,8 @@ export default function WelcomeScreen() {
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
         >
-          {/* Brand logo with enhanced animations and accessibility // לוגו המותג עם אנימציות משופרות ונגישות */}
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: logoScale }],
-              },
-            ]}
-          >
+          {/* Brand logo with enhanced animations and accessibility */}
+          <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
               <MaterialCommunityIcons
                 name="weight-lifter"
@@ -678,47 +168,19 @@ export default function WelcomeScreen() {
             <Text style={styles.tagline}>
               {WELCOME_SCREEN_TEXTS.HEADERS.TAGLINE}
             </Text>
-          </Animated.View>
+          </View>
 
-          {/* Live user activity counter with pulse animation // מונה פעילות משתמשים חי עם אנימציית פעימה */}
-          <Animated.View
-            style={[
-              styles.activeUsersContainer,
-              {
-                opacity: counterAnimation,
-                transform: [
-                  {
-                    scale: counterAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          {/* Live user activity counter with pulse animation */}
+          <View style={styles.activeUsersContainer}>
             <View style={styles.activeUsersBadge}>
-              <View style={styles.liveIndicator}>
-                <View style={styles.liveDot} />
-                <Animated.View
-                  style={[styles.livePulse, { opacity: pulseAnimation }]}
-                />
-              </View>
               <Text style={styles.activeUsersText}>
                 {formatActiveUsersText(activeUsers)}
               </Text>
             </View>
-          </Animated.View>
+          </View>
 
-          {/* Key application features showcase // מדור הצגת תכונות מפתח של האפליקציה */}
-          <Animated.View
-            style={[
-              styles.featuresContainer,
-              {
-                opacity: fadeAnim,
-              },
-            ]}
-          >
+          {/* Key application features showcase */}
+          <View style={styles.featuresContainer}>
             <View style={styles.featureRow}>
               <View style={styles.feature}>
                 <MaterialCommunityIcons
@@ -763,19 +225,11 @@ export default function WelcomeScreen() {
                 </Text>
               </View>
             </View>
-          </Animated.View>
+          </View>
 
-          {/* Main action buttons with enhanced accessibility and animations // כפתורי פעולה ראשיים עם נגישות ואנימציות משופרות */}
-          <Animated.View
-            style={[
-              styles.buttonsContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: buttonSlide }],
-              },
-            ]}
-          >
-            {/* Primary call-to-action button with gradient design // כפתור קריאה לפעולה ראשי עם עיצוב גרדיאנט */}
+          {/* Main action buttons with enhanced accessibility and animations */}
+          <View style={styles.buttonsContainer}>
+            {/* Primary call-to-action button with gradient design */}
             <TouchableButton
               style={styles.primaryButton}
               onPress={() => navigation.navigate("Register")}
@@ -802,7 +256,7 @@ export default function WelcomeScreen() {
               </LinearGradient>
             </TouchableButton>
 
-            {/* Free trial promotion badge // תג קידום לתקופת ניסיון חינם */}
+            {/* Free trial promotion badge */}
             <View style={styles.trialBadge}>
               <MaterialCommunityIcons
                 name="gift"
@@ -814,7 +268,7 @@ export default function WelcomeScreen() {
               </Text>
             </View>
 
-            {/* Content divider for alternative authentication options // מפריד תוכן לאפשרויות אימות חלופיות */}
+            {/* Content divider for alternative authentication options */}
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>
@@ -823,102 +277,64 @@ export default function WelcomeScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Alternative authentication methods group // קבוצת שיטות אימות חלופיות */}
+            {/* Alternative authentication methods group */}
             <View style={styles.authGroup}>
-              {/* Google OAuth integration with skeleton loading // אינטגרציית Google OAuth עם Skeleton loading */}
-              {isGoogleLoading ? (
-                <GoogleButtonSkeleton />
-              ) : (
-                <TouchableButton
-                  style={styles.googleButton}
-                  onPress={handleGoogleSignIn}
-                  disabled={isGoogleLoading}
-                  accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.GOOGLE_SIGNIN}
-                  accessibilityHint={
-                    WELCOME_SCREEN_TEXTS.A11Y.GOOGLE_SIGNIN_HINT
-                  }
-                >
-                  <Image
-                    source={{
-                      uri: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png",
-                    }}
-                    style={styles.googleLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.googleButtonText}>
-                    {WELCOME_SCREEN_TEXTS.ACTIONS.CONTINUE_WITH_GOOGLE}
-                  </Text>
-                </TouchableButton>
-              )}
-
-              {/* Development-only realistic demo with comprehensive workout simulation // דמו מציאותי לפיתוח בלבד עם סימולציית אימונים מקיפה */}
-              {__DEV__ && (
-                <TouchableButton
-                  style={[
-                    styles.devButton,
-                    isDevLoading && styles.disabledButton,
-                  ]}
-                  onPress={handleDevQuickLogin}
-                  disabled={isDevLoading || isGoogleLoading}
-                  accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.REALISTIC_DEMO}
-                  accessibilityHint={
-                    WELCOME_SCREEN_TEXTS.A11Y.REALISTIC_DEMO_HINT
-                  }
-                >
-                  {isDevLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.warning}
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="rocket-launch"
-                      size={20}
-                      color={theme.colors.warning}
-                    />
-                  )}
-                  <Text style={styles.devButtonText}>
-                    {isDevLoading
-                      ? WELCOME_SCREEN_TEXTS.ACTIONS.REALISTIC_DEMO_CREATING
-                      : WELCOME_SCREEN_TEXTS.ACTIONS.REALISTIC_DEMO_READY}
-                  </Text>
-                </TouchableButton>
-              )}
-
-              {/* Existing user login access // גישה להתחברות למשתמשים קיימים */}
+              {/* כפתור התחברות מהירה למשתמש אמיתי ממאגר מקומי */}
               <TouchableButton
                 style={styles.secondaryButton}
-                onPress={() => navigation.navigate("Login", {})}
-                accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.EXISTING_USER}
-                accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.EXISTING_USER_HINT}
+                onPress={async () => {
+                  const realUsers = localDataService.getUsers();
+                  if (realUsers.length > 0) {
+                    setUser(realUsers[0]);
+                    navigation.navigate("MainApp");
+                  } else {
+                    setErrorMessage(
+                      "לא נמצא משתמש אמיתי במאגר. יש להוסיף משתמש דרך הרשמה."
+                    );
+                    setShowErrorModal(true);
+                  }
+                }}
+                accessibilityLabel="התחברות מהירה למשתמש אמיתי"
+                accessibilityHint="התחברות מיידית למשתמש אמיתי עם נתונים אמיתיים"
               >
                 <MaterialCommunityIcons
-                  name="login"
-                  size={20}
-                  color={theme.colors.primary}
+                  name="account-check"
+                  size={18}
+                  color={theme.colors.success}
                 />
-                <Text style={styles.secondaryButtonText}>
-                  {WELCOME_SCREEN_TEXTS.ACTIONS.HAVE_ACCOUNT}
-                </Text>
+                <Text style={styles.secondaryButtonText}>התחברות מהירה</Text>
+              </TouchableButton>
+
+              {/* כפתור התחברות מהירה לגוגל */}
+              <TouchableButton
+                style={styles.googleButton}
+                onPress={async () => {
+                  try {
+                    // TODO: השלמת אינטגרציה עם Google Sign-In SDK
+                    setErrorMessage(
+                      "התחברות Google תהיה זמינה בגרסה הבאה. השתמש בהרשמה לפיתוח."
+                    );
+                    setShowErrorModal(true);
+                  } catch {
+                    setErrorMessage(
+                      "שגיאה בהתחברות לגוגל. נסה שוב מאוחר יותר."
+                    );
+                    setShowErrorModal(true);
+                  }
+                }}
+                accessibilityLabel="התחברות מהירה עם גוגל"
+                accessibilityHint="התחברות באמצעות חשבון גוגל קיים"
+              >
+                <MaterialCommunityIcons
+                  name="google"
+                  size={18}
+                  color={theme.colors.error}
+                />
+                <Text style={styles.googleButtonText}>התחברות עם Google</Text>
               </TouchableButton>
             </View>
-          </Animated.View>
-
-          {/* Legal compliance and policy links footer // פוטר עם קישורי ציות משפטי ומדיניות */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              {WELCOME_SCREEN_TEXTS.LEGAL.TERMS_AGREEMENT}
-              <Text style={styles.footerLink}>
-                {WELCOME_SCREEN_TEXTS.LEGAL.TERMS_OF_USE}
-              </Text>
-              {WELCOME_SCREEN_TEXTS.LEGAL.AND_CONJUNCTION}
-              <Text style={styles.footerLink}>
-                {WELCOME_SCREEN_TEXTS.LEGAL.PRIVACY_POLICY}
-              </Text>
-            </Text>
           </View>
         </ScrollView>
-
         {/* Error Modal */}
         <ConfirmationModal
           visible={showErrorModal}
@@ -935,31 +351,27 @@ export default function WelcomeScreen() {
   );
 }
 
-export const styles = StyleSheet.create({
-  // Main container with responsive layout // קונטיינר ראשי עם פריסה רספונסיבית
+const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.xl * 2,
-    paddingBottom: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2,
     alignItems: "center",
   },
-
-  // Brand identity section // מדור זהות מותג
   logoContainer: {
     alignItems: "center",
-    marginTop: theme.spacing.lg,
+    justifyContent: "center",
     marginBottom: theme.spacing.lg,
   },
   logoWrapper: {
-    width: 120,
-    height: 120,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.xl,
-    justifyContent: "center",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     alignItems: "center",
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.large,
+    justifyContent: "center",
+    marginBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.card,
+    ...theme.shadows.medium,
   },
   appName: {
     fontSize: theme.typography.h1.fontSize,
@@ -990,26 +402,6 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
     ...theme.shadows.small,
-  },
-  liveIndicator: {
-    marginStart: theme.spacing.xs,
-    position: "relative",
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.radius.xs,
-    backgroundColor: theme.colors.success,
-  },
-  livePulse: {
-    position: "absolute",
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: theme.radius.xs,
-    borderWidth: 2,
-    borderColor: theme.colors.success,
   },
   activeUsersText: {
     fontSize: theme.typography.bodySmall.fontSize,
@@ -1110,29 +502,6 @@ export const styles = StyleSheet.create({
     width: "100%",
     gap: theme.spacing.sm,
   },
-  googleButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    ...theme.shadows.small,
-  },
-  googleLogo: {
-    width: 60,
-    height: 20,
-    marginStart: theme.spacing.xs,
-  },
-  googleButtonText: {
-    fontSize: theme.typography.button.fontSize,
-    color: theme.colors.textSecondary,
-    fontWeight: "500",
-    writingDirection: "rtl",
-  },
   secondaryButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1152,64 +521,27 @@ export const styles = StyleSheet.create({
     marginEnd: theme.spacing.xs,
     writingDirection: "rtl",
   },
-
-  // Development tools styles // סטיילים לכלי פיתוח
-  devButton: {
+  googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.warning,
+    borderColor: theme.colors.error,
     borderRadius: theme.radius.lg,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.lg,
-    borderStyle: "dashed",
+    ...theme.shadows.small,
   },
-  devButtonText: {
+  googleButtonText: {
     fontSize: theme.typography.button.fontSize,
-    color: theme.colors.warning,
-    fontWeight: "600",
+    color: theme.colors.error,
+    fontWeight: "500",
     marginEnd: theme.spacing.xs,
     writingDirection: "rtl",
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
 
-  // Legal and policy footer // פוטר משפטי ומדיניות
-  footer: {
-    marginTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  footerText: {
-    fontSize: theme.typography.captionSmall.fontSize,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-    writingDirection: "rtl",
-  },
-  footerLink: {
-    color: theme.colors.primary,
-    textDecorationLine: "underline",
-    fontWeight: "500",
-  },
+  // Development tools styles // סטיילים לכלי פיתוח
   // Utility styles added during logger refactor / loading extraction
-  loadingWrapper: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mt16: { marginTop: 16 },
-  mt24: { marginTop: 24 },
   flexFull: { flex: 1 },
-  googleSkeletonLogo: {
-    backgroundColor: theme.colors.backgroundAlt,
-  },
-  googleSkeletonBar: {
-    width: 100,
-    height: 16,
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.radius.xs,
-  },
 });

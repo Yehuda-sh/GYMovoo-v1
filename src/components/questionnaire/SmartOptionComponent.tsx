@@ -32,6 +32,9 @@ interface SmartOptionComponentProps {
   onSelect: () => void;
   showAIInsight?: boolean; // הצגת תובנת AI (ברירת מחדל: true)
   animationEnabled?: boolean; // אנימציה בלחיצה (ברירת מחדל: true)
+  accessibilityLabel?: string; // תווית נגישות מותאמת אישית
+  accessibilityHint?: string; // רמז נגישות מותאם אישית
+  testID?: string; // מזהה לבדיקות
 }
 
 // =====================================
@@ -45,8 +48,44 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
   onSelect,
   showAIInsight = true,
   animationEnabled = true,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }) => {
   const scaleAnim = new Animated.Value(1);
+
+  /**
+   * יצירת תווית נגישות דינמית
+   * Generate dynamic accessibility label
+   */
+  const generateAccessibilityLabel = (): string => {
+    if (accessibilityLabel) return accessibilityLabel;
+
+    let label = option.label;
+    if (option.description) {
+      label += `, ${option.description}`;
+    }
+
+    if (isSelected) {
+      label += ", נבחר";
+    }
+
+    return label;
+  };
+
+  /**
+   * יצירת רמז נגישות דינמי
+   * Generate dynamic accessibility hint
+   */
+  const generateAccessibilityHint = (): string => {
+    if (accessibilityHint) return accessibilityHint;
+
+    if (isSelected) {
+      return "לחץ כדי לבטל בחירה באפשרות זו";
+    }
+
+    return "לחץ כדי לבחור באפשרות זו";
+  };
 
   /**
    * טיפול בלחיצה עם אנימציה
@@ -79,17 +118,35 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
         style={[styles.container, isSelected && styles.containerSelected]}
         onPress={handlePress}
         activeOpacity={0.8}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={generateAccessibilityLabel()}
+        accessibilityHint={generateAccessibilityHint()}
+        accessibilityState={{
+          selected: isSelected,
+          checked: isSelected,
+        }}
+        testID={testID || `smart-option-${option.id}`}
       >
         <View style={styles.content}>
           {/* תמונת ציוד אם קיימת */}
           {option.image && typeof option.image !== "string" && (
             <View style={styles.imageContainer}>
-              <Image source={option.image} style={styles.image} />
+              <Image
+                source={option.image}
+                style={styles.image}
+                accessible={false}
+                importantForAccessibility="no"
+              />
             </View>
           )}
 
           <View style={styles.textContainer}>
-            <Text style={[styles.label, isSelected && styles.labelSelected]}>
+            <Text
+              style={[styles.label, isSelected && styles.labelSelected]}
+              accessible={false}
+              importantForAccessibility="no"
+            >
               {option.label}
             </Text>
             {option.description && (
@@ -98,6 +155,8 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
                   styles.description,
                   isSelected && styles.descriptionSelected,
                 ]}
+                accessible={false}
+                importantForAccessibility="no"
               >
                 {option.description}
               </Text>
@@ -116,7 +175,13 @@ const SmartOptionComponent: React.FC<SmartOptionComponentProps> = ({
         </View>
         {isSelected && (
           <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedIndicatorText}>✓</Text>
+            <Text
+              style={styles.selectedIndicatorText}
+              accessible={false}
+              importantForAccessibility="no"
+            >
+              ✓
+            </Text>
           </View>
         )}
       </TouchableOpacity>
