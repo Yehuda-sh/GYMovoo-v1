@@ -138,6 +138,8 @@ export default function ExercisesScreen() {
             name="dumbbell"
             size={80}
             color={theme.colors.primary}
+            accessible={false}
+            importantForAccessibility="no"
           />
           <Text style={styles.title}>
             {filterTitle || EXERCISES_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
@@ -155,6 +157,10 @@ export default function ExercisesScreen() {
             style={styles.viewAllButton}
             onPress={handleViewAllExercises}
             activeOpacity={0.8}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="צפה בכל התרגילים"
+            accessibilityHint="לחץ כדי לעבור לרשימה המלאה של התרגילים"
           >
             <LinearGradient
               colors={[theme.colors.primary, theme.colors.primary + "DD"]}
@@ -164,12 +170,16 @@ export default function ExercisesScreen() {
                 name="view-list"
                 size={24}
                 color="#FFFFFF"
+                accessible={false}
+                importantForAccessibility="no"
               />
               <Text style={styles.viewAllText}>צפה בכל התרגילים</Text>
               <MaterialCommunityIcons
                 name="chevron-left"
                 size={20}
                 color="#FFFFFF"
+                accessible={false}
+                importantForAccessibility="no"
               />
             </LinearGradient>
           </TouchableOpacity>
@@ -189,6 +199,10 @@ export default function ExercisesScreen() {
                 style={styles.muscleCard}
                 onPress={() => handleMuscleGroupPress(group)}
                 activeOpacity={0.8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`קבוצת שרירי ${group.name}`}
+                accessibilityHint={`לחץ כדי לצפות בתרגילים עבור ${group.name} - ${group.description}`}
               >
                 <View
                   style={[

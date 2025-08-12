@@ -76,6 +76,8 @@ export default function TermsScreen() {
                 name="shield-check"
                 size={32}
                 color={theme.colors.primary}
+                accessible={false}
+                importantForAccessibility="no"
               />
               <Text style={styles.introTitle}>ברוכים הבאים ל-GYMovoo!</Text>
               <Text style={styles.introText}>
@@ -186,6 +188,8 @@ export default function TermsScreen() {
             name="email-outline"
             size={24}
             color={theme.colors.primary}
+            accessible={false}
+            importantForAccessibility="no"
           />
           <View style={styles.contactContent}>
             <Text style={styles.contactTitle}>יש לך שאלות?</Text>
@@ -196,6 +200,10 @@ export default function TermsScreen() {
                 // אפשרות לפתיחת אפליקציית מייל
                 console.warn("Opening email app...");
               }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="פניה לתמיכה במייל"
+              accessibilityHint="לחץ לפתיחת אפליקציית המייל לשליחת הודעה לתמיכה"
             >
               <Text style={styles.contactEmail}>support@gymovoo.com</Text>
             </TouchableOpacity>
@@ -215,6 +223,8 @@ export default function TermsScreen() {
               name="check-circle"
               size={24}
               color="#fff"
+              accessible={false}
+              importantForAccessibility="no"
             />
             <Text style={styles.finalText}>
               שימוש באפליקציה מהווה אישור לכל תנאי השימוש והפרטיות

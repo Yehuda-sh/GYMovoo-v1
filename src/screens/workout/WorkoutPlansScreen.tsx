@@ -2,10 +2,14 @@
  * @file src/screens/workout/WorkoutPlansScreen.tsx
  * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר עם AI וניהול מתקדם
  * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase
- * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה
+ * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה. תומך במערכת subscription ו-trial validation
  * @recurring_errors BackButton חובה במקום TouchableOpacity ידני, Alert.alert חסום - השתמש ב-ConfirmationModal
- * @updated August 2025 - Enhanced logging, support for new exercise database with "none" equipment type for bodyweight exercises
+ * @updated August 2025 - Enhanced logging, support for new exercise database with "none" equipment type for bodyweight exercises, subscription validation
  */
+
+/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -14,7 +18,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Animated,
 } from "react-native";
@@ -33,20 +36,18 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // Component & UI Imports
 import BackButton from "../../components/common/BackButton";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
 import DayButton from "../../components/common/DayButton";
 import { UniversalModal } from "../../components/common/UniversalModal";
+import WorkoutPlanManager from "../../components/WorkoutPlanManager";
 
 // Data & Type Imports
-import {
-  WorkoutPlan,
-  WorkoutTemplate,
-  ExerciseTemplate,
-} from "./types/workout.types";
-
+import { WorkoutTemplate, ExerciseTemplate } from "./types/workout.types";
+import type { WorkoutPlan } from "../../types/index";
 import { allExercises as ALL_EXERCISES } from "../../data/exercises";
 import { Exercise } from "../../data/exercises/types";
 import { useModalManager } from "./hooks/useModalManager";
+// Data & Type Imports
+// ...existing code...
 
 // Workout day templates
 const WORKOUT_DAYS = {
@@ -109,16 +110,39 @@ if (typeof global !== "undefined") {
 }
 
 export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
+  // משתנים עזר שהיו חסרים
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user } = useUserStore();
+  const { user, updateWorkoutPlan } = useUserStore();
+  // בדיקת הרשאת מנוי (אחרי קריאת user מה-store)
+  const hasActiveSubscription = user?.subscription?.isActive === true;
+  const trialEnded = (user as any)?.trialEnded === true;
+  const canAccessAI = hasActiveSubscription || !trialEnded;
 
   // Core state
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+
+  // ✨ NEW: Support for dual workout plans
+  const [basicPlan, setBasicPlan] = useState<WorkoutPlan | null>(null);
+  const [smartPlan, setSmartPlan] = useState<WorkoutPlan | null>(null);
+  const [selectedPlanType, setSelectedPlanType] = useState<"basic" | "smart">(
+    "basic"
+  );
+
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+
+  // Plan management state - simplified (no more pending plans)
+  const [showPlanManager, setShowPlanManager] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<{
+    plan: WorkoutPlan;
+    type: "basic" | "smart";
+  } | null>(null);
+
+  // Get current active plan based on selected type
+  const currentWorkoutPlan =
+    selectedPlanType === "smart" ? smartPlan : basicPlan;
 
   // Modal management using the new hook
   const {
@@ -136,10 +160,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
   // Quick exercise mapping for performance
   const exerciseMap = useMemo(() => {
-    console.log(
+    console.warn(
       "🗃️ WorkoutPlansScreen: Creating exercise map from database..."
     );
-    console.log(
+    console.warn(
       "🗃️ WorkoutPlansScreen: Database contains",
       ALL_EXERCISES.length,
       "exercises"
@@ -155,10 +179,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     // Log first few exercises
     const sampleIds = Object.keys(map).slice(0, 5);
-    console.log("🗃️ WorkoutPlansScreen: Sample exercise IDs:", sampleIds);
+    console.warn("🗃️ WorkoutPlansScreen: Sample exercise IDs:", sampleIds);
     sampleIds.forEach((id) => {
       const ex = map[id];
-      console.log(`  - ${id}: ${ex.name} (${ex.equipment})`);
+      console.warn(`  - ${id}: ${ex.name} (${ex.equipment})`);
     });
 
     return map;
@@ -175,9 +199,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       handlePostWorkoutReturn();
     } else {
       generateWorkoutPlan(!!route?.params?.regenerate).then(() => {
-        if (autoStart && workoutPlan?.workouts) {
+        if (autoStart && currentWorkoutPlan?.workouts) {
           const workoutToStart = getWorkoutToStart(
-            workoutPlan.workouts,
+            currentWorkoutPlan.workouts as unknown as WorkoutTemplate[],
             requestedWorkoutIndex,
             requestedWorkoutName
           );
@@ -188,7 +212,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         }
       });
     }
-  }, [route?.params]);
+  }, [route?.params]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper function to get workout to start - prevents code duplication
   const getWorkoutToStart = (
@@ -215,19 +239,27 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const preSelectedDay = route?.params?.preSelectedDay;
     const autoStart = route?.params?.autoStart;
 
-    if (workoutPlan?.workouts && preSelectedDay !== undefined) {
-      if (preSelectedDay >= 0 && preSelectedDay < workoutPlan.workouts.length) {
+    if (currentWorkoutPlan?.workouts && preSelectedDay !== undefined) {
+      if (
+        preSelectedDay >= 0 &&
+        preSelectedDay < currentWorkoutPlan.workouts.length
+      ) {
         setSelectedDay(preSelectedDay);
 
         if (autoStart) {
-          const workoutToStart = workoutPlan.workouts[preSelectedDay];
+          const workoutToStart = currentWorkoutPlan.workouts[preSelectedDay];
           setTimeout(() => {
-            startWorkout(workoutToStart);
+            startWorkout(workoutToStart as unknown as WorkoutTemplate);
           }, 1000);
         }
       }
     }
-  }, [workoutPlan, route?.params?.preSelectedDay, route?.params?.autoStart]);
+    /* eslint-disable react-hooks/exhaustive-deps */
+  }, [
+    currentWorkoutPlan,
+    route?.params?.preSelectedDay,
+    route?.params?.autoStart,
+  ]);
 
   // Entry animation
   useEffect(() => {
@@ -245,7 +277,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         }),
       ]).start();
     }
-  }, [loading]);
+  }, [loading, fadeAnim, slideAnim]);
 
   // Load available equipment
   // Removed equipment loading - using internal database only
@@ -276,24 +308,24 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle return from workout
    */
   const handlePostWorkoutReturn = () => {
-    console.log(
+    console.warn(
       "🔄 WorkoutPlansScreen: חזרה מאימון - עדכון תוכניות עם מאגר תרגילים חדש"
     );
     const workoutId = route?.params?.completedWorkoutId;
-    console.log("🔄 WorkoutPlansScreen: Workout ID:", workoutId);
+    console.warn("🔄 WorkoutPlansScreen: Workout ID:", workoutId);
 
     if (workoutId) {
-      console.log("🔄 WorkoutPlansScreen: מציג modal לאחר השלמת אימון");
+      console.warn("🔄 WorkoutPlansScreen: מציג modal לאחר השלמת אימון");
       showConfirm(
         "אימון הושלם! 🎉",
         "האם ברצונך לצפות בהתקדמות או ליצור תוכנית חדשה?",
         () => {
-          console.log("🔄 WorkoutPlansScreen: יוצר תוכנית חדשה לאחר אימון");
+          console.warn("🔄 WorkoutPlansScreen: יוצר תוכנית חדשה לאחר אימון");
           generateWorkoutPlan(true);
         }
       );
     } else {
-      console.log("🔄 WorkoutPlansScreen: טוען תוכנית רגילה (ללא ID אימון)");
+      console.warn("🔄 WorkoutPlansScreen: טוען תוכנית רגילה (ללא ID אימון)");
       generateWorkoutPlan();
     }
   };
@@ -302,10 +334,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle AI plan generation with debug
    */
   const handleAIPlanPress = () => {
-    console.log(
+    if (!canAccessAI) {
+      showError(
+        "תוכנית AI נעולה",
+        "תקופת הניסיון הסתיימה. שדרג למנוי כדי לפתוח את תוכנית ה-AI"
+      );
+      setSelectedPlanType("smart");
+      return;
+    }
+
+    console.warn(
       "🤖 WorkoutPlansScreen: כפתור תוכנית AI נלחץ - יוצר תוכנית חכמה עם מאגר התרגילים החדש"
     );
-    console.log(
+    console.warn(
       "🤖 WorkoutPlansScreen: Available exercises count:",
       ALL_EXERCISES.length
     );
@@ -313,14 +354,62 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
+   * Handle workout plan save from manager
+   */
+  const handlePlanSave = (
+    shouldSave: boolean,
+    replaceType?: "basic" | "smart" | "additional"
+  ) => {
+    if (!shouldSave || !pendingPlan) {
+      setShowPlanManager(false);
+      setPendingPlan(null);
+      return;
+    }
+
+    const { plan, type: defaultType } = pendingPlan;
+    const finalType = replaceType || defaultType;
+
+    // שמור את התוכנית ב-store
+    updateWorkoutPlan(finalType, plan);
+
+    // ✅ NEW: עדכן את התוכנית הנכונה במסך
+    if (finalType === "smart") {
+      setSmartPlan(plan);
+      setSelectedPlanType("smart");
+    } else {
+      setBasicPlan(plan);
+      setSelectedPlanType("basic");
+    }
+
+    // הצג הודעת הצלחה
+    const typeNames = {
+      basic: "בסיס",
+      smart: "חכמה",
+      additional: "נוספת",
+    };
+
+    showSuccess(
+      "✅ תוכנית נשמרה!",
+      `התוכנית "${plan.name}" נשמרה כתוכנית ${typeNames[finalType]}`
+    );
+
+    // נקה המצב
+    setShowPlanManager(false);
+    setPendingPlan(null);
+  };
+
+  /**
    * Handle plan regeneration with debug
    */
   const handleRegeneratePress = () => {
-    console.log(
+    console.warn(
       "🔄 WorkoutPlansScreen: כפתור רענון נלחץ - יוצר תוכנית חדשה עם מאגר התרגילים החדש"
     );
-    console.log("🔄 WorkoutPlansScreen: Current plan:", workoutPlan?.name);
-    console.log(
+    console.warn(
+      "🔄 WorkoutPlansScreen: Current plan:",
+      currentWorkoutPlan?.name
+    );
+    console.warn(
       "🔄 WorkoutPlansScreen: Equipment filtering ready for 'none' = bodyweight exercises"
     );
     generateWorkoutPlan(true);
@@ -330,7 +419,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle day selection with debug
    */
   const handleDaySelection = (index: number, workoutName: string) => {
-    console.log(
+    console.warn(
       `📅 WorkoutPlansScreen - נבחר יום ${index + 1}: ${workoutName}`
     );
     setSelectedDay(index);
@@ -340,7 +429,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
    * Handle workout start with debug
    */
   const handleStartWorkout = (workout: WorkoutTemplate) => {
-    console.log(
+    console.warn(
       `🚀 WorkoutPlansScreen - התחלת אימון: ${workout.name} -> מנווט ל-ActiveWorkoutScreen`
     );
     startWorkout(workout);
@@ -353,7 +442,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     exerciseId: string,
     exerciseName: string
   ) => {
-    console.log(`💪 WorkoutPlansScreen - מעבר לפרטי תרגיל: ${exerciseName}`);
+    console.warn(`💪 WorkoutPlansScreen - מעבר לפרטי תרגיל: ${exerciseName}`);
 
     // מצא את נתוני התרגיל ממאגר הנתונים
     const exercise = exerciseMap[exerciseId];
@@ -373,196 +462,12 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         difficulty: exercise.difficulty || "בינוני",
         instructions: exercise.instructions?.he || exercise.instructions || [],
         benefits:
-          (exercise as any).benefits?.he || (exercise as any).benefits || [],
+          (exercise as any).benefits?.he ||
+          (exercise as Exercise & { benefits?: string[] }).benefits ||
+          [],
         tips: exercise.tips?.he || exercise.tips || [],
       },
     });
-  };
-
-  /**
-   * Test API connections and data quality
-   */
-  const handleTestAPIConnections = async () => {
-    // First check network connectivity
-    const networkCheck = await checkNetworkConnectivity();
-    console.log("📡 Network check result:", networkCheck);
-
-    const testResults = {
-      networkConnectivity: {
-        status: networkCheck.connected
-          ? "success"
-          : ("error" as "success" | "error"),
-        data: networkCheck,
-        error: networkCheck.connected ? null : "Network connection failed",
-      },
-      questionnaireService: {
-        status: "unknown",
-        data: null as any,
-        error: null as string | null,
-      },
-      workoutDataService: {
-        status: "unknown",
-        data: null as any,
-        error: null as string | null,
-      },
-      wgerAPI: {
-        status: "unknown",
-        data: null as any,
-        error: null as string | null,
-      },
-      userStore: {
-        status: "unknown",
-        data: null as any,
-        error: null as string | null,
-      },
-    };
-
-    // Test 1: Questionnaire Service
-    try {
-      const equipment = await questionnaireService.getAvailableEquipment();
-      const preferences = await questionnaireService.getUserPreferences();
-
-      testResults.questionnaireService = {
-        status: "success",
-        data: { equipment, preferences },
-        error: null,
-      };
-      console.log("✅ questionnaireService: OK", { equipment, preferences });
-    } catch (error) {
-      testResults.questionnaireService = {
-        status: "error",
-        data: null,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-      console.error("❌ questionnaireService: ERROR", error);
-    }
-
-    // Test 2: Workout Data Service
-    try {
-      const userData = await WorkoutDataService.getUserWorkoutData();
-
-      testResults.workoutDataService = {
-        status: "success",
-        data: userData,
-        error: null,
-      };
-      console.log("✅ WorkoutDataService: OK", userData);
-    } catch (error) {
-      testResults.workoutDataService = {
-        status: "error",
-        data: null,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-      console.error("❌ WorkoutDataService: ERROR", error);
-    }
-
-    // Test 3: WGER API - Removed (using internal database only)
-    // if (networkCheck.connected) {
-    //   try {
-    //     console.log("🧪 Testing WGER API...");
-    //     const testEquipment = ["barbell", "dumbbells"];
-    //     const wgerExercises = await searchExercisesByEquipment(testEquipment);
-    //
-    //     testResults.wgerAPI = {
-    //       status: "success",
-    //       data: { exerciseCount: wgerExercises?.length || 0, testEquipment },
-    //       error: null,
-    //     };
-    //     console.log("✅ WGER API: OK", {
-    //       exerciseCount: wgerExercises?.length || 0,
-    //     });
-    //   } catch (error) {
-    //     testResults.wgerAPI = {
-    //       status: "error",
-    //       data: null,
-    //       error: error instanceof Error ? error.message : "Unknown error",
-    //     };
-    //     console.error("❌ WGER API: ERROR", error);
-    //   }
-    // } else {
-    testResults.wgerAPI = {
-      status: "success",
-      data: { message: "Using internal exercise database only" },
-      error: null,
-    };
-    console.log("✅ WGER API: DISABLED - Using internal database");
-    // }
-
-    // Test 4: User Store
-    try {
-      const userState = useUserStore.getState();
-      const hasUser = !!userState.user;
-      const hasQuestionnaire = !!(
-        userState.user?.questionnaire ||
-        userState.user?.questionnaireData ||
-        userState.user?.smartQuestionnaireData
-      );
-
-      testResults.userStore = {
-        status: "success",
-        data: {
-          hasUser,
-          hasQuestionnaire,
-          userKeys: Object.keys(userState.user || {}),
-        },
-        error: null,
-      };
-      console.log("✅ User Store: OK", { hasUser, hasQuestionnaire });
-    } catch (error) {
-      testResults.userStore = {
-        status: "error",
-        data: null,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-      console.error("❌ User Store: ERROR", error);
-    }
-
-    // Test 5: Data Quality Validation
-    console.log("🧪 Running data quality validation...");
-    const dataQuality = await validateDataQuality();
-
-    // Show comprehensive test results
-    const successCount = Object.values(testResults).filter(
-      (t) => t.status === "success"
-    ).length;
-    const totalTests = Object.keys(testResults).length;
-
-    const exerciseDbHealth = `${dataQuality.exerciseDatabase.valid}/${dataQuality.exerciseDatabase.valid + dataQuality.exerciseDatabase.invalid}`;
-    const workoutPlanHealth = dataQuality.workoutPlan.valid ? "✅" : "❌";
-    const userPrefsHealth = dataQuality.userPreferences.complete ? "✅" : "⚠️";
-
-    const successMessage =
-      `📊 תוצאות בדיקת API:\n` +
-      `• questionnaireService: ${testResults.questionnaireService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-      `• WorkoutDataService: ${testResults.workoutDataService.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-      `• WGER API: ${testResults.wgerAPI.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n` +
-      `• User Store: ${testResults.userStore.status === "success" ? "✅ תקין" : "❌ שגיאה"}\n\n` +
-      `📋 תוצאות בדיקת איכות נתונים:\n` +
-      `• בסיס נתוני תרגילים: ${exerciseDbHealth} תקינים\n` +
-      `• תוכנית אימון נוכחית: ${workoutPlanHealth}\n` +
-      `• העדפות משתמש: ${userPrefsHealth}\n\n` +
-      `💾 פרטים מלאים נשמרו בקונסול`;
-
-    if (
-      successCount === totalTests &&
-      dataQuality.workoutPlan.valid &&
-      dataQuality.userPreferences.complete
-    ) {
-      showSuccess(
-        `🔍 בדיקה מקיפה - ${successCount}/${totalTests} API תקין`,
-        successMessage
-      );
-    } else {
-      showError(
-        `🔍 בדיקה מקיפה - ${successCount}/${totalTests} API תקין`,
-        successMessage
-      );
-    }
-
-    // Store detailed results for debugging
-    console.log("📊 Data Quality Results:", dataQuality);
-
-    return { testResults, dataQuality, networkCheck };
   };
 
   /**
@@ -597,124 +502,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * Test data quality and integrity
-   */
-  const validateDataQuality = async () => {
-    const validationResults = {
-      exerciseDatabase: { valid: 0, invalid: 0, issues: [] as string[] },
-      workoutPlan: { valid: true, issues: [] as string[] },
-      userPreferences: {
-        complete: false,
-        missing: [] as string[],
-        issues: [] as string[],
-      },
-    };
-
-    // Validate Exercise Database
-    ALL_EXERCISES.forEach((exercise: Exercise, index: number) => {
-      const issues: string[] = [];
-
-      if (!exercise.id) issues.push(`Missing ID at index ${index}`);
-      if (!exercise.name) issues.push(`Missing name at index ${index}`);
-      if (!exercise.primaryMuscles || exercise.primaryMuscles.length === 0) {
-        issues.push(
-          `Missing primary muscles for ${exercise.name || `exercise ${index}`}`
-        );
-      }
-      if (!exercise.equipment)
-        issues.push(
-          `Missing equipment for ${exercise.name || `exercise ${index}`}`
-        );
-
-      // Special validation for "none" equipment (bodyweight exercises)
-      if (exercise.equipment === "none" && exercise.name) {
-        console.log(`✅ Found bodyweight exercise: ${exercise.name}`);
-      }
-
-      if (issues.length > 0) {
-        validationResults.exerciseDatabase.invalid++;
-        validationResults.exerciseDatabase.issues.push(...issues);
-      } else {
-        validationResults.exerciseDatabase.valid++;
-      }
-    });
-
-    // Validate Current Workout Plan
-    console.log("🧪 Validating current workout plan...");
-    if (workoutPlan) {
-      if (!workoutPlan.name) {
-        validationResults.workoutPlan.valid = false;
-        validationResults.workoutPlan.issues.push("Missing workout plan name");
-      }
-      if (!workoutPlan.workouts || workoutPlan.workouts.length === 0) {
-        validationResults.workoutPlan.valid = false;
-        validationResults.workoutPlan.issues.push("No workouts in plan");
-      }
-
-      workoutPlan.workouts?.forEach((workout, index) => {
-        if (!workout.exercises || workout.exercises.length === 0) {
-          validationResults.workoutPlan.issues.push(
-            `Workout ${index + 1} has no exercises`
-          );
-        }
-        workout.exercises?.forEach((exercise, exIndex) => {
-          if (!exerciseMap[exercise.exerciseId]) {
-            validationResults.workoutPlan.issues.push(
-              `Workout ${index + 1}, Exercise ${exIndex + 1}: Invalid exercise ID ${exercise.exerciseId}`
-            );
-          }
-        });
-      });
-    } else {
-      validationResults.workoutPlan.valid = false;
-      validationResults.workoutPlan.issues.push("No workout plan loaded");
-    }
-
-    // Validate User Preferences
-    console.log("🧪 Validating user preferences...");
-    try {
-      const userState = useUserStore.getState();
-      const requiredFields = ["frequency", "duration", "goal", "experience"];
-
-      if (userState.user?.questionnaireData?.metadata) {
-        const metadata = userState.user.questionnaireData.metadata;
-        requiredFields.forEach((field) => {
-          if (!metadata[field]) {
-            validationResults.userPreferences.missing.push(field);
-          }
-        });
-        validationResults.userPreferences.complete =
-          validationResults.userPreferences.missing.length === 0;
-      } else if (userState.user?.questionnaire) {
-        // Check old format
-        const questionnaire = userState.user.questionnaire;
-        if (!questionnaire[5])
-          validationResults.userPreferences.missing.push("goal");
-        if (!questionnaire[6])
-          validationResults.userPreferences.missing.push("experience");
-        if (!questionnaire[7])
-          validationResults.userPreferences.missing.push("frequency");
-        if (!questionnaire[8])
-          validationResults.userPreferences.missing.push("duration");
-
-        validationResults.userPreferences.complete =
-          validationResults.userPreferences.missing.length === 0;
-      } else {
-        validationResults.userPreferences.issues.push(
-          "No questionnaire data found"
-        );
-      }
-    } catch (error) {
-      validationResults.userPreferences.issues.push(
-        `Error validating preferences: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
-
-    console.log("📊 Data Quality Results:", validationResults);
-    return validationResults;
-  };
-
-  /**
    * Generate AI workout plan with advanced personalization
    */
   const generateAIWorkoutPlan = async (forceRegenerate: boolean = false) => {
@@ -732,7 +519,14 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         const aiPlan = await WorkoutDataService.generateAIWorkoutPlan();
 
         if (aiPlan) {
-          setWorkoutPlan(aiPlan);
+          // ✅ FIX: עדכן את התוכנית החכמה במסך מיד אחרי יצירה מוצלחת
+          setSmartPlan(aiPlan as any);
+          setError(null); // נקה שגיאות קודמות
+          setSelectedPlanType("smart"); // עבור לתוכנית החכמה
+
+          // במקום שמירה ישירה - הצג את מנהל התוכניות
+          setPendingPlan({ plan: aiPlan as any, type: "smart" });
+          setShowPlanManager(true);
 
           if (forceRegenerate) {
             const successMessage =
@@ -899,10 +693,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       // Check required fields
+      // בדיקת ערכים חסרים מרוכזת
+      const validateRequiredFields = (
+        data: Record<string, any>,
+        fields: string[]
+      ) => {
+        const missing = fields.filter((field) => !data[field]);
+        return missing;
+      };
       const requiredFields = ["frequency", "duration", "goal", "experience"];
-      const missingFields = requiredFields.filter(
-        (field) => !metadata[field as keyof typeof metadata]
-      );
+      const missingFields = validateRequiredFields(metadata, requiredFields);
       if (
         missingFields.length > 0 ||
         Object.keys(userQuestionnaireData).length === 0
@@ -956,17 +756,28 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       plan.workouts.forEach((workout, index) => {
         console.log(
-          `✅ WorkoutPlansScreen: Day ${index + 1} - ${workout.name}: ${workout.exercises.length} exercises`
+          `✅ WorkoutPlansScreen: Day ${index + 1} - ${workout.name}: ${workout.exercises?.length || 0} exercises`
         );
-        workout.exercises.forEach((exercise, exIndex) => {
-          const exerciseData = exerciseMap[exercise.exerciseId];
+        workout.exercises?.forEach((exercise, exIndex) => {
+          const exerciseData = exerciseMap[(exercise as any).exerciseId];
           console.log(
             `  📝 Exercise ${exIndex + 1}: ${exerciseData?.name || "Unknown"} (${exerciseData?.equipment || "Unknown equipment"})`
           );
         });
       });
 
-      setWorkoutPlan(plan);
+      // ✅ FIX: עדכן את התוכנית הבסיסית במסך מיד אחרי יצירה מוצלחת
+      setBasicPlan(plan);
+      setError(null); // נקה שגיאות קודמות
+
+      // אם אין תוכנית חכמה, הצג את הבסיסית
+      if (!smartPlan) {
+        setSelectedPlanType("basic");
+      }
+
+      // במקום שמירה ישירה - הצג את מנהל התוכניות
+      setPendingPlan({ plan: plan, type: "basic" });
+      setShowPlanManager(true);
 
       // Show success message if regenerated
       if (forceRegenerate && !refreshing) {
@@ -1081,22 +892,74 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     const locationValue = getString(metadata.location);
 
     return {
+      type: "basic",
+      features: {
+        personalizedWorkouts: true,
+        equipmentOptimization: true,
+        progressTracking: false,
+        aiRecommendations: true,
+        customSchedule: true,
+      },
+      requiresSubscription: false,
       id: `plan-${Date.now()}`,
       name: `תוכנית AI ל${goalValue}`,
       description: `תוכנית חכמה מותאמת אישית ל${goalValue} - ${daysPerWeek} ימים בשבוע`,
-      difficulty: mapExperienceToDifficulty(experienceValue),
+      // difficulty: mapExperienceToDifficulty(experienceValue),
       duration: parseInt(durationValue.split("-")[0] || "45"),
       frequency: daysPerWeek,
-      workouts: workouts,
+      workouts: workouts as any,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      tags: ["AI-Generated", goalValue, locationValue].filter(
-        Boolean
-      ) as string[],
+      // tags: ["AI-Generated", goalValue, locationValue].filter(Boolean) as string[],
     };
   };
 
   // Add other essential helper functions here...
+  // ===== Helper functions for sets, reps, rest and difficulty =====
+  const getSetsForExperience = (experience: string): number => {
+    const diff = mapExperienceToDifficulty(experience);
+    if (diff === "advanced") return 5;
+    if (diff === "intermediate") return 4;
+    return 3;
+  };
+
+  const getRepsForGoal = (goal: string): string => {
+    switch (goal) {
+      case GOAL_MAP.strength:
+        return "4-6";
+      case GOAL_MAP.muscle_gain:
+        return "8-12";
+      case GOAL_MAP.weight_loss:
+        return "12-15";
+      case GOAL_MAP.endurance:
+        return "15-20";
+      default:
+        return "10-12"; // general_fitness and fallback
+    }
+  };
+
+  const getRestTimeForGoal = (goal: string): number => {
+    switch (goal) {
+      case GOAL_MAP.strength:
+        return 120;
+      case GOAL_MAP.muscle_gain:
+        return 75;
+      case GOAL_MAP.weight_loss:
+        return 45;
+      case GOAL_MAP.endurance:
+        return 30;
+      default:
+        return 60;
+    }
+  };
+
+  const getDifficultyFilter = (experience: string): string[] => {
+    const diff = mapExperienceToDifficulty(experience);
+    if (diff === "advanced") return ["advanced", "intermediate"];
+    if (diff === "intermediate") return ["intermediate", "beginner"];
+    return ["beginner"];
+  };
+
   // Helper functions for workout template creation
   const selectExercisesForDay = (
     dayName: string,
@@ -1438,42 +1301,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     );
     return result;
   };
-
-  const getDifficultyFilter = (experience: string): string[] => {
-    if (experience.includes("מתחיל")) {
-      return ["beginner", "intermediate"];
-    } else if (experience.includes("בינוני")) {
-      return ["beginner", "intermediate", "advanced"];
-    } else if (experience === "some_experience") {
-      // Handle intermediate level - include all difficulties for better exercise variety
-      return ["beginner", "intermediate", "advanced"];
-    } else {
-      return ["beginner", "intermediate", "advanced"];
-    }
-  };
-
-  const getSetsForExperience = (experience: string): number => {
-    if (experience.includes("מתחיל")) return 3;
-    if (experience.includes("בינוני")) return 4;
-    return 4;
-  };
-
-  const getRepsForGoal = (goal: string): string => {
-    if (goal?.includes("כוח") || goal === "strength") return "4-6";
-    if (goal?.includes("שריר") || goal === "muscle_gain") return "8-12";
-    if (goal?.includes("סיבולת") || goal === "endurance") return "12-15";
-    if (goal?.includes("משקל") || goal === "weight_loss") return "12-15";
-    return "8-12";
-  };
-
-  const getRestTimeForGoal = (goal: string): number => {
-    if (goal?.includes("כוח") || goal === "strength") return 120;
-    if (goal?.includes("שריר") || goal === "muscle_gain") return 90;
-    if (goal?.includes("סיבולת") || goal === "endurance") return 45;
-    if (goal?.includes("משקל") || goal === "weight_loss") return 60;
-    return 75;
-  };
-
   const calculateDuration = (exercises: ExerciseTemplate[]): number => {
     // Calculate duration based on exercises, sets, reps, and rest time
     const totalSets = exercises.reduce((total, ex) => total + ex.sets, 0);
@@ -1786,8 +1613,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
     );
   }
 
-  // Error screen
-  if (!workoutPlan) {
+  // Error screen - check if we have any plan at all
+  if (!currentWorkoutPlan && !basicPlan && !smartPlan) {
     return (
       <SafeAreaView style={styles.errorContainer}>
         <MaterialCommunityIcons
@@ -1813,7 +1640,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <BackButton />
-
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -1821,9 +1647,72 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>{workoutPlan.name}</Text>
-          <Text style={styles.description}>{workoutPlan.description}</Text>
-
+          <Text style={styles.title}>תוכניות האימון שלי</Text>
+          <Text style={styles.description}>בחר תוכנית אימון</Text>
+        </View>
+        {/* Plan type tabs */}
+        <View style={styles.planTabs}>
+          <TouchableOpacity
+            style={[
+              styles.planTab,
+              selectedPlanType === "basic" && styles.planTabActive,
+            ]}
+            onPress={() => setSelectedPlanType("basic")}
+            accessibilityLabel="בחר תוכנית בסיסית"
+          >
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={18}
+              color={
+                selectedPlanType === "basic"
+                  ? theme.colors.surface
+                  : theme.colors.primary
+              }
+            />
+            <Text
+              style={[
+                styles.planTabText,
+                selectedPlanType === "basic" && styles.planTabTextActive,
+              ]}
+            >
+              בסיסית
+            </Text>
+            {!!basicPlan && <View style={styles.planIndicator} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.planTab,
+              selectedPlanType === "smart" && styles.planTabActive,
+            ]}
+            onPress={() => setSelectedPlanType("smart")}
+            accessibilityLabel={
+              canAccessAI ? "בחר תוכנית AI" : "תוכנית AI נעולה"
+            }
+          >
+            <MaterialCommunityIcons
+              name={canAccessAI ? "robot" : "lock"}
+              size={18}
+              color={
+                selectedPlanType === "smart"
+                  ? theme.colors.surface
+                  : theme.colors.primary
+              }
+            />
+            <Text
+              style={[
+                styles.planTabText,
+                selectedPlanType === "smart" && styles.planTabTextActive,
+              ]}
+            >
+              AI
+            </Text>
+            {!!smartPlan && canAccessAI && (
+              <View style={styles.planIndicator} />
+            )}
+          </TouchableOpacity>
+        </View>
+        {/* Action buttons - only show when we have a current plan */}
+        {currentWorkoutPlan && (
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.aiButton}
@@ -1834,7 +1723,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 size={20}
                 color={theme.colors.surface}
               />
-              <Text style={styles.aiButtonText}>תוכנית AI</Text>
+              <Text style={styles.aiButtonText}>צור תוכנית AI</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1849,80 +1738,90 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               <Text style={styles.regenerateButtonText}>רענון</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.daySelector}>
-          {workoutPlan.workouts.map((workout, index) => (
-            <DayButton
-              key={workout.id}
-              dayNumber={index + 1}
-              customText={workout.name}
-              selected={selectedDay === index}
-              onPress={() => handleDaySelection(index, workout.name)}
-              variant="workout-plan"
-              icon={
-                (DAY_ICONS[
-                  workout.name
-                ] as keyof typeof MaterialCommunityIcons.glyphMap) || "dumbbell"
-              }
-              accessibilityLabel={`אימון ${workout.name}`}
-              accessibilityHint={`לחץ לבחירת אימון ${workout.name}`}
+        )}
+        {/* Show current workout plan */}
+        {currentWorkoutPlan ? (
+          <>
+            <View style={styles.planInfo}>
+              <Text style={styles.planName}>{currentWorkoutPlan.name}</Text>
+              <Text style={styles.planDescription}>
+                {currentWorkoutPlan.description}
+              </Text>
+            </View>
+            {/* Plan content with optional AI lock overlay */}
+            <View style={styles.planContentContainer}>
+              <View
+                style={[
+                  styles.daySelector,
+                  selectedPlanType === "smart" && !canAccessAI && styles.aiBlur,
+                ]}
+              >
+                {currentWorkoutPlan.workouts.map((workout, index) => (
+                  <DayButton
+                    key={workout.id || index}
+                    dayNumber={index + 1}
+                    selected={selectedDay === index}
+                    onPress={() => handleDaySelection(index, workout.name)}
+                    customText={workout.name}
+                    variant="workout-plan"
+                    accessibilityLabel={`בחר אימון: ${workout.name}`}
+                  />
+                ))}
+              </View>
+              {selectedPlanType === "smart" && !canAccessAI && (
+                <View style={styles.aiOverlay}>
+                  <Text style={styles.aiUpgradeTitle}>תוכנית AI נעולה</Text>
+                  <TouchableOpacity
+                    style={styles.aiUpgradeButton}
+                    onPress={() => navigation.navigate("Profile")}
+                    accessibilityLabel="פתח מסך שדרוג למנוי"
+                  >
+                    <Text style={styles.aiUpgradeButtonText}>
+                      שדרג כדי לפתוח
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          /* Show empty state for selected plan type */
+          <View style={styles.emptyPlanContainer}>
+            <MaterialCommunityIcons
+              name={selectedPlanType === "smart" ? "robot" : "dumbbell"}
+              size={64}
+              color={theme.colors.textSecondary}
             />
-          ))}
-        </View>
-
-        {workoutPlan.workouts[selectedDay] && (
-          <View style={styles.workoutDetails}>
+            <Text style={styles.emptyPlanTitle}>
+              {selectedPlanType === "smart"
+                ? "אין תוכנית AI עדיין"
+                : "אין תוכנית בסיסית עדיין"}
+            </Text>
+            <Text style={styles.emptyPlanMessage}>
+              {selectedPlanType === "smart"
+                ? "צור תוכנית חכמה מותאמת אישית"
+                : "צור תוכנית אימון בסיסית"}
+            </Text>
             <TouchableOpacity
-              style={styles.startButton}
-              onPress={() =>
-                handleStartWorkout(workoutPlan.workouts[selectedDay])
+              style={styles.createPlanButton}
+              onPress={
+                selectedPlanType === "smart"
+                  ? handleAIPlanPress
+                  : () => generateWorkoutPlan(true)
               }
             >
-              <Text style={styles.startButtonText}>התחל אימון</Text>
+              <MaterialCommunityIcons
+                name={selectedPlanType === "smart" ? "robot" : "plus"}
+                size={20}
+                color={theme.colors.surface}
+              />
+              <Text style={styles.createPlanButtonText}>
+                {selectedPlanType === "smart" ? "צור תוכנית AI" : "צור תוכנית"}
+              </Text>
             </TouchableOpacity>
-
-            <View style={styles.exercisesList}>
-              {workoutPlan.workouts[selectedDay].exercises.map((exercise) => {
-                const exerciseData = exerciseMap[exercise.exerciseId];
-                console.log(
-                  `📝 WorkoutPlansScreen: Rendering exercise ${exercise.exerciseId}:`,
-                  exerciseData?.name || "NOT FOUND"
-                );
-
-                if (!exerciseData) {
-                  console.error(
-                    `❌ WorkoutPlansScreen: Exercise data not found for ID: ${exercise.exerciseId}`
-                  );
-                  return null;
-                }
-
-                return (
-                  <View key={exercise.exerciseId} style={styles.exerciseCard}>
-                    <TouchableOpacity
-                      style={styles.exerciseTouchable}
-                      onPress={() =>
-                        handleExerciseDetailsToggle(
-                          exercise.exerciseId,
-                          exerciseData.name
-                        )
-                      }
-                    >
-                      <Text style={styles.exerciseName}>
-                        {exerciseData.name}
-                      </Text>
-                      <Text style={styles.exerciseDetails}>
-                        {exercise.sets} סטים × {exercise.reps} חזרות
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
           </View>
         )}
       </ScrollView>
-
       {/* Universal Modal - replaces 4 separate modals */}
       <UniversalModal
         visible={activeModal !== null}
@@ -1934,11 +1833,64 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         confirmText={modalConfig.confirmText}
         destructive={modalConfig.destructive}
       />
+      {/* Workout Plan Manager Modal */}
+      {pendingPlan && (
+        <WorkoutPlanManager
+          newPlan={pendingPlan.plan}
+          planType={pendingPlan.type}
+          visible={showPlanManager}
+          onClose={() => {
+            setShowPlanManager(false);
+            setPendingPlan(null);
+          }}
+          onSave={handlePlanSave}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  planContentContainer: {
+    position: "relative",
+    marginBottom: 12,
+  },
+  aiBlur: {
+    opacity: 0.5,
+  },
+  aiOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    zIndex: 2,
+    padding: 24,
+  },
+  aiUpgradeTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    textAlign: "center",
+    marginBottom: 16,
+    writingDirection: "rtl",
+  },
+  aiUpgradeButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    elevation: 2,
+  },
+  aiUpgradeButtonText: {
+    color: theme.colors.surface,
+    fontSize: 18,
+    fontWeight: "bold",
+    writingDirection: "rtl",
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -1952,12 +1904,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: theme.colors.background,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר במכשיר אמיתי
-    color: theme.colors.text,
-    textAlign: "center",
-  },
+  // ...existing code...
   errorContainer: {
     flex: 1,
     justifyContent: "center",
@@ -2017,51 +1964,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 16,
   },
-  workoutDetails: {
-    padding: 16,
-  },
-  startButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  startButtonText: {
-    color: theme.colors.surface,
-    fontSize: 20, // הוגדל מ-18 לבולטות במסך הנייד
-    fontWeight: "bold",
-    writingDirection: "rtl", // ✅ RTL support
-  },
-  exercisesList: {
-    gap: 8,
-  },
-  exerciseCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "flex-end", // ✅ RTL support - יישור לימין
-  },
-  exerciseTouchable: {
-    width: "100%",
-    alignItems: "flex-end", // ✅ RTL support - יישור לימין
-  },
-  exerciseName: {
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: 4,
-    textAlign: "right", // ✅ RTL support
-    writingDirection: "rtl", // ✅ RTL support
-    width: "100%", // ✅ RTL support - רוחב מלא
-  },
-  exerciseDetails: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.textSecondary,
-    textAlign: "right", // ✅ RTL support
-    writingDirection: "rtl", // ✅ RTL support
-    width: "100%", // ✅ RTL support - רוחב מלא
-  },
   actionButtons: {
     flexDirection: "row-reverse", // ✅ RTL support - שינוי מ-"row"
     justifyContent: "center",
@@ -2099,5 +2001,120 @@ const styles = StyleSheet.create({
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "bold",
     writingDirection: "rtl", // ✅ RTL support
+  },
+  // ✨ NEW: Plan tabs styles
+  planTabs: {
+    flexDirection: "row-reverse",
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  planTab: {
+    flex: 1,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  planTabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  planTabText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
+    writingDirection: "rtl",
+  },
+  planTabTextActive: {
+    color: theme.colors.surface,
+  },
+  planIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.success,
+    position: "absolute",
+    top: 4,
+    right: 4,
+  },
+  // Plan info styles
+  planInfo: {
+    padding: 20,
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  planName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginBottom: 8,
+    writingDirection: "rtl",
+  },
+  planDescription: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    writingDirection: "rtl",
+  },
+  // Empty state styles
+  emptyPlanContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+    minHeight: 400,
+  },
+  emptyPlanTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 8,
+    writingDirection: "rtl",
+  },
+  emptyPlanMessage: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 24,
+    writingDirection: "rtl",
+  },
+  createPlanButton: {
+    backgroundColor: theme.colors.primary,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 2,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  createPlanButtonText: {
+    color: theme.colors.surface,
+    fontSize: 18,
+    fontWeight: "bold",
+    writingDirection: "rtl",
   },
 });

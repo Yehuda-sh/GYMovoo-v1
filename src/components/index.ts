@@ -38,9 +38,10 @@ export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס א�
 // 🚧 לשימוש עתידי / For future use
 export { default as FloatingActionButton } from "./workout/FloatingActionButton"; // כפתור צף מותאם לאימונים - מתוכנן לשילוב עתידי
 export { NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא - מיועד להחליף implementation ידני
+export { BlurOverlay } from "./BlurOverlay"; // רכיב ערפול לתוכן פרימיום
 
 // ===============================================
 // 📊 Export Summary - סיכום ייצואים
 // ===============================================
-// סה"כ: 12 רכיבים | פעילים: 10 | משופרים: 7 | עם React.memo: 2 | לשימוש עתידי: 2
-// Total: 12 components | Active: 10 | Enhanced: 7 | With React.memo: 2 | Future use: 2
+// סה"כ: 13 רכיבים | פעילים: 11 | משופרים: 8 | עם React.memo: 2 | לשימוש עתידי: 2
+// Total: 13 components | Active: 11 | Enhanced: 8 | With React.memo: 2 | Future use: 2

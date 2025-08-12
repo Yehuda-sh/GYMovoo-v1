@@ -20,6 +20,7 @@ import {
   QuestionnaireMetadata,
   DynamicQuestion,
   WorkoutRecommendation,
+  WorkoutPlan,
 } from "../types";
 import {
   getPersonalizedRestTimes,
@@ -1708,6 +1709,243 @@ class QuestionnaireService {
     }
 
     return Math.round(adjustedDuration);
+  }
+
+  // =======================================
+  // 🎯 Two-Tier Workout System
+  // מערכת תוכניות אימון דו-שכבתית
+  // =======================================
+
+  /**
+   * יצירת תוכנית אימון בסיסית - רק מטרה + תרגילי משקל גוף
+   * Create basic workout plan - goal only + bodyweight exercises
+   */
+  async generateBasicWorkoutPlan(): Promise<WorkoutPlan> {
+    const prefs = await this.getUserPreferences();
+    const goal = prefs?.goal || "בריאות כללית";
+
+    // תוכנית בסיסית - רק תרגילי משקל גוף
+    const basicWorkouts = await this.createBasicWorkoutsByGoal(goal);
+
+    return {
+      id: `basic-plan-${Date.now()}`,
+      name: "תוכנית בסיס",
+      description: `תוכנית אימון בסיסית למטרה: ${goal}. כוללת תרגילי משקל גוף בלבד.`,
+      type: "basic",
+      features: {
+        personalizedWorkouts: false,
+        equipmentOptimization: false,
+        progressTracking: true,
+        aiRecommendations: false,
+        customSchedule: false,
+      },
+      workouts: basicWorkouts,
+      duration: 4, // 4 שבועות
+      frequency: 3, // 3 אימונים בשבוע
+      createdAt: new Date().toISOString(),
+      requiresSubscription: false,
+    };
+  }
+
+  /**
+   * יצירת תוכנית אימון חכמה - מותאמת אישית לחלוטין
+   * Create smart workout plan - fully personalized
+   */
+  async generateSmartWorkoutPlan(): Promise<WorkoutPlan> {
+    const prefs = await this.getUserPreferences();
+    if (!prefs) {
+      throw new Error("No questionnaire data available for smart plan");
+    }
+
+    const equipment = await this.getAvailableEquipment();
+    const duration = await this.getPreferredDuration();
+    const personalData = this.extractPersonalData(prefs);
+
+    // תוכנית חכמה - מותאמת אישית מלאה
+    const smartWorkouts = await this.createSmartWorkoutsByPreferences(
+      prefs,
+      equipment,
+      duration,
+      personalData
+    );
+
+    return {
+      id: `smart-plan-${Date.now()}`,
+      name: "תוכנית חכמה",
+      description: `תוכנית אימון מותאמת אישית לפי השאלון שלך. מותאמת לציוד, זמן ומטרות שלך.`,
+      type: "smart",
+      features: {
+        personalizedWorkouts: true,
+        equipmentOptimization: true,
+        progressTracking: true,
+        aiRecommendations: true,
+        customSchedule: true,
+      },
+      workouts: smartWorkouts,
+      duration: 8, // 8 שבועות
+      frequency: prefs.frequency
+        ? this.parseFrequencyToNumber(prefs.frequency)
+        : 4,
+      createdAt: new Date().toISOString(),
+      requiresSubscription: true,
+    };
+  }
+
+  /**
+   * יצירת אימונים בסיסיים לפי מטרה
+   */
+  private async createBasicWorkoutsByGoal(
+    goal: string
+  ): Promise<WorkoutRecommendation[]> {
+    const bodyweightEquipment = ["bodyweight", "none"];
+    const basicDuration = 30; // 30 דקות תמיד
+
+    const basicPrefs: QuestionnaireMetadata = {
+      goal,
+      equipment: bodyweightEquipment,
+      duration: "30",
+      frequency: "3",
+      experience: "beginner",
+      version: "basic-v1",
+      completedAt: new Date().toISOString(),
+    };
+
+    const workouts: WorkoutRecommendation[] = [];
+
+    switch (goal) {
+      case "ירידה במשקל":
+      case "weight_loss":
+        workouts.push(
+          this.createCardioWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createHIITWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          )
+        );
+        break;
+
+      case "עליה במסת שריר":
+      case "muscle_gain":
+        workouts.push(
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createStrengthWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          )
+        );
+        break;
+
+      case "שיפור כוח":
+      case "strength_improvement":
+        workouts.push(
+          this.createStrengthWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createStrengthWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          )
+        );
+        break;
+
+      default:
+        workouts.push(
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createCardioWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          ),
+          this.createGeneralWorkout(
+            basicDuration,
+            bodyweightEquipment,
+            basicPrefs
+          )
+        );
+    }
+
+    // הוסף אינדיקטור שזה נגיש למשתמשי ניסיון
+    return workouts.map((workout) => ({
+      ...workout,
+      isAccessible: true,
+    }));
+  }
+
+  /**
+   * יצירת אימונים חכמים לפי העדפות מלאות
+   */
+  private async createSmartWorkoutsByPreferences(
+    _prefs: QuestionnaireMetadata,
+    _equipment: string[],
+    _duration: number,
+    _personalData?: PersonalData
+  ): Promise<WorkoutRecommendation[]> {
+    // השתמש בפונקציה הקיימת שכבר מתקדמת
+    const smartWorkouts = await this.getWorkoutRecommendations();
+
+    // הוסף אינדיקטור שזה דורש מנוי
+    return smartWorkouts.map((workout) => ({
+      ...workout,
+      isAccessible: false, // דורש מנוי
+    }));
+  }
+
+  /**
+   * המרת תדירות לספר
+   */
+  private parseFrequencyToNumber(frequency: string): number {
+    if (frequency.includes("3")) return 3;
+    if (frequency.includes("4")) return 4;
+    if (frequency.includes("5")) return 5;
+    if (frequency.includes("6")) return 6;
+    return 3; // ברירת מחדל
+  }
+
+  /**
+   * יצירת שתי התוכניות במקביל
+   */
+  async generateBothWorkoutPlans(): Promise<{
+    basicPlan: WorkoutPlan;
+    smartPlan: WorkoutPlan;
+  }> {
+    const [basicPlan, smartPlan] = await Promise.all([
+      this.generateBasicWorkoutPlan(),
+      this.generateSmartWorkoutPlan(),
+    ]);
+
+    return { basicPlan, smartPlan };
   }
 }
 

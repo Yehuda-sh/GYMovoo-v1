@@ -23,6 +23,7 @@ import {
   User,
   SmartQuestionnaireData,
   LegacyQuestionnaireData,
+  WorkoutPlan,
 } from "../types";
 
 // טיפוס תשובות השאלון הישן (לתאימות לאחור)
@@ -98,6 +99,29 @@ interface UserStore {
     hasOldQuestionnaire: boolean;
     isFullySetup: boolean;
   };
+
+  // פעולות מנוי ותקופת ניסיון
+  // Subscription and trial actions
+  initializeSubscription: () => void;
+  updateSubscription: (updates: Partial<User["subscription"]>) => void;
+  checkTrialStatus: () => {
+    isTrialActive: boolean;
+    daysRemaining: number;
+    hasExpired: boolean;
+  };
+  getSubscriptionType: () => "trial" | "premium" | "free";
+  canAccessPremiumFeatures: () => boolean;
+  startPremiumSubscription: () => void;
+
+  // פעולות תוכניות אימון
+  // Workout plans actions
+  setWorkoutPlans: (plans: Partial<User["workoutPlans"]>) => void;
+  updateWorkoutPlan: (
+    planType: "basic" | "smart" | "additional",
+    plan: WorkoutPlan
+  ) => void;
+  getAccessibleWorkoutPlan: () => WorkoutPlan | null;
+  shouldBlurPremiumContent: () => boolean;
 
   // פעולות משתמש דמו מותאם
   // Custom demo user actions
@@ -772,6 +796,173 @@ export const useUserStore = create<UserStore>()(
           throw error;
         }
       },
+
+      // =======================================
+      // 🎯 Subscription & Trial Management
+      // ניהול מנוי ותקופת ניסיון
+      // =======================================
+
+      initializeSubscription: () => {
+        const state = get();
+        if (!state.user) return;
+
+        const now = new Date().toISOString();
+
+        if (!state.user.subscription) {
+          // יצירת מנוי ניסיון חדש
+          set((prevState) => ({
+            user: prevState.user
+              ? {
+                  ...prevState.user,
+                  subscription: {
+                    type: "trial",
+                    startDate: now,
+                    registrationDate: now,
+                    isActive: true,
+                    trialDaysRemaining: 7,
+                    hasCompletedTrial: false,
+                    lastTrialCheck: now,
+                  },
+                }
+              : null,
+          }));
+        }
+      },
+
+      updateSubscription: (updates) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                subscription: {
+                  ...state.user.subscription,
+                  ...updates,
+                  lastTrialCheck: new Date().toISOString(),
+                } as User["subscription"],
+              }
+            : null,
+        }));
+      },
+
+      checkTrialStatus: () => {
+        const state = get();
+        const subscription = state.user?.subscription;
+
+        if (!subscription) {
+          return { isTrialActive: false, daysRemaining: 0, hasExpired: true };
+        }
+
+        const now = new Date();
+        const registrationDate = new Date(subscription.registrationDate);
+        const daysSinceRegistration = Math.floor(
+          (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        const daysRemaining = Math.max(0, 7 - daysSinceRegistration);
+        const isTrialActive =
+          subscription.type === "trial" &&
+          daysRemaining > 0 &&
+          subscription.isActive;
+
+        // עדכון סטטוס הניסיון אם צריך
+        if (subscription.trialDaysRemaining !== daysRemaining) {
+          get().updateSubscription({
+            trialDaysRemaining: daysRemaining,
+            hasCompletedTrial: daysRemaining === 0,
+            isActive: subscription.type === "premium" || daysRemaining > 0,
+          });
+        }
+
+        return {
+          isTrialActive,
+          daysRemaining,
+          hasExpired: daysRemaining === 0 && subscription.type === "trial",
+        };
+      },
+
+      getSubscriptionType: () => {
+        const state = get();
+        return state.user?.subscription?.type || "free";
+      },
+
+      canAccessPremiumFeatures: () => {
+        const state = get();
+        const subscription = state.user?.subscription;
+
+        if (!subscription) return false;
+
+        if (subscription.type === "premium") return true;
+
+        const trialStatus = get().checkTrialStatus();
+        return trialStatus.isTrialActive;
+      },
+
+      startPremiumSubscription: () => {
+        get().updateSubscription({
+          type: "premium",
+          endDate: undefined, // אין תאריך סיום לפרימיום
+          isActive: true,
+        });
+      },
+
+      // =======================================
+      // 📋 Workout Plans Management
+      // ניהול תוכניות אימון
+      // =======================================
+
+      setWorkoutPlans: (plans) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                workoutPlans: {
+                  ...state.user.workoutPlans,
+                  ...plans,
+                  lastUpdated: new Date().toISOString(),
+                },
+              }
+            : null,
+        }));
+      },
+
+      updateWorkoutPlan: (planType, plan) => {
+        set((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                workoutPlans: {
+                  ...state.user.workoutPlans,
+                  [planType === "basic"
+                    ? "basicPlan"
+                    : planType === "smart"
+                      ? "smartPlan"
+                      : "additionalPlan"]: plan,
+                  lastUpdated: new Date().toISOString(),
+                },
+              }
+            : null,
+        }));
+      },
+
+      getAccessibleWorkoutPlan: () => {
+        const state = get();
+        const plans = state.user?.workoutPlans;
+        const canAccessPremium = get().canAccessPremiumFeatures();
+
+        if (!plans) return null;
+
+        // אם יש גישה לפרימיום והתוכנית החכמה קיימת
+        if (canAccessPremium && plans.smartPlan) {
+          return plans.smartPlan;
+        }
+
+        // אחרת תחזיר את התוכנית הבסיסית
+        return plans.basicPlan || null;
+      },
+
+      shouldBlurPremiumContent: () => {
+        return !get().canAccessPremiumFeatures();
+      },
     }),
     {
       name: "user-storage",
@@ -871,4 +1062,78 @@ export const useAuthState = () => {
       user?.smartQuestionnaireData
     ),
   };
+};
+
+// =======================================
+// 🎯 Subscription & Trial Hooks
+// Hooks למערכת מנוי ותקופת ניסיון
+// =======================================
+
+/**
+ * Hook לבדיקת סטטוס מנוי ותקופת ניסיון
+ */
+export const useSubscription = () => {
+  const subscription = useUserStore((state) => state.user?.subscription);
+  const checkTrialStatus = useUserStore((state) => state.checkTrialStatus);
+  const getSubscriptionType = useUserStore(
+    (state) => state.getSubscriptionType
+  );
+  const canAccessPremiumFeatures = useUserStore(
+    (state) => state.canAccessPremiumFeatures
+  );
+  const initializeSubscription = useUserStore(
+    (state) => state.initializeSubscription
+  );
+  const startPremiumSubscription = useUserStore(
+    (state) => state.startPremiumSubscription
+  );
+
+  const trialStatus = checkTrialStatus();
+
+  return {
+    subscription,
+    subscriptionType: getSubscriptionType(),
+    trialStatus,
+    canAccessPremium: canAccessPremiumFeatures(),
+    shouldBlurContent: !canAccessPremiumFeatures(),
+    initializeSubscription,
+    startPremiumSubscription,
+  };
+};
+
+/**
+ * Hook לניהול תוכניות אימון
+ */
+export const useWorkoutPlans = () => {
+  const workoutPlans = useUserStore((state) => state.user?.workoutPlans);
+  const setWorkoutPlans = useUserStore((state) => state.setWorkoutPlans);
+  const updateWorkoutPlan = useUserStore((state) => state.updateWorkoutPlan);
+  const getAccessibleWorkoutPlan = useUserStore(
+    (state) => state.getAccessibleWorkoutPlan
+  );
+  const shouldBlurPremiumContent = useUserStore(
+    (state) => state.shouldBlurPremiumContent
+  );
+
+  return {
+    workoutPlans,
+    setWorkoutPlans,
+    updateWorkoutPlan,
+    accessiblePlan: getAccessibleWorkoutPlan(),
+    shouldBlurPremium: shouldBlurPremiumContent(),
+  };
+};
+
+/**
+ * Hook פשוט לבדיקה האם המשתמש יכול לגשת לתכנים מתקדמים
+ */
+export const useCanAccessPremium = () =>
+  useUserStore((state) => state.canAccessPremiumFeatures());
+
+/**
+ * Hook לקבלת ימי ניסיון נותרים
+ */
+export const useTrialDaysRemaining = () => {
+  const checkTrialStatus = useUserStore((state) => state.checkTrialStatus);
+  return checkTrialStatus().daysRemaining;
 };

@@ -655,6 +655,10 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="הצג או הסתר סיסמה"
+                accessibilityHint="לחץ כדי להציג או להסתיר את טקסט הסיסמה"
               >
                 <Ionicons
                   name={showPassword ? "eye-off" : "eye"}
@@ -735,6 +739,10 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={loading}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="הצג או הסתר אימות סיסמה"
+                accessibilityHint="לחץ כדי להציג או להסתיר את טקסט אימות הסיסמה"
               >
                 <Ionicons
                   name={showConfirmPassword ? "eye-off" : "eye"}
@@ -802,6 +810,10 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={handleNavigateToTerms}
                 disabled={loading}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="תנאי שימוש"
+                accessibilityHint="לחץ כדי לקרוא את תנאי השימוש"
               >
                 <Text style={styles.termsLink}>{STRINGS.misc.termsLink}</Text>
               </TouchableOpacity>
@@ -831,6 +843,11 @@ export default function RegisterScreen() {
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.8}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="צור חשבון"
+            accessibilityHint="לחץ כדי ליצור חשבון חדש בGYMovoo"
+            accessibilityState={{ disabled: loading }}
           >
             <LinearGradient
               colors={[
@@ -870,6 +887,11 @@ export default function RegisterScreen() {
             onPress={handleGoogleRegister}
             disabled={loading}
             activeOpacity={0.8}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="הרשמה עם Google"
+            accessibilityHint="לחץ כדי להירשם באמצעות חשבון Google"
+            accessibilityState={{ disabled: loading }}
           >
             {loading ? (
               <View style={styles.loadingContainer}>

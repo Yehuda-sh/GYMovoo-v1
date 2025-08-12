@@ -367,7 +367,14 @@ function MainScreen() {
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={onRefresh}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="נסה שוב"
+            accessibilityHint="לחץ כדי לרענן ולנסות לטעון מחדש"
+          >
             <Text style={styles.retryButtonText}>
               {MAIN_SCREEN_TEXTS.ACTIONS.TRY_AGAIN}
             </Text>

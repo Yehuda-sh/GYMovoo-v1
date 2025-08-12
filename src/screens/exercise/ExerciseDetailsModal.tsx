@@ -162,6 +162,10 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               style={styles.closeButton}
               onPress={handleClose}
               activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="סגור מודל פרטי תרגיל"
+              accessibilityHint="לחץ כדי לסגור את חלון פרטי התרגיל"
             >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
@@ -352,6 +356,10 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               style={styles.bottomCloseButton}
               onPress={handleClose}
               activeOpacity={0.8}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="סגור"
+              accessibilityHint="לחץ כדי לסגור את חלון פרטי התרגיל"
             >
               <Text style={styles.bottomCloseText}>סגור</Text>
             </TouchableOpacity>

@@ -256,6 +256,67 @@ export default function WelcomeScreen() {
               </LinearGradient>
             </TouchableButton>
 
+            {/* כפתור דמו מהיר - ישירות לדני כהן */}
+            <TouchableButton
+              style={[
+                styles.secondaryButton,
+                { marginTop: 15, backgroundColor: theme.colors.success },
+              ]}
+              onPress={async () => {
+                try {
+                  console.warn("🎭 טוען נתוני דמו של דני כהן...");
+
+                  // יבוא הפונקציות לניקוי וטעינת דמו
+                  const { loadDaniCohenDemo, clearDaniCohenDemo } =
+                    await import("../../services/daniCohenDemoService");
+
+                  // ניקוי נתונים ישנים לפני טעינה מחדש
+                  await clearDaniCohenDemo();
+                  console.warn("🧹 נתונים ישנים נוקו, טוען נתונים חדשים...");
+
+                  // טעינת נתוני דמו מקובץ JSON
+                  await loadDaniCohenDemo();
+
+                  // טעינת המשתמש מ-AsyncStorage כדי לעדכן את ה-store
+                  const AsyncStorage = (
+                    await import("@react-native-async-storage/async-storage")
+                  ).default;
+                  const userDataString = await AsyncStorage.getItem("user");
+
+                  if (userDataString) {
+                    const userData = JSON.parse(userDataString);
+                    setUser(userData);
+                    console.warn("✅ דני כהן נטען בהצלחה עם כל הנתונים!");
+                    navigation.navigate("MainApp");
+                  } else {
+                    throw new Error("לא הצלחתי לטעון את נתוני דני כהן");
+                  }
+                } catch (error) {
+                  console.error("❌ שגיאה בטעינת דני כהן:", error);
+                  const errorMessage =
+                    error instanceof Error ? error.message : String(error);
+                  setErrorMessage(`שגיאה בטעינת דני כהן: ${errorMessage}`);
+                  setShowErrorModal(true);
+                }
+              }}
+              accessibilityLabel="טעינת דני כהן - משתמש אמיתי"
+              accessibilityHint="כניסה כדני כהן עם כל ההיסטוריה והנתונים האמיתיים"
+            >
+              <MaterialCommunityIcons
+                name="account-check"
+                size={18}
+                color={theme.colors.white}
+              />
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: theme.colors.white },
+                ]}
+              >
+                � דני כהן - משתמש אמיתי
+              </Text>
+            </TouchableButton>
+
             {/* Free trial promotion badge */}
             <View style={styles.trialBadge}>
               <MaterialCommunityIcons
@@ -339,7 +400,13 @@ export default function WelcomeScreen() {
         <ConfirmationModal
           visible={showErrorModal}
           onClose={() => setShowErrorModal(false)}
-          onConfirm={() => setShowErrorModal(false)}
+          onConfirm={() => {
+            setShowErrorModal(false);
+            // אם אין משתמש במאגר, מעביר לרישום
+            if (errorMessage.includes("לא נמצא משתמש אמיתי במאגר")) {
+              navigation.navigate("Register");
+            }
+          }}
           title="שגיאה"
           message={errorMessage}
           variant="error"

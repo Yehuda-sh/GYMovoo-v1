@@ -47,6 +47,59 @@ export * from "../screens/workout/types/workout.types";
 export * from "../screens/workout/components/types";
 
 // =======================================
+// 🏋️ Workout Plan & Subscription System
+// תוכניות אימון ומערכת מנויים
+// =======================================
+
+/**
+ * Workout Plan interface - תוכנית אימון
+ * Comprehensive workout plan with support for basic/premium tiers
+ */
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  description?: string;
+  type: "basic" | "smart" | "premium";
+
+  // תכונות התוכנית
+  features: {
+    personalizedWorkouts: boolean;
+    equipmentOptimization: boolean;
+    progressTracking: boolean;
+    aiRecommendations: boolean;
+    customSchedule: boolean;
+  };
+
+  // תוכן התוכנית
+  workouts: WorkoutRecommendation[];
+  duration: number; // מספר שבועות
+  frequency: number; // אימונים בשבוע
+
+  // מטאדטה
+  createdAt: string;
+  updatedAt?: string;
+  isBlurred?: boolean; // עבור תוכניות פרימיום בזמן ניסיון
+  requiresSubscription: boolean;
+}
+
+/**
+ * Workout Recommendation interface - המלצת אימון
+ */
+export interface WorkoutRecommendation {
+  id: string;
+  name: string;
+  description: string;
+  type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number; // דקות
+  equipment: string[];
+  targetMuscles: string[];
+  estimatedCalories?: number;
+  exercises?: WorkoutExercise[]; // תואם לממשק הקיים
+  isAccessible?: boolean; // גישה למשתמשי ניסיון
+}
+
+// =======================================
 // 👤 User Profile & Basic Data (ינואר 2025)
 // פרופיל משתמש ונתונים בסיסיים
 // =======================================
@@ -266,7 +319,7 @@ export interface WorkoutRecommendation {
   targetMuscles: string[];
   type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
   estimatedCalories?: number;
-  exercises?: WorkoutExerciseBase[]; // Use existing exercise interface
+  exercises?: WorkoutExercise[]; // תואם לממשק הקיים
 }
 
 /**
@@ -534,6 +587,29 @@ export interface User {
     selectedEquipment?: string[];
     fitnessGoals?: string[];
     currentFitnessLevel?: "beginner" | "intermediate" | "advanced";
+  };
+
+  // מנוי ותקופת ניסיון
+  // Subscription and trial period
+  subscription?: {
+    type: "trial" | "premium" | "free";
+    startDate: string; // ISO date string
+    endDate?: string; // ISO date string, undefined for trial users
+    isActive: boolean;
+    trialDaysRemaining?: number; // חישוב אוטומטי של ימי הניסיון הנותרים
+    hasCompletedTrial?: boolean; // האם המשתמש סיים את תקופת הניסיון
+    registrationDate: string; // תאריך ההרשמה - נקודת התייחסות ל-7 ימים
+    lastTrialCheck?: string; // תאריך הבדיקה האחרונה של תקופת הניסיון
+  };
+
+  // תוכניות אימון זמינות
+  // Available workout plans
+  workoutPlans?: {
+    basicPlan?: WorkoutPlan; // תוכנית בסיס - תמיד זמינה
+    smartPlan?: WorkoutPlan; // תוכנית חכמה - נדרש מנוי
+    additionalPlan?: WorkoutPlan; // תוכנית נוספת - מגבלת 3 תוכניות
+    lastUpdated?: string; // תאריך עדכון אחרון של התוכניות
+    planPreference?: "basic" | "smart"; // העדפת המשתמש
   };
 
   // נתוני פרופיל מותאמים למגדר

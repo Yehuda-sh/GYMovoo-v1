@@ -50,12 +50,20 @@ interface TabIconProps {
   size: number;
   iconName: IconName | MaterialIconName;
   isMaterial?: boolean;
+  accessibilityLabel?: string;
 }
 
 // קומפוננטת אייקון לטאב עם אנימציה מותאמת
 // Tab icon component with optimized animation
 const TabIcon: React.FC<TabIconProps> = React.memo(
-  ({ focused, color, size, iconName, isMaterial = false }) => {
+  ({
+    focused,
+    color,
+    size,
+    iconName,
+    isMaterial = false,
+    accessibilityLabel,
+  }) => {
     const IconComponent = isMaterial ? MaterialCommunityIcons : Ionicons;
 
     return (
@@ -67,6 +75,8 @@ const TabIcon: React.FC<TabIconProps> = React.memo(
           style={{
             opacity: focused ? 1 : 0.7,
           }}
+          accessible={false}
+          importantForAccessibility="no"
         />
         {focused && <View style={styles.activeIndicator} />}
       </View>
@@ -129,12 +139,14 @@ export default function BottomNavigation(): React.JSX.Element {
         component={ProfileScreen}
         options={{
           title: "פרופיל",
+          tabBarAccessibilityLabel: "פרופיל, טאב ניווט",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
               size={size}
               iconName="person"
+              accessibilityLabel="פרופיל"
             />
           ),
         }}
@@ -146,12 +158,14 @@ export default function BottomNavigation(): React.JSX.Element {
         component={HistoryScreen}
         options={{
           title: "היסטוריה",
+          tabBarAccessibilityLabel: "היסטוריה, טאב ניווט",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
               size={size}
               iconName="bar-chart"
+              accessibilityLabel="היסטוריה"
             />
           ),
         }}
@@ -163,6 +177,7 @@ export default function BottomNavigation(): React.JSX.Element {
         component={WorkoutPlansScreen}
         options={{
           title: "תוכניות",
+          tabBarAccessibilityLabel: "תוכניות אימונים, טאב ניווט",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
@@ -170,6 +185,7 @@ export default function BottomNavigation(): React.JSX.Element {
               size={size}
               iconName="brain"
               isMaterial={true}
+              accessibilityLabel="תוכניות אימונים"
             />
           ),
         }}
@@ -181,12 +197,14 @@ export default function BottomNavigation(): React.JSX.Element {
         component={ActiveWorkoutScreen}
         options={{
           title: "אימון",
+          tabBarAccessibilityLabel: "אימון מהיר, טאב ניווט",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
               size={size}
               iconName="fitness"
+              accessibilityLabel="אימון מהיר"
             />
           ),
         }}
@@ -198,12 +216,14 @@ export default function BottomNavigation(): React.JSX.Element {
         component={MainScreen}
         options={{
           title: "בית",
+          tabBarAccessibilityLabel: "בית, מסך ראשי, טאב ניווט",
           tabBarIcon: ({ focused, color, size }) => (
             <TabIcon
               focused={focused}
               color={color}
               size={size}
               iconName="home"
+              accessibilityLabel="מסך הבית"
             />
           ),
         }}

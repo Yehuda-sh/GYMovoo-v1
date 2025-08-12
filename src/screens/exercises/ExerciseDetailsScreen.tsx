@@ -352,7 +352,13 @@ const ExerciseDetailsScreen: React.FC = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>רוצה לעזור?</Text>
 
-            <TouchableOpacity style={styles.feedbackButton}>
+            <TouchableOpacity
+              style={styles.feedbackButton}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="הצטרף לקהילה"
+              accessibilityHint="לחץ כדי להצטרף לקהילה ולעזור בפיתוח התרגיל"
+            >
               <MaterialCommunityIcons
                 name="account-group"
                 size={20}
@@ -368,7 +374,13 @@ const ExerciseDetailsScreen: React.FC = () => {
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.reportButton}>
+            <TouchableOpacity
+              style={styles.reportButton}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="דווח על בעיה"
+              accessibilityHint="לחץ כדי לדווח על בעיה או להציע שיפור לתרגיל"
+            >
               <MaterialCommunityIcons
                 name="flag-outline"
                 size={16}

@@ -1125,6 +1125,10 @@ function ProfileScreen() {
               <TouchableOpacity
                 style={styles.errorRetryButton}
                 onPress={() => setError(null)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="סגור הודעת שגיאה"
+                accessibilityHint="לחץ כדי לסגור את הודעת השגיאה"
               >
                 <Text style={styles.errorRetryText}>
                   {PROFILE_SCREEN_TEXTS.ACTIONS.GOT_IT}
@@ -1141,6 +1145,10 @@ function ProfileScreen() {
                 navigation.navigate("Questionnaire", { stage: "training" })
               }
               activeOpacity={0.8}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="השלמת שאלון אימון"
+              accessibilityHint="לחץ כדי להשלים את השאלון ולקבל תוכנית אימונים מותאמת אישית"
             >
               <LinearGradient
                 colors={[
@@ -1445,6 +1453,10 @@ function ProfileScreen() {
                   onPress={() =>
                     navigation.navigate("Questionnaire", { stage: "training" })
                   }
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="עריכת ציוד אימון"
+                  accessibilityHint="לחץ כדי לערוך את רשימת הציוד הזמין לאימונים"
                 >
                   <Text style={styles.seeAllText}>
                     {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT}
@@ -1480,6 +1492,10 @@ function ProfileScreen() {
                               stage: "training",
                             })
                           }
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel="הוסף ציוד אימון"
+                          accessibilityHint="לחץ כדי להוסיף ציוד אימון זמין דרך השאלון"
                         >
                           <Text style={styles.addEquipmentText}>הוסף ציוד</Text>
                         </TouchableOpacity>
@@ -1570,6 +1586,10 @@ function ProfileScreen() {
                       onPress={() =>
                         console.log("ProfileScreen: Show all achievements")
                       }
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="הצג את כל ההישגים"
+                      accessibilityHint="לחץ כדי לראות רשימה מלאה של כל ההישגים והמטרות"
                     >
                       <Text style={styles.seeAllText}>
                         {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
@@ -1684,6 +1704,10 @@ function ProfileScreen() {
                 navigation.navigate("Questionnaire", { stage: "training" });
               }}
               activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="עריכת שאלון אימון"
+              accessibilityHint="לחץ כדי לערוך את השאלון ולעדכן העדפות אימון"
             >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons

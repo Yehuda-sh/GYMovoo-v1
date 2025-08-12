@@ -266,6 +266,7 @@ export const PROFILE_SCREEN_TEXTS = {
  * Format questionnaire value with Hebrew translations
  * עיצוב ערך שאלון עם תרגומים לעברית
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const formatQuestionnaireValue = (key: string, value: any): string => {
   if (!value) return PROFILE_SCREEN_TEXTS.MISC.NO_DATA;
 
@@ -273,6 +274,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
 
   // Age ranges / טווחי גיל
   if (key === "age_range" || key === "age") {
+    const normalized = String(value).replace(/_/g, "-");
     const ageMap: { [key: string]: string } = {
       "18-25": VALUES.AGE_18_25,
       "26-35": VALUES.AGE_26_35,
@@ -280,7 +282,11 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       "46-55": VALUES.AGE_46_55,
       "55-plus": VALUES.AGE_55_PLUS,
     };
-    return ageMap[value] || value;
+    return (
+      ageMap[normalized] ||
+      ageMap[String(value)] ||
+      String(value).replace("_", "-")
+    );
   }
 
   // Gender / מגדר
@@ -294,8 +300,49 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     return genderMap[value] || value;
   }
 
+  // Weight / משקל
+  if (key === "weight") {
+    if (typeof value === "number") return `${value} ק"ג`;
+    const str = String(value);
+    const weightMap: { [key: string]: string } = {
+      under_50: 'מתחת ל-50 ק"ג',
+      "50_60": '50-60 ק"ג',
+      "61_70": '61-70 ק"ג',
+      "71_80": '71-80 ק"ג',
+      "81_90": '81-90 ק"ג',
+      "91_100": '91-100 ק"ג',
+      over_100: 'מעל 100 ק"ג',
+      prefer_not_to_say_weight: VALUES.PREFER_NOT_TO_SAY,
+    };
+    if (weightMap[str]) return weightMap[str];
+    if (str.includes("_")) return `${str.replace(/_/g, "-")} ק"ג`;
+    return `${str} ק"ג`;
+  }
+
+  // Height / גובה
+  if (key === "height") {
+    if (typeof value === "number") return `${value} ס"מ`;
+    const str = String(value);
+    const heightMap: { [key: string]: string } = {
+      under_150: 'מתחת ל-150 ס"מ',
+      "150_160": '150-160 ס"מ',
+      "161_170": '161-170 ס"מ',
+      "171_180": '171-180 ס"מ',
+      "181_190": '181-190 ס"מ',
+      over_190: 'מעל 190 ס"מ',
+      prefer_not_to_say_height: VALUES.PREFER_NOT_TO_SAY,
+    };
+    if (heightMap[str]) return heightMap[str];
+    if (str.includes("_")) return `${str.replace(/_/g, "-")} ס"מ`;
+    return `${str} ס"מ`;
+  }
+
   // Fitness levels / רמות כושר
-  if (key === "fitness_level" || key === "experience_level") {
+  if (
+    key === "fitness_level" ||
+    key === "experience_level" ||
+    key === "experience"
+  ) {
     const levelMap: { [key: string]: string } = {
       beginner: VALUES.BEGINNER,
       intermediate: VALUES.INTERMEDIATE,
@@ -303,7 +350,44 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       expert: VALUES.EXPERT,
       competitive: VALUES.COMPETITIVE,
     };
-    return levelMap[value] || value;
+    return levelMap[value] || String(value);
+  }
+
+  // Goals (single) / מטרה
+  if (key === "goal") {
+    const goalMap: { [key: string]: string } = {
+      // Unified IDs
+      build_muscle: VALUES.MUSCLE_GAIN,
+      lose_weight: VALUES.WEIGHT_LOSS,
+      general_fitness: "כושר כללי",
+      athletic_performance: "ביצועים ספורטיביים",
+      // Legacy/alternate IDs
+      muscle_gain: VALUES.MUSCLE_GAIN,
+      strength_improvement: VALUES.STRENGTH_IMPROVEMENT,
+      endurance_improvement: VALUES.ENDURANCE_IMPROVEMENT,
+      general_health: VALUES.GENERAL_HEALTH,
+      fitness_maintenance: VALUES.FITNESS_MAINTENANCE,
+    };
+    return goalMap[value] || String(value);
+  }
+
+  // Goals (multiple) / מטרות
+  if (key === "goals" && Array.isArray(value)) {
+    const mapOne = (v: string) =>
+      (
+        ({
+          build_muscle: VALUES.MUSCLE_GAIN,
+          lose_weight: VALUES.WEIGHT_LOSS,
+          general_fitness: "כושר כללי",
+          athletic_performance: "ביצועים ספורטיביים",
+          muscle_gain: VALUES.MUSCLE_GAIN,
+          strength_improvement: VALUES.STRENGTH_IMPROVEMENT,
+          endurance_improvement: VALUES.ENDURANCE_IMPROVEMENT,
+          general_health: VALUES.GENERAL_HEALTH,
+          fitness_maintenance: VALUES.FITNESS_MAINTENANCE,
+        }) as const
+      )[v] || v;
+    return value.map((v: string) => mapOne(v)).join(", ");
   }
 
   // Primary goals / מטרות עיקריות
@@ -320,7 +404,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   }
 
   // Workout locations / מיקומי אימון
-  if (key === "workout_location") {
+  if (key === "workout_location" || key === "location") {
     const locationMap: { [key: string]: string } = {
       home: VALUES.HOME,
       gym: VALUES.GYM,
@@ -331,15 +415,33 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   }
 
   // Session durations / משכי מפגש
-  if (key === "session_duration") {
+  if (
+    key === "session_duration" ||
+    key === "duration" ||
+    key === "sessionDuration"
+  ) {
+    const norm = String(value)
+      .replace(/_/g, "-")
+      .replace("min", "min")
+      .replace("45-60", "45-60-min")
+      .replace("30-45", "30-45-min")
+      .replace("20-30", "20-30-min")
+      .replace("60_plus_min", "60-90-min")
+      .replace("60_plus", "60-90-min");
     const durationMap: { [key: string]: string } = {
       "20-30-min": VALUES.DURATION_20_30,
       "30-45-min": VALUES.DURATION_30_45,
       "45-60-min": VALUES.DURATION_45_60,
       "60-90-min": VALUES.DURATION_60_90,
       "90-plus-min": VALUES.DURATION_90_PLUS,
+      "15-30-min": VALUES.DURATION_20_30, // קרוב ביותר
+      "45_60_min": VALUES.DURATION_45_60,
     };
-    return durationMap[value] || value;
+    return (
+      durationMap[norm] ||
+      durationMap[String(value)] ||
+      String(value).replace(/_/g, "-")
+    );
   }
 
   // Workout frequencies / תדירויות אימון
@@ -352,6 +454,25 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       "6-plus-times": VALUES.FREQUENCY_6_PLUS,
     };
     return frequencyMap[value] || value;
+  }
+
+  // Frequency numeric -> add days suffix / תדירות מספרית -> הוסף "ימים"
+  if (key === "frequency") {
+    const n = Number(value);
+    if (!Number.isNaN(n) && n > 0) return `${n} ימים`;
+    return String(value);
+  }
+
+  // Diet preferences / תזונה
+  if (key === "diet" || key === "diet_type") {
+    const dietMap: { [key: string]: string } = {
+      none_diet: "אין הגבלות",
+      vegetarian: "צמחוני",
+      vegan: "טבעוני",
+      keto: "קטוגנית",
+      paleo: "פליאו",
+    };
+    return dietMap[String(value)] || String(value);
   }
 
   // Health statuses / מצבים בריאותיים
