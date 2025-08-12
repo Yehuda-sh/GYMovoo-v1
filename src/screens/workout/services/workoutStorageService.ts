@@ -131,7 +131,7 @@ class WorkoutDataService {
         const validation = workoutValidationService.validateWorkoutData(
           parsed.workout
         );
-        console.log("✅ Restored from backup");
+        console.warn("✅ Restored from backup");
         return validation.correctedData || parsed.workout;
       }
 
@@ -182,7 +182,7 @@ class WorkoutDataService {
             if (validation.correctedData) {
               validWorkouts.push(validation.correctedData);
             }
-          } catch (error) {
+          } catch {
             console.warn("Skipping corrupted workout data");
           }
         }
@@ -311,10 +311,10 @@ class WorkoutDataService {
             if (savedDate < cutoffDate) {
               await AsyncStorage.removeItem(key);
               result.deletedCount++;
-              console.log("🧹 Removed old workout data:", key);
+              console.warn("🧹 Removed old workout data:", key);
             }
           }
-        } catch (error) {
+        } catch {
           // נתונים פגומים - מחק
           await AsyncStorage.removeItem(key);
           result.deletedCount++;
@@ -330,7 +330,15 @@ class WorkoutDataService {
 
   // פונקציות עזר פרטיות
 
-  private async createBackup(workoutId: string, data: any): Promise<void> {
+  private async createBackup(
+    workoutId: string,
+    data: {
+      workout: WorkoutData;
+      version: string;
+      savedAt: string;
+      checksum: string;
+    }
+  ): Promise<void> {
     try {
       await AsyncStorage.setItem(
         `${this.BACKUP_DATA_KEY}_${workoutId}`,
@@ -346,7 +354,7 @@ class WorkoutDataService {
 
   private generateChecksum(workout: WorkoutData): string {
     // פשוט וחומר להפקת hash בסיסי
-    const data = JSON.stringify(workout);
+    const data = JSON.stringify(workout ?? {});
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
@@ -364,32 +372,45 @@ class WorkoutDataService {
     }
   }
 
-  private applyFilters(workouts: WorkoutData[], filters?: any): WorkoutData[] {
+  private applyFilters(
+    workouts: WorkoutData[],
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      minDuration?: number;
+      exerciseType?: string;
+    }
+  ): WorkoutData[] {
     if (!filters) return workouts;
 
     return workouts.filter((workout) => {
       // פילטר תאריכים
       if (filters.startDate) {
-        const workoutDate = new Date(workout.startTime);
+        const workoutDate = new Date(workout.startTime || 0);
         const filterDate = new Date(filters.startDate);
         if (workoutDate < filterDate) return false;
       }
 
       if (filters.endDate) {
-        const workoutDate = new Date(workout.startTime);
+        const workoutDate = new Date(workout.startTime || 0);
         const filterDate = new Date(filters.endDate);
         if (workoutDate > filterDate) return false;
       }
 
       // פילטר משך מינימלי
-      if (filters.minDuration && workout.duration < filters.minDuration) {
+      if (
+        typeof filters.minDuration === "number" &&
+        typeof workout.duration === "number" &&
+        workout.duration < filters.minDuration
+      ) {
         return false;
       }
 
       // פילטר סוג תרגיל
       if (filters.exerciseType) {
         const hasExerciseType = workout.exercises?.some(
-          (ex) => ex.category === filters.exerciseType
+          (ex: { category?: string } | undefined) =>
+            ex?.category === filters.exerciseType
         );
         if (!hasExerciseType) return false;
       }

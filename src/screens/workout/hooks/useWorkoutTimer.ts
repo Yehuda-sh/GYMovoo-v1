@@ -51,18 +51,23 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
   const [isRunning, setIsRunning] = useState(false);
   const [lastLap, setLastLap] = useState(0);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // תאימות בין RN/Web: טיפוס אינטרוול כללי
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
   // התחל טיימר עם שיפור דיוק - הגדרה מוקדמת
   // Start timer with improved accuracy - early definition
-  const startTimer = useCallback(() => {
-    if (!isMountedRef.current) return;
+  const startTimer = useCallback(
+    (baseElapsed?: number) => {
+      if (!isMountedRef.current) return;
 
-    setIsRunning(true);
-    startTimeRef.current = Date.now() - elapsedTime * 1000;
-  }, [elapsedTime]);
+      setIsRunning(true);
+      const base = typeof baseElapsed === "number" ? baseElapsed : elapsedTime;
+      startTimeRef.current = Date.now() - base * 1000;
+    },
+    [elapsedTime]
+  );
 
   // טען זמן מ-AsyncStorage עם useCallback לפתרון dependency warning
   // Load time from AsyncStorage with useCallback to fix dependency warning
@@ -71,9 +76,11 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
       const savedTime = await AsyncStorage.getItem(`workout_time_${workoutId}`);
       if (savedTime) {
         const parsed = JSON.parse(savedTime);
-        setElapsedTime(parsed.elapsed || 0);
+        const elapsed = parsed.elapsed || 0;
+        setElapsedTime(elapsed);
         if (parsed.isRunning) {
-          startTimer();
+          // אתחול לפי הזמן המשוחזר למניעת מרווח שגוי
+          startTimer(elapsed);
         }
       }
     } catch (error) {
@@ -144,8 +151,6 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
   // Update timer with higher accuracy and memory leak prevention
   useEffect(() => {
     if (isRunning) {
-      startTimeRef.current = Date.now() - elapsedTime * 1000;
-
       intervalRef.current = setInterval(() => {
         if (!isMountedRef.current) {
           return; // Prevent updates after unmount

@@ -34,7 +34,8 @@ import workoutErrorHandlingService from "./workoutErrorHandlingService";
 
 class AutoSaveService {
   private static instance: AutoSaveService;
-  private saveInterval: NodeJS.Timeout | null = null;
+  // Use ReturnType<typeof setInterval> for cross-env (RN/web) compatibility
+  private saveInterval: ReturnType<typeof setInterval> | null = null;
   private currentWorkoutId: string | null = null;
 
   // Singleton pattern
@@ -48,6 +49,10 @@ class AutoSaveService {
   // התחל שמירה אוטומטית
   // Start auto-save
   startAutoSave(workoutId: string, getWorkoutState: () => WorkoutData) {
+    // Ensure only one interval is active
+    if (this.saveInterval) {
+      this.stopAutoSave();
+    }
     this.currentWorkoutId = workoutId;
 
     // שמור מיד

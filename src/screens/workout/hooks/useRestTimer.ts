@@ -52,7 +52,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
   const [isPaused, setIsPaused] = useState(false);
   const [currentExerciseName, setCurrentExerciseName] = useState<string>();
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const endTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
   const lastVibrationRef = useRef<number>(0); // למניעת רטט חוזר

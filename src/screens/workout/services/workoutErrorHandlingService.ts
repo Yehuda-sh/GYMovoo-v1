@@ -61,7 +61,10 @@ class WorkoutErrorHandlingService {
     workout: WorkoutData,
     retryCallback: () => Promise<void>
   ): Promise<RecoveryStrategy> {
-    const errorObj = error as { code?: number; message?: string };
+    const errorObj: { code?: number; message?: string } =
+      typeof error === "object" && error !== null
+        ? (error as { code?: number; message?: string })
+        : { message: String(error) };
     const context: ErrorContext = {
       operation: "auto_save",
       workoutId: workout.id,
@@ -69,7 +72,10 @@ class WorkoutErrorHandlingService {
       additionalInfo: { workoutName: workout.name },
     };
 
-    this.logError(error as Error, context);
+    this.logError(
+      error instanceof Error ? error : new Error(errorObj.message || "error"),
+      context
+    );
 
     // טיפול בשגיאות מסד נתונים מלא (כמו ב-autoSaveService)
     if (errorObj?.code === 13 || errorObj?.message?.includes("SQLITE_FULL")) {
@@ -94,7 +100,7 @@ class WorkoutErrorHandlingService {
 
     // טיפול בשגיאות מכסת אחסון (כמו ב-autoSaveService)
     if (
-      errorObj?.message?.includes("storage full") ||
+      errorObj?.message?.toLowerCase?.().includes("storage full") ||
       errorObj?.message?.includes("QUOTA_EXCEEDED")
     ) {
       return {
@@ -109,8 +115,8 @@ class WorkoutErrorHandlingService {
 
     // שגיאות רשת
     if (
-      errorObj?.message?.includes("network") ||
-      errorObj?.message?.includes("timeout")
+      errorObj?.message?.toLowerCase?.().includes("network") ||
+      errorObj?.message?.toLowerCase?.().includes("timeout")
     ) {
       return {
         type: "retry",
@@ -153,9 +159,15 @@ class WorkoutErrorHandlingService {
       timestamp: new Date().toISOString(),
     };
 
-    this.logError(error as Error, context);
+    const errorObj: { message?: string } =
+      typeof error === "object" && error !== null
+        ? (error as { message?: string })
+        : { message: String(error) };
 
-    const errorObj = error as { message?: string };
+    this.logError(
+      error instanceof Error ? error : new Error(errorObj.message || "error"),
+      context
+    );
 
     // טיפול בשגיאות פירסור JSON (כמו בהיסטוריה)
     if (errorObj?.message?.includes("JSON")) {
@@ -176,8 +188,8 @@ class WorkoutErrorHandlingService {
 
     // שגיאות גישה לקובץ
     if (
-      errorObj?.message?.includes("permission") ||
-      errorObj?.message?.includes("access")
+      errorObj?.message?.toLowerCase?.().includes("permission") ||
+      errorObj?.message?.toLowerCase?.().includes("access")
     ) {
       return {
         success: false,

@@ -23,6 +23,10 @@
  * - PersonalRecord, ProgressData: Performance tracking
  */
 
+// === סוגי עזר כלליים ===
+// === General helper types ===
+export type ISODateString = string; // מייצג מחרוזת תאריך בפורמט ISO (לשקיפות קריאה בלבד)
+
 // === CORE WORKOUT BUILDING BLOCKS ===
 // === אבני יסוד לבניית אימונים ===
 
@@ -69,8 +73,8 @@ export interface Exercise {
 export interface WorkoutData {
   id: string;
   name: string;
-  startTime: string;
-  endTime?: string;
+  startTime: ISODateString;
+  endTime?: ISODateString;
   duration: number; // בשניות
   exercises: Exercise[];
   totalVolume: number;
@@ -94,8 +98,8 @@ export interface WorkoutPlan {
   duration: number; // משך משוער בדקות
   frequency: number; // פעמים בשבוע
   workouts: WorkoutTemplate[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
   tags?: string[];
 }
 
@@ -126,7 +130,7 @@ export interface ExerciseTemplate {
 // נתוני התקדמות פיזית
 // Physical progress data
 export interface ProgressData {
-  date: string;
+  date: ISODateString;
   weight?: number;
   bodyFat?: number;
   measurements?: {
@@ -151,7 +155,7 @@ export interface PerformanceData {
 // רשומת ביצוע
 // Performance entry
 export interface PerformanceEntry {
-  date: string;
+  date: ISODateString;
   sets: Set[];
   totalVolume: number;
   maxWeight: number;
@@ -163,7 +167,7 @@ export interface PerformanceEntry {
 // Save state
 export interface WorkoutDraft {
   workout: WorkoutData;
-  lastSaved: string;
+  lastSaved: ISODateString;
   version: number;
 }
 
@@ -204,7 +208,7 @@ export interface WorkoutWithFeedback {
     difficulty: number; // 1-5 stars
     feeling: string; // emoji value
     readyForMore: boolean | null;
-    completedAt: string; // ISO string
+    completedAt: ISODateString; // ISO string
     genderAdaptedNotes?: string; // הערות מותאמות למגדר המשתמש
     congratulationMessage?: string; // הודעת ברכה מותאמת למגדר
   };
@@ -216,9 +220,9 @@ export interface WorkoutWithFeedback {
     personalRecords: number;
   };
   // זמנים מתקדמים
-  startTime?: string; // זמן התחלת האימון
-  endTime?: string; // זמן סיום האימון
-  actualStartTime?: string; // זמן התחלה אמיתי (יכול להיות שונה מהמתוכנן)
+  startTime?: ISODateString; // זמן התחלת האימון
+  endTime?: ISODateString; // זמן סיום האימון
+  actualStartTime?: ISODateString; // זמן התחלה אמיתי (יכול להיות שונה מהמתוכנן)
   // מטא-דאטה מורחבת
   metadata?: {
     deviceInfo: {
@@ -232,6 +236,10 @@ export interface WorkoutWithFeedback {
   };
 }
 
+// אליאסים שימושיים לייצוא חוזים בין שירותים
+export type WorkoutFeedback = WorkoutWithFeedback["feedback"];
+export type WorkoutStats = WorkoutWithFeedback["stats"];
+
 // ביצועים קודמים לתצוגה באימון הבא
 // Previous performance for display in next workout
 export interface PreviousPerformance {
@@ -240,7 +248,7 @@ export interface PreviousPerformance {
     weight: number;
     reps: number;
   }>;
-  date: string;
+  date: ISODateString;
   // שיאים אישיים
   personalRecords: {
     maxWeight: number; // המשקל הגבוה ביותר שנרשם
@@ -257,7 +265,7 @@ export interface PersonalRecord {
   type: "weight" | "volume" | "reps"; // סוג השיא
   value: number;
   previousValue: number;
-  date: string;
+  date: ISODateString;
   improvement: number; // שיפור באחוזים או בערך מוחלט
 }
 
@@ -267,9 +275,9 @@ export interface WorkoutHistoryItem {
   id: string;
   type?: string;
   workoutName?: string;
-  date?: string;
-  completedAt?: string;
-  startTime?: string;
+  date?: ISODateString;
+  completedAt?: ISODateString;
+  startTime?: ISODateString;
   duration?: number;
   icon?: string;
   rating?: number;

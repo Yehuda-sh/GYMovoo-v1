@@ -44,7 +44,7 @@ export * from "../navigation/types";
 
 // טיפוסי אימון
 export * from "../screens/workout/types/workout.types";
-export * from "../screens/workout/components/types";
+export * as WorkoutComponentTypes from "../screens/workout/components/types";
 
 // =======================================
 // 🏋️ Workout Plan & Subscription System

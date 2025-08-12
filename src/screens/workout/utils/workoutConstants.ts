@@ -8,6 +8,33 @@
 // ✅ Import PersonalData from central utils
 import { PersonalData } from "../../../utils/personalDataUtils";
 
+// טיפוסים מחזקים להחזרת פונקציות (ניתנים לעדכון פנימי)
+export type RestTimes = {
+  compound: number;
+  isolation: number;
+  cardio: number;
+  abs: number;
+  warmup: number;
+};
+
+export type RpeRange = { min: number; max: number; description: string };
+export type RpeRecommendations = {
+  warmup: RpeRange;
+  working: RpeRange;
+  intensity: RpeRange;
+  maxEffort: RpeRange;
+};
+
+export type StartingWeights = {
+  squat: number;
+  deadlift: number;
+  benchPress: number;
+  overheadPress: number;
+  row: number;
+  curl: number;
+  lateralRaise: number;
+};
+
 // ===== Helpers: normalize ranges from different ID schemes =====
 // Support both unifiedQuestionnaire (e.g., "51_65", "over_65", "under_50")
 // and personalDataUtils (e.g., "55_64", "65_plus", "70_79").
@@ -68,17 +95,19 @@ const getWeightCategory = (weight?: string): "low" | "mid" | "high" => {
 
 // זמני מנוחה דיפולטיביים לפי סוג תרגיל (בשניות)
 // Default rest times by exercise type (in seconds)
-export const DEFAULT_REST_TIMES = {
+export const DEFAULT_REST_TIMES: RestTimes = {
   compound: 180, // תרגילים מורכבים (סקוואט, דדליפט)
   isolation: 90, // תרגילי בידוד
   cardio: 60, // תרגילי קרדיו
   abs: 45, // תרגילי בטן
   warmup: 30, // חימום
-} as const;
+};
 
 // ✅ זמני מנוחה מותאמים אישית
-export const getPersonalizedRestTimes = (personalData?: PersonalData) => {
-  const baseTimes = { ...DEFAULT_REST_TIMES };
+export const getPersonalizedRestTimes = (
+  personalData?: PersonalData
+): RestTimes => {
+  const baseTimes: RestTimes = { ...DEFAULT_REST_TIMES };
 
   if (!personalData) return baseTimes;
 
@@ -132,8 +161,8 @@ export const RPE_SCALE = [
 // ✅ המלצות RPE מותאמות אישית
 export const getPersonalizedRPERecommendations = (
   personalData?: PersonalData
-) => {
-  const recommendations = {
+): RpeRecommendations => {
+  const recommendations: RpeRecommendations = {
     warmup: { min: 6, max: 7, description: "חימום קל" },
     working: { min: 7.5, max: 8.5, description: "סטי עבודה" },
     intensity: { min: 8.5, max: 9.5, description: "סטים אינטנסיביים" },
@@ -387,8 +416,10 @@ export const PLATE_WEIGHTS = [
 ] as const;
 
 // ✅ המלצות משקל התחלתי מותאמות אישית
-export const getPersonalizedStartingWeights = (personalData?: PersonalData) => {
-  const recommendations = {
+export const getPersonalizedStartingWeights = (
+  personalData?: PersonalData
+): StartingWeights => {
+  const recommendations: StartingWeights = {
     // משקלים בק"ג לתרגילים בסיסיים
     squat: 20,
     deadlift: 25,

@@ -1222,7 +1222,6 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
     return exerciseTemplates;
   };
-};
 
   const getMuscleGroupsForDay = (dayName: string): string[] => {
     console.log(
