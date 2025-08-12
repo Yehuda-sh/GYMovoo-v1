@@ -28,6 +28,27 @@ jest.mock("@expo/vector-icons", () => ({
 // Mock Animated from react-native
 jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
 
+// Mock react-native-reanimated (נדרש כדי למנוע אזהרות/שגיאות ב-Jest)
+jest.mock("react-native-reanimated", () =>
+  require("react-native-reanimated/mock")
+);
+
+// Mock expo-modules-core (מונע שגיאות ESM כמו "Cannot use import statement outside a module")
+jest.mock("expo-modules-core", () => ({
+  NativeModulesProxy: {},
+  EventEmitter: class MockEventEmitter {
+    addListener() {
+      return { remove: () => undefined };
+    }
+    removeAllListeners() {}
+  },
+  requireNativeModule: () => ({}),
+  requireNativeViewManager: () => ({}),
+}));
+
+// Mock ל-polyfill בעייתי של RN שנכשל בפרסינג בסביבת Jest
+jest.mock("@react-native/js-polyfills/error-guard", () => ({}));
+
 // Suppress console warnings in tests
 global.console = {
   ...console,

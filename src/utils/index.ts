@@ -56,3 +56,9 @@ export { logger, workoutLogger } from "./logger";
 // קבועי תרגילים (מ-constants/)
 // =======================================
 // Note: Muscle groups are available in src/constants/exercise.ts and exercisesScreenTexts.ts
+
+// =======================================
+// 🧩 Equipment helpers (icons & names)
+// עוזרי ציוד (אייקונים ושמות)
+// =======================================
+export * from "./equipmentIconMapping";

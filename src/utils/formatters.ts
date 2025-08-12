@@ -9,6 +9,7 @@
  */
 
 import { MAIN_SCREEN_TEXTS } from "../constants/mainScreenTexts";
+import { getEquipmentHebrewName } from "./equipmentIconMapping";
 
 // ===============================================
 // 📊 Number Formatters - פורמטי מספרים
@@ -325,16 +326,9 @@ export const formatEquipmentList = (equipment: string[]): string => {
   if (!equipment || equipment.length === 0) {
     return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
-
-  const equipmentMap: { [key: string]: string } = {
-    full_gym: MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FULL_GYM,
-    dumbbells: MAIN_SCREEN_TEXTS.QUESTIONNAIRE.DUMBBELLS,
-    barbell: MAIN_SCREEN_TEXTS.QUESTIONNAIRE.BARBELL,
-    bodyweight: MAIN_SCREEN_TEXTS.QUESTIONNAIRE.BODYWEIGHT,
-    resistance_bands: MAIN_SCREEN_TEXTS.QUESTIONNAIRE.RESISTANCE_BANDS,
-  };
-
-  return equipment.map((eq) => equipmentMap[eq] || eq).join(", ");
+  // מניעת כפילויות ושימוש בשמות עבריים אחודים מהמערכת
+  const uniqueList = Array.from(new Set(equipment.filter(Boolean)));
+  return uniqueList.map((eq) => getEquipmentHebrewName(eq)).join(", ");
 };
 
 export default {

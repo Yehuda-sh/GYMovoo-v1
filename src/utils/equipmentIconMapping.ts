@@ -53,6 +53,8 @@ export const EQUIPMENT_ICON_MAP: Record<string, string> = {
   bench: "table-chair",
   squat_rack: "gate",
   preacher_curl: "chair-school",
+  // אליאס תואם לשאלון המאוחד
+  bench_press: "table-chair",
 
   // ברירת מחדל / Default
   default: "help-circle-outline",
@@ -92,6 +94,8 @@ export const EQUIPMENT_HEBREW_NAMES: Record<string, string> = {
   bench: "ספסל",
   squat_rack: "מתקן סקוואט",
   preacher_curl: "ספסל כיפופים",
+  // אליאס תואם לשאלון המאוחד
+  bench_press: "ספסל דחיפה",
 };
 
 /**
