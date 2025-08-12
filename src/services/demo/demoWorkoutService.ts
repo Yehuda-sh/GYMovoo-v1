@@ -33,6 +33,68 @@ class DemoWorkoutService {
   }
 
   /**
+   * ממפה מזהי ציוד מהשאלון המאוחד לערכים פנימיים שמנוע הסימולציה תומך בהם
+   * unified → internal (simulation)
+   */
+  private mapUnifiedEquipmentToInternal(equipment: string[] = []): string[] {
+    if (!Array.isArray(equipment) || equipment.length === 0) return ["none"];
+
+    const result = new Set<string>();
+    for (const id of equipment) {
+      switch (id) {
+        case "bodyweight_only":
+        case "mat_available":
+        case "yoga_mat":
+        case "trx":
+        case "resistance_bands":
+        case "chair_available":
+        case "wall_space":
+        case "stairs_available":
+        case "towel_available":
+        case "water_bottles":
+        case "pillow_available":
+        case "table_sturdy":
+        case "backpack_heavy":
+        case "water_gallon":
+        case "sandbag":
+        case "tire":
+          result.add("none");
+          break;
+        case "free_weights":
+          result.add("barbell");
+          result.add("dumbbells");
+          break;
+        case "dumbbells":
+          result.add("dumbbells");
+          break;
+        case "pullup_bar":
+          // אין סוג יעודי במנוע – נשען על bodyweight
+          result.add("none");
+          break;
+        // ציודי חדר כושר שאינם ממופים במנוע – נשמור לוגיקה ניטרלית
+        case "cable_machine":
+        case "squat_rack":
+        case "bench_press":
+        case "leg_press":
+        case "lat_pulldown":
+        case "smith_machine":
+        case "rowing_machine":
+        case "treadmill":
+        case "bike":
+          // שמירה על אפשרות bodyweight כברירת מחדל
+          result.add("none");
+          break;
+        default:
+          result.add("none");
+      }
+    }
+
+    // הבטחת לפחות ערך אחד מוכר
+    if (result.size === 0) result.add("none");
+    return Array.from(result);
+  }
+
+  /**
    * ✅ יצירת היסטוריית אימוני דמו מבוססת על נתוני משתמש אמיתיים
    * @description שכבת תיווך חכמה המחלצת נתוני משתמש ומעבירה לשירות הסימולציה
    * @param user - נתוני משתמש אמיתיים לחילוץ מגדר, ניסיון וציוד
@@ -51,22 +113,58 @@ class DemoWorkoutService {
       return this.generateDemoWorkoutHistory();
     }
 
-    // שימוש בנתוני המשתמש האמיתיים
+    // שימוש בנתוני המשתמש האמיתיים (עדיפות לשאלון המאוחד)
+    const smart = user.smartQuestionnaireData?.answers as
+      | {
+          gender?: string;
+          fitnessLevel?: "beginner" | "intermediate" | "advanced";
+          experience?: "beginner" | "intermediate" | "advanced";
+          equipment?: string[];
+          gym_equipment?: string[];
+        }
+      | undefined;
+
     const gender =
-      user.preferences?.gender || user.questionnaire?.["1"] || "other";
-    const experience = user.questionnaire?.["3"] || "beginner";
-    const equipment = (user.questionnaire?.["4"] as string[]) || ["none"];
+      (smart?.gender as UserGender | undefined) ||
+      (user.preferences?.gender as UserGender | undefined) ||
+      (user.questionnaire?.["1"] as UserGender | undefined) ||
+      "other";
+
+    const experience =
+      smart?.fitnessLevel ||
+      (smart?.experience as
+        | "beginner"
+        | "intermediate"
+        | "advanced"
+        | undefined) ||
+      (user.questionnaire?.["3"] as
+        | "beginner"
+        | "intermediate"
+        | "advanced"
+        | undefined) ||
+      "beginner";
+
+    const unifiedEquip = (Array.isArray(smart?.equipment) &&
+    smart?.equipment?.length
+      ? smart?.equipment
+      : Array.isArray(smart?.gym_equipment) && smart?.gym_equipment?.length
+        ? smart?.gym_equipment
+        : (user.questionnaire?.["4"] as string[] | undefined)) || [
+      "bodyweight_only",
+    ];
+
+    const internalEquipment = this.mapUnifiedEquipmentToInternal(unifiedEquip);
 
     console.warn("🔍 Using real user data for demo:", {
       gender,
       experience,
-      equipment: equipment.length,
+      equipment: unifiedEquip.length,
     });
 
     return await workoutSimulationService.simulateHistoryCompatibleWorkouts(
       gender as UserGender,
       experience as "beginner" | "intermediate" | "advanced",
-      equipment
+      internalEquipment
     );
   }
 
@@ -89,10 +187,13 @@ class DemoWorkoutService {
     // אם לא סופקו פרמטרים, יצור משתמש דמו
     if (!gender || !experience) {
       const demoUser = demoUserService.generateDemoUser();
+      const internal = this.mapUnifiedEquipmentToInternal(
+        equipment || demoUser.equipment
+      );
       return await workoutSimulationService.simulateHistoryCompatibleWorkouts(
         demoUser.gender,
         demoUser.experience,
-        equipment || demoUser.equipment
+        internal
       );
     }
 
@@ -100,7 +201,9 @@ class DemoWorkoutService {
     return await workoutSimulationService.simulateHistoryCompatibleWorkouts(
       gender,
       experience,
-      equipment || this.getDefaultEquipment(experience)
+      this.mapUnifiedEquipmentToInternal(
+        equipment || this.getDefaultEquipment(experience)
+      )
     );
   }
 
@@ -115,13 +218,13 @@ class DemoWorkoutService {
   ): string[] {
     switch (experience) {
       case "beginner":
-        return ["none"];
+        return ["bodyweight_only"]; // ימופה ל-none
       case "intermediate":
-        return ["none", "dumbbells"];
+        return ["bodyweight_only", "dumbbells"]; // dumbbells מוכר במנוע
       case "advanced":
-        return ["none", "dumbbells", "barbell"];
+        return ["bodyweight_only", "dumbbells", "free_weights"]; // free_weights ימופה ל-barbell+dumbbells
       default:
-        return ["none"];
+        return ["bodyweight_only"];
     }
   }
 }

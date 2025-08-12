@@ -807,12 +807,13 @@ class DemoUserService {
   }
 
   private generateEquipment(experience: string): string[] {
-    const basicEquipment: string[] = ["none"];
-    const intermediateEquipment: string[] = ["none", "dumbbells", "barbell"];
+    // מזהים תואמים לשאלון המאוחד
+    const basicEquipment: string[] = ["bodyweight_only"]; // ימופה ל-none
+    const intermediateEquipment: string[] = ["bodyweight_only", "dumbbells"];
     const advancedEquipment: string[] = [
-      "none",
+      "bodyweight_only",
       "dumbbells",
-      "barbell",
+      "free_weights", // ימופה ל-barbell+dumbbells
       "cable_machine",
       "leg_press",
     ];

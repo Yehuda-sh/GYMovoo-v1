@@ -37,10 +37,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList, WorkoutSource } from "../../navigation/types";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // New imports for optimized components and constants
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
-import DayButton, { DayButtonGrid } from "../../components/common/DayButton";
+import { DayButtonGrid } from "../../components/common/DayButton";
 import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
@@ -67,29 +68,9 @@ type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
-/** @description טיפוס נגישות לכפתורים / Accessibility type for buttons */
-interface AccessibilityProps {
-  accessibilityLabel: string;
-  accessibilityHint?: string;
-  accessibilityRole?: "button" | "text" | "header";
-}
+// (הוסר טיפוס נגישות פנימי לא בשימוש)
 
-/** @description טיפוס עבור workout בהיסטוריה / Type for workout in history */
-interface WorkoutHistoryItem {
-  id: string;
-  type?: string;
-  workoutName?: string;
-  date?: string;
-  completedAt?: string;
-  startTime?: string;
-  duration?: number;
-  icon?: string;
-  rating?: number;
-  feedback?: {
-    rating?: number;
-  };
-  [key: string]: unknown; // Allow additional properties
-}
+// הוסר טיפוס פנימי לא בשימוש למניעת אזהרות לינט
 
 /** @description טיפוס עבור תשובות שאלון עם השדות הנפוצים / Type for questionnaire answers */
 interface QuestionnaireAnswers {
@@ -151,8 +132,11 @@ function MainScreen() {
   /** @description מספר ימי האימון על בסיס השאלון / Number of training days based on questionnaire */
   const availableTrainingDays = useMemo(() => {
     // נסה לחלץ מהשאלון החדש
-    const answers = user?.questionnaireData?.answers as any;
-    const availability = answers?.availability?.[0];
+    type SmartAnswers = QuestionnaireAnswers & { availability?: string[] };
+    const answers = (user?.questionnaireData?.answers || {}) as SmartAnswers;
+    const availability = Array.isArray(answers.availability)
+      ? answers.availability[0]
+      : undefined;
 
     if (availability) {
       switch (availability) {
@@ -170,7 +154,9 @@ function MainScreen() {
     }
 
     // fallback - נסה לחלץ מהשאלון הישן (questionnaire.frequency)
-    const oldQuestionnaire = user?.questionnaire as any;
+    const oldQuestionnaire = (user?.questionnaire || {}) as {
+      frequency?: string;
+    };
     const frequency = oldQuestionnaire?.frequency;
 
     if (frequency) {
@@ -336,7 +322,7 @@ function MainScreen() {
   }, []);
 
   const handleStartWorkout = useCallback(() => {
-    console.log("🚀 MainScreen - התחל אימון מהיר נלחץ!");
+    console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!");
     navigation.navigate("WorkoutPlans", {
       autoStart: true,
     });
@@ -344,7 +330,7 @@ function MainScreen() {
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
-      console.log(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
+      console.warn(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
       navigation.navigate("WorkoutPlans", {
         preSelectedDay: dayNumber,
         autoStart: true,
@@ -362,87 +348,324 @@ function MainScreen() {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      {/* מציג שגיאה אם יש */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={onRefresh}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="נסה שוב"
-            accessibilityHint="לחץ כדי לרענן ולנסות לטעון מחדש"
-          >
-            <Text style={styles.retryButtonText}>
-              {MAIN_SCREEN_TEXTS.ACTIONS.TRY_AGAIN}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* מציג אינדיקטור טעינה */}
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>
-            {MAIN_SCREEN_TEXTS.STATUS.LOADING_DATA}
-          </Text>
-        </View>
-      )}
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
-          />
-        }
-      >
-        {/* כותרת עם ברוכים הבאים */}
-        <Animated.View
-          style={[
-            styles.welcomeSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <View style={styles.welcomeHeader}>
-            <View style={styles.welcomeText}>
-              <Text style={styles.greetingText}>{timeBasedGreeting}</Text>
-              <Text style={styles.userName}>{displayName}</Text>
-            </View>
-            <View style={styles.profileContainer}>
-              <TouchableOpacity
-                style={styles.profileButton}
-                onPress={handleProfilePress}
-                accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
-                accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
-                accessibilityRole="button"
-              >
-                <Text style={styles.profileInitials}>
-                  {displayName.charAt(0).toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            </View>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "right", "left", "bottom"]}
+    >
+      <View style={styles.container}>
+        {/* מציג שגיאה אם יש */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={onRefresh}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="נסה שוב"
+              accessibilityHint="לחץ כדי לרענן ולנסות לטעון מחדש"
+            >
+              <Text style={styles.retryButtonText}>
+                {MAIN_SCREEN_TEXTS.ACTIONS.TRY_AGAIN}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.motivationText}>
-            {MAIN_SCREEN_TEXTS.WELCOME.READY_TO_WORKOUT}
-          </Text>
-        </Animated.View>
+        )}
 
-        {/* סטטיסטיקות מדעיות חדשות */}
-        {(stats.totalWorkouts > 0 || profileData.scientificProfile) && (
+        {/* מציג אינדיקטור טעינה */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>
+              {MAIN_SCREEN_TEXTS.STATUS.LOADING_DATA}
+            </Text>
+          </View>
+        )}
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
+        >
+          {/* כותרת עם ברוכים הבאים */}
           <Animated.View
             style={[
-              styles.scientificStatsSection,
+              styles.welcomeSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.welcomeHeader}>
+              <View style={styles.welcomeText}>
+                <Text style={styles.greetingText}>{timeBasedGreeting}</Text>
+                <Text style={styles.userName}>{displayName}</Text>
+              </View>
+              <View style={styles.profileContainer}>
+                <TouchableOpacity
+                  style={styles.profileButton}
+                  onPress={handleProfilePress}
+                  accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
+                  accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.profileInitials}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Text style={styles.motivationText}>
+              {MAIN_SCREEN_TEXTS.WELCOME.READY_TO_WORKOUT}
+            </Text>
+          </Animated.View>
+
+          {/* סטטיסטיקות מדעיות חדשות */}
+          {(stats.totalWorkouts > 0 || profileData.scientificProfile) && (
+            <Animated.View
+              style={[
+                styles.scientificStatsSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <Text style={styles.sectionTitle}>
+                {MAIN_SCREEN_TEXTS.SECTIONS.SCIENTIFIC_DATA}
+              </Text>
+
+              <StatCardGrid testID="scientific-stats-grid">
+                <StatCard
+                  variant="scientific"
+                  icon="trophy"
+                  iconColor={theme.colors.primary}
+                  value={stats.totalWorkouts}
+                  label={MAIN_SCREEN_TEXTS.STATS.WORKOUTS_COMPLETED}
+                  testID="workouts-completed-card"
+                />
+
+                <StatCard
+                  variant="scientific"
+                  icon="fire"
+                  iconColor={theme.colors.warning}
+                  value={stats.currentStreak}
+                  label={MAIN_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                  testID="streak-days-card"
+                />
+
+                <StatCard
+                  variant="scientific"
+                  icon="weight-lifter"
+                  iconColor={theme.colors.success}
+                  value={formatLargeNumber(stats.totalVolume)}
+                  label={MAIN_SCREEN_TEXTS.STATS.TOTAL_VOLUME}
+                  testID="total-volume-card"
+                />
+
+                <StatCard
+                  variant="scientific"
+                  icon="star"
+                  iconColor={theme.colors.warning}
+                  value={formatRating(stats.averageRating)}
+                  label={MAIN_SCREEN_TEXTS.STATS.AVERAGE_RATING}
+                  testID="average-rating-card"
+                />
+              </StatCardGrid>
+
+              {/* פרופיל מדעי - תשובות שאלון */}
+              {profileData.scientificProfile && (
+                <View style={styles.questionnaireAnswersCard}>
+                  <Text style={styles.questionnaireTitle}>
+                    {MAIN_SCREEN_TEXTS.SECTIONS.QUESTIONNAIRE_DETAILS}
+                  </Text>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AGE}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "age_range",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.age_range
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.GENDER}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "gender",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.gender
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.PRIMARY_GOAL}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "primary_goal",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.primary_goal
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FITNESS_EXPERIENCE}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "fitness_experience",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.fitness_experience
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.WORKOUT_LOCATION}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "workout_location",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.workout_location
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.SESSION_DURATION}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "session_duration",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.session_duration
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FREQUENCY}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "available_days",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.available_days
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AVAILABLE_EQUIPMENT}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "available_equipment",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.available_equipment
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerRow}>
+                    <Text style={styles.answerLabel}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.HEALTH_STATUS}
+                    </Text>
+                    <Text style={styles.answerValue}>
+                      {formatQuestionnaireValue(
+                        "health_status",
+                        (
+                          user?.questionnaireData
+                            ?.answers as QuestionnaireAnswers
+                        )?.health_status
+                      )}
+                    </Text>
+                  </View>
+
+                  {/* הערה על השם */}
+                  <View style={styles.noteContainer}>
+                    <MaterialCommunityIcons
+                      name="information"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.noteText}>
+                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.DEMO_NOTE}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* רמת כושר ו-AI recommendations */}
+              <View style={styles.aiInsightCard}>
+                <View style={styles.fitnessLevelBadge}>
+                  <Text style={styles.fitnessLevelText}>
+                    {MAIN_SCREEN_TEXTS.STATS.FITNESS_LEVEL}{" "}
+                    {formatFitnessLevel(stats.fitnessLevel)}
+                  </Text>
+                </View>
+
+                {profileData.aiRecommendations?.quickTip && (
+                  <View style={styles.aiTipContainer}>
+                    <MaterialCommunityIcons
+                      name="lightbulb"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.aiTipText}>
+                      {profileData.aiRecommendations.quickTip}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* בחירת יום אימון עם המלצה דינמית */}
+          <Animated.View
+            style={[
+              styles.daySelectionSection,
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
@@ -450,375 +673,245 @@ function MainScreen() {
             ]}
           >
             <Text style={styles.sectionTitle}>
-              {MAIN_SCREEN_TEXTS.SECTIONS.SCIENTIFIC_DATA}
+              {MAIN_SCREEN_TEXTS.SECTIONS.SELECT_DAY_RECOMMENDED(
+                getNextRecommendedDay
+              )}
             </Text>
 
-            <StatCardGrid testID="scientific-stats-grid">
+            {/* הוספת הערה על ההמלצה */}
+            <View style={styles.recommendationNote}>
+              <MaterialCommunityIcons
+                name="lightbulb"
+                size={16}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.recommendationText}>
+                בהתבסס על האימון האחרון שלך, אנו ממליצים להמשיך ליום{" "}
+                {getNextRecommendedDay}
+              </Text>
+            </View>
+
+            <DayButtonGrid
+              days={daysToShow}
+              onDayPress={handleDayWorkout}
+              variant="default"
+              testID="day-selection-grid"
+            />
+
+            {/* כפתור אימון מהיר */}
+            <TouchableOpacity
+              style={styles.quickWorkoutButton}
+              onPress={handleStartWorkout}
+              accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
+              accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons
+                name="flash"
+                size={20}
+                color={theme.colors.surface}
+                accessibilityElementsHidden={true}
+              />
+              <Text style={styles.quickWorkoutText}>
+                {MAIN_SCREEN_TEXTS.ACTIONS.START_QUICK_WORKOUT}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* סטטוס שלך */}
+          <Animated.View
+            style={[
+              styles.statsSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>
+              {MAIN_SCREEN_TEXTS.SECTIONS.YOUR_STATUS}
+            </Text>
+
+            <View style={styles.statsGrid}>
               <StatCard
-                variant="scientific"
-                icon="trophy"
-                iconColor={theme.colors.primary}
-                value={stats.totalWorkouts}
-                label={MAIN_SCREEN_TEXTS.STATS.WORKOUTS_COMPLETED}
-                testID="workouts-completed-card"
+                variant="progress"
+                value={weeklyProgressData.text}
+                label={MAIN_SCREEN_TEXTS.STATS.WEEKLY_GOAL}
+                subtitle={formatProgressRatio(
+                  profileData.activityHistory?.weeklyProgress || 0,
+                  availableTrainingDays, // משתמש בימים מהשאלון
+                  MAIN_SCREEN_TEXTS.ACTIONS.WORKOUTS
+                )}
+                showProgress={true}
+                progressValue={weeklyProgressData.percentage}
+                testID="weekly-goal-card"
               />
 
               <StatCard
-                variant="scientific"
+                variant="default"
                 icon="fire"
-                iconColor={theme.colors.warning}
-                value={stats.currentStreak}
-                label={MAIN_SCREEN_TEXTS.STATS.STREAK_DAYS}
-                testID="streak-days-card"
+                iconColor={theme.colors.primary}
+                value={
+                  profileData.currentStats?.currentStreak ||
+                  profileData.currentStats?.workoutStreak ||
+                  0
+                }
+                label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}
+                subtitle={MAIN_SCREEN_TEXTS.STATS.DAYS}
+                testID="current-streak-card"
               />
 
               <StatCard
-                variant="scientific"
-                icon="weight-lifter"
-                iconColor={theme.colors.success}
-                value={formatLargeNumber(stats.totalVolume)}
-                label={MAIN_SCREEN_TEXTS.STATS.TOTAL_VOLUME}
-                testID="total-volume-card"
+                variant="default"
+                icon="chart-line"
+                iconColor={theme.colors.primary}
+                value={
+                  profileData.activityHistory?.workouts?.length ||
+                  profileData.currentStats?.totalWorkouts ||
+                  0
+                }
+                label={MAIN_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                testID="total-workouts-card"
               />
-
-              <StatCard
-                variant="scientific"
-                icon="star"
-                iconColor={theme.colors.warning}
-                value={formatRating(stats.averageRating)}
-                label={MAIN_SCREEN_TEXTS.STATS.AVERAGE_RATING}
-                testID="average-rating-card"
-              />
-            </StatCardGrid>
-
-            {/* פרופיל מדעי - תשובות שאלון */}
-            {profileData.scientificProfile && (
-              <View style={styles.questionnaireAnswersCard}>
-                <Text style={styles.questionnaireTitle}>
-                  {MAIN_SCREEN_TEXTS.SECTIONS.QUESTIONNAIRE_DETAILS}
-                </Text>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AGE}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "age_range",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.age_range
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.GENDER}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "gender",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.gender
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.PRIMARY_GOAL}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "primary_goal",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.primary_goal
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FITNESS_EXPERIENCE}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "fitness_experience",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.fitness_experience
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.WORKOUT_LOCATION}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "workout_location",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.workout_location
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.SESSION_DURATION}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "session_duration",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.session_duration
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FREQUENCY}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "available_days",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.available_days
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AVAILABLE_EQUIPMENT}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "available_equipment",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.available_equipment
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.answerRow}>
-                  <Text style={styles.answerLabel}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.HEALTH_STATUS}
-                  </Text>
-                  <Text style={styles.answerValue}>
-                    {formatQuestionnaireValue(
-                      "health_status",
-                      (user?.questionnaireData?.answers as QuestionnaireAnswers)
-                        ?.health_status
-                    )}
-                  </Text>
-                </View>
-
-                {/* הערה על השם */}
-                <View style={styles.noteContainer}>
-                  <MaterialCommunityIcons
-                    name="information"
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.noteText}>
-                    {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.DEMO_NOTE}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* רמת כושר ו-AI recommendations */}
-            <View style={styles.aiInsightCard}>
-              <View style={styles.fitnessLevelBadge}>
-                <Text style={styles.fitnessLevelText}>
-                  {MAIN_SCREEN_TEXTS.STATS.FITNESS_LEVEL}{" "}
-                  {formatFitnessLevel(stats.fitnessLevel)}
-                </Text>
-              </View>
-
-              {profileData.aiRecommendations?.quickTip && (
-                <View style={styles.aiTipContainer}>
-                  <MaterialCommunityIcons
-                    name="lightbulb"
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.aiTipText}>
-                    {profileData.aiRecommendations.quickTip}
-                  </Text>
-                </View>
-              )}
             </View>
           </Animated.View>
-        )}
 
-        {/* בחירת יום אימון עם המלצה דינמית */}
-        <Animated.View
-          style={[
-            styles.daySelectionSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>
-            {MAIN_SCREEN_TEXTS.SECTIONS.SELECT_DAY_RECOMMENDED(
-              getNextRecommendedDay
-            )}
-          </Text>
-
-          {/* הוספת הערה על ההמלצה */}
-          <View style={styles.recommendationNote}>
-            <MaterialCommunityIcons
-              name="lightbulb"
-              size={16}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.recommendationText}>
-              בהתבסס על האימון האחרון שלך, אנו ממליצים להמשיך ליום{" "}
-              {getNextRecommendedDay}
-            </Text>
-          </View>
-
-          <DayButtonGrid
-            days={daysToShow}
-            onDayPress={handleDayWorkout}
-            variant="default"
-            testID="day-selection-grid"
-          />
-
-          {/* כפתור אימון מהיר */}
-          <TouchableOpacity
-            style={styles.quickWorkoutButton}
-            onPress={handleStartWorkout}
-            accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
-            accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
-            accessibilityRole="button"
+          {/* אימונים אחרונים */}
+          <Animated.View
+            style={[
+              styles.recentWorkoutsSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
           >
-            <MaterialCommunityIcons
-              name="flash"
-              size={20}
-              color={theme.colors.surface}
-              accessibilityElementsHidden={true}
-            />
-            <Text style={styles.quickWorkoutText}>
-              {MAIN_SCREEN_TEXTS.ACTIONS.START_QUICK_WORKOUT}
+            <Text style={styles.sectionTitle}>
+              {MAIN_SCREEN_TEXTS.SECTIONS.RECENT_WORKOUTS}
             </Text>
-          </TouchableOpacity>
-        </Animated.View>
 
-        {/* סטטוס שלך */}
-        <Animated.View
-          style={[
-            styles.statsSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>
-            {MAIN_SCREEN_TEXTS.SECTIONS.YOUR_STATUS}
-          </Text>
+            <View style={styles.recentWorkoutsList}>
+              {/* אימונים אמיתיים מההיסטוריה */}
+              {profileData.activityHistory?.workouts &&
+              profileData.activityHistory.workouts.length > 0
+                ? profileData.activityHistory.workouts
+                    .slice(0, 3)
+                    .map((workout: unknown, index: number) => {
+                      type MinimalWorkout = {
+                        id?: string;
+                        type?: string;
+                        workoutName?: string;
+                        date?: string | Date;
+                        completedAt?: string;
+                        duration?: number;
+                        rating?: number;
+                        startTime?: string;
+                        workout?: {
+                          name?: string;
+                          duration?: number;
+                          startTime?: string;
+                        };
+                        stats?: { duration?: number };
+                        feedback?: {
+                          difficulty?: number;
+                          completedAt?: string;
+                        };
+                      };
+                      const item = workout as MinimalWorkout;
+                      const title: string =
+                        item?.workout?.name ||
+                        item?.workoutName ||
+                        (item?.type === "strength"
+                          ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
+                          : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
 
-          <View style={styles.statsGrid}>
-            <StatCard
-              variant="progress"
-              value={weeklyProgressData.text}
-              label={MAIN_SCREEN_TEXTS.STATS.WEEKLY_GOAL}
-              subtitle={formatProgressRatio(
-                profileData.activityHistory?.weeklyProgress || 0,
-                availableTrainingDays, // משתמש בימים מהשאלון
-                MAIN_SCREEN_TEXTS.ACTIONS.WORKOUTS
-              )}
-              showProgress={true}
-              progressValue={weeklyProgressData.percentage}
-              testID="weekly-goal-card"
-            />
+                      const dateValue: string | Date =
+                        item?.feedback?.completedAt ||
+                        item?.date ||
+                        item?.completedAt ||
+                        new Date();
 
-            <StatCard
-              variant="default"
-              icon="fire"
-              iconColor={theme.colors.primary}
-              value={
-                profileData.currentStats?.currentStreak ||
-                profileData.currentStats?.workoutStreak ||
-                0
-              }
-              label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}
-              subtitle={MAIN_SCREEN_TEXTS.STATS.DAYS}
-              testID="current-streak-card"
-            />
+                      const durationMinutes: number | undefined = (() => {
+                        const seconds: number | undefined =
+                          typeof item?.workout?.duration === "number"
+                            ? item.workout.duration
+                            : typeof item?.stats?.duration === "number"
+                              ? item.stats.duration
+                              : typeof item?.duration === "number"
+                                ? item.duration
+                                : undefined;
+                        return typeof seconds === "number"
+                          ? Math.max(1, Math.round(seconds / 60))
+                          : undefined;
+                      })();
 
-            <StatCard
-              variant="default"
-              icon="chart-line"
-              iconColor={theme.colors.primary}
-              value={
-                profileData.activityHistory?.workouts?.length ||
-                profileData.currentStats?.totalWorkouts ||
-                0
-              }
-              label={MAIN_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-              testID="total-workouts-card"
-            />
-          </View>
-        </Animated.View>
+                      const startTime: string | undefined =
+                        item?.startTime || item?.workout?.startTime;
 
-        {/* אימונים אחרונים */}
-        <Animated.View
-          style={[
-            styles.recentWorkoutsSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>
-            {MAIN_SCREEN_TEXTS.SECTIONS.RECENT_WORKOUTS}
-          </Text>
+                      const iconName = getWorkoutIcon(
+                        item?.type,
+                        title
+                      ) as MaterialCommunityIconName;
 
-          <View style={styles.recentWorkoutsList}>
-            {/* אימונים אמיתיים מההיסטוריה */}
-            {profileData.activityHistory?.workouts &&
-            profileData.activityHistory.workouts.length > 0
-              ? profileData.activityHistory.workouts
-                  .slice(0, 3)
-                  .map((workout: WorkoutHistoryItem, index: number) => (
+                      const ratingValue: number =
+                        (typeof item?.feedback?.difficulty === "number"
+                          ? item.feedback.difficulty
+                          : undefined) ||
+                        item?.rating ||
+                        4.0;
+
+                      return (
+                        <View
+                          key={item?.id || `workout-${index}`}
+                          style={styles.recentWorkoutItem}
+                        >
+                          <View style={styles.workoutIcon}>
+                            <MaterialCommunityIcons
+                              name={iconName}
+                              size={24}
+                              color={theme.colors.primary}
+                            />
+                          </View>
+                          <View style={styles.workoutInfo}>
+                            <Text style={styles.workoutTitle}>{title}</Text>
+                            <Text style={styles.workoutDate}>
+                              {formatWorkoutDate(
+                                dateValue,
+                                durationMinutes,
+                                startTime
+                              )}
+                            </Text>
+                          </View>
+                          <View style={styles.workoutRating}>
+                            <MaterialCommunityIcons
+                              name="star"
+                              size={16}
+                              color={theme.colors.warning}
+                            />
+                            <Text style={styles.ratingText}>
+                              {formatRating(ratingValue)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                : // אם אין היסטוריה אמיתית - הצג אימונים דמו / If no real history - show demo workouts
+                  MAIN_SCREEN_TEXTS.DEMO_WORKOUTS.map((workout, index) => (
                     <View
-                      key={workout.id || `workout-${index}`}
+                      key={`demo-${index}`}
                       style={styles.recentWorkoutItem}
                     >
                       <View style={styles.workoutIcon}>
                         <MaterialCommunityIcons
-                          name={
-                            getWorkoutIcon(
-                              workout.type,
-                              workout.workoutName
-                            ) as any
-                          }
+                          name={workout.icon}
                           size={24}
                           color={theme.colors.primary}
+                          accessibilityElementsHidden={true}
                         />
                       </View>
                       <View style={styles.workoutInfo}>
-                        <Text style={styles.workoutTitle}>
-                          {workout.workoutName ||
-                            (workout.type === "strength"
-                              ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
-                              : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL)}
-                        </Text>
-                        <Text style={styles.workoutDate}>
-                          {formatWorkoutDate(
-                            workout.date || workout.completedAt || new Date(),
-                            workout.duration,
-                            workout.startTime
-                          )}
-                        </Text>
+                        <Text style={styles.workoutTitle}>{workout.name}</Text>
+                        <Text style={styles.workoutDate}>{workout.date}</Text>
                       </View>
                       <View style={styles.workoutRating}>
                         <MaterialCommunityIcons
@@ -826,65 +919,41 @@ function MainScreen() {
                           size={16}
                           color={theme.colors.warning}
                         />
-                        <Text style={styles.ratingText}>
-                          {formatRating(
-                            workout.feedback?.rating || workout.rating || 4.0
-                          )}
-                        </Text>
+                        <Text style={styles.ratingText}>{workout.rating}</Text>
                       </View>
                     </View>
-                  ))
-              : // אם אין היסטוריה אמיתית - הצג אימונים דמו / If no real history - show demo workouts
-                MAIN_SCREEN_TEXTS.DEMO_WORKOUTS.map((workout, index) => (
-                  <View key={`demo-${index}`} style={styles.recentWorkoutItem}>
-                    <View style={styles.workoutIcon}>
-                      <MaterialCommunityIcons
-                        name={workout.icon}
-                        size={24}
-                        color={theme.colors.primary}
-                        accessibilityElementsHidden={true}
-                      />
-                    </View>
-                    <View style={styles.workoutInfo}>
-                      <Text style={styles.workoutTitle}>{workout.name}</Text>
-                      <Text style={styles.workoutDate}>{workout.date}</Text>
-                    </View>
-                    <View style={styles.workoutRating}>
-                      <MaterialCommunityIcons
-                        name="star"
-                        size={16}
-                        color={theme.colors.warning}
-                      />
-                      <Text style={styles.ratingText}>{workout.rating}</Text>
-                    </View>
-                  </View>
-                ))}
-          </View>
+                  ))}
+            </View>
 
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={handleHistoryPress}
-            accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY}
-            accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY_HINT}
-            accessibilityRole="button"
-          >
-            <Text style={styles.viewAllText}>
-              {MAIN_SCREEN_TEXTS.ACTIONS.VIEW_ALL_HISTORY}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-left"
-              size={20}
-              color={theme.colors.primary}
-              accessibilityElementsHidden={true}
-            />
-          </TouchableOpacity>
-        </Animated.View>
-      </ScrollView>
-    </View>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={handleHistoryPress}
+              accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY}
+              accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY_HINT}
+              accessibilityRole="button"
+            >
+              <Text style={styles.viewAllText}>
+                {MAIN_SCREEN_TEXTS.ACTIONS.VIEW_ALL_HISTORY}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={20}
+                color={theme.colors.primary}
+                accessibilityElementsHidden={true}
+              />
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   // Container and layout styles // סטיילים לקונטיינר ופריסה
   container: {
     flex: 1,
@@ -968,58 +1037,6 @@ const styles = StyleSheet.create({
   statsGrid: {
     gap: theme.spacing.md,
   },
-  statCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    ...theme.shadows.small,
-  },
-  statHeader: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  statTitle: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.textSecondary,
-    textAlign: "right",
-    writingDirection: "rtl",
-  },
-  statPercentage: {
-    fontSize: 24, // הוגדל מ-20 לבולטות במסך הנייד
-    fontWeight: theme.typography.h2.fontWeight,
-    color: theme.colors.primary,
-  },
-  statSubtitle: {
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
-    fontWeight: "600",
-    color: theme.colors.text,
-    textAlign: "right",
-    marginBottom: theme.spacing.sm,
-    writingDirection: "rtl",
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: theme.colors.backgroundElevated,
-    borderRadius: theme.radius.xs,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.xs,
-  },
-  statIconWrapper: {
-    marginBottom: theme.spacing.sm,
-  },
-  statValue: {
-    fontSize: 20, // הוגדל מ-18 לבולטות במסך הנייד
-    fontWeight: theme.typography.h3.fontWeight,
-    color: theme.colors.text,
-    textAlign: "right",
-  },
 
   // Recent workouts section // קטע האימונים האחרונים
   recentWorkoutsSection: {
@@ -1065,10 +1082,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "right",
     writingDirection: "rtl",
-  },
-  workoutTime: {
-    color: theme.colors.primary,
-    fontWeight: "600",
   },
   workoutRating: {
     flexDirection: "row-reverse",

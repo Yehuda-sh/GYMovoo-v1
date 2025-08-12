@@ -4,7 +4,7 @@
  * @description יוצר זמני אימון שמשקפים מציאות - לא תמיד מסיימים בדיוק לפי התכנון
  * @updated 2025-08-11 ✅ ENHANCED - שירות פעיל בשימוש ישיר במסכי היסטוריה
  * @status ✅ ACTIVE - פונקציונליות ייחודית וקריטית שלא קיימת במקום אחר
- * @used_by HistoryScreen.backup.tsx, testDemoWorkoutDuration.js, demo ecosystem
+ * @used_by testDemoWorkoutDuration.js, demo ecosystem (HistoryScreen unified on 2025-08-13)
  * @unique_value חישוב זמני אימון מציאותיים מבוסס ביצוע בפועל, מגדר ורמת ניסיון
  * @warning NOT FOR PRODUCTION - DEMO DATA ONLY
  */

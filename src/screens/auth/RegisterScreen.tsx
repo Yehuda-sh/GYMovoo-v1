@@ -36,6 +36,7 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
@@ -491,443 +492,466 @@ export default function RegisterScreen() {
 
   // ------------------------- RENDER -------------------------
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "right", "left", "bottom"]}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
       >
-        <BackButton />
-        {/* אנימציית הצלחה */}
-        {loading && (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <BackButton />
+          {/* אנימציית הצלחה */}
+          {loading && (
+            <Animated.View
+              style={[
+                styles.successOverlay,
+                {
+                  opacity: successScaleAnim,
+                  transform: [
+                    { scale: successScaleAnim },
+                    {
+                      rotate: successRotateAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ["0deg", "360deg"],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={100}
+                color={theme.colors.success}
+              />
+            </Animated.View>
+          )}
+
           <Animated.View
             style={[
-              styles.successOverlay,
+              styles.formBox,
               {
-                opacity: successScaleAnim,
-                transform: [
-                  { scale: successScaleAnim },
-                  {
-                    rotate: successRotateAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ["0deg", "360deg"],
-                    }),
-                  },
-                ],
+                opacity: fadeAnim,
+                transform: [{ translateX: shakeAnim }],
               },
             ]}
           >
-            <Ionicons
-              name="checkmark-circle"
-              size={100}
-              color={theme.colors.success}
-            />
-          </Animated.View>
-        )}
-
-        <Animated.View
-          style={[
-            styles.formBox,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateX: shakeAnim }],
-            },
-          ]}
-        >
-          {/* --- כותרת --- */}
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart,
-              theme.colors.primaryGradientEnd,
-            ]}
-            style={styles.titleGradient}
-          >
-            <Text style={styles.title}>{STRINGS.misc.title}</Text>
-          </LinearGradient>
-          <Text style={styles.subtitle}>{STRINGS.misc.subtitle}</Text>
-
-          {/* --- שדה שם מלא --- */}
-          <View style={styles.inputContainer}>
-            <View
-              style={[
-                styles.inputWrapper,
-                fieldErrors.fullName && styles.inputError,
-                fieldValidation.fullName === true && styles.inputValid,
-              ]}
-            >
-              <ValidationIndicator isValid={fieldValidation.fullName} />
-              <FontAwesome5
-                name="user"
-                size={20}
-                color={
-                  fieldErrors.fullName
-                    ? theme.colors.error
-                    : fieldValidation.fullName === true
-                      ? theme.colors.success
-                      : theme.colors.accent
-                }
-                style={styles.iconMarginEnd}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={STRINGS.placeholders.fullName}
-                placeholderTextColor={theme.colors.textSecondary}
-                accessibilityLabel={STRINGS.accessibility.fullNameField}
-                autoCapitalize="words"
-                autoCorrect={false}
-                value={fullName}
-                onChangeText={(text) => {
-                  setFullName(text);
-                  setFieldErrors((prev) => ({ ...prev, fullName: undefined }));
-                }}
-                textAlign="right"
-                editable={!loading}
-                returnKeyType="next"
-                onSubmitEditing={() => emailRef.current?.focus()}
-                textContentType="name"
-              />
-            </View>
-            {fieldErrors.fullName && (
-              <Text style={styles.fieldError}>{fieldErrors.fullName}</Text>
-            )}
-          </View>
-
-          {/* --- שדה אימייל --- */}
-          <View style={styles.inputContainer}>
-            <View
-              style={[
-                styles.inputWrapper,
-                fieldErrors.email && styles.inputError,
-                fieldValidation.email === true && styles.inputValid,
-              ]}
-            >
-              <ValidationIndicator isValid={fieldValidation.email} />
-              <MaterialIcons
-                name="email"
-                size={22}
-                color={
-                  fieldErrors.email
-                    ? theme.colors.error
-                    : fieldValidation.email === true
-                      ? theme.colors.success
-                      : theme.colors.accent
-                }
-                style={styles.iconMarginEndSm}
-              />
-              <TextInput
-                ref={emailRef}
-                style={styles.input}
-                placeholder={STRINGS.placeholders.email}
-                placeholderTextColor={theme.colors.textSecondary}
-                accessibilityLabel={STRINGS.accessibility.emailField}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  setFieldErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                textAlign="right"
-                editable={!loading}
-                returnKeyType="next"
-                onSubmitEditing={() => passwordRef.current?.focus()}
-                textContentType="emailAddress"
-              />
-            </View>
-            {fieldErrors.email && (
-              <Text style={styles.fieldError}>{fieldErrors.email}</Text>
-            )}
-          </View>
-
-          {/* --- שדה סיסמה --- */}
-          <View style={styles.inputContainer}>
-            <View
-              style={[
-                styles.inputWrapper,
-                fieldErrors.password && styles.inputError,
-                fieldValidation.password === true && styles.inputValid,
-              ]}
-            >
-              <ValidationIndicator isValid={fieldValidation.password} />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="הצג או הסתר סיסמה"
-                accessibilityHint="לחץ כדי להציג או להסתיר את טקסט הסיסמה"
-              >
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color={
-                    fieldErrors.password
-                      ? theme.colors.error
-                      : fieldValidation.password === true
-                        ? theme.colors.success
-                        : theme.colors.accent
-                  }
-                  style={styles.iconMarginEndSm}
-                />
-              </TouchableOpacity>
-              <TextInput
-                ref={passwordRef}
-                style={styles.input}
-                placeholder={STRINGS.placeholders.password}
-                placeholderTextColor={theme.colors.textSecondary}
-                accessibilityLabel={STRINGS.accessibility.passwordField}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  setFieldErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                textAlign="right"
-                editable={!loading}
-                returnKeyType="next"
-                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                textContentType="newPassword"
-              />
-            </View>
-            {fieldErrors.password && (
-              <Text style={styles.fieldError}>{fieldErrors.password}</Text>
-            )}
-            {/* --- מד חוזק סיסמה --- */}
-            {password.length > 0 && (
-              <View style={styles.passwordStrength}>
-                <View style={styles.strengthBar}>
-                  <Animated.View
-                    style={[
-                      styles.strengthProgress,
-                      {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ["0%", "100%"],
-                        }),
-                        backgroundColor: passwordStrength.color,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.strengthText,
-                    { color: passwordStrength.color },
-                  ]}
-                >
-                  סיסמה {passwordStrength.text}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* --- שדה אישור סיסמה --- */}
-          <View style={styles.inputContainer}>
-            <View
-              style={[
-                styles.inputWrapper,
-                fieldErrors.confirmPassword && styles.inputError,
-                fieldValidation.confirmPassword === true && styles.inputValid,
-              ]}
-            >
-              <ValidationIndicator isValid={fieldValidation.confirmPassword} />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={loading}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="הצג או הסתר אימות סיסמה"
-                accessibilityHint="לחץ כדי להציג או להסתיר את טקסט אימות הסיסמה"
-              >
-                <Ionicons
-                  name={showConfirmPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color={
-                    fieldErrors.confirmPassword
-                      ? theme.colors.error
-                      : fieldValidation.confirmPassword === true
-                        ? theme.colors.success
-                        : theme.colors.accent
-                  }
-                  style={styles.iconMarginEndSm}
-                />
-              </TouchableOpacity>
-              <TextInput
-                ref={confirmPasswordRef}
-                style={styles.input}
-                placeholder={STRINGS.placeholders.confirm}
-                placeholderTextColor={theme.colors.textSecondary}
-                accessibilityLabel={STRINGS.accessibility.confirmPasswordField}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    confirmPassword: undefined,
-                  }));
-                }}
-                textAlign="right"
-                editable={!loading}
-                returnKeyType="done"
-                onSubmitEditing={handleRegister}
-                textContentType="password"
-              />
-            </View>
-            {fieldErrors.confirmPassword && (
-              <Text style={styles.fieldError}>
-                {fieldErrors.confirmPassword}
-              </Text>
-            )}
-          </View>
-
-          {/* --- אישור גיל --- */}
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{STRINGS.misc.ageConfirm}</Text>
-            <Switch
-              value={is16Plus}
-              onValueChange={setIs16Plus}
-              trackColor={{
-                false: theme.colors.divider,
-                true: theme.colors.primaryGradientStart,
-              }}
-              thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
-              disabled={loading}
-              style={styles.switchMarginStart}
-            />
-          </View>
-          {/* --- אישור תנאים --- */}
-          <View style={styles.switchRow}>
-            <View style={styles.termsTextContainer}>
-              <Text style={styles.switchLabel}>{STRINGS.misc.termsPrefix}</Text>
-              <TouchableOpacity
-                onPress={handleNavigateToTerms}
-                disabled={loading}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="תנאי שימוש"
-                accessibilityHint="לחץ כדי לקרוא את תנאי השימוש"
-              >
-                <Text style={styles.termsLink}>{STRINGS.misc.termsLink}</Text>
-              </TouchableOpacity>
-            </View>
-            <Switch
-              value={acceptTerms}
-              onValueChange={setAcceptTerms}
-              trackColor={{
-                false: theme.colors.divider,
-                true: theme.colors.primaryGradientStart,
-              }}
-              thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
-              disabled={loading}
-              style={styles.switchMarginStart}
-            />
-          </View>
-
-          {/* --- הודעת שגיאה כללית --- */}
-          {error && <Text style={styles.errorText}>{error}</Text>}
-
-          {/* --- כפתור הרשמה --- */}
-          <TouchableOpacity
-            style={[
-              styles.registerButton,
-              loading && styles.registerButtonDisabled,
-            ]}
-            onPress={handleRegister}
-            disabled={loading}
-            activeOpacity={0.8}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="צור חשבון"
-            accessibilityHint="לחץ כדי ליצור חשבון חדש בGYMovoo"
-            accessibilityState={{ disabled: loading }}
-          >
+            {/* --- כותרת --- */}
             <LinearGradient
               colors={[
                 theme.colors.primaryGradientStart,
                 theme.colors.primaryGradientEnd,
               ]}
-              style={styles.gradientButton}
+              style={styles.titleGradient}
+            >
+              <Text style={styles.title}>{STRINGS.misc.title}</Text>
+            </LinearGradient>
+            <Text style={styles.subtitle}>{STRINGS.misc.subtitle}</Text>
+
+            {/* --- שדה שם מלא --- */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.fullName && styles.inputError,
+                  fieldValidation.fullName === true && styles.inputValid,
+                ]}
+              >
+                <ValidationIndicator isValid={fieldValidation.fullName} />
+                <FontAwesome5
+                  name="user"
+                  size={20}
+                  color={
+                    fieldErrors.fullName
+                      ? theme.colors.error
+                      : fieldValidation.fullName === true
+                        ? theme.colors.success
+                        : theme.colors.accent
+                  }
+                  style={styles.iconMarginEnd}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={STRINGS.placeholders.fullName}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  accessibilityLabel={STRINGS.accessibility.fullNameField}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  value={fullName}
+                  onChangeText={(text) => {
+                    setFullName(text);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      fullName: undefined,
+                    }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                  returnKeyType="next"
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  textContentType="name"
+                />
+              </View>
+              {fieldErrors.fullName && (
+                <Text style={styles.fieldError}>{fieldErrors.fullName}</Text>
+              )}
+            </View>
+
+            {/* --- שדה אימייל --- */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.email && styles.inputError,
+                  fieldValidation.email === true && styles.inputValid,
+                ]}
+              >
+                <ValidationIndicator isValid={fieldValidation.email} />
+                <MaterialIcons
+                  name="email"
+                  size={22}
+                  color={
+                    fieldErrors.email
+                      ? theme.colors.error
+                      : fieldValidation.email === true
+                        ? theme.colors.success
+                        : theme.colors.accent
+                  }
+                  style={styles.iconMarginEndSm}
+                />
+                <TextInput
+                  ref={emailRef}
+                  style={styles.input}
+                  placeholder={STRINGS.placeholders.email}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  accessibilityLabel={STRINGS.accessibility.emailField}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  textContentType="emailAddress"
+                />
+              </View>
+              {fieldErrors.email && (
+                <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+              )}
+            </View>
+
+            {/* --- שדה סיסמה --- */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.password && styles.inputError,
+                  fieldValidation.password === true && styles.inputValid,
+                ]}
+              >
+                <ValidationIndicator isValid={fieldValidation.password} />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="הצג או הסתר סיסמה"
+                  accessibilityHint="לחץ כדי להציג או להסתיר את טקסט הסיסמה"
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color={
+                      fieldErrors.password
+                        ? theme.colors.error
+                        : fieldValidation.password === true
+                          ? theme.colors.success
+                          : theme.colors.accent
+                    }
+                    style={styles.iconMarginEndSm}
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  ref={passwordRef}
+                  style={styles.input}
+                  placeholder={STRINGS.placeholders.password}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  accessibilityLabel={STRINGS.accessibility.passwordField}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      password: undefined,
+                    }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                  textContentType="newPassword"
+                />
+              </View>
+              {fieldErrors.password && (
+                <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+              )}
+              {/* --- מד חוזק סיסמה --- */}
+              {password.length > 0 && (
+                <View style={styles.passwordStrength}>
+                  <View style={styles.strengthBar}>
+                    <Animated.View
+                      style={[
+                        styles.strengthProgress,
+                        {
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ["0%", "100%"],
+                          }),
+                          backgroundColor: passwordStrength.color,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.strengthText,
+                      { color: passwordStrength.color },
+                    ]}
+                  >
+                    סיסמה {passwordStrength.text}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* --- שדה אישור סיסמה --- */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  fieldErrors.confirmPassword && styles.inputError,
+                  fieldValidation.confirmPassword === true && styles.inputValid,
+                ]}
+              >
+                <ValidationIndicator
+                  isValid={fieldValidation.confirmPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={loading}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="הצג או הסתר אימות סיסמה"
+                  accessibilityHint="לחץ כדי להציג או להסתיר את טקסט אימות הסיסמה"
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color={
+                      fieldErrors.confirmPassword
+                        ? theme.colors.error
+                        : fieldValidation.confirmPassword === true
+                          ? theme.colors.success
+                          : theme.colors.accent
+                    }
+                    style={styles.iconMarginEndSm}
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  ref={confirmPasswordRef}
+                  style={styles.input}
+                  placeholder={STRINGS.placeholders.confirm}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  accessibilityLabel={
+                    STRINGS.accessibility.confirmPasswordField
+                  }
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  textAlign="right"
+                  editable={!loading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                  textContentType="password"
+                />
+              </View>
+              {fieldErrors.confirmPassword && (
+                <Text style={styles.fieldError}>
+                  {fieldErrors.confirmPassword}
+                </Text>
+              )}
+            </View>
+
+            {/* --- אישור גיל --- */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>{STRINGS.misc.ageConfirm}</Text>
+              <Switch
+                value={is16Plus}
+                onValueChange={setIs16Plus}
+                trackColor={{
+                  false: theme.colors.divider,
+                  true: theme.colors.primaryGradientStart,
+                }}
+                thumbColor={is16Plus ? theme.colors.primary : "#f4f3f4"}
+                disabled={loading}
+                style={styles.switchMarginStart}
+              />
+            </View>
+            {/* --- אישור תנאים --- */}
+            <View style={styles.switchRow}>
+              <View style={styles.termsTextContainer}>
+                <Text style={styles.switchLabel}>
+                  {STRINGS.misc.termsPrefix}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleNavigateToTerms}
+                  disabled={loading}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="תנאי שימוש"
+                  accessibilityHint="לחץ כדי לקרוא את תנאי השימוש"
+                >
+                  <Text style={styles.termsLink}>{STRINGS.misc.termsLink}</Text>
+                </TouchableOpacity>
+              </View>
+              <Switch
+                value={acceptTerms}
+                onValueChange={setAcceptTerms}
+                trackColor={{
+                  false: theme.colors.divider,
+                  true: theme.colors.primaryGradientStart,
+                }}
+                thumbColor={acceptTerms ? theme.colors.primary : "#f4f3f4"}
+                disabled={loading}
+                style={styles.switchMarginStart}
+              />
+            </View>
+
+            {/* --- הודעת שגיאה כללית --- */}
+            {error && <Text style={styles.errorText}>{error}</Text>}
+
+            {/* --- כפתור הרשמה --- */}
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                loading && styles.registerButtonDisabled,
+              ]}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.8}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="צור חשבון"
+              accessibilityHint="לחץ כדי ליצור חשבון חדש בGYMovoo"
+              accessibilityState={{ disabled: loading }}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.primaryGradientStart,
+                  theme.colors.primaryGradientEnd,
+                ]}
+                style={styles.gradientButton}
+              >
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text style={styles.registerLoadingText}>
+                      {STRINGS.buttons.creating}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.registerButtonText}>
+                    {STRINGS.buttons.create}
+                  </Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* --- או --- */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>{STRINGS.misc.or}</Text>
+              <View style={styles.divider} />
+            </View>
+
+            {/* --- כפתור Google --- */}
+            <TouchableOpacity
+              style={[
+                styles.googleButton,
+                loading && styles.googleButtonDisabled,
+              ]}
+              onPress={handleGoogleRegister}
+              disabled={loading}
+              activeOpacity={0.8}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="הרשמה עם Google"
+              accessibilityHint="לחץ כדי להירשם באמצעות חשבון Google"
+              accessibilityState={{ disabled: loading }}
             >
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.registerLoadingText}>
-                    {STRINGS.buttons.creating}
+                  <ActivityIndicator size="small" color="#ea4335" />
+                  <Text style={styles.googleLoadingText}>
+                    {STRINGS.buttons.googleLoading}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.registerButtonText}>
-                  {STRINGS.buttons.create}
-                </Text>
+                <>
+                  <Text style={styles.googleButtonText}>
+                    {STRINGS.buttons.google}
+                  </Text>
+                  <Ionicons name="logo-google" size={22} color="#ea4335" />
+                </>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* --- או --- */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>{STRINGS.misc.or}</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* --- כפתור Google --- */}
-          <TouchableOpacity
-            style={[
-              styles.googleButton,
-              loading && styles.googleButtonDisabled,
-            ]}
-            onPress={handleGoogleRegister}
-            disabled={loading}
-            activeOpacity={0.8}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="הרשמה עם Google"
-            accessibilityHint="לחץ כדי להירשם באמצעות חשבון Google"
-            accessibilityState={{ disabled: loading }}
-          >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#ea4335" />
-                <Text style={styles.googleLoadingText}>
-                  {STRINGS.buttons.googleLoading}
-                </Text>
-              </View>
-            ) : (
-              <>
-                <Text style={styles.googleButtonText}>
-                  {STRINGS.buttons.google}
-                </Text>
-                <Ionicons name="logo-google" size={22} color="#ea4335" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* --- קישור להתחברות --- */}
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText}>{STRINGS.misc.hasAccount}</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Login", {})}
-              disabled={loading}
-              accessibilityLabel={STRINGS.accessibility.loginLink}
-            >
-              <Text style={styles.loginLink}>{STRINGS.buttons.loginLink}</Text>
             </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            {/* --- קישור להתחברות --- */}
+            <View style={styles.linkRow}>
+              <Text style={styles.linkText}>{STRINGS.misc.hasAccount}</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Login", {})}
+                disabled={loading}
+                accessibilityLabel={STRINGS.accessibility.loginLink}
+              >
+                <Text style={styles.loginLink}>
+                  {STRINGS.buttons.loginLink}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

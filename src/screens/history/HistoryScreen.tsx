@@ -39,9 +39,7 @@ import {
   HISTORY_SCREEN_ACCESSIBILITY,
   HISTORY_SCREEN_ICONS,
 } from "../../constants/historyScreenTexts";
-import {
-  HISTORY_SCREEN_CONFIG,
-} from "../../constants/historyScreenConfig";
+import { HISTORY_SCREEN_CONFIG } from "../../constants/historyScreenConfig";
 import {
   formatDateHebrew,
   getDifficultyStars,
@@ -82,7 +80,9 @@ export default function HistoryScreen() {
           console.warn("📊 HistoryScreen: Initializing data manager...");
           await dataManager.initialize(user);
         } else {
-          console.warn("⚠️ HistoryScreen: No user available for initialization");
+          console.warn(
+            "⚠️ HistoryScreen: No user available for initialization"
+          );
           return;
         }
       }
@@ -534,7 +534,10 @@ export default function HistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "right", "left", "bottom"]}
+    >
       <Animated.View
         style={[
           styles.container,
@@ -547,9 +550,15 @@ export default function HistoryScreen() {
         <FlatList
           data={workouts}
           renderItem={renderWorkoutItem}
-          keyExtractor={(item) => `${item.id}_${item.feedback.completedAt}`}
+          keyExtractor={(item, index) =>
+            item?.id && item?.feedback?.completedAt
+              ? `${item.id}_${item.feedback.completedAt}`
+              : `history_${index}`
+          }
           onEndReached={loadMoreWorkouts}
           onEndReachedThreshold={HISTORY_SCREEN_CONFIG.LOAD_MORE_THRESHOLD}
+          removeClippedSubviews={false}
+          accessibilityLabel={HISTORY_SCREEN_TEXTS.SCREEN_TITLE}
           ListHeaderComponent={() => (
             <View>
               {renderCongratulationMessage()}

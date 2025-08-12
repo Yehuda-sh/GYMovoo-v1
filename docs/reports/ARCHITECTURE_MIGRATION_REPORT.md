@@ -8,12 +8,14 @@
 
 1. **`src/services/core/DataManager.ts`** - מנהל נתונים מרכזי
 2. **`src/services/core/index.ts`** - ייצוא שירותי ליבה
-3. **`src/screens/history/HistoryScreen.backup.tsx`** - גיבוי הקובץ הישן
+3. ~~**`src/screens/history/HistoryScreen.backup.tsx`** - גיבוי הקובץ הישן~~ (הוסר ב-2025-08-13 לאחר איחוד למסך אחד)
 
 ### 🔄 עודכנו קבצים קיימים:
 
 1. **`App.tsx`** - הוספת אתחול מנהל נתונים
 2. **`src/screens/history/HistoryScreen.tsx`** - פושט לחלוטין, רק שליפת נתונים
+
+> עדכון 2025-08-13: קבצי העזר `HistoryScreen.simple.tsx` ו-`HistoryScreen.backup.tsx` הוסרו. נשאר מסך יחיד מעודכן (`HistoryScreen.tsx`).
 
 ## 🎯 ארכיטקטורה חדשה
 

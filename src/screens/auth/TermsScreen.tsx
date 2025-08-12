@@ -19,6 +19,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
 
 export default function TermsScreen() {
@@ -44,201 +45,213 @@ export default function TermsScreen() {
   }, [fadeAnim, slideAnim]);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <BackButton absolute={false} />
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "right", "left", "bottom"]}
+    >
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <BackButton absolute={false} />
 
-        <Text style={styles.title}>תנאי שימוש</Text>
+          <Text style={styles.title}>תנאי שימוש</Text>
 
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
-      >
-        {/* כרטיס הקדמה // Introduction card */}
-        <View style={styles.introCard}>
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart,
-              theme.colors.primaryGradientEnd,
-            ]}
-            style={styles.gradientBorder}
-          >
-            <View style={styles.introContent}>
-              <MaterialCommunityIcons
-                name="shield-check"
-                size={32}
-                color={theme.colors.primary}
-                accessible={false}
-                importantForAccessibility="no"
-              />
-              <Text style={styles.introTitle}>ברוכים הבאים ל-GYMovoo!</Text>
-              <Text style={styles.introText}>
-                השימוש באפליקציה מהווה הסכמה לכל התנאים שלהלן
-              </Text>
-            </View>
-          </LinearGradient>
+          <View style={styles.headerSpacer} />
         </View>
 
-        {/* תנאי השימוש // Terms sections */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>תנאים כלליים</Text>
-
-          <View style={styles.termCard}>
-            <View style={styles.termNumber}>
-              <Text style={styles.termNumberText}>1</Text>
-            </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>
-                המידע באפליקציה אינו מהווה ייעוץ רפואי אישי
-              </Text>
-              <Text style={styles.termSubtext}>חשוב להיוועץ ברופא המשפחה</Text>
-            </View>
-          </View>
-
-          <View style={styles.termCard}>
-            <View style={styles.termNumber}>
-              <Text style={styles.termNumberText}>2</Text>
-            </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>
-                יש להיוועץ ברופא לפני תחילת כל תוכנית אימון
-              </Text>
-              <Text style={styles.termSubtext}>
-                במיוחד אם יש בעיות בריאות קיימות
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.termCard}>
-            <View style={styles.termNumber}>
-              <Text style={styles.termNumberText}>3</Text>
-            </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>אין לשתף את החשבון עם אחרים</Text>
-              <Text style={styles.termSubtext}>
-                כל חשבון מותאם אישית למשתמש
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>מדיניות ופרטיות</Text>
-
-          <View style={styles.termCard}>
-            <View
-              style={[
-                styles.termNumber,
-                { backgroundColor: theme.colors.warning },
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
+        >
+          {/* כרטיס הקדמה // Introduction card */}
+          <View style={styles.introCard}>
+            <LinearGradient
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
               ]}
+              style={styles.gradientBorder}
             >
-              <Text style={styles.termNumberText}>4</Text>
+              <View style={styles.introContent}>
+                <MaterialCommunityIcons
+                  name="shield-check"
+                  size={32}
+                  color={theme.colors.primary}
+                  accessible={false}
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.introTitle}>ברוכים הבאים ל-GYMovoo!</Text>
+                <Text style={styles.introText}>
+                  השימוש באפליקציה מהווה הסכמה לכל התנאים שלהלן
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* תנאי השימוש // Terms sections */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>תנאים כלליים</Text>
+
+            <View style={styles.termCard}>
+              <View style={styles.termNumber}>
+                <Text style={styles.termNumberText}>1</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>
+                  המידע באפליקציה אינו מהווה ייעוץ רפואי אישי
+                </Text>
+                <Text style={styles.termSubtext}>
+                  חשוב להיוועץ ברופא המשפחה
+                </Text>
+              </View>
             </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>
-                כל שימוש לרעה בתוכן – חשוף לחסימה מיידית
-              </Text>
-              <Text style={styles.termSubtext}>כולל הפצת תוכן לא מורשה</Text>
+
+            <View style={styles.termCard}>
+              <View style={styles.termNumber}>
+                <Text style={styles.termNumberText}>2</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>
+                  יש להיוועץ ברופא לפני תחילת כל תוכנית אימון
+                </Text>
+                <Text style={styles.termSubtext}>
+                  במיוחד אם יש בעיות בריאות קיימות
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.termCard}>
+              <View style={styles.termNumber}>
+                <Text style={styles.termNumberText}>3</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>אין לשתף את החשבון עם אחרים</Text>
+                <Text style={styles.termSubtext}>
+                  כל חשבון מותאם אישית למשתמש
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.termCard}>
-            <View style={styles.termNumber}>
-              <Text style={styles.termNumberText}>5</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>מדיניות ופרטיות</Text>
+
+            <View style={styles.termCard}>
+              <View
+                style={[
+                  styles.termNumber,
+                  { backgroundColor: theme.colors.warning },
+                ]}
+              >
+                <Text style={styles.termNumberText}>4</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>
+                  כל שימוש לרעה בתוכן – חשוף לחסימה מיידית
+                </Text>
+                <Text style={styles.termSubtext}>כולל הפצת תוכן לא מורשה</Text>
+              </View>
             </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>
-                פרטיותך חשובה לנו: מידע אישי לא יועבר לגורמים חיצוניים ללא הסכמה
-              </Text>
-              <Text style={styles.termSubtext}>נתונים מוצפנים ומאובטחים</Text>
+
+            <View style={styles.termCard}>
+              <View style={styles.termNumber}>
+                <Text style={styles.termNumberText}>5</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>
+                  פרטיותך חשובה לנו: מידע אישי לא יועבר לגורמים חיצוניים ללא
+                  הסכמה
+                </Text>
+                <Text style={styles.termSubtext}>נתונים מוצפנים ומאובטחים</Text>
+              </View>
+            </View>
+
+            <View style={styles.termCard}>
+              <View
+                style={[
+                  styles.termNumber,
+                  { backgroundColor: theme.colors.error },
+                ]}
+              >
+                <Text style={styles.termNumberText}>6</Text>
+              </View>
+              <View style={styles.termTextContainer}>
+                <Text style={styles.termText}>
+                  הפרה של תנאי השימוש תוביל להגבלות או חסימת גישה
+                </Text>
+                <Text style={styles.termSubtext}>
+                  החלטה סופית בידי הנהלת האפליקציה
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.termCard}>
-            <View
-              style={[
-                styles.termNumber,
-                { backgroundColor: theme.colors.error },
-              ]}
-            >
-              <Text style={styles.termNumberText}>6</Text>
-            </View>
-            <View style={styles.termTextContainer}>
-              <Text style={styles.termText}>
-                הפרה של תנאי השימוש תוביל להגבלות או חסימת גישה
-              </Text>
-              <Text style={styles.termSubtext}>
-                החלטה סופית בידי הנהלת האפליקציה
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* יצירת קשר // Contact */}
-        <View style={styles.contactCard}>
-          <MaterialCommunityIcons
-            name="email-outline"
-            size={24}
-            color={theme.colors.primary}
-            accessible={false}
-            importantForAccessibility="no"
-          />
-          <View style={styles.contactContent}>
-            <Text style={styles.contactTitle}>יש לך שאלות?</Text>
-            <Text style={styles.contactText}>ניתן לפנות אלינו במייל:</Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => {
-                // אפשרות לפתיחת אפליקציית מייל
-                console.warn("Opening email app...");
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="פניה לתמיכה במייל"
-              accessibilityHint="לחץ לפתיחת אפליקציית המייל לשליחת הודעה לתמיכה"
-            >
-              <Text style={styles.contactEmail}>support@gymovoo.com</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* אישור סופי // Final confirmation */}
-        <View style={styles.finalCard}>
-          <LinearGradient
-            colors={[
-              theme.colors.primaryGradientStart,
-              theme.colors.primaryGradientEnd,
-            ]}
-            style={styles.finalGradient}
-          >
+          {/* יצירת קשר // Contact */}
+          <View style={styles.contactCard}>
             <MaterialCommunityIcons
-              name="check-circle"
+              name="email-outline"
               size={24}
-              color="#fff"
+              color={theme.colors.primary}
               accessible={false}
               importantForAccessibility="no"
             />
-            <Text style={styles.finalText}>
-              שימוש באפליקציה מהווה אישור לכל תנאי השימוש והפרטיות
-            </Text>
-          </LinearGradient>
-        </View>
+            <View style={styles.contactContent}>
+              <Text style={styles.contactTitle}>יש לך שאלות?</Text>
+              <Text style={styles.contactText}>ניתן לפנות אלינו במייל:</Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  // אפשרות לפתיחת אפליקציית מייל
+                  console.warn("Opening email app...");
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="פניה לתמיכה במייל"
+                accessibilityHint="לחץ לפתיחת אפליקציית המייל לשליחת הודעה לתמיכה"
+              >
+                <Text style={styles.contactEmail}>support@gymovoo.com</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        <View style={styles.bottomSpacer} />
-      </Animated.ScrollView>
-    </View>
+          {/* אישור סופי // Final confirmation */}
+          <View style={styles.finalCard}>
+            <LinearGradient
+              colors={[
+                theme.colors.primaryGradientStart,
+                theme.colors.primaryGradientEnd,
+              ]}
+              style={styles.finalGradient}
+            >
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={24}
+                color="#fff"
+                accessible={false}
+                importantForAccessibility="no"
+              />
+              <Text style={styles.finalText}>
+                שימוש באפליקציה מהווה אישור לכל תנאי השימוש והפרטיות
+              </Text>
+            </LinearGradient>
+          </View>
+
+          <View style={styles.bottomSpacer} />
+        </Animated.ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

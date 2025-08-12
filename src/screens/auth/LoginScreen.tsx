@@ -28,6 +28,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
 import { fakeGoogleSignIn } from "../../services/authService";
 import type { User } from "../../services/authService";
@@ -336,299 +337,308 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={styles.gradientFill}
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "right", "left", "bottom"]}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.select({ ios: "padding", android: undefined })}
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.backgroundAlt]}
+        style={styles.gradientFill}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.select({ ios: "padding", android: undefined })}
         >
-          <BackButton />
-
-          <Animated.View
-            style={[
-              styles.formBox,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  { translateX: shakeAnim },
-                  { translateY: slideAnim },
-                ],
-              },
-            ]}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {/* לוגו // Logo */}
-            <View style={styles.logoContainer}>
-              <View style={styles.logoBackground}>
-                <MaterialCommunityIcons
-                  name="dumbbell"
-                  size={48}
-                  color={theme.colors.primary}
-                />
-              </View>
-            </View>
+            <BackButton />
 
-            {/* כותרות // Titles */}
-            <Text
-              style={styles.title}
-              accessibilityRole="header"
-              accessibilityLabel={STRINGS.ui.welcomeBack}
+            <Animated.View
+              style={[
+                styles.formBox,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateX: shakeAnim },
+                    { translateY: slideAnim },
+                  ],
+                },
+              ]}
             >
-              {STRINGS.ui.welcomeBack}
-            </Text>
-            <Text
-              style={styles.subtitle}
-              accessibilityLabel={STRINGS.ui.subtitle}
-            >
-              {STRINGS.ui.subtitle}
-            </Text>
-
-            {/* שדה אימייל // Email field */}
-            <View style={styles.inputContainer}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  fieldErrors.email && styles.inputError,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="email-outline"
-                  size={24}
-                  color={
-                    fieldErrors.email
-                      ? theme.colors.error
-                      : theme.colors.textSecondary
-                  }
-                  style={styles.iconMargin}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder={STRINGS.placeholders.email}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    setFieldErrors((prev) => ({ ...prev, email: undefined }));
-                    if (error) setError(null);
-                  }}
-                  textAlign="right"
-                  editable={!loading}
-                  accessibilityLabel={STRINGS.accessibility.emailInput}
-                  accessibilityHint="הזן אימייל"
-                />
+              {/* לוגו // Logo */}
+              <View style={styles.logoContainer}>
+                <View style={styles.logoBackground}>
+                  <MaterialCommunityIcons
+                    name="dumbbell"
+                    size={48}
+                    color={theme.colors.primary}
+                  />
+                </View>
               </View>
-              {fieldErrors.email && (
-                <Text style={styles.fieldError}>{fieldErrors.email}</Text>
-              )}
-            </View>
 
-            {/* שדה סיסמה // Password field */}
-            <View style={styles.inputContainer}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  fieldErrors.password && styles.inputError,
-                ]}
+              {/* כותרות // Titles */}
+              <Text
+                style={styles.title}
+                accessibilityRole="header"
+                accessibilityLabel={STRINGS.ui.welcomeBack}
               >
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.passwordToggle,
-                    pressed && { opacity: 0.6 },
+                {STRINGS.ui.welcomeBack}
+              </Text>
+              <Text
+                style={styles.subtitle}
+                accessibilityLabel={STRINGS.ui.subtitle}
+              >
+                {STRINGS.ui.subtitle}
+              </Text>
+
+              {/* שדה אימייל // Email field */}
+              <View style={styles.inputContainer}>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    fieldErrors.email && styles.inputError,
                   ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={STRINGS.accessibility.togglePassword}
-                  accessibilityHint="הצגת או הסתרת טקסט הסיסמה"
                 >
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  <MaterialCommunityIcons
+                    name="email-outline"
                     size={24}
                     color={
-                      fieldErrors.password
+                      fieldErrors.email
                         ? theme.colors.error
                         : theme.colors.textSecondary
                     }
+                    style={styles.iconMargin}
                   />
-                </Pressable>
-                <TextInput
-                  style={styles.input}
-                  placeholder={STRINGS.placeholders.password}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      password: undefined,
-                    }));
-                    if (error) setError(null);
-                  }}
-                  textAlign="right"
-                  editable={!loading}
-                  accessibilityLabel={STRINGS.accessibility.passwordInput}
-                  accessibilityHint="הזן סיסמה"
-                />
-              </View>
-              {fieldErrors.password && (
-                <Text style={styles.fieldError}>{fieldErrors.password}</Text>
-              )}
-            </View>
-
-            {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
-            <View style={styles.optionsRow}>
-              <View style={styles.rememberMe}>
-                <Text
-                  style={styles.rememberMeText}
-                  accessibilityRole="text"
-                  accessibilityLabel={STRINGS.ui.rememberMe}
-                >
-                  {STRINGS.ui.rememberMe}
-                </Text>
-                <Switch
-                  value={rememberMe}
-                  onValueChange={setRememberMe}
-                  trackColor={{
-                    false: theme.colors.divider,
-                    true: theme.colors.primary + "50",
-                  }}
-                  thumbColor={
-                    rememberMe ? theme.colors.primary : theme.colors.card
-                  }
-                  disabled={loading}
-                />
-              </View>
-              <Pressable
-                onPress={handleForgotPassword}
-                disabled={loading}
-                accessibilityRole="button"
-                accessibilityLabel={STRINGS.accessibility.forgotPassword}
-              >
-                <Text style={styles.forgotPassword}>
-                  {STRINGS.buttons.forgotPassword}
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* הודעת שגיאה כללית // General error message */}
-            {error && (
-              <Animated.View
-                style={[
-                  styles.errorContainer,
-                  { transform: [{ scale: scaleAnim }] },
-                ]}
-                accessibilityLiveRegion="polite"
-                accessibilityRole="alert"
-                accessibilityLabel={STRINGS.accessibility.errorMessage}
-              >
-                <MaterialCommunityIcons
-                  name="alert-circle"
-                  size={18}
-                  color={theme.colors.error}
-                />
-                <Text style={styles.errorText}>{error}</Text>
-              </Animated.View>
-            )}
-
-            {/* כפתור התחברות // Login button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.loginButton,
-                (loginLoading || googleLoading) && styles.loginButtonDisabled,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleLogin}
-              disabled={loginLoading || googleLoading}
-              accessibilityRole="button"
-              accessibilityLabel={STRINGS.accessibility.loginButton}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.primaryGradientStart,
-                  theme.colors.primaryGradientEnd,
-                ]}
-                style={styles.gradientButton}
-              >
-                {loginLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator color="#fff" size="small" />
-                    <Text style={styles.loadingText}>
-                      {STRINGS.buttons.loggingIn}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.loginButtonText}>
-                    {STRINGS.buttons.login}
-                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={STRINGS.placeholders.email}
+                    placeholderTextColor={theme.colors.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                      if (error) setError(null);
+                    }}
+                    textAlign="right"
+                    editable={!loading}
+                    accessibilityLabel={STRINGS.accessibility.emailInput}
+                    accessibilityHint="הזן אימייל"
+                  />
+                </View>
+                {fieldErrors.email && (
+                  <Text style={styles.fieldError}>{fieldErrors.email}</Text>
                 )}
-              </LinearGradient>
-            </Pressable>
+              </View>
 
-            {/* או // OR */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>{STRINGS.ui.or}</Text>
-              <View style={styles.divider} />
-            </View>
+              {/* שדה סיסמה // Password field */}
+              <View style={styles.inputContainer}>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    fieldErrors.password && styles.inputError,
+                  ]}
+                >
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    style={({ pressed }) => [
+                      styles.passwordToggle,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={STRINGS.accessibility.togglePassword}
+                    accessibilityHint="הצגת או הסתרת טקסט הסיסמה"
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={24}
+                      color={
+                        fieldErrors.password
+                          ? theme.colors.error
+                          : theme.colors.textSecondary
+                      }
+                    />
+                  </Pressable>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={STRINGS.placeholders.password}
+                    placeholderTextColor={theme.colors.textSecondary}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        password: undefined,
+                      }));
+                      if (error) setError(null);
+                    }}
+                    textAlign="right"
+                    editable={!loading}
+                    accessibilityLabel={STRINGS.accessibility.passwordInput}
+                    accessibilityHint="הזן סיסמה"
+                  />
+                </View>
+                {fieldErrors.password && (
+                  <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+                )}
+              </View>
 
-            {/* כפתור Google // Google button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.googleButton,
-                googleLoading && styles.googleButtonDisabled,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleGoogleAuth}
-              disabled={googleLoading || loginLoading}
-              accessibilityRole="button"
-              accessibilityLabel={STRINGS.accessibility.googleButton}
-            >
-              {googleLoading ? (
-                <ActivityIndicator size="small" color="#DB4437" />
-              ) : (
-                <Ionicons name="logo-google" size={20} color="#DB4437" />
+              {/* זכור אותי ושכחתי סיסמה // Remember me & Forgot password */}
+              <View style={styles.optionsRow}>
+                <View style={styles.rememberMe}>
+                  <Text
+                    style={styles.rememberMeText}
+                    accessibilityRole="text"
+                    accessibilityLabel={STRINGS.ui.rememberMe}
+                  >
+                    {STRINGS.ui.rememberMe}
+                  </Text>
+                  <Switch
+                    value={rememberMe}
+                    onValueChange={setRememberMe}
+                    trackColor={{
+                      false: theme.colors.divider,
+                      true: theme.colors.primary + "50",
+                    }}
+                    thumbColor={
+                      rememberMe ? theme.colors.primary : theme.colors.card
+                    }
+                    disabled={loading}
+                  />
+                </View>
+                <Pressable
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={STRINGS.accessibility.forgotPassword}
+                >
+                  <Text style={styles.forgotPassword}>
+                    {STRINGS.buttons.forgotPassword}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* הודעת שגיאה כללית // General error message */}
+              {error && (
+                <Animated.View
+                  style={[
+                    styles.errorContainer,
+                    { transform: [{ scale: scaleAnim }] },
+                  ]}
+                  accessibilityLiveRegion="polite"
+                  accessibilityRole="alert"
+                  accessibilityLabel={STRINGS.accessibility.errorMessage}
+                >
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={18}
+                    color={theme.colors.error}
+                  />
+                  <Text style={styles.errorText}>{error}</Text>
+                </Animated.View>
               )}
-              <Text style={styles.googleButtonText}>
-                {googleLoading
-                  ? STRINGS.buttons.googleLoading
-                  : STRINGS.buttons.google}
-              </Text>
-            </Pressable>
 
-            {/* קישור להרשמה // Registration link */}
-            <View style={styles.linkRow}>
-              <Text style={styles.linkText}>{STRINGS.ui.noAccount}</Text>
+              {/* כפתור התחברות // Login button */}
               <Pressable
-                onPress={() => navigation.navigate("Register")}
-                disabled={loading}
+                style={({ pressed }) => [
+                  styles.loginButton,
+                  (loginLoading || googleLoading) && styles.loginButtonDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleLogin}
+                disabled={loginLoading || googleLoading}
                 accessibilityRole="button"
-                accessibilityLabel={STRINGS.accessibility.registerLink}
+                accessibilityLabel={STRINGS.accessibility.loginButton}
               >
-                <Text style={styles.registerLink}>
-                  {STRINGS.buttons.registerNow}
+                <LinearGradient
+                  colors={[
+                    theme.colors.primaryGradientStart,
+                    theme.colors.primaryGradientEnd,
+                  ]}
+                  style={styles.gradientButton}
+                >
+                  {loginLoading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator color="#fff" size="small" />
+                      <Text style={styles.loadingText}>
+                        {STRINGS.buttons.loggingIn}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.loginButtonText}>
+                      {STRINGS.buttons.login}
+                    </Text>
+                  )}
+                </LinearGradient>
+              </Pressable>
+
+              {/* או // OR */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>{STRINGS.ui.or}</Text>
+                <View style={styles.divider} />
+              </View>
+
+              {/* כפתור Google // Google button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.googleButton,
+                  googleLoading && styles.googleButtonDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleGoogleAuth}
+                disabled={googleLoading || loginLoading}
+                accessibilityRole="button"
+                accessibilityLabel={STRINGS.accessibility.googleButton}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <Ionicons name="logo-google" size={20} color="#DB4437" />
+                )}
+                <Text style={styles.googleButtonText}>
+                  {googleLoading
+                    ? STRINGS.buttons.googleLoading
+                    : STRINGS.buttons.google}
                 </Text>
               </Pressable>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+
+              {/* קישור להרשמה // Registration link */}
+              <View style={styles.linkRow}>
+                <Text style={styles.linkText}>{STRINGS.ui.noAccount}</Text>
+                <Pressable
+                  onPress={() => navigation.navigate("Register")}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={STRINGS.accessibility.registerLink}
+                >
+                  <Text style={styles.registerLink}>
+                    {STRINGS.buttons.registerNow}
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
