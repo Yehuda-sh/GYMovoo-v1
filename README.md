@@ -56,7 +56,7 @@
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
-- **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר וסימולציה חכמה), scientificAIService ועוד (15 שירותים פעילים)
+- **שירותים חדשים** - workoutHistoryService, scientificAIService ועוד (שירות סימולציה ודמו הוסרו באוגוסט 2025)
 
 ## 🚀 התחלה מהירה
 
@@ -123,7 +123,7 @@ npx expo start --tunnel
 
 - **📱 מסכים פעילים:** 27 מסכים ראשיים (ללא רכיבים וגיבויים)
 - **🧩 רכיבים:** 12 רכיבים ב-3 קטגוריות (common, ui, workout)
-- **🔧 שירותים:** 15 שירותים פעילים כולל workoutHistoryService
+- **🔧 שירותים:** 14 שירותים פעילים (שירות סימולציה ודמו הוסרו) כולל workoutHistoryService
 - **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי)
 
 > עדכון סטטיסטיקות אחרון: 2025-08-10 (לבדיקה מחודשת לפני ריליס גדול)

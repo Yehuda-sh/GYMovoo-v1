@@ -16,7 +16,7 @@ export interface PersonalData {
 
 /**
  * מיצוי ערך אמצעי מטווח משקל/גובה
- * Used by: workoutSimulationService, workoutHistoryService
+ * Used by: workoutHistoryService (simulation service removed)
  */
 export const extractMidValueFromRange = (range: string): number => {
   const ranges: Record<string, number> = {
@@ -39,7 +39,7 @@ export const extractMidValueFromRange = (range: string): number => {
 
 /**
  * חישוב פקטור מטבוליזם לפי גיל
- * Used by: workoutSimulationService, workoutHistoryService
+ * Used by: workoutHistoryService (simulation service removed)
  */
 export const getAgeMetabolismFactor = (age: string): number => {
   const factors: Record<string, number> = {

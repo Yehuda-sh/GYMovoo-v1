@@ -47,11 +47,7 @@ export type {
 } from "./nextWorkoutLogicService";
 
 // 🔴 Demo services (DEV ONLY)
-export {
-  demoUserService,
-  realisticDemoService,
-  demoWorkoutService,
-} from "./demo/index";
+// 🔴 Demo services הוסרו (2025-08-13 cleanup) - אין יותר ייצואי דמו פעילים
 
 // =======================================
 // 🤖 AI and Scientific Services

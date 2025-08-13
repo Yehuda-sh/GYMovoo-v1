@@ -70,10 +70,9 @@
  * - `4-5`: אימון קשה/אינטנסיבי - הודעות עוצמתיות ומתגמלות
  *
  * ## 📚 קבצים קשורים
- * - `workoutSimulationService.ts` - שימוש בהתאמת תרגילים
  * - `workoutHistoryService.ts` - הודעות פידבק היסטוריה
  * - `rtlHelpers.ts` - פונקציות עזר RTL
- * - `demoUserService.ts` - יצירת נתוני דמו מותאמים
+ * (שירותי סימולציה/דמו הוסרו ב-2025-08-13)
  */
 
 export type UserGender = "male" | "female" | "other";

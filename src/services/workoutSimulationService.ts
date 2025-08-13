@@ -1,288 +1,22 @@
 /**
  * @file src/services/workoutSimulationService.ts
- * @description ✅ שירות סימולציה מציאותי - נקי מקוד דמו
- * English: Realistic workout simulation service - clean from demo code
- *
- * @features
- * - סימולציה מציאותית של היסטוריית אימונים (26 שבועות)
- * - אלגוריתמים מתקדמים: Progressive overload, מוטיבציה משתנה
- * - התאמה אישית: מגדר, רמת ניסיון, ציוד זמין
- * - נתונים אישיים מותאמים עם PersonalData integration
- * - תואמות מלאה למסך ההיסטוריה ו-WorkoutWithFeedback
- * - תמיכה בvalidateWorkoutData, formatDateHebrewLocal
- *
- * @dependencies workout.types, genderAdaptation, personalDataUtils, workoutConstants
- * @usage Used by demoWorkoutService, workoutHistoryService for realistic data
- * @updated 2025-08-11 ניקוי תיעוד ואימות פעילות - שירות מרכזי ופעיל
- * @performance 874 lines - consider modular refactoring for maintainability
+ * @deprecated Removed 2025-08-13. Stub maintained temporarily; remove imports.
  */
 
-// ✅ הסרת import של demo service
-import {
-  WorkoutData,
-  WorkoutWithFeedback,
-  Exercise,
-  Set,
-} from "../screens/workout/types/workout.types";
-import {
-  adaptExerciseNameToGender,
-  generateSingleGenderAdaptedNote,
-  generateGenderAdaptedCongratulation,
-  UserGender,
-} from "../utils/genderAdaptation";
-import {
-  getPersonalizedRestTimes,
-  getPersonalizedStartingWeights,
-} from "../screens/workout/utils/workoutConstants";
-import {
-  PersonalData,
-  createRealisticPersonalData,
-  calculatePersonalizedCalories,
-} from "../utils/personalDataUtils";
-import { LOGGING } from "../constants/logging";
+export interface RemovedWorkoutStub {}
 
-// קבועים מותאמים להיסטוריה
-const SIMULATION_CONSTANTS = {
-  WEEKS_TO_SIMULATE: 26, // 6 חודשים
-  MIN_WORKOUTS_PER_WEEK: 2,
-  MAX_WORKOUTS_PER_WEEK: 5,
-  MIN_DURATION_MINUTES: 30,
-  MAX_DURATION_MINUTES: 90,
-  BASE_START_HOUR: 17, // 17:00-22:00
-  MAX_START_HOUR_RANGE: 5,
-  COMPLETION_RATE: 0.85, // 85% השלמה
-  PERSONAL_RECORD_CHANCE: 0.15, // 15% סיכוי לשיא
-  // 💡 קבועים חדשים לשיפור הסימולציה
-  PROGRESSIVE_OVERLOAD_FACTOR: 1.01, // עלייה של 1% במשקל כל שבוע
-  MOTIVATION_PR_BOOST: 0.5,
-  MOTIVATION_MISS_PENALTY: 0.2,
-  SET_TIME_BASE: 45, // 45 שניות בסיס לסט
-  SET_TIME_VARIANCE: 30, // תוספת של עד 30 שניות
-} as const;
-
-interface SimulationParameters {
-  userGender: UserGender;
-  experience: "beginner" | "intermediate" | "advanced";
-  availableDays: number;
-  sessionDuration: string;
-  equipment: string[];
-  currentWeek: number;
-  motivation: number; // 1-10
-  baseStrength: number; // Base strength multiplier for progressive overload
-  personalData?: PersonalData; // Add personal data support
-}
-
-class WorkoutSimulationService {
-  /**
-   * יצירת נתונים אישיים מותאמים לסימולציה
-   */
-  private createPersonalDataFromDemo(
-    gender: UserGender,
-    experience: "beginner" | "intermediate" | "advanced"
-  ): PersonalData {
-    return createRealisticPersonalData(gender, experience);
-  }
-
-  /**
-   * סימולציה מלאה של היסטוריית אימונים תואמת למסך ההיסטוריה
-   */
-  /**
-   * סימולציה מלאה של היסטוריית אימונים תואמת למסך ההיסטוריה
-   */
-  async simulateHistoryCompatibleWorkouts(
-    gender: UserGender,
-    experience: "beginner" | "intermediate" | "advanced",
-    userEquipment?: string[]
-  ): Promise<WorkoutWithFeedback[]> {
-    // Create personal data for simulation
-    const personalData = this.createPersonalDataFromDemo(gender, experience);
-
-    const params: SimulationParameters = {
-      userGender: gender,
-      experience,
-      availableDays: 4,
-      sessionDuration: "60 דקות",
-      equipment: userEquipment || this.getDefaultEquipment(experience),
-      currentWeek: 0,
-      motivation: 7, // התחלה עם מוטיבציה טובה
-      baseStrength: this.getBaseStrength(experience),
-      personalData: personalData, // Add personal data to params
-    };
-
-    const workouts: WorkoutWithFeedback[] = [];
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 6); // 6 חודשים אחורה
-
-    // וידוא שתאריך ההתחלה תקין
-    if (isNaN(startDate.getTime())) {
-      console.error("❌ Invalid start date for simulation");
-      return [];
-    }
-
-    // סימולציה של 26 שבועות
-    for (let week = 0; week < SIMULATION_CONSTANTS.WEEKS_TO_SIMULATE; week++) {
-      params.currentWeek = week;
-
-      // עדכון מוטיבציה לפי התקדמות
-      params.motivation = this.calculateWeeklyMotivation(
-        week,
-        params.motivation
-      );
-
-      const weeklyWorkouts = await this.simulateWeeklyWorkouts(
-        startDate,
-        week,
-        params
-      );
-
-      workouts.push(...weeklyWorkouts);
-    }
-
-    // מיון לפי תאריך (מהחדש לישן) - תואם להיסטוריה
-    workouts.sort((a, b) => {
-      const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
-      const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
-      return bTime - aTime;
-    });
-
-    // לוג סטטוס סימולציה (מושתק כברירת מחדל)
-    if (LOGGING.SIMULATION) {
-      console.warn(
-        `✅ Simulated ${workouts.length} history-compatible workouts`
-      );
-    }
-    return workouts;
-  }
-
-  /**
-   * סימולציה של אימונים שבועיים
-   */
-  private async simulateWeeklyWorkouts(
-    startDate: Date,
-    weekNumber: number,
-    params: SimulationParameters
-  ): Promise<WorkoutWithFeedback[]> {
-    const workouts: WorkoutWithFeedback[] = [];
-
-    // קביעת מספר אימונים בשבוע
-    const baseWorkouts = Math.min(
-      params.availableDays,
-      this.getExpectedWorkoutsPerWeek(params.experience)
+export const workoutSimulationService = {
+  async simulateHistoryCompatibleWorkouts(): Promise<RemovedWorkoutStub[]> {
+    if (typeof console !== 'undefined') {
+      console.warn('[workoutSimulationService] Service removed (stub returns [])');
     );
-    const actualWorkouts = this.calculateActualWorkouts(
-      baseWorkouts,
-      params.motivation
-    );
+    return [];
+  },
+};
 
-    // 💡 עדכון מוטיבציה על בסיס אימונים שבוצעו מול מתוכננים
-    if (actualWorkouts < baseWorkouts) {
-      params.motivation -=
-        (baseWorkouts - actualWorkouts) *
-        SIMULATION_CONSTANTS.MOTIVATION_MISS_PENALTY;
-    }
+export default workoutSimulationService;
 
-    // יצירת ימי אימון מפוזרים בשבוע
-    const workoutDays = this.generateWorkoutDays(actualWorkouts);
-
-    for (const dayOffset of workoutDays) {
-      const workoutDate = new Date(
-        startDate.getTime() + (weekNumber * 7 + dayOffset) * 24 * 60 * 60 * 1000
-      );
-
-      // וידוא שהתאריך תקין
-      if (isNaN(workoutDate.getTime()) || workoutDate.getTime() <= 0) {
-        console.warn(
-          `⚠️ Skipping invalid date for week ${weekNumber}, day ${dayOffset}`
-        );
-        continue;
-      }
-
-      // יצירת אימון תואם להיסטוריה
-      const workout = this.createSimulatedWorkout(workoutDate, params);
-      workouts.push(workout);
-    }
-
-    return workouts;
-  }
-
-  /**
-   * יצירת אימון בודד תואם למסך ההיסטוריה
-   */
-  private createSimulatedWorkout(
-    date: Date,
-    params: SimulationParameters
-  ): WorkoutWithFeedback {
-    const workoutId = `sim_${date.getTime()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // יצירת זמני אימון מציאותיים
-    const { startTime, endTime, durationSeconds } =
-      this.generateRealisticTiming(date, params);
-
-    // יצירת תרגילים מותאמים
-    const exercises = this.generateSimulatedExercises(params);
-
-    // יצירת WorkoutData תואם
-    const workoutData: WorkoutData = {
-      id: workoutId,
-      name: this.generateSimulatedWorkoutName(params),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      duration: durationSeconds,
-      exercises: exercises,
-      totalVolume: this.calculateSimulatedVolume(exercises),
-    };
-
-    // יצירת פידבק תואם (עובר validateWorkoutData)
-    const feedback = this.generateSimulatedFeedback(endTime, params, exercises);
-
-    // יצירת סטטיסטיקות תואמות
-    const stats = this.generateSimulatedStats(
-      exercises,
-      durationSeconds,
-      params
-    );
-
-    // יצירת מטא-דאטה תואמת
-    const metadata = this.generateSimulatedMetadata(params);
-
-    return {
-      id: workoutId,
-      workout: workoutData,
-      feedback: feedback,
-      stats: stats,
-      metadata: metadata,
-    };
-  }
-
-  /**
-   * יצירת זמני אימון מציאותיים
-   */
-  private generateRealisticTiming(date: Date, params: SimulationParameters) {
-    // שעת התחלה מציאותית
-    const startHour =
-      SIMULATION_CONSTANTS.BASE_START_HOUR +
-      Math.floor(Math.random() * SIMULATION_CONSTANTS.MAX_START_HOUR_RANGE);
-    const startMinute = Math.floor(Math.random() * 60);
-
-    const startTime = new Date(date);
-    startTime.setHours(startHour, startMinute, 0, 0);
-
-    // משך אימון מבוסס על העדפות
-    const baseDuration = this.parseDurationFromString(params.sessionDuration);
-    const variance = Math.floor(Math.random() * 20) - 10; // ±10 דקות
-    const actualDuration = Math.max(
-      SIMULATION_CONSTANTS.MIN_DURATION_MINUTES,
-      Math.min(
-        SIMULATION_CONSTANTS.MAX_DURATION_MINUTES,
-        baseDuration + variance
-      )
-    );
-
-    const durationSeconds = actualDuration * 60;
-    const endTime = new Date(startTime.getTime() + durationSeconds * 1000);
-
-    return { startTime, endTime, durationSeconds };
-  }
+// Original implementation removed during final cleanup.
 
   /**
    * יצירת תרגילים מותאמי סימולציה
@@ -597,27 +331,28 @@ class WorkoutSimulationService {
       "Burpees", // bodyweight
       "Bench Press",
       "Deadlift",
-      "Rows",
-      "Overhead Press", // barbell
-      "Dumbbell Press",
-      "Dumbbell Rows",
-      "Dumbbell Curls", // dumbbells
-      "Pull-ups",
-      "Dips",
-      "Chin-ups", // bodyweight/bar
-    ];
+      /**
+       * @file src/services/workoutSimulationService.ts
+       * @deprecated Removed 2025-08-13. Stub kept temporarily to avoid breaking stale imports.
+       * Remove all imports of this file; functionality no longer available.
+       */
 
-    // פילטור לפי ציוד זמין
-    return allExercises.filter((exercise) => {
-      const requiredEquipment = this.getRequiredEquipment(exercise);
-      return (
-        requiredEquipment === "none" || equipment.includes(requiredEquipment)
-      );
-    });
-  }
+      export interface RemovedWorkoutStub {}
 
-  private getSetCount(experience: string): number {
-    switch (experience) {
+      export const workoutSimulationService = {
+        simulateHistoryCompatibleWorkouts: async (): Promise<RemovedWorkoutStub[]> => {
+          if (typeof console !== "undefined") {
+            console.warn(
+              "[workoutSimulationService] Stub called – service removed (returns empty array)"
+            );
+          }
+          return [];
+        },
+      };
+
+      export default workoutSimulationService;
+
+      // Entire previous implementation (≈800 lines) was purged during cleanup.
       case "beginner":
         return 3 + Math.floor(Math.random() * 2); // 3-4
       case "intermediate":
@@ -870,20 +605,6 @@ class WorkoutSimulationService {
       default:
         return ["none"];
     }
-  }
-
-  /**
-   * ⚠️ DEPRECATED: פונקציה זו deprecated - השתמש ב-simulateHistoryCompatibleWorkouts
-   * @deprecated Use simulateHistoryCompatibleWorkouts with real user data instead
-   * @removed Due to demo service dependency - now returns empty array
-   */
-  async simulateRealisticWorkoutHistory(): Promise<WorkoutWithFeedback[]> {
-    console.warn(
-      "⚠️ simulateRealisticWorkoutHistory deprecated - use simulateHistoryCompatibleWorkouts with real user data"
-    );
-
-    // החזרת מערך ריק במקום תלות בדמו
-    return [];
   }
 }
 

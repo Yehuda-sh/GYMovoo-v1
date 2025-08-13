@@ -14,16 +14,13 @@ const { execSync } = require("child_process");
 const config = {
   projectRoot: process.cwd(),
   productionServices: [
-    "src/services/workoutSimulationService.ts",
+    // סימולציית אימונים ודמו הוסרו בניקוי 2025-08-13
     "src/services/workoutHistoryService.ts",
     "src/services/questionnaireService.ts",
     "src/utils/personalDataUtils.ts",
   ],
   demoServices: [
-    "src/services/demo/demoUserService.ts",
-    "src/services/demo/demoWorkoutService.ts",
-    "src/services/demo/demoHistoryService.ts",
-    "src/services/demo/demoWorkoutDurationService.ts",
+    // כל שירותי הדמו הוסרו
   ],
   bannedInProduction: [
     "import.*realisticDemoService",
@@ -120,18 +117,11 @@ function checkArchitecture() {
   console.log("\n🏗️ בדיקת ארכיטקטורה...");
 
   // תיקיית demo
-  check("תיקיית demo קיימת", fileExists("src/services/demo"));
+  // תיקיית demo הוסרה במכוון
+  check("תיקיית demo הוסרה", !fileExists("src/services/demo"));
 
   // demoWorkoutService משתמש ב-production
-  const demoWorkoutContent = readFile(
-    "src/services/demo/demoWorkoutService.ts"
-  );
-  if (demoWorkoutContent) {
-    const usesProduction = demoWorkoutContent.includes(
-      "workoutSimulationService"
-    );
-    check("דמו משתמש בשירות production", usesProduction);
-  }
+  // אין demoWorkoutService יותר
 
   // exports נכונים
   const indexContent = readFile("src/services/index.ts");

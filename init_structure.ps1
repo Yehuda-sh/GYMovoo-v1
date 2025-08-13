@@ -186,7 +186,7 @@ ${files} = @(
   "src/services/questionnaireService.ts",
   # "src/services/realisticDemoService.ts", # הוסר – דמו לא בשימוש
   "src/services/workoutHistoryService.ts",
-  "src/services/workoutSimulationService.ts",
+  # "src/services/workoutSimulationService.ts", # הוסר בניקוי 2025-08-13
   "src/services/scientificAIService.ts",
 
   # Types and utils (existing)

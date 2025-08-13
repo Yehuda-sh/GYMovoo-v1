@@ -25,10 +25,9 @@
 - **`workoutDataService.ts`** - ניהול נתוני אימונים
 - **`workoutHistoryService.ts`** - ניהול היסטוריית אימונים עם התאמת מגדר
 
-### 📊 שירותי סימולציה ודמו
+### 📊 שירותי סימולציה ודמו (הוסר)
 
-- **`realisticDemoService.ts`** - יצירת נתוני דמו מציאותיים עם התאמת מגדר וניתוח ביצועים
-- **`workoutSimulationService.ts`** - סימולציה מציאותית של אימונים עם התאמות חכמות
+> שירותי דמו וסימולציה הוסרו ב-2025-08-13.
 
 ### 📝 שירותי שאלונים
 
@@ -57,33 +56,15 @@
 
 ## 🆕 תכונות חדשות
 
-### 🎯 שיפורי שירות הסימולציה WorkoutSimulationService
+### 🎯 שירות סימולציה (הוסר)
 
-**עודכן לאחרונה: 2025-07-30**
+> מקטע היסטורי – הוסר בפועל.
 
-#### ✨ יכולות חדשות:
+#### ✨ (הוסר)
 
-- **🏃‍♂️ התאמת מגדר** - התאמת שמות תרגילים והודעות פידבק למגדר
-- **📊 פרמטרים מורחבים** - פרמטרים מורחבים עם תמיכה במגדר ומטרות אישיות
-- **🔄 התנהגות מציאותית** - סימולציה מציאותית של התנהגות משתמש
-- **📈 היסטוריה של 6 חודשים** - יצירה אוטומטית של 6 חודשי היסטוריית אימונים
-- **⏰ תזמון חכם** - התאמת זמני אימון לפי מגדר ורמת ניסיון
-- **🎯 לוגיקה מתקדמת** - מוטיבציה דינמית ומתקדמת לפי ביצועים
-- **💪 אימון מבוסס ניסיון** - התאמת משך ועצימות לפי רמת המשתמש
+#### 🛠️ פונקציות מרכזיות (הוסר)
 
-#### 🛠️ פונקציות מרכזיות:
-
-- `simulateRealisticWorkoutHistory()` - סימולציה מלאה של היסטוריית אימונים
-- `generateRealisticStartTime()` - זמני אימון מותאמים אישית לפי מגדר
-- `updateSimulationParameters()` - התקדמות דינמית במוטיבציה וביצועים
-- `calculateActualDuration()` - חישוב משך אימון לפי רמת ניסיון
-- ~~`adaptExerciseNameToGender()` - **הועבר ל-genderAdaptation.ts**~~
-- ~~`generateGenderAdaptedNotes()` - **הועבר ל-genderAdaptation.ts**~~
-
-#### 📚 דוגמאות שימוש:
-
-- ~~See **`workoutSimulationService.example.ts`**~~ - **קובץ הדוגמאות הוסר**
-- השירות משתמש כעת בכלים מרכזיים מ-`src/utils/genderAdaptation.ts`
+#### 📚 דוגמאות שימוש (אין)
 
 ### 📊 שיפורי שירות הדמו RealisticDemoService
 
@@ -145,14 +126,14 @@ await realisticDemoService.addWorkoutSession(workoutData);
 ### 📊 זרימת נתונים
 
 ```
-Questionnaire → UserStore → Simulation → Demo → History
-שאלון → חנות משתמש → סימולציה → דמו → היסטוריה
+Questionnaire → UserStore → History
+שאלון → חנות משתמש → היסטוריה
 ```
 
 ### 🤝 תלויות בין שירותים
 
 - **QuestionnaireService** → **UserStore** (user preferences)
-- **WorkoutSimulationService** → **RealisticDemoService** (data storage)
+  > זרימת סימולציה/דמו הוסרה.
 - **ExerciseService** → **Local Exercise Database** (src/data/exercises) - ✅ מעבר הושלם!
 - **WorkoutHistoryService** → **WorkoutDataService** (data management)
 
@@ -187,25 +168,16 @@ Questionnaire → UserStore → Simulation → Demo → History
 1. **ייבוא שירותים נכון**:
 
 ```typescript
-import { workoutSimulationService } from "@/services/workoutSimulationService";
 import { questionnaireService } from "@/services/questionnaireService";
 ```
 
 2. **Handle Errors Gracefully** / טיפול חכם בשגיאות:
 
-```typescript
-try {
-  await workoutSimulationService.simulateRealisticWorkoutHistory();
-} catch (error) {
-  console.error("Simulation failed:", error);
-}
-```
+// שירות הסימולציה הוסר – אין דוגמת שימוש
 
 3. **Use TypeScript Types** / שימוש בטיפוסי TypeScript:
 
-```typescript
-import type { SimulationParameters } from "@/services/workoutSimulationService";
-```
+// SimulationParameters הוסר עם השירות
 
 ### 🔧 Configuration / הגדרות
 
