@@ -42,6 +42,8 @@ import {
   Dimensions,
   RefreshControl,
   TextInput,
+  NativeSyntheticEvent,
+  LayoutChangeEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -220,6 +222,8 @@ function ProfileScreen() {
   const achievementPulseAnim = useRef(new Animated.Value(1)).current;
   const fireworksOpacity = useRef(new Animated.Value(0)).current;
   const fireworksScale = useRef(new Animated.Value(0.5)).current;
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [achievementsSectionY, setAchievementsSectionY] = useState(0);
 
   // ===============================================
   // 💾 Memoized Data Processing - עיבוד נתונים ממוחזר
@@ -1032,6 +1036,58 @@ function ProfileScreen() {
     };
   }, [user, achievements, calculateXP]);
 
+  // תגיות מאוחדות: רצף + כל ההישגים הפתוחים + תג "עוד…" תמידי
+  const profileBadges = useMemo(() => {
+    type BadgeItem = { key: string; icon: string; color: string; text: string };
+    const items: BadgeItem[] = [];
+
+    // 1) תג רצף – תמיד ראשון
+    items.push({
+      key: "streak",
+      icon: "fire",
+      color: (stats.streak > 0
+        ? STATS_COLORS.STREAK.ACTIVE
+        : theme.colors.textSecondary) as string,
+      text: stats.streak > 0 ? `${stats.streak} ימי רצף` : "התחל רצף!",
+    });
+
+    // 2) כל ההישגים הפתוחים – ללא הגבלה
+    const unlockedAll = achievements.filter((a) => a.unlocked);
+    unlockedAll.forEach((a) => {
+      items.push({
+        key: `ach-${a.id}`,
+        icon: a.icon,
+        color: a.color,
+        // הצגת כותרת ההישג כטקסט תג
+        text: a.title,
+      });
+    });
+
+    // 3) תג "עוד…" תמיד – כדי לאפשר זיהוי והגעה לרשימת ההישגים המלאה
+    items.push({
+      key: "more",
+      icon: "dots-horizontal",
+      color: theme.colors.textSecondary,
+      text: "עוד הישגים",
+    });
+
+    return items;
+  }, [achievements, stats]);
+
+  const scrollToAchievements = useCallback(() => {
+    const sv = scrollRef.current as unknown as {
+      scrollTo: (opts: { y: number; animated: boolean }) => void;
+      scrollToEnd?: (opts: { animated: boolean }) => void;
+    } | null;
+    if (!sv) return;
+    const y = Math.max(achievementsSectionY - 20, 0);
+    if (y > 0) {
+      sv.scrollTo({ y, animated: true });
+    } else {
+      sv.scrollToEnd?.({ animated: true });
+    }
+  }, [achievementsSectionY]);
+
   // =======================================
   // 🛠️ Core Handlers & Event Management
   // פונקציות ליבה וניהול אירועים
@@ -1165,6 +1221,7 @@ function ProfileScreen() {
     >
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
+          ref={scrollRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -1382,69 +1439,61 @@ function ProfileScreen() {
               <Text style={styles.userEmail}>
                 {user?.email || "user@gymovoo.com"}
               </Text>
+
               <View style={styles.badgesContainer}>
-                {/* תג רצף ימים - תמיד מוצג */}
-                <View
-                  style={[
+                {profileBadges.map((b) => {
+                  const isMore = b.key === "more";
+                  const containerStyle = [
                     styles.badge,
-                    stats.streak > 0
-                      ? styles.activeBadge
-                      : styles.inactiveBadge,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="fire"
-                    size={16}
-                    color={
-                      stats.streak > 0
-                        ? STATS_COLORS.STREAK.ACTIVE
-                        : theme.colors.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      stats.streak > 0
+                    b.key === "streak"
+                      ? stats.streak > 0
+                        ? styles.activeBadge
+                        : styles.inactiveBadge
+                      : isMore
+                        ? styles.moreBadge
+                        : styles.achievementTag,
+                  ];
+                  const textStyle = [
+                    styles.badgeText,
+                    b.key === "streak"
+                      ? stats.streak > 0
                         ? styles.activeBadgeText
-                        : styles.inactiveBadgeText,
-                    ]}
-                  >
-                    {stats.streak > 0 ? `${stats.streak} ימי רצף` : "התחל רצף!"}
-                  </Text>
-                </View>
-
-                {/* תגים דינמיים מההישגים הפתוחים - מקסימום 2 */}
-                {achievements
-                  .filter((achievement) => achievement.unlocked)
-                  .slice(0, 2) // מקסימום 2 הישגים כתגים
-                  .map((achievement) => (
-                    <View
-                      key={`badge-${achievement.id}`}
-                      style={[styles.badge, styles.achievementTag]}
-                    >
+                        : styles.inactiveBadgeText
+                      : undefined,
+                    isMore ? styles.moreBadgeText : undefined,
+                  ];
+                  const content = (
+                    <View key={b.key} style={containerStyle}>
                       <MaterialCommunityIcons
-                        name={achievement.icon}
+                        name={b.icon as never}
                         size={16}
-                        color={achievement.color}
+                        color={b.color}
                       />
-                      <Text style={styles.badgeText}>{achievement.title}</Text>
+                      <Text style={textStyle}>{b.text}</Text>
+                      {isMore && (
+                        <MaterialCommunityIcons
+                          name="chevron-left"
+                          size={16}
+                          color={theme.colors.textSecondary}
+                        />
+                      )}
                     </View>
-                  ))}
-
-                {/* תג מספר אימונים - אם אין מספיק הישגים */}
-                {achievements.filter((a) => a.unlocked).length < 2 && (
-                  <View style={styles.badge}>
-                    <MaterialCommunityIcons
-                      name="dumbbell"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.badgeText}>
-                      {stats.workouts}{" "}
-                      {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-                    </Text>
-                  </View>
-                )}
+                  );
+                  return isMore ? (
+                    <TouchableOpacity
+                      key={b.key}
+                      onPress={scrollToAchievements}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel="צפייה בכל ההישגים"
+                      accessibilityHint="לחיצה תגלול לרשימת ההישגים המלאה"
+                    >
+                      {content}
+                    </TouchableOpacity>
+                  ) : (
+                    content
+                  );
+                })}
               </View>
             </View>
 
@@ -1675,138 +1724,117 @@ function ProfileScreen() {
               </View>
             )}
 
-            {/* הישגים - הישגים שלא מוצגים כתגים */}
-            {(() => {
-              // הישגים שכבר מוצגים כתגים (2 הראשונים הפתוחים)
-              const badgeAchievements = achievements
-                .filter((achievement) => achievement.unlocked)
-                .slice(0, 2)
-                .map((a) => a.id);
+            {/* הישגים - רשימה מלאה תמיד */}
+            <View
+              style={styles.achievementsContainer}
+              onLayout={(
+                e: NativeSyntheticEvent<LayoutChangeEvent["nativeEvent"]>
+              ) => setAchievementsSectionY(e.nativeEvent.layout.y)}
+            >
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  {achievements.some((a) => a.unlocked)
+                    ? PROFILE_SCREEN_TEXTS.HEADERS.ACHIEVEMENTS
+                    : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    console.warn("ProfileScreen: Show all achievements")
+                  }
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="הצג את כל ההישגים"
+                  accessibilityHint="לחץ כדי לראות רשימה מלאה של כל ההישגים והמטרות"
+                >
+                  <Text style={styles.seeAllText}>
+                    {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.achievementsGrid}>
+                {achievements.map((achievement: Achievement) => (
+                  <TouchableOpacity
+                    key={achievement.id}
+                    activeOpacity={0.8}
+                    onLongPress={() => {
+                      setAchievementTooltip({
+                        visible: true,
+                        achievement: achievement,
+                      });
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`הישג: ${achievement.title}`}
+                    accessibilityHint={
+                      achievement.unlocked
+                        ? "הישג פתוח - לחיצה ארוכה לפרטים נוספים"
+                        : "הישג נעול - לחיצה ארוכה לראות דרישות"
+                    }
+                    accessibilityState={{
+                      disabled: false,
+                      selected: achievement.unlocked,
+                    }}
+                    style={[
+                      styles.achievementBadge,
+                      !achievement.unlocked && styles.lockedBadge,
+                      achievement.unlocked && {
+                        transform: [{ scale: achievementPulseAnim }],
+                      },
+                    ]}
+                  >
+                    {achievement.unlocked && (
+                      <LinearGradient
+                        colors={[
+                          achievement.color + "20",
+                          achievement.color + "10",
+                        ]}
+                        style={styles.achievementGradientBg}
+                      />
+                    )}
 
-              // הישגים שעדיין לא מוצגים
-              const remainingAchievements = achievements.filter(
-                (achievement) => !badgeAchievements.includes(achievement.id)
-              );
-
-              // אם יש הישגים להציג
-              if (remainingAchievements.length > 0) {
-                return (
-                  <View style={styles.achievementsContainer}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>
-                        {remainingAchievements.some((a) => a.unlocked)
-                          ? PROFILE_SCREEN_TEXTS.HEADERS.ACHIEVEMENTS
-                          : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          console.warn("ProfileScreen: Show all achievements")
+                    <View
+                      style={[
+                        styles.achievementIconContainer,
+                        !achievement.unlocked && styles.grayscaleContainer,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={achievement.icon}
+                        size={30}
+                        color={
+                          achievement.unlocked
+                            ? achievement.color
+                            : theme.colors.textTertiary
                         }
-                        accessible={true}
-                        accessibilityRole="button"
-                        accessibilityLabel="הצג את כל ההישגים"
-                        accessibilityHint="לחץ כדי לראות רשימה מלאה של כל ההישגים והמטרות"
-                      >
-                        <Text style={styles.seeAllText}>
-                          {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
-                        </Text>
-                      </TouchableOpacity>
+                      />
+
+                      {!achievement.unlocked && (
+                        <View style={styles.lockIconContainer}>
+                          <MaterialCommunityIcons
+                            name="lock"
+                            size={16}
+                            color={theme.colors.textTertiary}
+                          />
+                        </View>
+                      )}
                     </View>
-                    <View style={styles.achievementsGrid}>
-                      {remainingAchievements.map((achievement: Achievement) => (
-                        <TouchableOpacity
-                          key={achievement.id}
-                          activeOpacity={0.8}
-                          onLongPress={() => {
-                            setAchievementTooltip({
-                              visible: true,
-                              achievement: achievement,
-                            });
-                          }}
-                          accessibilityRole="button"
-                          accessibilityLabel={`הישג: ${achievement.title}`}
-                          accessibilityHint={
-                            achievement.unlocked
-                              ? "הישג פתוח - לחיצה ארוכה לפרטים נוספים"
-                              : "הישג נעול - לחיצה ארוכה לראות דרישות"
-                          }
-                          accessibilityState={{
-                            disabled: false,
-                            selected: achievement.unlocked,
-                          }}
-                          style={[
-                            styles.achievementBadge,
-                            !achievement.unlocked && styles.lockedBadge,
-                            // אנימציית פולס להישגים פתוחים
-                            achievement.unlocked && {
-                              transform: [{ scale: achievementPulseAnim }],
-                            },
-                          ]}
-                        >
-                          {/* רקע עם גרדיאנט להישגים פתוחים */}
-                          {achievement.unlocked && (
-                            <LinearGradient
-                              colors={[
-                                achievement.color + "20",
-                                achievement.color + "10",
-                              ]}
-                              style={styles.achievementGradientBg}
-                            />
-                          )}
 
-                          {/* אייקון עם אפקט Grayscale להישגים נעולים */}
-                          <View
-                            style={[
-                              styles.achievementIconContainer,
-                              !achievement.unlocked &&
-                                styles.grayscaleContainer,
-                            ]}
-                          >
-                            <MaterialCommunityIcons
-                              name={achievement.icon}
-                              size={30}
-                              color={
-                                achievement.unlocked
-                                  ? achievement.color
-                                  : theme.colors.textTertiary
-                              }
-                            />
+                    <Text
+                      style={[
+                        styles.achievementTitle,
+                        !achievement.unlocked && styles.lockedText,
+                        achievement.unlocked && styles.unlockedTitle,
+                      ]}
+                    >
+                      {achievement.title}
+                    </Text>
 
-                            {/* אייקון מנעול להישגים נעולים */}
-                            {!achievement.unlocked && (
-                              <View style={styles.lockIconContainer}>
-                                <MaterialCommunityIcons
-                                  name="lock"
-                                  size={16}
-                                  color={theme.colors.textTertiary}
-                                />
-                              </View>
-                            )}
-                          </View>
-
-                          {/* כותרת עם אפקט מיוחד להישגים פתוחים */}
-                          <Text
-                            style={[
-                              styles.achievementTitle,
-                              !achievement.unlocked && styles.lockedText,
-                              achievement.unlocked && styles.unlockedTitle,
-                            ]}
-                          >
-                            {achievement.title}
-                          </Text>
-
-                          {/* הברקה קטנה להישגים שזה עתה נפתחו */}
-                          {achievement.unlocked && (
-                            <View style={styles.achievementShine} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                );
-              }
-              return null; // אם אין הישגים נוספים להציג
-            })()}
+                    {achievement.unlocked && (
+                      <View style={styles.achievementShine} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
             {/* הגדרות בסיסיות */}
             <View style={styles.settingsContainer}>
@@ -2484,6 +2512,15 @@ const styles = StyleSheet.create({
   achievementTag: {
     backgroundColor: theme.colors.success + "15",
     borderColor: theme.colors.success + "30",
+  },
+  // תג "עוד" – נראה כמו כפתור/קישור, לא הישג
+  moreBadge: {
+    backgroundColor: theme.colors.backgroundAlt,
+    borderColor: theme.colors.border,
+  },
+  moreBadgeText: {
+    color: theme.colors.textSecondary,
+    textDecorationLine: "underline",
   },
   badgeText: {
     color: theme.colors.text,
