@@ -1,0 +1,166 @@
+{
+  "users": [
+    {
+      "id": "u_init_1",
+      "name": "Ron Shoval",
+      "email": "ron.shoval@example.com",
+      "registration": {
+        "password": "Gymovoo123",
+        "confirmPassword": "Gymovoo123",
+        "is16Plus": true,
+        "acceptedTerms": true,
+        "completedAt": "2025-08-13T00:00:00.000Z"
+      },
+      "preferences": {
+        "language": "he",
+        "rtlPreference": true
+      },
+      "smartQuestionnaireData": {
+        "answers": {
+          "gender": "male",
+          "age": "under_18",
+          "weight": "50_60",
+          "height": "150_160",
+          "fitnessLevel": "advanced",
+          "goals": [
+            "general_fitness"
+          ],
+          "equipment": [
+            "free_weights",
+            "cable_machine",
+            "squat_rack",
+            "smith_machine",
+            "treadmill"
+          ],
+          "availability": [
+            "5_days"
+          ],
+          "sessionDuration": "60_plus_min",
+          "workoutLocation": "gym",
+          "nutrition": [
+            "keto"
+          ]
+        },
+        "metadata": {
+          "completedAt": "2025-08-13T11:21:26.535Z",
+          "version": "2.1",
+          "sessionId": "unified_1755084086535",
+          "completionTime": 110,
+          "questionsAnswered": 11,
+          "totalQuestions": 11,
+          "deviceInfo": {
+            "platform": "mobile",
+            "screenWidth": 0,
+            "screenHeight": 0
+          }
+        }
+      },
+      "questionnaireData": {
+        "metadata": {
+          "equipment": [
+            "free_weights",
+            "cable_machine",
+            "squat_rack",
+            "smith_machine",
+            "treadmill"
+          ],
+          "goal": "general_fitness",
+          "experience": "advanced",
+          "sessionDuration": "60_plus_min",
+          "availableDays": "5_days",
+          "location": "gym",
+          "diet": "keto",
+          "completedAt": "2025-08-13T11:21:26.915Z",
+          "source": "UnifiedQuestionnaireScreen"
+        },
+        "version": "unified-1"
+      }
+    },
+    {
+      "id": "u_init_2",
+      "name": "Noa Levi",
+      "email": "noa.levi@example.com",
+      "registration": {
+        "password": "Gymovoo123",
+        "confirmPassword": "Gymovoo123",
+        "is16Plus": true,
+        "acceptedTerms": true,
+        "completedAt": "2025-08-13T00:00:00.000Z"
+      },
+      "preferences": {
+        "language": "he",
+        "rtlPreference": true
+      },
+      "smartQuestionnaireData": {
+        "answers": {
+          "gender": "male",
+          "age": "18_25",
+          "weight": "50_60",
+          "height": "150_160",
+          "fitnessLevel": "intermediate",
+          "goals": [
+            "build_muscle"
+          ],
+          "equipment": [
+            "dumbbells",
+            "resistance_bands"
+          ],
+          "availability": [
+            "2_days"
+          ],
+          "sessionDuration": "15_30_min",
+          "workoutLocation": "home_equipment",
+          "nutrition": [
+            "none_diet"
+          ]
+        },
+        "metadata": {
+          "completedAt": "2025-08-13T10:18:30.149Z",
+          "version": "2.1",
+          "sessionId": "unified_1755080310149",
+          "completionTime": 110,
+          "questionsAnswered": 11,
+          "totalQuestions": 11,
+          "deviceInfo": {
+            "platform": "mobile",
+            "screenWidth": 0,
+            "screenHeight": 0
+          }
+        }
+      },
+      "questionnaireData": {
+        "metadata": {
+          "equipment": [
+            "dumbbells",
+            "resistance_bands"
+          ],
+          "goal": "build_muscle",
+          "experience": "intermediate",
+          "sessionDuration": "15_30_min",
+          "availableDays": "2_days",
+          "location": "home_equipment",
+          "diet": "none_diet",
+          "completedAt": "2025-08-13T10:18:30.558Z",
+          "source": "UnifiedQuestionnaireScreen"
+        },
+        "version": "unified-1"
+      }
+    },
+    {
+      "id": "u_init_3",
+      "name": "Amit Cohen",
+      "email": "amit.cohen@example.com",
+      "registration": {
+        "password": "Gymovoo123",
+        "confirmPassword": "Gymovoo123",
+        "is16Plus": true,
+        "acceptedTerms": true,
+        "completedAt": "2025-08-13T00:00:00.000Z"
+      },
+      "preferences": {
+        "language": "he",
+        "rtlPreference": true
+      }
+    }
+  ]
+}

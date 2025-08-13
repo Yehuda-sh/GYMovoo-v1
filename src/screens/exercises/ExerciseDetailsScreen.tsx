@@ -31,7 +31,7 @@
  * }
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -39,7 +39,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../styles/theme";
@@ -47,6 +47,8 @@ import BackButton from "../../components/common/BackButton";
 
 // Types
 import { StackNavigationProp } from "@react-navigation/stack";
+import type { RootStackParamList } from "../../navigation/types";
+import { formatEquipmentList } from "../../utils/formatters";
 
 interface ExerciseDetailsScreenParams {
   exerciseId: string;
@@ -62,16 +64,6 @@ interface ExerciseDetailsScreenParams {
 }
 
 // Navigation types
-type RootStackParamList = {
-  ExercisesScreen: {
-    selectedMuscleGroup?: string;
-    filterTitle?: string;
-    returnScreen?: string;
-  };
-  ExerciseDetails: ExerciseDetailsScreenParams;
-  Home: undefined;
-};
-
 type ExerciseDetailsNavigationProp = StackNavigationProp<
   RootStackParamList,
   "ExerciseDetails"
@@ -79,30 +71,44 @@ type ExerciseDetailsNavigationProp = StackNavigationProp<
 
 const ExerciseDetailsScreen: React.FC = () => {
   const navigation = useNavigation<ExerciseDetailsNavigationProp>();
-  const route = useRoute();
+  type ExerciseDetailsRouteProp = RouteProp<
+    RootStackParamList,
+    "ExerciseDetails"
+  >;
+  const route = useRoute<ExerciseDetailsRouteProp>();
 
   const { exerciseId, exerciseName, muscleGroup, exerciseData } =
     (route.params as ExerciseDetailsScreenParams) || {};
 
   // דיבוג לעזרה בפתרון בעיות
-  console.warn("🔍 ExerciseDetailsScreen Debug:", {
-    exerciseId,
-    exerciseName,
-    muscleGroup,
-    exerciseData,
-    hasExerciseData: !!exerciseData,
-    exerciseDataType: typeof exerciseData,
-    instructionsType: typeof exerciseData?.instructions,
-    isInstructionsArray: Array.isArray(exerciseData?.instructions),
-  });
+  if (__DEV__) {
+    // לוג דיבוג מפורט רק בזמן פיתוח
+    // eslint-disable-next-line no-console
+    console.debug("🔍 ExerciseDetailsScreen Debug:", {
+      exerciseId,
+      exerciseName,
+      muscleGroup,
+      exerciseData,
+      hasExerciseData: !!exerciseData,
+      exerciseDataType: typeof exerciseData,
+      instructionsType: typeof exerciseData?.instructions,
+      isInstructionsArray: Array.isArray(exerciseData?.instructions),
+    });
+  }
 
   // פרטי התרגיל - עם בדיקה אם יש נתונים מלאים ווידוא שהמערכים תמיד קיימים
   const exerciseDetails = useMemo(() => {
+    const equipmentRaw = exerciseData?.equipment || "bodyweight";
+    // אם מגיע id אחוד של ציוד, נמיר לשם עברי אחיד
+    const equipmentDisplay = Array.isArray(equipmentRaw)
+      ? formatEquipmentList(equipmentRaw as unknown as string[])
+      : formatEquipmentList([String(equipmentRaw)]);
+
     return {
       id: exerciseId,
       name: exerciseName,
       muscleGroup: muscleGroup,
-      equipment: exerciseData?.equipment || "ציוד חופשי",
+      equipment: equipmentDisplay,
       difficulty: exerciseData?.difficulty || "בינוני",
       instructions:
         Array.isArray(exerciseData?.instructions) &&
@@ -177,20 +183,41 @@ const ExerciseDetailsScreen: React.FC = () => {
   }, [exerciseData]);
 
   // ניווט לתרגילים דומים מסוננים
-  const handleSimilarExercises = () => {
+  const handleSimilarExercises = useCallback(() => {
     navigation.navigate("ExercisesScreen", {
       selectedMuscleGroup: muscleGroup,
       filterTitle: `תרגילים עבור ${muscleGroup}`,
       returnScreen: "ExerciseDetails",
     });
-  };
+  }, [muscleGroup, navigation]);
 
   // הוספה לאימון פעיל (אם קיים)
-  const handleAddToWorkout = () => {
-    // כאן נוכל להוסיף לוגיקה להוספת התרגיל לאימון פעיל
-    // לעת עתה נציג הודעה
-    alert("תכונה זו תהיה זמינה בקרוב");
-  };
+  const handleAddToWorkout = useCallback(() => {
+    // נווט למסך אימון פעיל עם pendingExercise להוספה מיידית
+    navigation.navigate("ActiveWorkout", {
+      workoutData: {
+        name: "אימון מותאם",
+        dayName: muscleGroup || "כללי",
+        startTime: new Date().toISOString(),
+        exercises: [],
+      },
+      pendingExercise: {
+        id: exerciseId,
+        name: exerciseName,
+        muscleGroup,
+        equipment: (exerciseData?.equipment as string) || "bodyweight",
+      },
+    });
+  }, [navigation, exerciseId, exerciseName, muscleGroup, exerciseData]);
+
+  // פעולות משוב
+  const handleJoinCommunity = useCallback(() => {
+    alert("בקרוב ניתן יהיה להצטרף לקהילה ולהשפיע על פיתוח התרגיל");
+  }, []);
+
+  const handleReportIssue = useCallback(() => {
+    alert("תודה! נפתח ערוץ לדיווח בעיות ושיפורים בקרוב");
+  }, []);
 
   // בדיקה אם יש מידע בסיסי לתצוגה
   if (!exerciseId || !exerciseName) {
@@ -354,6 +381,7 @@ const ExerciseDetailsScreen: React.FC = () => {
 
             <TouchableOpacity
               style={styles.feedbackButton}
+              onPress={handleJoinCommunity}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="הצטרף לקהילה"
@@ -376,6 +404,7 @@ const ExerciseDetailsScreen: React.FC = () => {
 
             <TouchableOpacity
               style={styles.reportButton}
+              onPress={handleReportIssue}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="דווח על בעיה"
@@ -574,6 +603,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
+    writingDirection: "rtl", // ✅ RTL support
   },
   infoContainer: {
     backgroundColor: theme.colors.card,
@@ -682,6 +712,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.sm,
+    writingDirection: "rtl", // ✅ RTL support
   },
   constructionSubtitle: {
     fontSize: 16,
@@ -689,6 +720,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     marginBottom: theme.spacing.lg,
+    writingDirection: "rtl", // ✅ RTL support
   },
   constructionInfo: {
     flexDirection: "row-reverse",
@@ -706,6 +738,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     flex: 1,
     lineHeight: 20,
+    writingDirection: "rtl", // ✅ RTL support
   },
   basicInfoTitle: {
     fontSize: 18,
@@ -713,6 +746,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.md,
+    writingDirection: "rtl", // ✅ RTL support
   },
   comingSoonItem: {
     flexDirection: "row-reverse",
@@ -729,6 +763,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "right",
     flex: 1,
+    writingDirection: "rtl", // ✅ RTL support
   },
   // סטיילים למסך שגיאה
   errorContainer: {
@@ -744,12 +779,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.sm,
+    writingDirection: "rtl", // ✅ RTL support
   },
   errorText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
+    writingDirection: "rtl", // ✅ RTL support
   },
   // סטיילים לכפתורי משוב וקהילה
   feedbackButton: {
@@ -770,6 +807,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
     marginHorizontal: theme.spacing.sm,
+    writingDirection: "rtl", // ✅ RTL support
   },
   reportButton: {
     flexDirection: "row-reverse",
@@ -782,6 +820,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl", // ✅ RTL support
   },
 });
 

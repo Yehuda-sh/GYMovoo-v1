@@ -45,7 +45,9 @@
     "clean": "rmdir /s /q node_modules && npm install",
     "clean:unix": "rm -rf node_modules && npm install",
     "audit": "npm audit",
-    "audit:fix": "npm audit fix"
+    "audit:fix": "npm audit fix",
+    "storage:start": "node ./storage/server.js",
+    "storage:start:dev": "nodemon --watch storage --ext js,json --exec node ./storage/server.js"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
@@ -57,6 +59,7 @@
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.3.29",
     "axios": "^1.11.0",
+    "cors": "^2.8.5",
     "expo": "~52.0.0",
     "expo-av": "~15.0.2",
     "expo-blur": "~14.0.3",
@@ -68,6 +71,7 @@
     "expo-linear-gradient": "~14.0.0",
     "expo-status-bar": "~2.0.0",
     "expo-system-ui": "~4.0.0",
+    "express": "^5.1.0",
     "lottie-react-native": "^7.1.0",
     "patch-package": "^8.0.0",
     "react": "18.3.1",

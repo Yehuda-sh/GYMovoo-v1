@@ -39,6 +39,7 @@ import {
   createRealisticPersonalData,
   calculatePersonalizedCalories,
 } from "../utils/personalDataUtils";
+import { LOGGING } from "../constants/logging";
 
 // קבועים מותאמים להיסטוריה
 const SIMULATION_CONSTANTS = {
@@ -144,7 +145,12 @@ class WorkoutSimulationService {
       return bTime - aTime;
     });
 
-    console.warn(`✅ Simulated ${workouts.length} history-compatible workouts`);
+    // לוג סטטוס סימולציה (מושתק כברירת מחדל)
+    if (LOGGING.SIMULATION) {
+      console.warn(
+        `✅ Simulated ${workouts.length} history-compatible workouts`
+      );
+    }
     return workouts;
   }
 

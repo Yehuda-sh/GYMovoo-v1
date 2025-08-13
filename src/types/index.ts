@@ -544,6 +544,16 @@ export interface User {
   avatar?: string; // URL או נתיב מקומי
   provider?: string; // לדוגמה: "google", "facebook"
 
+  // נתוני הרשמה בסיסיים (לצורכי אימות מקומי ודגלי הסכמה)
+  // Basic registration data (local auth + consent flags)
+  registration?: {
+    password: string; // לשימוש פנימי בלבד בסביבת פיתוח
+    confirmPassword: string; // שמירת אישור הסיסמה כפי שמולא בטופס
+    is16Plus: boolean; // האם המשתמש אישר גיל 16+
+    acceptedTerms: boolean; // האם המשתמש אישר תנאי שימוש
+    completedAt?: string; // ISO timestamp של השלמת ההרשמה
+  };
+
   // נתוני השאלון החכם החדש (עיקרי)
   // New smart questionnaire data (primary)
   smartQuestionnaireData?: SmartQuestionnaireData;

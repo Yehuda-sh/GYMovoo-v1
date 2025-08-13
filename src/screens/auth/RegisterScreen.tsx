@@ -391,6 +391,13 @@ export default function RegisterScreen() {
         id: `user_${Date.now()}`,
         avatar: undefined,
         provider: "manual" as const,
+        registration: {
+          password,
+          confirmPassword,
+          is16Plus,
+          acceptedTerms: acceptTerms,
+          completedAt: new Date().toISOString(),
+        },
         metadata: {
           createdAt: new Date().toISOString(),
           isRandom: false,

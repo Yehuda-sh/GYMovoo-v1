@@ -19,6 +19,7 @@ import {
 } from "../../screens/workout/types/workout.types";
 import { User } from "../../types";
 import { demoWorkoutService } from "./demoWorkoutService";
+import { LOGGING } from "../../constants/logging";
 import { getUserGender } from "../../utils/workoutHelpers";
 
 class DemoHistoryService {
@@ -56,9 +57,11 @@ class DemoHistoryService {
     statistics: WorkoutStatistics;
     congratulationMessage: string;
   }> {
-    console.warn(
-      "🔴 Generating COMPLETE demo history based on REAL user data - DEV ONLY"
-    );
+    if (LOGGING.DEMO) {
+      console.warn(
+        "🔴 Generating COMPLETE demo history based on REAL user data - DEV ONLY"
+      );
+    }
 
     if (!user) {
       throw new Error("User is required for demo history generation");
@@ -261,7 +264,9 @@ class DemoHistoryService {
    * @dev_only פונקציה למטרות פיתוח בלבד
    */
   clearDemoData(): void {
-    console.warn("🔴 Clearing demo history data - DEV ONLY");
+    if (LOGGING.DEMO) {
+      console.warn("🔴 Clearing demo history data - DEV ONLY");
+    }
     // בעתיד אפשר להוסיף לוגיקת ניקוי אם נחסן בזיכרון זמני
   }
 }

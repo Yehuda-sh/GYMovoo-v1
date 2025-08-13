@@ -19,6 +19,8 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { workoutApi } from "./api/workoutApi";
+import { useUserStore } from "../stores/userStore";
 import { WorkoutData } from "../screens/workout/types/workout.types";
 import { Platform, Dimensions } from "react-native";
 import {
@@ -105,17 +107,18 @@ class WorkoutHistoryService {
         metadata,
       };
 
-      // קבלת היסטוריה קיימת
-      const existingHistory = await this.getWorkoutHistory();
-
-      // הוספת האימון החדש
-      const updatedHistory = [fullWorkout, ...existingHistory];
-
-      // שמירה
-      await AsyncStorage.setItem(
-        WORKOUT_HISTORY_KEY,
-        JSON.stringify(updatedHistory)
-      );
+      // שמירה בשרת המקומי לפי userId; נפילה ל-AsyncStorage אם אין משתמש
+      const user = useUserStore.getState().user;
+      if (user?.id) {
+        await workoutApi.createForUser(user.id, fullWorkout);
+      } else {
+        const existingHistory = await this.getWorkoutHistory();
+        const updatedHistory = [fullWorkout, ...existingHistory];
+        await AsyncStorage.setItem(
+          WORKOUT_HISTORY_KEY,
+          JSON.stringify(updatedHistory)
+        );
+      }
 
       // שמירת ביצועים לעיון באימון הבא (עם התאמת שמות תרגילים)
       await this.savePreviousPerformances(
@@ -718,15 +721,13 @@ class WorkoutHistoryService {
    */
   async getWorkoutHistory(): Promise<WorkoutWithFeedback[]> {
     try {
-      const historyJson = await AsyncStorage.getItem(WORKOUT_HISTORY_KEY);
-
-      if (!historyJson) {
-        return [];
+      const user = useUserStore.getState().user;
+      if (user?.id) {
+        return await workoutApi.listByUser(user.id);
       }
-
-      const parsed = JSON.parse(historyJson);
-
-      return parsed;
+      const raw = await AsyncStorage.getItem(WORKOUT_HISTORY_KEY);
+      const data: WorkoutWithFeedback[] = raw ? JSON.parse(raw) : [];
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error(
         "❌ workoutHistoryService.getWorkoutHistory - Error:",
@@ -868,15 +869,6 @@ class WorkoutHistoryService {
   }> {
     try {
       const history = await this.getWorkoutHistory();
-
-      if (history.length === 0) {
-        return {
-          totalWorkouts: 0,
-          totalDuration: 0,
-          averageDifficulty: 0,
-          workoutStreak: 0,
-        };
-      }
 
       const totalDuration = history.reduce(
         (sum, workout) => sum + workout.stats.duration,

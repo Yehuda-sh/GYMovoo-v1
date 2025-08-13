@@ -47,7 +47,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
@@ -59,6 +59,7 @@ import * as ImagePicker from "expo-image-picker";
 import { User } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
+import { userApi } from "../../services/api/userApi";
 
 // 🆕 קבועים וקונפיגורציות מרכזיות / New centralized constants and configurations
 import {
@@ -180,6 +181,7 @@ function ProfileScreen() {
   // ===============================================
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, updateUser, logout: userLogout } = useUserStore();
+  const setUser = useUserStore((s) => s.setUser);
 
   // Modal management - אחיד במקום Alert.alert מפוזר
   const { activeModal, modalConfig, hideModal, showComingSoon } =
@@ -330,26 +332,40 @@ function ProfileScreen() {
     user?.customDemoUser,
   ]);
 
+  // טעינת משתמש מהשרת – מקור אמת יחיד
+  const fetchUserFromServer = useCallback(async () => {
+    if (!user?.id && !user?.email) return;
+    try {
+      setError(null);
+      const fresh = user?.id
+        ? await userApi.getById(user.id)
+        : user?.email
+          ? await userApi.getByEmail(user.email)
+          : null;
+      if (fresh) {
+        setUser(fresh);
+        if (fresh.avatar) setSelectedAvatar(fresh.avatar);
+      }
+    } catch (e) {
+      console.warn("ProfileScreen: שגיאה בטעינת משתמש מהשרת", e);
+      setError("שגיאה בטעינת נתוני משתמש מהשרת");
+    }
+  }, [user?.id, user?.email, setUser]);
+
   // רענון הנתונים // Data refresh
   const onRefresh = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      setError(null);
+    setRefreshing(true);
+    await fetchUserFromServer();
+    setRefreshing(false);
+  }, [fetchUserFromServer]);
 
-      // עדכון selectedAvatar מ-user // Update selectedAvatar from user
-      if (user?.avatar) {
-        setSelectedAvatar(user.avatar);
-      }
-
-      // סימולציה של רענון נתונים - במציאות כאן נקרא לAPI // Data refresh simulation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    } catch (error) {
-      console.error("Error refreshing profile:", error);
-      setError(error instanceof Error ? error.message : "שגיאה ברענון הפרופיל");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [user?.avatar]);
+  // טעינה בעת כניסה למסך
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserFromServer();
+      return undefined;
+    }, [fetchUserFromServer])
+  );
 
   // ===============================================
   // 🧮 Performance Optimized Calculations - חישובים מאופטמים
@@ -437,8 +453,40 @@ function ProfileScreen() {
       setLoading(true);
       setNameError(null);
 
-      // עדכון המשתמש
-      await updateUser({ name: editedName.trim() });
+      const trimmed = editedName.trim();
+
+      // עדכון המשתמש בשרת אם יש מזהה או אם ניתן לאתר מזהה לפי אימייל
+      if (user?.id || user?.email) {
+        try {
+          let updated: User | null = null;
+          if (user?.id) {
+            updated = await userApi.update(user.id, { name: trimmed });
+          } else if (user?.email) {
+            try {
+              const byEmail = await userApi.getByEmail(user.email);
+              if (byEmail?.id) {
+                updated = await userApi.update(byEmail.id, { name: trimmed });
+              }
+            } catch (e) {
+              console.warn("ProfileScreen: לא נמצא משתמש לפי אימייל לעדכון", e);
+            }
+          }
+          if (updated) {
+            setUser(updated);
+          } else {
+            updateUser({ name: trimmed });
+          }
+        } catch (e) {
+          console.warn(
+            "ProfileScreen: שגיאה בסנכרון שם לשרת, מבצע עדכון מקומי",
+            e
+          );
+          updateUser({ name: trimmed });
+        }
+      } else {
+        // ללא מזהה – עדכון מקומי בלבד
+        updateUser({ name: trimmed });
+      }
 
       // עדכון זמן העריכה האחרונה
       setLastNameEdit(Date.now());
@@ -453,7 +501,15 @@ function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [editedName, updateUser, canEditName, validateName]);
+  }, [
+    editedName,
+    updateUser,
+    canEditName,
+    validateName,
+    user?.id,
+    user?.email,
+    setUser,
+  ]);
 
   // ===============================================
   // 📊 User Info Calculation - חישוב נתוני משתמש
@@ -466,6 +522,7 @@ function ProfileScreen() {
     >;
     const smartData = user?.smartQuestionnaireData?.answers || {};
     // Helper to get nested values (e.g., goals[0], nutrition[0])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getNested = (obj: any, key: string) => {
       if (!obj) return undefined;
       if (key === "goal") {
@@ -487,6 +544,7 @@ function ProfileScreen() {
       if (key === "availability") return obj.availability || obj.availability;
       return obj[key];
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fallback = (key: string, ...sources: any[]) => {
       for (const src of sources) {
         const val = getNested(src, key);
@@ -496,6 +554,7 @@ function ProfileScreen() {
       }
       return undefined;
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getOrDefault = (key: string, ...sources: any[]) => {
       const val = fallback(key, ...sources);
       return val !== undefined ? val : "לא צוין";
@@ -545,14 +604,18 @@ function ProfileScreen() {
         "gender",
         getOrDefault("gender", questionnaire, smartData, user?.preferences)
       ),
-      height:
-        getOrDefault("height", questionnaire, smartData, user) !== "לא צוין"
-          ? `${getOrDefault("height", questionnaire, smartData, user)} ס"מ`
-          : "לא צוין",
-      weight:
-        getOrDefault("weight", questionnaire, smartData, user) !== "לא צוין"
-          ? `${getOrDefault("weight", questionnaire, smartData, user)} ק"ג`
-          : "לא צוין",
+      height: (() => {
+        const val = getOrDefault("height", questionnaire, smartData, user);
+        return val === "לא צוין"
+          ? val
+          : formatQuestionnaireValue("height", val);
+      })(),
+      weight: (() => {
+        const val = getOrDefault("weight", questionnaire, smartData, user);
+        return val === "לא צוין"
+          ? val
+          : formatQuestionnaireValue("weight", val);
+      })(),
       diet: formatQuestionnaireValue(
         "diet",
         getOrDefault("diet_type", questionnaire, smartData, user)
@@ -636,10 +699,7 @@ function ProfileScreen() {
       equipment.push(...currentUser.trainingStats.selectedEquipment);
     }
 
-    // 3. Custom demo user equipment
-    if (currentUser.customDemoUser?.equipment) {
-      equipment.push(...currentUser.customDemoUser.equipment);
-    }
+    // 3. Custom demo user equipment - הוסר כדי למנוע נתוני דמו
 
     // 4. Legacy questionnaire equipment fields
     const questionnaire = currentUser.questionnaire as Record<string, unknown>;
@@ -1088,7 +1148,7 @@ function ProfileScreen() {
       colors={[theme.colors.background, theme.colors.backgroundAlt]}
       style={styles.gradient}
     >
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -2114,6 +2174,9 @@ function ProfileScreen() {
 // שים את ה־styles שלך כאן (אותו דבר כמו הדוגמה שלך)
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   // Container and layout styles // סטיילים לקונטיינר ופריסה
   gradient: {
     flex: 1,
@@ -2137,9 +2200,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: theme.spacing.md,
   },
-  backButton: {
-    padding: theme.spacing.sm,
-  },
+  // removed unused backButton style
   headerRight: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -2150,9 +2211,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     borderRadius: theme.radius.sm,
   },
-  settingsButton: {
-    padding: theme.spacing.sm,
-  },
+  // removed unused settingsButton style
   headerTitle: {
     fontSize: 22, // הגדלת הכותרת לגודל יותר קריא
     fontWeight: theme.typography.h2.fontWeight,
@@ -2433,12 +2492,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...theme.shadows.medium,
   },
-  questionnaireButton: {
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
+  // removed unused questionnaireButton style
   questionnaireGradient: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -2465,12 +2519,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     writingDirection: "rtl",
   },
-  questionnaireButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16, // הגדלת טקסט כפתור השאלון
-    fontWeight: "600",
-    writingDirection: "rtl",
-  },
+  // removed unused questionnaireButtonText style
 
   // Info section styles - מידע אישי עם טקסט גדול יותר
   infoContainer: {

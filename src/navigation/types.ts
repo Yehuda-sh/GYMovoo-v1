@@ -59,6 +59,16 @@ export type RootStackParamList = {
       startTime: string;
       exercises: Exercise[];
     };
+    /**
+     * @description הזרקת תרגיל מיידית למסך האימון הפעיל (למשל ממסך פרטי תרגיל)
+     * @notes אופציונלי – אם קיים, יתווסף בתחילת המסך
+     */
+    pendingExercise?: {
+      id: string;
+      name: string;
+      muscleGroup?: string;
+      equipment?: string;
+    };
   };
 
   /** @description רשימת תרגילים עם מצבי תצוגה ובחירה / Exercise list with view and selection modes */

@@ -23,8 +23,8 @@ import {
   WorkoutWithFeedback,
   WorkoutStatistics,
 } from "../../screens/workout/types/workout.types";
-import { demoHistoryService } from "../demo/demoHistoryService";
 import { workoutHistoryService } from "../workoutHistoryService";
+import { LOGGING } from "../../constants/logging";
 
 export interface AppDataCache {
   workoutHistory: WorkoutWithFeedback[];
@@ -68,17 +68,19 @@ class DataManagerService {
 
   private async _performInitialization(user: User): Promise<void> {
     try {
-      console.warn("🚀 DataManager: Starting initialization...");
-      console.warn("👤 DataManager: User data preview:", {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        hasQuestionnaire: !!user.questionnaire,
-        hasSmartQuestionnaire: !!user.smartQuestionnaireData,
-        hasActivityHistory: !!user.activityHistory,
-        workoutsCount: user.activityHistory?.workouts?.length || 0,
-        hasScientificProfile: !!user.scientificProfile,
-      });
+      if (LOGGING.DATA_MANAGER_SUMMARY) {
+        console.warn("🚀 DataManager: Starting initialization...");
+        console.warn("👤 DataManager: User data preview:", {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          hasQuestionnaire: !!user.questionnaire,
+          hasSmartQuestionnaire: !!user.smartQuestionnaireData,
+          hasActivityHistory: !!user.activityHistory,
+          workoutsCount: user.activityHistory?.workouts?.length || 0,
+          hasScientificProfile: !!user.scientificProfile,
+        });
+      }
 
       // בדיקה אם יש נתונים בשרת (עתידי)
       if (this.serverConfig.enabled) {
@@ -87,11 +89,15 @@ class DataManagerService {
         await this._loadFromLocalSources(user);
       }
 
-      // 📊 לוג מפורט של כל הנתונים שנוצרו
-      this._logCompleteUserData(user);
+      // 📊 לוג מפורט של כל הנתונים שנוצרו (רק במצב VERBOSE)
+      if (LOGGING.VERBOSE) {
+        this._logCompleteUserData(user);
+      }
 
       this.isInitialized = true;
-      console.warn("✅ DataManager: Initialization completed");
+      if (LOGGING.DATA_MANAGER_SUMMARY) {
+        console.warn("✅ DataManager: Initialization completed");
+      }
     } catch (error) {
       console.error("❌ DataManager: Initialization failed", error);
       // במקרה של כשל, ננסה לטעון נתונים מקומיים
@@ -129,32 +135,26 @@ class DataManagerService {
   /**
    * טעינה ממקורות מקומיים
    */
-  private async _loadFromLocalSources(user: User): Promise<void> {
-    const isDemo = __DEV__ || !user?.activityHistory?.workouts?.length;
+  private async _loadFromLocalSources(_user: User): Promise<void> {
+    // אין שימוש בדמו – תמיד נטען נתונים אמיתיים
+    const isDemo = false;
 
-    console.warn(
-      `📦 DataManager: Loading from ${isDemo ? "demo" : "user"} sources...`
-    );
+    if (LOGGING.DATA_MANAGER_SUMMARY) {
+      console.warn(
+        `📦 DataManager: Loading from ${isDemo ? "demo" : "user"} sources...`
+      );
+    }
 
     let workoutHistory: WorkoutWithFeedback[] = [];
     let statistics: WorkoutStatistics | null = null;
     let congratulationMessage: string | null = null;
 
-    if (isDemo) {
-      // נתוני דמו מלאים
-      [workoutHistory, statistics, congratulationMessage] = await Promise.all([
-        demoHistoryService.getWorkoutHistory(user),
-        demoHistoryService.getStatistics(user),
-        demoHistoryService.getCongratulationMessage(user),
-      ]);
-    } else {
-      // נתוני משתמש אמיתיים
-      [workoutHistory, statistics, congratulationMessage] = await Promise.all([
-        workoutHistoryService.getWorkoutHistory(),
-        workoutHistoryService.getGenderGroupedStatistics(),
-        workoutHistoryService.getLatestCongratulationMessage(),
-      ]);
-    }
+    // נתוני משתמש אמיתיים בלבד
+    [workoutHistory, statistics, congratulationMessage] = await Promise.all([
+      workoutHistoryService.getWorkoutHistory(),
+      workoutHistoryService.getGenderGroupedStatistics(),
+      workoutHistoryService.getLatestCongratulationMessage(),
+    ]);
 
     this.cache = {
       workoutHistory,
@@ -164,9 +164,11 @@ class DataManagerService {
       isDemo,
     };
 
-    console.warn(
-      `✅ DataManager: Loaded ${workoutHistory.length} workouts (${isDemo ? "demo" : "real"})`
-    );
+    if (LOGGING.DATA_MANAGER_SUMMARY) {
+      console.warn(
+        `✅ DataManager: Loaded ${workoutHistory.length} workouts (${isDemo ? "demo" : "real"})`
+      );
+    }
   }
 
   /**
@@ -233,7 +235,9 @@ class DataManagerService {
    * @param {User} user - נתוני המשתמש לרענון
    */
   async refresh(user: User): Promise<void> {
-    console.warn("🔄 DataManager: Refreshing data...");
+    if (LOGGING.DATA_MANAGER_SUMMARY) {
+      console.warn("🔄 DataManager: Refreshing data...");
+    }
     this.isInitialized = false;
     this.cache = null;
     this.initPromise = null;
@@ -246,7 +250,9 @@ class DataManagerService {
    */
   configureServer(config: Partial<ServerConfig>): void {
     this.serverConfig = { ...this.serverConfig, ...config };
-    console.warn("🔧 DataManager: Server config updated", this.serverConfig);
+    if (LOGGING.DATA_MANAGER_SUMMARY) {
+      console.warn("🔧 DataManager: Server config updated", this.serverConfig);
+    }
   }
 
   /**
@@ -260,13 +266,17 @@ class DataManagerService {
     }
 
     try {
-      console.warn("🔄 DataManager: Syncing with server...");
+      if (LOGGING.DATA_MANAGER_SUMMARY) {
+        console.warn("🔄 DataManager: Syncing with server...");
+      }
 
       // כאן יהיה הקוד לסנכרון עם שרת בעתיד
       // await this._uploadToServer(_user, this.cache);
       // await this._downloadFromServer(_user);
 
-      console.warn("✅ DataManager: Sync completed");
+      if (LOGGING.DATA_MANAGER_SUMMARY) {
+        console.warn("✅ DataManager: Sync completed");
+      }
     } catch (error) {
       console.error("❌ DataManager: Sync failed", error);
     }
@@ -276,7 +286,9 @@ class DataManagerService {
    * ניקוי מטמון ומצב - לצרכי דיבוג ופיתוח
    */
   clearCache(): void {
-    console.warn("🗑️ DataManager: Clearing cache");
+    if (LOGGING.DATA_MANAGER_SUMMARY) {
+      console.warn("🗑️ DataManager: Clearing cache");
+    }
     this.cache = null;
     this.isInitialized = false;
     this.initPromise = null;

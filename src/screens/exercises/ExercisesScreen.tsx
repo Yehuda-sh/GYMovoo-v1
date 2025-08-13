@@ -22,6 +22,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
+import { SafeAreaView } from "react-native-safe-area-context";
 // יבוא מקומי של שרירים
 interface Muscle {
   id: number;
@@ -32,7 +33,7 @@ import {
   EXERCISES_SCREEN_TEXTS,
   EXERCISES_MUSCLE_GROUPS,
   getMuscleGroupColor,
-  generateExerciseStats,
+  // generateExerciseStats,
 } from "../../constants/exercisesScreenTexts";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -46,22 +47,19 @@ interface MuscleGroup {
   color: string;
 }
 
-type ExercisesScreenNavigationProp = StackNavigationProp<RootStackParamList>;
-
-interface ExercisesScreenParams {
-  selectedMuscleGroup?: string;
-  filterTitle?: string;
-  returnScreen?: string;
-}
+type ExercisesScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "ExercisesScreen"
+>;
 
 export default function ExercisesScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<ExercisesScreenNavigationProp>();
   const route = useRoute();
   const [muscles, setMuscles] = useState<Muscle[]>([]);
 
   // קבלת פרמטרים מהניווט
   const { selectedMuscleGroup, filterTitle, returnScreen } =
-    (route.params as ExercisesScreenParams) || {};
+    (route.params as RootStackParamList["ExercisesScreen"]) || {};
 
   // שימוש בקבוצות השרירים מה-constants עם הוספת צבעים
   const mainMuscleGroups = useMemo(
@@ -106,26 +104,29 @@ export default function ExercisesScreen() {
     }
   };
 
-  const handleMuscleGroupPress = (muscleGroup: MuscleGroup) => {
-    // ניווט למסך רשימת התרגילים עם סינון לפי קבוצת שרירים
-    const typedNavigation = navigation as ExercisesScreenNavigationProp;
-    typedNavigation.navigate("ExerciseList", {
-      fromScreen: "Exercises",
-      mode: "view",
-      selectedMuscleGroup: muscleGroup.id,
-    });
-  };
+  const handleMuscleGroupPress = useCallback(
+    (muscleGroup: MuscleGroup) => {
+      // ניווט למסך רשימת התרגילים עם סינון לפי קבוצת שרירים
+      const typedNavigation = navigation as ExercisesScreenNavigationProp;
+      typedNavigation.navigate("ExerciseList", {
+        fromScreen: "ExercisesScreen",
+        mode: "view",
+        selectedMuscleGroup: muscleGroup.id,
+      });
+    },
+    [navigation]
+  );
 
-  const handleViewAllExercises = () => {
+  const handleViewAllExercises = useCallback(() => {
     const typedNavigation = navigation as ExercisesScreenNavigationProp;
     typedNavigation.navigate("ExerciseList", {
-      fromScreen: "Exercises",
+      fromScreen: "ExercisesScreen",
       mode: "view",
     });
-  };
+  }, [navigation]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -303,7 +304,7 @@ export default function ExercisesScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

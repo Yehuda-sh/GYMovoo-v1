@@ -169,11 +169,15 @@ export const PROFILE_SCREEN_TEXTS = {
   // תרגומי ערכי שאלון / Questionnaire value translations
   VALUES: {
     // Age ranges / טווחי גיל
+    AGE_UNDER_18: "מתחת ל-18",
     AGE_18_25: "18-25",
     AGE_26_35: "26-35",
-    AGE_36_45: "36-45",
-    AGE_46_55: "46-55",
-    AGE_55_PLUS: "55+",
+    AGE_36_45: "36-45", // תאימות לאחור
+    AGE_46_55: "46-55", // תאימות לאחור
+    AGE_36_50: "36-50",
+    AGE_51_65: "51-65",
+    AGE_55_PLUS: "55+", // תאימות לאחור
+    AGE_OVER_65: "מעל 65",
 
     // Gender / מגדר
     MALE: "זכר",
@@ -203,10 +207,12 @@ export const PROFILE_SCREEN_TEXTS = {
     MIXED: "משולב",
 
     // Session durations / משכי מפגש
+    DURATION_15_30: "15-30 דקות",
     DURATION_20_30: "20-30 דקות",
     DURATION_30_45: "30-45 דקות",
     DURATION_45_60: "45-60 דקות",
     DURATION_60_90: "60-90 דקות",
+    DURATION_60_PLUS: "יותר מ-60 דקות",
     DURATION_90_PLUS: "90+ דקות",
 
     // Workout frequencies / תדירויות אימון
@@ -274,19 +280,27 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
 
   // Age ranges / טווחי גיל
   if (key === "age_range" || key === "age") {
-    const normalized = String(value).replace(/_/g, "-");
-    const ageMap: { [key: string]: string } = {
+    const str = String(value);
+    const unifiedAgeMap: { [key: string]: string } = {
+      under_18: VALUES.AGE_UNDER_18,
+      "18_25": VALUES.AGE_18_25,
+      "26_35": VALUES.AGE_26_35,
+      "36_50": VALUES.AGE_36_50,
+      "51_65": VALUES.AGE_51_65,
+      over_65: VALUES.AGE_OVER_65,
+    };
+    if (unifiedAgeMap[str]) return unifiedAgeMap[str];
+    const normalized = str.replace(/_/g, "-");
+    const legacyAgeMap: { [key: string]: string } = {
       "18-25": VALUES.AGE_18_25,
       "26-35": VALUES.AGE_26_35,
       "36-45": VALUES.AGE_36_45,
       "46-55": VALUES.AGE_46_55,
-      "55-plus": VALUES.AGE_55_PLUS,
+      "55+": VALUES.AGE_55_PLUS,
+      "36-50": VALUES.AGE_36_50,
+      "51-65": VALUES.AGE_51_65,
     };
-    return (
-      ageMap[normalized] ||
-      ageMap[String(value)] ||
-      String(value).replace("_", "-")
-    );
+    return legacyAgeMap[normalized] || normalized;
   }
 
   // Gender / מגדר
@@ -406,6 +420,8 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   // Workout locations / מיקומי אימון
   if (key === "workout_location" || key === "location") {
     const locationMap: { [key: string]: string } = {
+      home_bodyweight: VALUES.HOME,
+      home_equipment: VALUES.HOME,
       home: VALUES.HOME,
       gym: VALUES.GYM,
       outdoor: VALUES.OUTDOOR,
@@ -420,38 +436,44 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     key === "duration" ||
     key === "sessionDuration"
   ) {
-    const norm = String(value)
-      .replace(/_/g, "-")
-      .replace("min", "min")
-      .replace("45-60", "45-60-min")
-      .replace("30-45", "30-45-min")
-      .replace("20-30", "20-30-min")
-      .replace("60_plus_min", "60-90-min")
-      .replace("60_plus", "60-90-min");
-    const durationMap: { [key: string]: string } = {
-      "20-30-min": VALUES.DURATION_20_30,
+    const str = String(value);
+    const unifiedDurationMap: { [key: string]: string } = {
+      "15_30_min": VALUES.DURATION_15_30,
+      "30_45_min": VALUES.DURATION_30_45,
+      "45_60_min": VALUES.DURATION_45_60,
+      "60_plus_min": VALUES.DURATION_60_PLUS,
+      "20_30_min": VALUES.DURATION_20_30, // תאימות אחורה
+      "90_plus_min": VALUES.DURATION_90_PLUS,
+    };
+    if (unifiedDurationMap[str]) return unifiedDurationMap[str];
+    const norm = str.replace(/_/g, "-");
+    const legacyMap: { [key: string]: string } = {
+      "15-30-min": VALUES.DURATION_15_30,
       "30-45-min": VALUES.DURATION_30_45,
       "45-60-min": VALUES.DURATION_45_60,
-      "60-90-min": VALUES.DURATION_60_90,
+      "60-plus-min": VALUES.DURATION_60_PLUS,
+      "20-30-min": VALUES.DURATION_20_30,
       "90-plus-min": VALUES.DURATION_90_PLUS,
-      "15-30-min": VALUES.DURATION_20_30, // קרוב ביותר
-      "45_60_min": VALUES.DURATION_45_60,
     };
-    return (
-      durationMap[norm] ||
-      durationMap[String(value)] ||
-      String(value).replace(/_/g, "-")
-    );
+    return legacyMap[norm] || norm;
   }
 
   // Workout frequencies / תדירויות אימון
-  if (key === "available_days" || key === "workout_frequency") {
+  if (
+    key === "available_days" ||
+    key === "workout_frequency" ||
+    key === "availability"
+  ) {
     const frequencyMap: { [key: string]: string } = {
       "2-times": VALUES.FREQUENCY_2_TIMES,
       "3-times": VALUES.FREQUENCY_3_TIMES,
       "4-times": VALUES.FREQUENCY_4_TIMES,
       "5-times": VALUES.FREQUENCY_5_TIMES,
       "6-plus-times": VALUES.FREQUENCY_6_PLUS,
+      "2_days": VALUES.FREQUENCY_2_TIMES,
+      "3_days": VALUES.FREQUENCY_3_TIMES,
+      "4_days": VALUES.FREQUENCY_4_TIMES,
+      "5_days": VALUES.FREQUENCY_5_TIMES,
     };
     return frequencyMap[value] || value;
   }
@@ -492,19 +514,34 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     if (value.length === 0) return PROFILE_SCREEN_TEXTS.MESSAGES.NO_EQUIPMENT;
 
     const equipmentMap: { [key: string]: string } = {
-      dumbbells: "משקולות",
-      barbell: "מוט ברזל",
-      resistance_bands: "גומיות התנגדות",
+      // Home equipment
+      dumbbells: "משקולות יד",
+      resistance_bands: "רצועות התנגדות",
       kettlebell: "קטלבל",
-      pullup_bar: "מוט מתח",
-      exercise_ball: "כדור פילאטיס",
-      mat: "מזרן יוגה",
-      bench: "ספסל",
-      squat_rack: "מתקן סקוואט",
+      yoga_mat: "מזרון יוגה",
+      pullup_bar: "מתקן מתח",
+      foam_roller: "גליל קצף",
+      exercise_ball: "כדור פיטנס",
+      trx: "TRX",
+
+      // Gym equipment
+      free_weights: "משקולות חופשיות",
       cable_machine: "מכונת כבלים",
+      squat_rack: "מתקן סקוואט",
+      bench_press: "ספסל דחיקה",
+      leg_press: "מכונת רגליים",
+      lat_pulldown: "מכונת גב",
+      smith_machine: "מכונת סמית׳",
+      rowing_machine: "מכונת חתירה",
       treadmill: "הליכון",
-      elliptical: "אליפטיקל",
+      bike: "אופני כושר",
+
+      // Legacy/common
+      barbell: "מוט ברזל",
+      bench: "ספסל",
+      mat: "מזרן יוגה",
       bodyweight: "משקל גוף",
+      elliptical: "אליפטיקל",
     };
 
     return value.map((item: string) => equipmentMap[item] || item).join(", ");

@@ -19,6 +19,7 @@ import { UserGender } from "../../utils/genderAdaptation";
 import { User } from "../../types";
 import { demoUserService } from "./demoUserService";
 import { workoutSimulationService } from "../workoutSimulationService";
+import { LOGGING } from "../../constants/logging";
 
 class DemoWorkoutService {
   private static instance: DemoWorkoutService;
@@ -105,9 +106,11 @@ class DemoWorkoutService {
   async generateDemoWorkoutHistoryForUser(
     user: User
   ): Promise<WorkoutWithFeedback[]> {
-    console.warn(
-      "🔴 Generating DEMO workout history based on REAL user data - DEV ONLY"
-    );
+    if (LOGGING.DEMO) {
+      console.warn(
+        "🔴 Generating DEMO workout history based on REAL user data - DEV ONLY"
+      );
+    }
 
     if (!user) {
       return this.generateDemoWorkoutHistory();
@@ -155,11 +158,12 @@ class DemoWorkoutService {
 
     const internalEquipment = this.mapUnifiedEquipmentToInternal(unifiedEquip);
 
-    console.warn("🔍 Using real user data for demo:", {
-      gender,
-      experience,
-      equipment: unifiedEquip.length,
-    });
+    if (LOGGING.DEMO)
+      console.warn("🔍 Using real user data for demo:", {
+        gender,
+        experience,
+        equipment: unifiedEquip.length,
+      });
 
     return await workoutSimulationService.simulateHistoryCompatibleWorkouts(
       gender as UserGender,
@@ -182,7 +186,9 @@ class DemoWorkoutService {
     experience?: "beginner" | "intermediate" | "advanced",
     equipment?: string[]
   ): Promise<WorkoutWithFeedback[]> {
-    console.warn("🔴 Generating DEMO workout history - DEV ONLY");
+    if (LOGGING.DEMO) {
+      console.warn("🔴 Generating DEMO workout history - DEV ONLY");
+    }
 
     // אם לא סופקו פרמטרים, יצור משתמש דמו
     if (!gender || !experience) {

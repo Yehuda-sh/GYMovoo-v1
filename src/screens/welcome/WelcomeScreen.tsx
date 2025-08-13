@@ -79,7 +79,7 @@ import {
   generateActiveUsersCount,
   formatActiveUsersText,
 } from "../../constants/welcomeScreenTexts";
-import { localDataService } from "../../services/localDataService";
+import { userApi } from "../../services/api/userApi";
 
 // Helper function was removed - inline logic used instead for better performance optimization
 
@@ -256,66 +256,7 @@ export default function WelcomeScreen() {
               </LinearGradient>
             </TouchableButton>
 
-            {/* כפתור דמו מהיר - ישירות לדני כהן */}
-            <TouchableButton
-              style={[
-                styles.secondaryButton,
-                { marginTop: 15, backgroundColor: theme.colors.success },
-              ]}
-              onPress={async () => {
-                try {
-                  console.warn("🎭 טוען נתוני דמו של דני כהן...");
-
-                  // יבוא הפונקציות לניקוי וטעינת דמו
-                  const { loadDaniCohenDemo, clearDaniCohenDemo } =
-                    await import("../../services/daniCohenDemoService");
-
-                  // ניקוי נתונים ישנים לפני טעינה מחדש
-                  await clearDaniCohenDemo();
-                  console.warn("🧹 נתונים ישנים נוקו, טוען נתונים חדשים...");
-
-                  // טעינת נתוני דמו מקובץ JSON
-                  await loadDaniCohenDemo();
-
-                  // טעינת המשתמש מ-AsyncStorage כדי לעדכן את ה-store
-                  const AsyncStorage = (
-                    await import("@react-native-async-storage/async-storage")
-                  ).default;
-                  const userDataString = await AsyncStorage.getItem("user");
-
-                  if (userDataString) {
-                    const userData = JSON.parse(userDataString);
-                    setUser(userData);
-                    console.warn("✅ דני כהן נטען בהצלחה עם כל הנתונים!");
-                    navigation.navigate("MainApp");
-                  } else {
-                    throw new Error("לא הצלחתי לטעון את נתוני דני כהן");
-                  }
-                } catch (error) {
-                  console.error("❌ שגיאה בטעינת דני כהן:", error);
-                  const errorMessage =
-                    error instanceof Error ? error.message : String(error);
-                  setErrorMessage(`שגיאה בטעינת דני כהן: ${errorMessage}`);
-                  setShowErrorModal(true);
-                }
-              }}
-              accessibilityLabel="טעינת דני כהן - משתמש אמיתי"
-              accessibilityHint="כניסה כדני כהן עם כל ההיסטוריה והנתונים האמיתיים"
-            >
-              <MaterialCommunityIcons
-                name="account-check"
-                size={18}
-                color={theme.colors.white}
-              />
-              <Text
-                style={[
-                  styles.secondaryButtonText,
-                  { color: theme.colors.white },
-                ]}
-              >
-                � דני כהן - משתמש אמיתי
-              </Text>
-            </TouchableButton>
+            {/* הוסר: כפתור דמו */}
 
             {/* Free trial promotion badge */}
             <View style={styles.trialBadge}>
@@ -344,13 +285,55 @@ export default function WelcomeScreen() {
               <TouchableButton
                 style={styles.secondaryButton}
                 onPress={async () => {
-                  const realUsers = localDataService.getUsers();
-                  if (realUsers.length > 0) {
-                    setUser(realUsers[0]);
-                    navigation.navigate("MainApp");
-                  } else {
+                  try {
+                    // שליפת משתמשים מהשרת המקומי ובחירת אחד רנדומלי
+                    const users = await userApi.list();
+                    if (!users || users.length === 0) {
+                      throw new Error(
+                        "לא נמצאו משתמשים בשרת המקומי. ודא שהשרת רץ ושהוזנו משתמשים."
+                      );
+                    }
+                    const random =
+                      users[Math.floor(Math.random() * users.length)];
+
+                    // 1) הגדרת המשתמש האמיתי שנבחר
+                    setUser(random);
+
+                    // 2) איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
+                    try {
+                      useUserStore.getState().resetSmartQuestionnaire();
+                    } catch (e) {
+                      if (__DEV__)
+                        console.warn("resetSmartQuestionnaire נכשל", e);
+                    }
+                    try {
+                      useUserStore.getState().resetQuestionnaire?.();
+                    } catch (e) {
+                      if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
+                    }
+
+                    // 3) אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
+                    try {
+                      useUserStore.getState().initializeSubscription();
+                    } catch (e) {
+                      if (__DEV__) {
+                        console.warn(
+                          "initializeSubscription נכשל במהלך התחברות מהירה",
+                          e
+                        );
+                      }
+                    }
+
+                    // 4) מעבר למסך השאלון כמו אחרי הרשמה
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Questionnaire" }],
+                    });
+                  } catch (err) {
+                    const msg =
+                      err instanceof Error ? err.message : String(err);
                     setErrorMessage(
-                      "לא נמצא משתמש אמיתי במאגר. יש להוסיף משתמש דרך הרשמה."
+                      `שגיאה בהתחברות מהירה: ${msg}.\nהרץ שרת מקומי עם 'npm run storage:start'.`
                     );
                     setShowErrorModal(true);
                   }

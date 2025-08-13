@@ -80,13 +80,19 @@ const ActiveWorkoutScreen: React.FC = () => {
   const route = useRoute();
 
   // קבלת פרמטרים מהניווט - עכשיו מקבלים אימון מלא
-  const { workoutData } =
+  const { workoutData, pendingExercise } =
     (route.params as {
       workoutData?: {
         name?: string;
         dayName?: string;
         startTime?: string;
         exercises?: Exercise[];
+      };
+      pendingExercise?: {
+        id: string;
+        name: string;
+        muscleGroup?: string;
+        equipment?: string;
       };
     }) || {};
 
@@ -100,10 +106,32 @@ const ActiveWorkoutScreen: React.FC = () => {
   }, [workoutData]);
 
   // סטייט לכל התרגילים באימון
-  const [exercises, setExercises] = useState<Exercise[]>(
-    workoutData?.exercises || []
-  );
-  const [expandedExercises, setExpandedExercises] = useState<string[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>(() => {
+    const base = workoutData?.exercises || [];
+    if (pendingExercise) {
+      // צור תרגיל עם סט התחלתי בסיסי
+      const newExercise: Exercise = {
+        id: `${pendingExercise.id}_${Date.now()}`,
+        name: pendingExercise.name,
+        equipment: pendingExercise.equipment || "bodyweight",
+        muscleGroup: pendingExercise.muscleGroup || "כללי",
+        restTime: 60,
+        sets: [
+          {
+            id: `${pendingExercise.id}_set_${Date.now()}`,
+            type: "working",
+            targetReps: 10,
+            targetWeight: 0,
+            completed: false,
+            isPR: false,
+          },
+        ],
+      } as unknown as Exercise; // הנחה: מבנה Exercise כולל שדות אלו
+      return [...base, newExercise];
+    }
+    return base;
+  });
+  // (ניקוי) סטייט הרחבה לא בשימוש הוסר
 
   // Modal states
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -112,21 +140,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
 
-  // פונקציות להרחבה וכיווץ של תרגילים
-  const toggleExerciseExpansion = useCallback((exerciseId: string) => {
-    setExpandedExercises((prev) =>
-      prev.includes(exerciseId)
-        ? prev.filter((id) => id !== exerciseId)
-        : [...prev, exerciseId]
-    );
-  }, []);
-
-  const isExerciseExpanded = useCallback(
-    (exerciseId: string) => {
-      return expandedExercises.includes(exerciseId);
-    },
-    [expandedExercises]
-  );
+  // (הוסר) פונקציות הרחבה/כיווץ לא בשימוש
 
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
@@ -134,7 +148,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   }, [exercises]);
 
   // טיימרים
-  const workoutId = `active-workout-${Date.now()}`;
+  const workoutId = useMemo(() => `active-workout-${Date.now()}`, []);
   const { formattedTime, isRunning, startTimer, pauseTimer } =
     useWorkoutTimer(workoutId);
   const {
@@ -151,11 +165,10 @@ const ActiveWorkoutScreen: React.FC = () => {
     startTimer();
     return () => {
       pauseTimer();
-      if (isRestTimerActive) {
-        skipRestTimer();
-      }
+      // קריאה בטוחה: אם אין טיימר מנוחה פעיל, הפונקציה תתעלם
+      skipRestTimer();
     };
-  }, []);
+  }, [startTimer, pauseTimer, skipRestTimer]);
 
   // עדכון סט בתרגיל - אופטימיזציה עם לוגר
   const handleUpdateSet = useCallback(
@@ -313,7 +326,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     }
 
     setShowExitModal(true);
-  }, [workoutStats, navigation]);
+  }, [workoutStats]);
 
   // הוספת תרגיל חדש לאימון הפעיל
   const handleAddExercise = useCallback(() => {
@@ -687,40 +700,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     gap: theme.spacing.md,
   },
-  navButton: {
-    flex: 1,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.radius.md,
-    gap: theme.spacing.sm,
-  },
-  prevButton: {
-    backgroundColor: theme.colors.textSecondary,
-  },
-  disabledButton: {
-    backgroundColor: theme.colors.border,
-  },
-  navButtonText: {
-    color: theme.colors.card,
-    fontSize: theme.typography.button.fontSize,
-    fontWeight: theme.typography.button.fontWeight,
-  },
-  disabledText: {
-    color: theme.colors.textSecondary,
-  },
-  finishButton: {
-    flex: 2,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.success,
-    borderRadius: theme.radius.md,
-    gap: theme.spacing.sm,
-  },
+  // סטיילים לא בשימוש הוסרו
   finishButtonText: {
     color: theme.colors.card,
     fontSize: theme.typography.button.fontSize,

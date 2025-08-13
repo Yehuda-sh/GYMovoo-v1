@@ -639,7 +639,10 @@ export class UnifiedQuestionnaireManager {
   private history: number[] = [];
 
   constructor() {
-    console.warn("🎯 UnifiedQuestionnaireManager initialized"); // ✅ שונה ל-console.warn עפ"י הנחיות
+    const DEBUG_UQM = false;
+    if (DEBUG_UQM) {
+      console.warn("🎯 UnifiedQuestionnaireManager initialized");
+    }
   }
 
   // קבל שאלה נוכחית
@@ -701,7 +704,10 @@ export class UnifiedQuestionnaireManager {
     };
 
     this.answers.set(questionId, questionAnswer);
-    console.warn(`✅ Answered question: ${questionId}`, answer); // ✅ שונה ל-console.warn
+    const DEBUG_UQM = false;
+    if (DEBUG_UQM) {
+      console.warn(`✅ Answered question: ${questionId}`, answer);
+    }
   }
 
   // עבור לשאלה הבאה
@@ -718,6 +724,40 @@ export class UnifiedQuestionnaireManager {
   previousQuestion(): boolean {
     if (this.history.length > 0) {
       this.currentQuestionIndex = this.history.pop()!;
+      return true;
+    }
+    return false;
+  }
+
+  // מעבר לשאלה האחרונה שנענתה
+  goToLastAnswered(): boolean {
+    if (this.answers.size === 0) return false;
+    const lastAnsweredId = Array.from(this.answers.keys()).pop();
+    if (!lastAnsweredId) return false;
+    const idx = this.questions.findIndex((q) => q.id === lastAnsweredId);
+    if (idx >= 0) {
+      this.currentQuestionIndex = idx;
+      return true;
+    }
+    return false;
+  }
+
+  // חישוב אינדקס השאלה הראשונה שלא נענתה (ורלוונטית)
+  private getFirstUnansweredIndex(): number {
+    for (let i = 0; i < this.questions.length; i++) {
+      const q = this.questions[i];
+      if (this.shouldSkipQuestion(q)) continue;
+      if (!this.answers.has(q.id)) return i;
+    }
+    // אם כולן נענו או לא נמצאה – החזר אחרונה
+    return Math.max(0, this.questions.length - 1);
+  }
+
+  // מעבר לשאלה הבאה שלא נענתה
+  goToNextUnanswered(): boolean {
+    const idx = this.getFirstUnansweredIndex();
+    if (idx >= 0) {
+      this.currentQuestionIndex = idx;
       return true;
     }
     return false;
