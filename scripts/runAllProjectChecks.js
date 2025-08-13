@@ -43,9 +43,7 @@ const checks = [
     file: "scripts/securityCheck.js",
   },
   {
-    name: "בדיקת ציוד (מהיר)",
-    command: "node scripts/equipmentManager.js --quick",
-    file: "scripts/equipmentManager.js",
+    // note: ציוד (equipmentManager) הוסר/לא קיים כרגע
   },
   {
     name: "בדיקת קומפילציה מהירה",
