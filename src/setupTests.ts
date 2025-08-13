@@ -49,6 +49,27 @@ jest.mock("expo-modules-core", () => ({
 // Mock ל-polyfill בעייתי של RN שנכשל בפרסינג בסביבת Jest
 jest.mock("@react-native/js-polyfills/error-guard", () => ({}));
 
+// Mock AsyncStorage for Jest environment
+jest.mock("@react-native-async-storage/async-storage", () => {
+  let store: Record<string, string> = {};
+  return {
+    setItem: jest.fn(async (key: string, value: string) => {
+      store[key] = value;
+    }),
+    getItem: jest.fn(async (key: string) => store[key] ?? null),
+    removeItem: jest.fn(async (key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(async () => {
+      store = {};
+    }),
+    getAllKeys: jest.fn(async () => Object.keys(store)),
+    multiRemove: jest.fn(async (keys: string[]) => {
+      for (const k of keys) delete store[k];
+    }),
+  };
+});
+
 // Suppress console warnings in tests
 global.console = {
   ...console,
