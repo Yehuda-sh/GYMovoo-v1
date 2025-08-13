@@ -20,17 +20,5 @@ if (!__DEV__) {
  * Status: REMOVED (stub) - 2025-08-13
  */
 
-export type DemoUser = never;
-
-export const demoUserService = {
-  getCurrentDemoUser(): never {
-    throw new Error("demoUserService removed");
-  },
-  generateDemoUser(): never {
-    throw new Error("demoUserService removed");
-  },
-} as const;
-
-export const realisticDemoService = demoUserService;
-
-export default demoUserService;
+// removed (empty)
+export {};
