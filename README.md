@@ -23,13 +23,14 @@
 - 📊 **דשבורד מתקדם** - סטטיסטיקות, היסטוריה ומעקב התקדמות
 - 🛠️ **תצוגת ציוד אישי** - הצגת הציוד הזמין בפרופיל המשתמש
 - 🌙 **מצב כהה/בהיר** - תמיכה מלאה בשני המצבים
-- 🔄 **סנכרון מקומי** - שמירה מקומית עם AsyncStorage
+- 🔄 **Cache מקומי (AsyncStorage)** - מטמון בלבד; מקור אמת: השרת
 - 🏋️ **מאגר תרגילים עשיר** - מעל 100 תרגילים עם הדרכות ובחירה אוטומטית
 - 📱 **ממשק RTL מלא** - תמיכה מלאה בעברית עם אייקונים אינטואיטיביים
 - 🔧 **TypeScript מלא** - 100% type safety עם interfaces מתקדמים
 
 #### 🆕 עדכונים אחרונים (אוגוסט 2025)
 
+- 🌐 מקור אמת: השרת בלבד – נתוני דמו הוסרו; חובה להגדיר `EXPO_PUBLIC_STORAGE_BASE_URL` (באמולטור אנדרואיד: http://10.0.2.2:3001)
 - **🔧 TypeScript Cleanup מלא** - 50+ `any` types הוחלפו בטיפוסים מדויקים ב-7 מסכי Screen מרכזיים
 - **🐛 תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
 - **⚡ אופטימיזציה מתקדמת** - קובץ questionnaireService צומצם מ-1428 ל-1417 שורות (הסרת כפילויות)
@@ -48,11 +49,11 @@
 - **מערכת שאלון חכמה מתקדמת** - 7 שאלות דינמיות עם בחירה מרובה
 - **מאגר ציוד מקיף** - מעל 100 פריטי ציוד מקטלגים (בית, חדר כושר, שניהם)
 - **סינכרון מושלם** - מסך הפרופיל מתעדכן אוטומטית עם הציוד הנבחר
-- **מערכת דמו לבדיקות** - כפתור דמו במסך הראשי לבדיקת תרחישים שונים
+- **מערכת דמו לבדיקות** - כפתור דמו במסך הראשי לבדיקת תרחישים שונים (הוסר באוגוסט 2025)
 - **שאלות דינמיות** - השאלון מתאים את עצמו לפי התשובות הקודמות
 - **מסך סיום אימון משופר** - תצוגת סיכום מקיפה עם שיאים אישיים
 - **זיהוי שיאים בזמן אמת** - המערכת מזהה שיאי משקל, נפח וחזרות אוטומטית
-- **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט ותמיכה בנתוני דמו
+- **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
 - **שירותים חדשים** - workoutHistoryService, workoutSimulationService (עם התאמת מגדר וסימולציה חכמה), scientificAIService ועוד (15 שירותים פעילים)
@@ -99,6 +100,8 @@ npx expo start --tunnel
 - **`npm run start` גם עובד** - מוגדר לקרוא ל-`npx expo start`
 - אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הcache
 - במקרה של בעיות רשת, השתמש ב-`--tunnel`
+- חובה להגדיר משתנה סביבה `EXPO_PUBLIC_STORAGE_BASE_URL` לכתובת השרת. באמולטור אנדרואיד השתמשו ב-`http://10.0.2.2:3001`.
+- `AsyncStorage` משמש כ-cache בלבד; השרת הוא מקור אמת. ללא שרת פעיל לא מתבצעת התקדמות בפיצ'רים קריטיים (למשל מעבר ל-Home ללא שאלון שלם).
 
 ### הרצה במכשיר
 
@@ -439,7 +442,7 @@ eas build -p ios
 - ⏱️ **Real-time Workout Tracking** - Timer, sets, and weight tracking
 - 📊 **Advanced Dashboard** - Statistics, history, and progress tracking
 - 🌙 **Dark/Light Mode** - Full support for both themes
-- 🔄 **Local Sync** - AsyncStorage persistence with seamless experience
+- 🔄 **Local Cache (AsyncStorage)** - Cache only; server is the single source of truth
 - 🏋️ **Rich Exercise Database** - Over 100 exercises with smart selection
 - 📱 **Complete RTL Interface** - Full Hebrew support with proper text alignment
 - 🤖 **AI-Powered Insights** - Smart workout recommendations and feedback
@@ -449,6 +452,7 @@ eas build -p ios
 
 #### 🆕 Latest Updates (August 2025)
 
+- 🌐 Server as the single source of truth – demo data removed; requires `EXPO_PUBLIC_STORAGE_BASE_URL` (Android emulator: http://10.0.2.2:3001)
 - **🔧 Complete TypeScript Cleanup** - 50+ `any` types replaced with precise typing across 7 major Screen components
 - **🐛 Critical Bug Fixes** - Resolved 52+ TypeScript errors in WelcomeScreen, useUserPreferences, and MuscleMapInteractive
 - **⚡ Advanced Optimization** - questionnaireService reduced from 1428 to 1417 lines (removed duplications)
@@ -463,11 +467,11 @@ eas build -p ios
 - **Advanced Smart Questionnaire System** - 7 dynamic questions with multiple selection
 - **Comprehensive Equipment Database** - 100+ equipment items categorized (home, gym, both)
 - **Perfect Synchronization** - Profile screen automatically updates with selected equipment
-- **Demo System** - Demo button on main screen for testing different scenarios
+- **Demo System** - Demo button on main screen for testing different scenarios (removed Aug 2025)
 - **Dynamic Questions** - Questionnaire adapts based on previous answers
 - **Gender-First Approach** - Gender selection as first question for language adaptation
 - **RTL & Gender Adaptation** - Complete system for Hebrew RTL and gender-adaptive text
-- **Enhanced History System** - Complete workout history with comprehensive demo data and feedback
+- **Enhanced History System** - Complete workout history with comprehensive feedback
 
 ## 🚀 Quick Start
 
@@ -494,6 +498,11 @@ yarn install
 
 # Start the application
 npx expo start
+
+# Important notes
+
+- Set the `EXPO_PUBLIC_STORAGE_BASE_URL` environment variable to your server URL. On Android emulator use `http://10.0.2.2:3001`.
+- AsyncStorage is used as cache only. Without a running server, critical features won't progress (e.g., gating after questionnaire).
 ```
 
 ### Running on Device
