@@ -10,7 +10,7 @@
  * @updated 2025-08-10 הוספת מנהל נתונים מרכזי למערכת
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 
 // ===============================================
@@ -45,6 +45,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 export default function App(): React.JSX.Element {
   const { user } = useUserStore();
   const refreshFromServer = useUserStore((s) => s.refreshFromServer);
+  const initializedUserIdRef = useRef<string | null>(null);
+  const isInitializingRef = useRef(false);
+  const didRefreshRef = useRef(false);
 
   // ניקוי אחסון – פעם אחת בהפעלה
   useEffect(() => {
@@ -70,9 +73,27 @@ export default function App(): React.JSX.Element {
         console.warn("🔄 App: Waiting for user to initialize data manager...");
         return;
       }
+
+      // איפוס דגל רענון/אתחול כשמתחלף משתמש
+      if (initializedUserIdRef.current !== user.id) {
+        didRefreshRef.current = false;
+      }
+
+      // אם כבר מאותחל עבור המשתמש הזה והמערכת מוכנה – אין צורך שוב
+      if (initializedUserIdRef.current === user.id && dataManager.isReady()) {
+        return;
+      }
+
+      // הימנע מהרצות מקבילות
+      if (isInitializingRef.current) {
+        return;
+      }
       try {
-        // רענון מהשרת לפי מדיניות "שרת כמקור אמת"
-        await refreshFromServer();
+        // רענון מהשרת לפי מדיניות "שרת כמקור אמת" – פעם אחת לכל התחברות
+        if (!didRefreshRef.current) {
+          await refreshFromServer();
+          didRefreshRef.current = true;
+        }
       } catch (e) {
         console.warn(
           "⚠️ App: refreshFromServer failed:",
@@ -80,11 +101,19 @@ export default function App(): React.JSX.Element {
         );
       }
       try {
+        // אתחול בפועל רק אם טרם הותחל
+        if (dataManager.isReady() && initializedUserIdRef.current === user.id) {
+          return;
+        }
+        isInitializingRef.current = true;
         console.warn("🚀 App: Starting data manager initialization...");
         await dataManager.initialize(user);
         console.warn("✅ App: Data manager initialization completed");
+        initializedUserIdRef.current = user.id;
       } catch (error) {
         console.error("❌ App: Data manager initialization failed:", error);
+      } finally {
+        isInitializingRef.current = false;
       }
     };
     if (user?.id) initData();

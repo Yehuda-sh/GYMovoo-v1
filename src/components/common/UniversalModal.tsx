@@ -24,8 +24,10 @@ interface UniversalModalProps {
   title: string;
   message: string;
   onClose: () => void;
+  onCancel?: () => void;
   onConfirm?: () => void;
   confirmText?: string;
+  cancelText?: string;
   destructive?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -40,8 +42,10 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
   title,
   message,
   onClose,
+  onCancel,
   onConfirm,
   confirmText = "אישור",
+  cancelText = "ביטול",
   destructive = false,
   accessibilityLabel,
   accessibilityHint,
@@ -174,15 +178,18 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
               <>
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}
-                  onPress={onClose}
+                  onPress={() => {
+                    onCancel?.();
+                    onClose();
+                  }}
                   activeOpacity={0.7}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel="ביטול"
+                  accessibilityLabel={cancelText}
                   accessibilityHint="לחץ כדי לבטל את הפעולה"
                   testID={`${testID || "universal-modal"}-cancel-button`}
                 >
-                  <Text style={styles.cancelButtonText}>ביטול</Text>
+                  <Text style={styles.cancelButtonText}>{cancelText}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[

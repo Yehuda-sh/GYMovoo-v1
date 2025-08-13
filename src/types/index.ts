@@ -305,22 +305,7 @@ export interface DynamicQuestion {
   answer: string;
 }
 
-/**
- * Enhanced workout recommendation interface with comprehensive metadata
- * ממשק המלצת אימון משופר עם מטא-דאטה מקיף
- */
-export interface WorkoutRecommendation {
-  id: string;
-  name: string;
-  description: string;
-  duration: number; // Duration in minutes / משך בדקות
-  difficulty: "beginner" | "intermediate" | "advanced";
-  equipment: string[];
-  targetMuscles: string[];
-  type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
-  estimatedCalories?: number;
-  exercises?: WorkoutExercise[]; // תואם לממשק הקיים
-}
+// Note: WorkoutRecommendation מוגדר כבר למעלה בסקשן התוכניות – הימנעות מכפילויות
 
 /**
  * Enhanced exercise interface for questionnaire recommendations

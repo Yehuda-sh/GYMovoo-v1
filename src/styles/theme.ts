@@ -16,7 +16,7 @@
  */
 
 import { Dimensions, Platform } from "react-native";
-import type { ViewStyle } from "react-native";
+import type { ViewStyle, Insets } from "react-native";
 // ייבוא isRTL מהמקום המרכזי | Import isRTL from central location
 import { isRTL } from "../utils/rtlHelpers";
 
@@ -273,6 +273,68 @@ export const animations = {
   normal: 300,
   slow: 500,
   verySlow: 800,
+};
+
+// --- Z-Index Levels (Centralized) ---
+export const zIndex = {
+  base: 1,
+  header: 100,
+  dropdown: 1300,
+  overlay: 1200,
+  floatingButton: 1000,
+  toast: 1500,
+  modal: 2000,
+} as const;
+
+// --- Touch & Accessibility Helpers ---
+export const touch = {
+  minTarget: 44,
+  hitSlop: {
+    small: { top: 8, right: 8, bottom: 8, left: 8 } as Insets,
+    medium: { top: 12, right: 12, bottom: 12, left: 12 } as Insets,
+    large: { top: 16, right: 16, bottom: 16, left: 16 } as Insets,
+  },
+} as const;
+
+export const a11y = {
+  minTouchTarget: 44,
+} as const;
+
+// --- Generic RTL Helpers ---
+export const rtl = {
+  // מחזיר ערך על בסיס כיוון
+  // Returns a value based on RTL direction
+  switch: <T>(rtlValue: T, ltrValue: T): T => (isRTL ? rtlValue : ltrValue),
+  // מחזיר style של קצה (left/right) לפי כיוון
+  edge: (value: number = spacing.lg) => ({
+    left: isRTL ? undefined : value,
+    right: isRTL ? value : undefined,
+  }),
+} as const;
+
+// --- Color Utils ---
+export const getContrastTextColor = (bg: string): string => {
+  // תמיכה בסיסית ב-#RRGGBB
+  const hex =
+    bg.startsWith("#") && (bg.length === 7 || bg.length === 4)
+      ? bg
+      : colors.card;
+  const parse = (h: string) => {
+    if (h.length === 4) {
+      const r = parseInt(h[1] + h[1], 16);
+      const g = parseInt(h[2] + h[2], 16);
+      const b = parseInt(h[3] + h[3], 16);
+      return { r, g, b };
+    }
+    const r = parseInt(h.slice(1, 3), 16);
+    const g = parseInt(h.slice(3, 5), 16);
+    const b = parseInt(h.slice(5, 7), 16);
+    return { r, g, b };
+  };
+  const { r, g, b } = parse(hex);
+  // luminance יחסית
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? colors.textInverse : colors.text;
 };
 
 // --- Icon Directions (For RTL) ---
@@ -1025,9 +1087,13 @@ export const theme = {
   typography,
   shadows,
   animations,
+  zIndex,
+  touch,
+  a11y,
   components,
   icons,
   layout,
+  rtl,
 
   // Enhanced helpers for gender adaptation (questionnaire helpers are legacy)
   genderHelpers,
@@ -1041,6 +1107,7 @@ export const theme = {
 
   // Avatar helpers
   getAvatarStyle,
+  getContrastTextColor,
 
   // Utility styles (previously unused constants - now part of components)
   sectionHeader: {

@@ -1,7 +1,19 @@
-/\*\* \* @file src/screens/workout/hooks/README.md \* @description תיעוד הוקי האימון - טיימרים ופונקציונליות מתקדמת \* @description English: Workout hooks documentation - timers and advanced functionality \* @updated 2025-01-17 Enhanced documentation following audit completion \* \* ✅ ACTIVE & COMPREHENSIVE: תיעוד מקיף מעודכן לגמרי \* - Covers useWorkoutTimer & useRestTimer with full API documentation \* - Usage examples and integration patterns for real-world scenarios \* - Performance improvements and technical details from 2025 updates \* - Bilingual documentation (Hebrew/English) for team accessibility
-\*/
-
 # 🏋️ Workout Hooks Documentation / תיעוד הוקי האימון
+
+> Updated: 2025-01-17 – תיעוד הוקי האימון (טיימרים ופונקציונליות מתקדמת)
+
+## 📚 Table of Contents / תוכן עניינים
+
+- 📄 Overview / סקירה כללית
+- 🔧 Available Hooks / הוקים הזמינים
+  - ⏱️ useWorkoutTimer
+  - ⏰ useRestTimer
+- 🔄 Integration / אינטגרציה
+- 🚀 Performance Improvements / שיפורי ביצועים
+- 📱 Usage Examples / דוגמאות שימוש
+- 🔍 Technical Notes / הערות טכניות
+- 🧪 Tests / בדיקות
+- 📋 Maintenance / תחזוקה
 
 ## 📄 Overview / סקירה כללית
 
@@ -208,6 +220,35 @@ Both hooks use consistent interval management:
 - useCallback for all functions to prevent unnecessary re-renders
 - Ref usage for values that don't need to trigger re-renders
 - Optimized state updates with proper dependencies
+
+---
+
+## 🧪 Tests / בדיקות
+
+### Jest + React Native Testing Library
+
+- השתמשו ב-fake timers עבור בדיקות טיימרים: `jest.useFakeTimers()`.
+- עטפו פעולות המשנות זמן בתוך `act`.
+- דוגמה קצרה:
+
+```ts
+import { act } from "@testing-library/react-native";
+
+jest.useFakeTimers();
+
+it("counts rest timer down", () => {
+  const { result } = renderHook(() => useRestTimer());
+  act(() => {
+    result.current.startRestTimer(60, "Push-ups");
+    jest.advanceTimersByTime(1000);
+  });
+  expect(result.current.restTimeRemaining).toBe(59);
+});
+```
+
+- הערות:
+  - ודאו ניקוי טיימרים בין בדיקות (`jest.clearAllTimers()` ב-afterEach אם צריך).
+  - אימות חוויית משתמש: בדקו טקסט/מצב כפתורים ולא משתנים פנימיים.
 
 ---
 

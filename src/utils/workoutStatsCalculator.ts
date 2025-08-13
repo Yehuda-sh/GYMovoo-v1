@@ -30,6 +30,24 @@ export interface WorkoutStats {
   timeToComplete?: number; // in seconds
 }
 
+// Helpers
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const clampNonNegative = (n: number) => (n < 0 || !Number.isFinite(n) ? 0 : n);
+const toNumberSafe = (v: unknown): number => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const s = v.trim();
+    // תמיכה בסיסית בטווחים כמו "8-12" → ממוצע
+    const range = s.split("-").map((x) => parseFloat(x));
+    if (range.length === 2 && range.every((x) => Number.isFinite(x))) {
+      return (range[0] + range[1]) / 2;
+    }
+    const num = parseFloat(s);
+    return Number.isFinite(num) ? num : 0;
+  }
+  return 0;
+};
+
 /**
  * Processes a single exercise's sets to calculate its contribution to the total stats.
  * מעבד סטים של תרגיל יחיד לחישוב תרומתו לסטטיסטיקות הכוללות
@@ -57,13 +75,18 @@ function processExerciseSets(sets: Set[]) {
     if (set.completed) {
       completedSets++;
 
-      const reps = set.actualReps || set.targetReps || 0;
-      const weight = set.actualWeight || set.targetWeight || 0;
+      const reps = clampNonNegative(
+        toNumberSafe(set.actualReps ?? set.targetReps ?? 0)
+      );
+      const weight = clampNonNegative(
+        toNumberSafe(set.actualWeight ?? set.targetWeight ?? 0)
+      );
 
       totalReps += reps;
       totalVolume += reps * weight;
       if (set.timeToComplete) {
-        timeToComplete += set.timeToComplete;
+        const t = toNumberSafe(set.timeToComplete);
+        if (t > 0) timeToComplete += t;
       }
 
       if (set.isPR) {
@@ -138,19 +161,15 @@ export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
     completedExercises,
     totalSets,
     completedSets,
-    totalVolume: Math.round(totalVolume * 100) / 100, // Round to 2 decimal places
+    totalVolume: round2(totalVolume),
     totalReps,
     progressPercentage,
     personalRecords,
     // 💡 Add new stats to the return object with proper rounding
     averageVolumePerSet:
-      completedSets > 0
-        ? Math.round((totalVolume / completedSets) * 100) / 100
-        : 0,
+      completedSets > 0 ? round2(totalVolume / completedSets) : 0,
     averageRepsPerSet:
-      completedSets > 0
-        ? Math.round((totalReps / completedSets) * 100) / 100
-        : 0,
+      completedSets > 0 ? round2(totalReps / completedSets) : 0,
     timeToComplete: totalTimeToComplete,
   };
 }
@@ -180,7 +199,10 @@ export function calculateTotalVolume(
     });
     return 0;
   }
-  return weight * reps * sets;
+  const w = clampNonNegative(weight);
+  const r = clampNonNegative(reps);
+  const s = clampNonNegative(sets);
+  return w * r * s;
 }
 
 /**
@@ -203,8 +225,8 @@ export function calculateWorkoutEfficiency(
     return 1;
   }
 
-  const completionRate = Math.min(1, completedSets / plannedSets);
-  const timeEfficiency = Math.min(2, plannedDuration / duration); // Cap at 2x efficiency
+  const completionRate = Math.min(1, Math.max(0, completedSets / plannedSets));
+  const timeEfficiency = Math.min(2, Math.max(0, plannedDuration / duration)); // Cap at 2x efficiency
   const efficiency = (completionRate * 0.7 + timeEfficiency * 0.3) * 10;
   return Math.round(Math.max(1, Math.min(10, efficiency)));
 }

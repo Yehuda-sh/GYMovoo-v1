@@ -46,6 +46,10 @@ import type { WorkoutPlan } from "../../types/index";
 import { allExercises as ALL_EXERCISES } from "../../data/exercises";
 import { Exercise } from "../../data/exercises/types";
 import { useModalManager } from "./hooks/useModalManager";
+import {
+  getEquipmentHebrewName,
+  getEquipmentIcon,
+} from "../../utils/equipmentIconMapping";
 // Data & Type Imports
 // ...existing code...
 
@@ -132,6 +136,8 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
   const [selectedDay, setSelectedDay] = useState(0);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  // Equipment display state
+  const [displayEquipment, setDisplayEquipment] = useState<string[]>([]);
 
   // Plan management state - simplified (no more pending plans)
   const [showPlanManager, setShowPlanManager] = useState(false);
@@ -148,6 +154,9 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   const {
     activeModal,
     modalConfig,
+    isOpen,
+    confirm,
+    cancel,
     showError,
     showSuccess,
     showConfirm,
@@ -278,6 +287,24 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       ]).start();
     }
   }, [loading, fadeAnim, slideAnim]);
+
+  // Load equipment for display (normalized via questionnaireService)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const eq = await questionnaireService.getAvailableEquipment();
+        if (!mounted) return;
+        setDisplayEquipment(Array.isArray(eq) ? eq : []);
+      } catch (e) {
+        if (!mounted) return;
+        setDisplayEquipment([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   // Load available equipment
   // Removed equipment loading - using internal database only
@@ -645,7 +672,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
 
       // Convert data to expected format
       const metadata = {
-        frequency: questData.frequency || questData[7],
+        // תדירות: ננסה קודם frequency, ואז availability (שאלון אחוד), ואז אינדקס היסטורי
+        frequency:
+          (questData.frequency as string) ||
+          (questData["availability"] as string) ||
+          (questData[7] as string),
         duration: questData.duration || questData[8],
         goal: questData.goal || questData[5],
         experience: questData.experience || questData[6],
@@ -733,6 +764,10 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       const frequencyValue = Array.isArray(metadata.frequency)
         ? metadata.frequency[0]
         : metadata.frequency;
+      console.log(
+        "🏗️ WorkoutPlansScreen: Frequency raw value:",
+        frequencyValue
+      );
       // Support new pattern like "2_days" etc.
       let daysPerWeek =
         FREQUENCY_MAP[frequencyValue as keyof typeof FREQUENCY_MAP];
@@ -740,7 +775,22 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         const parsed = parseInt(String(frequencyValue).split("_", 1)[0], 10);
         if (!isNaN(parsed) && parsed >= 1 && parsed <= 7) daysPerWeek = parsed;
       }
+      // אם עדיין לא זוהה, נבדוק availability ישירות
+      if (!daysPerWeek) {
+        const avail = (questData["availability"] as string) || "";
+        const m = avail.match(/(\d)/);
+        if (m) daysPerWeek = Math.min(7, Math.max(1, parseInt(m[1], 10)));
+      }
       if (!daysPerWeek) daysPerWeek = 3;
+      if (frequencyValue && /^(\d)_times$/.test(String(frequencyValue))) {
+        const n = parseInt(String(frequencyValue).split("_", 1)[0], 10);
+        if (!isNaN(n) && n !== daysPerWeek) {
+          console.log(
+            `ℹ️ WorkoutPlansScreen: Adjusted daysPerWeek to match frequency (${n} vs ${daysPerWeek})`
+          );
+          daysPerWeek = n;
+        }
+      }
 
       console.log("🏗️ WorkoutPlansScreen: Days per week:", daysPerWeek);
       console.log("🏗️ WorkoutPlansScreen: About to create workout plan...");
@@ -1056,10 +1106,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       // Enhanced equipment check - support for "none" equipment (bodyweight)
-      const hasRequiredEquipment =
-        equipment.includes(exercise.equipment) ||
-        exercise.equipment === "none" ||
-        exercise.equipment === "bodyweight";
+      const hasRequiredEquipment = (() => {
+        const eq = (exercise.equipment || "").toLowerCase();
+        const userEq = equipment.map((e) => (e || "").toLowerCase());
+        // accept exact match, and treat 'none' as bodyweight
+        if (userEq.includes(eq)) return true;
+        if (eq === "none" || eq === "no_equipment") return true;
+        if (eq === "body_weight") return userEq.includes("bodyweight");
+        return eq === "bodyweight";
+      })();
 
       console.log(
         `🔍 WorkoutPlansScreen: Exercise "${exercise.name}" - muscles: ${targetsCorrectMuscles} (${exercise.primaryMuscles?.join(", ")}), equipment: ${hasRequiredEquipment} (${exercise.equipment})`
@@ -1367,7 +1422,13 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   // Constants for better maintainability - moved from inline usage
-  const DEFAULT_EQUIPMENT = ["barbell", "dumbbells", "cable_machine", "bench"];
+  const DEFAULT_EQUIPMENT = [
+    "barbell",
+    "dumbbells",
+    "cable_machine",
+    "bench",
+    "bodyweight",
+  ];
   const DEFAULT_EXPERIENCE = "מתחיל (0-6 חודשים)";
   const DEFAULT_DURATION = "45-60 דקות";
   const DEFAULT_FREQUENCY = "3-4 פעמים בשבוע";
@@ -1554,9 +1615,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       );
 
       // Check for bodyweight-only workout
-      const isBodyweightOnly = equipmentTypes.every(
-        (eq) => eq === "none" || eq === "bodyweight"
-      );
+      const isBodyweightOnly = equipmentTypes.every((eq) => {
+        const v = (eq || "").toLowerCase();
+        return (
+          v === "none" ||
+          v === "no_equipment" ||
+          v === "bodyweight" ||
+          v === "body_weight"
+        );
+      });
       if (isBodyweightOnly) {
         console.log(
           "💪 WorkoutPlansScreen: This is a bodyweight-only workout - perfect for home without equipment!"
@@ -1647,7 +1714,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
           accessibilityRole="button"
           accessibilityLabel="נסה לטעון את התוכנית מחדש"
           accessibilityHint="יוצר תוכנית חדשה בהתאם להעדפותיך"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={theme.touch.hitSlop.small}
           testID="plans-error-retry"
         >
           <Text style={styles.retryButtonText}>נסה שוב</Text>
@@ -1681,7 +1748,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             accessibilityRole="button"
             accessibilityLabel="בחר תוכנית בסיסית"
             accessibilityHint="הצגת תוכנית האימון הבסיסית"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={theme.touch.hitSlop.small}
             testID="tab-basic"
           >
             <MaterialCommunityIcons
@@ -1719,7 +1786,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 : "יש לשדרג מנוי כדי לפתוח"
             }
             accessibilityState={{ disabled: !canAccessAI && !smartPlan }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={theme.touch.hitSlop.small}
             testID="tab-smart"
           >
             <MaterialCommunityIcons
@@ -1753,7 +1820,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               accessibilityRole="button"
               accessibilityLabel="צור תוכנית AI"
               accessibilityHint="יוצר תוכנית חכמה מותאמת אישית"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={theme.touch.hitSlop.small}
               testID="action-create-ai"
             >
               <MaterialCommunityIcons
@@ -1770,7 +1837,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               accessibilityRole="button"
               accessibilityLabel="רענון תוכנית"
               accessibilityHint="יוצר תוכנית חדשה בהתאם להעדפות"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={theme.touch.hitSlop.small}
               testID="action-regenerate"
             >
               <MaterialCommunityIcons
@@ -1793,6 +1860,42 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             </View>
             {/* Plan content with optional AI lock overlay */}
             <View style={styles.planContentContainer}>
+              {/* Equipment info card */}
+              {displayEquipment && displayEquipment.length > 0 && (
+                <View
+                  style={styles.equipmentCard}
+                  accessibilityLabel="הציוד המזוהה לפי השאלון"
+                  accessibilityHint="רשימת ציוד שישמש להתאמת התרגילים"
+                  testID="equipment-info-card"
+                >
+                  <Text style={styles.equipmentCardTitle}>הציוד שלך</Text>
+                  <View style={styles.equipmentListRow}>
+                    {displayEquipment.slice(0, 6).map((eq) => {
+                      const iconName = getEquipmentIcon(eq);
+                      const heb = getEquipmentHebrewName(eq);
+                      return (
+                        <View key={eq} style={styles.equipmentChip}>
+                          <MaterialCommunityIcons
+                            name={iconName as any}
+                            size={16}
+                            color={theme.colors.text}
+                            accessible={false}
+                            importantForAccessibility="no"
+                          />
+                          <Text style={styles.equipmentChipText}>{heb}</Text>
+                        </View>
+                      );
+                    })}
+                    {displayEquipment.length > 6 && (
+                      <View style={styles.equipmentChip}>
+                        <Text style={styles.equipmentChipText}>
+                          +{displayEquipment.length - 6}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
               <View
                 style={[
                   styles.daySelector,
@@ -1820,7 +1923,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                     accessibilityRole="button"
                     accessibilityLabel="פתח מסך שדרוג למנוי"
                     accessibilityHint="מעבר למסך הפרופיל לשדרוג המנוי"
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    hitSlop={theme.touch.hitSlop.small}
                     testID="action-ai-upgrade"
                   >
                     <Text style={styles.aiUpgradeButtonText}>
@@ -1867,7 +1970,7 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   ? "יוצר תוכנית חכמה מותאמת"
                   : "יוצר תוכנית בסיסית בהתאם להעדפות"
               }
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={theme.touch.hitSlop.small}
               testID="action-create-plan"
             >
               <MaterialCommunityIcons
@@ -1884,13 +1987,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       </ScrollView>
       {/* Universal Modal - replaces 4 separate modals */}
       <UniversalModal
-        visible={activeModal !== null}
+        visible={isOpen}
         type={activeModal || "error"}
         title={modalConfig.title}
         message={modalConfig.message}
         onClose={hideModal}
-        onConfirm={modalConfig.onConfirm}
+        onCancel={cancel}
+        onConfirm={confirm}
         confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
         destructive={modalConfig.destructive}
       />
       {/* Workout Plan Manager Modal */}
@@ -1914,6 +2019,43 @@ const styles = StyleSheet.create({
   planContentContainer: {
     position: "relative",
     marginBottom: 12,
+  },
+  equipmentCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.small,
+  },
+  equipmentCardTitle: {
+    fontSize: theme.typography.heading.fontSize,
+    fontWeight: theme.typography.heading.fontWeight,
+    color: theme.colors.text,
+    textAlign: "right",
+    writingDirection: "rtl",
+    marginBottom: theme.spacing.sm,
+  },
+  equipmentListRow: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap" as const,
+    gap: theme.spacing.sm,
+  },
+  equipmentChip: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    backgroundColor: theme.colors.backgroundElevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  equipmentChipText: {
+    color: theme.colors.text,
+    fontSize: theme.typography.bodySmall.fontSize,
   },
   aiBlur: {
     opacity: 0.5,

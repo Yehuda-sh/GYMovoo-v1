@@ -26,12 +26,14 @@ import { useState, useCallback } from "react";
 /**
  * תצורת מודל - מגדיר את התכנים והפעולות
  */
-interface ModalConfig {
+export interface ModalConfig {
   title: string;
   message: string;
   onConfirm?: () => void;
   confirmText?: string;
   destructive?: boolean;
+  onCancel?: () => void;
+  cancelText?: string;
 }
 
 /**
@@ -39,17 +41,29 @@ interface ModalConfig {
  */
 export type ModalType = "error" | "success" | "confirm" | "comingSoon";
 
+// קונפיגורציית ברירת מחדל יציבה לשימוש פנימי
+const DEFAULT_MODAL_CONFIG: ModalConfig = Object.freeze({
+  title: "",
+  message: "",
+  confirmText: "אישור",
+  cancelText: "ביטול",
+  destructive: false,
+});
+
 /**
  * ממשק החזרה של Hook עם כל הפונקציונליות
  */
-interface UseModalManagerReturn {
+export interface UseModalManagerReturn {
   // State
   activeModal: ModalType | null;
   modalConfig: ModalConfig;
+  isOpen: boolean;
 
   // Actions
   showModal: (type: ModalType, config: ModalConfig) => void;
   hideModal: () => void;
+  confirm: () => void;
+  cancel: () => void;
 
   // Convenience methods
   showError: (title: string, message: string) => void;
@@ -69,25 +83,45 @@ interface UseModalManagerReturn {
  */
 export const useModalManager = (): UseModalManagerReturn => {
   const [activeModal, setActiveModal] = useState<ModalType | null>(null);
-  const [modalConfig, setModalConfig] = useState<ModalConfig>({
-    title: "",
-    message: "",
-    confirmText: "אישור",
-    destructive: false,
-  });
+  const [modalConfig, setModalConfig] =
+    useState<ModalConfig>(DEFAULT_MODAL_CONFIG);
 
   const showModal = useCallback((type: ModalType, config: ModalConfig) => {
-    setModalConfig({
-      confirmText: "אישור",
-      destructive: false,
+    const merged: ModalConfig = {
+      ...DEFAULT_MODAL_CONFIG,
       ...config,
-    });
+      cancelText: config.onCancel
+        ? (config.cancelText ?? "ביטול")
+        : (config.cancelText ?? DEFAULT_MODAL_CONFIG.cancelText),
+      confirmText: config.confirmText ?? DEFAULT_MODAL_CONFIG.confirmText,
+      destructive: config.destructive ?? DEFAULT_MODAL_CONFIG.destructive,
+    };
+    setModalConfig(merged);
     setActiveModal(type);
   }, []);
 
   const hideModal = useCallback(() => {
     setActiveModal(null);
+    setModalConfig(DEFAULT_MODAL_CONFIG);
   }, []);
+
+  const confirm = useCallback(() => {
+    try {
+      modalConfig.onConfirm?.();
+    } finally {
+      setActiveModal(null);
+      setModalConfig(DEFAULT_MODAL_CONFIG);
+    }
+  }, [modalConfig]);
+
+  const cancel = useCallback(() => {
+    try {
+      modalConfig.onCancel?.();
+    } finally {
+      setActiveModal(null);
+      setModalConfig(DEFAULT_MODAL_CONFIG);
+    }
+  }, [modalConfig]);
 
   const showError = useCallback(
     (title: string, message: string) => {
@@ -134,8 +168,11 @@ export const useModalManager = (): UseModalManagerReturn => {
   return {
     activeModal,
     modalConfig,
+    isOpen: activeModal !== null,
     showModal,
     hideModal,
+    confirm,
+    cancel,
     showError,
     showSuccess,
     showConfirm,

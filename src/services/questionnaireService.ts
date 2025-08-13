@@ -199,7 +199,50 @@ class QuestionnaireService {
     ];
     const mergedEquipment = Array.from(new Set(allEquipment));
 
-    return mergedEquipment;
+    // 🧹 Normalization: unify naming to match dataset and internal mapping
+    const normalize = (val: unknown): string | null => {
+      if (!val || typeof val !== "string") return null;
+      const raw = val.trim().toLowerCase();
+      if (!raw) return null;
+      const norm = raw.replace(/[\s-]+/g, "_");
+      // Map synonyms and special cases
+      if (
+        norm === "none" ||
+        norm === "no_equipment" ||
+        norm === "noequip" ||
+        norm === "no_equipment_available" ||
+        norm === "without_equipment"
+      ) {
+        return "bodyweight";
+      }
+      if (norm === "body_weight") return "bodyweight";
+      return norm;
+    };
+
+    const normalized = Array.from(
+      new Set(
+        mergedEquipment
+          .map((e) => normalize(e))
+          .filter((e): e is string => Boolean(e))
+      )
+    );
+
+    // 🔗 Expand synonyms to align questionnaire IDs with exercise dataset
+    const expandSynonyms = (list: string[]): string[] => {
+      const s = new Set(list);
+      if (s.has("free_weights")) {
+        s.add("dumbbells");
+        s.add("barbell");
+        s.add("kettlebell");
+      }
+      if (s.has("bench_press")) {
+        s.add("bench");
+      }
+      // Normalize variants already handled above; keep explicit expansion small and safe
+      return Array.from(s);
+    };
+
+    return expandSynonyms(normalized);
   }
 
   /**

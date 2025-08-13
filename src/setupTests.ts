@@ -2,6 +2,7 @@
  * @file src/setupTests.ts
  * @description הגדרות בסיס לבדיקות Jest
  */
+import React from "react";
 
 import "react-native-gesture-handler/jestSetup";
 
@@ -76,3 +77,28 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+// Mock NativeEventEmitter למניעת אזהרות
+jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter");
+
+// Mock react-native-toast-message (קומפוננט ו-API)
+jest.mock("react-native-toast-message", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+// Mock axios כדי לחסום קריאות רשת מה-API clients
+jest.mock("axios", () => {
+  const instance = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  };
+  return { create: () => instance };
+});
+
+// ניקוי אוטומטי בין בדיקות
+afterEach(() => {
+  jest.clearAllMocks();
+});
