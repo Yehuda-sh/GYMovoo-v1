@@ -16,12 +16,13 @@ module.exports = {
   moduleNameMapper: {
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
       "identity-obj-proxy",
-  "^react-native/Libraries/Animated/NativeAnimatedHelper$": "<rootDir>/__mocks__/react-native/Libraries/Animated/NativeAnimatedHelper.js",
+    "^react-native/Libraries/Animated/NativeAnimatedHelper$":
+      "<rootDir>/__mocks__/react-native/Libraries/Animated/NativeAnimatedHelper.js",
   },
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
-  "!src/services/demo/**",
+    "!src/services/demo/**",
     "!src/**/__tests__/**",
     "!src/**/node_modules/**",
   ],
