@@ -597,6 +597,13 @@ export interface User {
     selectedEquipment?: string[];
     fitnessGoals?: string[];
     currentFitnessLevel?: "beginner" | "intermediate" | "advanced";
+    // 🆕 נתונים מחושבים מהשרת לתצוגת פרופיל
+    xp?: number;
+    level?: number;
+    streak?: number;
+    totalMinutes?: number; // סך דקות אימון
+    totalDurationMinutes?: number; // אלטרנטיבה לשם השדה
+    totalHours?: number; // אם השרת מחזיר שעות ישירות
   };
 
   // מנוי ותקופת ניסיון

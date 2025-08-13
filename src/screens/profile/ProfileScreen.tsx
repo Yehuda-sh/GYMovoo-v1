@@ -939,14 +939,22 @@ function ProfileScreen() {
     [userInfo, getDisplayFields]
   );
 
-  // חישוב סטטיסטיקות מהנתונים המדעיים
+  // חישוב סטטיסטיקות עם עדיפות לנתוני שרת (trainingStats) ונפילה לחישוב מקומי
   const stats = useMemo(() => {
+    const serverStats: User["trainingStats"] = user?.trainingStats ?? {};
+
+    // חישוב מקומי מהיסטוריית אימונים (fallback)
+    let computedWorkouts = 0;
+    let computedStreak = 0;
+    let computedTotalMinutes = 0;
+
     if (user?.activityHistory?.workouts) {
       const workouts = user.activityHistory.workouts;
+      computedWorkouts = workouts.length;
 
-      // חישוב רצף
+      // רצף מקומי
       const now = new Date();
-      let streak = 0;
+      let streakTmp = 0;
       let checkDate = new Date(now);
       const sortedWorkouts = [...workouts].sort(
         (a, b) =>
@@ -960,60 +968,67 @@ function ProfileScreen() {
           (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
         );
         if (diffDays <= 2) {
-          streak++;
+          streakTmp++;
           checkDate = workoutDate;
         } else {
           break;
         }
       }
+      computedStreak = streakTmp;
 
-      // חישוב זמן כולל (בשעות)
-      const totalMinutes = workouts.reduce(
+      // זמן כולל מקומי (בדקות)
+      computedTotalMinutes = workouts.reduce(
         (sum: number, w: WorkoutWithRating) => sum + (w.duration || 45),
         0
       );
-      const totalHours = Math.floor(totalMinutes / 60);
-
-      // 🆕 מערכת XP חכמה
-      const unlockedAchievements = achievements.filter(
-        (a) => a.unlocked
-      ).length;
-      const totalXP = calculateXP(
-        workouts.length,
-        streak,
-        unlockedAchievements
-      );
-
-      // חישוב רמה דינמי (כל 1000 XP = רמה)
-      const level = Math.floor(totalXP / 1000) + 1;
-      const currentLevelXP = totalXP % 1000;
-      const nextLevelXP = 1000;
-
-      return {
-        workouts: workouts.length,
-        streak,
-        totalTime: `${totalHours}h`,
-        level,
-        xp: currentLevelXP,
-        totalXP,
-        nextLevelXp: nextLevelXP,
-      };
     }
 
-    // נתונים ברירת מחדל
-    const defaultWorkouts = user?.trainingStats?.totalWorkouts || 0;
-    const defaultAchievements = achievements.filter((a) => a.unlocked).length;
-    const defaultXP = calculateXP(defaultWorkouts, 0, defaultAchievements);
-    const defaultLevel = Math.floor(defaultXP / 1000) + 1;
+    // עדיפות לערכי שרת
+    const workoutsCount =
+      typeof serverStats.totalWorkouts === "number"
+        ? serverStats.totalWorkouts
+        : computedWorkouts;
+
+    const effectiveStreak =
+      typeof serverStats.streak === "number"
+        ? serverStats.streak
+        : computedStreak;
+
+    let totalMinutes: number;
+    if (typeof serverStats.totalMinutes === "number") {
+      totalMinutes = serverStats.totalMinutes;
+    } else if (typeof serverStats.totalDurationMinutes === "number") {
+      totalMinutes = serverStats.totalDurationMinutes;
+    } else if (typeof serverStats.totalHours === "number") {
+      totalMinutes = serverStats.totalHours * 60;
+    } else {
+      totalMinutes = computedTotalMinutes;
+    }
+    const totalHours = Math.floor(totalMinutes / 60);
+
+    const unlockedAchievements = achievements.filter((a) => a.unlocked).length;
+
+    const totalXP =
+      typeof serverStats.xp === "number"
+        ? serverStats.xp
+        : calculateXP(workoutsCount, effectiveStreak, unlockedAchievements);
+
+    const level =
+      typeof serverStats.level === "number"
+        ? serverStats.level
+        : Math.floor(totalXP / 1000) + 1;
+
+    const currentLevelXP = totalXP % 1000;
+    const nextLevelXP = 1000;
 
     return {
-      workouts: defaultWorkouts,
-      streak: 0,
-      totalTime: "0h",
-      level: defaultLevel,
-      xp: defaultXP % 1000,
-      totalXP: defaultXP,
-      nextLevelXp: 1000,
+      workouts: workoutsCount,
+      streak: effectiveStreak,
+      totalTime: `${totalHours}h`,
+      level,
+      xp: currentLevelXP,
+      totalXP,
+      nextLevelXp: nextLevelXP,
     };
   }, [user, achievements, calculateXP]);
 

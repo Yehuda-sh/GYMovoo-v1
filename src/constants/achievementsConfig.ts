@@ -452,12 +452,12 @@ const countPerfectRatings = (workouts: WorkoutWithRating[]): number => {
  * Calculate days since registration
  * חישוב ימים מאז הרשמה
  */
-const calculateDaysSinceRegistration = (user: User): number => {
-  // Prefer actual creation date if available; fallback to 30 days
+const calculateDaysSinceRegistration = (user: User): number | null => {
+  // Require actual creation date; no fallback to avoid false positives
   const createdAt = (user as User & { createdAt?: string })?.createdAt;
-  if (!createdAt) return 30;
+  if (!createdAt) return null;
   const created = new Date(createdAt);
-  if (isNaN(created.getTime())) return 30;
+  if (isNaN(created.getTime())) return null;
   const diffMs = Date.now() - created.getTime();
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 };
@@ -546,6 +546,7 @@ const checkRequirement = (
 
     case "registrationTime": {
       const daysSince = calculateDaysSinceRegistration(user);
+      if (daysSince == null) return { met: false, progress: 0 };
       const daysTarget = requirement.value as number;
       return {
         met: daysSince >= daysTarget,
@@ -594,28 +595,65 @@ const checkRequirement = (
  * חישוב כל ההישגים עבור משתמש
  */
 export const calculateAchievements = (user: User | null): Achievement[] => {
-  return ACHIEVEMENTS_CONFIG.map((config) => {
-    const achievementTexts = PROFILE_SCREEN_TEXTS.ACHIEVEMENTS[config.titleKey];
-    const { met, progress } = checkRequirement(user, config.requirement);
-
-    return {
-      id: config.id,
-      title: achievementTexts.title,
-      description: achievementTexts.description,
-      icon: config.icon,
-      color: getAchievementColor(config.id, met),
-      unlocked: met,
-      category: config.category,
-      priority: config.priority,
-      progress: met ? 100 : progress,
-    };
-  }).sort((a, b) => {
-    // Sort by unlocked status first, then by priority
-    if (a.unlocked !== b.unlocked) {
-      return a.unlocked ? -1 : 1;
+  // Helper: check data availability for requirement
+  const hasDataForRequirement = (
+    u: User | null,
+    req: AchievementConfig["requirement"]
+  ): boolean => {
+    if (!u) return false;
+    const workouts = u.activityHistory?.workouts;
+    switch (req.type) {
+      case "questionnaire": {
+        const hasLegacy =
+          !!u.questionnaire && Object.keys(u.questionnaire).length > 0;
+        const hasSmart = !!(
+          u as User & { smartQuestionnaireData?: { answers?: unknown } }
+        )?.smartQuestionnaireData?.answers;
+        return hasLegacy || hasSmart;
+      }
+      case "workoutCount":
+      case "streak":
+      case "totalTime":
+      case "averageRating":
+      case "perfectRatings":
+      case "timeOfDay":
+        return Array.isArray(workouts) && workouts.length >= 1; // hide when no workout data
+      case "registrationTime": {
+        const createdAt = (u as User & { createdAt?: string })?.createdAt;
+        return !!createdAt && !isNaN(new Date(createdAt).getTime());
+      }
+      default:
+        return false;
     }
-    return a.priority - b.priority;
-  });
+  };
+
+  return ACHIEVEMENTS_CONFIG.filter((config) =>
+    hasDataForRequirement(user, config.requirement)
+  )
+    .map((config) => {
+      const achievementTexts =
+        PROFILE_SCREEN_TEXTS.ACHIEVEMENTS[config.titleKey];
+      const { met, progress } = checkRequirement(user, config.requirement);
+
+      return {
+        id: config.id,
+        title: achievementTexts.title,
+        description: achievementTexts.description,
+        icon: config.icon,
+        color: getAchievementColor(config.id, met),
+        unlocked: met,
+        category: config.category,
+        priority: config.priority,
+        progress: met ? 100 : progress,
+      };
+    })
+    .sort((a, b) => {
+      // Sort by unlocked status first, then by priority
+      if (a.unlocked !== b.unlocked) {
+        return a.unlocked ? -1 : 1;
+      }
+      return a.priority - b.priority;
+    });
 };
 
 /**

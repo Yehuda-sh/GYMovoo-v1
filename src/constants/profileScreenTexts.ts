@@ -58,8 +58,8 @@ export const PROFILE_SCREEN_TEXTS = {
   ACHIEVEMENTS: {
     // הישגים בסיסיים / Basic achievements
     ENTHUSIASTIC_BEGINNER: {
-      title: "מתחיל נלהב",
-      description: "השלמת את האימון הראשון שלך",
+      title: "ברוך הבא ל‑GYMovoo",
+      description: "השלמת את ההרשמה והשאלון",
     },
     QUESTIONNAIRE_COMPLETE: {
       title: "השלמת שאלון",

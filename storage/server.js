@@ -64,6 +64,26 @@ function genId() {
   return `u_${ts}_${rnd}`;
 }
 
+// Ensure baseline XP for users who completed the questionnaire (idempotent)
+function ensureQuestionnaireXpBaseline(user) {
+  try {
+    const completedAt =
+      user?.smartQuestionnaireData?.completedAt ||
+      user?.smartQuestionnaireData?.meta?.completedAt;
+    if (!completedAt) return false;
+    const currentXp = Number(user?.trainingStats?.xp) || 0;
+    if (currentXp >= 120) return false;
+    user.trainingStats = user.trainingStats || {};
+    user.trainingStats.xp = 120;
+    if (typeof user.trainingStats.level !== "number") {
+      user.trainingStats.level = Math.floor(user.trainingStats.xp / 1000) + 1;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Health
 app.get("/health", (_req, res) => {
   res.json({
@@ -76,24 +96,42 @@ app.get("/health", (_req, res) => {
 // Users CRUD
 app.get("/users", (_req, res) => {
   const db = readDb();
+  let changed = false;
+  (db.users || []).forEach((u, i) => {
+    if (ensureQuestionnaireXpBaseline(u)) {
+      db.users[i] = u;
+      changed = true;
+    }
+  });
+  if (changed) writeDb(db);
   res.json(db.users || []);
 });
 
 app.get("/users/:id", (req, res) => {
   const db = readDb();
-  const user = (db.users || []).find((u) => u.id === req.params.id);
+  const idx = (db.users || []).findIndex((u) => u.id === req.params.id);
+  const user = idx >= 0 ? db.users[idx] : null;
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (ensureQuestionnaireXpBaseline(user)) {
+    db.users[idx] = user;
+    writeDb(db);
+  }
   res.json(user);
 });
 
 app.get("/users/by-email/:email", (req, res) => {
   const db = readDb();
-  const user = (db.users || []).find(
+  const idx = (db.users || []).findIndex(
     (u) =>
       (u.email || "").toLowerCase() ===
       decodeURIComponent(req.params.email).toLowerCase()
   );
+  const user = idx >= 0 ? db.users[idx] : null;
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (ensureQuestionnaireXpBaseline(user)) {
+    db.users[idx] = user;
+    writeDb(db);
+  }
   res.json(user);
 });
 
@@ -112,6 +150,24 @@ app.post("/users", (req, res) => {
       .status(409)
       .json({ error: "User with this email already exists" });
   const user = { id: genId(), name, email, ...rest };
+
+  // 📈 בונוס XP עבור השלמת שאלון בעת יצירה
+  try {
+    const completedAt =
+      user?.smartQuestionnaireData?.completedAt ||
+      user?.smartQuestionnaireData?.meta?.completedAt;
+    if (completedAt) {
+      user.trainingStats = user.trainingStats || {};
+      const baseXp = Number(user.trainingStats.xp) || 0;
+      user.trainingStats.xp = baseXp + 120;
+      // עדכון רמה בסיסי (כל 1000 XP = רמה)
+      const totalXp = user.trainingStats.xp;
+      user.trainingStats.level =
+        user.trainingStats.level || Math.floor(totalXp / 1000) + 1;
+    }
+  } catch {
+    // ignore bonus errors to keep endpoint robust
+  }
   db.users = db.users || [];
   db.users.push(user);
   writeDb(db);
@@ -123,7 +179,30 @@ app.put("/users/:id", (req, res) => {
   const db = readDb();
   const idx = (db.users || []).findIndex((u) => u.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "User not found" });
-  const updated = { ...db.users[idx], ...updates, id: db.users[idx].id };
+  const prev = db.users[idx] || {};
+  const updated = { ...prev, ...updates, id: prev.id };
+
+  // 📈 בונוס XP עבור השלמת שאלון בעת עדכון
+  try {
+    const hadCompleted = !!(
+      prev?.smartQuestionnaireData?.completedAt ||
+      prev?.smartQuestionnaireData?.meta?.completedAt
+    );
+    const nowCompleted = !!(
+      updated?.smartQuestionnaireData?.completedAt ||
+      updated?.smartQuestionnaireData?.meta?.completedAt
+    );
+    if (!hadCompleted && nowCompleted) {
+      updated.trainingStats = updated.trainingStats || {};
+      const baseXp = Number(updated.trainingStats.xp) || 0;
+      updated.trainingStats.xp = baseXp + 120;
+      const totalXp = updated.trainingStats.xp;
+      updated.trainingStats.level =
+        updated.trainingStats.level || Math.floor(totalXp / 1000) + 1;
+    }
+  } catch {
+    // ignore bonus errors to keep endpoint robust
+  }
   db.users[idx] = updated;
   writeDb(db);
   res.json(updated);
