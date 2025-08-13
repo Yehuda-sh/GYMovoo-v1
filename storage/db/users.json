@@ -160,6 +160,58 @@
       "preferences": {
         "language": "he",
         "rtlPreference": true
+      },
+      "smartQuestionnaireData": {
+        "answers": {
+          "gender": "male",
+          "age": "18_25",
+          "weight": "50_60",
+          "height": "150_160",
+          "fitnessLevel": "intermediate",
+          "goals": [
+            "build_muscle"
+          ],
+          "equipment": [
+            "kettlebell"
+          ],
+          "availability": [
+            "4_days"
+          ],
+          "sessionDuration": "45_60_min",
+          "workoutLocation": "home_equipment",
+          "nutrition": [
+            "none_diet"
+          ]
+        },
+        "metadata": {
+          "completedAt": "2025-08-13T18:34:51.215Z",
+          "version": "2.1",
+          "sessionId": "unified_1755110091215",
+          "completionTime": 110,
+          "questionsAnswered": 11,
+          "totalQuestions": 11,
+          "deviceInfo": {
+            "platform": "mobile",
+            "screenWidth": 0,
+            "screenHeight": 0
+          }
+        }
+      },
+      "questionnaireData": {
+        "metadata": {
+          "equipment": [
+            "kettlebell"
+          ],
+          "goal": "build_muscle",
+          "experience": "intermediate",
+          "sessionDuration": "45_60_min",
+          "availableDays": "4_days",
+          "location": "home_equipment",
+          "diet": "none_diet",
+          "completedAt": "2025-08-13T18:34:51.647Z",
+          "source": "UnifiedQuestionnaireScreen"
+        },
+        "version": "unified-1"
       }
     }
   ]
