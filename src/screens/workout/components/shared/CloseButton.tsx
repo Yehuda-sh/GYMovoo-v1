@@ -21,12 +21,13 @@
  */
 
 import React from "react";
-import { Pressable, StyleSheet, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, ViewStyle, StyleProp } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 
-interface CloseButtonProps {
+export interface CloseButtonProps {
   onPress: () => void;
+  onLongPress?: () => void;
   size?: "small" | "medium" | "large";
   position?: "center" | "start" | "end";
   marginTop?: number;
@@ -36,13 +37,14 @@ interface CloseButtonProps {
   disabled?: boolean;
   testID?: string;
   iconName?: IconName; // allows reuse beyond close (e.g., "chevron-down")
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export const CloseButton: React.FC<CloseButtonProps> = ({
   onPress,
+  onLongPress,
   size = "medium",
   position = "center",
   marginTop = theme.spacing.sm,
@@ -54,19 +56,23 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
   iconName = "close",
   style,
 }) => {
-  const sizeConfig = {
-    small: { width: 28, height: 28, borderRadius: 14, iconSize: 14 },
-    medium: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
-    large: { width: 36, height: 36, borderRadius: 18, iconSize: 18 },
-  };
+  const config = React.useMemo(() => {
+    const map = {
+      small: { width: 28, height: 28, borderRadius: 14, iconSize: 14 },
+      medium: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
+      large: { width: 36, height: 36, borderRadius: 18, iconSize: 18 },
+    } as const;
+    return map[size];
+  }, [size]);
 
-  const alignmentConfig = {
-    center: "center",
-    start: "flex-start",
-    end: "flex-end",
-  } as const;
-
-  const config = sizeConfig[size];
+  const alignment = React.useMemo(() => {
+    const map = {
+      center: "center",
+      start: "flex-start",
+      end: "flex-end",
+    } as const;
+    return map[position];
+  }, [position]);
 
   const variantStyle = (() => {
     switch (variant) {
@@ -96,6 +102,8 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
     <Pressable
       testID={testID}
       onPress={disabled ? undefined : onPress}
+      onLongPress={disabled ? undefined : onLongPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
@@ -109,7 +117,7 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
           height: config.height,
           borderRadius: config.borderRadius,
           marginTop,
-          alignSelf: alignmentConfig[position],
+          alignSelf: alignment,
           transform: pressed ? [{ scale: 0.92 }] : undefined,
           backgroundColor:
             variant === "solid"

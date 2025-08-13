@@ -408,19 +408,21 @@ export default function RegisterScreen() {
       // שמירה ב-Zustand store
       useUserStore.getState().setUser(newUser);
 
-      // שמירה גם ב-localDataService כדי שיהיה זמין להתחברות מהירה
-      try {
-        localDataService.addUser(newUser);
-        console.warn("✅ RegisterScreen: User saved to localDataService", {
-          email: newUser.email,
-          name: newUser.name,
-        });
-      } catch (saveError) {
-        console.warn(
-          "⚠️ RegisterScreen: Failed to save to localDataService:",
-          saveError
-        );
-        // לא נעצור את התהליך אם השמירה המקומית נכשלה
+      // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
+      if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+        try {
+          localDataService.addUser(newUser);
+          console.warn("✅ RegisterScreen: User saved to localDataService", {
+            email: newUser.email,
+            name: newUser.name,
+          });
+        } catch (saveError) {
+          console.warn(
+            "⚠️ RegisterScreen: Failed to save to localDataService:",
+            saveError
+          );
+          // לא נעצור את התהליך אם השמירה המקומית נכשלה
+        }
       }
 
       debug("Registration success", newUser);
@@ -457,23 +459,25 @@ export default function RegisterScreen() {
       // שמירה ב-Zustand store
       useUserStore.getState().setUser(googleUser);
 
-      // שמירה גם ב-localDataService כדי שיהיה זמין להתחברות מהירה
-      try {
-        localDataService.addUser(googleUser);
-        console.warn(
-          "✅ RegisterScreen: Google user saved to localDataService",
-          {
-            email: googleUser.email,
-            name: googleUser.name,
-            provider: googleUser.provider,
-          }
-        );
-      } catch (saveError) {
-        console.warn(
-          "⚠️ RegisterScreen: Failed to save Google user to localDataService:",
-          saveError
-        );
-        // לא נעצור את התהליך אם השמירה המקומית נכשלה
+      // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
+      if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+        try {
+          localDataService.addUser(googleUser);
+          console.warn(
+            "✅ RegisterScreen: Google user saved to localDataService",
+            {
+              email: googleUser.email,
+              name: googleUser.name,
+              provider: googleUser.provider,
+            }
+          );
+        } catch (saveError) {
+          console.warn(
+            "⚠️ RegisterScreen: Failed to save Google user to localDataService:",
+            saveError
+          );
+          // לא נעצור את התהליך אם השמירה המקומית נכשלה
+        }
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));

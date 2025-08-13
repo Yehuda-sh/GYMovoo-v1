@@ -39,6 +39,7 @@ export { default as MuscleBar } from "./exercise/MuscleBar";
 
 // Exercises screens
 export { default as ExercisesScreen } from "./exercises/ExercisesScreen";
+export { default as ExerciseDetailsScreen } from "./exercises/ExerciseDetailsScreen";
 
 // Questionnaire screens
 export { default as UnifiedQuestionnaireScreen } from "./questionnaire/UnifiedQuestionnaireScreen";

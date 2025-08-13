@@ -50,6 +50,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -74,10 +75,13 @@ import {
 
 // Types
 import { Exercise, Set } from "./types/workout.types";
+import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService";
+import { useUserStore } from "../../stores/userStore";
 
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { user } = useUserStore();
 
   // קבלת פרמטרים מהניווט - עכשיו מקבלים אימון מלא
   const { workoutData, pendingExercise } =
@@ -169,6 +173,99 @@ const ActiveWorkoutScreen: React.FC = () => {
       skipRestTimer();
     };
   }, [startTimer, pauseTimer, skipRestTimer]);
+
+  // הפקת תוכנית שבועית לזיהוי אינדקס האימון להשלמה
+  const weeklyPlan = useMemo(() => {
+    // מיפוי ברירת מחדל לפי תדירות
+    const WORKOUT_DAYS_MAP: Record<number, string[]> = {
+      1: ["אימון מלא"],
+      2: ["פלג גוף עליון", "פלג גוף תחתון"],
+      3: ["דחיפה", "משיכה", "רגליים"],
+      4: ["חזה + טריצפס", "גב + ביצפס", "רגליים", "כתפיים + בטן"],
+      5: ["חזה", "גב", "רגליים", "כתפיים", "ידיים + בטן"],
+      6: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן + קרדיו"],
+      7: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן", "קרדיו קל"],
+    };
+
+    // שליפת תדירות בשבוע ממקורות שונים (שמירה על תאימות)
+    const extractRawFrequency = (): string => {
+      const smart = user?.smartQuestionnaireData?.answers?.availability;
+      if (smart) {
+        return Array.isArray(smart) ? String(smart[0]) : String(smart);
+      }
+      if (user?.trainingStats?.preferredWorkoutDays) {
+        return String(user.trainingStats.preferredWorkoutDays);
+      }
+      if (user?.questionnaireData?.answers) {
+        const answers = user.questionnaireData.answers as Record<
+          string,
+          unknown
+        >;
+        return String(answers.frequency || "");
+      }
+      if (user?.questionnaire) {
+        let legacy = "";
+        Object.values(user.questionnaire).forEach((value) => {
+          if (
+            typeof value === "string" &&
+            (value.includes("times") || value.includes("פעמים"))
+          ) {
+            legacy = value;
+          }
+        });
+        return legacy;
+      }
+      return "";
+    };
+
+    const raw = extractRawFrequency().trim().toLowerCase();
+    let days = 3; // ברירת מחדל
+    const directMap: Record<string, number> = {
+      "2-times": 2,
+      "2_times": 2,
+      "2 times per week": 2,
+      "3-times": 3,
+      "3_times": 3,
+      "3 times per week": 3,
+      "4-times": 4,
+      "4_times": 4,
+      "4 times per week": 4,
+      "5-plus": 5,
+      "5_times": 5,
+      "5 times per week": 5,
+      "6 times per week": 6,
+      "7 times per week": 7,
+      "1-2 פעמים": 2,
+      "3 פעמים": 3,
+      "4 פעמים": 4,
+      "5+ פעמים": 5,
+      "2 פעמים בשבוע": 2,
+      "3 פעמים בשבוע": 3,
+      "5 פעמים בשבוע": 5,
+      "כל יום": 6,
+      "6_times": 6,
+    };
+    if (directMap[raw] != null) {
+      days = directMap[raw];
+    } else if (/^\d$/.test(raw)) {
+      days = Math.min(7, Math.max(1, Number(raw)));
+    } else if (/5-6/.test(raw)) {
+      days = 5;
+    } else if (/3-4/.test(raw)) {
+      days = 3;
+    } else if (/1-2/.test(raw)) {
+      days = 2;
+    }
+
+    return WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
+  }, [user]);
+
+  const workoutIndexInPlan = useMemo(() => {
+    const name = workoutData?.name?.trim();
+    if (!name) return 0;
+    const idx = weeklyPlan.findIndex((n) => n === name);
+    return idx >= 0 ? idx : 0;
+  }, [weeklyPlan, workoutData?.name]);
 
   // עדכון סט בתרגיל - אופטימיזציה עם לוגר
   const handleUpdateSet = useCallback(
@@ -372,21 +469,28 @@ const ActiveWorkoutScreen: React.FC = () => {
     );
   }
 
+  const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <BackButton absolute={false} variant="minimal" />
 
         <View style={styles.headerInfo}>
-          <Text style={styles.exerciseTitle}>
+          <Text style={styles.exerciseTitle} accessibilityRole="header">
             {workoutData?.name || "אימון פעיל"}
           </Text>
           <Text style={styles.progressText}>
             {workoutStats.completedExercises}/{workoutStats.totalExercises}{" "}
             תרגילים • {workoutStats.progressPercentage}% הושלם
           </Text>
-          <Text style={styles.timeText}>{formattedTime}</Text>
+          <Text
+            style={styles.timeText}
+            accessibilityLabel={`זמן אימון ${formattedTime}`}
+          >
+            {formattedTime}
+          </Text>
         </View>
 
         <View style={styles.headerActions}>
@@ -397,6 +501,11 @@ const ActiveWorkoutScreen: React.FC = () => {
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={isRunning ? "עצור טיימר" : "התחל טיימר"}
+            accessibilityHint={
+              isRunning ? "עוצר את טיימר האימון" : "מתחיל את טיימר האימון"
+            }
+            testID="btn-toggle-timer"
+            hitSlop={HIT_SLOP}
           >
             <MaterialCommunityIcons
               name={isRunning ? "pause" : "play"}
@@ -415,6 +524,9 @@ const ActiveWorkoutScreen: React.FC = () => {
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="סיים אימון"
+            accessibilityHint="פתח חלון אישור לסיום האימון"
+            testID="btn-finish-header"
+            hitSlop={HIT_SLOP}
           >
             <MaterialCommunityIcons
               name="flag-checkered"
@@ -456,7 +568,13 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
 
       {/* All Exercises List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+        testID="scroll-exercises"
+      >
         {exercises.map((exercise, index) => (
           <ExerciseCard
             key={exercise.id}
@@ -494,6 +612,9 @@ const ActiveWorkoutScreen: React.FC = () => {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="סיים אימון"
+          accessibilityHint="פתח חלון אישור לסיום האימון"
+          testID="btn-finish-workout"
+          hitSlop={HIT_SLOP}
         >
           <Text style={styles.finishButtonText}>סיים אימון</Text>
           <MaterialCommunityIcons
@@ -532,9 +653,19 @@ const ActiveWorkoutScreen: React.FC = () => {
       <ConfirmationModal
         visible={showExitModal}
         onClose={() => setShowExitModal(false)}
-        onConfirm={() => {
-          setShowExitModal(false);
-          navigation.goBack();
+        onConfirm={async () => {
+          try {
+            setShowExitModal(false);
+            // עדכון מחזור האימונים בשירות
+            await nextWorkoutLogicService.updateWorkoutCompleted(
+              workoutIndexInPlan,
+              workoutData?.name || "אימון"
+            );
+          } catch (e) {
+            console.warn("⚠️ ActiveWorkout: failed to update completion", e);
+          } finally {
+            navigation.goBack();
+          }
         }}
         onCancel={() => setShowExitModal(false)}
         title="סיום אימון"
@@ -566,7 +697,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         destructive={true}
         icon="trash"
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -607,11 +738,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   progressText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   timeText: {
     fontSize: 16,
@@ -619,6 +752,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     marginTop: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   // 🆕 סטיילים משופרים לכפתורי ההדר
   headerActions: {
@@ -686,10 +820,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
     marginTop: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   content: {
     flex: 1,
     paddingHorizontal: theme.spacing.md,
+  },
+  contentContainer: {
+    paddingBottom: theme.spacing.xxl ?? theme.spacing.xl * 4,
   },
   navigationContainer: {
     flexDirection: "row-reverse",

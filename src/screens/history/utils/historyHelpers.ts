@@ -8,23 +8,20 @@ import {
   HISTORY_SCREEN_CONFIG,
   HISTORY_SCREEN_FORMATS,
 } from "../../../constants/historyScreenConfig";
+import { HISTORY_SCREEN_ICONS } from "../../../constants/historyScreenTexts";
 
 /**
  * מחזיר אייקון מתאים למגדר המשתמש
  */
-export const getGenderIcon = (gender: string): string => {
-  // הפונקציה הועברה ל־workoutHelpers לשימוש כללי
-  // נשארת כאן לצורך backward compatibility
-  const {
-    HISTORY_SCREEN_ICONS,
-  } = require("../../../constants/historyScreenTexts");
-  switch (gender) {
+export const getGenderIcon = (
+  gender: "male" | "female" | "other" | string
+): string => {
+  const g = (gender || "other").toString().toLowerCase();
+  switch (g) {
     case "male":
       return HISTORY_SCREEN_ICONS.MALE_ICON;
     case "female":
       return HISTORY_SCREEN_ICONS.FEMALE_ICON;
-    case "other":
-      return HISTORY_SCREEN_ICONS.OTHER_ICON;
     default:
       return HISTORY_SCREEN_ICONS.OTHER_ICON;
   }
@@ -45,7 +42,7 @@ export const getDifficultyStars = (difficulty: number): string => {
 
   let stars = "⭐".repeat(fullStars);
   if (hasHalfStar && fullStars < HISTORY_SCREEN_CONFIG.MAX_DIFFICULTY) {
-    stars += "⭐"; // או סמל חצי כוכב אם יש
+    stars += "½"; // מציג חצי כהשלמה טקסטואלית
   }
 
   return stars || "⭐"; // ברירת מחדל כוכב אחד
@@ -61,8 +58,7 @@ export const getFeelingEmoji = (feeling: string): string => {
   const emojiMap: Record<string, string> = {
     "😄": "😄",
     "😊": "😊",
-    "�": "😊",
-    "😀": "😄",
+    "": "😄",
     "😐": "😐",
     "😞": "😞",
     "😢": "😢",
@@ -70,7 +66,9 @@ export const getFeelingEmoji = (feeling: string): string => {
     "😴": "😴",
     "🔥": "🔥",
     happy: "😊",
-    veryhappy: "�",
+    veryhappy: "😊",
+    very_happy: "😊",
+    "very-happy": "😊",
     sad: "😞",
     verysad: "😢",
     neutral: "😐",
@@ -91,12 +89,17 @@ export const getFeelingEmoji = (feeling: string): string => {
  * פונקציה מתקדמת יותר מהגרסה ב־workoutHelpers
  */
 export const formatDateHebrew = (
-  dateString: string | undefined | null,
+  dateInput: string | number | Date | undefined | null,
   now: Date = new Date()
 ): string => {
   try {
     // בדיקות ראשוניות לערכים לא תקינים
-    if (!dateString || dateString === "" || dateString === "Invalid Date") {
+    if (
+      dateInput === undefined ||
+      dateInput === null ||
+      dateInput === "" ||
+      dateInput === ("Invalid Date" as unknown)
+    ) {
       return "תאריך לא זמין";
     }
 
@@ -104,9 +107,13 @@ export const formatDateHebrew = (
     let date: Date;
 
     // בדיקה אם זה כבר תאריך או צריך להמיר
-    if (typeof dateString === "string") {
+    if (dateInput instanceof Date) {
+      date = dateInput;
+    } else if (typeof dateInput === "number") {
+      date = new Date(dateInput);
+    } else if (typeof dateInput === "string") {
       // טיפול בפורמטים שונים של תאריך
-      const cleanDateString = dateString.trim();
+      const cleanDateString = dateInput.trim();
 
       // בדיקה לפורמט ISO
       if (cleanDateString.includes("T") || cleanDateString.includes("Z")) {
@@ -122,12 +129,12 @@ export const formatDateHebrew = (
         date = new Date(cleanDateString);
       }
     } else {
-      date = new Date(dateString);
+      date = new Date(dateInput as unknown as string);
     }
 
     // בדיקה שהתאריך תקין
     if (!date || isNaN(date.getTime()) || date.getTime() <= 0) {
-      console.warn("Invalid date provided:", dateString);
+      console.warn("Invalid date provided:", dateInput);
       return "תאריך לא תקין";
     }
 
@@ -136,7 +143,7 @@ export const formatDateHebrew = (
 
     // תאריך עתידי - זה לא אמור לקרות באימונים
     if (diffDays < 0) {
-      console.warn("Future date found in workout history:", dateString);
+      console.warn("Future date found in workout history:", dateInput);
       // נציג את התאריך המלא במקום "מחר"
       return date.toLocaleDateString("he-IL", {
         day: "numeric",
@@ -171,7 +178,7 @@ export const formatDateHebrew = (
       "Error formatting date:",
       error,
       "Original input:",
-      dateString
+      dateInput
     );
     return "תאריך לא זמין";
   }

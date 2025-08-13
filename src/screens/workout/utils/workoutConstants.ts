@@ -132,6 +132,12 @@ export const getPersonalizedRestTimes = (
     baseTimes.compound -= 10;
     baseTimes.isolation -= 5;
   }
+  // הבטחת גבולות מינימליים סבירים
+  baseTimes.compound = Math.max(60, baseTimes.compound);
+  baseTimes.isolation = Math.max(45, baseTimes.isolation);
+  baseTimes.cardio = Math.max(30, baseTimes.cardio);
+  baseTimes.abs = Math.max(30, baseTimes.abs);
+  baseTimes.warmup = Math.max(20, baseTimes.warmup);
 
   return baseTimes;
 };
@@ -462,20 +468,14 @@ export const getPersonalizedStartingWeights = (
     });
   }
 
-  // התאמה לפי גיל
+  // התאמה לפי גיל (אחיד עם עזרי הגיל בקובץ)
   if (personalData.age) {
-    if (
-      personalData.age.includes("50_") ||
-      personalData.age.includes("over_")
-    ) {
+    if (isOlderAgeRange(personalData.age)) {
       // מבוגרים מתחילים עם משקלים נמוכים יותר
       Object.keys(recommendations).forEach((key) => {
         recommendations[key as keyof typeof recommendations] *= 0.85;
       });
-    } else if (
-      personalData.age.includes("18_") ||
-      personalData.age.includes("25_")
-    ) {
+    } else if (isYoungerAgeRange(personalData.age)) {
       // צעירים יכולים להתחיל עם משקלים גבוהים יותר
       Object.keys(recommendations).forEach((key) => {
         recommendations[key as keyof typeof recommendations] *= 1.1;

@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect } from "react";
+import { StyleSheet } from "react-native";
 
 // ===============================================
 // 📱 Navigation & UI Core - ניווט ויסודות UI
@@ -31,6 +32,8 @@ import "./src/utils/rtlHelpers"; // 🌍 אתחול RTL אוטומטי / Automat
 // ===============================================
 import "react-native-reanimated"; // 🎬 אנימציות מתקדמות / Advanced animations
 import "react-native-gesture-handler"; // 👆 טיפול במחוות / Gesture handling
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 /**
  * רכיב האפליקציה הראשי
@@ -41,41 +44,41 @@ import "react-native-gesture-handler"; // 👆 טיפול במחוות / Gesture
  */
 export default function App(): React.JSX.Element {
   const { user } = useUserStore();
+  const refreshFromServer = useUserStore((s) => s.refreshFromServer);
 
+  // ניקוי אחסון – פעם אחת בהפעלה
   useEffect(() => {
-    /**
-     * אתחול ניקוי אחסון בהפעלה
-     * Initialize storage cleanup on startup
-     */
     const initStorageCleanup = async (): Promise<void> => {
       try {
         const isFull = await StorageCleanup.isStorageFull();
         if (isFull) {
-          // ניקוי חירום במקרה של אחסון מלא
-          // Emergency cleanup in case of full storage
           await StorageCleanup.emergencyCleanup();
         } else {
-          // ניקוי רגיל של נתונים ישנים
-          // Regular cleanup of old data
           await StorageCleanup.cleanOldData();
         }
       } catch (error) {
-        // האפליקציה תמשיך לעבוד גם אם הניקוי נכשל
-        // App continues to work even if cleanup fails
         console.warn("Storage cleanup failed - continuing app startup:", error);
       }
     };
+    initStorageCleanup();
+  }, []);
 
-    /**
-     * אתחול מנהל הנתונים המרכזי
-     * Initialize central data manager
-     */
-    const initDataManager = async (): Promise<void> => {
+  // אתחול מנהל נתונים + רענון מהשרת כשיש משתמש
+  useEffect(() => {
+    const initData = async (): Promise<void> => {
       if (!user?.id) {
         console.warn("🔄 App: Waiting for user to initialize data manager...");
         return;
       }
-
+      try {
+        // רענון מהשרת לפי מדיניות "שרת כמקור אמת"
+        await refreshFromServer();
+      } catch (e) {
+        console.warn(
+          "⚠️ App: refreshFromServer failed:",
+          e instanceof Error ? e.message : String(e)
+        );
+      }
       try {
         console.warn("🚀 App: Starting data manager initialization...");
         await dataManager.initialize(user);
@@ -84,25 +87,22 @@ export default function App(): React.JSX.Element {
         console.error("❌ App: Data manager initialization failed:", error);
       }
     };
-
-    // הרץ ניקוי בצורה אסינכרונית כדי לא לחסום את האפליקציה
-    // Run cleanup asynchronously to avoid blocking the app
-    initStorageCleanup();
-
-    // אתחל מנהל נתונים כשיש משתמש
-    // Initialize data manager when user is available
-    if (user?.id) {
-      initDataManager();
-    }
-  }, [user]);
+    if (user?.id) initData();
+  }, [user, refreshFromServer]);
 
   return (
-    <>
-      {/* ניווט ראשי של האפליקציה / Main application navigation */}
-      <AppNavigator />
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        {/* ניווט ראשי של האפליקציה / Main application navigation */}
+        <AppNavigator />
 
-      {/* הודעות Toast גלובליות / Global Toast messages */}
-      <Toast />
-    </>
+        {/* הודעות Toast גלובליות / Global Toast messages */}
+        <Toast />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

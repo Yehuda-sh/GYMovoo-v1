@@ -186,6 +186,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }, 0);
   }, [sets]);
 
+  // Memoized equipment icon and label for performance
+  const equipmentIconName = useMemo(
+    () =>
+      getEquipmentIcon(
+        exercise.equipment
+      ) as keyof typeof MaterialCommunityIcons.glyphMap,
+    [exercise.equipment]
+  );
+  const equipmentLabel = useMemo(
+    () => getEquipmentHebrewName(exercise.equipment),
+    [exercise.equipment]
+  );
+
   // טיפול בלחיצה על התרגיל
   // Handle exercise tap
   const handleToggleExpanded = useCallback(() => {
@@ -445,6 +458,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <TouchableOpacity
               onPress={cancelSelectionMode}
               style={styles.selectionButton}
+              accessibilityRole="button"
+              accessibilityLabel="בטל בחירה"
+              accessibilityHint="יציאה ממצב בחירה"
             >
               <MaterialCommunityIcons
                 name="close"
@@ -455,6 +471,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <TouchableOpacity
               onPress={deleteSelectedSets}
               style={styles.selectionButton}
+              accessibilityRole="button"
+              accessibilityLabel="מחק סטים נבחרים"
+              accessibilityHint={`מחק ${selectedSets.size} סטים`}
             >
               <MaterialCommunityIcons
                 name="delete"
@@ -482,6 +501,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         disabled={isEditMode}
         accessible={true}
         accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded, disabled: isEditMode }}
         accessibilityLabel={
           isEditMode
             ? "כרטיס תרגיל במצב עריכה - לא ניתן לקפל"
@@ -508,11 +528,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             >
               {/* אייקון ציוד לתרגיל */}
               <MaterialCommunityIcons
-                name={
-                  getEquipmentIcon(
-                    exercise.equipment
-                  ) as keyof typeof MaterialCommunityIcons.glyphMap
-                }
+                name={equipmentIconName}
                 size={20}
                 color={theme.colors.primary}
                 style={styles.equipmentIcon}
@@ -543,9 +559,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </TouchableOpacity>
 
             {/* תווית ציוד */}
-            <Text style={styles.equipmentLabel}>
-              {getEquipmentHebrewName(exercise.equipment)}
-            </Text>
+            <Text style={styles.equipmentLabel}>{equipmentLabel}</Text>
 
             <View style={styles.statsRow}>
               <View style={styles.stat}>

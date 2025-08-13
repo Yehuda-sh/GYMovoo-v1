@@ -22,4 +22,5 @@ export {
   dataManager,
   type AppDataCache,
   type ServerConfig,
+  type DataStatus,
 } from "./DataManager";

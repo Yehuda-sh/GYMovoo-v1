@@ -48,6 +48,7 @@ import {
   AccessibilityInfo,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   PanGestureHandler,
@@ -167,7 +168,9 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
     const translateY = useRef(new Animated.Value(0)).current;
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
     // Check for screen reader
     useEffect(() => {
@@ -580,7 +583,10 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
         animationType="none"
         onRequestClose={onClose}
       >
-        <GestureHandlerRootView style={styles.modalContainer}>
+        <GestureHandlerRootView
+          style={styles.modalContainer}
+          accessibilityViewIsModal
+        >
           <Animated.View
             style={[
               styles.backdrop,
@@ -674,7 +680,10 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
           </PanGestureHandler>
 
           {/* Cancel Button - מחוץ ל-PanGestureHandler */}
-          <View style={styles.cancelButtonContainer}>
+          <SafeAreaView
+            edges={["bottom", "left", "right"]}
+            style={styles.cancelButtonContainer}
+          >
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={onClose}
@@ -684,7 +693,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
             >
               <Text style={styles.cancelText}>ביטול</Text>
             </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         </GestureHandlerRootView>
       </Modal>
     );
@@ -735,6 +744,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   menuContent: {
     paddingVertical: 8,
@@ -775,6 +785,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "right",
     flex: 1,
+    writingDirection: "rtl",
   },
   menuItemTextDisabled: {
     color: theme.colors.textSecondary,

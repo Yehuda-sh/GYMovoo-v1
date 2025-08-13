@@ -70,47 +70,54 @@ export default function HistoryScreen() {
   /**
    * טעינת נתונים מהמנהל המרכזי
    */
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
+  const loadData = useCallback(
+    async (options?: { silent?: boolean }) => {
+      try {
+        if (!options?.silent) {
+          setLoading(true);
+        }
 
-      // וודא שהמנהל מאותחל
-      if (!dataManager.isReady()) {
-        if (user) {
-          console.warn("📊 HistoryScreen: Initializing data manager...");
-          await dataManager.initialize(user);
-        } else {
-          console.warn(
-            "⚠️ HistoryScreen: No user available for initialization"
-          );
-          return;
+        // וודא שהמנהל מאותחל
+        if (!dataManager.isReady()) {
+          if (user) {
+            console.warn("📊 HistoryScreen: Initializing data manager...");
+            await dataManager.initialize(user);
+          } else {
+            console.warn(
+              "⚠️ HistoryScreen: No user available for initialization"
+            );
+            return;
+          }
+        }
+
+        // שלוף נתונים מוכנים מהמנהל
+        const allWorkouts = dataManager.getWorkoutHistory();
+        const stats = dataManager.getStatistics();
+        const congratulation = dataManager.getCongratulationMessage();
+
+        // עדכן State
+        setStatistics(stats);
+        setCongratulationMessage(congratulation);
+
+        // Pagination
+        const initialData = allWorkouts.slice(0, ITEMS_PER_PAGE);
+        setWorkouts(initialData);
+        setCurrentPage(1);
+        setHasMoreData(allWorkouts.length > ITEMS_PER_PAGE);
+
+        console.warn(
+          `✅ HistoryScreen: Loaded ${initialData.length}/${allWorkouts.length} workouts`
+        );
+      } catch (error) {
+        console.error("❌ HistoryScreen: Failed to load data", error);
+      } finally {
+        if (!options?.silent) {
+          setLoading(false);
         }
       }
-
-      // שלוף נתונים מוכנים מהמנהל
-      const allWorkouts = dataManager.getWorkoutHistory();
-      const stats = dataManager.getStatistics();
-      const congratulation = dataManager.getCongratulationMessage();
-
-      // עדכן State
-      setStatistics(stats);
-      setCongratulationMessage(congratulation);
-
-      // Pagination
-      const initialData = allWorkouts.slice(0, ITEMS_PER_PAGE);
-      setWorkouts(initialData);
-      setCurrentPage(1);
-      setHasMoreData(allWorkouts.length > ITEMS_PER_PAGE);
-
-      console.warn(
-        `✅ HistoryScreen: Loaded ${initialData.length}/${allWorkouts.length} workouts`
-      );
-    } catch (error) {
-      console.error("❌ HistoryScreen: Failed to load data", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, ITEMS_PER_PAGE]);
+    },
+    [user, ITEMS_PER_PAGE]
+  );
 
   /**
    * טעינת נתונים נוספים (pagination)
@@ -146,7 +153,7 @@ export default function HistoryScreen() {
     try {
       console.warn("🔄 HistoryScreen: Refreshing data...");
       await dataManager.refresh(user);
-      await loadData();
+      await loadData({ silent: true });
     } catch (error) {
       console.error("❌ HistoryScreen: Refresh failed", error);
     } finally {
@@ -468,68 +475,78 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Animated.View
-          style={[
-            styles.loadingContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: fadeAnim }],
-            },
-          ]}
-        >
-          <LoadingSpinner
-            size="large"
-            text={HISTORY_SCREEN_TEXTS.LOADING_MAIN}
-            variant="pulse"
-            testID={HISTORY_SCREEN_ACCESSIBILITY.MAIN_LOADING_TEST_ID}
-          />
-          <Text style={styles.loadingSubtext}>
-            {HISTORY_SCREEN_TEXTS.LOADING_SUBTEXT}
-          </Text>
-        </Animated.View>
-      </View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "right", "left", "bottom"]}
+      >
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.loadingContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: fadeAnim }],
+              },
+            ]}
+          >
+            <LoadingSpinner
+              size="large"
+              text={HISTORY_SCREEN_TEXTS.LOADING_MAIN}
+              variant="pulse"
+              testID={HISTORY_SCREEN_ACCESSIBILITY.MAIN_LOADING_TEST_ID}
+            />
+            <Text style={styles.loadingSubtext}>
+              {HISTORY_SCREEN_TEXTS.LOADING_SUBTEXT}
+            </Text>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (workouts.length === 0 && !loading) {
     return (
-      <Animated.View
-        style={[
-          styles.container,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "right", "left", "bottom"]}
       >
-        <EmptyState
-          icon={HISTORY_SCREEN_ICONS.TIME_OUTLINE}
-          title={HISTORY_SCREEN_TEXTS.EMPTY_STATE_TITLE}
-          description={HISTORY_SCREEN_TEXTS.EMPTY_STATE_DESCRIPTION}
-          variant="default"
-          testID={HISTORY_SCREEN_ACCESSIBILITY.EMPTY_STATE_TEST_ID}
+        <Animated.View
+          style={[
+            styles.container,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
         >
-          <Animated.View
-            style={[
-              styles.emptyAction,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+          <EmptyState
+            icon={HISTORY_SCREEN_ICONS.TIME_OUTLINE}
+            title={HISTORY_SCREEN_TEXTS.EMPTY_STATE_TITLE}
+            description={HISTORY_SCREEN_TEXTS.EMPTY_STATE_DESCRIPTION}
+            variant="default"
+            testID={HISTORY_SCREEN_ACCESSIBILITY.EMPTY_STATE_TEST_ID}
           >
-            <MaterialCommunityIcons
-              name={HISTORY_SCREEN_ICONS.DUMBBELL}
-              size={24}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.emptyActionText}>
-              {HISTORY_SCREEN_TEXTS.EMPTY_ACTION_TEXT}
-            </Text>
-          </Animated.View>
-        </EmptyState>
-      </Animated.View>
+            <Animated.View
+              style={[
+                styles.emptyAction,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={HISTORY_SCREEN_ICONS.DUMBBELL}
+                size={24}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.emptyActionText}>
+                {HISTORY_SCREEN_TEXTS.EMPTY_ACTION_TEXT}
+              </Text>
+            </Animated.View>
+          </EmptyState>
+        </Animated.View>
+      </SafeAreaView>
     );
   }
 

@@ -1,32 +1,59 @@
 /**
  * @file src/screens/progress/ProgressScreen.tsx
- *        <View 
-          style={styles.infoBox}
-          accessibilityLabel={PROGRESS_SCREEN_TEXTS.A11Y.INFO_BOX}
-        >cription מסך התקדמות זמני - מפנה לשירות היסטוריית אימונים
- * English: Temporary progress screen - redirects to workout history service
- * @version 1.0.1
- * @created 2025-08-01
- * @updated 2025-08-05 אופטימיזציה: הסרת ערכים קשיחים, שימוש במערכת theme, ריכוז constants
- *
- * @note
- * מסך זה הוחלף ב-workoutHistoryService שמספק נתוני התקדמות מדויקים יותר.
- * השתמש ב-workoutHistoryService.getWorkoutStatistics() לקבלת נתוני התקדמות.
+ * @description מסך התקדמות המציג נתונים אמיתיים משירות היסטוריית אימונים
+ * English: Progress screen showing real stats from workoutHistoryService
+ * @version 1.1.0 (2025-08-13)
  */
 
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { workoutHistoryService } from "../../services/workoutHistoryService";
 
 export default function ProgressScreen(): JSX.Element {
-  // Debug logging for screen lifecycle
-  console.log(PROGRESS_SCREEN_TEXTS.CONSOLE.SCREEN_LOADED);
+  const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState<{
+    totalWorkouts: number;
+    totalDuration: number;
+    averageDifficulty: number;
+    workoutStreak: number;
+  } | null>(null);
+  const [personalRecords, setPersonalRecords] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const [s, a] = await Promise.all([
+          workoutHistoryService.getWorkoutStatistics(),
+          workoutHistoryService
+            .getPersonalizedWorkoutAnalytics()
+            .catch(() => null),
+        ]);
+        if (!mounted) return;
+        setStats(s);
+        setPersonalRecords(a?.personalRecordsThisMonth ?? 0);
+      } catch (e) {
+        console.error("ProgressScreen: failed to load stats", e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "right", "left", "bottom"]}
+    >
       <BackButton absolute={false} variant="minimal" />
 
       <View style={styles.content}>
@@ -52,24 +79,43 @@ export default function ProgressScreen(): JSX.Element {
           <Text style={styles.infoTitle}>
             {PROGRESS_SCREEN_TEXTS.INFO.BOX_TITLE}
           </Text>
-          <Text style={styles.infoText}>
-            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_WORKOUTS}
-          </Text>
-          <Text style={styles.infoText}>
-            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_TIME}
-          </Text>
-          <Text style={styles.infoText}>
-            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.CURRENT_STREAK}
-          </Text>
-          <Text style={styles.infoText}>
-            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.AVERAGE_RATING}
-          </Text>
-          <Text style={styles.infoText}>
-            {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.PERSONAL_RECORDS}
-          </Text>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.infoText}>
+                {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_WORKOUTS}:{" "}
+                {stats?.totalWorkouts ?? 0}
+              </Text>
+              <Text style={styles.infoText}>
+                {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.TOTAL_TIME}:{" "}
+                {stats ? Math.round((stats.totalDuration || 0) / 60) : 0}{" "}
+                {"דקות"}
+              </Text>
+              <Text style={styles.infoText}>
+                {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.CURRENT_STREAK}:{" "}
+                {stats?.workoutStreak ?? 0}
+              </Text>
+              <Text style={styles.infoText}>
+                {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.AVERAGE_RATING}:{" "}
+                {stats
+                  ? (
+                      Math.round((stats.averageDifficulty || 0) * 10) / 10
+                    ).toFixed(1)
+                  : "-"}
+              </Text>
+              <Text style={styles.infoText}>
+                {PROGRESS_SCREEN_TEXTS.INFO.FEATURES.PERSONAL_RECORDS}:{" "}
+                {personalRecords}
+              </Text>
+            </>
+          )}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -94,6 +140,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.md,
+    writingDirection: "rtl",
   },
   subtitle: {
     fontSize: 16,
@@ -101,6 +148,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 24,
     marginBottom: theme.spacing.xl,
+    writingDirection: "rtl",
   },
   infoBox: {
     backgroundColor: theme.colors.surface,
@@ -117,6 +165,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   infoText: {
     fontSize: 14,
@@ -124,5 +173,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
     textAlign: "right",
     writingDirection: "rtl",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
   },
 });

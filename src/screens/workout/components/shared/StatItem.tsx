@@ -18,7 +18,14 @@
  */
 
 import React, { useEffect, useRef, useMemo } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  Animated,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 
@@ -44,6 +51,9 @@ export interface StatItemProps {
   unit?: string; // יחידת מידה ("ק"ג", "%", "דק׳")
   variant?: "vertical" | "horizontal"; // פריסה אופקית
   testID?: string;
+  containerStyle?: StyleProp<ViewStyle>;
+  valueStyle?: StyleProp<TextStyle>;
+  labelStyle?: StyleProp<TextStyle>;
 }
 
 const StatItemComponent: React.FC<StatItemProps> = ({
@@ -61,6 +71,9 @@ const StatItemComponent: React.FC<StatItemProps> = ({
   unit,
   variant = "vertical",
   testID,
+  containerStyle: containerStyleOverride,
+  valueStyle,
+  labelStyle,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const prevValueRef = useRef<string | number | undefined>(undefined);
@@ -105,8 +118,16 @@ const StatItemComponent: React.FC<StatItemProps> = ({
       variant === "horizontal" && styles.horizontal,
       { gap: config.gap },
       animate && !reducedMotion && { transform: [{ scale: scaleAnim }] },
+      containerStyleOverride,
     ],
-    [variant, config.gap, animate, reducedMotion, scaleAnim]
+    [
+      variant,
+      config.gap,
+      animate,
+      reducedMotion,
+      scaleAnim,
+      containerStyleOverride,
+    ]
   );
 
   const finalIconColor = iconColor || color;
@@ -139,11 +160,14 @@ const StatItemComponent: React.FC<StatItemProps> = ({
         style={[
           styles.statValue,
           { fontSize: config.valueSize, color: finalValueColor },
+          valueStyle,
         ]}
       >
         {valueWithUnit}
       </Text>
-      <Text style={[styles.statLabel, { fontSize: config.labelSize }]}>
+      <Text
+        style={[styles.statLabel, { fontSize: config.labelSize }, labelStyle]}
+      >
         {label}
       </Text>
     </Animated.View>
@@ -164,7 +188,10 @@ const areEqual = (prev: StatItemProps, next: StatItemProps) => {
     prev.size === next.size &&
     prev.unit === next.unit &&
     prev.variant === next.variant &&
-    prev.reducedMotion === next.reducedMotion
+    prev.reducedMotion === next.reducedMotion &&
+    prev.containerStyle === next.containerStyle &&
+    prev.valueStyle === next.valueStyle &&
+    prev.labelStyle === next.labelStyle
   );
 };
 

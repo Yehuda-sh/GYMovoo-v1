@@ -7,7 +7,7 @@
  * - reducedMotion (השבתת אנימציות חיצוניות)
  * - טיפוס אייקון בטוח
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   TouchableOpacity,
   Animated,
@@ -72,19 +72,27 @@ export const SkipButton: React.FC<SkipButtonProps> = React.memo(
       [disabled, loading, style]
     );
 
-    const handlePress = () => {
+    const handlePress = useCallback(() => {
       if (disabled || loading) return;
       if (haptic) triggerVibration("short");
       onPress();
-    };
+    }, [disabled, loading, haptic, onPress]);
+
+    const handleLongPress = useCallback(() => {
+      if (disabled || loading) return;
+      if (haptic) triggerVibration("short");
+      onLongPress?.();
+    }, [disabled, loading, haptic, onLongPress]);
 
     return (
       <Animated.View style={animatedStyle} testID={testID || "SkipButton"}>
         <TouchableOpacity
           style={mergedContainerStyle}
           onPress={handlePress}
-          onLongPress={onLongPress}
+          onLongPress={handleLongPress}
           activeOpacity={0.7}
+          hitSlop={10}
+          testID={testID ? `${testID}-touchable` : "SkipButtonTouchable"}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityRole="button"

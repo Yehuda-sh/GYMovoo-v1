@@ -12,8 +12,8 @@
  * - חישוב קלוריות מותאם | Personalized calorie calculations
  * - רצף אימונים וקביעות | Workout streaks and consistency tracking
  *
- * @dependencies workoutSimulationService, genderAdaptation, personalDataUtils
- * @used_by HistoryScreen, demoHistoryService, WorkoutPlansScreen, ActiveWorkoutScreen
+ * @dependencies genderAdaptation, personalDataUtils
+ * @used_by HistoryScreen, WorkoutPlansScreen, ActiveWorkoutScreen
  * @performance 1096 lines - consider modular organization for large service
  * @updated 2025-08-11 Enhanced documentation and service organization
  */

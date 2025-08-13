@@ -1644,6 +1644,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => generateWorkoutPlan(true)}
+          accessibilityRole="button"
+          accessibilityLabel="נסה לטעון את התוכנית מחדש"
+          accessibilityHint="יוצר תוכנית חדשה בהתאם להעדפותיך"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          testID="plans-error-retry"
         >
           <Text style={styles.retryButtonText}>נסה שוב</Text>
         </TouchableOpacity>
@@ -1673,7 +1678,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
               selectedPlanType === "basic" && styles.planTabActive,
             ]}
             onPress={() => setSelectedPlanType("basic")}
+            accessibilityRole="button"
             accessibilityLabel="בחר תוכנית בסיסית"
+            accessibilityHint="הצגת תוכנית האימון הבסיסית"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID="tab-basic"
           >
             <MaterialCommunityIcons
               name="dumbbell"
@@ -1703,6 +1712,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             accessibilityLabel={
               canAccessAI ? "בחר תוכנית AI" : "תוכנית AI נעולה"
             }
+            accessibilityRole="button"
+            accessibilityHint={
+              canAccessAI
+                ? "הצגת תוכנית חכמה מותאמת אישית"
+                : "יש לשדרג מנוי כדי לפתוח"
+            }
+            accessibilityState={{ disabled: !canAccessAI && !smartPlan }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID="tab-smart"
           >
             <MaterialCommunityIcons
               name={canAccessAI ? "robot" : "lock"}
@@ -1732,6 +1750,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             <TouchableOpacity
               style={styles.aiButton}
               onPress={handleAIPlanPress}
+              accessibilityRole="button"
+              accessibilityLabel="צור תוכנית AI"
+              accessibilityHint="יוצר תוכנית חכמה מותאמת אישית"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="action-create-ai"
             >
               <MaterialCommunityIcons
                 name="robot"
@@ -1744,6 +1767,11 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
             <TouchableOpacity
               style={styles.regenerateButton}
               onPress={handleRegeneratePress}
+              accessibilityRole="button"
+              accessibilityLabel="רענון תוכנית"
+              accessibilityHint="יוצר תוכנית חדשה בהתאם להעדפות"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="action-regenerate"
             >
               <MaterialCommunityIcons
                 name="refresh"
@@ -1784,12 +1812,16 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 ))}
               </View>
               {selectedPlanType === "smart" && !canAccessAI && (
-                <View style={styles.aiOverlay}>
+                <View style={styles.aiOverlay} testID="ai-locked-overlay">
                   <Text style={styles.aiUpgradeTitle}>תוכנית AI נעולה</Text>
                   <TouchableOpacity
                     style={styles.aiUpgradeButton}
                     onPress={() => navigation.navigate("Profile")}
+                    accessibilityRole="button"
                     accessibilityLabel="פתח מסך שדרוג למנוי"
+                    accessibilityHint="מעבר למסך הפרופיל לשדרוג המנוי"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    testID="action-ai-upgrade"
                   >
                     <Text style={styles.aiUpgradeButtonText}>
                       שדרג כדי לפתוח
@@ -1824,6 +1856,19 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                   ? handleAIPlanPress
                   : () => generateWorkoutPlan(true)
               }
+              accessibilityRole="button"
+              accessibilityLabel={
+                selectedPlanType === "smart"
+                  ? "צור תוכנית AI"
+                  : "צור תוכנית אימון"
+              }
+              accessibilityHint={
+                selectedPlanType === "smart"
+                  ? "יוצר תוכנית חכמה מותאמת"
+                  : "יוצר תוכנית בסיסית בהתאם להעדפות"
+              }
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="action-create-plan"
             >
               <MaterialCommunityIcons
                 name={selectedPlanType === "smart" ? "robot" : "plus"}

@@ -24,6 +24,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -43,6 +46,10 @@ export interface TimerDisplayProps {
   urgentThreshold?: number; // ערך סף להתראה אדומה
   reducedMotion?: boolean; // ביטול אנימציות
   testID?: string;
+  accessibilityHint?: string;
+  containerStyle?: StyleProp<ViewStyle>;
+  timeStyle?: StyleProp<TextStyle>;
+  labelStyle?: StyleProp<TextStyle>;
 }
 
 const SIZE_CONFIG = {
@@ -81,6 +88,10 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   urgentThreshold = 5,
   reducedMotion = false,
   testID,
+  accessibilityHint,
+  containerStyle,
+  timeStyle,
+  labelStyle,
 }) => {
   const config = SIZE_CONFIG[size];
   const isUrgent = timeLeft <= urgentThreshold;
@@ -105,10 +116,11 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   if (size === "compact") {
     return (
       <View
-        style={config.containerStyle}
+        style={[config.containerStyle, containerStyle]}
         accessible
         accessibilityRole="text"
         accessibilityLabel={`${label}: נותרו ${timeLeft} שניות`}
+        accessibilityHint={accessibilityHint}
         testID={testID || "TimerDisplay-compact"}
       >
         <Text
@@ -118,12 +130,17 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
               color: textColor,
               fontVariant: ["tabular-nums"],
             },
+            timeStyle,
           ]}
         >
           {formattedTime}
         </Text>
         <Text
-          style={[config.labelStyle, { color: theme.colors.textSecondary }]}
+          style={[
+            config.labelStyle,
+            { color: theme.colors.textSecondary },
+            labelStyle,
+          ]}
         >
           {label}
         </Text>
@@ -133,17 +150,20 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 
   return (
     <Animated.View
-      style={[config.containerStyle, animatedStyle]}
+      style={[config.containerStyle, animatedStyle, containerStyle]}
       accessible
       accessibilityRole="text"
       accessibilityLabel={`${label}: ${isPaused ? "מושהה, " : ""}נותרו ${timeLeft} שניות`}
-      accessibilityState={{ disabled: false, busy: false }}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: false, busy: !isPaused && timeLeft > 0 }}
       testID={testID || "TimerDisplay-full"}
     >
       <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.8}
+        hitSlop={10}
         disabled={!onPress}
+        testID={testID ? `${testID}-touch` : "TimerDisplayTouch"}
       >
         <View style={styles.timerContainer}>
           {/* רקע מעגלי לטיימר */}
@@ -165,6 +185,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
                 color: textColor,
                 fontVariant: ["tabular-nums"],
               },
+              timeStyle,
             ]}
           >
             {formattedTime}

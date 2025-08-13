@@ -55,7 +55,7 @@ export interface Exercise {
   category: string;
   primaryMuscles: string[];
   secondaryMuscles?: string[];
-  equipment: string; // Can be "none" for bodyweight exercises, or specific equipment like "dumbbells", "barbell", etc.
+  equipment: string; // Use "bodyweight" (not "none") for תרגילי משקל גוף; ערכים חוקיים בהתאם ל-unifiedQuestionnaire (למשל "dumbbells","barbell","free_weights", וכו')
   sets: Set[];
   restTime?: number; // זמן מנוחה ברירת מחדל בין סטים
   notes?: string;
@@ -111,7 +111,7 @@ export interface WorkoutTemplate {
   exercises: ExerciseTemplate[];
   estimatedDuration: number;
   targetMuscles: string[];
-  equipment: string[]; // Array of equipment needed, can include "none" for bodyweight workouts
+  equipment: string[]; // מערך ציוד נדרש; עבור משקל גוף השתמש ב-"bodyweight" בלבד (לא "none"); ערכים חוקיים לפי unifiedQuestionnaire
 }
 
 // תבנית תרגיל

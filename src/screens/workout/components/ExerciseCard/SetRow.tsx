@@ -2,100 +2,6 @@
  * @file src/screens/workout/components/ExerciseCard/SetRow.tsx
  * @description שורת סט בודדת עם ממשק עריכה מתקדם והתאמה מלאה ל-RTL
  * @version 3.1.0
- * @author GYMovoo Development Team
- * @created 2024-12-15
- * @modified 2025-08-05
- *
- * @description
- * רכיב מתקדם לעריכת סטי אימון עם מצב עריכה מלא, חצי מעלית וקלט מקלדת מיועל.
- * הרכיב תומך במצבי תצוגה שונים ומספק חוויית משתמש מושלמת עם אנימציות חלקות.
- *
- * @features
- * - ✅ מצב עריכה מתקדם עם הסתרת כפתור השלמה
- * - ✅ חצי מעלית אלגנטיים (elevator buttons) להעברת סטים
- * - ✅ קלט מקלדת מיועל ל-Android עם פתרון בעיות פוקוס
- * - ✅ ביטול השלמת סט - לחיצה נוספת מבטלת השלמה
- * - ✅ אנימציות מתקדמות עם Animated API
- * - ✅ תמיכת RTL מלאה עם פריסה מותאמת לעברית
- * - ✅ שכפול וחיקה של סטים במצב עריכה
- * - ✅ אינדיקטורים חזותיים לשיאים אישיים (PR Badge)
- * - ✅ הבחנה ברורה בין placeholder לערך אמיתי
- * - ✅ נגישות מקיפה עם ARIA labels
- * - 🆕 קבועים מוגדרים למניעת magic numbers (v3.1.0)
- * - 🆕 רכיב עזר לשדות קלט לחיסכון בכפילויות (v3.1.0)
- * - 🆕 ייבוא ממשק מרכזי במקום הגדרה מקומית (v3.1.0)
- *
- * @technical
- * פתרונות טכניים מתקדמים:
- * - TouchableOpacity אינדיבידואלי לכל TextInput עם activeOpacity={1}
- * - useRef לשליטה ישירה על שדות הקלט
- * - אופטימיזציות Android: blurOnSubmit={false}, showSoftInputOnFocus={true}
- * - React.memo לביצועים מיטביים
- * - useCallback ו-useMemo למניעת re-renders מיותרים
- * - קבועים מרכזיים לערכי אנימציה ומדדי ביצועים
- * - רכיב עזר מאוחד לשדות קלט עם SHARED_TEXT_INPUT_PROPS
- *
- * @optimizations (v3.1.0)
- * שיפורים שבוצעו:
- * - ✅ הסרת כפילויות בהגדרות שדות קלט
- * - ✅ איחוד קבועים למניעת magic numbers
- * - ✅ רכיב עזר לשדות קלט חוזרים
- * - ✅ ייבוא ExtendedSet מממשק מרכזי
- * - ✅ קבועי hitSlop מוגדרים מראש
- * - ✅ מאפיינים משותפים לכל שדות הטקסט
- *
- * @editmode
- * במצב עריכה (isEditMode=true):
- * - כפתור השלמה מוסתר
- * - חצי מעלית מוצגים (triangle icons מסתובבים)
- * - כפתור שכפול פעיל
- * - כפתור מחיקה עם סגנון אדום
- * - אנימציות מושבתות למען יציבות
- *
- * @android
- * פתרונות ספציפיים ל-Android:
- * - הסרת TouchableOpacity חיצוני שחוטף אירועי פוקוס
- * - keyboardType="numeric" קבוע (במקום number-pad)
- * - עטיפה ספציפית לכל TextInput עם קריאה מפורשת ל-focus()
- *
- * @rtl
- * תמיכה מלאה בעברית:
- * - flexDirection: "row-reverse" בכול מקום
- * - marginStart במקום marginLeft
- * - textAlign: "center" לשדות קלט
- * - פריסת אייקונים מותאמת לכיוון קריאה
- *
- * @accessibility
- * נגישות מלאה:
- * - accessibilityLabel מפורט לכל כפתור
- * - accessibilityHint להסבר פונקציונליות
- * - hitSlop מוגדל לנוחות מגע
- *
- * @performance
- * אופטימיזציה מתקדמת:
- * - React.memo על הרכיב הראשי
- * - useCallback לכל event handlers
- * - useMemo לערכי input ו-placeholder
- * - useRef לאנימציות ללא re-renders
- * - קבועים מאוחדים לחיסכון בזיכרון
- *
- * @example
- * ```tsx
- * <SetRow
- *   set={workoutSet}
- *   setNumber={1}
- *   onUpdate={(updates) => updateSet(setId, updates)}
- *   onDelete={() => deleteSet(setId)}
- *   onComplete={() => completeSet(setId)}
- *   onLongPress={() => showSetOptions(setId)}
- *   isEditMode={true}
- *   onMoveUp={() => moveSetUp(setId)}
- *   onMoveDown={() => moveSetDown(setId)}
- *   onDuplicate={() => duplicateSet(setId)}
- *   isFirst={index === 0}
- *   isLast={index === sets.length - 1}
- * />
- * ```
  */
 
 import React, { useRef, useEffect, useState } from "react";
@@ -111,8 +17,6 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
-import { Set } from "../../types/workout.types";
-
 // ייבוא ממשק מרכזי במקום הגדרה מקומית
 import { ExtendedSet } from "../types";
 
@@ -143,7 +47,7 @@ const SHARED_TEXT_INPUT_PROPS = {
   selectTextOnFocus: true,
   editable: true,
   returnKeyType: INPUT_CONFIG.RETURN_KEY_TYPE,
-  blurOnSubmit: false, // 🔑 מפתח: מונע סגירת מקלדת אוטומטית
+  blurOnSubmit: false, // מונע סגירת מקלדת אוטומטית
   autoFocus: false,
   multiline: false,
   maxLength: INPUT_CONFIG.MAX_LENGTH,
@@ -153,7 +57,7 @@ const SHARED_TEXT_INPUT_PROPS = {
   autoCapitalize: "none" as const,
   spellCheck: false,
   textContentType: "none" as const,
-  showSoftInputOnFocus: true, // 🚀 מאלץ הצגת מקלדת ב-Android
+  showSoftInputOnFocus: true, // מאלץ הצגת מקלדת ב-Android
 } as const;
 
 interface SetRowProps {
@@ -218,7 +122,7 @@ const SetRow: React.FC<SetRowProps> = ({
   const [showTargetHint, setShowTargetHint] = useState(false);
   const [weightFocused, setWeightFocused] = useState(false);
   const [repsFocused, setRepsFocused] = useState(false);
-  const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
@@ -275,10 +179,10 @@ const SetRow: React.FC<SetRowProps> = ({
     }).start();
   }, [isActive, scaleAnim]);
 
-  const parseNumeric = (raw: string, isInt = false) => {
+  const parseNumeric = (raw: string, isInt = false): number | undefined => {
     if (raw === "") return undefined;
-    const n = isInt ? parseInt(raw) : parseFloat(raw);
-    return isNaN(n) ? undefined : n;
+    const n: number = isInt ? parseInt(raw, 10) : parseFloat(raw);
+    return Number.isNaN(n) ? undefined : n;
   };
 
   const handleWeightChange = React.useCallback(
@@ -335,16 +239,13 @@ const SetRow: React.FC<SetRowProps> = ({
   }, []);
 
   const handleComplete = () => {
-    // ✨ תכונה: ביטול השלמת סט בלחיצה נוספת
-    // אם הסט כבר מושלם - בטל את ההשלמה
+    // תכונה: ביטול השלמת סט בלחיצה נוספת
     if (set.completed) {
-      // בטל השלמה - חזור למצב לא מושלם
       wrappedOnUpdate({ completed: false });
       dlog("uncompleteSet", { setNumber });
       return;
     }
 
-    // אם הסט לא מושלם - השלם אותו
     // אם אין ערכים ממשיים, השתמש בערכי המטרה
     if (!set.actualWeight && set.targetWeight) {
       wrappedOnUpdate({ actualWeight: set.targetWeight });
@@ -353,7 +254,6 @@ const SetRow: React.FC<SetRowProps> = ({
       wrappedOnUpdate({ actualReps: set.targetReps });
     }
 
-    // השלם את הסט
     dlog("completeSet", { setNumber });
     onComplete();
   };
@@ -393,9 +293,8 @@ const SetRow: React.FC<SetRowProps> = ({
     ) => (
       <TouchableOpacity
         style={[styles.inputContainer, focused && styles.focusedContainer]}
-        activeOpacity={1} // חשוב: מונע אפקט לחיצה
+        activeOpacity={1}
         onPress={() => {
-          // מאלץ פוקוס על השדה - פתרון לבעיות Android
           const input = inputRef.current;
           if (input) {
             input.focus();
@@ -419,10 +318,19 @@ const SetRow: React.FC<SetRowProps> = ({
               ? theme.colors.textSecondary + "60"
               : theme.colors.textSecondary + "40"
           }
+          accessible={true}
+          accessibilityLabel={type === "weight" ? "שדה משקל" : "שדה חזרות"}
+          accessibilityHint={
+            typeof targetValue === "number"
+              ? `יעד מומלץ: ${targetValue}`
+              : type === "weight"
+                ? "הזן משקל בקילוגרמים"
+                : "הזן מספר חזרות"
+          }
           {...SHARED_TEXT_INPUT_PROPS}
         />
 
-        {showTargetHint && targetValue && (
+        {showTargetHint && typeof targetValue === "number" && (
           <Text style={styles.targetHint}>יעד: {targetValue}</Text>
         )}
       </TouchableOpacity>
@@ -453,7 +361,7 @@ const SetRow: React.FC<SetRowProps> = ({
         style={[
           styles.container,
           set.completed && styles.completedContainer,
-          set.completed && styles.greenBorderContainer, // גבול ירוק לסט מושלם
+          set.completed && styles.greenBorderContainer,
           isActive && styles.activeContainer,
           { transform: [{ scale: scaleAnim }] },
         ]}
@@ -518,7 +426,7 @@ const SetRow: React.FC<SetRowProps> = ({
           )}
         </TouchableOpacity>
 
-        {/* 🎯 שדות קלט מאוחדים עם רכיב עזר */}
+        {/* שדות קלט מאוחדים עם רכיב עזר */}
         {renderInputField(
           "weight",
           weightValue,
@@ -663,7 +571,7 @@ const SetRow: React.FC<SetRowProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row-reverse", // שינוי RTL חשוב
+    flexDirection: "row-reverse",
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -683,7 +591,7 @@ const styles = StyleSheet.create({
   setNumber: {
     width: 50,
     alignItems: "center",
-    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft (תוקן)
+    marginStart: 8,
   },
   setNumberText: {
     fontSize: 16,
@@ -729,8 +637,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     fontSize: 16,
-    fontWeight: "400", // פחות בולט מ-600
-    color: theme.colors.textSecondary + "80", // פחות בולט - כמו placeholder
+    fontWeight: "400",
+    color: theme.colors.textSecondary + "80",
     textAlign: "center",
     borderWidth: 1,
     borderColor: "transparent",
@@ -751,7 +659,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   actionsContainer: {
-    flexDirection: "row-reverse", // שינוי RTL: הפך את כיוון הכפתורים
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-end",
     width: 80,
@@ -787,7 +695,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.success,
     borderWidth: 2,
   },
-  // 🏗️ סגנונות חצי מעלית - עיצוב אלגנטי בסגנון מעלית אמיתית
   elevatorButtonsContainer: {
     flexDirection: "column",
     alignItems: "center",

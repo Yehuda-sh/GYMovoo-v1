@@ -25,6 +25,7 @@ import {
 } from "../../screens/workout/types/workout.types";
 import { workoutHistoryService } from "../workoutHistoryService";
 import { LOGGING } from "../../constants/logging";
+import { userApi } from "../api/userApi";
 
 export interface AppDataCache {
   workoutHistory: WorkoutWithFeedback[];
@@ -41,12 +42,20 @@ export interface ServerConfig {
   syncInterval: number; // minutes
 }
 
+export interface DataStatus {
+  isDemo: boolean;
+  lastUpdated: Date | null;
+  ready: boolean;
+  serverReachable: boolean;
+}
+
 class DataManagerService {
   private cache: AppDataCache | null = null;
   private serverConfig: ServerConfig = {
     enabled: false,
     syncInterval: 30, // 30 minutes default
   };
+  private serverReachable: boolean = true;
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
 
@@ -68,6 +77,12 @@ class DataManagerService {
 
   private async _performInitialization(user: User): Promise<void> {
     try {
+      // בדיקת זמינות שרת לפני טעינה
+      this.serverReachable = await this._checkServerHealth();
+      if (LOGGING.DATA_MANAGER_SUMMARY) {
+        console.warn("🌐 DataManager: Server reachable:", this.serverReachable);
+      }
+
       if (LOGGING.DATA_MANAGER_SUMMARY) {
         console.warn("🚀 DataManager: Starting initialization...");
         console.warn("👤 DataManager: User data preview:", {
@@ -83,7 +98,7 @@ class DataManagerService {
       }
 
       // בדיקה אם יש נתונים בשרת (עתידי)
-      if (this.serverConfig.enabled) {
+      if (this.serverConfig.enabled && this.serverReachable) {
         await this._loadFromServer(user);
       } else {
         await this._loadFromLocalSources(user);
@@ -103,6 +118,18 @@ class DataManagerService {
       // במקרה של כשל, ננסה לטעון נתונים מקומיים
       await this._loadFromLocalSources(user);
       this.isInitialized = true;
+    }
+  }
+
+  /**
+   * בדיקת בריאות שרת
+   */
+  private async _checkServerHealth(): Promise<boolean> {
+    try {
+      const res = await userApi.health();
+      return Boolean(res);
+    } catch {
+      return false;
     }
   }
 
@@ -218,16 +245,20 @@ class DataManagerService {
    * קבלת מצב מפורט של הנתונים
    * @returns {object} מידע מפורט על מצב המנהל
    */
-  getDataStatus(): {
-    isDemo: boolean;
-    lastUpdated: Date | null;
-    ready: boolean;
-  } {
+  getDataStatus(): DataStatus {
     return {
       isDemo: this.cache?.isDemo ?? true,
       lastUpdated: this.cache?.lastUpdated ?? null,
       ready: this.isReady(),
+      serverReachable: this.serverReachable,
     };
+  }
+
+  /**
+   * בדיקת זמינות השרת
+   */
+  isServerReachable(): boolean {
+    return this.serverReachable;
   }
 
   /**

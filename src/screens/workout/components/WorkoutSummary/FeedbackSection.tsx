@@ -8,6 +8,8 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
+import { useModalManager } from "../../hooks/useModalManager";
+import { UniversalModal } from "../../../../components/common/UniversalModal";
 
 interface FeedbackSectionProps {
   difficulty: number;
@@ -18,7 +20,9 @@ interface FeedbackSectionProps {
 
 export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
   ({ difficulty, feeling, onDifficultyChange, onFeelingChange }) => {
-    const isRTL = theme.isRTL;
+    const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 } as const;
+    const { activeModal, modalConfig, hideModal, showSuccess } =
+      useModalManager();
 
     const emotions = [
       { emoji: "😤", value: "challenging", label: "מאתגר" },
@@ -44,7 +48,10 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
         <Text style={styles.sectionTitle}>איך היה האימון? 💪</Text>
 
         {/* דירוג קושי */}
-        <View style={styles.compactFeedbackRow}>
+        <View
+          style={styles.compactFeedbackRow}
+          testID="feedback-difficulty-row"
+        >
           <Text style={styles.compactLabel}>קושי:</Text>
           <View style={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
@@ -54,7 +61,10 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                 style={styles.starButton}
                 accessibilityRole="button"
                 accessibilityLabel={`דרג קושי ${star} מתוך 5 כוכבים`}
+                accessibilityHint="הקש לשינוי דירוג הקושי"
                 accessibilityState={{ selected: star <= difficulty }}
+                hitSlop={HIT_SLOP}
+                testID={`feedback-star-${star}`}
               >
                 <MaterialCommunityIcons
                   name={star <= difficulty ? "star" : "star-outline"}
@@ -68,13 +78,17 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.difficultyHint}>
+          <Text
+            style={styles.difficultyHint}
+            accessibilityLiveRegion="polite"
+            testID="feedback-difficulty-hint"
+          >
             {getDifficultyHint(difficulty)}
           </Text>
         </View>
 
         {/* הרגשה */}
-        <View style={styles.compactFeedbackRow}>
+        <View style={styles.compactFeedbackRow} testID="feedback-feeling-row">
           <Text style={styles.compactLabel}>הרגשה:</Text>
           <View style={styles.emotionsContainerCompact}>
             {emotions.map((emotion) => (
@@ -87,7 +101,10 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`הרגשה: ${emotion.label}`}
+                accessibilityHint="בחר את ההרגשה הכללית מאימון זה"
                 accessibilityState={{ selected: feeling === emotion.value }}
+                hitSlop={HIT_SLOP}
+                testID={`feedback-emotion-${emotion.value}`}
               >
                 <Text style={styles.emotionEmojiSmall}>{emotion.emoji}</Text>
                 <Text style={styles.emotionLabelSmall}>{emotion.label}</Text>
@@ -97,7 +114,7 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
         </View>
 
         {/* שבוע קומפקטי */}
-        <View style={styles.compactFeedbackRow}>
+        <View style={styles.compactFeedbackRow} testID="feedback-week-row">
           <Text style={styles.compactLabel}>השבוע:</Text>
           <View style={styles.weekContainerCompact}>
             {["א", "ב", "ג", "ד", "ה", "ו", "ש"].map((day, index) => {
@@ -116,8 +133,9 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                   ]}
                   onPress={() => {
                     if (isNextPlanned) {
-                      alert(
-                        "תזכורת נוספה! 🔔\nתקבל התראה ביום רביעי לאימון הבא"
+                      showSuccess(
+                        "תזכורת נוספה! 🔔",
+                        "תקבל התראה ביום רביעי לאימון הבא"
                       );
                     }
                   }}
@@ -129,6 +147,11 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                         ? `יום ${day} - אימון מתוכנן, לחץ להוספת תזכורת`
                         : `יום ${day}`
                   }
+                  accessibilityHint={
+                    isNextPlanned ? "הוסף תזכורת לאימון הבא" : undefined
+                  }
+                  hitSlop={HIT_SLOP}
+                  testID={`feedback-day-${index}`}
                 >
                   {hasWorkout ? (
                     <MaterialCommunityIcons
@@ -154,10 +177,24 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
             </View>
           </View>
         </View>
+
+        {/* מודל אחיד למשובים קלים */}
+        <UniversalModal
+          visible={activeModal !== null}
+          type={activeModal || "success"}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onClose={hideModal}
+          onConfirm={modalConfig.onConfirm}
+          confirmText={modalConfig.confirmText}
+          destructive={modalConfig.destructive}
+        />
       </View>
     );
   }
 );
+
+FeedbackSection.displayName = "FeedbackSection";
 
 const styles = StyleSheet.create({
   feedbackSection: {

@@ -53,10 +53,18 @@
  */
 
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Switch } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  Pressable,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NotificationsScreen(): JSX.Element {
   const [workoutReminders, setWorkoutReminders] = React.useState<boolean>(true);
@@ -96,8 +104,9 @@ export default function NotificationsScreen(): JSX.Element {
   );
 
   return (
-    <View
+    <SafeAreaView
       style={styles.container}
+      edges={["top", "right", "left", "bottom"]}
       accessible={true}
       accessibilityLabel="מסך ניהול התראות"
     >
@@ -131,7 +140,13 @@ export default function NotificationsScreen(): JSX.Element {
 
           {notificationSettings.map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
-              <View style={styles.settingLeft}>
+              <Pressable
+                style={styles.settingLeft}
+                onPress={() => setting.setValue(!setting.value)}
+                accessibilityRole="button"
+                accessibilityLabel={setting.title}
+                accessibilityHint={`הקש כדי ${setting.value ? "לכבות" : "להפעיל"} ${setting.title}`}
+              >
                 <MaterialCommunityIcons
                   name={setting.icon}
                   size={24}
@@ -144,7 +159,7 @@ export default function NotificationsScreen(): JSX.Element {
                     {setting.description}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
               <Switch
                 value={setting.value}
                 onValueChange={setting.setValue}
@@ -181,7 +196,7 @@ export default function NotificationsScreen(): JSX.Element {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -205,6 +220,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginTop: theme.spacing.md,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   subtitle: {
     fontSize: 16,
@@ -212,6 +228,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.sm,
     lineHeight: 24,
+    writingDirection: "rtl",
   },
   settingsSection: {
     marginHorizontal: theme.spacing.lg,

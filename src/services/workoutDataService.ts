@@ -119,6 +119,13 @@ interface EquipmentAnalysis {
 // מחלקת נתוני אימון מתקדמת עם AI
 // Advanced workout data service with AI capabilities
 export class WorkoutDataService {
+  // Feature flag: הפעלת AI רק כשמותר (DEV/flag)
+  private static isAIEnabled(): boolean {
+    const val = String(process.env.EXPO_PUBLIC_ENABLE_SCI_AI || "")
+      .trim()
+      .toLowerCase();
+    return val === "1" || val === "true" || val === "yes";
+  }
   /**
    * ערבוב מערך עם זרע קבוע
    */
@@ -221,6 +228,12 @@ export class WorkoutDataService {
    * Create advanced AI workout plan - the new algorithm!
    */
   static async generateAIWorkoutPlan(): Promise<AIWorkoutPlan | null> {
+    if (!this.isAIEnabled()) {
+      console.warn(
+        "🔒 workoutDataService: AI plan generation disabled (EXPO_PUBLIC_ENABLE_SCI_AI is not enabled)."
+      );
+      return null;
+    }
     const userDataResult = await this.getUserWorkoutData();
 
     if (!userDataResult.data) {
@@ -552,13 +565,17 @@ export class WorkoutDataService {
 
     // 🔧 FIX: תמיכה בפורמט אנגלי חדש
     if (duration.includes("_min")) {
-      const durationMap: { [key: string]: number } = {
-        "30_min": 30,
-        "45_min": 45,
-        "60_min": 60,
-        "90_min": 90,
-      };
-      return durationMap[duration] || 45;
+      // תומך גם בטווחים בסגנון 30_45_min / 45_60_min
+      const match = duration.match(/(\d+)(?:_(\d+))?_min/);
+      if (match) {
+        const a = parseInt(match[1], 10);
+        const b = match[2] ? parseInt(match[2], 10) : undefined;
+        if (!isNaN(a) && !isNaN(b as number)) {
+          return Math.round((a + (b as number)) / 2); // ממוצע טווח
+        }
+        if (!isNaN(a)) return a;
+      }
+      return 45;
     }
 
     // פורמט עברי ישן
@@ -757,11 +774,11 @@ export class WorkoutDataService {
       "bike",
       "rowing_machine",
       "stairs", // ✅ מדרגות לקרדיו
-      "none", // 🏠 עודכן לטיפוס החדש
+      "bodyweight", // 🏠 משקל גוף
     ];
     return (
       equipment.some((eq) => cardioEquipment.includes(eq)) ||
-      equipment.includes("none") ||
+      equipment.includes("bodyweight") ||
       equipment.length === 0 // אם אין ציוד - תמיד אפשר קרדיו עם משקל גוף
     );
   }
@@ -779,11 +796,11 @@ export class WorkoutDataService {
       "wall", // ✅ קיר לדחיפות
       "water_bottles", // ✅ בקבוקי מים כמשקולות
       "towel", // ✅ מגבת להתנגדות
-      "none", // 🏠 עודכן לטיפוס החדש
+      "bodyweight", // 🏠 משקל גוף
     ];
     return (
       equipment.some((eq) => strengthEquipment.includes(eq)) ||
-      equipment.includes("none") ||
+      equipment.includes("bodyweight") ||
       equipment.length === 0 // אם אין ציוד - תמיד אפשר כח עם משקל גוף
     );
   }
@@ -802,11 +819,11 @@ export class WorkoutDataService {
       "wall", // ✅ קיר לתמיכה
       "towel", // ✅ מגבת למתיחות
       "stairs", // ✅ מדרגות לאימון פונקציונלי
-      "none", // 🏠 עודכן לטיפוס החדש
+      "bodyweight", // 🏠 משקל גוף
     ];
     return (
       equipment.some((eq) => functionalEquipment.includes(eq)) ||
-      equipment.includes("none") ||
+      equipment.includes("bodyweight") ||
       equipment.length === 0 // אם אין ציוד - תמיד אפשר אימון פונקציונלי
     );
   }
@@ -1099,8 +1116,7 @@ export class WorkoutDataService {
     availableEquipment: string[]
   ): boolean {
     // אם התרגיל דורש משקל גוף - תמיד זמין
-    if (exerciseEquipment === "none") {
-      // 🏠 עודכן לטיפוס החדש
+    if (exerciseEquipment === "bodyweight") {
       return true;
     }
 

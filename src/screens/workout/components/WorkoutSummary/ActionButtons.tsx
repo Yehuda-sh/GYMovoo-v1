@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { workoutLogger } from "../../../../utils";
@@ -30,6 +30,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     onFinishWorkout,
     isWorkoutSaved,
   }) => {
+    const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 } as const;
     // Modal management - אחיד במקום Alert.alert מפוזר
     const { activeModal, modalConfig, hideModal, showConfirm, showComingSoon } =
       useModalManager();
@@ -70,22 +71,15 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     const handleFinishWorkout = () => {
       workoutLogger.info("ActionButtons", "סיום אימון התחיל");
       if (!isWorkoutSaved) {
-        Alert.alert(
+        showConfirm(
           "סיום אימון",
-          "האימון טרם נשמר. האם תרצה לשמור לפני הסיום?",
-          [
-            { text: "ביטול", style: "cancel" },
-            {
-              text: "סיום בלי שמירה",
-              style: "destructive",
-              onPress: onFinishWorkout,
-            },
-            { text: "שמור וסיים", onPress: onFinishWorkout },
-          ]
+          "האימון טרם נשמר. לסיים בכל זאת?",
+          onFinishWorkout,
+          false
         );
-      } else {
-        onFinishWorkout();
+        return;
       }
+      onFinishWorkout();
     };
 
     return (
@@ -99,6 +93,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             onPress={handleShareWorkout}
             accessibilityRole="button"
             accessibilityLabel="שתף את האימון"
+            accessibilityHint="שיתוף האימון עם אפליקציות ורשתות חברתיות"
+            hitSlop={HIT_SLOP}
+            testID="action-share"
           >
             <MaterialCommunityIcons
               name="share-variant"
@@ -113,6 +110,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             onPress={handleSaveAsTemplate}
             accessibilityRole="button"
             accessibilityLabel="שמור כתבנית"
+            accessibilityHint="שמירת האימון כתבנית לשימוש עתידי"
+            hitSlop={HIT_SLOP}
+            testID="action-save-template"
           >
             <MaterialCommunityIcons
               name="content-save"
@@ -127,6 +127,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             onPress={handleFinishWorkout}
             accessibilityRole="button"
             accessibilityLabel="סיים אימון"
+            accessibilityHint={
+              isWorkoutSaved
+                ? "סיים את האימון"
+                : "האימון טרם נשמר, יוצג אישור לפני הסיום"
+            }
+            accessibilityState={{ busy: false }}
+            hitSlop={HIT_SLOP}
+            testID="action-finish"
           >
             <MaterialCommunityIcons
               name="check-circle"
@@ -144,6 +152,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             onPress={handleEditWorkout}
             accessibilityRole="button"
             accessibilityLabel="ערוך אימון"
+            accessibilityHint="עריכת פרטי האימון"
+            hitSlop={HIT_SLOP}
+            testID="action-edit"
           >
             <MaterialCommunityIcons
               name="pencil"
@@ -158,6 +169,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             onPress={handleDeleteWorkout}
             accessibilityRole="button"
             accessibilityLabel="מחק אימון"
+            accessibilityHint="פעולה הרסנית: מחיקת האימון לצמיתות"
+            hitSlop={HIT_SLOP}
+            testID="action-delete"
           >
             <MaterialCommunityIcons
               name="delete"
@@ -177,6 +191,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             }}
             accessibilityRole="button"
             accessibilityLabel="הצג אימונים קודמים"
+            accessibilityHint="הצגת היסטוריית אימונים (בקרוב)"
+            hitSlop={HIT_SLOP}
+            testID="action-history"
           >
             <MaterialCommunityIcons
               name="history"
@@ -188,13 +205,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
         </View>
 
         {/* סטטוס שמירה */}
-        <View style={styles.statusRow}>
+        <View style={styles.statusRow} testID="workout-status-row">
           <MaterialCommunityIcons
             name={isWorkoutSaved ? "cloud-check" : "cloud-sync"}
             size={16}
             color={isWorkoutSaved ? theme.colors.success : theme.colors.warning}
           />
-          <Text style={styles.statusText}>
+          <Text
+            style={styles.statusText}
+            accessibilityRole="text"
+            accessibilityLiveRegion="polite"
+            testID="workout-status-text"
+          >
             {isWorkoutSaved ? "נשמר בענן" : "שומר..."}
           </Text>
         </View>
@@ -214,6 +236,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     );
   }
 );
+
+ActionButtons.displayName = "ActionButtons";
 
 const styles = StyleSheet.create({
   actionButtonsContainer: {

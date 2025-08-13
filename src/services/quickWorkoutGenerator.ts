@@ -162,7 +162,7 @@ export class QuickWorkoutGenerator {
     const goal = await questionnaireService.getUserGoal();
 
     // חישוב מספר תרגילים לפי משך האימון (~10 דקות לתרגיל)
-    const exerciseCount = Math.floor(duration / 10);
+    const exerciseCount = Math.max(1, Math.floor(duration / 10));
 
     // 🎯 סינון חכם לפי סביבה וציוד - הפונקציה המרכזית!
     // אם בחרו בית ללא ציוד - רק תרגילי משקל גוף
@@ -343,7 +343,7 @@ export class QuickWorkoutGenerator {
     const reps = GOAL_REPS_MATRIX[goal as keyof typeof GOAL_REPS_MATRIX] || 12;
 
     // משקל לפי תרגיל וניסיון - משתמש במטריצה מרכזית
-    if (template.equipment === "none") return { reps, weight: 0 }; // 🏠 תרגילי גוף
+    if (template.equipment === "bodyweight") return { reps, weight: 0 }; // 🏠 תרגילי גוף
 
     const expLevel = ExperienceUtils.toHebrewLevel(experience);
     const baseWeight = EXERCISE_WEIGHTS_MATRIX[template.id]?.[expLevel] || 10;

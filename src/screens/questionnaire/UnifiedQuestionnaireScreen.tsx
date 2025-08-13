@@ -17,10 +17,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   Alert,
   BackHandler,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,6 +60,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
     goals: string;
     answersBullets: string;
   } | null>(null);
+  const [serverSaved, setServerSaved] = useState(false);
   // future: modal completion UI
 
   // Debug עבור אמולטור
@@ -83,6 +84,16 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
     },
     [user]
   );
+
+  // ניקוי הטיימר בדמות unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // טיפוסים פנימיים לשחזור ושדות אופציונליים בהעדפות
   type SavedProgress = {
@@ -584,6 +595,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       // 📡 שמירה לשרת (אם יש משתמש מחובר עם id)
       try {
         if (user?.id) {
+          setServerSaved(false);
           // תוך שמירה על ערכים חוקיים בלבד מתוך smartData
           await userApi.update(user.id, {
             smartQuestionnaireData: smartData,
@@ -609,12 +621,18 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
               version: "unified-1",
             },
           });
+          setServerSaved(true);
           console.warn("🌐 Questionnaire saved to server for user", user.id);
         }
       } catch (serverErr) {
         console.error(
           "❌ Failed to persist questionnaire to server:",
           serverErr
+        );
+        setServerSaved(false);
+        Alert.alert(
+          "שגיאת שרת",
+          "לא ניתן לשמור את השאלון לשרת כרגע. נסה שוב כשתהיה רשת זמינה."
         );
       }
 
@@ -994,8 +1012,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                   {completionSummary.goals}
                 </Text>
                 <Text style={styles.completionNote}>
-                  הערה: הסיכום מוצג לפי הבחירות הנוכחיות; השמירה לשרת נעשית
-                  ברקע.
+                  הערה: יש להמתין לשמירה מוצלחת לשרת לפני מעבר למסך הבית.
                 </Text>
               </View>
               <View style={styles.completionButtonsRow}>
@@ -1020,9 +1037,10 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                   style={[
                     styles.completionButton,
                     styles.primaryButton,
-                    !manager.isCompleted() && styles.disabledButton,
+                    (!manager.isCompleted() || !serverSaved) &&
+                      styles.disabledButton,
                   ]}
-                  disabled={!manager.isCompleted()}
+                  disabled={!manager.isCompleted() || !serverSaved}
                   onPress={() => {
                     if (!manager.isCompleted()) {
                       Alert.alert(
@@ -1031,12 +1049,19 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                       );
                       return;
                     }
+                    if (!serverSaved) {
+                      Alert.alert(
+                        "שמירה לשרת נדרשת",
+                        "לא ניתן להתקדם לפני שהנתונים נשמרו לשרת."
+                      );
+                      return;
+                    }
                     setShowCompletionCard(false);
                     navigation.navigate("MainApp");
                   }}
                 >
                   <Text style={styles.completionButtonTextPrimary}>
-                    בואו נתחיל!
+                    {serverSaved ? "בואו נתחיל!" : "ממתין לשרת..."}
                   </Text>
                 </TouchableOpacity>
               </View>

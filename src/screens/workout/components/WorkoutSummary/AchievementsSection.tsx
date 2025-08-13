@@ -96,6 +96,8 @@ const SUMMARY_ITEMS: Array<{
   },
 ];
 
+const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
+
 export const AchievementsSection: React.FC<AchievementsSectionProps> =
   React.memo(
     ({
@@ -159,6 +161,62 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> =
         [workoutStats]
       );
 
+      const renderedAchievements = useMemo(
+        () =>
+          achievements.map((achievement, index) => {
+            const iconName: MCIconName = ACHIEVEMENT_ICON_MAP[achievement.type];
+            const iconColor =
+              ACHIEVEMENT_COLOR_MAP[achievement.type] || theme.colors.primary;
+            const isDisabled = !onAchievementPress;
+            const a11yHint = isDisabled
+              ? "לקריאה בלבד"
+              : "הקש לפתיחת פירוט ההישג";
+
+            return (
+              <TouchableOpacity
+                key={achievement.title + index}
+                style={styles.achievementCard}
+                activeOpacity={0.75}
+                onPress={
+                  onAchievementPress
+                    ? () => onAchievementPress(achievement)
+                    : undefined
+                }
+                disabled={isDisabled}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={`${achievement.title}: ${achievement.subtitle}`}
+                accessibilityHint={a11yHint}
+                accessibilityState={{ disabled: isDisabled }}
+                testID={`AchievementsSection-item-${index}`}
+              >
+                <View style={styles.achievementIcon}>
+                  <MaterialCommunityIcons
+                    name={iconName}
+                    size={24}
+                    color={iconColor}
+                  />
+                </View>
+                <View style={styles.achievementContent}>
+                  <Text style={styles.achievementTitle}>
+                    {achievement.title}
+                  </Text>
+                  <Text style={styles.achievementSubtitle}>
+                    {achievement.subtitle}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                  style={styles.chevron}
+                />
+              </TouchableOpacity>
+            );
+          }),
+        [achievements, onAchievementPress]
+      );
+
       if (achievements.length === 0 && personalRecords.length === 0)
         return null;
 
@@ -178,50 +236,7 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> =
               accessibilityRole="list"
               accessibilityLabel="רשימת הישגים"
             >
-              {achievements.map((achievement, index) => {
-                const iconName: MCIconName =
-                  ACHIEVEMENT_ICON_MAP[achievement.type];
-                const iconColor =
-                  ACHIEVEMENT_COLOR_MAP[achievement.type] ||
-                  theme.colors.primary;
-                return (
-                  <TouchableOpacity
-                    key={achievement.title + index}
-                    style={styles.achievementCard}
-                    activeOpacity={0.75}
-                    onPress={
-                      onAchievementPress
-                        ? () => onAchievementPress(achievement)
-                        : undefined
-                    }
-                    disabled={!onAchievementPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${achievement.title}: ${achievement.subtitle}`}
-                  >
-                    <View style={styles.achievementIcon}>
-                      <MaterialCommunityIcons
-                        name={iconName}
-                        size={24}
-                        color={iconColor}
-                      />
-                    </View>
-                    <View style={styles.achievementContent}>
-                      <Text style={styles.achievementTitle}>
-                        {achievement.title}
-                      </Text>
-                      <Text style={styles.achievementSubtitle}>
-                        {achievement.subtitle}
-                      </Text>
-                    </View>
-                    <MaterialCommunityIcons
-                      name="chevron-left"
-                      size={20}
-                      color={theme.colors.textSecondary}
-                      style={styles.chevron}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
+              {renderedAchievements}
             </Animated.View>
           )}
 
@@ -238,6 +253,7 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> =
                   style={styles.prCard}
                   accessibilityRole="text"
                   accessibilityLabel={`תרגיל ${record.exercise} שיא חדש ${record.newRecord} קילוגרם, שיפור ${record.improvement} אחוזים`}
+                  testID={`AchievementsSection-pr-${index}`}
                 >
                   <View style={styles.prHeader}>
                     <Text style={styles.prExercise}>{record.exercise}</Text>

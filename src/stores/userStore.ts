@@ -25,6 +25,20 @@ import {
   LegacyQuestionnaireData,
   WorkoutPlan,
 } from "../types";
+import { userApi } from "../services/api/userApi";
+/* eslint-disable no-console */
+
+// ==============================
+// Utilities
+// ==============================
+const normalizeEquipment = (arr?: string[]) => {
+  if (!Array.isArray(arr)) return [] as string[];
+  const mapped = arr
+    .filter((e): e is string => typeof e === "string" && e.trim().length > 0)
+    .map((e) => (e === "none" || e === "no_equipment" ? "bodyweight" : e));
+  // הסרת כפילויות
+  return Array.from(new Set(mapped));
+};
 
 // טיפוס תשובות השאלון הישן (לתאימות לאחור)
 // Old questionnaire answers type (for backward compatibility)
@@ -128,17 +142,27 @@ interface UserStore {
   setCustomDemoUser: (demoUser: User["customDemoUser"]) => void;
   getCustomDemoUser: () => User["customDemoUser"] | null;
   clearCustomDemoUser: () => void;
+
+  // סנכרון שרת
+  // Server sync helpers
+  refreshFromServer: () => Promise<void>;
+  scheduleServerSync: (reason?: string) => void;
 }
 
 export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       user: null,
+      // Stubs for server sync (replaced below after store creation)
+      refreshFromServer: async () => {},
+      scheduleServerSync: () => {},
 
       // הגדרת משתמש
       // Set user
       setUser: (user) => {
         set({ user });
+        // סנכרון שרת (אם יש מזהה אמיתי)
+        get().scheduleServerSync("setUser");
       },
 
       // עדכון נתוני משתמש
@@ -147,6 +171,7 @@ export const useUserStore = create<UserStore>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         }));
+        get().scheduleServerSync("updateUser");
       },
 
       // התנתקות מפושטת עם ניקוי יעיל
@@ -216,13 +241,14 @@ export const useUserStore = create<UserStore>()(
               })(),
               selectedEquipment: (() => {
                 if (data.answers.equipment && data.answers.equipment.length)
-                  return data.answers.equipment;
+                  return normalizeEquipment(data.answers.equipment);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const ge: any = (data.answers as any).gym_equipment;
                 if (Array.isArray(ge) && ge.length) {
                   const mapped = ge
                     .map((g) => (typeof g === "string" ? g : g.id || g.label))
-                    .filter(Boolean);
-                  if (mapped.length) return mapped;
+                    .filter(Boolean) as string[];
+                  if (mapped.length) return normalizeEquipment(mapped);
                 }
                 return [];
               })(),
@@ -249,9 +275,12 @@ export const useUserStore = create<UserStore>()(
         if (data.answers.equipment) {
           AsyncStorage.setItem(
             "selected_equipment",
-            JSON.stringify(data.answers.equipment)
+            JSON.stringify(normalizeEquipment(data.answers.equipment))
           );
         }
+
+        // סנכרון שרת מרוכך
+        get().scheduleServerSync("setSmartQuestionnaireData");
       },
 
       // עדכון חלקי של נתוני השאלון החכם
@@ -278,6 +307,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updateSmartQuestionnaireData");
       },
 
       // קבלת תשובות השאלון החכם
@@ -307,6 +337,8 @@ export const useUserStore = create<UserStore>()(
           "selected_equipment",
           "gender_adaptation_data",
         ]);
+
+        get().scheduleServerSync("resetSmartQuestionnaire");
       },
 
       // === פונקציות התאמת מגדר (פשוטות) ===
@@ -329,6 +361,8 @@ export const useUserStore = create<UserStore>()(
 
         // שמירה ב-AsyncStorage
         AsyncStorage.setItem("user_gender_preference", gender);
+
+        get().scheduleServerSync("setUserGender");
       },
 
       // עדכון פרופיל מגדר
@@ -347,6 +381,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updateGenderProfile");
       },
 
       // קבלת שם אימון מותאם
@@ -413,6 +448,8 @@ export const useUserStore = create<UserStore>()(
           .catch((err) =>
             console.error("❌ שגיאה בשמירת questionnaire_metadata:", err)
           );
+
+        get().scheduleServerSync("setQuestionnaire");
       },
 
       // הגדרת נתוני שאלון מורחבים (ישן)
@@ -431,6 +468,7 @@ export const useUserStore = create<UserStore>()(
                 questionnaire: data.answers,
               },
         }));
+        get().scheduleServerSync("setQuestionnaireData");
       },
 
       // איפוס שאלון ישן
@@ -450,6 +488,8 @@ export const useUserStore = create<UserStore>()(
           "questionnaire_draft",
           "questionnaire_answers",
         ]);
+
+        get().scheduleServerSync("resetQuestionnaire");
       },
 
       // === פונקציות העדפות מורחבות ===
@@ -469,6 +509,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updatePreferences");
       },
 
       // עדכון העדפות אימון
@@ -481,13 +522,14 @@ export const useUserStore = create<UserStore>()(
                 trainingStats: {
                   ...state.user.trainingStats,
                   preferredWorkoutDays: prefs.workoutDays,
-                  selectedEquipment: prefs.equipment,
+                  selectedEquipment: normalizeEquipment(prefs.equipment),
                   fitnessGoals: prefs.goals,
                   currentFitnessLevel: prefs.fitnessLevel,
                 },
               }
             : null,
         }));
+        get().scheduleServerSync("updateTrainingPreferences");
       },
 
       // עדכון סטטיסטיקות אימון
@@ -504,6 +546,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updateTrainingStats");
       },
 
       // === פונקציות בדיקה ושמירה ===
@@ -592,6 +635,7 @@ export const useUserStore = create<UserStore>()(
       // Custom demo user actions
       setCustomDemoUser: (demoUser) => {
         if (!demoUser) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const qd: any = (demoUser as any).questionnaireData; // עשוי להגיע מ-UnifiedQuestionnaireScreen
 
         set((state) => ({
@@ -622,10 +666,7 @@ export const useUserStore = create<UserStore>()(
                   const existing = state.user.smartQuestionnaireData;
                   if (qd) {
                     const realEquip = Array.isArray(qd.equipment)
-                      ? qd.equipment.filter(
-                          (e: string) =>
-                            e && e !== "none" && e !== "no_equipment"
-                        )
+                      ? normalizeEquipment(qd.equipment)
                       : [];
                     if (existing) {
                       if (realEquip.length > 0) {
@@ -670,10 +711,7 @@ export const useUserStore = create<UserStore>()(
                     preferredWorkoutDays: preferredDays,
                     selectedEquipment: (() => {
                       if (qd.equipment && Array.isArray(qd.equipment)) {
-                        const real = qd.equipment.filter(
-                          (e: string) =>
-                            e && e !== "none" && e !== "no_equipment"
-                        );
+                        const real = normalizeEquipment(qd.equipment);
                         if (real.length > 0) return real;
                       }
                       return state.user.trainingStats?.selectedEquipment || [];
@@ -723,10 +761,7 @@ export const useUserStore = create<UserStore>()(
                         location: qd.location,
                         diet: qd.diet,
                         equipment: Array.isArray(qd.equipment)
-                          ? qd.equipment.filter(
-                              (e: string) =>
-                                e && e !== "none" && e !== "no_equipment"
-                            )
+                          ? normalizeEquipment(qd.equipment)
                           : qd.equipment,
                       },
                       metadata: qd.metadata || { source: "customDemo" },
@@ -744,10 +779,7 @@ export const useUserStore = create<UserStore>()(
                     totalWorkouts: 0,
                     preferredWorkoutDays: preferredDays,
                     selectedEquipment: Array.isArray(qd.equipment)
-                      ? qd.equipment.filter(
-                          (e: string) =>
-                            e && e !== "none" && e !== "no_equipment"
-                        )
+                      ? normalizeEquipment(qd.equipment)
                       : [],
                     fitnessGoals: qd.goal ? [qd.goal] : [],
                     currentFitnessLevel: demoUser.experience || "intermediate",
@@ -756,6 +788,7 @@ export const useUserStore = create<UserStore>()(
               },
         }));
         console.log("✅ Custom demo user saved:", demoUser?.name);
+        get().scheduleServerSync("setCustomDemoUser");
       },
 
       getCustomDemoUser: () => {
@@ -770,6 +803,7 @@ export const useUserStore = create<UserStore>()(
             : null,
         }));
         console.log("✅ Custom demo user cleared");
+        get().scheduleServerSync("clearCustomDemoUser");
       },
 
       // פונקציה לניקוי מלא לפיתוח (ללא התנתקות)
@@ -842,6 +876,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updateSubscription");
       },
 
       checkTrialStatus: () => {
@@ -923,6 +958,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("setWorkoutPlans");
       },
 
       updateWorkoutPlan: (planType, plan) => {
@@ -942,6 +978,7 @@ export const useUserStore = create<UserStore>()(
               }
             : null,
         }));
+        get().scheduleServerSync("updateWorkoutPlan");
       },
 
       getAccessibleWorkoutPlan: () => {
@@ -991,6 +1028,20 @@ export const useUserStore = create<UserStore>()(
             }
           }, 100);
         }
+
+        // טעינת נתוני אמת מהשרת אחרי רהידרציה
+        setTimeout(() => {
+          try {
+            const actions = useUserStore.getState();
+            actions.refreshFromServer().catch((e: unknown) => {
+              const msg = e instanceof Error ? e.message : String(e);
+              console.warn("⚠️ refreshFromServer failed:", msg);
+            });
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn("⚠️ refreshFromServer outer catch:", msg);
+          }
+        }, 50);
       },
     }
   )
@@ -1063,6 +1114,72 @@ export const useAuthState = () => {
     ),
   };
 };
+
+// ==============================
+// Server sync implementation
+// ==============================
+let __userSyncTimer: ReturnType<typeof setTimeout> | null = null;
+const SYNC_DEBOUNCE_MS = 800;
+
+useUserStore.setState((prev) => ({
+  ...prev,
+  refreshFromServer: async () => {
+    try {
+      const state = useUserStore.getState();
+      const u = state.user;
+      if (!u?.id || typeof u.id !== "string") return;
+      if (u.id.startsWith("demo_")) return;
+      const serverUser = await userApi.getById(u.id);
+      // שמירה על שדות לוקליים שלא קיימים בשרת (אם יש)
+      useUserStore.setState((curr) => ({
+        ...curr,
+        user: { ...serverUser, customDemoUser: curr.user?.customDemoUser },
+      }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("⚠️ userStore.refreshFromServer error:", msg);
+    }
+  },
+  scheduleServerSync: (reason?: string) => {
+    try {
+      if (__userSyncTimer) clearTimeout(__userSyncTimer);
+      __userSyncTimer = setTimeout(async () => {
+        const state = useUserStore.getState();
+        const u = state.user;
+        if (!u?.id || typeof u.id !== "string") return;
+        if (u.id.startsWith("demo_")) return; // אל תסנכרן משתמש דמו
+        try {
+          const payload: Partial<User> = {
+            // שדות שניתן לסנכרן בבטחה
+            smartQuestionnaireData: u.smartQuestionnaireData,
+            ...(u.questionnaire ? { questionnaire: u.questionnaire } : {}),
+            ...(u.questionnaireData
+              ? { questionnaireData: u.questionnaireData }
+              : {}),
+            ...(u.preferences ? { preferences: u.preferences } : {}),
+            ...(u.genderProfile ? { genderProfile: u.genderProfile } : {}),
+            ...(u.trainingStats ? { trainingStats: u.trainingStats } : {}),
+            ...(u.workoutPlans ? { workoutPlans: u.workoutPlans } : {}),
+            ...(u.subscription ? { subscription: u.subscription } : {}),
+          };
+          await userApi.update(u.id, payload);
+          // אופציונלי: רענון כדי למשוך אמת מהשרת
+          // const fresh = await userApi.getById(u.id);
+          // useUserStore.setState((curr) => ({ ...curr, user: { ...fresh } }));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(
+            `⚠️ userStore scheduleServerSync failed${reason ? ` (${reason})` : ""}:`,
+            msg
+          );
+        }
+      }, SYNC_DEBOUNCE_MS);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("⚠️ scheduleServerSync outer catch:", msg);
+    }
+  },
+}));
 
 // =======================================
 // 🎯 Subscription & Trial Hooks

@@ -20,3 +20,6 @@ export { TimerDisplay } from "./TimerDisplay";
 // Types
 export type { StatItemProps } from "./StatItem";
 export type { SkipButtonProps } from "./SkipButton";
+export type { CloseButtonProps } from "./CloseButton";
+export type { TimeAdjustButtonProps } from "./TimeAdjustButton";
+export type { TimerDisplayProps } from "./TimerDisplay";

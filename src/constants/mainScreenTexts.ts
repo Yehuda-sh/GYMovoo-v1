@@ -19,7 +19,7 @@ export const MAIN_SCREEN_TEXTS = {
     GOOD_AFTERNOON: "צהריים טובים,",
     GOOD_EVENING: "ערב טוב,",
     READY_TO_WORKOUT: "מוכן לאימון?",
-    DEMO_USER: "משתמש",
+  // DEMO_USER הוסר – אין דמו מצד לקוח
   },
 
   // Statistics labels // תוויות סטטיסטיקות
@@ -83,6 +83,8 @@ export const MAIN_SCREEN_TEXTS = {
     NO_USER_FOUND: "לא נמצא משתמש פעיל",
     DATA_LOAD_ERROR: "שגיאה בטעינת נתונים",
     NOT_SPECIFIED: "לא צוין",
+  NO_RECENT_WORKOUTS: "אין לך עדיין אימונים אחרונים",
+  START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
   },
 
   // Questionnaire answers // תשובות שאלון
@@ -134,32 +136,10 @@ export const MAIN_SCREEN_TEXTS = {
     SOME_ISSUES: "יש כמה בעיות",
     SERIOUS_ISSUES: "בעיות רציניות",
 
-    // Note about demo user // הערה על משתמש דמו
-    DEMO_NOTE:
-      "השם נוצר אוטומטית למשתמש הדמו. בשאלון האמיתי לא שואלים שם אישי.",
+  // DEMO_NOTE הוסר – אין דמו מצד לקוח
   },
 
-  // Demo workout data // נתוני אימונים דמו
-  DEMO_WORKOUTS: [
-    {
-      name: "אימון חזה וכתפיים",
-      date: "אתמול • 45 דקות",
-      rating: "4.8",
-      icon: "dumbbell" as const,
-    },
-    {
-      name: "רגליים וישבן",
-      date: "לפני 3 ימים • 50 דקות",
-      rating: "4.5",
-      icon: "run" as const,
-    },
-    {
-      name: "גב וביצפס",
-      date: "לפני 5 ימים • 40 דקות",
-      rating: "4.7",
-      icon: "arm-flex" as const,
-    },
-  ] as const,
+  // DEMO_WORKOUTS הוסר – אין דמו מצד לקוח
 
   // Progress displays // תצוגות התקדמות
   PROGRESS: {
@@ -227,16 +207,19 @@ export const getDayWorkoutType = (dayNum: number): string => {
  * Format questionnaire answer value
  * פורמט ערך תשובת שאלון
  */
-export const formatQuestionnaireValue = (key: string, value: any): string => {
+export const formatQuestionnaireValue = (key: string, value: unknown): string => {
   const { QUESTIONNAIRE } = MAIN_SCREEN_TEXTS;
 
   // Gender mapping
   if (key === "gender") {
-    return value === "male"
-      ? QUESTIONNAIRE.MALE
-      : value === "female"
-        ? QUESTIONNAIRE.FEMALE
-        : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    if (typeof value === "string") {
+      return value === "male"
+        ? QUESTIONNAIRE.MALE
+        : value === "female"
+          ? QUESTIONNAIRE.FEMALE
+          : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    }
+    return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Goals mapping
@@ -248,7 +231,9 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       feel_stronger: QUESTIONNAIRE.FEEL_STRONGER,
       improve_fitness: QUESTIONNAIRE.IMPROVE_FITNESS,
     };
-    return goalMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    return typeof value === "string"
+      ? goalMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Experience mapping
@@ -260,7 +245,9 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       advanced: QUESTIONNAIRE.ADVANCED,
       athlete: QUESTIONNAIRE.ATHLETE,
     };
-    return expMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    return typeof value === "string"
+      ? expMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Location mapping
@@ -271,7 +258,9 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       both: QUESTIONNAIRE.BOTH,
       outdoor: QUESTIONNAIRE.OUTDOOR,
     };
-    return locMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    return typeof value === "string"
+      ? locMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Health status mapping
@@ -282,7 +271,9 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       some_issues: QUESTIONNAIRE.SOME_ISSUES,
       serious_issues: QUESTIONNAIRE.SERIOUS_ISSUES,
     };
-    return healthMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    return typeof value === "string"
+      ? healthMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Equipment mapping
@@ -294,26 +285,31 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       bodyweight: QUESTIONNAIRE.BODYWEIGHT,
       resistance_bands: QUESTIONNAIRE.RESISTANCE_BANDS,
     };
-    return (
-      value.map((eq) => equipMap[eq] || eq).join(", ") ||
-      MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
-    );
+    const arr = value as unknown[];
+    const labels = arr
+      .filter((v): v is string => typeof v === "string")
+      .map((eq) => equipMap[eq] || eq);
+    return labels.length > 0
+      ? labels.join(", ")
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   // Duration and frequency with units
   if (key === "session_duration") {
-    return value
-      ? `${value} ${MAIN_SCREEN_TEXTS.PROGRESS.MINUTES}`
-      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    if (typeof value === "string" || typeof value === "number") {
+      return `${String(value)} ${MAIN_SCREEN_TEXTS.PROGRESS.MINUTES}`;
+    }
+    return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   if (key === "available_days") {
-    return value
-      ? `${value} ${MAIN_SCREEN_TEXTS.PROGRESS.DAYS_WEEK}`
-      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    if (typeof value === "string" || typeof value === "number") {
+      return `${String(value)} ${MAIN_SCREEN_TEXTS.PROGRESS.DAYS_WEEK}`;
+    }
+    return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
-  return value || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+  return typeof value === "string" ? value : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
 };
 
 export default MAIN_SCREEN_TEXTS;

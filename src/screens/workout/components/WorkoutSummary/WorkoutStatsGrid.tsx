@@ -40,15 +40,48 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
     const isRTL = theme.isRTL;
 
     return (
-      <View style={styles.statsGrid}>
+      <View
+        style={styles.statsGrid}
+        accessible={true}
+        accessibilityLabel={`סיכום אימון: משך ${formatDuration(
+          duration
+        )}, ${completedSets} מתוך ${plannedSets} סטים הושלמו, ${completedExercises} מתוך ${totalExercises} תרגילים הושלמו, נפח כולל ${formatVolume(
+          totalVolume
+        )}, חזרות ${totalReps}`}
+        testID="stats-grid"
+      >
         <View style={styles.statCard}>
           <MaterialCommunityIcons
             name="clock-outline"
             size={24}
             color={theme.colors.primary}
           />
-          <Text style={styles.statValue}>{formatDuration(duration)}</Text>
+          <Text
+            style={styles.statValue}
+            accessibilityRole="text"
+            accessibilityLabel={`משך האימון ${formatDuration(duration)}`}
+            testID="stat-duration"
+          >
+            {formatDuration(duration)}
+          </Text>
           <Text style={styles.statLabel}>משך האימון</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <MaterialCommunityIcons
+            name="format-list-checks"
+            size={24}
+            color={theme.colors.info || theme.colors.primary}
+          />
+          <Text
+            style={styles.statValue}
+            accessibilityRole="text"
+            accessibilityLabel={`${completedExercises} מתוך ${totalExercises} תרגילים הושלמו`}
+            testID="stat-exercises"
+          >
+            {completedExercises}/{totalExercises}
+          </Text>
+          <Text style={styles.statLabel}>תרגילים הושלמו</Text>
         </View>
 
         <View style={styles.statCard}>
@@ -57,7 +90,12 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
             size={24}
             color={theme.colors.success}
           />
-          <Text style={styles.statValue}>
+          <Text
+            style={styles.statValue}
+            accessibilityRole="text"
+            accessibilityLabel={`${totalSets} מתוך ${plannedSets} סטים`}
+            testID="stat-sets"
+          >
             {totalSets}/{plannedSets}
           </Text>
           <Text style={styles.statLabel}>סטים הושלמו</Text>
@@ -69,8 +107,32 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
             size={24}
             color={theme.colors.accent}
           />
-          <Text style={styles.statValue}>{formatVolume(totalVolume)}</Text>
+          <Text
+            style={styles.statValue}
+            accessibilityRole="text"
+            accessibilityLabel={`נפח כולל ${formatVolume(totalVolume)}`}
+            testID="stat-volume"
+          >
+            {formatVolume(totalVolume)}
+          </Text>
           <Text style={styles.statLabel}>ק"ג נפח כולל</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <MaterialCommunityIcons
+            name="counter"
+            size={24}
+            color={theme.colors.primary}
+          />
+          <Text
+            style={styles.statValue}
+            accessibilityRole="text"
+            accessibilityLabel={`סך חזרות ${totalReps}`}
+            testID="stat-reps"
+          >
+            {totalReps}
+          </Text>
+          <Text style={styles.statLabel}>סה"כ חזרות</Text>
         </View>
 
         {personalRecords > 0 && (
@@ -80,7 +142,14 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
               size={24}
               color={theme.colors.warning}
             />
-            <Text style={styles.statValue}>{personalRecords}</Text>
+            <Text
+              style={styles.statValue}
+              accessibilityRole="text"
+              accessibilityLabel={`${personalRecords} שיאים אישיים`}
+              testID="stat-prs"
+            >
+              {personalRecords}
+            </Text>
             <Text style={styles.statLabel}>שיאים אישיים!</Text>
           </View>
         )}
@@ -88,6 +157,8 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
     );
   }
 );
+
+WorkoutStatsGrid.displayName = "WorkoutStatsGrid";
 
 const styles = StyleSheet.create({
   statsGrid: {
@@ -110,10 +181,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginTop: theme.spacing.xs,
+    textAlign: theme.isRTL ? "right" : "left",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   statLabel: {
     fontSize: theme.typography.caption.fontSize - 1,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
+    textAlign: theme.isRTL ? "right" : "left",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
 });

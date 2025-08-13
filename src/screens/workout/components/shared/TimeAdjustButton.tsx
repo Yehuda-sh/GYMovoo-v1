@@ -27,11 +27,12 @@ import { triggerVibration } from "../../../../utils/workoutHelpers";
 type ButtonType = "add" | "subtract";
 type ButtonSize = "compact" | "full";
 
-interface TimeAdjustButtonProps {
+export interface TimeAdjustButtonProps {
   type: ButtonType;
   size?: ButtonSize;
   seconds?: number;
   onPress: (seconds: number) => void;
+  onLongPress?: (seconds: number) => void;
   disabled?: boolean;
   haptic?: boolean; // רטט בעת לחיצה
   gradientOverride?: [string, string, ...string[]]; // צבעים מותאמים
@@ -92,6 +93,7 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
     size = "full",
     seconds = 10,
     onPress,
+    onLongPress,
     disabled = false,
     haptic = false,
     gradientOverride,
@@ -123,12 +125,21 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
       onPress(value);
     }, [disabled, haptic, onPress, value]);
 
+    const handleLongPress = useCallback(() => {
+      if (disabled) return;
+      if (haptic) triggerVibration("short");
+      dlog("longPress", { value });
+      onLongPress?.(value);
+    }, [disabled, haptic, onLongPress, value]);
+
     if (size === "compact") {
       return (
         <TouchableOpacity
           onPress={handlePress}
+          onLongPress={handleLongPress}
           style={[sizeConfig.containerStyle]}
           activeOpacity={0.7}
+          hitSlop={10}
           disabled={disabled}
           accessible
           accessibilityRole="button"
@@ -157,12 +168,14 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
     return (
       <TouchableOpacity
         onPress={handlePress}
+        onLongPress={handleLongPress}
         style={[
           sizeConfig.buttonStyle,
           { ...theme.shadows.medium },
           disabled && styles.disabled,
         ]}
         activeOpacity={0.7}
+        hitSlop={10}
         disabled={disabled}
         accessible
         accessibilityRole="button"

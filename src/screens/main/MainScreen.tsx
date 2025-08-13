@@ -3,8 +3,8 @@
  * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
  * @brief Modern main screen - Central dashboard with scientific statistics and personalization
  * @dependencies theme, userStore, MaterialCommunityIcons, Animated API, React Navigation
- * @notes תמיכה מלאה RTL, אנימציות משופרות, דמו אינטראקטיבי לשאלון מדעי
- * @notes Full RTL support, enhanced animations, interactive demo for scientific questionnaire
+ * @notes תמיכה מלאה RTL, אנימציות משופרות
+ * @notes Full RTL support, enhanced animations
  * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים
  * @features Personal dashboard, advanced statistics, AI recommendations, workout history
  * @accessibility Enhanced with proper labels and semantic structure
@@ -36,7 +36,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { RootStackParamList, WorkoutSource } from "../../navigation/types";
+import { RootStackParamList } from "../../navigation/types";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // New imports for optimized components and constants
@@ -119,10 +119,7 @@ function MainScreen() {
 
   /** @description שם המשתמש מותאם עם fallback / Adapted username with fallback */
   const displayName = useMemo(
-    () =>
-      user?.name ||
-      user?.email?.split("@")[0] ||
-      MAIN_SCREEN_TEXTS.WELCOME.DEMO_USER,
+    () => user?.name || user?.email?.split("@")[0] || "מתאמן",
     [user?.name, user?.email]
   );
 
@@ -301,8 +298,8 @@ function MainScreen() {
       // רענון נתונים אמיתיים // Real data refresh
       const userState = useUserStore.getState();
 
-      // סימולציית טעינת נתונים // Simulate data loading
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // אין צורך בהשהיה מלאכותית, הלוגיקה תשתמש בנתונים מה-store
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // בדיקה אם יש משתמש זמין // Check if user is available
       if (!userState.user) {
@@ -622,18 +619,6 @@ function MainScreen() {
                       )}
                     </Text>
                   </View>
-
-                  {/* הערה על השם */}
-                  <View style={styles.noteContainer}>
-                    <MaterialCommunityIcons
-                      name="information"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.noteText}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.DEMO_NOTE}
-                    </Text>
-                  </View>
                 </View>
               )}
 
@@ -895,34 +880,22 @@ function MainScreen() {
                         </View>
                       );
                     })
-                : // אם אין היסטוריה אמיתית - הצג אימונים דמו / If no real history - show demo workouts
-                  MAIN_SCREEN_TEXTS.DEMO_WORKOUTS.map((workout, index) => (
-                    <View
-                      key={`demo-${index}`}
-                      style={styles.recentWorkoutItem}
-                    >
-                      <View style={styles.workoutIcon}>
-                        <MaterialCommunityIcons
-                          name={workout.icon}
-                          size={24}
-                          color={theme.colors.primary}
-                          accessibilityElementsHidden={true}
-                        />
-                      </View>
-                      <View style={styles.workoutInfo}>
-                        <Text style={styles.workoutTitle}>{workout.name}</Text>
-                        <Text style={styles.workoutDate}>{workout.date}</Text>
-                      </View>
-                      <View style={styles.workoutRating}>
-                        <MaterialCommunityIcons
-                          name="star"
-                          size={16}
-                          color={theme.colors.warning}
-                        />
-                        <Text style={styles.ratingText}>{workout.rating}</Text>
-                      </View>
+                : // אם אין היסטוריה אמיתית - הצג הודעת ריקנות
+                  (
+                    <View style={styles.emptyStateContainer}>
+                      <MaterialCommunityIcons
+                        name="history"
+                        size={48}
+                        color={theme.colors.textSecondary}
+                      />
+                      <Text style={styles.emptyStateText}>
+                        {MAIN_SCREEN_TEXTS.STATUS.NO_RECENT_WORKOUTS}
+                      </Text>
+                      <Text style={styles.emptyStateSubText}>
+                        {MAIN_SCREEN_TEXTS.STATUS.START_FIRST_WORKOUT}
+                      </Text>
                     </View>
-                  ))}
+                  )}
             </View>
 
             <TouchableOpacity
@@ -1191,25 +1164,32 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Note container // קונטיינר ההערה
-  noteContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-start",
-    backgroundColor: theme.colors.primary + "10",
+  // Empty state styles // סגנונות מצב ריק
+  emptyStateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.xl,
+    backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + "30",
+    marginTop: theme.spacing.md,
   },
-  noteText: {
-    fontSize: 13, // הוגדל מ-11 לקריאות טובה יותר
-    color: theme.colors.primary,
-    marginEnd: theme.spacing.xs,
-    flex: 1,
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginTop: theme.spacing.md,
+    textAlign: "center",
     writingDirection: "rtl",
-    lineHeight: 16,
   },
+  emptyStateSubText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.sm,
+    textAlign: "center",
+    writingDirection: "rtl",
+  },
+
+  // Note styles were removed as demo notes are no longer used
 
   // Error and loading styles // סגנונות שגיאות וטעינה
   errorContainer: {

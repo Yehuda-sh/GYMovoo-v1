@@ -92,7 +92,7 @@ class QuestionnaireService {
         };
 
         console.warn(
-          "� QuestionnaireService: Created metadata from questionnaire"
+          "✅ QuestionnaireService: Created metadata from questionnaire"
         );
         await this.saveQuestionnaireData(fullMetadata);
         return fullMetadata;
@@ -111,7 +111,7 @@ class QuestionnaireService {
         };
 
         console.warn(
-          "� QuestionnaireService: Created metadata from questionnaireData"
+          "✅ QuestionnaireService: Created metadata from questionnaireData"
         );
         await this.saveQuestionnaireData(fullMetadata);
         return fullMetadata;
@@ -302,18 +302,23 @@ class QuestionnaireService {
    */
   async getPreferredDuration(): Promise<number> {
     const prefs = await this.getUserPreferences();
-    const duration = prefs?.duration || "45-60-min";
+    const duration = prefs?.duration || "45_60_min";
 
     // המרה לדקות - תמיכה בפורמטים ישנים וחדשים
     // Convert to minutes - support old and new formats
     const durationMap: { [key: string]: number } = {
-      // פורמט חדש
+      // Unified IDs (legal)
+      "20_30_min": 25,
+      "30_45_min": 37,
+      "45_60_min": 52,
+      "60_90_min": 75,
+      "90_plus_min": 105,
+      // Backward compatibility (hyphens / Hebrew)
       "20-30-min": 25,
       "30-45-min": 37,
       "45-60-min": 52,
       "60-90-min": 75,
       "90-plus-min": 105,
-      // פורמט ישן (לתמיכה לאחור)
       "20-30 דקות": 25,
       "30-45 דקות": 37,
       "45-60 דקות": 52,
@@ -321,7 +326,7 @@ class QuestionnaireService {
       "90+ דקות": 105,
     };
 
-    return durationMap[duration] || 45;
+    return durationMap[duration] ?? 45;
   }
 
   /**
@@ -449,20 +454,96 @@ class QuestionnaireService {
    * ✅ חילוץ נתונים אישיים מהשאלון
    */
   private extractPersonalData(prefs: QuestionnaireMetadata): PersonalData {
+    // Helper to map numeric to closest unified range
+    const toRange = (
+      n: number,
+      ranges: Array<[number, number | null, string]>,
+      fallback: string
+    ): string => {
+      for (const [min, max, id] of ranges) {
+        if (max === null) {
+          if (n >= min) return id; // over_X
+        } else if (n >= min && n <= max) {
+          return id;
+        }
+      }
+      return fallback;
+    };
+
+    const ageId = (() => {
+      if (typeof prefs.age === "string" && prefs.age) return prefs.age;
+      const n = Number(prefs.age);
+      if (!isNaN(n)) {
+        return toRange(
+          n,
+          [
+            [0, 17, "under_18"],
+            [18, 25, "18_25"],
+            [26, 35, "26_35"],
+            [36, 50, "36_50"],
+            [51, 65, "51_65"],
+            [66, null, "over_65"],
+          ],
+          "26_35"
+        );
+      }
+      return "26_35";
+    })();
+
+    const weightId = (() => {
+      if (typeof prefs.weight === "string" && prefs.weight) return prefs.weight;
+      const n = Number(prefs.weight);
+      if (!isNaN(n)) {
+        return toRange(
+          n,
+          [
+            [0, 49, "under_50"],
+            [50, 60, "50_60"],
+            [61, 70, "61_70"],
+            [71, 80, "71_80"],
+            [81, 90, "81_90"],
+            [91, 100, "91_100"],
+            [101, null, "over_100"],
+          ],
+          "70_79" as unknown as string
+        );
+      }
+      return "71_80";
+    })();
+
+    const heightId = (() => {
+      if (typeof prefs.height === "string" && prefs.height) return prefs.height;
+      const n = Number(prefs.height);
+      if (!isNaN(n)) {
+        return toRange(
+          n,
+          [
+            [0, 149, "under_150"],
+            [150, 160, "150_160"],
+            [161, 170, "161_170"],
+            [171, 180, "171_180"],
+            [181, 190, "181_190"],
+            [191, null, "over_190"],
+          ],
+          "171_180"
+        );
+      }
+      return "171_180";
+    })();
+
+    const fitnessLevel: PersonalData["fitnessLevel"] =
+      prefs.experience === "מתחיל" || prefs.experience === "beginner"
+        ? "beginner"
+        : prefs.experience === "מתקדם" || prefs.experience === "advanced"
+          ? "advanced"
+          : "intermediate";
+
     return {
       gender: (prefs.gender as "male" | "female") || "male",
-      age: prefs.age || "25_34",
-      weight:
-        typeof prefs.weight === "number"
-          ? `${prefs.weight}_${prefs.weight + 9}`
-          : prefs.weight || "70_79",
-      height:
-        typeof prefs.height === "number"
-          ? `${prefs.height}_${prefs.height + 9}`
-          : prefs.height || "170_179",
-      fitnessLevel:
-        (prefs.experience as "beginner" | "intermediate" | "advanced") ||
-        "beginner",
+      age: ageId,
+      weight: weightId,
+      height: heightId,
+      fitnessLevel,
     };
   }
 
@@ -1797,15 +1878,15 @@ class QuestionnaireService {
   private async createBasicWorkoutsByGoal(
     goal: string
   ): Promise<WorkoutRecommendation[]> {
-    const bodyweightEquipment = ["bodyweight", "none"];
+    const bodyweightEquipment = ["bodyweight"]; // ערך חוקי אחד בלבד
     const basicDuration = 30; // 30 דקות תמיד
 
     const basicPrefs: QuestionnaireMetadata = {
       goal,
       equipment: bodyweightEquipment,
-      duration: "30",
-      frequency: "3",
-      experience: "beginner",
+      duration: "30_45_min", // מזהה חוקי
+      frequency: "3_per_week", // אם קיים במערכת, אחרת יומר בהמשך
+      experience: "beginner", // לשכבת התאימות
       version: "basic-v1",
       completedAt: new Date().toISOString(),
     };
@@ -1926,10 +2007,13 @@ class QuestionnaireService {
    * המרת תדירות לספר
    */
   private parseFrequencyToNumber(frequency: string): number {
-    if (frequency.includes("3")) return 3;
-    if (frequency.includes("4")) return 4;
-    if (frequency.includes("5")) return 5;
-    if (frequency.includes("6")) return 6;
+    // Unified IDs like "3_per_week" or legacy like "3",
+    // and Hebrew descriptions like "3 פעמים בשבוע"
+    const m = frequency.match(/(\d+)/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if ([3, 4, 5, 6].includes(n)) return n;
+    }
     return 3; // ברירת מחדל
   }
 

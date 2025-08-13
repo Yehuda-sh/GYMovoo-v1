@@ -36,8 +36,8 @@
 
 ### עדכונים בנאוויגציה:
 
-- ✅ `AppNavigator.tsx` - עודכן לשימוש במסך החדש
-- ✅ `src/screens/index.ts` - ייצוא המסך החדש
+- ✅ `src/navigation/AppNavigator.tsx` – עודכן לשימוש במסך החדש
+- ✅ `src/screens/index.ts` – ייצוא המסך החדש
 
 ## 📊 שאלות במערכת
 
@@ -93,8 +93,8 @@
 
 ### פתרונות לבעיות גלילה באמולטור:
 
-1. **Debug logging** - לוגים מפורטים לזיהוי בעיות גלילה
-2. **רווחים גדולים** - 400px padding ו-300px bottomSpacer
+1. **Debug logging** – השתמשו ב-React Native DevTools (בגרסת RN 0.77+). בעת פיתוח עם Expo, הריצו `npx expo start` ופתחו DevTools; ניתן ללחוץ j להצגת לוגים.
+2. **רווחים גדולים** – 400px padding ו-300px bottomSpacer
 
 ### לוגיקה דינמית:
 
@@ -147,10 +147,22 @@ private shouldSkipQuestion(question: Question): boolean {
 
 ### בדיקות:
 
-1. **גלילה** - ודא שרואה את כל 10 האפשרויות בציוד ביתי
+1. **גלילה** – ודא שרואה את כל האפשרויות בציוד ביתי (אין תלות במספר קבוע)
 2. **בחירה** - בחירה יחידה ומרובה עובדות
 3. **ניווט** - מעבר בין שאלות חלק
-4. **השלמה** - יצירת משתמש דמו מהתשובות
+4. **השלמה** – סימון השאלון כמושלם (hasQuestionnaire: true), עדכון `user.smartQuestionnaireData`, וסנכרון לשרת דרך `src/services/api/userApi.ts` בלבד. אין דמו/placeholder בצד לקוח; AsyncStorage משמש כטיוטה/Cache זמנית בלבד.
+
+### מדיניות נתונים (מקור אמת)
+
+- מקור אמת: השרת בלבד (Users/Questionnaire/History/Stats).
+- שימוש ב-API קיימים: `src/services/api/userApi.ts`, `src/services/api/workoutApi.ts`.
+- AsyncStorage: טיוטה/Cache בלבד; אין יצירת נתונים “מהאוויר”.
+- קלט חוקי בלבד: השתמשו בערכים מ-`src/data/unifiedQuestionnaire.ts` (למשל `"26_35"`, `"free_weights"`).
+
+### הערות סביבה
+
+- נדרש `EXPO_PUBLIC_STORAGE_BASE_URL` מוגדר.
+- אמולטור אנדרואיד: `http://10.0.2.2:3001` לשרת מקומי.
 
 ## 🔧 פתרון בעיות באמולטור
 

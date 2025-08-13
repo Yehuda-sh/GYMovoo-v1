@@ -20,7 +20,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // =======================================
 
 const WORKOUT_CYCLE_KEY = "workout_cycle_state";
-const LAST_WORKOUT_DATE_KEY = "last_workout_date";
 
 // =======================================
 // 📊 TypeScript Interfaces
@@ -294,7 +293,7 @@ class NextWorkoutLogicService {
    * @performance Uses intelligent caching to minimize storage reads
    */
   private async getCurrentCycleState(
-    weeklyPlan: string[]
+    weeklyPlan?: string[]
   ): Promise<WorkoutCycleState> {
     try {
       const now = Date.now();
@@ -303,8 +302,10 @@ class NextWorkoutLogicService {
       if (
         this.cachedCycleState &&
         now - this.cacheTimestamp < this.CACHE_DURATION &&
-        JSON.stringify(this.cachedCycleState.weeklyPlan) ===
-          JSON.stringify(weeklyPlan)
+        // if no plan provided, any cached state is valid; otherwise plans must match
+        (!weeklyPlan ||
+          JSON.stringify(this.cachedCycleState.weeklyPlan) ===
+            JSON.stringify(weeklyPlan))
       ) {
         console.warn("🚀 NextWorkoutLogic: Using optimized cached cycle state");
         return this.cachedCycleState;
@@ -319,6 +320,16 @@ class NextWorkoutLogicService {
         const state = JSON.parse(savedState) as WorkoutCycleState;
 
         // Enhanced plan validation with detailed logging
+        if (!weeklyPlan) {
+          // No new plan provided -> use saved plan as source of truth
+          console.warn(
+            "✅ NextWorkoutLogic: No plan provided, using saved state"
+          );
+          this.cachedCycleState = state;
+          this.cacheTimestamp = now;
+          return state;
+        }
+
         if (JSON.stringify(state.weeklyPlan) === JSON.stringify(weeklyPlan)) {
           console.warn(
             "✅ NextWorkoutLogic: Weekly plan matches, using saved state"
@@ -326,11 +337,11 @@ class NextWorkoutLogicService {
           this.cachedCycleState = state;
           this.cacheTimestamp = now;
           return state;
-        } else {
-          console.warn(
-            "🔄 NextWorkoutLogic: Weekly plan changed, creating new state"
-          );
         }
+
+        console.warn(
+          "🔄 NextWorkoutLogic: Weekly plan changed, creating new state"
+        );
       }
 
       // Enhanced new state creation with comprehensive initialization
@@ -340,10 +351,13 @@ class NextWorkoutLogicService {
         lastWorkoutDate: "",
         totalWorkoutsCompleted: 0,
         programStartDate: new Date().toISOString(),
-        weeklyPlan: [...weeklyPlan],
+        weeklyPlan: [...(weeklyPlan ?? [])],
       };
 
-      await AsyncStorage.setItem(WORKOUT_CYCLE_KEY, JSON.stringify(newState));
+      // Persist only if we have a valid non-empty plan; avoid polluting storage with empty
+      if (newState.weeklyPlan.length > 0) {
+        await AsyncStorage.setItem(WORKOUT_CYCLE_KEY, JSON.stringify(newState));
+      }
 
       // Update cache with new state
       this.cachedCycleState = newState;
@@ -364,7 +378,7 @@ class NextWorkoutLogicService {
         lastWorkoutDate: "",
         totalWorkoutsCompleted: 0,
         programStartDate: new Date().toISOString(),
-        weeklyPlan: [...weeklyPlan],
+        weeklyPlan: [...(weeklyPlan ?? [])],
       };
     }
   }
@@ -482,19 +496,20 @@ class NextWorkoutLogicService {
         `🎯 NextWorkoutLogic: Updating workout completion - "${workoutName}" (index: ${workoutIndex})`
       );
 
-      const currentState = await this.getCurrentCycleState([]);
+      const currentState = await this.getCurrentCycleState();
+
+      const planLength = Math.max(1, currentState.weeklyPlan.length);
+      const normalizedIndex = workoutIndex % planLength;
 
       // Enhanced state calculation with proper week progression
       const updatedState: WorkoutCycleState = {
         ...currentState,
-        currentDayInWeek: workoutIndex,
-        lastWorkoutDate: new Date().toISOString().split("T")[0], // ISO date format
+        currentDayInWeek: normalizedIndex,
+        lastWorkoutDate: new Date().toISOString(), // Full ISO date for timezone safety
         totalWorkoutsCompleted: currentState.totalWorkoutsCompleted + 1,
         currentWeekNumber:
-          Math.floor(
-            (currentState.totalWorkoutsCompleted + 1) /
-              currentState.weeklyPlan.length
-          ) + 1,
+          Math.floor((currentState.totalWorkoutsCompleted + 1) / planLength) +
+          1,
       };
 
       await AsyncStorage.setItem(
@@ -537,10 +552,7 @@ class NextWorkoutLogicService {
       );
 
       // Enhanced cleanup with atomic operations
-      await Promise.all([
-        AsyncStorage.removeItem(WORKOUT_CYCLE_KEY),
-        AsyncStorage.removeItem(LAST_WORKOUT_DATE_KEY),
-      ]);
+      await Promise.all([AsyncStorage.removeItem(WORKOUT_CYCLE_KEY)]);
 
       // Comprehensive cache invalidation
       this.cachedCycleState = null;
@@ -581,7 +593,7 @@ class NextWorkoutLogicService {
         "📊 NextWorkoutLogic: Calculating comprehensive cycle statistics"
       );
 
-      const state = await this.getCurrentCycleState([]);
+      const state = await this.getCurrentCycleState();
       const programStart = new Date(state.programStartDate);
       const today = new Date();
 
@@ -593,7 +605,8 @@ class NextWorkoutLogicService {
       // Intelligent consistency calculation with realistic expectations
       // Assumes optimal frequency of every 2 days for consistency baseline
       const expectedWorkouts =
-        Math.floor(daysInProgram / 2) * Math.min(state.weeklyPlan.length, 3);
+        Math.floor(daysInProgram / 2) *
+        Math.min(state.weeklyPlan.length || 0, 3);
       const consistency =
         expectedWorkouts > 0
           ? (state.totalWorkoutsCompleted / expectedWorkouts) * 100

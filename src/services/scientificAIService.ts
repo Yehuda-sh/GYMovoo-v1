@@ -228,6 +228,25 @@ interface PhysiologicalAdaptation {
 class ScientificAIService {
   private readonly AI_RECOMMENDATIONS_KEY = "scientific_ai_recommendations";
   private readonly USER_ASSESSMENTS_KEY = "user_fitness_assessments";
+  private warnedDisabled = false;
+
+  // Feature flag: enable only in DEV when explicitly allowed
+  private get isEnabled(): boolean {
+    // Expo RN: process.env is available at build-time; fallback to __DEV__
+    // Enable via EXPO_PUBLIC_ENABLE_SCI_AI=1
+    // Do not block runtime to avoid crashes; only warn if disabled.
+    // מקור אמת נשמר בשרת; השירות ניסיוני בלבד.
+    return __DEV__ && process.env.EXPO_PUBLIC_ENABLE_SCI_AI === "1";
+  }
+
+  private warnIfDisabled() {
+    if (!this.isEnabled && !this.warnedDisabled) {
+      this.warnedDisabled = true;
+      console.warn(
+        "⚠️ ScientificAIService disabled (DEV-only). Set EXPO_PUBLIC_ENABLE_SCI_AI=1 to enable."
+      );
+    }
+  }
 
   /**
    * Generate comprehensive fitness assessment based on user data
@@ -236,6 +255,7 @@ class ScientificAIService {
   async generateFitnessAssessment(
     userProfile: ScientificUserProfile
   ): Promise<FitnessAssessment> {
+    this.warnIfDisabled();
     const assessmentDate = new Date().toISOString();
 
     // Calculate BMI and basic health metrics
@@ -295,6 +315,7 @@ class ScientificAIService {
   async generateScientificWorkoutPlan(
     assessment: FitnessAssessment
   ): Promise<ScientificWorkoutPlan> {
+    this.warnIfDisabled();
     const planId = `plan_${Date.now()}`;
     const createdDate = new Date().toISOString();
 
@@ -341,6 +362,7 @@ class ScientificAIService {
     userProfile: ScientificUserProfile,
     _focusArea: string
   ): Promise<ScientificExerciseRecommendation[]> {
+    this.warnIfDisabled();
     const exercises = this.getExercisesForFocusArea();
 
     return exercises.map((exercise) => ({
@@ -363,6 +385,7 @@ class ScientificAIService {
       exercises: { rpe?: number; intensity?: number }[];
     }
   ): string {
+    this.warnIfDisabled();
     const averageIntensity = this.calculateWorkoutIntensity(workoutData);
     const difficultyLevel = averageIntensity > 7 ? 4 : 3;
 
@@ -911,6 +934,7 @@ class ScientificAIService {
    * קבלת הערכות שמורות לניתוח
    */
   async getStoredAssessments(): Promise<FitnessAssessment[]> {
+    this.warnIfDisabled();
     // Would retrieve from AsyncStorage
     return [];
   }
@@ -923,6 +947,7 @@ class ScientificAIService {
     userId: string,
     _progressData: { workouts: number; improvements: string[] }
   ): Promise<void> {
+    this.warnIfDisabled();
     console.warn(`📈 Updating progress for user ${userId}`);
   }
 
@@ -937,6 +962,7 @@ class ScientificAIService {
     recommendations: string[];
     nextSteps: string[];
   }> {
+    this.warnIfDisabled();
     return {
       userId,
       reportDate: new Date().toISOString(),

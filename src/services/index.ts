@@ -27,7 +27,15 @@ export * from "./questionnaireService";
 export { WorkoutDataService } from "./workoutDataService";
 
 // =======================================
-// 🎯 Specialized Workout Services
+// � API Clients
+// לקוחי API (שרת הוא מקור אמת)
+// Status: ✅ ACTIVE - Unified baseURL/timeout with Android emulator support
+// =======================================
+export { userApi } from "./api/userApi";
+export { workoutApi } from "./api/workoutApi";
+
+// =======================================
+// �🎯 Specialized Workout Services
 // שירותי אימון מתמחים
 // Status: ✅ ACTIVE - Essential workout tracking and progression
 // =======================================
@@ -84,6 +92,14 @@ export {
   workoutFeedbackService,
   workoutStorageService as WorkoutScreenStorageService, // Renamed to avoid conflicts
 } from "../screens/workout/services";
+
+// =======================================
+// 🧠 Core Data Manager & Types
+// מנהל נתונים מרכזי וטיפוסים
+// Status: ✅ ACTIVE - Expose via main services barrel for convenience
+// =======================================
+export { dataManager } from "./core";
+export type { AppDataCache, ServerConfig, DataStatus } from "./core";
 
 // =======================================
 // 📊 Service Export Summary
