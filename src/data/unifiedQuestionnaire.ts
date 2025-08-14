@@ -12,6 +12,92 @@
 
 import { ImageSourcePropType } from "react-native";
 import type { SmartQuestionnaireData } from "../types";
+import {
+  ALL_EQUIPMENT,
+  HOME_EQUIPMENT,
+  GYM_EQUIPMENT,
+  CARDIO_EQUIPMENT,
+  getEquipmentById,
+} from "./equipmentData";
+
+// ================== מערכת Cache ואופטימיזציות ==================
+
+/**
+ * Cache מהיר לשאלות תכופות
+ * Fast cache for frequent questionnaire operations
+ */
+const QuestionnaireCache = {
+  questionsById: new Map<string, Question>(),
+  relevantQuestions: new Map<string, Question[]>(),
+  equipmentValidation: new Map<string, boolean>(),
+
+  clear() {
+    this.questionsById.clear();
+    this.relevantQuestions.clear();
+    this.equipmentValidation.clear();
+  },
+
+  initialize() {
+    // Pre-populate questions cache
+    UNIFIED_QUESTIONS.forEach((q) => {
+      this.questionsById.set(q.id, q);
+    });
+  },
+
+  getQuestionById(id: string): Question | null {
+    if (this.questionsById.size === 0) this.initialize();
+    return this.questionsById.get(id) || null;
+  },
+};
+
+/**
+ * Equipment validation using equipmentData.ts
+ * אימות ציוד באמצעות מאגר הציוד המרכזי
+ */
+function validateEquipmentId(equipmentId: string): boolean {
+  const cacheKey = equipmentId;
+  if (QuestionnaireCache.equipmentValidation.has(cacheKey)) {
+    return QuestionnaireCache.equipmentValidation.get(cacheKey)!;
+  }
+
+  const isValid = getEquipmentById(equipmentId) !== undefined;
+  QuestionnaireCache.equipmentValidation.set(cacheKey, isValid);
+  return isValid;
+}
+
+/**
+ * Smart equipment mapping from questionnaire to equipmentData
+ * מיפוי חכם של ציוד מהשאלון למאגר הציוד
+ */
+function mapQuestionnaireToEquipment(questionnaireIds: string[]): string[] {
+  const validEquipment = new Set<string>();
+
+  questionnaireIds.forEach((id) => {
+    // Direct mapping for exact matches
+    if (validateEquipmentId(id)) {
+      validEquipment.add(id);
+      return;
+    }
+
+    // Special mappings for questionnaire-specific IDs
+    const mappings: Record<string, string[]> = {
+      mat_available: ["yoga_mat"],
+      chair_available: ["chair"], // If available in equipmentData
+      free_weights: ["dumbbells", "barbell"],
+      bodyweight_only: ["none"],
+    };
+
+    if (mappings[id]) {
+      mappings[id].forEach((equipId) => {
+        if (validateEquipmentId(equipId)) {
+          validEquipment.add(equipId);
+        }
+      });
+    }
+  });
+
+  return Array.from(validEquipment);
+}
 
 // ================== בסיסי - Basic Types ==================
 
@@ -643,7 +729,11 @@ export class UnifiedQuestionnaireManager {
     if (DEBUG_UQM) {
       console.warn("🎯 UnifiedQuestionnaireManager initialized");
     }
+    // Initialize cache on first use
+    QuestionnaireCache.initialize();
   }
+
+  // ================== בסיסי - Core Navigation ==================
 
   // קבל שאלה נוכחית
   getCurrentQuestion(): Question | null {
@@ -797,7 +887,167 @@ export class UnifiedQuestionnaireManager {
 
   // קבל שאלה לפי ID
   getQuestionById(questionId: string): Question | null {
-    return this.questions.find((q) => q.id === questionId) || null;
+    return QuestionnaireCache.getQuestionById(questionId);
+  }
+
+  // ================== פונקציות עזר מתקדמות - Advanced Utils ==================
+
+  /**
+   * Validate answers for completeness and correctness
+   * אימות תשובות לשלמות ונכונות
+   */
+  validateAnswers(): {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check required questions
+    const requiredQuestions = this.questions.filter(
+      (q) => q.required && !this.shouldSkipQuestion(q)
+    );
+    requiredQuestions.forEach((q) => {
+      if (!this.answers.has(q.id)) {
+        errors.push(`שאלה נדרשת לא נענתה: ${q.title}`);
+      }
+    });
+
+    // Validate equipment selections
+    this.answers.forEach((answer, questionId) => {
+      if (questionId.includes("equipment")) {
+        const answerIds = Array.isArray(answer.answer)
+          ? answer.answer.map((a) => a.id)
+          : [answer.answer.id];
+
+        answerIds.forEach((id) => {
+          if (!validateEquipmentId(id) && id !== "none") {
+            warnings.push(`ציוד לא מוכר: ${id}`);
+          }
+        });
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Get questionnaire statistics and analytics
+   * קבלת סטטיסטיקות וניתוחים של השאלון
+   */
+  getAnalytics(): {
+    completionRate: number;
+    timeSpent: number;
+    equipmentCount: number;
+    recommendedProfile: string;
+    strengthAreas: string[];
+  } {
+    const totalQuestions = this.getTotalRelevantQuestions();
+    const answeredQuestions = this.answers.size;
+    const completionRate =
+      totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+
+    // Calculate estimated time spent (rough estimate)
+    const timeSpent = this.answers.size * 30; // 30 seconds per question average
+
+    // Count unique equipment
+    const equipment = this.normalizeEquipment();
+    const equipmentCount = equipment.length;
+
+    // Determine recommended profile
+    const experience = this.getAnswerId("experience_level") || "beginner";
+    const goal = this.getAnswerId("fitness_goal") || "general_fitness";
+    const location = this.getAnswerId("workout_location") || "home_bodyweight";
+
+    const recommendedProfile = `${experience}_${goal}_${location}`;
+
+    // Identify strength areas based on answers
+    const strengthAreas: string[] = [];
+    if (equipmentCount > 3) strengthAreas.push("equipment_variety");
+    if (this.getAnswerId("availability") === "5_days")
+      strengthAreas.push("high_commitment");
+    if (this.getAnswerId("session_duration") === "60_plus_min")
+      strengthAreas.push("endurance_focused");
+
+    return {
+      completionRate,
+      timeSpent,
+      equipmentCount,
+      recommendedProfile,
+      strengthAreas,
+    };
+  }
+
+  /**
+   * Get personalized recommendations based on answers
+   * קבלת המלצות מותאמות אישית על בסיס התשובות
+   */
+  getPersonalizedRecommendations(): {
+    workoutFrequency: string;
+    sessionDuration: string;
+    primaryFocus: string[];
+    equipmentSuggestions: string[];
+    nutritionTips: string[];
+  } {
+    const goal = this.getAnswerId("fitness_goal");
+    const experience = this.getAnswerId("experience_level");
+    const availability = this.getAnswerId("availability");
+    const equipment = this.normalizeEquipment();
+
+    // Workout frequency recommendations
+    const frequencyMap: Record<string, string> = {
+      beginner: "2-3 ימים בשבוע להתחלה",
+      intermediate: "3-4 ימים בשבוע לקידום",
+      advanced: "4-5 ימים בשבוע לביצועים מיטביים",
+    };
+
+    // Primary focus areas
+    const focusMap: Record<string, string[]> = {
+      lose_weight: ["קרדיו", "HIIT", "שריפת קלוריות"],
+      build_muscle: ["כוח", "בניית מסה", "חלבונים"],
+      general_fitness: ["איזון", "כושר כללי", "מגוון תרגילים"],
+      athletic_performance: ["ביצועים", "מהירות", "כוח פונקציונלי"],
+    };
+
+    // Equipment suggestions based on current equipment and goals
+    const currentEquipment = new Set(equipment);
+    const equipmentSuggestions: string[] = [];
+
+    if (goal === "build_muscle" && !currentEquipment.has("dumbbells")) {
+      equipmentSuggestions.push("משקולות יד למגוון תרגילים");
+    }
+    if (goal === "lose_weight" && !currentEquipment.has("jump_rope")) {
+      equipmentSuggestions.push("חבל קפיצה לקרדיו אפקטיבי");
+    }
+
+    // Nutrition tips based on goal
+    const nutritionMap: Record<string, string[]> = {
+      lose_weight: ["גירעון קלורי מתון", "חלבון גבוה", "הרבה ירקות"],
+      build_muscle: ["עודף קלורי קל", "חלבון גבוה", "פחמימות סביב אימונים"],
+      general_fitness: ["תזונה מאוזנת", "הידרציה טובה", "מגוון מזונות"],
+      athletic_performance: [
+        "תזמון תזונה",
+        "התאוששות מהירה",
+        "אנרגיה בזמן אימון",
+      ],
+    };
+
+    return {
+      workoutFrequency:
+        frequencyMap[experience || "beginner"] || "התאמה אישית נדרשת",
+      sessionDuration:
+        this.getAnswerId("session_duration") || "30-45 דקות מומלץ",
+      primaryFocus: focusMap[goal || "general_fitness"] || ["כושר כללי"],
+      equipmentSuggestions,
+      nutritionTips: nutritionMap[goal || "general_fitness"] || [
+        "תזונה מאוזנת",
+      ],
+    };
   }
 
   // קבל תוצאות מלאות
@@ -826,7 +1076,8 @@ export class UnifiedQuestionnaireManager {
     console.warn("🔄 Questionnaire reset"); // ✅ שונה ל-console.warn
   }
 
-  // ================== המרות פורמליות ל-Data Contracts ==================
+  // ================== פונקציות עזר פנימיות - Internal Helper Functions ==================
+
   // עזר: קבל מזהי תשובה לשאלה (מערך)
   private getAnswerIds(questionId: string): string[] {
     const ans = this.answers.get(questionId)?.answer;
@@ -857,19 +1108,21 @@ export class UnifiedQuestionnaireManager {
       result.add("none"); // ✅ תואם לתיקון ב-workoutDataService - "none" עבור משקל גוף
     }
 
-    // מיפוי חפצי משקל גוף לפריטים סטנדרטיים
-    if (bodyweightIds.has("mat_available")) result.add("yoga_mat");
-    if (bodyweightIds.has("resistance_bands")) result.add("resistance_bands");
+    // ✅ מיפוי חכם באמצעות mapQuestionnaireToEquipment
+    const bodyweightEquipment = mapQuestionnaireToEquipment(
+      Array.from(bodyweightIds)
+    );
+    const homeEquipment = mapQuestionnaireToEquipment(Array.from(homeIds));
+    const gymEquipment = mapQuestionnaireToEquipment(Array.from(gymIds));
 
-    // ציוד ביתי — מזהים תואמים למפתחות אפליקציה
-    for (const id of homeIds) {
-      result.add(id);
-    }
-
-    // ציוד חדר כושר — מזהים תואמים למפתחות אפליקציה
-    for (const id of gymIds) {
-      result.add(id);
-    }
+    // הוסף את כל הציוד המתואם
+    [...bodyweightEquipment, ...homeEquipment, ...gymEquipment].forEach(
+      (eq) => {
+        if (eq && validateEquipmentId(eq)) {
+          result.add(eq);
+        }
+      }
+    );
 
     // ✅ תיקון חשוב: ודא שתמיד יש לפחות ציוד אחד
     if (result.size === 0) {
@@ -877,10 +1130,12 @@ export class UnifiedQuestionnaireManager {
     }
 
     const equipmentArray = Array.from(result);
-    console.warn("🔧 Equipment normalized:", equipmentArray); // ✅ דיבוג לעקוב אחר הציוד
+    console.warn("🔧 Equipment normalized (smart):", equipmentArray); // ✅ דיבוג לעקוב אחר הציוד
 
     return equipmentArray;
   }
+
+  // ================== יצואים מתקדמים - Advanced Exports ==================
 
   // יצוא לשכבת הנתונים החכמה (SmartQuestionnaireData)
   toSmartQuestionnaireData(): SmartQuestionnaireData {
@@ -917,7 +1172,7 @@ export class UnifiedQuestionnaireManager {
       },
       metadata: {
         completedAt: new Date().toISOString(),
-        version: "2.1", // ✅ עדכון גרסה עם הנתונים החדשים
+        version: "2.2", // ✅ עדכון גרסה עם השיפורים החדשים
         sessionId: `unified_${Date.now()}`,
         completionTime: Math.max(60, this.answers.size * 10),
         questionsAnswered: this.answers.size,
@@ -927,8 +1182,93 @@ export class UnifiedQuestionnaireManager {
           screenWidth: 0,
           screenHeight: 0,
         },
+        // ✅ מטאדטה מתקדמת חדשה
+        analytics: this.getAnalytics(),
+        validation: this.validateAnswers(),
+        recommendations: this.getPersonalizedRecommendations(),
       },
     } as SmartQuestionnaireData;
+  }
+
+  /**
+   * Export to comprehensive user profile format
+   * יצוא לפורמט פרופיל משתמש מקיף
+   */
+  toUserProfile(): {
+    personal: Record<string, any>;
+    fitness: Record<string, any>;
+    preferences: Record<string, any>;
+    equipment: string[];
+    analytics: Record<string, any>;
+    recommendations: Record<string, any>;
+  } {
+    const smart = this.toSmartQuestionnaireData();
+    const analytics = this.getAnalytics();
+    const recommendations = this.getPersonalizedRecommendations();
+
+    return {
+      personal: {
+        gender: smart.answers.gender,
+        age: smart.answers.age,
+        weight: smart.answers.weight,
+        height: smart.answers.height,
+      },
+      fitness: {
+        level: smart.answers.fitnessLevel,
+        goals: smart.answers.goals,
+        availability: smart.answers.availability,
+        sessionDuration: smart.answers.sessionDuration,
+        location: smart.answers.workoutLocation,
+      },
+      preferences: {
+        nutrition: smart.answers.nutrition,
+        workoutLocation: smart.answers.workoutLocation,
+      },
+      equipment: smart.answers.equipment || [],
+      analytics,
+      recommendations,
+    };
+  }
+
+  /**
+   * Export to JSON format for backup/restore
+   * יצוא לפורמט JSON לגיבוי/שחזור
+   */
+  toJSON(): string {
+    return JSON.stringify(
+      {
+        version: "2.2",
+        timestamp: new Date().toISOString(),
+        questionnaire: {
+          answers: Array.from(this.answers.entries()),
+          currentIndex: this.currentQuestionIndex,
+          history: this.history,
+        },
+        analytics: this.getAnalytics(),
+        validation: this.validateAnswers(),
+      },
+      null,
+      2
+    );
+  }
+
+  /**
+   * Restore from JSON backup
+   * שחזור מגיבוי JSON
+   */
+  fromJSON(jsonString: string): boolean {
+    try {
+      const data = JSON.parse(jsonString);
+      if (data.version && data.questionnaire) {
+        this.answers = new Map(data.questionnaire.answers);
+        this.currentQuestionIndex = data.questionnaire.currentIndex || 0;
+        this.history = data.questionnaire.history || [];
+        return true;
+      }
+    } catch (error) {
+      console.warn("Failed to restore from JSON:", error);
+    }
+    return false;
   }
 
   // יצוא לשכבת תאימות לשאלון הישן (למסכי פרופיל ישנים)
@@ -955,3 +1295,96 @@ export class UnifiedQuestionnaireManager {
 }
 
 export default UnifiedQuestionnaireManager;
+
+// ===============================================
+// 🌟 Global Utility Exports - יצוא פונקציות עזר גלובליות
+// ===============================================
+
+/**
+ * Create questionnaire manager with pre-filled demo data
+ * יצירת מנהל שאלון עם נתוני דמו מוכנים
+ */
+export function createDemoQuestionnaireManager(): UnifiedQuestionnaireManager {
+  const manager = new UnifiedQuestionnaireManager();
+
+  // Pre-fill with realistic demo answers
+  manager.answerQuestion("gender", { id: "male", label: "זכר" });
+  manager.answerQuestion("age", { id: "26_35", label: "26-35" });
+  manager.answerQuestion("fitness_goal", {
+    id: "build_muscle",
+    label: "בניית שריר",
+  });
+  manager.answerQuestion("experience_level", {
+    id: "intermediate",
+    label: "בינוני",
+  });
+  manager.answerQuestion("availability", {
+    id: "3_days",
+    label: "3 ימים בשבוע",
+  });
+  manager.answerQuestion("session_duration", {
+    id: "45_60_min",
+    label: "45-60 דקות",
+  });
+  manager.answerQuestion("workout_location", {
+    id: "home_equipment",
+    label: "בית - עם ציוד",
+  });
+  manager.answerQuestion("home_equipment", [
+    { id: "dumbbells", label: "משקולות יד" },
+    { id: "resistance_bands", label: "רצועות התנגדות" },
+    { id: "yoga_mat", label: "מזרון יוגה" },
+  ]);
+  manager.answerQuestion("diet_preferences", {
+    id: "none_diet",
+    label: "אין הגבלות",
+  });
+
+  return manager;
+}
+
+/**
+ * Validate equipment compatibility with questionnaire
+ * אימות תאימות ציוד עם השאלון
+ */
+export function validateQuestionnaireEquipment(equipmentList: string[]): {
+  valid: string[];
+  invalid: string[];
+  suggestions: string[];
+} {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  const suggestions: string[] = [];
+
+  equipmentList.forEach((eq) => {
+    if (validateEquipmentId(eq)) {
+      valid.push(eq);
+    } else {
+      invalid.push(eq);
+      // Suggest alternatives
+      if (eq === "weights") suggestions.push("dumbbells");
+      if (eq === "bands") suggestions.push("resistance_bands");
+    }
+  });
+
+  return { valid, invalid, suggestions };
+}
+
+/**
+ * Get equipment categories for questionnaire filtering
+ * קבלת קטגוריות ציוד לסינון בשאלון
+ */
+export function getQuestionnaireEquipmentCategories(): {
+  bodyweight: QuestionOption[];
+  home: QuestionOption[];
+  gym: QuestionOption[];
+} {
+  return {
+    bodyweight: BODYWEIGHT_OPTIONS,
+    home: HOME_EQUIPMENT_OPTIONS,
+    gym: GYM_EQUIPMENT_OPTIONS,
+  };
+}
+
+// Export all question constants for external use
+// (Already exported above - no need to re-export)

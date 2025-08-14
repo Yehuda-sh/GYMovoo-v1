@@ -1,10 +1,39 @@
 /**
  * @file cardio.ts
- * @description תרגילי קרדיו
- * Cardio exercises
+ * @description תרגילי קרדיו - מאגר לאימונים אירוביים ביתיים
+ * @description Cardio exercises - aerobic home workout database
+ * @category Exercise Database
+ * @features 13 exercises, equipment-free, varied intensity levels
+ * @updated 2025-08-15 Enhanced with intensity levels and performance metrics
  */
 
 import { Exercise } from "./types";
+
+// Cardio intensity levels and classifications
+const CARDIO_INTENSITY = {
+  LOW: [
+    "shadow_boxing_1",
+    "invisible_jump_rope_1",
+    "high_knees_1",
+    "butt_kicks_1",
+    "fast_feet_1",
+  ],
+  MODERATE: [
+    "jumping_jacks_1",
+    "mountain_climbers_1",
+    "lateral_shuffles_1",
+    "plank_jacks_1",
+    "skaters_1",
+  ],
+  HIGH: ["burpee_1", "burpees_no_pushup_1"],
+} as const;
+
+// Exercise duration recommendations (in seconds)
+const CARDIO_DURATIONS = {
+  BEGINNER: { work: 20, rest: 40 },
+  INTERMEDIATE: { work: 30, rest: 30 },
+  ADVANCED: { work: 45, rest: 15 },
+} as const;
 
 export const cardioExercises: Exercise[] = [
   {
@@ -38,11 +67,13 @@ export const cardioExercises: Exercise[] = [
         "שמור על קצב קבוע ומתמיד",
         "נחיתה רכה על כרית כף הרגל",
         "שמור על הליבה מתוחה",
+        "התחל עם 30 שניות ועלה בהדרגה",
       ],
       en: [
         "Maintain steady, consistent pace",
         "Land softly on balls of feet",
         "Keep core engaged",
+        "Start with 30 seconds and progress gradually",
       ],
     },
     safetyNotes: {
@@ -50,11 +81,13 @@ export const cardioExercises: Exercise[] = [
         "הפסק אם מרגיש כאב בברכיים",
         "התחל לאט והגדל עצימות",
         "ודא משטח יציב",
+        "שתה מים במהלך האימון",
       ],
       en: [
         "Stop if you feel knee pain",
         "Start slow and increase intensity",
         "Ensure stable surface",
+        "Stay hydrated during workout",
       ],
     },
     media: {
@@ -419,3 +452,147 @@ export const cardioExercises: Exercise[] = [
     noiseLevel: "quiet",
   },
 ];
+
+// ===============================================
+// 🏃‍♂️ Cardio Utility Functions - פונקציות עזר לקרדיו
+// ===============================================
+
+/**
+ * Get cardio exercises by intensity level
+ * קבלת תרגילי קרדיו לפי רמת עצימות
+ */
+export function getCardioByIntensity(
+  intensity: "low" | "moderate" | "high"
+): Exercise[] {
+  const intensityMap = {
+    low: CARDIO_INTENSITY.LOW,
+    moderate: CARDIO_INTENSITY.MODERATE,
+    high: CARDIO_INTENSITY.HIGH,
+  };
+
+  const targetIds = intensityMap[intensity];
+  return cardioExercises.filter((exercise) =>
+    (targetIds as readonly string[]).includes(exercise.id)
+  );
+}
+
+/**
+ * Get quiet cardio exercises (apartment-friendly)
+ * קבלת תרגילי קרדיו שקטים (מתאים לדירה)
+ */
+export function getQuietCardioExercises(): Exercise[] {
+  return cardioExercises.filter(
+    (exercise) =>
+      exercise.noiseLevel === "quiet" || exercise.noiseLevel === "moderate"
+  );
+}
+
+/**
+ * Get high-impact vs low-impact cardio
+ * קבלת תרגילי קרדיו עם עומס גבוה/נמוך על המפרקים
+ */
+export function getCardioByImpact(type: "low" | "high"): Exercise[] {
+  const lowImpactIds = [
+    "shadow_boxing_1",
+    "mountain_climbers_1",
+    "plank_jacks_1",
+  ];
+  const highImpactIds = [
+    "jumping_jacks_1",
+    "burpee_1",
+    "high_knees_1",
+    "butt_kicks_1",
+    "skaters_1",
+  ];
+
+  const targetIds = type === "low" ? lowImpactIds : highImpactIds;
+  return cardioExercises.filter((exercise) => targetIds.includes(exercise.id));
+}
+
+/**
+ * Generate HIIT workout from cardio exercises
+ * יצירת אימון HIIT מתרגילי קרדיו
+ */
+export function generateHIITWorkout(
+  difficulty: "beginner" | "intermediate" | "advanced",
+  duration: number = 15 // minutes
+): {
+  exercises: Exercise[];
+  workTime: number;
+  restTime: number;
+  rounds: number;
+} {
+  const durations =
+    CARDIO_DURATIONS[difficulty.toUpperCase() as keyof typeof CARDIO_DURATIONS];
+  const exerciseCount = 6;
+  const roundTime = durations.work + durations.rest;
+  const rounds = Math.floor((duration * 60) / (roundTime * exerciseCount));
+
+  // Select varied exercises across intensities
+  const lowIntensity = getCardioByIntensity("low").slice(0, 2);
+  const moderateIntensity = getCardioByIntensity("moderate").slice(0, 3);
+  const highIntensity =
+    difficulty === "advanced" ? getCardioByIntensity("high").slice(0, 1) : [];
+
+  const selectedExercises = [
+    ...lowIntensity,
+    ...moderateIntensity,
+    ...highIntensity,
+  ];
+
+  return {
+    exercises: selectedExercises.slice(0, exerciseCount),
+    workTime: durations.work,
+    restTime: durations.rest,
+    rounds: Math.max(1, rounds),
+  };
+}
+
+/**
+ * Get cardio exercises by space requirements
+ * קבלת תרגילי קרדיו לפי דרישות מקום
+ */
+export function getCardioBySpace(
+  spaceType: "minimal" | "small" | "medium"
+): Exercise[] {
+  return cardioExercises.filter((exercise) => {
+    if (spaceType === "minimal") return exercise.spaceRequired === "minimal";
+    if (spaceType === "small")
+      return ["minimal", "small"].includes(exercise.spaceRequired);
+    return ["minimal", "small", "medium"].includes(exercise.spaceRequired);
+  });
+}
+
+/**
+ * Calculate estimated calories burned
+ * חישוב משוער של קלוריות שנשרפו
+ */
+export function estimateCaloriesBurned(
+  exerciseId: string,
+  durationMinutes: number,
+  weightKg: number = 70
+): number {
+  // Calorie burn rates per minute for 70kg person (approximate)
+  const calorieRates: { [key: string]: number } = {
+    jumping_jacks_1: 8,
+    burpee_1: 12,
+    mountain_climbers_1: 9,
+    high_knees_1: 7,
+    butt_kicks_1: 7,
+    burpees_no_pushup_1: 10,
+    skaters_1: 8,
+    invisible_jump_rope_1: 9,
+    lateral_shuffles_1: 6,
+    plank_jacks_1: 7,
+    fast_feet_1: 6,
+    shadow_boxing_1: 5,
+  };
+
+  const baseRate = calorieRates[exerciseId] || 7;
+  const weightFactor = weightKg / 70; // Adjust for different weights
+
+  return Math.round(baseRate * durationMinutes * weightFactor);
+}
+
+// Export utility constants for external use
+export { CARDIO_INTENSITY, CARDIO_DURATIONS };

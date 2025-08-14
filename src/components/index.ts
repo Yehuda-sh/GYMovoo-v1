@@ -17,6 +17,8 @@ export { default as LoadingSpinner } from "./common/LoadingSpinner"; // 4 varian
 export { default as EmptyState } from "./common/EmptyState"; // 3 variants - מצב ריק עם אנימציות
 export { default as DefaultAvatar } from "./common/DefaultAvatar"; // אווטר ברירת מחדל עם נגישות
 export { default as ConfirmationModal } from "./common/ConfirmationModal"; // חלון אישור RTL-friendly
+export { UniversalModal } from "./common/UniversalModal"; // מודל אחיד עם 4 סוגים ו-useModalManager ⭐
+export { default as StatCard, StatCardGrid } from "./common/StatCard"; // כרטיס סטטיסטיקה עם 4 variants + grid ⭐
 export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום עם 4 variants + grid
 
 // ===============================================
@@ -24,7 +26,6 @@ export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כ�
 // ===============================================
 // רכיבי ממשק מתקדמים עם אופטימיזציות כושר מובייל / Advanced UI components with fitness mobile optimizations
 
-export { default as ScreenContainer } from "./ui/ScreenContainer"; // מיכל מסך אוניברסלי עם workout mode ו-haptic feedback ⭐
 export { default as UniversalButton } from "./ui/UniversalButton"; // כפתור אוניברסלי עם workout variant ו-44px validation ⭐⚡
 export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס אוניברסלי עם workout variant ו-performance tracking ⭐⚡
 
@@ -52,12 +53,12 @@ export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansSc
 // ===============================================
 //
 // 📈 סטטיסטיקות כוללות:
-// • סה"כ רכיבים: 17 (כולל WorkoutPlansScreen המתקדם)
-// • רכיבים פעילים: 17
-// • מותאמים לכושר מובייל: 10 ⚡ (כולל מסך תוכניות האימון)
+// • סה"כ רכיבים: 19 (כולל UniversalModal ו-StatCard שנוספו)
+// • רכיבים פעילים: 19
+// • מותאמים לכושר מובייל: 12 ⚡ (כולל מסך תוכניות האימון + רכיבים חדשים)
 // • עם Haptic Feedback: 10 💪 (תוכניות אימון עם משוב מדורג לבחירת יום ותחילת אימון)
 // • עם Performance Tracking: 8 🚀 (כולל מדידת render time ב-WorkoutPlansScreen)
-// • עם React.memo: 7 ⭐
+// • עם React.memo: 9 ⭐ (כולל UniversalModal ו-StatCard שנוספו)
 // • עם 44px Validation: 8 ♿ (כולל כפתורי התוכניות ו-tabs)
 // • עם Workout Variants: 4 🏋️
 // • עם Enlarged HitSlop: 10 📱 (אזור מגע מוגדל לכל פעולות האימון)
@@ -72,8 +73,9 @@ export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansSc
 // ✅ Graduated Feedback - משוב מישושי מדורג לפי סוג הפעולה
 //
 // 🔥 רכיבים עם אופטימיזציות מלאות:
-// • UI: ScreenContainer, UniversalButton, UniversalCard
+// • UI: UniversalButton, UniversalCard
+// • Common: UniversalModal (4 סוגים + useModalManager), StatCard (4 variants + grid)
 // • Workout: FloatingActionButton, NextWorkoutCard, BlurOverlay, WorkoutPlanManager
 // • Screens: WelcomeScreen (TouchableButton מדורג), MainScreen (דשבורד עם 4 כפתורים), WorkoutPlansScreen (AI + haptic feedback)
 //
-// Total: 17 components | Fitness Optimized: 10 | With Haptic: 10 | Performance Tracked: 8
+// Total: 19 components | Fitness Optimized: 12 | With Haptic: 10 | Performance Tracked: 8

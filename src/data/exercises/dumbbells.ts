@@ -1,10 +1,62 @@
 /**
  * @file dumbbells.ts
- * @description תרגילי משקולות
- * Dumbbell exercises
+ * @description תרגילי משקולות - מאגר לאימוני כח עם משקולות חופשיות
+ * @description Dumbbell exercises - strength training with free weights database
+ * @category Exercise Database
+ * @features 14 exercises, full-body coverage, beginner to intermediate levels
+ * @equipment Requires adjustable dumbbells (5-25kg recommended)
+ * @updated 2025-08-15 Enhanced with muscle group classifications and weight recommendations
  */
 
 import { Exercise } from "./types";
+
+// Dumbbell exercise classifications by muscle groups
+const MUSCLE_GROUP_CATEGORIES = {
+  UPPER_BODY: {
+    CHEST: [
+      "dumbbell_chest_press_1",
+      "dumbbell_chest_fly_1",
+      "dumbbell_bent_arm_pull_over_1",
+    ],
+    SHOULDERS: ["dumbbell_shoulder_press_1", "dumbbell_lateral_raise_1"],
+    BACK: ["dumbbell_row_1", "dumbbell_bent_arm_pull_over_1"],
+    ARMS: [
+      "dumbbell_biceps_curl_1",
+      "dumbbell_hammer_curl_1",
+      "dumbbell_triceps_kickback_1",
+    ],
+  },
+  LOWER_BODY: {
+    LEGS: [
+      "dumbbell_squat_1",
+      "dumbbell_reverse_lunge_1",
+      "dumbbell_deadlift_1",
+    ],
+    CALVES: ["dumbbell_calf_raise_1"],
+  },
+  COMPOUND: [
+    "dumbbell_squat_1",
+    "dumbbell_deadlift_1",
+    "dumbbell_reverse_lunge_1",
+    "dumbbell_row_1",
+  ],
+} as const;
+
+// Weight recommendations by exercise and experience level (kg)
+const WEIGHT_RECOMMENDATIONS = {
+  BEGINNER: {
+    men: { light: 3, medium: 5, heavy: 8 },
+    women: { light: 2, medium: 3, heavy: 5 },
+  },
+  INTERMEDIATE: {
+    men: { light: 8, medium: 12, heavy: 18 },
+    women: { light: 5, medium: 8, heavy: 12 },
+  },
+  ADVANCED: {
+    men: { light: 15, medium: 22, heavy: 30 },
+    women: { light: 10, medium: 15, heavy: 20 },
+  },
+} as const;
 
 export const dumbbellExercises: Exercise[] = [
   {
@@ -466,3 +518,179 @@ export const dumbbellExercises: Exercise[] = [
     noiseLevel: "silent",
   },
 ];
+
+// ===============================================
+// 🏋️‍♂️ Dumbbell Utility Functions - פונקציות עזר למשקולות
+// ===============================================
+
+/**
+ * Get dumbbell exercises by muscle group
+ * קבלת תרגילי משקולות לפי קבוצת שרירים
+ */
+export function getDumbbellsByMuscleGroup(
+  group: "chest" | "shoulders" | "back" | "arms" | "legs"
+): Exercise[] {
+  const groupMap = {
+    chest: MUSCLE_GROUP_CATEGORIES.UPPER_BODY.CHEST,
+    shoulders: MUSCLE_GROUP_CATEGORIES.UPPER_BODY.SHOULDERS,
+    back: MUSCLE_GROUP_CATEGORIES.UPPER_BODY.BACK,
+    arms: MUSCLE_GROUP_CATEGORIES.UPPER_BODY.ARMS,
+    legs: MUSCLE_GROUP_CATEGORIES.LOWER_BODY.LEGS,
+  };
+
+  const targetIds = groupMap[group];
+  return dumbbellExercises.filter((exercise) =>
+    (targetIds as readonly string[]).includes(exercise.id)
+  );
+}
+
+/**
+ * Get compound vs isolation dumbbell exercises
+ * קבלת תרגילי משקולות מורכבים או מבודדים
+ */
+export function getDumbbellsByType(type: "compound" | "isolation"): Exercise[] {
+  if (type === "compound") {
+    return dumbbellExercises.filter((exercise) =>
+      (MUSCLE_GROUP_CATEGORIES.COMPOUND as readonly string[]).includes(
+        exercise.id
+      )
+    );
+  } else {
+    return dumbbellExercises.filter(
+      (exercise) =>
+        !(MUSCLE_GROUP_CATEGORIES.COMPOUND as readonly string[]).includes(
+          exercise.id
+        )
+    );
+  }
+}
+
+/**
+ * Get weight recommendation for specific exercise
+ * קבלת המלצת משקל לתרגיל ספציפי
+ */
+export function getWeightRecommendation(
+  exerciseId: string,
+  experience: "beginner" | "intermediate" | "advanced",
+  gender: "men" | "women",
+  intensity: "light" | "medium" | "heavy" = "medium"
+): number {
+  const recommendations =
+    WEIGHT_RECOMMENDATIONS[
+      experience.toUpperCase() as keyof typeof WEIGHT_RECOMMENDATIONS
+    ];
+  return recommendations[gender][intensity];
+}
+
+/**
+ * Generate full-body dumbbell workout
+ * יצירת אימון גוף מלא עם משקולות
+ */
+export function generateFullBodyDumbbellWorkout(
+  experience: "beginner" | "intermediate" | "advanced"
+): {
+  exercises: Exercise[];
+  structure: string;
+  estimatedDuration: number;
+} {
+  // Select one exercise from each major muscle group
+  const chestExercise = getDumbbellsByMuscleGroup("chest")[0];
+  const backExercise = getDumbbellsByMuscleGroup("back")[0];
+  const shouldersExercise = getDumbbellsByMuscleGroup("shoulders")[0];
+  const armsExercise = getDumbbellsByMuscleGroup("arms")[0];
+  const legsExercise = getDumbbellsByMuscleGroup("legs")[0];
+
+  const exercises = [
+    chestExercise,
+    backExercise,
+    shouldersExercise,
+    armsExercise,
+    legsExercise,
+  ].filter(Boolean);
+
+  const sets =
+    experience === "beginner" ? 2 : experience === "intermediate" ? 3 : 4;
+  const restBetweenSets = experience === "beginner" ? 90 : 60;
+  const estimatedDuration =
+    exercises.length * sets * 2 +
+    (exercises.length * sets * restBetweenSets) / 60;
+
+  return {
+    exercises,
+    structure: `${sets} sets × 8-12 reps, ${restBetweenSets}s rest`,
+    estimatedDuration: Math.round(estimatedDuration),
+  };
+}
+
+/**
+ * Get progressive overload suggestion
+ * קבלת הצעה לעומס מתקדם
+ */
+export function getProgressiveOverload(
+  currentWeight: number,
+  currentReps: number,
+  targetReps: number = 12
+): {
+  action: "increase_weight" | "increase_reps" | "maintain";
+  suggestion: string;
+  newWeight?: number;
+  newReps?: number;
+} {
+  if (currentReps >= targetReps) {
+    return {
+      action: "increase_weight",
+      suggestion: 'הגדל משקל ב-2.5-5 ק"ג וחזור ל-8 חזרות',
+      newWeight: currentWeight + 2.5,
+      newReps: 8,
+    };
+  } else if (currentReps < 8) {
+    return {
+      action: "increase_weight",
+      suggestion: 'הפחת משקל ב-2.5 ק"ג',
+      newWeight: Math.max(currentWeight - 2.5, 2.5),
+      newReps: currentReps,
+    };
+  } else {
+    return {
+      action: "increase_reps",
+      suggestion: "הוסף חזרה נוספת בסט הבא",
+      newReps: currentReps + 1,
+    };
+  }
+}
+
+/**
+ * Calculate training volume
+ * חישוב נפח אימון
+ */
+export function calculateTrainingVolume(
+  exercises: {
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    weight: number;
+  }[]
+): {
+  totalVolume: number; // kg × reps
+  averageIntensity: number; // average weight
+  workloadScore: number; // composite score
+} {
+  let totalVolume = 0;
+  let totalWeight = 0;
+  let totalSets = 0;
+
+  exercises.forEach((ex) => {
+    totalVolume += ex.sets * ex.reps * ex.weight;
+    totalWeight += ex.weight * ex.sets;
+    totalSets += ex.sets;
+  });
+
+  return {
+    totalVolume,
+    averageIntensity: totalWeight / totalSets,
+    workloadScore: totalVolume / 100, // normalized score
+  };
+}
+
+// Export utility constants for external use
+export { MUSCLE_GROUP_CATEGORIES, WEIGHT_RECOMMENDATIONS };

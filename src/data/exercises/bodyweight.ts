@@ -1,10 +1,59 @@
 /**
  * @file bodyweight.ts
- * @description תרגילי משקל גוף
- * Bodyweight exercises
+ * @description תרגילי משקל גוף - מאגר מלא לאימונים ביתיים
+ * @description Bodyweight exercises - complete home workout database
+ * @category Exercise Database
+ * @features 16 exercises, beginner to advanced, full-body coverage
+ * @updated 2025-08-15 Enhanced categorization and progression
  */
 
 import { Exercise } from "./types";
+
+// Exercise difficulty progression constants
+const PROGRESSION_LEVELS = {
+  BEGINNER: [
+    "push_up_1",
+    "squat_bodyweight_1",
+    "plank_1",
+    "wall_sit_1",
+    "glute_bridge_1",
+    "superman_hold_1",
+  ],
+  INTERMEDIATE: [
+    "mountain_climbers_bodyweight_1",
+    "decline_push_up_1",
+    "side_plank_1",
+    "bicycle_crunch_1",
+    "bear_crawl_1",
+    "chair_tricep_dip_1",
+  ],
+  ADVANCED: ["single_leg_hip_thrust_1", "jump_squat_bodyweight_1"],
+} as const;
+
+// Exercise categories for better organization
+const EXERCISE_CATEGORIES = {
+  UPPER_BODY: [
+    "push_up_1",
+    "incline_push_up_1",
+    "decline_push_up_1",
+    "chair_tricep_dip_1",
+  ],
+  LOWER_BODY: [
+    "squat_bodyweight_1",
+    "lunges_1",
+    "wall_sit_1",
+    "glute_bridge_1",
+    "single_leg_hip_thrust_1",
+    "jump_squat_bodyweight_1",
+  ],
+  CORE: ["plank_1", "side_plank_1", "bicycle_crunch_1", "superman_hold_1"],
+  CARDIO: [
+    "mountain_climbers_bodyweight_1",
+    "bear_crawl_1",
+    "jump_squat_bodyweight_1",
+  ],
+  FULL_BODY: ["mountain_climbers_bodyweight_1", "bear_crawl_1"],
+} as const;
 
 export const bodyweightExercises: Exercise[] = [
   {
@@ -681,3 +730,108 @@ export const bodyweightExercises: Exercise[] = [
     noiseLevel: "quiet",
   },
 ];
+
+// ===============================================
+// 🔧 Utility Functions - פונקציות עזר
+// ===============================================
+
+/**
+ * Get exercises by difficulty level
+ * קבלת תרגילים לפי רמת קושי
+ */
+export function getBodyweightExercisesByDifficulty(
+  level: "beginner" | "intermediate" | "advanced"
+): Exercise[] {
+  return bodyweightExercises.filter(
+    (exercise) => exercise.difficulty === level
+  );
+}
+
+/**
+ * Get exercises by primary muscle group
+ * קבלת תרגילים לפי קבוצת שרירים עיקרית
+ */
+export function getBodyweightExercisesByMuscle(muscle: string): Exercise[] {
+  return bodyweightExercises.filter((exercise) =>
+    exercise.primaryMuscles.includes(muscle as Exercise["primaryMuscles"][0])
+  );
+}
+
+/**
+ * Get exercises suitable for small spaces
+ * קבלת תרגילים מתאימים לחללים קטנים
+ */
+export function getMinimalSpaceExercises(): Exercise[] {
+  return bodyweightExercises.filter(
+    (exercise) => exercise.spaceRequired === "minimal"
+  );
+}
+
+/**
+ * Get silent exercises (apartment-friendly)
+ * קבלת תרגילים שקטים (מתאים לדירה)
+ */
+export function getSilentExercises(): Exercise[] {
+  return bodyweightExercises.filter(
+    (exercise) => exercise.noiseLevel === "silent"
+  );
+}
+
+/**
+ * Get progression path for specific exercise
+ * קבלת מסלול התקדמות לתרגיל ספציפי
+ */
+export function getExerciseProgression(exerciseId: string): Exercise[] {
+  const progressions: { [key: string]: string[] } = {
+    push_up_1: ["incline_push_up_1", "push_up_1", "decline_push_up_1"],
+    plank_1: ["plank_1", "side_plank_1"],
+    squat_bodyweight_1: ["squat_bodyweight_1", "jump_squat_bodyweight_1"],
+    glute_bridge_1: ["glute_bridge_1", "single_leg_hip_thrust_1"],
+  };
+
+  const ids = progressions[exerciseId] || [exerciseId];
+  return bodyweightExercises.filter((ex) => ids.includes(ex.id));
+}
+
+/**
+ * Generate quick workout routine
+ * יצירת סדרת אימון מהירה
+ */
+export function generateQuickBodyweightWorkout(
+  duration: "short" | "medium" | "long",
+  difficulty: "beginner" | "intermediate" | "advanced"
+): Exercise[] {
+  const exerciseCount = { short: 4, medium: 6, long: 8 }[duration];
+  const availableExercises = getBodyweightExercisesByDifficulty(difficulty);
+
+  // Ensure variety across muscle groups
+  const selected: Exercise[] = [];
+  const categories = ["strength", "core", "cardio"];
+
+  categories.forEach((category) => {
+    const categoryExercises = availableExercises.filter(
+      (ex) => ex.category === category
+    );
+    if (categoryExercises.length > 0) {
+      selected.push(categoryExercises[0]);
+    }
+  });
+
+  // Fill remaining slots
+  while (
+    selected.length < exerciseCount &&
+    selected.length < availableExercises.length
+  ) {
+    const remaining = availableExercises.filter((ex) => !selected.includes(ex));
+    if (remaining.length > 0) {
+      selected.push(remaining[0]);
+    } else {
+      break;
+    }
+  }
+
+  return selected.slice(0, exerciseCount);
+}
+
+// Export utility constants for external use
+export { PROGRESSION_LEVELS, EXERCISE_CATEGORIES };

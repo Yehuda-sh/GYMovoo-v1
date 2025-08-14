@@ -1,11 +1,14 @@
 /**
  * @file exercises/index.ts
- * @description נקודת כניסה מרכזית לכל התרגילים עם מערכת סינון מרכזית
- * Central entry point for all exercises with centralized filtering system
+ * @description מרכז הבקרה המתקדם לכל התרגילים - עם פונקציות עזר חכמות
+ * Advanced exercise control center with smart utility functions
+ * @date 2025-08-15
+ * @enhanced Added utility functions from all exercise categories, performance optimization
  *
  * ✅ מותאם לעקרונות DRY - Single Source of Truth
  * ✅ משתמש במערכת הסינון המרכזית מ-exerciseFilters.ts
  * ✅ מונע כפילות קוד בפונקציות הסינון
+ * ✅ משלב פונקציות עזר מתקדמות מכל הקטגוריות
  */
 
 // =====================================
@@ -27,6 +30,34 @@ import { kettlebellExercises } from "./kettlebells";
 import { trxExercises } from "./trx";
 import { israeliMilitaryExercises } from "./israeli_military";
 import { waterWeightExercises } from "./water_weights";
+
+// יבוא פונקציות עזר מתקדמות מכל הקטגוריות
+import {
+  getBodyweightExercisesByDifficulty,
+  getBodyweightExercisesByMuscle,
+  generateQuickBodyweightWorkout,
+  getMinimalSpaceExercises,
+} from "./bodyweight";
+
+import {
+  getDumbbellsByMuscleGroup,
+  generateFullBodyDumbbellWorkout,
+  getWeightRecommendation,
+  calculateTrainingVolume,
+} from "./dumbbells";
+
+import {
+  getCardioByIntensity,
+  generateHIITWorkout,
+  estimateCaloriesBurned,
+} from "./cardio";
+
+import {
+  getFlexibilityByIntensity,
+  generateCoolDownRoutine,
+  generateMorningMobilityRoutine,
+  getStretchesByBodyArea,
+} from "./flexibility";
 
 // יבוא מערכת הסינון המרכזית - חיסכון בכפילות קוד!
 import {
@@ -141,6 +172,102 @@ export function getSmartFilteredExercises(
   });
 }
 
+// =====================================
+// 💪 פונקציות עזר מתקדמות - ממוחוסות מהקטגוריות
+// Advanced Utility Functions - Integrated from Categories
+// =====================================
+
+/**
+ * יצירת אימון גוף מלא עם משקולות
+ * Generate full-body dumbbell workout
+ */
+export function createFullBodyDumbbellWorkout(
+  experience: "beginner" | "intermediate" | "advanced"
+) {
+  return generateFullBodyDumbbellWorkout(experience);
+}
+
+/**
+ * יצירת אימון HIIT מותאם
+ * Generate customized HIIT workout
+ */
+export function createHIITWorkout(
+  difficulty: "beginner" | "intermediate" | "advanced" = "intermediate",
+  duration: number = 20
+) {
+  return generateHIITWorkout(difficulty, duration);
+}
+
+/**
+ * יצירת שגרת התרגעות לאחר אימון
+ * Generate post-workout cool-down routine
+ */
+export function createCoolDownRoutine(
+  workoutType: "strength" | "cardio" | "full_body" = "full_body",
+  duration: number = 10
+) {
+  return generateCoolDownRoutine(workoutType, duration);
+}
+
+/**
+ * יצירת שגרת ניידות בוקר
+ * Generate morning mobility routine
+ */
+export function createMorningMobilityRoutine() {
+  return generateMorningMobilityRoutine();
+}
+
+/**
+ * יצירת אימון משקל גוף מהיר
+ * Generate quick bodyweight workout
+ */
+export function createQuickBodyweightWorkout(
+  duration: "short" | "medium" | "long" = "medium",
+  difficulty: "beginner" | "intermediate" | "advanced" = "intermediate"
+) {
+  return generateQuickBodyweightWorkout(duration, difficulty);
+}
+
+/**
+ * קבלת המלצת משקל לתרגיל משקולות
+ * Get weight recommendation for dumbbell exercise
+ */
+export function getExerciseWeightRecommendation(
+  exerciseId: string,
+  experience: "beginner" | "intermediate" | "advanced",
+  gender: "men" | "women",
+  intensity: "light" | "medium" | "heavy" = "medium"
+): number {
+  return getWeightRecommendation(exerciseId, experience, gender, intensity);
+}
+
+/**
+ * הערכת קלוריות שרופות לתרגיל קרדיו יחיד
+ * Estimate calories burned for single cardio exercise
+ */
+export function estimateExerciseCalories(
+  exerciseId: string,
+  durationMinutes: number,
+  weightKg: number = 70
+): number {
+  return estimateCaloriesBurned(exerciseId, durationMinutes, weightKg);
+}
+
+/**
+ * חישוב נפח אימון כוח
+ * Calculate strength training volume
+ */
+export function calculateWorkoutVolume(
+  exercises: {
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    weight: number;
+  }[]
+) {
+  return calculateTrainingVolume(exercises);
+}
+
 /**
  * סינון תרגילים לפי ציוד - משתמש במערכת המרכזית
  * Filter exercises by equipment - Using centralized system
@@ -188,6 +315,77 @@ export function getHomeCompatibleExercises(): Exercise[] {
  */
 export function getQuietExercises(): Exercise[] {
   return getQuietFiltered(allExercises);
+}
+
+// =====================================
+// 🔍 פונקציות סינון מתקדמות נוספות
+// Additional Advanced Filtering Functions
+// =====================================
+
+/**
+ * קבלת תרגילי משקל גוף לפי רמת קושי
+ * Get bodyweight exercises by difficulty
+ */
+export function getBodyweightByDifficulty(
+  difficulty: "beginner" | "intermediate" | "advanced"
+): Exercise[] {
+  return getBodyweightExercisesByDifficulty(difficulty);
+}
+
+/**
+ * קבלת תרגילי משקל גוף לפי שריר ספציפי
+ * Get bodyweight exercises by muscle group
+ */
+export function getBodyweightByMuscle(muscle: string): Exercise[] {
+  return getBodyweightExercisesByMuscle(muscle);
+}
+
+/**
+ * קבלת תרגילי משקולות לפי קבוצת שרירים
+ * Get dumbbell exercises by muscle group
+ */
+export function getDumbbellsByMuscle(
+  group: "chest" | "shoulders" | "back" | "arms" | "legs"
+): Exercise[] {
+  return getDumbbellsByMuscleGroup(group);
+}
+
+/**
+ * קבלת תרגילי קרדיו לפי עוצמה
+ * Get cardio exercises by intensity
+ */
+export function getCardioByIntensityLevel(
+  intensity: "low" | "moderate" | "high"
+): Exercise[] {
+  return getCardioByIntensity(intensity);
+}
+
+/**
+ * קבלת תרגילי גמישות לפי עוצמה
+ * Get flexibility exercises by intensity
+ */
+export function getFlexibilityByIntensityLevel(
+  intensity: "gentle" | "moderate" | "deep"
+): Exercise[] {
+  return getFlexibilityByIntensity(intensity);
+}
+
+/**
+ * קבלת תרגילי מתיחה לפי אזור גוף
+ * Get stretches by body area
+ */
+export function getStretchesByArea(
+  area: "upper_body" | "lower_body" | "extremities"
+): Exercise[] {
+  return getStretchesByBodyArea(area);
+}
+
+/**
+ * קבלת תרגילים למקום מינימלי
+ * Get exercises for minimal space
+ */
+export function getMinimalSpaceWorkout(): Exercise[] {
+  return getMinimalSpaceExercises();
 }
 
 // =====================================
@@ -255,7 +453,35 @@ export {
   filterByEquipment,
   filterByCategory,
   filterByDifficulty,
+  initializeFilterSystem,
+  clearFilterCache,
 } from "./exerciseFilters";
+
+// ייצוא פונקציות עזר מתקדמות מהקטגוריות
+export {
+  // Bodyweight utilities
+  getBodyweightExercisesByDifficulty,
+  getBodyweightExercisesByMuscle,
+  generateQuickBodyweightWorkout,
+  getMinimalSpaceExercises,
+
+  // Dumbbell utilities
+  getDumbbellsByMuscleGroup,
+  generateFullBodyDumbbellWorkout,
+  getWeightRecommendation,
+  calculateTrainingVolume,
+
+  // Cardio utilities
+  getCardioByIntensity,
+  generateHIITWorkout,
+  estimateCaloriesBurned,
+
+  // Flexibility utilities
+  getFlexibilityByIntensity,
+  generateCoolDownRoutine,
+  generateMorningMobilityRoutine,
+  getStretchesByBodyArea,
+};
 
 // =====================================
 // 🎲 פונקציות תאימות ותמיכה במערכת הישנה

@@ -8,6 +8,16 @@
 // ✅ Import PersonalData from central utils
 import { PersonalData } from "../../../utils/personalDataUtils";
 
+// ===============================================
+// 🕒 Rest Timer Constants - קבועי טיימר מנוחה
+// ===============================================
+
+/**
+ * Step size for rest timer adjustments (in seconds)
+ * גודל צעד להתאמת טיימר מנוחה (בשניות)
+ */
+export const REST_ADJUST_STEP_SECONDS = 10 as const;
+
 // טיפוסים מחזקים להחזרת פונקציות (ניתנים לעדכון פנימי)
 export type RestTimes = {
   compound: number;

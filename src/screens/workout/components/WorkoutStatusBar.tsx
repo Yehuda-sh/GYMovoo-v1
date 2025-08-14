@@ -64,7 +64,7 @@ import {
 } from "../../../utils";
 import { SkipButton } from "./shared/SkipButton";
 import { TimeAdjustButton, TimerDisplay } from "./shared";
-import { REST_ADJUST_STEP_SECONDS } from "../../../constants/restTimer";
+import { REST_ADJUST_STEP_SECONDS } from "../utils/workoutConstants";
 import type { WorkoutStatusBarProps } from "./types";
 
 export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(

@@ -1,7 +1,9 @@
 /**
  * @file src/data/equipmentData.ts
- * @brief מאגר ציוד מקיף ומאורגן לפי קטגוריות - ציוד ביתי, חדר כושר וקרדיו
- * @description Comprehensive and organized equipment database by categories - home, gym and cardio
+ * @brief מאגר ציוד מתקדם ומאורגן - עם פונקציות עזר חכמות ואופטימיזציה
+ * @description Advanced organized equipment database with smart utilities and optimization
+ * @date 2025-08-15
+ * @enhanced Added smart recommendations, caching, and advanced filtering
  */
 
 import { ImageSourcePropType } from "react-native";
@@ -20,6 +22,57 @@ export interface Equipment {
   recommendedFor?: string[]; // המלצות לפי רמת כושר
   aliases?: string[]; // מזהים חלופיים לתאימות מערכות
 }
+
+// ===============================================
+// 🏋️‍♂️ Equipment Categories & Metadata
+// ===============================================
+
+export const EQUIPMENT_CATEGORIES = {
+  HOME_BASIC: ["none", "dumbbells", "resistance_bands", "yoga_mat"],
+  HOME_INTERMEDIATE: [
+    "kettlebell",
+    "pull_up_bar",
+    "exercise_ball",
+    "jump_rope",
+  ],
+  HOME_ADVANCED: ["barbell", "adjustable_dumbbells", "suspension_trainer"],
+  GYM_STRENGTH: ["squat_rack", "bench_press", "free_weights", "cable_machine"],
+  GYM_MACHINES: ["lat_pulldown", "leg_press", "smith_machine", "chest_press"],
+  CARDIO_BASIC: ["treadmill", "stationary_bike", "elliptical"],
+  CARDIO_ADVANCED: ["rowing_machine", "battle_ropes", "punching_bag"],
+} as const;
+
+export const EQUIPMENT_BY_WORKOUT_TYPE = {
+  STRENGTH: [
+    "dumbbells",
+    "barbell",
+    "kettlebell",
+    "squat_rack",
+    "bench_press",
+    "free_weights",
+  ],
+  CARDIO: [
+    "treadmill",
+    "stationary_bike",
+    "rowing_machine",
+    "jump_rope",
+    "battle_ropes",
+  ],
+  FLEXIBILITY: ["yoga_mat", "foam_roller", "resistance_bands"],
+  FUNCTIONAL: [
+    "kettlebell",
+    "suspension_trainer",
+    "medicine_ball",
+    "battle_ropes",
+  ],
+} as const;
+
+export const SPACE_REQUIREMENTS = {
+  MINIMAL: ["none", "resistance_bands", "jump_rope", "foam_roller"],
+  SMALL: ["dumbbells", "kettlebell", "yoga_mat", "exercise_ball"],
+  MEDIUM: ["pull_up_bar", "bench", "suspension_trainer"],
+  LARGE: ["barbell", "squat_rack", "treadmill", "rowing_machine"],
+} as const;
 
 // ==================== ציוד ביתי - 20 פריטים הכי נפוצים ====================
 export const HOME_EQUIPMENT: Equipment[] = [
@@ -70,9 +123,10 @@ export const HOME_EQUIPMENT: Equipment[] = [
     image: require("../../assets/kettlebell.png"),
     description: "משקולת עם ידית לתרגילי כוח ופונקציונליים",
     category: "home",
-    tags: ["kettlebell", "functional", "קטלבל", "פונקציונלי"],
+    tags: ["kettlebell", "functional", "קטלבל", "פונקציונלי", "כדור אימון"],
     algorithmWeight: 8,
     recommendedFor: ["intermediate", "advanced"],
+    aliases: ["kettlebells"],
   },
   {
     id: "pull_up_bar",
@@ -157,17 +211,6 @@ export const HOME_EQUIPMENT: Equipment[] = [
     algorithmWeight: 8,
     recommendedFor: ["intermediate", "advanced"],
     aliases: ["trx"],
-  },
-  {
-    id: "kettlebell",
-    label: "כדור אימון (קטלבל)",
-    image: require("../../assets/kettlebell.png"),
-    description: "כדור ברזל עם ידית לאימון פונקציונלי",
-    category: "home",
-    tags: ["kettlebell", "functional", "כדור אימון", "קטלבל"],
-    algorithmWeight: 8,
-    recommendedFor: ["intermediate", "advanced"],
-    aliases: ["kettlebells"],
   },
   {
     id: "water_bottles",
@@ -701,31 +744,80 @@ export const ALL_EQUIPMENT: Equipment[] = [
 
 // ==================== פונקציות עזר ====================
 
+/**
+ * Cache מהיר לחיפושים תכופים
+ * Fast cache for frequent searches
+ */
+const EquipmentCache = {
+  byId: new Map<string, Equipment>(),
+  byCategory: new Map<string, Equipment[]>(),
+  byLevel: new Map<string, Equipment[]>(),
+
+  clear() {
+    this.byId.clear();
+    this.byCategory.clear();
+    this.byLevel.clear();
+  },
+
+  initialize() {
+    // Pre-populate ID cache
+    ALL_EQUIPMENT.forEach((eq) => {
+      this.byId.set(eq.id, eq);
+      eq.aliases?.forEach((alias) => this.byId.set(alias, eq));
+    });
+  },
+};
+
 export function getEquipmentById(equipmentId: string): Equipment | undefined {
   const normalized = equipmentId.trim();
-  const equipment = ALL_EQUIPMENT.find(
-    (eq) => eq.id === normalized || eq.aliases?.includes(normalized)
-  );
-  return equipment;
+
+  // Fast cache lookup
+  if (EquipmentCache.byId.size === 0) {
+    EquipmentCache.initialize();
+  }
+
+  return EquipmentCache.byId.get(normalized);
 }
 
 export function getEquipmentByCategory(
   category: "home" | "gym" | "cardio"
 ): Equipment[] {
+  // Cache lookup
+  const cacheKey = category;
+  if (EquipmentCache.byCategory.has(cacheKey)) {
+    return EquipmentCache.byCategory.get(cacheKey)!;
+  }
+
+  let result: Equipment[];
   switch (category) {
     case "home":
-      return HOME_EQUIPMENT;
+      result = HOME_EQUIPMENT;
+      break;
     case "gym":
-      return GYM_EQUIPMENT;
+      result = GYM_EQUIPMENT;
+      break;
     case "cardio":
-      return CARDIO_EQUIPMENT;
+      result = CARDIO_EQUIPMENT;
+      break;
     default:
-      return [];
+      result = [];
   }
+
+  EquipmentCache.byCategory.set(cacheKey, result);
+  return result;
 }
 
 export function getEquipmentByLevel(level: string): Equipment[] {
-  return ALL_EQUIPMENT.filter((eq) => eq.recommendedFor?.includes(level));
+  // Cache lookup
+  if (EquipmentCache.byLevel.has(level)) {
+    return EquipmentCache.byLevel.get(level)!;
+  }
+
+  const result = ALL_EQUIPMENT.filter((eq) =>
+    eq.recommendedFor?.includes(level)
+  );
+  EquipmentCache.byLevel.set(level, result);
+  return result;
 }
 
 export function getPremiumEquipment(): Equipment[] {
@@ -745,6 +837,165 @@ export function searchEquipment(query: string): Equipment[] {
     );
     return labelMatch || descriptionMatch || tagMatch || aliasMatch;
   });
+}
+
+// ===============================================
+// 🎯 Advanced Equipment Utilities - פונקציות עזר מתקדמות
+// ===============================================
+
+/**
+ * Get equipment recommendations based on user profile
+ * קבלת המלצות ציוד על בסיס פרופיל המשתמש
+ */
+export function getSmartEquipmentRecommendations(userProfile: {
+  experience: "beginner" | "intermediate" | "advanced";
+  environment: "home" | "gym" | "both";
+  budget: "low" | "medium" | "high";
+  space: "minimal" | "small" | "medium" | "large";
+  workoutTypes: ("strength" | "cardio" | "flexibility" | "functional")[];
+}): Equipment[] {
+  let candidates = ALL_EQUIPMENT.filter((eq) =>
+    eq.recommendedFor?.includes(userProfile.experience)
+  );
+
+  // Filter by environment
+  if (userProfile.environment !== "both") {
+    candidates = candidates.filter(
+      (eq) =>
+        eq.category === userProfile.environment || eq.category === "cardio"
+    );
+  }
+
+  // Filter by budget (premium items for medium/high budget)
+  if (userProfile.budget === "low") {
+    candidates = candidates.filter((eq) => !eq.isPremium);
+  }
+
+  // Filter by space requirements (simplified approach)
+  const spaceBasedIds = {
+    minimal: ["none", "resistance_bands", "jump_rope", "foam_roller"],
+    small: ["dumbbells", "yoga_mat", "kettlebell", "pull_up_bar"],
+    medium: ["exercise_ball", "suspension_trainer", "barbell", "bench"],
+    large: ["squat_rack", "treadmill", "rowing_machine", "smith_machine"],
+  };
+
+  const allowedIds = spaceBasedIds[userProfile.space] || [];
+  if (allowedIds.length > 0) {
+    candidates = candidates.filter((eq) => allowedIds.includes(eq.id));
+  }
+
+  // Sort by algorithm weight (higher = better)
+  return candidates
+    .sort((a, b) => (b.algorithmWeight || 0) - (a.algorithmWeight || 0))
+    .slice(0, 8); // Top 8 recommendations
+}
+
+/**
+ * Get equipment by workout type
+ * קבלת ציוד לפי סוג אימון
+ */
+export function getEquipmentByWorkoutType(
+  workoutType: "strength" | "cardio" | "flexibility" | "functional"
+): Equipment[] {
+  // Simplified mapping based on workout types
+  const workoutEquipmentMap = {
+    strength: [
+      "dumbbells",
+      "barbell",
+      "squat_rack",
+      "kettlebell",
+      "pull_up_bar",
+      "bench",
+    ],
+    cardio: ["treadmill", "rowing_machine", "jump_rope", "exercise_bike"],
+    flexibility: ["yoga_mat", "foam_roller", "resistance_bands"],
+    functional: [
+      "suspension_trainer",
+      "kettlebell",
+      "exercise_ball",
+      "resistance_bands",
+    ],
+  };
+
+  const equipmentIds = workoutEquipmentMap[workoutType] || [];
+  return equipmentIds
+    .map((id) => getEquipmentById(id))
+    .filter(Boolean) as Equipment[];
+}
+
+/**
+ * Get equipment by space requirement
+ * קבלת ציוד לפי דרישות מקום
+ */
+export function getEquipmentBySpace(
+  spaceType: "minimal" | "small" | "medium" | "large"
+): Equipment[] {
+  const spaceEquipmentMap = {
+    minimal: ["none", "resistance_bands", "jump_rope", "foam_roller"],
+    small: ["dumbbells", "yoga_mat", "kettlebell", "pull_up_bar"],
+    medium: ["exercise_ball", "suspension_trainer", "barbell", "bench"],
+    large: ["squat_rack", "treadmill", "rowing_machine", "smith_machine"],
+  };
+
+  const equipmentIds = spaceEquipmentMap[spaceType] || [];
+  return equipmentIds
+    .map((id) => getEquipmentById(id))
+    .filter(Boolean) as Equipment[];
+}
+
+/**
+ * Generate equipment compatibility score
+ * יצירת ציון תאימות ציוד
+ */
+export function calculateEquipmentCompatibility(
+  equipment: Equipment,
+  userPreferences: {
+    experience: string;
+    environment: string;
+    budget: string;
+  }
+): number {
+  let score = 0;
+
+  // Experience match (40%)
+  if (equipment.recommendedFor?.includes(userPreferences.experience)) {
+    score += 4;
+  }
+
+  // Environment match (30%)
+  if (
+    equipment.category === userPreferences.environment ||
+    userPreferences.environment === "both"
+  ) {
+    score += 3;
+  }
+
+  // Budget compatibility (20%)
+  if (userPreferences.budget === "high" || !equipment.isPremium) {
+    score += 2;
+  }
+
+  // Algorithm weight bonus (10%)
+  score += (equipment.algorithmWeight || 0) * 0.1;
+
+  return Math.round(score * 10) / 10; // Round to 1 decimal
+}
+
+/**
+ * Get equipment alternatives and substitutes
+ * קבלת ציוד חלופי ותחליפים
+ */
+export function getEquipmentAlternatives(equipmentId: string): Equipment[] {
+  const equipment = getEquipmentById(equipmentId);
+  if (!equipment) return [];
+
+  // Find equipment with similar tags or category
+  return ALL_EQUIPMENT.filter(
+    (eq) =>
+      eq.id !== equipmentId &&
+      eq.category === equipment.category &&
+      eq.tags.some((tag) => equipment.tags.includes(tag))
+  ).slice(0, 5);
 }
 
 export function getEquipmentStats(): {

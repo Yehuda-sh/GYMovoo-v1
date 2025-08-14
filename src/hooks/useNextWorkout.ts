@@ -30,7 +30,47 @@ export interface UseNextWorkoutReturn {
     daysInProgram: number;
     consistency: number;
   } | null;
+  // ✅ יכולות חדשות
+  personalizedInsights: {
+    recommendation: string;
+    motivation: string;
+    nextGoal: string;
+  } | null;
+  weeklyPlanCache: string[];
+  resetCache: () => void;
 }
+
+// ===============================================
+// 🚀 Performance Cache & Optimizations - מערכת Cache ואופטימיזציות
+// ===============================================
+
+/**
+ * Cache מהיר לתוכניות שבועיות וחישובים תכופים
+ * Fast cache for weekly plans and frequent calculations
+ */
+const WorkoutHookCache = {
+  weeklyPlans: new Map<string, string[]>(),
+  personalData: new Map<string, Record<string, unknown>>(),
+  recommendations: new Map<string, NextWorkoutRecommendation>(),
+
+  clear() {
+    this.weeklyPlans.clear();
+    this.personalData.clear();
+    this.recommendations.clear();
+  },
+
+  getWeeklyPlanKey(
+    userId: string,
+    frequency: string,
+    planType?: string
+  ): string {
+    return `${userId}_${frequency}_${planType || "auto"}`;
+  },
+
+  getPersonalDataKey(userId: string, version: string): string {
+    return `${userId}_${version}`;
+  },
+};
 
 /**
  * Hook לניהול האימון הבא במחזור
@@ -56,18 +96,210 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     consistency: number;
   } | null>(null);
 
+  // ✅ מצבים חדשים מתקדמים
+  const [personalizedInsights, setPersonalizedInsights] = useState<{
+    recommendation: string;
+    motivation: string;
+    nextGoal: string;
+  } | null>(null);
+
+  const [weeklyPlanCache, setWeeklyPlanCache] = useState<string[]>([]);
+
   /**
-   * יצירת תוכנית שבועית מהנתונים עם תמיכה במערכת החדשה
-   * Create weekly plan from data with support for new system
+   * Reset cache function
+   * פונקציית איפוס cache
    */
+  const resetCache = useCallback(() => {
+    WorkoutHookCache.clear();
+    setWeeklyPlanCache([]);
+    setPersonalizedInsights(null);
+    debug("🧹 Cache cleared");
+  }, []);
+
+  /**
+   * Enhanced personal data extraction with questionnaire integration
+   * חילוץ נתונים אישיים משופר עם אינטגרציה לשאלון
+   */
+  const enhancedPersonalData = useMemo(() => {
+    if (!user) return null;
+
+    const userId = user.id || "anonymous";
+    const cacheKey = WorkoutHookCache.getPersonalDataKey(
+      userId,
+      user.smartquestionnairedata?.metadata?.version || "1.0"
+    );
+
+    // בדיקת cache
+    if (WorkoutHookCache.personalData.has(cacheKey)) {
+      return WorkoutHookCache.personalData.get(cacheKey);
+    }
+
+    // יצירת נתונים משופרים
+    let data = {};
+
+    // מהשאלון החדש (עדיפות גבוהה)
+    if (user.smartquestionnairedata?.answers) {
+      const answers = user.smartquestionnairedata.answers;
+      data = {
+        gender: answers.gender as string,
+        age: String(answers.age || ""),
+        weight: String(answers.weight || ""),
+        height: String(answers.height || ""),
+        fitnessLevel: answers.fitnessLevel as string,
+        goals: answers.goals || [],
+        equipment: answers.equipment || [],
+        availability: answers.availability || [],
+        sessionDuration: answers.sessionDuration,
+        workoutLocation: answers.workoutLocation,
+        nutrition: answers.nutrition || [],
+        // ✅ נתונים מתקדמים מ-metadata
+        questionnaire: {
+          version: user.smartquestionnairedata.metadata?.version,
+          completedAt: user.smartquestionnairedata.metadata?.completedAt,
+          // analytics: user.smartquestionnairedata.metadata?.analytics, // יתווסף בעתיד
+          // recommendations: user.smartquestionnairedata.metadata?.recommendations, // יתווסף בעתיד
+        },
+      };
+    }
+    // fallback לשאלון ישן
+    else if (user.questionnairedata?.answers) {
+      const answers = user.questionnairedata.answers as Record<string, unknown>;
+      data = {
+        fitnessLevel: answers.fitnessLevel as string,
+        goals: Array.isArray(answers.goals) ? answers.goals : [answers.goals],
+        equipment: (answers.equipment as string[]) || [],
+        availability: Array.isArray(answers.availability)
+          ? answers.availability
+          : [answers.availability],
+        sessionDuration: answers.sessionDuration as string,
+        workoutLocation: answers.workoutLocation as string,
+      };
+    }
+
+    // שמירה בcache
+    WorkoutHookCache.personalData.set(cacheKey, data);
+    debug("💾 Personal data cached", { userId, cacheKey, data });
+
+    return data;
+  }, [user]);
+
+  /**
+   * Optimized weekly plan generation with smart caching
+   * יצירת תוכנית שבועית מיטבית עם cache חכם
+   */
+  const extractFrequencyFromUser = useCallback((): string => {
+    if (user?.smartquestionnairedata?.answers?.availability) {
+      const availability = user.smartquestionnairedata.answers.availability;
+      const freq = Array.isArray(availability) ? availability[0] : availability;
+      debug("frequency from smartquestionnairedata", freq);
+      return freq;
+    }
+    if (user?.trainingstats?.preferredWorkoutDays) {
+      const freq = String(user.trainingstats.preferredWorkoutDays);
+      debug("frequency from trainingStats", freq);
+      return freq;
+    }
+    if (user?.questionnairedata?.answers) {
+      const answers = user.questionnairedata.answers as Record<string, unknown>;
+      const freq = String(answers.frequency || "");
+      debug("frequency from questionnaireData", freq);
+      return freq;
+    }
+    if (user?.questionnaire) {
+      let legacy = "";
+      Object.values(user.questionnaire).forEach((value) => {
+        if (
+          typeof value === "string" &&
+          (value.includes("times") || value.includes("פעמים"))
+        ) {
+          legacy = value;
+        }
+      });
+      debug("frequency from legacy questionnaire", legacy);
+      return legacy;
+    }
+    return "";
+  }, [user]);
+
+  /**
+   * Parse frequency string to number of days (optimized)
+   * המרת מחרוזת תדירות למספר ימים (מיטבי)
+   */
+  const parseFrequencyToDays = useCallback((raw: string): number => {
+    const normalized = raw.trim().toLowerCase();
+
+    // מיפוי מהיר O(1)
+    const directMap: Record<string, number> = {
+      "2_days": 2,
+      "2-times": 2,
+      "2_times": 2,
+      "2 times per week": 2,
+      "3_days": 3,
+      "3-times": 3,
+      "3_times": 3,
+      "3 times per week": 3,
+      "4_days": 4,
+      "4-times": 4,
+      "4_times": 4,
+      "4 times per week": 4,
+      "5_days": 5,
+      "5-plus": 5,
+      "5_times": 5,
+      "5 times per week": 5,
+      "6_times": 6,
+      "6 times per week": 6,
+      "7_times": 7,
+      "7 times per week": 7,
+      "1-2 פעמים": 2,
+      "3 פעמים": 3,
+      "4 פעמים": 4,
+      "5+ פעמים": 5,
+      "2 ימים בשבוע": 2,
+      "3 ימים בשבוע": 3,
+      "5 ימים בשבוע": 5,
+      "כל יום": 6,
+    };
+
+    if (directMap[normalized] != null) {
+      return directMap[normalized];
+    }
+
+    // fallback לביטויים רגולריים
+    if (/^\d$/.test(normalized)) {
+      return Math.min(7, Math.max(1, Number(normalized)));
+    }
+    if (/5-6/.test(normalized)) return 5;
+    if (/3-4/.test(normalized)) return 3;
+    if (/1-2/.test(normalized)) return 2;
+
+    return 3; // ברירת מחדל חכמה
+  }, []);
+
   const weeklyPlan = useMemo(() => {
-    // Direct plan provided
+    // Direct plan provided - highest priority
     if (workoutPlan?.workouts) {
       const plan = workoutPlan.workouts.map((w) => w.name);
       debug("Using provided workoutPlan", plan);
+      setWeeklyPlanCache(plan);
       return plan;
     }
 
+    const userId = user?.id || "anonymous";
+    const rawFrequency = extractFrequencyFromUser();
+    const cacheKey = WorkoutHookCache.getWeeklyPlanKey(
+      userId,
+      rawFrequency,
+      "auto"
+    );
+
+    // בדיקת cache
+    if (WorkoutHookCache.weeklyPlans.has(cacheKey)) {
+      const cachedPlan = WorkoutHookCache.weeklyPlans.get(cacheKey)!;
+      setWeeklyPlanCache(cachedPlan);
+      return cachedPlan;
+    }
+
+    // יצירת תוכנית חדשה
     const WORKOUT_DAYS_MAP: Record<number, string[]> = {
       1: ["אימון מלא"],
       2: ["פלג גוף עליון", "פלג גוף תחתון"],
@@ -78,90 +310,73 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       7: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן", "קרדיו קל"],
     };
 
-    const extractRawFrequency = (): string => {
-      if (user?.smartquestionnairedata?.answers?.availability) {
-        const availability = user.smartquestionnairedata.answers.availability;
-        const freq = Array.isArray(availability)
-          ? availability[0]
-          : availability;
-        debug("frequency from smartquestionnairedata", freq);
-        return freq;
-      }
-      if (user?.trainingstats?.preferredWorkoutDays) {
-        const freq = String(user.trainingstats.preferredWorkoutDays);
-        debug("frequency from trainingStats", freq);
-        return freq;
-      }
-      if (user?.questionnairedata?.answers) {
-        const answers = user.questionnairedata.answers as Record<
-          string,
-          unknown
-        >;
-        const freq = String(answers.frequency || "");
-        debug("frequency from questionnaireData", freq);
-        return freq;
-      }
-      if (user?.questionnaire) {
-        let legacy = "";
-        Object.values(user.questionnaire).forEach((value) => {
-          if (
-            typeof value === "string" &&
-            (value.includes("times") || value.includes("פעמים"))
-          ) {
-            legacy = value;
-          }
-        });
-        debug("frequency from legacy questionnaire", legacy);
-        return legacy;
-      }
-      return "";
-    };
+    const days = parseFrequencyToDays(rawFrequency);
+    const selectedPlan = WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
 
-    const raw = extractRawFrequency();
-    let days = 3; // default smart
-    const normalized = raw.trim().toLowerCase();
-    const directMap: Record<string, number> = {
-      "2-times": 2,
-      "2_times": 2,
-      "2 times per week": 2,
-      "3-times": 3,
-      "3_times": 3,
-      "3 times per week": 3,
-      "4-times": 4,
-      "4_times": 4,
-      "4 times per week": 4,
-      "5-plus": 5,
-      "5_times": 5,
-      "5 times per week": 5,
-      "6 times per week": 6,
-      "7 times per week": 7,
-      "1-2 פעמים": 2,
-      "3 פעמים": 3,
-      "4 פעמים": 4,
-      "5+ פעמים": 5,
-      "2 פעמים בשבוע": 2,
-      "3 פעמים בשבוע": 3,
-      "5 פעמים בשבוע": 5,
-      "כל יום": 6,
-      "6_times": 6,
-    };
-    if (directMap[normalized] != null) {
-      days = directMap[normalized];
-    } else if (/^\d$/.test(normalized)) {
-      days = Math.min(7, Math.max(1, Number(normalized)));
-    } else if (/5-6/.test(normalized)) {
-      days = 5;
-    } else if (/3-4/.test(normalized)) {
-      days = 3;
-    } else if (/1-2/.test(normalized)) {
-      days = 2;
-    }
-    debug("Parsed frequency", { raw, normalized, days });
+    // שמירה בcache
+    WorkoutHookCache.weeklyPlans.set(cacheKey, selectedPlan);
+    setWeeklyPlanCache(selectedPlan);
 
-    const selected = WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
-    debug("Selected weekly plan", { days, selected });
-    return selected;
-  }, [workoutPlan, user]);
+    debug("Generated weekly plan", {
+      userId,
+      rawFrequency,
+      days,
+      selectedPlan,
+    });
+    return selectedPlan;
+  }, [workoutPlan, user, extractFrequencyFromUser, parseFrequencyToDays]);
+
+  /**
+   * Generate personalized insights from recommendation data
+   * יצירת תובנות מותאמות אישית מנתוני המלצה
+   */
+  const generatePersonalizedInsights = useCallback(
+    (
+      recommendation: NextWorkoutRecommendation,
+      personalData: Record<string, unknown> | null,
+      _stats: Record<string, unknown> | null
+    ) => {
+      const { workoutName, suggestedIntensity } = recommendation;
+      const { fitnessLevel = "beginner", goals = [] } = personalData || {};
+
+      // המלצות מותאמות
+      let recommendationText = `מוכן/נה ל${workoutName}?`;
+      if (suggestedIntensity === "light") {
+        recommendationText = `התחלה רכה עם ${workoutName}`;
+      } else if (suggestedIntensity === "catchup") {
+        recommendationText = `זמן להדביק פערים עם ${workoutName}`;
+      }
+
+      // מוטיבציה מותאמת לרמה
+      const motivationMap: Record<string, string> = {
+        beginner: "כל התחלה קשה, אבל אתם על הדרך הנכונה! 💪",
+        intermediate: "אתם מתקדמים מצוין! המשיכו ככה! 🔥",
+        advanced: "אתם מקצועים! בואו נדחוף את הגבולות! 🚀",
+      };
+
+      const motivation =
+        motivationMap[String(fitnessLevel)] || motivationMap.beginner;
+
+      // יעד הבא
+      const nextGoalMap: Record<string, string> = {
+        lose_weight: 'המטרה: הפחתת 0.5 ק"ג השבוע',
+        build_muscle: "המטרה: הוספת משקל לתרגיל הבא",
+        general_fitness: "המטרה: שיפור הסיבולת הכללית",
+        athletic_performance: "המטרה: שיפור זמן ההתאוששות",
+      };
+
+      const primaryGoal = Array.isArray(goals) ? goals[0] : goals;
+      const nextGoal =
+        nextGoalMap[String(primaryGoal)] || "המטרה: שמירה על עקביות באימונים";
+
+      return {
+        recommendation: recommendationText,
+        motivation,
+        nextGoal,
+      };
+    },
+    []
+  );
 
   /**
    * רענון המלצת האימון הבא עם אלגוריתם חכם
@@ -194,19 +409,21 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         hasExtendedData: !!user?.trainingstats,
       });
 
-      // ✅ הכנת נתונים אישיים מהשאלון החדש לשיפור המלצות
-      const personalData = user?.smartquestionnairedata?.answers
-        ? {
-            gender: user.smartquestionnairedata.answers.gender as string,
-            age: String(user.smartquestionnairedata.answers.age || ""),
-            weight: String(user.smartquestionnairedata.answers.weight || ""),
-            height: String(user.smartquestionnairedata.answers.height || ""),
-            fitnessLevel: user.smartquestionnairedata.answers
-              .fitnessLevel as string,
-          }
-        : undefined;
+      // ✅ הכנת נתונים אישיים מהשאלון החדש לשיפור המלצות - משופר
+      const personalData =
+        enhancedPersonalData ||
+        (user?.smartquestionnairedata?.answers
+          ? {
+              gender: user.smartquestionnairedata.answers.gender as string,
+              age: String(user.smartquestionnairedata.answers.age || ""),
+              weight: String(user.smartquestionnairedata.answers.weight || ""),
+              height: String(user.smartquestionnairedata.answers.height || ""),
+              fitnessLevel: user.smartquestionnairedata.answers
+                .fitnessLevel as string,
+            }
+          : undefined);
 
-      debug("🎯 Personal data for recommendations", personalData);
+      debug("🎯 Enhanced personal data for recommendations", personalData);
 
       // בדיקת בטיחות מתקדמת - וידוא שהשירות קיים
       if (
@@ -232,6 +449,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       if (isMountedRef.current) {
         setNextWorkout(recommendation);
         setCycleStats(stats);
+
+        // ✅ יצירת insights מותאמים אישית מהנתונים החדשים
+        if (personalData && recommendation) {
+          const insights = generatePersonalizedInsights(
+            recommendation,
+            personalData,
+            stats
+          );
+          setPersonalizedInsights(insights);
+        }
       }
       debug("✅ Recommendation received", {
         workoutName: recommendation.workoutName,
@@ -260,7 +487,13 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [weeklyPlan, isLoading, user]);
+  }, [
+    weeklyPlan,
+    isLoading,
+    user,
+    enhancedPersonalData,
+    generatePersonalizedInsights,
+  ]);
 
   /**
    * סימון אימון כהושלם with improved error handling
@@ -325,5 +558,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     refreshRecommendation,
     markWorkoutCompleted,
     cycleStats,
+    // ✅ יכולות חדשות מתקדמות
+    personalizedInsights,
+    weeklyPlanCache,
+    resetCache,
   };
 };
