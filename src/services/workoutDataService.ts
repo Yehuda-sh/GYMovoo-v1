@@ -172,10 +172,10 @@ export class WorkoutDataService {
       }
 
       // 2. אם אין, נסה מה-store החדש
-      if (user?.questionnaireData?.metadata) {
+      if (user?.questionnairedata?.metadata) {
         return {
           source: "store_new",
-          data: user.questionnaireData.metadata,
+          data: user.questionnairedata.metadata,
           isComplete: true,
         };
       }

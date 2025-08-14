@@ -541,23 +541,23 @@ export interface User {
 
   // נתוני השאלון החכם החדש (עיקרי)
   // New smart questionnaire data (primary)
-  smartQuestionnaireData?: SmartQuestionnaireData;
+  smartquestionnairedata?: SmartQuestionnaireData;
 
   // נתוני השאלון הישן (לתאימות לאחור)
   // Old questionnaire data (for backward compatibility)
   questionnaire?: { [key: number]: string | string[] };
-  questionnaireData?: LegacyQuestionnaireData;
+  questionnairedata?: LegacyQuestionnaireData;
 
   // נתונים מדעיים (לתאימות לאחור)
   // Scientific data (for backward compatibility)
   /** פרופיל מדעי / Scientific profile */
-  scientificProfile?: ScientificProfile;
+  scientificprofile?: ScientificProfile;
   /** המלצות AI */
-  aiRecommendations?: AIRecommendations;
+  airecommendations?: AIRecommendations;
   /** היסטוריית פעילות */
-  activityHistory?: ActivityHistory;
+  activityhistory?: ActivityHistory;
   /** סטטיסטיקות נוכחיות */
-  currentStats?: CurrentStats;
+  currentstats?: CurrentStats;
 
   // העדפות משתמש
   // User preferences
@@ -573,7 +573,7 @@ export interface User {
 
   // נתוני אימון
   // Training data
-  trainingStats?: {
+  trainingstats?: {
     totalWorkouts?: number;
     totalVolume?: number;
     favoriteExercises?: string[];
@@ -606,7 +606,7 @@ export interface User {
 
   // תוכניות אימון זמינות
   // Available workout plans
-  workoutPlans?: {
+  workoutplans?: {
     basicPlan?: WorkoutPlan; // תוכנית בסיס - תמיד זמינה
     smartPlan?: WorkoutPlan; // תוכנית חכמה - נדרש מנוי
     additionalPlan?: WorkoutPlan; // תוכנית נוספת - מגבלת 3 תוכניות
@@ -616,7 +616,7 @@ export interface User {
 
   // נתוני פרופיל מותאמים למגדר
   // Gender-adapted profile data
-  genderProfile?: {
+  genderprofile?: {
     selectedGender: "male" | "female" | "other";
     adaptedWorkoutNames?: { [key: string]: string };
     personalizedMessages?: string[];

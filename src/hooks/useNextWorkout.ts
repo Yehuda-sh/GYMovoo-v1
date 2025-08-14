@@ -79,21 +79,21 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     };
 
     const extractRawFrequency = (): string => {
-      if (user?.smartQuestionnaireData?.answers?.availability) {
-        const availability = user.smartQuestionnaireData.answers.availability;
+      if (user?.smartquestionnairedata?.answers?.availability) {
+        const availability = user.smartquestionnairedata.answers.availability;
         const freq = Array.isArray(availability)
           ? availability[0]
           : availability;
-        debug("frequency from smartQuestionnaireData", freq);
+        debug("frequency from smartquestionnairedata", freq);
         return freq;
       }
-      if (user?.trainingStats?.preferredWorkoutDays) {
-        const freq = String(user.trainingStats.preferredWorkoutDays);
+      if (user?.trainingstats?.preferredWorkoutDays) {
+        const freq = String(user.trainingstats.preferredWorkoutDays);
         debug("frequency from trainingStats", freq);
         return freq;
       }
-      if (user?.questionnaireData?.answers) {
-        const answers = user.questionnaireData.answers as Record<
+      if (user?.questionnairedata?.answers) {
+        const answers = user.questionnairedata.answers as Record<
           string,
           unknown
         >;
@@ -188,20 +188,20 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         userPresent: !!user,
       });
       debug("👤 User data sources", {
-        hasQuestionnaireData: !!user?.questionnaireData,
+        hasQuestionnaireData: !!user?.questionnairedata,
         hasQuestionnaire: !!user?.questionnaire,
-        hasSmartData: !!user?.smartQuestionnaireData,
-        hasExtendedData: !!user?.trainingStats,
+        hasSmartData: !!user?.smartquestionnairedata,
+        hasExtendedData: !!user?.trainingstats,
       });
 
       // ✅ הכנת נתונים אישיים מהשאלון החדש לשיפור המלצות
-      const personalData = user?.smartQuestionnaireData?.answers
+      const personalData = user?.smartquestionnairedata?.answers
         ? {
-            gender: user.smartQuestionnaireData.answers.gender as string,
-            age: String(user.smartQuestionnaireData.answers.age || ""),
-            weight: String(user.smartQuestionnaireData.answers.weight || ""),
-            height: String(user.smartQuestionnaireData.answers.height || ""),
-            fitnessLevel: user.smartQuestionnaireData.answers
+            gender: user.smartquestionnairedata.answers.gender as string,
+            age: String(user.smartquestionnairedata.answers.age || ""),
+            weight: String(user.smartquestionnairedata.answers.weight || ""),
+            height: String(user.smartquestionnairedata.answers.height || ""),
+            fitnessLevel: user.smartquestionnairedata.answers
               .fitnessLevel as string,
           }
         : undefined;

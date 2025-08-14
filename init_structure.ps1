@@ -11,6 +11,9 @@
   - Extended data folders (src/data/...)
   - Safe: no overwrite of existing non-empty files
   - Summary breakdown (Created / Existing / Skipped)
+ Updated (2025-08-14):
+  - Removed references to scientificAIService (deleted)
+  - Updated service list to reflect current state
  Future Option: external JSON manifest (structure.json)
 =======================================================================
 #>
@@ -50,6 +53,7 @@ ${folders} = @(
   "src/components/forms",
   "src/components/workout",
   "src/components/ui",
+  # "src/components/questionnaire", # הוסר 2025-08-14 - תיקייה שהועברה למערכת אחודה
   # Data & domain
   "src/data",
   "src/data/exercises",
@@ -171,8 +175,8 @@ ${files} = @(
   "src/components/ui/ScreenContainer.tsx",
   "src/components/ui/UniversalButton.tsx",
   "src/components/ui/UniversalCard.tsx",
-  "src/components/questionnaire/SmartProgressBar.tsx",
-  "src/components/questionnaire/SmartOptionComponent.tsx",
+  # "src/components/questionnaire/SmartProgressBar.tsx", # הוסר 2025-08-14 - רכיב legacy לא בשימוש
+  # "src/components/questionnaire/SmartOptionComponent.tsx", # הוסר 2025-08-14 - רכיב legacy לא בשימוש
 
   # Hooks
   "src/screens/workout/hooks/useWorkoutTimer.ts",
@@ -187,7 +191,7 @@ ${files} = @(
   # "src/services/realisticDemoService.ts", # הוסר – דמו לא בשימוש
   "src/services/workoutHistoryService.ts",
   # "src/services/workoutSimulationService.ts", # הוסר בניקוי 2025-08-13
-  "src/services/scientificAIService.ts",
+  # "src/services/scientificAIService.ts", # הוסר בניקוי 2025-08-14 (מערכת AI ניסיונית מורכבת)
 
   # Types and utils (existing)
   "src/screens/workout/types/workout.types.ts",

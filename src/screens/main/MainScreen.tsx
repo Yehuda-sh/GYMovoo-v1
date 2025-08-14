@@ -159,7 +159,7 @@ function MainScreen() {
   const availableTrainingDays = useMemo(() => {
     // נסה לחלץ מהשאלון החדש
     type SmartAnswers = QuestionnaireAnswers & { availability?: string[] };
-    const answers = (user?.questionnaireData?.answers || {}) as SmartAnswers;
+    const answers = (user?.questionnairedata?.answers || {}) as SmartAnswers;
     const availability = Array.isArray(answers.availability)
       ? answers.availability[0]
       : undefined;
@@ -201,7 +201,7 @@ function MainScreen() {
     }
 
     // fallback - נסה לחלץ מפרופיל מדעי
-    const availableDays = user?.scientificProfile?.available_days;
+    const availableDays = user?.scientificprofile?.available_days;
 
     if (
       typeof availableDays === "number" &&
@@ -214,9 +214,9 @@ function MainScreen() {
     // ברירת מחדל
     return 3;
   }, [
-    user?.questionnaireData?.answers,
+    user?.questionnairedata?.answers,
     user?.questionnaire,
-    user?.scientificProfile?.available_days,
+    user?.scientificprofile?.available_days,
   ]);
 
   /** @description מערך הימים להצגה / Array of days to display */
@@ -228,16 +228,16 @@ function MainScreen() {
   /** @description נתונים מדעיים ומקצועיים ממוחזרים / Memoized scientific and professional data */
   const profileData = useMemo(
     () => ({
-      scientificProfile: user?.scientificProfile,
-      activityHistory: user?.activityHistory,
-      currentStats: user?.currentStats,
-      aiRecommendations: user?.aiRecommendations,
+      scientificProfile: user?.scientificprofile,
+      activityHistory: user?.activityhistory,
+      currentStats: user?.currentstats,
+      aiRecommendations: user?.airecommendations,
     }),
     [
-      user?.scientificProfile,
-      user?.activityHistory,
-      user?.currentStats,
-      user?.aiRecommendations,
+      user?.scientificprofile,
+      user?.activityhistory,
+      user?.currentstats,
+      user?.airecommendations,
     ]
   );
 
@@ -528,7 +528,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "age_range",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.age_range
                       )}
@@ -543,7 +543,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "gender",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.gender
                       )}
@@ -558,7 +558,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "primary_goal",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.primary_goal
                       )}
@@ -573,7 +573,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "fitness_experience",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.fitness_experience
                       )}
@@ -588,7 +588,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "workout_location",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.workout_location
                       )}
@@ -603,7 +603,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "session_duration",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.session_duration
                       )}
@@ -618,7 +618,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "available_days",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.available_days
                       )}
@@ -633,7 +633,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "available_equipment",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.available_equipment
                       )}
@@ -648,7 +648,7 @@ function MainScreen() {
                       {formatQuestionnaireValue(
                         "health_status",
                         (
-                          user?.questionnaireData
+                          user?.questionnairedata
                             ?.answers as QuestionnaireAnswers
                         )?.health_status
                       )}

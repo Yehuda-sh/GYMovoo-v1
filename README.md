@@ -56,7 +56,7 @@
 - **מערכת היסטוריה מתקדמת** - כל האימונים נשמרים עם משוב מפורט
 - **רכיבים משותפים חדשים** - LoadingSpinner, EmptyState, IconButton, ConfirmationModal ועוד
 - **תיקוני RTL מקיפים** - 30+ תיקונים למיקום וכיווניות מלאה
-- **שירותים חדשים** - workoutHistoryService, scientificAIService ועוד (שירות סימולציה ודמו הוסרו באוגוסט 2025)
+- **שירותים חדשים** - workoutHistoryService ועוד (שירותי סימולציה, דמו ו-AI ניסיוני הוסרו באוגוסט 2025)
 
 ## 🚀 התחלה מהירה
 
@@ -123,10 +123,10 @@ npx expo start --tunnel
 
 - **📱 מסכים פעילים:** 27 מסכים ראשיים (ללא רכיבים וגיבויים)
 - **🧩 רכיבים:** 12 רכיבים ב-3 קטגוריות (common, ui, workout)
-- **🔧 שירותים:** 14 שירותים פעילים (שירות סימולציה ודמו הוסרו) כולל workoutHistoryService
+- **🔧 שירותים:** 13 שירותים פעילים (שירותי סימולציה, דמו ו-AI ניסיוני הוסרו) כולל workoutHistoryService
 - **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי)
 
-> עדכון סטטיסטיקות אחרון: 2025-08-10 (לבדיקה מחודשת לפני ריליס גדול)
+> עדכון סטטיסטיקות אחרון: 2025-08-14 (לאחר ניקוי מערכות ניסיוניות וקבצי תיעוד מיותרים)
 
 ### 🗺️ מפת קוד (High-Level Code Map)
 
@@ -525,7 +525,7 @@ The app is configured for forced RTL to support Hebrew interface. If RTL doesn't
 
 - **📱 Active Screens:** 27 main screens (excluding components and backups)
 - **🧩 Components:** 12 components in 3 categories (common, ui, workout)
-- **🔧 Services:** 15 active services including workoutHistoryService
+- **🔧 Services:** 13 active services including workoutHistoryService
 - **📚 Documentation:** 13 organized .md files with up-to-date information (after cleanup)
 
 ### Technology Stack

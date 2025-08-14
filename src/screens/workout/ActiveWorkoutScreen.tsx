@@ -189,15 +189,15 @@ const ActiveWorkoutScreen: React.FC = () => {
 
     // שליפת תדירות בשבוע ממקורות שונים (שמירה על תאימות)
     const extractRawFrequency = (): string => {
-      const smart = user?.smartQuestionnaireData?.answers?.availability;
+      const smart = user?.smartquestionnairedata?.answers?.availability;
       if (smart) {
         return Array.isArray(smart) ? String(smart[0]) : String(smart);
       }
-      if (user?.trainingStats?.preferredWorkoutDays) {
-        return String(user.trainingStats.preferredWorkoutDays);
+      if (user?.trainingstats?.preferredWorkoutDays) {
+        return String(user.trainingstats.preferredWorkoutDays);
       }
-      if (user?.questionnaireData?.answers) {
-        const answers = user.questionnaireData.answers as Record<
+      if (user?.questionnairedata?.answers) {
+        const answers = user.questionnairedata.answers as Record<
           string,
           unknown
         >;

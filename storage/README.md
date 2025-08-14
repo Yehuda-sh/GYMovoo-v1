@@ -1,8 +1,17 @@
-# Local Storage Server
+# Local Storage Server [DEPRECATED]
 
-שרת מקומי לניהול משתמשים (CRUD) עם אחסון JSON, כהכנה למיגרציה עתידית ל-Supabase/DB אמיתי.
+⚠️ **שרת מקומי זה הוחלף ב-Supabase** - תיעוד היסטורי בלבד
 
-## הרצה
+שרת מקומי שהיה משמש לניהול משתמשים (CRUD) עם אחסון JSON, לפני המעבר ל-Supabase.
+
+## המצב הנוכחי - אוגוסט 2025
+
+✅ **Supabase הוא מקור האמת**  
+✅ **users.json נמחק** - כל נתוני המשתמשים ב-Supabase  
+✅ **AsyncStorage משמש כ-cache בלבד**  
+❌ **השרת המקומי לא בשימוש יותר**
+
+## הרצה [לא רלוונטי]
 
 - התקנת תלות (פעם ראשונה):
   - npm i express cors
@@ -39,15 +48,29 @@
 
 קבצי נתונים נשמרים תחת:
 
-- `storage/db/users.json`
-- `storage/db/workouts.json`
+- ~~`storage/db/users.json`~~ - **נמחק - הועבר ל-Supabase** ✅
+- `storage/db/workouts.json` - **עדיין מקומי** (לעדכון עתידי)
 
-מדיניות ומקור אמת:
+מדיניות ומקור אמת (מעודכן):
 
-- השרת הוא מקור האמת. צד הלקוח משתמש ב-AsyncStorage כ-cache בלבד.
-- XP בסיסי על השלמת שאלון: השרת מעניק +120 XP בעת יצירה/עדכון כשקיים `smartQuestionnaireData.completedAt`.
-- אימות XP בקריאה: ב-GET השרת מבטיח לפחות 120 XP למי שהשלים שאלון (אידמפוטנטי).
+- **Supabase PostgreSQL הוא מקור האמת** עבור נתוני משתמשים
+- **userStore.ts מסונכרן אוטומטית** עם Supabase via scheduleServerSync
+- **AsyncStorage כ-cache בלבד** - לא מקור אמת
+- **שמות שדות PostgreSQL**: lowercase (smartquestionnairedata, activityhistory)
+- XP בסיסי: מנוהל ב-Supabase triggers/functions
 
-## הערות מיגרציה
+## הערות מיגרציה ולקחים
 
-- שמרו על מבנה תשובות ונתיבי ה-API – מעבר ל-Supabase יוכל למפות endpoints לאותם חוזים.
+✅ **המיגרציה הושלמה בהצלחה** (אוגוסט 2025):
+
+- כל נתוני המשתמשים הועברו ל-Supabase PostgreSQL
+- workoutApi.ts מותאם לשדות Supabase (activityhistory במקום workouthistory)
+- userStore מסונכרן אוטומטית עם הענן
+- שמירה על mocks/demo data לפיתוח
+
+🔧 **לקחים טכניים**:
+
+- PostgreSQL דורש lowercase field names
+- AsyncStorage רק לcaching - לא לlogic
+- Supabase REST API מהיר ויציב
+- auto-sync מונע data inconsistency

@@ -74,7 +74,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(async () => {
         try {
-          await userApi.update(user.id!, { smartQuestionnaireData: data });
+          await userApi.update(user.id!, { smartquestionnairedata: data });
           if (__DEV__)
             console.warn("☁️ Synced questionnaire snapshot to server");
         } catch (e) {
@@ -530,7 +530,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
       updateUser({
         // נעדכן נתוני אימון/העדפות בסיסיות לפי התשובות
-        trainingStats: {
+        trainingstats: {
           selectedEquipment: finalEquipment,
           fitnessGoals: Array.isArray(questionnairePayload.goal)
             ? (questionnairePayload.goal as unknown as string[])
@@ -539,7 +539,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
               : undefined,
         },
         // שימור נתוני שאלון בפורמט תואם (metadata)
-        questionnaireData: {
+        questionnairedata: {
           answers: undefined,
           metadata: {
             ...questionnairePayload,
@@ -598,9 +598,9 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           setServerSaved(false);
           // תוך שמירה על ערכים חוקיים בלבד מתוך smartData
           await userApi.update(user.id, {
-            smartQuestionnaireData: smartData,
+            smartquestionnairedata: smartData,
             // תמיכה לתאימות מסכים ישנים: נשמור גם metadata בפורמט הקיים
-            questionnaireData: {
+            questionnairedata: {
               answers: undefined,
               metadata: {
                 equipment: finalEquipment,

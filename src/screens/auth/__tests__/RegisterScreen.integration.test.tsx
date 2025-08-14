@@ -52,7 +52,7 @@ describe("RegisterScreen Integration with localDataService", () => {
         id: "google_user_123",
         provider: "google",
         questionnaire: { 1: "answer1", 2: "answer2" },
-        questionnaireData: {
+        questionnairedata: {
           answers: ["answer1", "answer2"],
           completedAt: new Date().toISOString(),
           version: "1.0",
@@ -68,7 +68,7 @@ describe("RegisterScreen Integration with localDataService", () => {
       expect(savedUser).toBeDefined();
       expect(savedUser.provider).toBe("google");
       expect(savedUser.questionnaire).toBeDefined();
-      expect(savedUser.questionnaireData).toBeDefined();
+      expect(savedUser.questionnairedata).toBeDefined();
 
       const users = localDataService.getUsers();
       const retrievedUser = users.find((u) => u.email === googleUser.email);
@@ -109,7 +109,7 @@ describe("RegisterScreen Integration with localDataService", () => {
           language: "he",
           gender: "other",
         },
-        trainingStats: {
+        trainingstats: {
           totalWorkouts: 0,
           fitnessGoals: ["strength"],
           currentFitnessLevel: "beginner",
@@ -120,8 +120,8 @@ describe("RegisterScreen Integration with localDataService", () => {
       expect(savedUser.preferences).toBeDefined();
       expect(savedUser.preferences?.theme).toBe("light");
       expect(savedUser.preferences?.language).toBe("he");
-      expect(savedUser.trainingStats).toBeDefined();
-      expect(savedUser.trainingStats?.currentFitnessLevel).toBe("beginner");
+      expect(savedUser.trainingstats).toBeDefined();
+      expect(savedUser.trainingstats?.currentFitnessLevel).toBe("beginner");
     });
   });
 

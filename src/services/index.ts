@@ -58,18 +58,6 @@ export type {
 // 🔴 Demo services הוסרו (2025-08-13 cleanup) - אין יותר ייצואי דמו פעילים
 
 // =======================================
-// 🤖 AI and Scientific Services
-// שירותי AI ומדע
-// Status: ⚠️ ACTIVE but DEPRECATED - Limited usage, experimental features only
-// =======================================
-export { scientificAIService } from "./scientificAIService";
-export type {
-  ScientificExerciseRecommendation,
-  FitnessAssessment,
-  ScientificWorkoutPlan,
-} from "./scientificAIService";
-
-// =======================================
 // ⚡ Quick Workout Generation
 // יצירת אימונים מהירים
 // Status: ⚠️ ACTIVE but OVERLAPPING - Consider consolidation with workoutDataService

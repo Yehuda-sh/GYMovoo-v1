@@ -382,7 +382,7 @@ src/services/
 ├── wgerApiService.ts      # שירות WGER משני (גיבוי)
 ├── workoutHistoryService.ts # ניהול היסטוריית אימונים (עם התאמת מגדר)
 ├── workoutSimulationService.ts # סימולציית אימונים
-├── scientificAIService.ts # AI מדעי
+├── ~~scientificAIService.ts~~ # ✅ נמחק - AI מדעי מורכב
 ├── scientificUserGenerator.ts # יצירת משתמשים מדעיים
 ├── realisticDemoService.ts # שירות דמו ריאליסטי
 ├── nextWorkoutLogicService.ts # לוגיקת אימון הבא
@@ -496,7 +496,7 @@ GYMovoo/
 - **Exercise**: exerciseService, wgerService (main), wgerApiService (backup)
 - **Questionnaire**: questionnaireService
 - **Workout Generation**: quickWorkoutGenerator, workoutDataService, nextWorkoutLogicService
-- **Scientific AI**: scientificAIService, scientificUserGenerator, realisticDemoService
+- **~~Scientific AI~~**: ~~scientificAIService~~, scientificUserGenerator, realisticDemoService - ✅ **AI ניסיוני נמחק**
 - **History & Simulation**: workoutHistoryService (with gender adaptation), workoutSimulationService
 
 ### Central Navigation:

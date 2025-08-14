@@ -197,7 +197,7 @@ const equipment = unifiedQuestionnaire.questions.equipment.options.map(
 - ❌ `http://10.0.2.2:3001` - URLs לשרת מקומי
 - ❌ `EXPO_PUBLIC_STORAGE_BASE_URL` - משתנה סביבה ישן
 - ❌ `express`, `cors`, `body-parser` - imports לשרת Express
-- ❌ `storage/db/users.json` - קובצי JSON כמקור אמת (רק לגיבוי עכשיו)
+- ❌ ~~`storage/db/users.json`~~ - **הועבר ל-Supabase** (היה קובץ JSON מקומי)
 - ❌ `userApi.getUsersFromLocalFile()` - פונקציות API מקומיות
 
 ### 📱 **AsyncStorage כמקור אמת (לא מתאים יותר)**
@@ -224,7 +224,7 @@ const equipment = unifiedQuestionnaire.questions.equipment.options.map(
 
 ### 💾 **קבצי נתונים (storage/db/)**
 
-- **שמור כגיבוי**: `users.json` למקרה חירום
+- **שמור כגיבוי**: ~~`users.json`~~ **נמחק - הנתונים ב-Supabase**
 - **מחק**: קבצי cache מקומיים שכבר לא בשימוש
 - **העבר**: נתונים שלא הועברו עדיין ל-Supabase
 

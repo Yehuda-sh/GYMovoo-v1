@@ -267,7 +267,7 @@ export const getGenderIcon = (gender?: "male" | "female" | "other") => {
  * Extract user gender from questionnaire data
  */
 interface UserGenderSource {
-  smartQuestionnaireData?: {
+  smartquestionnairedata?: {
     answers?: { gender?: "male" | "female" | "other" };
   };
   questionnaire?: Record<number, unknown>;
@@ -278,8 +278,8 @@ export const getUserGender = (
 ): "male" | "female" | "other" => {
   if (!user) return "other";
 
-  // בדיקה של מגדר מתוך smartQuestionnaireData (חדש) או questionnaire רגיל (ישן)
-  const smartData = user?.smartQuestionnaireData;
+  // בדיקה של מגדר מתוך smartquestionnairedata (חדש) או questionnaire רגיל (ישן)
+  const smartData = user?.smartquestionnairedata;
   const regularData = user?.questionnaire;
 
   if (smartData?.answers?.gender) {

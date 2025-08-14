@@ -1,4 +1,5 @@
-// Simple local server for user management with JSON storage
+// [DEPRECATED] Simple local server for user management with JSON storage
+// ⚠️ שרת מקומי ישן - הוחלף ב-Supabase. קובץ users.json נמחק.
 // Prepared for future migration (keep the REST contract stable)
 
 const express = require("express");
@@ -12,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 const DB_DIR = path.join(__dirname, "db");
-const DB_FILE = path.join(DB_DIR, "users.json");
+const DB_FILE = path.join(DB_DIR, "users.json"); // ⚠️ קובץ זה נמחק
 const WORKOUTS_FILE = path.join(DB_DIR, "workouts.json");
 
 function ensureDb() {

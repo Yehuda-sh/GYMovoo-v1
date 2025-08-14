@@ -196,7 +196,7 @@ return selectedExercises.map((exercise, index) =>
 - **`workoutDataService.ts`** - המנוע הראשי ליצירת אימונים מותאמים
 - **`exercises/`** - מערכת תרגילים מודולרית עם 200+ תרגילים וציונים אלגוריתמיים
 - **`quickWorkoutGenerator.ts`** - יצירת אימונים מהירים עם מטריצות נתונים מרכזיות
-- **`scientificAIService.ts`** - המלצות מבוססות מחקר מדעי
+- ~~**`scientificAIService.ts`**~~ - ✅ **נמחק** - המלצות מבוססות מחקר מדעי (הוחלף בלוגיקה פשוטה יותר)
 
 ### 🎨 חוויית משתמש משופרת
 

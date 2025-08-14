@@ -233,22 +233,22 @@ function ProfileScreen() {
   const questionnaireStatus = useMemo(() => {
     const hasQuestionnaire = !!(
       user?.questionnaire ||
-      user?.questionnaireData ||
-      user?.smartQuestionnaireData
+      user?.questionnairedata ||
+      user?.smartquestionnairedata
     );
 
     const hasTrainingStage =
       (hasQuestionnaire &&
         (user.questionnaire as QuestionnaireBasicData)?.age &&
         (user.questionnaire as QuestionnaireBasicData)?.goal) ||
-      !!user?.smartQuestionnaireData ||
-      !!user?.questionnaireData;
+      !!user?.smartquestionnairedata ||
+      !!user?.questionnairedata;
 
     const hasProfileStage =
       hasQuestionnaire &&
       ((user.questionnaire as QuestionnaireBasicData)?.gender ||
-        !!user?.smartQuestionnaireData ||
-        !!user?.questionnaireData);
+        !!user?.smartquestionnairedata ||
+        !!user?.questionnairedata);
 
     const isComplete = Boolean(hasTrainingStage && hasProfileStage);
     return {
@@ -258,8 +258,8 @@ function ProfileScreen() {
     };
   }, [
     user?.questionnaire,
-    user?.questionnaireData,
-    user?.smartQuestionnaireData,
+    user?.questionnairedata,
+    user?.smartquestionnairedata,
   ]);
 
   /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
@@ -330,9 +330,9 @@ function ProfileScreen() {
     // Only refresh when critical user data changes
     // ציוד ונתונים רק כאשר נתוני המשתמש הקריטיים משתנים
   }, [
-    user?.smartQuestionnaireData,
+    user?.smartquestionnairedata,
     user?.questionnaire,
-    user?.trainingStats,
+    user?.trainingstats,
     user?.customDemoUser,
   ]);
 
@@ -524,7 +524,7 @@ function ProfileScreen() {
       string,
       unknown
     >;
-    const smartData = user?.smartQuestionnaireData?.answers || {};
+    const smartData = user?.smartquestionnairedata?.answers || {};
     // Helper to get nested values (e.g., goals[0], nutrition[0])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getNested = (obj: any, key: string) => {
@@ -694,13 +694,13 @@ function ProfileScreen() {
     const equipment: string[] = [];
 
     // 1. Smart questionnaire data (priority source)
-    if (currentUser.smartQuestionnaireData?.answers?.equipment) {
-      equipment.push(...currentUser.smartQuestionnaireData.answers.equipment);
+    if (currentUser.smartquestionnairedata?.answers?.equipment) {
+      equipment.push(...currentUser.smartquestionnairedata.answers.equipment);
     }
 
     // 2. Training stats selected equipment
-    if (currentUser.trainingStats?.selectedEquipment) {
-      equipment.push(...currentUser.trainingStats.selectedEquipment);
+    if (currentUser.trainingstats?.selectedEquipment) {
+      equipment.push(...currentUser.trainingstats.selectedEquipment);
     }
 
     // 3. Custom demo user equipment - הוסר כדי למנוע נתוני דמו
@@ -943,17 +943,17 @@ function ProfileScreen() {
     [userInfo, getDisplayFields]
   );
 
-  // חישוב סטטיסטיקות עם עדיפות לנתוני שרת (trainingStats) ונפילה לחישוב מקומי
+  // חישוב סטטיסטיקות עם עדיפות לנתוני שרת (trainingstats) ונפילה לחישוב מקומי
   const stats = useMemo(() => {
-    const serverStats: User["trainingStats"] = user?.trainingStats ?? {};
+    const serverStats: User["trainingstats"] = user?.trainingstats ?? {};
 
     // חישוב מקומי מהיסטוריית אימונים (fallback)
     let computedWorkouts = 0;
     let computedStreak = 0;
     let computedTotalMinutes = 0;
 
-    if (user?.activityHistory?.workouts) {
-      const workouts = user.activityHistory.workouts;
+    if (user?.activityhistory?.workouts) {
+      const workouts = user.activityhistory.workouts;
       computedWorkouts = workouts.length;
 
       // רצף מקומי
@@ -1582,10 +1582,10 @@ function ProfileScreen() {
             {(() => {
               // נרנדר אם יש מקור כלשהו לציוד: שאלון חכם, סטטיסטיקות אימון, או שאלון legacy
               const smartEquip =
-                user?.smartQuestionnaireData?.answers?.equipment;
+                user?.smartquestionnairedata?.answers?.equipment;
               const hasSmart =
                 Array.isArray(smartEquip) && smartEquip.length > 0;
-              const trainingEquip = user?.trainingStats?.selectedEquipment;
+              const trainingEquip = user?.trainingstats?.selectedEquipment;
               const hasTrainingStats =
                 Array.isArray(trainingEquip) && trainingEquip.length > 0;
               const legacyQuestionnaire = user?.questionnaire as Record<

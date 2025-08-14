@@ -80,7 +80,7 @@ interface UserStore {
   // פעולות התאמת מגדר
   // Gender adaptation actions
   setUserGender: (gender: "male" | "female" | "other") => void;
-  updateGenderProfile: (profile: Partial<User["genderProfile"]>) => void;
+  updateGenderProfile: (profile: Partial<User["genderprofile"]>) => void;
   getAdaptedWorkoutName: (originalName: string) => string;
 
   // פעולות שאלון ישן (לתאימות לאחור)
@@ -101,7 +101,7 @@ interface UserStore {
 
   // פעולות סטטיסטיקות מורחבות
   // Extended statistics actions
-  updateTrainingStats: (stats: Partial<User["trainingStats"]>) => void;
+  updateTrainingStats: (stats: Partial<User["trainingstats"]>) => void;
 
   // פעולות שמירה ובדיקה
   // Save and validation actions
@@ -129,7 +129,7 @@ interface UserStore {
 
   // פעולות תוכניות אימון
   // Workout plans actions
-  setWorkoutPlans: (plans: Partial<User["workoutPlans"]>) => void;
+  setWorkoutPlans: (plans: Partial<User["workoutplans"]>) => void;
   updateWorkoutPlan: (
     planType: "basic" | "smart" | "additional",
     plan: WorkoutPlan
@@ -216,7 +216,7 @@ export const useUserStore = create<UserStore>()(
         set((state) => ({
           user: {
             ...(state.user || {}),
-            smartQuestionnaireData: data,
+            smartquestionnairedata: data,
             // עדכון העדפות בהתאם לתשובות
             preferences: {
               ...state.user?.preferences,
@@ -224,8 +224,8 @@ export const useUserStore = create<UserStore>()(
               rtlPreference: true, // תמיד נכון לעברית
             },
             // עדכון נתוני אימון
-            trainingStats: {
-              ...state.user?.trainingStats,
+            trainingstats: {
+              ...state.user?.trainingstats,
               // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
               preferredWorkoutDays: (() => {
                 const arr = data.answers.availability;
@@ -290,16 +290,16 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                smartQuestionnaireData: state.user.smartQuestionnaireData
+                smartquestionnairedata: state.user.smartquestionnairedata
                   ? {
-                      ...state.user.smartQuestionnaireData,
+                      ...state.user.smartquestionnairedata,
                       ...updates,
                       answers: {
-                        ...state.user.smartQuestionnaireData.answers,
+                        ...state.user.smartquestionnairedata.answers,
                         ...updates.answers,
                       },
                       metadata: {
-                        ...state.user.smartQuestionnaireData.metadata,
+                        ...state.user.smartquestionnairedata.metadata,
                         ...updates.metadata,
                       },
                     }
@@ -314,7 +314,7 @@ export const useUserStore = create<UserStore>()(
       // Get smart questionnaire answers
       getSmartQuestionnaireAnswers: () => {
         const state = get();
-        return state.user?.smartQuestionnaireData?.answers || null;
+        return state.user?.smartquestionnairedata?.answers || null;
       },
 
       // איפוס השאלון החכם
@@ -324,7 +324,7 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                smartQuestionnaireData: undefined,
+                smartquestionnairedata: undefined,
                 genderProfile: undefined,
               }
             : null,
@@ -372,10 +372,10 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                genderProfile: {
+                genderprofile: {
                   selectedGender:
-                    state.user.genderProfile?.selectedGender || "other",
-                  ...state.user.genderProfile,
+                    state.user.genderprofile?.selectedGender || "other",
+                  ...state.user.genderprofile,
                   ...profile,
                 },
               }
@@ -388,7 +388,7 @@ export const useUserStore = create<UserStore>()(
       // Get adapted workout name
       getAdaptedWorkoutName: (originalName) => {
         const state = get();
-        const genderProfile = state.user?.genderProfile;
+        const genderProfile = state.user?.genderprofile;
 
         if (genderProfile?.adaptedWorkoutNames?.[originalName]) {
           return genderProfile.adaptedWorkoutNames[originalName];
@@ -519,8 +519,8 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                trainingStats: {
-                  ...state.user.trainingStats,
+                trainingstats: {
+                  ...state.user.trainingstats,
                   preferredWorkoutDays: prefs.workoutDays,
                   selectedEquipment: normalizeEquipment(prefs.equipment),
                   fitnessGoals: prefs.goals,
@@ -539,8 +539,8 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                trainingStats: {
-                  ...state.user.trainingStats,
+                trainingstats: {
+                  ...state.user.trainingstats,
                   ...stats,
                 },
               }
@@ -571,9 +571,9 @@ export const useUserStore = create<UserStore>()(
 
         // בדיקות בסיסיות
         const hasBasicInfo = !!(user.id || user.email || user.name);
-        const hasSmartQuestionnaire = !!user.smartQuestionnaireData?.answers;
+        const hasSmartQuestionnaire = !!user.smartquestionnairedata?.answers;
         const hasOldQuestionnaire = !!(
-          user.questionnaire || user.questionnaireData
+          user.questionnaire || user.questionnairedata
         );
 
         return hasBasicInfo && (hasSmartQuestionnaire || hasOldQuestionnaire);
@@ -586,9 +586,9 @@ export const useUserStore = create<UserStore>()(
         const user = state.user;
 
         const hasBasicInfo = !!(user?.id || user?.email || user?.name);
-        const hasSmartQuestionnaire = !!user?.smartQuestionnaireData?.answers;
+        const hasSmartQuestionnaire = !!user?.smartquestionnairedata?.answers;
         const hasOldQuestionnaire = !!(
-          user?.questionnaire || user?.questionnaireData
+          user?.questionnaire || user?.questionnairedata
         );
         const isFullySetup =
           hasBasicInfo && (hasSmartQuestionnaire || hasOldQuestionnaire);
@@ -662,8 +662,8 @@ export const useUserStore = create<UserStore>()(
                   questionnaireTimestamp: new Date().toISOString(),
                 },
                 questionnaire: qd || state.user.questionnaire,
-                smartQuestionnaireData: (() => {
-                  const existing = state.user.smartQuestionnaireData;
+                smartquestionnairedata: (() => {
+                  const existing = state.user.smartquestionnairedata;
                   if (qd) {
                     const realEquip = Array.isArray(qd.equipment)
                       ? normalizeEquipment(qd.equipment)
@@ -697,31 +697,31 @@ export const useUserStore = create<UserStore>()(
                   }
                   return existing;
                 })(),
-                trainingStats: (() => {
-                  if (!qd) return state.user.trainingStats;
+                trainingstats: (() => {
+                  if (!qd) return state.user.trainingstats;
                   const freq = qd.frequency;
                   let preferredDays =
-                    state.user.trainingStats?.preferredWorkoutDays || 3;
+                    state.user.trainingstats?.preferredWorkoutDays || 3;
                   if (typeof freq === "string" && /_days$/.test(freq)) {
                     const n = parseInt(freq.split("_", 1)[0], 10);
                     if (!isNaN(n)) preferredDays = n;
                   }
                   return {
-                    ...state.user.trainingStats,
+                    ...state.user.trainingstats,
                     preferredWorkoutDays: preferredDays,
                     selectedEquipment: (() => {
                       if (qd.equipment && Array.isArray(qd.equipment)) {
                         const real = normalizeEquipment(qd.equipment);
                         if (real.length > 0) return real;
                       }
-                      return state.user.trainingStats?.selectedEquipment || [];
+                      return state.user.trainingstats?.selectedEquipment || [];
                     })(),
                     fitnessGoals: qd.goal
                       ? [qd.goal]
-                      : state.user.trainingStats?.fitnessGoals || [],
+                      : state.user.trainingstats?.fitnessGoals || [],
                     currentFitnessLevel:
                       demoUser.experience ||
-                      state.user.trainingStats?.currentFitnessLevel,
+                      state.user.trainingstats?.currentFitnessLevel,
                   };
                 })(),
               }
@@ -750,7 +750,7 @@ export const useUserStore = create<UserStore>()(
                   questionnaireTimestamp: new Date().toISOString(),
                 },
                 questionnaire: qd,
-                smartQuestionnaireData: qd
+                smartquestionnairedata: qd
                   ? {
                       answers: {
                         goal: qd.goal,
@@ -767,7 +767,7 @@ export const useUserStore = create<UserStore>()(
                       metadata: qd.metadata || { source: "customDemo" },
                     }
                   : undefined,
-                trainingStats: (() => {
+                trainingstats: (() => {
                   if (!qd) return { totalWorkouts: 0 };
                   const freq = qd.frequency;
                   let preferredDays = 3;
@@ -950,8 +950,8 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                workoutPlans: {
-                  ...state.user.workoutPlans,
+                workoutplans: {
+                  ...state.user.workoutplans,
                   ...plans,
                   lastUpdated: new Date().toISOString(),
                 },
@@ -966,8 +966,8 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                workoutPlans: {
-                  ...state.user.workoutPlans,
+                workoutplans: {
+                  ...state.user.workoutplans,
                   [planType === "basic"
                     ? "basicPlan"
                     : planType === "smart"
@@ -983,7 +983,7 @@ export const useUserStore = create<UserStore>()(
 
       getAccessibleWorkoutPlan: () => {
         const state = get();
-        const plans = state.user?.workoutPlans;
+        const plans = state.user?.workoutplans;
         const canAccessPremium = get().canAccessPremiumFeatures();
 
         if (!plans) return null;
@@ -1069,7 +1069,7 @@ export const useQuestionnaireCompleted = () =>
   useUserStore(
     (state) =>
       state.user?.questionnaire !== undefined ||
-      state.user?.questionnaireData?.completedAt !== undefined
+      state.user?.questionnairedata?.completedAt !== undefined
   );
 
 // Hook לגישה למשתמש דמו מותאם
@@ -1109,8 +1109,8 @@ export const useAuthState = () => {
     hasBasicInfo: !!(user?.id || user?.email || user?.name),
     hasQuestionnaire: !!(
       user?.questionnaire ||
-      user?.questionnaireData ||
-      user?.smartQuestionnaireData
+      user?.questionnairedata ||
+      user?.smartquestionnairedata
     ),
   };
 };
@@ -1151,15 +1151,15 @@ useUserStore.setState((prev) => ({
         try {
           const payload: Partial<User> = {
             // שדות שניתן לסנכרן בבטחה
-            smartQuestionnaireData: u.smartQuestionnaireData,
+            smartquestionnairedata: u.smartquestionnairedata,
             ...(u.questionnaire ? { questionnaire: u.questionnaire } : {}),
-            ...(u.questionnaireData
-              ? { questionnaireData: u.questionnaireData }
+            ...(u.questionnairedata
+              ? { questionnairedata: u.questionnairedata }
               : {}),
             ...(u.preferences ? { preferences: u.preferences } : {}),
-            ...(u.genderProfile ? { genderProfile: u.genderProfile } : {}),
-            ...(u.trainingStats ? { trainingStats: u.trainingStats } : {}),
-            ...(u.workoutPlans ? { workoutPlans: u.workoutPlans } : {}),
+            ...(u.genderprofile ? { genderprofile: u.genderprofile } : {}),
+            ...(u.trainingstats ? { trainingstats: u.trainingstats } : {}),
+            ...(u.workoutplans ? { workoutplans: u.workoutplans } : {}),
             ...(u.subscription ? { subscription: u.subscription } : {}),
           };
           await userApi.update(u.id, payload);
@@ -1222,7 +1222,7 @@ export const useSubscription = () => {
  * Hook לניהול תוכניות אימון
  */
 export const useWorkoutPlans = () => {
-  const workoutPlans = useUserStore((state) => state.user?.workoutPlans);
+  const workoutPlans = useUserStore((state) => state.user?.workoutplans);
   const setWorkoutPlans = useUserStore((state) => state.setWorkoutPlans);
   const updateWorkoutPlan = useUserStore((state) => state.updateWorkoutPlan);
   const getAccessibleWorkoutPlan = useUserStore(

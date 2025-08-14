@@ -93,24 +93,24 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
     () => [
       {
         type: "basic",
-        plan: user?.workoutPlans?.basicPlan || null,
+        plan: user?.workoutplans?.basicPlan || null,
         name: "תוכנית בסיס",
         description: "תוכנית פשוטה ומהירה",
       },
       {
         type: "smart",
-        plan: user?.workoutPlans?.smartPlan || null,
+        plan: user?.workoutplans?.smartPlan || null,
         name: "תוכנית חכמה",
         description: "תוכנית מותאמת אישית מלאה",
       },
       {
         type: "additional",
-        plan: user?.workoutPlans?.additionalPlan || null,
+        plan: user?.workoutplans?.additionalPlan || null,
         name: "תוכנית נוספת",
         description: "תוכנית גיבוי או מגוונת",
       },
     ],
-    [user?.workoutPlans]
+    [user?.workoutplans]
   );
 
   const occupiedSlots = useMemo(

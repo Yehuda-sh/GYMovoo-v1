@@ -1,6 +1,10 @@
 /*
-  Import users from storage/db/users.json into Supabase public.users
-  שימוש (Windows PowerShell):
+  [DEPRECATED] Import users from storage/db/users.json into Supabase public.users
+  
+  ⚠️ הקובץ users.json נמחק - כל הנתונים עכשיו ב-Supabase
+  סקריפט זה לא רלוונטי יותר אחרי המעבר המלא לענן
+  
+  שימוש היסטורי (Windows PowerShell):
     $env:SUPABASE_URL="https://<project>.supabase.co"
     $env:SUPABASE_SERVICE_ROLE_KEY="<SERVICE_ROLE_KEY>"
     node scripts/importUsersToSupabase.js

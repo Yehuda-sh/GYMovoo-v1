@@ -1,6 +1,10 @@
 /**
  * @file src/services/core/DataManager.ts
- * @brief מנהל נתונים מרכזי - יכין נתונים בכניסה ויתמוך בשרת בעתיד
+ * @brief מנהל נתונים מרכזי - יכין נתונים בכנ           hasActivityHistory: !!user.activityhistory,
+         workoutsCount: user.activityhistory?.workouts?.length || 0,
+         hasScientificProfile: !!user.scientificprofile,    hasActivityHistory: !!user.activityhistory,
+         workoutsCount: user.activityhistory?.workouts?.length || 0,
+         hasScientificProfile: !!user.scientificprofile, ויתמוך בשרת בעתיד
  * @brief Central Data Manager - prepares data at startup and supports future server integration
  * @dependencies userStore, demoHistoryService, workoutHistoryService
  * @updated 2025-01-17 מערכת חדשה למרכוז ניהול נתונים
@@ -90,10 +94,10 @@ class DataManagerService {
           name: user.name,
           email: user.email,
           hasQuestionnaire: !!user.questionnaire,
-          hasSmartQuestionnaire: !!user.smartQuestionnaireData,
-          hasActivityHistory: !!user.activityHistory,
-          workoutsCount: user.activityHistory?.workouts?.length || 0,
-          hasScientificProfile: !!user.scientificProfile,
+          hasSmartQuestionnaire: !!user.smartquestionnairedata,
+          hasActivityHistory: !!user.activityhistory,
+          workoutsCount: user.activityhistory?.workouts?.length || 0,
+          hasScientificProfile: !!user.scientificprofile,
         });
       }
 
@@ -340,11 +344,11 @@ class DataManagerService {
     console.warn("• User Provider:", user.provider);
 
     // 🧠 נתוני שאלון חכם
-    if (user.smartQuestionnaireData) {
+    if (user.smartquestionnairedata) {
       console.warn("🧠 === SMART QUESTIONNAIRE DATA ===");
       console.warn(
         "• Smart Questionnaire Complete Object:",
-        user.smartQuestionnaireData
+        user.smartquestionnairedata
       );
     }
 
@@ -354,60 +358,62 @@ class DataManagerService {
       console.warn("• Legacy Answers:", user.questionnaire);
     }
 
-    if (user.questionnaireData) {
+    if (user.questionnairedata) {
       console.warn("📜 === LEGACY QUESTIONNAIRE DATA ===");
-      console.warn("• Legacy Data Complete Object:", user.questionnaireData);
+      console.warn("• Legacy Data Complete Object:", user.questionnairedata);
     }
 
     // 🔬 פרופיל מדעי
-    if (user.scientificProfile) {
+    if (user.scientificprofile) {
       console.warn("🔬 === SCIENTIFIC PROFILE ===");
       console.warn(
         "• Scientific Profile Complete Object:",
-        user.scientificProfile
+        user.scientificprofile
       );
     }
 
     // 🤖 המלצות AI
-    if (user.aiRecommendations) {
+    if (user.airecommendations) {
       console.warn("🤖 === AI RECOMMENDATIONS ===");
       console.warn(
         "• AI Recommendations Complete Object:",
-        user.aiRecommendations
+        user.airecommendations
       );
     }
 
     // 📈 היסטוריית פעילות
-    if (user.activityHistory) {
+    if (user.activityhistory) {
       console.warn("📈 === ACTIVITY HISTORY ===");
       console.warn(
         "• Total Workouts:",
-        user.activityHistory.workouts?.length || 0
+        user.activityhistory.workouts?.length || 0
       );
       console.warn(
         "• Weekly Progress:",
-        user.activityHistory.weeklyProgress || 0
+        user.activityhistory.weeklyProgress || 0
       );
-      console.warn("• Activity History Complete Object:", user.activityHistory);
+      console.warn("• Activity History Complete Object:", user.activityhistory);
 
       if (
-        user.activityHistory.workouts &&
-        user.activityHistory.workouts.length > 0
+        user.activityhistory.workouts &&
+        user.activityhistory.workouts.length > 0
       ) {
         console.warn("🏋️ === WORKOUTS PREVIEW (First 3) ===");
-        user.activityHistory.workouts.slice(0, 3).forEach((workout, index) => {
-          console.warn(`• Workout ${index + 1}:`, {
-            name: workout.name,
-            date: workout.date || workout.completedAt,
-            duration: `${Math.round((workout.duration || 0) / 60)} minutes`,
-            exercises: workout.exercises?.length || 0,
-            difficulty: workout.feedback?.overallRating || "N/A",
-            hasPlannedVsActual: !!workout.plannedVsActual,
+        user.activityhistory.workouts
+          .slice(0, 3)
+          .forEach((workout: any, index: number) => {
+            console.warn(`• Workout ${index + 1}:`, {
+              name: workout.name,
+              date: workout.date || workout.completedAt,
+              duration: `${Math.round((workout.duration || 0) / 60)} minutes`,
+              exercises: workout.exercises?.length || 0,
+              difficulty: workout.feedback?.overallRating || "N/A",
+              hasPlannedVsActual: !!workout.plannedVsActual,
+            });
           });
-        });
-        if (user.activityHistory.workouts.length > 3) {
+        if (user.activityhistory.workouts.length > 3) {
           console.warn(
-            `• ... and ${user.activityHistory.workouts.length - 3} more workouts`
+            `• ... and ${user.activityhistory.workouts.length - 3} more workouts`
           );
         }
       }

@@ -666,18 +666,18 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
       // Get user data from questionnaire - check all possible questionnaire formats
       const userQuestionnaireData =
         user?.questionnaire ||
-        user?.questionnaireData ||
-        (user?.smartQuestionnaireData?.answers
+        user?.questionnairedata ||
+        (user?.smartquestionnairedata?.answers
           ? {
-              // Convert smartQuestionnaireData to expected format
+              // Convert smartquestionnairedata to expected format
               experience:
-                user.smartQuestionnaireData.answers.fitnessLevel ||
+                user.smartquestionnairedata.answers.fitnessLevel ||
                 "intermediate",
-              gender: user.smartQuestionnaireData.answers.gender || "other",
+              gender: user.smartquestionnairedata.answers.gender || "other",
               // Bridge equipment sources: equipment / gym_equipment (array of objects) / bodyweight_equipment
               equipment: (() => {
-                const direct = user.smartQuestionnaireData.answers.equipment;
-                const gymEqRaw = (user.smartQuestionnaireData.answers as any)
+                const direct = user.smartquestionnairedata.answers.equipment;
+                const gymEqRaw = (user.smartquestionnairedata.answers as any)
                   .gym_equipment;
                 const gymEq = Array.isArray(gymEqRaw)
                   ? gymEqRaw.map((o: any) => o.id || o)
@@ -689,15 +689,15 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
                 return real.length > 0 ? Array.from(new Set(real)) : ["none"];
               })(),
               // Bridge goals: goals array or single fitness_goal
-              goals: user.smartQuestionnaireData.answers.goals || [
+              goals: user.smartquestionnairedata.answers.goals || [
                 "build_muscle",
               ],
               frequency:
-                user.smartQuestionnaireData.answers.availability?.[0] ||
+                user.smartquestionnairedata.answers.availability?.[0] ||
                 "3_times",
               duration: "45_60_min",
               goal:
-                user.smartQuestionnaireData.answers.goals?.[0] ||
+                user.smartquestionnairedata.answers.goals?.[0] ||
                 "build_muscle",
               age: "26_35",
               height: "171_180",

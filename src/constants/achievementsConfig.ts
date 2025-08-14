@@ -503,7 +503,7 @@ const checkRequirement = (
 ): { met: boolean; progress: number } => {
   if (!user) return { met: false, progress: 0 };
 
-  const workouts = user.activityHistory?.workouts || [];
+  const workouts = user.activityhistory?.workouts || [];
 
   switch (requirement.type) {
     case "questionnaire": {
@@ -601,7 +601,7 @@ export const calculateAchievements = (user: User | null): Achievement[] => {
     req: AchievementConfig["requirement"]
   ): boolean => {
     if (!u) return false;
-    const workouts = u.activityHistory?.workouts;
+    const workouts = u.activityhistory?.workouts;
     switch (req.type) {
       case "questionnaire": {
         const hasLegacy =

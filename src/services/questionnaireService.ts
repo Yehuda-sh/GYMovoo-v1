@@ -87,8 +87,8 @@ class QuestionnaireService {
         const fullMetadata: QuestionnaireMetadata = {
           ...user.questionnaire,
           completedAt:
-            user.questionnaireData?.completedAt || new Date().toISOString(),
-          version: user.questionnaireData?.version || "smart-questionnaire-v1",
+            user.questionnairedata?.completedAt || new Date().toISOString(),
+          version: user.questionnairedata?.version || "smart-questionnaire-v1",
         };
 
         console.warn(
@@ -98,16 +98,16 @@ class QuestionnaireService {
         return fullMetadata;
       }
 
-      // Priority 2: Check for enhanced questionnaireData
-      if (user?.questionnaireData) {
+      // Priority 2: Check for enhanced questionnairedata
+      if (user?.questionnairedata) {
         console.warn(
-          "✅ QuestionnaireService: Found questionnaireData in userStore, merging..."
+          "✅ QuestionnaireService: Found questionnairedata in userStore, merging..."
         );
 
         const fullMetadata: QuestionnaireMetadata = {
-          ...user.questionnaireData.answers,
-          ...user.questionnaireData.metadata,
-          completedAt: user.questionnaireData.completedAt,
+          ...user.questionnairedata.answers,
+          ...user.questionnairedata.metadata,
+          completedAt: user.questionnairedata.completedAt,
         };
 
         console.warn(
@@ -856,7 +856,7 @@ class QuestionnaireService {
 
     // Consistency achievement (would need to check history)
     const user = useUserStore.getState().user;
-    const recentWorkouts = user?.activityHistory?.workouts?.slice(0, 7) || [];
+    const recentWorkouts = user?.activityhistory?.workouts?.slice(0, 7) || [];
     if (recentWorkouts.length >= 3) {
       achievements.push("🔥 רצף אימונים פעיל!");
     }
@@ -1349,7 +1349,7 @@ class QuestionnaireService {
   ): "beginner" | "intermediate" | "advanced" {
     // Dynamic analysis: Check recent workout completion rates
     const user = useUserStore.getState().user;
-    const recentWorkouts = user?.activityHistory?.workouts?.slice(0, 5) || [];
+    const recentWorkouts = user?.activityhistory?.workouts?.slice(0, 5) || [];
 
     // Calculate completion rate from recent workouts
     const completionRate = this.calculateRecentCompletionRate(recentWorkouts);
@@ -1442,7 +1442,7 @@ class QuestionnaireService {
   ): WorkoutRecommendation["type"] {
     // Check user feedback for preferred workout types
     const user = useUserStore.getState().user;
-    const workoutHistory = user?.activityHistory?.workouts || [];
+    const workoutHistory = user?.activityhistory?.workouts || [];
     const preferenceRatings = this.analyzePreferenceRatings(
       workoutHistory,
       preference
@@ -1508,7 +1508,7 @@ class QuestionnaireService {
     // Dynamic analysis: Consider user's injury history and recovery progress
     const user = useUserStore.getState().user;
     const rehabHistory =
-      user?.activityHistory?.workouts?.filter(
+      user?.activityhistory?.workouts?.filter(
         (w: { type?: string }) => w.type === "rehabilitation"
       ) || [];
 

@@ -366,13 +366,13 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       if (rawPreferences) {
         // ✅ טען נתונים אישיים מהשאלון החדש
-        const userPersonalData = user?.smartQuestionnaireData?.answers
+        const userPersonalData = user?.smartquestionnairedata?.answers
           ? {
-              gender: user.smartQuestionnaireData.answers.gender as string,
-              age: String(user.smartQuestionnaireData.answers.age || ""),
-              weight: String(user.smartQuestionnaireData.answers.weight || ""),
-              height: String(user.smartQuestionnaireData.answers.height || ""),
-              fitnessLevel: user.smartQuestionnaireData.answers
+              gender: user.smartquestionnairedata.answers.gender as string,
+              age: String(user.smartquestionnairedata.answers.age || ""),
+              weight: String(user.smartquestionnairedata.answers.weight || ""),
+              height: String(user.smartquestionnairedata.answers.height || ""),
+              fitnessLevel: user.smartquestionnairedata.answers
                 .fitnessLevel as string,
             }
           : null;
