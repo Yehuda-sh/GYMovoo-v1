@@ -17,7 +17,7 @@
 - **כל הנתונים בענן**: משתמשים, שאלון, היסטוריית אימונים, סטטיסטיקות.
 - **AsyncStorage כ-cache בלבד** ולא כמקור אמת.
 - **API מחובר לענן**: `src/services/api/userApi.ts` מזהה אוטומטית Supabase ועובד איתו.
-- **משתני סביבה נדרשים**: 
+- **משתני סביבה נדרשים**:
   - `EXPO_PUBLIC_SUPABASE_URL="https://nyfvsmateipdmpshllsd.supabase.co"`
   - `EXPO_PUBLIC_SUPABASE_ANON_KEY="your_anon_key"`
 - **שמות עמודות PostgreSQL**: כל שדה camelCase הופך לאותיות קטנות (`smartQuestionnaireData` → `smartquestionnairedata`)
@@ -25,8 +25,9 @@
 - **אין ליצור נתונים מהאוויר** או לשנות מבנים ללא ערכים חוקיים מהמערכת.
 
 ### 🛠️ כלי עבודה עם Supabase
+
 - `npm run test:supabase` - בדיקת חיבור ופעולות CRUD
-- `npm run supabase:import-users` - העברת משתמשים מ-JSON ל-Supabase  
+- `npm run supabase:import-users` - העברת משתמשים מ-JSON ל-Supabase
 - טבלת `public.users` עם 20 עמודות JSONB לנתונים מורכבים
 
 ## ⚡ Quick rules (TL;DR)

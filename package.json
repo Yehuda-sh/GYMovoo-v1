@@ -10,8 +10,6 @@
     "web": "expo start --web",
     "test": "jest",
     "test:supabase": "node ./scripts/testSupabaseConnection.js",
-    "supabase:create-table": "node ./scripts/createSupabaseTable.js",
-    "supabase:upload": "node ./scripts/supabaseUpload.js",
     "supabase:import-users": "node ./scripts/importUsersToSupabase.js"
   },
   "dependencies": {
