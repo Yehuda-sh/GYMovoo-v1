@@ -15,9 +15,7 @@
 export { default as BackButton } from "./common/BackButton"; // 3 variants - כפתור חזרה עם תמיכה RTL
 export { default as LoadingSpinner } from "./common/LoadingSpinner"; // 4 variants - מחוון טעינה מתקדם
 export { default as EmptyState } from "./common/EmptyState"; // 3 variants - מצב ריק עם אנימציות
-export { default as IconButton } from "./common/IconButton"; // 3 variants - כפתור אייקון נגיש
 export { default as DefaultAvatar } from "./common/DefaultAvatar"; // אווטר ברירת מחדל עם נגישות
-export { default as InputField } from "./common/InputField"; // שדה קלט מתקדם עם תיקוף
 export { default as ConfirmationModal } from "./common/ConfirmationModal"; // חלון אישור RTL-friendly
 export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום עם 4 variants + grid
 
