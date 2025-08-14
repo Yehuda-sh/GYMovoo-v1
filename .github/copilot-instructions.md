@@ -17,7 +17,7 @@
 - **כל הנתונים בענן**: משתמשים, שאלון, היסטוריית אימונים, סטטיסטיקות.
 - **AsyncStorage כ-cache בלבד** ולא כמקור אמת.
 - **API מחובר לענן**: `src/services/api/userApi.ts` מזהה אוטומטית Supabase ועובד איתו.
-- **משתני סביבה נדרשים**: 
+- **משתני סביבה נדרשים**:
   - `EXPO_PUBLIC_SUPABASE_URL="https://nyfvsmateipdmpshllsd.supabase.co"`
   - `EXPO_PUBLIC_SUPABASE_ANON_KEY="your_anon_key"`
 - **שמות עמודות PostgreSQL**: כל שדה camelCase הופך לאותיות קטנות (`smartQuestionnaireData` → `smartquestionnairedata`)
@@ -25,8 +25,9 @@
 - **אין ליצור נתונים מהאוויר** או לשנות מבנים ללא ערכים חוקיים מהמערכת.
 
 ### 🛠️ כלי עבודה עם Supabase
+
 - `npm run test:supabase` - בדיקת חיבור ופעולות CRUD
-- `npm run supabase:import-users` - העברת משתמשים מ-JSON ל-Supabase  
+- `npm run supabase:import-users` - העברת משתמשים מ-JSON ל-Supabase
 - טבלת `public.users` עם 20 עמודות JSONB לנתונים מורכבים
 
 ## ⚡ Quick rules (TL;DR)
@@ -35,11 +36,150 @@
 - שמור תשובות קצרות וא-אישיות; העדף בולטים על פני טקסט חופשי.
 - מענה למשתמש בעברית בלבד; אל תשתמש באנגלית בתגובות, למעט קוד, שמות קבצים ופקודות.
 - אל תבצע רי-פורמט לקבצים שלמים; בצע שינויים מינימליים ורלוונטיים בלבד.
-- אחרי שינוי קוד TypeScript: הרץ בדיקת קומפילציה מקומית (`npx tsc --noEmit`).
+- **אחרי שינוי קוד: בדיקות מקיפות חובה** (ראה חלק "בדיקות איכות" למטה).
 - הרץ רק פקודות נחוצות עם הסבר קצר למטרה ולתוצאה המצופה; הימנע מפקודות "סרק"/"דופק".
 - בדוק ותקף מבני נתונים (data contracts) בין מסכים/שירותים לפני ריצה.
 - React Native/Expo: אם פורט 8081 תפוס – אשר החלפה לפורט חלופי והמשך.
 - Windows/PowerShell: ודא פקודות תואמות pwsh.
+
+# 🔍 פרוטוקול בדיקת קבצים - תקינות Supabase וחיבור לענן (2025-08-14)
+
+**חובה לבדוק כל קובץ לפני עריכה!** כאשר עוברים על קובץ קיים, יש לבדוק:
+
+## 📋 רשימת בדיקות חובה לכל קובץ
+
+### 🔌 בדיקות חיבור ו-API
+
+- **יש imports ל-API מקומי?** חפש `userApi`, `workoutApi`, `http://localhost`, `3001`, `EXPO_PUBLIC_STORAGE_BASE_URL`
+- **יש קריאות לשרת מקומי?** חפש `fetch(`, `axios.`, `api.get(`, `api.post(`
+- **יש AsyncStorage כמקור אמת?** חפש `AsyncStorage.getItem`, `AsyncStorage.setItem` (אמור להיות cache בלבד)
+- **יש Supabase imports?** חפש `@supabase/supabase-js`, `supabase.from`, `createClient`
+
+### 📊 בדיקות מבני נתונים
+
+- **שמות שדות נכונים?** `smartQuestionnaireData` vs `smartquestionnairedata` (PostgreSQL lowercase)
+- **מבנה JSON תואם?** בדוק שהנתונים תואמים לטבלת `public.users` (20 עמודות JSONB)
+- **קבועים מהמקום הנכון?** השתמש רק בערכים מ-`src/data/unifiedQuestionnaire.ts`
+
+### 🔧 בדיקות טכניות
+
+- **משתני סביבה נכונים?** `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- **TypeScript מקומפל?** בדוק שאין שגיאות אחרי שינויים
+- **imports/exports תקינים?** אחרי מחיקת קבצים בדוק שאין הפניות שבורות
+
+## 🚨 דגלים אדומים - קבצים שדורשים עדכון מיידי
+
+**מחק/עדכן מיידית אם נמצא:**
+
+- ❌ `http://10.0.2.2:3001` או כל URL מקומי אחר
+- ❌ `EXPO_PUBLIC_STORAGE_BASE_URL` (משתנה סביבה ישן)
+- ❌ `userApi.getUsersFromLocalFile()` או פונקציות מקומיות דומות
+- ❌ נתוני JSON מקומיים ב-`storage/db/` כמקור אמת
+- ❌ `axios.create({ baseURL: localServerUrl })` בלי fallback ל-Supabase
+
+**עדכן ל-Supabase אם נמצא:**
+
+- ✅ החלף ב-`supabase.from('users').select()` במקום API calls מקומיים
+- ✅ השתמש בשמות עמודות אותיות קטנות (`smartquestionnairedata`)
+- ✅ ודא שכל CRUD מתבצע דרך Supabase client
+
+## 📝 תבנית בדיקה מהירה (Copy-Paste לכל קובץ)
+
+```
+🔍 בדיקת קובץ: [שם הקובץ]
+- [ ] חיבור לשרת מקומי? (מחק/עדכן)
+- [ ] AsyncStorage כמקור אמת? (רק cache מותר)
+- [ ] שמות שדות PostgreSQL נכונים? (lowercase)
+- [ ] Supabase imports קיימים?
+- [ ] משתני סביבה עדכניים?
+- [ ] קבועים מהמקום הנכון?
+- [ ] TypeScript מקומפל?
+```
+
+## 🎯 קבצים קריטיים שדורשים בדיקה מיוחדת
+
+**API Services:**
+
+- `src/services/api/userApi.ts` - חובה Supabase integration
+- `src/services/api/workoutApi.ts` - עדיין יכול להיות מקומי (לעדכון עתידי)
+
+**Stores:**
+
+- `src/store/userStore.ts` - חובה sync עם Supabase
+- כל store אחר שמנהל נתוני משתמש
+
+**Screens עם נתוני משתמש:**
+
+- `src/screens/Profile/` - כל מסך פרופיל
+- `src/screens/Questionnaire/` - שמירה ל-Supabase
+- `src/screens/Welcome/` - טעינה מ-Supabase
+
+## 🔧 פעולות תיקון מיידיות לפי סוג בעיה
+
+### 📡 קובץ עם חיבור לשרת מקומי
+
+```typescript
+// ❌ לפני (מחק/עדכן):
+const response = await fetch("http://10.0.2.2:3001/api/users");
+
+// ✅ אחרי (Supabase):
+const { data, error } = await supabase.from("users").select("*");
+```
+
+### 🗄️ קובץ עם AsyncStorage כמקור אמת
+
+```typescript
+// ❌ לפני (רק לcache):
+const userData = await AsyncStorage.getItem("user");
+
+// ✅ אחרי (Supabase + cache):
+const { data } = await supabase.from("users").select("*").eq("id", userId);
+// AsyncStorage רק לcaching: await AsyncStorage.setItem('user_cache', JSON.stringify(data));
+```
+
+### 🏷️ קובץ עם שמות שדות שגויים
+
+```typescript
+// ❌ לפני (camelCase):
+user.smartQuestionnaireData;
+
+// ✅ אחרי (PostgreSQL lowercase):
+user.smartquestionnairedata;
+```
+
+### 📋 קובץ עם קבועים לא מהמקום הנכון
+
+```typescript
+// ❌ לפני (ערכים מבודדים):
+const equipment = ["dumbbells", "barbell"];
+
+// ✅ אחרי (מקבועים):
+import { unifiedQuestionnaire } from "src/data/unifiedQuestionnaire";
+const equipment = unifiedQuestionnaire.questions.equipment.options.map(
+  (opt) => opt.id
+);
+```
+
+## 🚀 פרוטוקול עדכון קובץ מלא
+
+1. **זיהוי בעיות**: עבור על רשימת הבדיקות למעלה
+2. **דיווח למשתמש**: "נמצאו בעיות ב-[קובץ]: [רשימה קצרה]"
+3. **קבלת אישור**: "האם לתקן עכשיו?"
+4. **ביצוע תיקונים**: החלף/עדכן/מחק בעייתי
+5. **אימות מקיף**: הרץ בדיקות לפי רשימת "בדיקות איכות מקיפות"
+6. **דיווח סיכום**: "תוקן: [מה שהשתנה] | בדיקות: [מה שהורץ] | תוצאה: [✅/❌]"
+
+## 🎯 דוגמה לבדיקה מעשית
+
+כאשר עוברים על `src/screens/Profile/ProfileScreen.tsx`:
+
+1. ✅ חפש `userApi` imports
+2. ✅ בדוק אם יש `AsyncStorage.getItem('user')`
+3. ✅ וודא ש-`user.smartQuestionnaireData` → `user.smartquestionnairedata`
+4. ✅ בדוק שכל עדכון פרופיל עובר דרך Supabase
+5. ✅ וודא שהנתונים נטענים מ-`userStore` (שמסונכרן עם Supabase)
+
+אם נמצאו בעיות → דווח → קבל אישור → תקן → אמת.
 
 # 🧐 בדיקת דיוק הפניות לרכיבים/פיצ'רים
 
@@ -170,10 +310,8 @@
 - **בעיות RTL**: ודא `writingDirection: "rtl"`, `textAlign: "right"`, `flexDirection: "row-reverse"` לטקסט עברי.
 - **כפתורים לא מגיבים**: בדוק שאין שכבות חוסמות (`zIndex`, `elevation`, רכיבים מכסים).
 
-בדיקות מהירות מומלצות לפני ריצה:
-
-- TypeScript: `npx tsc --noEmit`
-- חיפוש הפניות שבורות: חפש מחרוזות ייחודיות של קבצים שנמחקו/הועברו.
+**בדיקות חובה לפני ריצה:**
+ראה חלק "בדיקות איכות מקיפות" למעלה - הרץ לפחות בדיקות בסיסיות.
 
 ## 🛡️ בטיחות
 
@@ -192,11 +330,61 @@
 - כשמבנה נתונים לא ברור – בצע הנחה סבירה אחת או שתיים והמשך, וציין אותן בתמציתיות.
 - דווח הבדלי מצב בקיצור (מה שונה מאז הצעד האחרון) במקום לחזור על כל התכנית.
 
-## 🧪 בדיקות איכות
+## 🧪 בדיקות איכות מקיפות
 
-- ודא שהקוד מקומפל (TypeScript).
-- בדוק ביצועים – האם השינויים משפרים מהירות/זיכרון.
-- זהה באגים פוטנציאליים – לולאות אינסופיות, memory leaks וכו'.
+**חובה אחרי כל שינוי קוד!** הרץ בדיקות לפי סדר החשיבות:
+
+### 🔧 בדיקות בסיסיות (תמיד)
+
+1. **TypeScript Compilation**: `npx tsc --noEmit`
+2. **Import/Export תקינות**: חפש שגיאות import אחרי מחיקות
+3. **Linting**: `npx eslint src/ --ext .ts,.tsx` (אם יש)
+
+### 🌐 בדיקות Supabase (כשרלוונטי)
+
+4. **חיבור תקין**: `npm run test:supabase`
+5. **מבני נתונים**: ודא שמות עמודות PostgreSQL נכונים
+6. **משתני סביבה**: `EXPO_PUBLIC_SUPABASE_URL` ו-`EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+### 📱 בדיקות React Native (למסכים חדשים/מעודכנים)
+
+7. **Metro bundler**: `npm start` (בדוק שלא קורס)
+8. **Build Android**: `npm run android` (אם יש שינויים native)
+9. **Hot reload**: בדוק שהשינויים נטענים נכון באמולטור
+
+### 🧪 בדיקות פונקציונליות (לשינויים לוגיים)
+
+10. **Unit tests**: `npm test` (אם יש)
+11. **Demo data**: `scripts/createRealisticUser.js` (אם שינוי במבני נתונים)
+12. **Navigation flow**: בדוק שהניווט עובד בין מסכים
+
+### 🔍 בדיקות מתקדמות (לשינויים גדולים)
+
+13. **Performance**: בדוק זמני טעינה וזיכרון
+14. **Accessibility**: ודא labels ו-RTL support
+15. **Error handling**: בדוק טיפול בשגיאות רשת
+
+## 📋 סקריפט בדיקה מהיר (Copy-Paste)
+
+```bash
+# בדיקות בסיסיות חובה
+npx tsc --noEmit
+npm run test:supabase
+npm start
+
+# בדיקות נוספות לפי צורך
+npm test
+npm run android
+```
+
+### ⚠️ כשלים נפוצים ופתרונות
+
+- **TypeScript errors**: בדוק imports חסרים או שמות שדות שגויים
+- **Supabase connection fail**: ודא משתני סביבה או בדוק status
+- **Metro bundler crash**: נקה cache עם `npx expo start --clear`
+- **Build fails**: בדוק dependencies עם `npm audit`
+
+**זכור: עדיף לבדוק 2 דקות מאשר לתקן באגים 20 דקות! 🎯**
 
 ## 🗣️ דיאלוג עם המשתמש
 
@@ -233,7 +421,7 @@
 
 - **תיקוני RTL מהירים**: כשמשתמש מדווח על בעיות RTL, הוסף מיד `writingDirection: "rtl"` לכל הטקסטים העבריים במסך.
 - **Safe Area כברירת מחדל**: אם יש התלוננות על UI שחופף למצלמה/משפך, החלף `View` ב-`SafeAreaView` מיד.
-- **בדיקה מהירה**: אחרי תיקוני RTL/SafeArea, הרץ `npx tsc --noEmit` לוודא שהקוד תקין.
+- **בדיקה מקיפה**: אחרי תיקוני RTL/SafeArea, הרץ רשימת "בדיקות איכות מקיפות"
 - **עדכון הנחיות**: כל לקח חדש מפתרון בעיות אמיתיות - הוסף מיד להנחיות למניעת חזרות.
 
 ## 🎯 יצירת משתמשים אמיתיים - לקחים (אוגוסט 2025)
