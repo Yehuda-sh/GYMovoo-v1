@@ -1,17 +1,18 @@
 /**
  * @file src/screens/workout/WorkoutPlansScreen.tsx
- * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר עם AI וניהול מתקדם
- * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase
- * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, ונגישות מקיפה. תומך במערכת subscription ו-trial validation
+ * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר עם AI וניהול מתקדם - מותאם לכושר מובייל
+ * @dependencies React Native, Expo, MaterialCommunityIcons, theme, userStore, questionnaireService, exerciseDatabase, expo-haptics
+ * @notes מציג תוכניות אימון מותאמות אישית עם אלגוריתמי AI, תמיכת RTL מלאה, נגישות מקיפה, haptic feedback מדורג. תומך במערכת subscription ו-trial validation
  * @recurring_errors BackButton חובה במקום TouchableOpacity ידני, Alert.alert חסום - השתמש ב-ConfirmationModal
- * @updated August 2025 - Enhanced logging, support for new exercise database with "none" equipment type for bodyweight exercises, subscription validation
+ * @fitness_mobile אופטימיזציות כושר מובייל: performance tracking, haptic feedback, enlarged hitSlop, 44px validation
+ * @updated August 2025 - Enhanced with fitness mobile optimizations: graduated haptic feedback, performance tracking, enlarged touch targets
  */
 
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,6 +22,7 @@ import {
   RefreshControl,
   Animated,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -114,6 +116,36 @@ if (typeof global !== "undefined") {
 }
 
 export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
+  // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(
+        `⚠️ WorkoutPlanScreen רינדור איטי: ${renderTime.toFixed(2)}ms`
+      );
+    }
+  }, [renderStartTime]);
+
+  // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
+  const triggerHapticFeedback = useCallback(
+    (intensity: "light" | "medium" | "heavy") => {
+      switch (intensity) {
+        case "light":
+          Haptics.selectionAsync(); // לבחירת יום או עריכה
+          break;
+        case "medium":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // לבחירת תוכנית
+          break;
+        case "heavy":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // להתחלת אימון
+          break;
+      }
+    },
+    []
+  );
+
   // משתנים עזר שהיו חסרים
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, updateWorkoutPlan } = useUserStore();
@@ -443,59 +475,72 @@ export default function WorkoutPlanScreen({ route }: WorkoutPlanScreenProps) {
   };
 
   /**
-   * Handle day selection with debug
+   * Handle day selection with debug and haptic feedback
    */
-  const handleDaySelection = (index: number, workoutName: string) => {
-    console.warn(
-      `📅 WorkoutPlansScreen - נבחר יום ${index + 1}: ${workoutName}`
-    );
-    setSelectedDay(index);
-  };
+  const handleDaySelection = useCallback(
+    (index: number, workoutName: string) => {
+      triggerHapticFeedback("light"); // משוב קל לבחירת יום
+      console.warn(
+        `📅 WorkoutPlansScreen - נבחר יום ${index + 1}: ${workoutName}`
+      );
+      setSelectedDay(index);
+    },
+    [triggerHapticFeedback]
+  );
 
   /**
-   * Handle workout start with debug
+   * Handle workout start with debug and haptic feedback
    */
-  const handleStartWorkout = (workout: WorkoutTemplate) => {
-    console.warn(
-      `🚀 WorkoutPlansScreen - התחלת אימון: ${workout.name} -> מנווט ל-ActiveWorkoutScreen`
-    );
-    startWorkout(workout);
-  };
+  const handleStartWorkout = useCallback(
+    (workout: WorkoutTemplate) => {
+      triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון
+      console.warn(
+        `🚀 WorkoutPlansScreen - התחלת אימון: ${workout.name} -> מנווט ל-ActiveWorkoutScreen`
+      );
+      startWorkout(workout);
+    },
+    [triggerHapticFeedback]
+  );
 
   /**
-   * Handle exercise details navigation - עובר למסך פרטי התרגיל
+   * Handle exercise details navigation with haptic feedback - עובר למסך פרטי התרגיל
    */
-  const handleExerciseDetailsToggle = (
-    exerciseId: string,
-    exerciseName: string
-  ) => {
-    console.warn(`💪 WorkoutPlansScreen - מעבר לפרטי תרגיל: ${exerciseName}`);
+  const handleExerciseDetailsToggle = useCallback(
+    (exerciseId: string, exerciseName: string) => {
+      triggerHapticFeedback("light"); // משוב קל לפרטי תרגיל
+      console.warn(`💪 WorkoutPlansScreen - מעבר לפרטי תרגיל: ${exerciseName}`);
 
-    // מצא את נתוני התרגיל ממאגר הנתונים
-    const exercise = exerciseMap[exerciseId];
+      // מצא את נתוני התרגיל ממאגר הנתונים
+      const exercise = exerciseMap[exerciseId];
 
-    if (!exercise) {
-      console.error("💪 WorkoutPlansScreen - תרגיל לא נמצא במאגר:", exerciseId);
-      return;
-    }
+      if (!exercise) {
+        console.error(
+          "💪 WorkoutPlansScreen - תרגיל לא נמצא במאגר:",
+          exerciseId
+        );
+        return;
+      }
 
-    // עבור למסך פרטי התרגיל עם כל הנתונים הנדרשים
-    navigation.navigate("ExerciseDetails", {
-      exerciseId: exerciseId,
-      exerciseName: exercise.name,
-      muscleGroup: exercise.primaryMuscles?.[0] || "כללי",
-      exerciseData: {
-        equipment: exercise.equipment || "ציוד חופשי",
-        difficulty: exercise.difficulty || "בינוני",
-        instructions: exercise.instructions?.he || exercise.instructions || [],
-        benefits:
-          (exercise as any).benefits?.he ||
-          (exercise as Exercise & { benefits?: string[] }).benefits ||
-          [],
-        tips: exercise.tips?.he || exercise.tips || [],
-      },
-    });
-  };
+      // עבור למסך פרטי התרגיל עם כל הנתונים הנדרשים
+      navigation.navigate("ExerciseDetails", {
+        exerciseId: exerciseId,
+        exerciseName: exercise.name,
+        muscleGroup: exercise.primaryMuscles?.[0] || "כללי",
+        exerciseData: {
+          equipment: exercise.equipment || "ציוד חופשי",
+          difficulty: exercise.difficulty || "בינוני",
+          instructions:
+            exercise.instructions?.he || exercise.instructions || [],
+          benefits:
+            (exercise as any).benefits?.he ||
+            (exercise as Exercise & { benefits?: string[] }).benefits ||
+            [],
+          tips: exercise.tips?.he || exercise.tips || [],
+        },
+      });
+    },
+    [triggerHapticFeedback, exerciseMap, navigation]
+  );
 
   /**
    * Check network connectivity
@@ -2135,6 +2180,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minHeight: 44,
   },
   retryButtonText: {
     color: theme.colors.surface,
@@ -2226,6 +2273,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 8,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minHeight: 44,
   },
   planTabActive: {
     backgroundColor: theme.colors.primary,

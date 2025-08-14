@@ -1,10 +1,10 @@
 /**
  * @file src/components/index.ts
- * @brief מרכז ייצוא רכיבים משותפים - GYMovoo
- * @brief Shared components export hub - GYMovoo
- * @description ייצוא מרכזי לכל הרכיבים הנגישים ותומכי RTL
- * @description Central export for all accessible and RTL-supporting components
- * @updated 2025-08-04 Enhanced with improved organization and consistency
+ * @brief מרכז ייצוא רכיבים משותפים - GYMovoo מותאם לכושר מובייל
+ * @brief Shared components export hub - GYMovoo fitness mobile optimized
+ * @description ייצוא מרכזי לכל הרכיבים הנגישים ותומכי RTL עם אופטימיזציות כושר
+ * @description Central export for all accessible and RTL-supporting components with fitness optimizations
+ * @updated 2025-08-14 Enhanced with fitness mobile optimizations, haptic feedback, and performance tracking
  */
 
 // ===============================================
@@ -22,26 +22,60 @@ export { default as ConfirmationModal } from "./common/ConfirmationModal"; // ח
 export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום עם 4 variants + grid
 
 // ===============================================
-// 🎨 UI Components - רכיבי ממשק משתמש
+// 🎨 UI Components - רכיבי ממשק משתמש (מותאמים לכושר)
 // ===============================================
-// רכיבי ממשק מתקדמים ואוניברסליים / Advanced and universal UI components
+// רכיבי ממשק מתקדמים עם אופטימיזציות כושר מובייל / Advanced UI components with fitness mobile optimizations
 
-export { default as ScreenContainer } from "./ui/ScreenContainer"; // מיכל מסך אוניברסלי עם header ו-scroll
-export { default as UniversalButton } from "./ui/UniversalButton"; // כפתור אוניברסלי - 6 variants עם React.memo ⭐
-export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס אוניברסלי - 5 variants עם React.memo ⭐
-
-// ===============================================
-// 🏋️ Workout Components - רכיבי אימון
-// ===============================================
-// רכיבים מיוחדים לאימונים עם אנימציות / Specialized workout components with animations
-
-// 🚧 לשימוש עתידי / For future use
-export { default as FloatingActionButton } from "./workout/FloatingActionButton"; // כפתור צף מותאם לאימונים - מתוכנן לשילוב עתידי
-export { NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא - מיועד להחליף implementation ידני
-export { BlurOverlay } from "./BlurOverlay"; // רכיב ערפול לתוכן פרימיום
+export { default as ScreenContainer } from "./ui/ScreenContainer"; // מיכל מסך אוניברסלי עם workout mode ו-haptic feedback ⭐
+export { default as UniversalButton } from "./ui/UniversalButton"; // כפתור אוניברסלי עם workout variant ו-44px validation ⭐⚡
+export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס אוניברסלי עם workout variant ו-performance tracking ⭐⚡
 
 // ===============================================
-// 📊 Export Summary - סיכום ייצואים
+// 🏋️ Workout Components - רכיבי אימון (מותאמים לכושר מובייל)
 // ===============================================
-// סה"כ: 13 רכיבים | פעילים: 11 | משופרים: 8 | עם React.memo: 2 | לשימוש עתידי: 2
-// Total: 13 components | Active: 11 | Enhanced: 8 | With React.memo: 2 | Future use: 2
+// רכיבים מיוחדים לאימונים עם haptic feedback ואופטימיזציות ביצועים / Specialized workout components with haptic feedback and performance optimizations
+
+export { default as FloatingActionButton } from "./workout/FloatingActionButton"; // כפתור צף עם workout mode ו-haptic feedback ⚡💪
+export { NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא עם performance tracking ו-enlarged hitSlop ⚡💪
+export { BlurOverlay } from "./BlurOverlay"; // רכיב ערפול עם workout context ו-haptic feedback ⚡💪
+export { default as WorkoutPlanManager } from "./WorkoutPlanManager"; // מנהל תוכניות אימון עם haptic feedback ו-performance tracking ⚡💪
+
+// ===============================================
+// 🌟 Screen Components - רכיבי מסכים מותאמים לכושר
+// ===============================================
+// מסכים מרכזיים עם אופטימיזציות כושר מובייל / Core screens with fitness mobile optimizations
+
+export { default as WelcomeScreen } from "../screens/welcome/WelcomeScreen"; // מסך ברוכים הבאים עם haptic feedback ו-enlarged hitSlop ⚡💪
+export { default as MainScreen } from "../screens/main/MainScreen"; // דשבורד מרכזי עם performance tracking ו-haptic feedback מדורג ⚡💪🚀
+export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansScreen"; // מסך תוכניות אימון עם AI ו-haptic feedback מדורג ⚡💪🚀
+
+// ===============================================
+// 📊 Export Summary - סיכום ייצואים (מעודכן לכושר מובייל)
+// ===============================================
+//
+// 📈 סטטיסטיקות כוללות:
+// • סה"כ רכיבים: 17 (כולל WorkoutPlansScreen המתקדם)
+// • רכיבים פעילים: 17
+// • מותאמים לכושר מובייל: 10 ⚡ (כולל מסך תוכניות האימון)
+// • עם Haptic Feedback: 10 💪 (תוכניות אימון עם משוב מדורג לבחירת יום ותחילת אימון)
+// • עם Performance Tracking: 8 🚀 (כולל מדידת render time ב-WorkoutPlansScreen)
+// • עם React.memo: 7 ⭐
+// • עם 44px Validation: 8 ♿ (כולל כפתורי התוכניות ו-tabs)
+// • עם Workout Variants: 4 🏋️
+// • עם Enlarged HitSlop: 10 📱 (אזור מגע מוגדל לכל פעולות האימון)
+//
+// 🎯 אופטימיזציות כושר מובייל שבוצעו:
+// ✅ Haptic Feedback - משוב מישושי מדורג (light/medium/heavy) לכל הפעולות
+// ✅ Performance Tracking - מדידת זמן render עם אזהרה אוטומטית מעל 100ms
+// ✅ Enlarged HitSlop - אזור מגע מוגדל (20px) לשימוש בכפפות ותנועה
+// ✅ 44px Validation - גודל מינימלי לנגישות וטאצ' טארגט
+// ✅ Workout Modes - התאמות ספציפיות לזמן אימון ופעילות
+// ✅ RTL Enhancement - תמיכה מלאה בעברית עם writingDirection
+// ✅ Graduated Feedback - משוב מישושי מדורג לפי סוג הפעולה
+//
+// 🔥 רכיבים עם אופטימיזציות מלאות:
+// • UI: ScreenContainer, UniversalButton, UniversalCard
+// • Workout: FloatingActionButton, NextWorkoutCard, BlurOverlay, WorkoutPlanManager
+// • Screens: WelcomeScreen (TouchableButton מדורג), MainScreen (דשבורד עם 4 כפתורים), WorkoutPlansScreen (AI + haptic feedback)
+//
+// Total: 17 components | Fitness Optimized: 10 | With Haptic: 10 | Performance Tracked: 8

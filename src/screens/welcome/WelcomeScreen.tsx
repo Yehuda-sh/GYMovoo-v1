@@ -1,18 +1,25 @@
 /**
  * @file src/screens/welcome/WelcomeScreen.tsx
- * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות מהירה - מסך מרכזי קריטי
- * @description English: Main welcome screen with sign-up and quick login options - Critical central screen
+ * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות מהירה - מותאם לכושר מובייל
+ * @description English: Main welcome screen with sig      // שליפת משתמשים מהמאגר המקומי ובחירת אחד רנדומלי
+      const users = localDataService.getUsers();
+      if (!users || users.length === 0) {
+        throw new Error(
+          "לא נמצאו משתמשים במאגר המקומי. ודא שהמאגר מכיל משתמשים."
+        );
+      }d quick login options - fitness mobile optimized
  *
- * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מותאמת לייצור
+ * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מותאמת לייצור וכושר מובייל
  * - Critical entry point for the entire application
  * - Simplified authentication system with local data integration
  * - Production-ready with comprehensive error handling
  * - Full accessibility compliance and RTL support
  * - Live user counter display
  * - Clean UI without legacy demo systems
+ * - Fitness mobile optimizations: haptic feedback, performance tracking, enlarged hitSlop
  *
- * @description התחברות מהירה למשתמש אמיתי ממאגר מקומי + הרשמה חדשה
- * Features quick login to real stored user from local data service + new registration
+ * @description התחברות מהירה למשתמש אמיתי ממאגר מקומי + הרשמה חדשה עם אופטימיזציות כושר
+ * Features quick login to real stored user from local data service + new registration with fitness optimizations
  *
  * @features
  * - ✅ התחברות מהירה למשתמש אמיתי ממאגר מקומי
@@ -55,7 +62,7 @@
  * @updated 2025-08-12 Modernized and simplified after cleanup - removed animations, demo, Google auth
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -65,6 +72,7 @@ import {
   TouchableNativeFeedback,
   Pressable,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -72,6 +80,7 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { userApi } from "../../services/api/userApi";
 // Removed unused demo/google auth imports
 import { RootStackParamList } from "../../navigation/types";
 import {
@@ -79,7 +88,6 @@ import {
   generateActiveUsersCount,
   formatActiveUsersText,
 } from "../../constants/welcomeScreenTexts";
-import { userApi } from "../../services/api/userApi";
 
 // Helper function was removed - inline logic used instead for better performance optimization
 
@@ -94,8 +102,8 @@ interface TouchableButtonProps {
   accessibilityHint?: string;
 }
 
-// Cross-platform touchable wrapper with native feedback and micro-interactions
-// עטיפת מגע חוצת פלטפורמות עם משוב נטיבי ומיקרו-אינטראקציות
+// Cross-platform touchable wrapper with native feedback, haptic response, and fitness mobile optimizations
+// עטיפת מגע חוצת פלטפורמות עם משוב נטיבי, תגובה מישושית ואופטימיזציות כושר מובייל
 const TouchableButton = ({
   children,
   onPress,
@@ -104,6 +112,13 @@ const TouchableButton = ({
   accessibilityLabel,
   accessibilityHint,
 }: TouchableButtonProps) => {
+  // 📱 Fitness Mobile Optimization: Enlarged hitSlop for workout scenarios
+  const enhancedHitSlop = { top: 20, bottom: 20, left: 20, right: 20 };
+
+  // 📏 44px Minimum Touch Target Validation for Accessibility
+  const buttonStyle = Array.isArray(style) ? StyleSheet.flatten(style) : style;
+  const minTouchTarget = 44;
+
   // Native feedback for Android, fallback for iOS
   if (Platform.OS === "android") {
     return (
@@ -113,8 +128,19 @@ const TouchableButton = ({
         background={TouchableNativeFeedback.Ripple(theme.colors.primary, false)}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
+        hitSlop={enhancedHitSlop}
       >
-        <View style={style}>{children}</View>
+        <View
+          style={[
+            style,
+            {
+              minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
+              minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
+            },
+          ]}
+        >
+          {children}
+        </View>
       </TouchableNativeFeedback>
     );
   }
@@ -122,7 +148,14 @@ const TouchableButton = ({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={style}
+      style={[
+        style,
+        {
+          minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
+          minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
+        },
+      ]}
+      hitSlop={enhancedHitSlop}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
     >
@@ -132,6 +165,16 @@ const TouchableButton = ({
 };
 
 export default function WelcomeScreen() {
+  // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(`⚠️ WelcomeScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
+    }
+  }, [renderStartTime]);
+
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { setUser } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -140,6 +183,100 @@ export default function WelcomeScreen() {
   // Generate realistic active users count based on time of day
   // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
   const [activeUsers] = useState(() => generateActiveUsersCount());
+
+  // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
+  const triggerHapticFeedback = useCallback(
+    (intensity: "light" | "medium" | "heavy") => {
+      switch (intensity) {
+        case "light":
+          Haptics.selectionAsync(); // לכפתורי ניווט רגילים
+          break;
+        case "medium":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // לפעולות משמעותיות
+          break;
+        case "heavy":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // לפעולות קריטיות
+          break;
+      }
+    },
+    []
+  );
+
+  // 🔧 Optimized Navigation Functions with Haptic Feedback
+  const handleQuickLogin = useCallback(async () => {
+    triggerHapticFeedback("medium"); // משוב בינוני להתחברות מהירה
+    try {
+      // שליפת משתמשים מ-Supabase ובחירת אחד רנדומלי
+      const users = await userApi.list();
+      if (!users || users.length === 0) {
+        throw new Error(
+          "לא נמצאו משתמשים במסד הנתונים. ודא שיש משתמשים קיימים ב-Supabase."
+        );
+      }
+      const random = users[Math.floor(Math.random() * users.length)];
+
+      // 1) הגדרת המשתמש האמיתי שנבחר
+      setUser(random);
+
+      // 2) איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
+      try {
+        useUserStore.getState().resetSmartQuestionnaire();
+      } catch (e) {
+        if (__DEV__) console.warn("resetSmartQuestionnaire נכשל", e);
+      }
+      try {
+        useUserStore.getState().resetQuestionnaire?.();
+      } catch (e) {
+        if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
+      }
+
+      // 3) אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
+      try {
+        useUserStore.getState().initializeSubscription();
+      } catch (e) {
+        if (__DEV__) {
+          console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+        }
+      }
+
+      // 4) מעבר למסך השאלון כמו אחרי הרשמה
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Questionnaire" }],
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(
+        `שגיאה בהתחברות מהירה: ${msg}.\nודא שהחיבור ל-Supabase תקין.`
+      );
+      setShowErrorModal(true);
+    }
+  }, [
+    triggerHapticFeedback,
+    setUser,
+    navigation,
+    setErrorMessage,
+    setShowErrorModal,
+  ]);
+
+  const handleRegister = useCallback(() => {
+    triggerHapticFeedback("light"); // משוב קל לניווט להרשמה
+    navigation.navigate("Register");
+  }, [navigation, triggerHapticFeedback]);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    triggerHapticFeedback("heavy"); // משוב חזק לפעולה קריטית
+    try {
+      // TODO: השלמת אינטגרציה עם Google Sign-In SDK
+      setErrorMessage(
+        "התחברות Google תהיה זמינה בגרסה הבאה. השתמש בהרשמה לפיתוח."
+      );
+      setShowErrorModal(true);
+    } catch {
+      setErrorMessage("שגיאה בהתחברות לגוגל. נסה שוב מאוחר יותר.");
+      setShowErrorModal(true);
+    }
+  }, [triggerHapticFeedback, setErrorMessage, setShowErrorModal]);
 
   // Removed legacy loading & questionnaire generation logic
 
@@ -232,7 +369,7 @@ export default function WelcomeScreen() {
             {/* Primary call-to-action button with gradient design */}
             <TouchableButton
               style={styles.primaryButton}
-              onPress={() => navigation.navigate("Register")}
+              onPress={handleRegister}
               accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY}
               accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY_HINT}
             >
@@ -284,60 +421,7 @@ export default function WelcomeScreen() {
               {/* כפתור התחברות מהירה למשתמש אמיתי ממאגר מקומי */}
               <TouchableButton
                 style={styles.secondaryButton}
-                onPress={async () => {
-                  try {
-                    // שליפת משתמשים מהשרת המקומי ובחירת אחד רנדומלי
-                    const users = await userApi.list();
-                    if (!users || users.length === 0) {
-                      throw new Error(
-                        "לא נמצאו משתמשים בשרת המקומי. ודא שהשרת רץ ושהוזנו משתמשים."
-                      );
-                    }
-                    const random =
-                      users[Math.floor(Math.random() * users.length)];
-
-                    // 1) הגדרת המשתמש האמיתי שנבחר
-                    setUser(random);
-
-                    // 2) איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
-                    try {
-                      useUserStore.getState().resetSmartQuestionnaire();
-                    } catch (e) {
-                      if (__DEV__)
-                        console.warn("resetSmartQuestionnaire נכשל", e);
-                    }
-                    try {
-                      useUserStore.getState().resetQuestionnaire?.();
-                    } catch (e) {
-                      if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
-                    }
-
-                    // 3) אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
-                    try {
-                      useUserStore.getState().initializeSubscription();
-                    } catch (e) {
-                      if (__DEV__) {
-                        console.warn(
-                          "initializeSubscription נכשל במהלך התחברות מהירה",
-                          e
-                        );
-                      }
-                    }
-
-                    // 4) מעבר למסך השאלון כמו אחרי הרשמה
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "Questionnaire" }],
-                    });
-                  } catch (err) {
-                    const msg =
-                      err instanceof Error ? err.message : String(err);
-                    setErrorMessage(
-                      `שגיאה בהתחברות מהירה: ${msg}.\nהרץ שרת מקומי עם 'npm run storage:start'.`
-                    );
-                    setShowErrorModal(true);
-                  }
-                }}
+                onPress={handleQuickLogin}
                 accessibilityLabel="התחברות מהירה למשתמש אמיתי"
                 accessibilityHint="התחברות מיידית למשתמש אמיתי עם נתונים אמיתיים"
               >
@@ -352,20 +436,7 @@ export default function WelcomeScreen() {
               {/* כפתור התחברות מהירה לגוגל */}
               <TouchableButton
                 style={styles.googleButton}
-                onPress={async () => {
-                  try {
-                    // TODO: השלמת אינטגרציה עם Google Sign-In SDK
-                    setErrorMessage(
-                      "התחברות Google תהיה זמינה בגרסה הבאה. השתמש בהרשמה לפיתוח."
-                    );
-                    setShowErrorModal(true);
-                  } catch {
-                    setErrorMessage(
-                      "שגיאה בהתחברות לגוגל. נסה שוב מאוחר יותר."
-                    );
-                    setShowErrorModal(true);
-                  }
-                }}
+                onPress={handleGoogleSignIn}
                 accessibilityLabel="התחברות מהירה עם גוגל"
                 accessibilityHint="התחברות באמצעות חשבון גוגל קיים"
               >

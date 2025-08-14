@@ -1,18 +1,19 @@
 /**
  * @file src/components/WorkoutPlanManager.tsx
- * @description ניהול תוכניות אימון עם מנגנון שמירה והחלפה חכם
- * English: Workout plan management with smart save and replace mechanism
+ * @description ניהול תוכניות אימון עם מנגנון שמירה והחלפה חכם - מותאם לכושר מובייל
+ * English: Workout plan management with smart save and replace mechanism - fitness mobile optimized
  *
  * @features
  * - מגבלת 3 תוכניות מקסימום (basic, smart, additional)
- * - הודעות אישור לפני שמירה ודריסה
+ * - הודעות אישור לפני שמירה ודריסה עם haptic feedback
  * - אפשרות לבחור איזו תוכנית לדרוס במקרה של מלוי
  * - תמיכה עתידית בתכנית אין הגבלה (פרימיום)
+ * - אופטימיזציות כושר מובייל: haptic feedback, performance tracking, enlarged hitSlop
  *
  * @usage Used from WorkoutPlansScreen for plan management
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,6 +23,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { theme } from "../styles/theme";
 import { WorkoutPlan } from "../types";
 import { useUserStore } from "../stores/userStore";
@@ -53,39 +55,119 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
 }) => {
   const { user } = useUserStore();
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
+
+  // ✨ Performance tracking לרכיבי כושר
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  // ✨ Haptic feedback מותאם לפעולות ניהול תוכניות
+  const triggerActionHaptic = useCallback(
+    (intensity: "light" | "medium" | "heavy" = "medium") => {
+      switch (intensity) {
+        case "light":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          break;
+        case "heavy":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          break;
+        default:
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    },
+    []
+  );
+
+  // ✨ משוב ביצועים אוטומטי
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(
+        `⚠️ WorkoutPlanManager render time: ${renderTime.toFixed(2)}ms`
+      );
+    }
+  }, [renderStartTime]);
+
   // removed unused selectedReplaceType state
 
   // בדיקת תוכניות קיימות
-  const existingPlans: PlanSlot[] = [
-    {
-      type: "basic",
-      plan: user?.workoutPlans?.basicPlan || null,
-      name: "תוכנית בסיס",
-      description: "תוכנית פשוטה ומהירה",
-    },
-    {
-      type: "smart",
-      plan: user?.workoutPlans?.smartPlan || null,
-      name: "תוכנית חכמה",
-      description: "תוכנית מותאמת אישית מלאה",
-    },
-    {
-      type: "additional",
-      plan: user?.workoutPlans?.additionalPlan || null,
-      name: "תוכנית נוספת",
-      description: "תוכנית גיבוי או מגוונת",
-    },
-  ];
+  const existingPlans: PlanSlot[] = useMemo(
+    () => [
+      {
+        type: "basic",
+        plan: user?.workoutPlans?.basicPlan || null,
+        name: "תוכנית בסיס",
+        description: "תוכנית פשוטה ומהירה",
+      },
+      {
+        type: "smart",
+        plan: user?.workoutPlans?.smartPlan || null,
+        name: "תוכנית חכמה",
+        description: "תוכנית מותאמת אישית מלאה",
+      },
+      {
+        type: "additional",
+        plan: user?.workoutPlans?.additionalPlan || null,
+        name: "תוכנית נוספת",
+        description: "תוכנית גיבוי או מגוונת",
+      },
+    ],
+    [user?.workoutPlans]
+  );
 
-  const occupiedSlots = existingPlans.filter((slot) => slot.plan !== null);
+  const occupiedSlots = useMemo(
+    () => existingPlans.filter((slot) => slot.plan !== null),
+    [existingPlans]
+  );
+
   const isFullCapacity = occupiedSlots.length >= 3;
 
   // בדיקה אם התוכנית החדשה תחליף תוכנית קיימת מאותו סוג
-  const existingPlanOfSameType = existingPlans.find(
-    (slot) => slot.type === planType && slot.plan !== null
+  const existingPlanOfSameType = useMemo(
+    () =>
+      existingPlans.find(
+        (slot) => slot.type === planType && slot.plan !== null
+      ),
+    [existingPlans, planType]
   );
 
-  const handleSaveAttempt = () => {
+  // ✨ Enhanced showConfirmDialog עם haptic feedback
+  const showConfirmDialog = useCallback(
+    (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void
+    ) => {
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: "ביטול",
+            style: "cancel",
+            onPress: () => {
+              triggerActionHaptic("light"); // משוב קל לביטול
+              onCancel?.();
+            },
+          },
+          {
+            text: "אישור",
+            style: "default",
+            onPress: () => {
+              triggerActionHaptic("heavy"); // משוב חזק לאישור
+              onConfirm();
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    },
+    [triggerActionHaptic]
+  );
+
+  // ✨ Enhanced handleSaveAttempt עם haptic feedback
+  const handleSaveAttempt = useCallback(() => {
+    triggerActionHaptic("light"); // משוב קל לפתיחת דיאלוג
+
     // אם יש מקום פנוי - שמור ישירות
     if (!isFullCapacity) {
       if (existingPlanOfSameType) {
@@ -108,55 +190,51 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
 
     // אם אין מקום - הצג אפשרויות החלפה
     setShowReplaceDialog(true);
-  };
+  }, [
+    triggerActionHaptic,
+    isFullCapacity,
+    existingPlanOfSameType,
+    newPlan.name,
+    onSave,
+    planType,
+    showConfirmDialog,
+  ]);
 
-  const handleReplaceSelection = (
-    replaceType: "basic" | "smart" | "additional"
-  ) => {
-    const targetSlot = existingPlans.find((slot) => slot.type === replaceType);
+  // ✨ Enhanced handleReplaceSelection עם haptic feedback
+  const handleReplaceSelection = useCallback(
+    (replaceType: "basic" | "smart" | "additional") => {
+      triggerActionHaptic("medium"); // משוב בינוני לבחירת החלפה
 
-    showConfirmDialog(
-      "דריסת תוכנית קיימת",
-      `האם תרצה לדרוס את ${targetSlot?.name} ולהחליף אותה בתוכנית החדשה?`,
-      () => {
-        onSave(true, replaceType);
-        setShowReplaceDialog(false);
-      },
-      () => {}
-    );
-  };
+      const targetSlot = existingPlans.find(
+        (slot) => slot.type === replaceType
+      );
 
-  const showConfirmDialog = (
-    title: string,
-    message: string,
-    onConfirm: () => void,
-    onCancel?: () => void
-  ) => {
-    Alert.alert(
-      title,
-      message,
-      [
-        {
-          text: "ביטול",
-          style: "cancel",
-          onPress: onCancel,
+      showConfirmDialog(
+        "דריסת תוכנית קיימת",
+        `האם תרצה לדרוס את ${targetSlot?.name} ולהחליף אותה בתוכנית החדשה?`,
+        () => {
+          triggerActionHaptic("heavy"); // משוב חזק לאישור דריסה
+          onSave(true, replaceType);
+          setShowReplaceDialog(false);
         },
-        {
-          text: "אישור",
-          style: "default",
-          onPress: onConfirm,
-        },
-      ],
-      { cancelable: true }
-    );
-  };
+        () => {}
+      );
+    },
+    [triggerActionHaptic, existingPlans, onSave, showConfirmDialog]
+  );
+
+  // ✨ Enhanced close handler עם haptic feedback
+  const handleClose = useCallback(() => {
+    triggerActionHaptic("light");
+    onClose();
+  }, [triggerActionHaptic, onClose]);
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
@@ -209,7 +287,20 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
             {isFullCapacity ? (
               <TouchableOpacity
                 style={styles.replaceButton}
-                onPress={() => setShowReplaceDialog(true)}
+                onPress={() => {
+                  triggerActionHaptic("medium");
+                  setShowReplaceDialog(true);
+                }}
+                hitSlop={{
+                  top: 20,
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="בחר תוכנית לדריסה"
+                accessibilityHint="הקש לבחירת תוכנית קיימת לדריסה - יופעל משוב מושגי"
               >
                 <Text style={styles.replaceButtonText}>בחר תוכנית לדריסה</Text>
               </TouchableOpacity>
@@ -217,12 +308,35 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveAttempt}
+                hitSlop={{
+                  top: 20,
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="שמור תוכנית"
+                accessibilityHint="הקש לשמירת התוכנית החדשה - יופעל משוב מושגי"
               >
                 <Text style={styles.saveButtonText}>שמור תוכנית</Text>
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleClose}
+              hitSlop={{
+                top: 20,
+                bottom: 20,
+                left: 20,
+                right: 20,
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="ביטול"
+              accessibilityHint="הקש לביטול ויציאה - יופעל משוב מושגי"
+            >
               <Text style={styles.cancelButtonText}>ביטול</Text>
             </TouchableOpacity>
           </View>
@@ -251,6 +365,16 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
                 key={slot.type}
                 style={styles.replaceOption}
                 onPress={() => handleReplaceSelection(slot.type)}
+                hitSlop={{
+                  top: 15,
+                  bottom: 15,
+                  left: 15,
+                  right: 15,
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`החלף ${slot.name}`}
+                accessibilityHint={`הקש להחלפת ${slot.name} בתוכנית החדשה - יופעל משוב מושגי`}
               >
                 <Text style={styles.replaceOptionName}>{slot.name}</Text>
                 <Text style={styles.replaceOptionPlan}>{slot.plan?.name}</Text>
@@ -262,7 +386,20 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
 
             <TouchableOpacity
               style={styles.cancelReplaceButton}
-              onPress={() => setShowReplaceDialog(false)}
+              onPress={() => {
+                triggerActionHaptic("light");
+                setShowReplaceDialog(false);
+              }}
+              hitSlop={{
+                top: 15,
+                bottom: 15,
+                left: 15,
+                right: 15,
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="ביטול בחירת החלפה"
+              accessibilityHint="הקש לביטול בחירת החלפה וחזרה למסך הקודם - יופעל משוב מושגי"
             >
               <Text style={styles.cancelReplaceButtonText}>ביטול</Text>
             </TouchableOpacity>
@@ -390,6 +527,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flex: 1,
     marginRight: 10,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   saveButtonText: {
     color: "white",
@@ -404,6 +542,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flex: 1,
     marginRight: 10,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   replaceButtonText: {
     color: "white",
@@ -418,6 +557,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flex: 1,
     marginLeft: 10,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   cancelButtonText: {
     color: theme.colors.text,
@@ -453,6 +593,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   replaceOptionName: {
     fontSize: 16,
@@ -477,6 +618,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 10,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   cancelReplaceButtonText: {
     color: theme.colors.text,

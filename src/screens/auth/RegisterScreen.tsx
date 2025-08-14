@@ -43,6 +43,7 @@ import { useUserStore } from "../../stores/userStore";
 import { validateEmail as sharedValidateEmail } from "../../utils/authValidation";
 import type { RootStackParamList } from "../../navigation/types";
 import { localDataService } from "../../services/localDataService";
+import { userApi } from "../../services/api/userApi";
 
 // Debug toggle
 const DEBUG_REGISTER = false;
@@ -405,16 +406,19 @@ export default function RegisterScreen() {
         },
       };
 
-      // שמירה ב-Zustand store
-      useUserStore.getState().setUser(newUser);
+      // יצירת המשתמש ב-Supabase וקבלת הנתונים המעודכנים עם ID מהשרת
+      const savedUser = await userApi.create(newUser);
+
+      // שמירה ב-Zustand store עם הנתונים מהשרת
+      useUserStore.getState().setUser(savedUser);
 
       // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
       if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
         try {
-          localDataService.addUser(newUser);
+          localDataService.addUser(savedUser);
           console.warn("✅ RegisterScreen: User saved to localDataService", {
-            email: newUser.email,
-            name: newUser.name,
+            email: savedUser.email,
+            name: savedUser.name,
           });
         } catch (saveError) {
           console.warn(
@@ -456,19 +460,22 @@ export default function RegisterScreen() {
       const googleUser = await fakeGoogleRegister();
       createSuccessAnimation().start();
 
-      // שמירה ב-Zustand store
-      useUserStore.getState().setUser(googleUser);
+      // יצירת המשתמש ב-Supabase וקבלת הנתונים המעודכנים עם ID מהשרת
+      const savedGoogleUser = await userApi.create(googleUser);
+
+      // שמירה ב-Zustand store עם הנתונים מהשרת
+      useUserStore.getState().setUser(savedGoogleUser);
 
       // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
       if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
         try {
-          localDataService.addUser(googleUser);
+          localDataService.addUser(savedGoogleUser);
           console.warn(
             "✅ RegisterScreen: Google user saved to localDataService",
             {
-              email: googleUser.email,
-              name: googleUser.name,
-              provider: googleUser.provider,
+              email: savedGoogleUser.email,
+              name: savedGoogleUser.name,
+              provider: savedGoogleUser.provider,
             }
           );
         } catch (saveError) {

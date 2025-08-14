@@ -1,16 +1,16 @@
 /**
  * @file src/screens/main/MainScreen.tsx
- * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
- * @brief Modern main screen - Central dashboard with scientific statistics and personalization
- * @dependencies theme, userStore, MaterialCommunityIcons, Animated API, React Navigation
- * @notes תמיכה מלאה RTL, אנימציות משופרות
- * @notes Full RTL support, enhanced animations
- * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים
- * @features Personal dashboard, advanced statistics, AI recommendations, workout history
- * @accessibility Enhanced with proper labels and semantic structure
- * @performance Optimized with React.memo and useMemo hooks
- * @version 2.2.0 - Enhanced organization, accessibility, and performance optimizations
- * @updated 2025-08-04 שיפורי נגישות, ביצועים ועקביות עם הפרויקט
+ * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית - מותאם לכושר מובייל
+ * @brief Modern main screen - Central dashboard with scientific statistics and personalization - fitness mobile optimized
+ * @dependencies theme, userStore, MaterialCommunityIcons, Animated API, React Navigation, expo-haptics
+ * @notes תמיכה מלאה RTL, אנימציות משופרות, אופטימיזציות כושר מובייל
+ * @notes Full RTL support, enhanced animations, fitness mobile optimizations
+ * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים, haptic feedback מדורג
+ * @features Personal dashboard, advanced statistics, AI recommendations, workout history, graduated haptic feedback
+ * @accessibility Enhanced with proper labels, semantic structure, and 44px minimum touch targets
+ * @performance Optimized with React.memo, useMemo hooks, and render time tracking
+ * @version 2.3.0 - Fitness mobile optimization: haptic feedback, performance tracking, enlarged hitSlop
+ * @updated 2025-08-14 אופטימיזציות כושר מובייל מלאות עם משוב מישושי מדורג
  */
 
 import React, {
@@ -31,6 +31,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -106,6 +107,34 @@ function MainScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(`⚠️ MainScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
+    }
+  }, [renderStartTime]);
+
+  // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
+  const triggerHapticFeedback = useCallback(
+    (intensity: "light" | "medium" | "heavy") => {
+      switch (intensity) {
+        case "light":
+          Haptics.selectionAsync(); // לניווט רגיל (פרופיל, היסטוריה)
+          break;
+        case "medium":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // לבחירת יום אימון
+          break;
+        case "heavy":
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // להתחלת אימון מהיר
+          break;
+      }
+    },
+    []
+  );
 
   // ===============================================
   // 🎨 Animation References - אנימציות
@@ -319,30 +348,34 @@ function MainScreen() {
   }, []);
 
   const handleStartWorkout = useCallback(() => {
+    triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
     console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!");
     navigation.navigate("WorkoutPlans", {
       autoStart: true,
     });
-  }, [navigation]);
+  }, [navigation, triggerHapticFeedback]);
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
+      triggerHapticFeedback("medium"); // משוב בינוני לבחירת יום אימון
       console.warn(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
       navigation.navigate("WorkoutPlans", {
         preSelectedDay: dayNumber,
         autoStart: true,
       });
     },
-    [navigation]
+    [navigation, triggerHapticFeedback]
   );
 
   const handleProfilePress = useCallback(() => {
+    triggerHapticFeedback("light"); // משוב קל לניווט לפרופיל
     navigation.navigate("Profile");
-  }, [navigation]);
+  }, [navigation, triggerHapticFeedback]);
 
   const handleHistoryPress = useCallback(() => {
+    triggerHapticFeedback("light"); // משוב קל לניווט להיסטוריה
     navigation.navigate("History");
-  }, [navigation]);
+  }, [navigation, triggerHapticFeedback]);
 
   return (
     <SafeAreaView
@@ -357,6 +390,7 @@ function MainScreen() {
             <TouchableOpacity
               style={styles.retryButton}
               onPress={onRefresh}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="נסה שוב"
@@ -410,6 +444,7 @@ function MainScreen() {
                 <TouchableOpacity
                   style={styles.profileButton}
                   onPress={handleProfilePress}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                   accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
                   accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
                   accessibilityRole="button"
@@ -687,6 +722,7 @@ function MainScreen() {
             <TouchableOpacity
               style={styles.quickWorkoutButton}
               onPress={handleStartWorkout}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
               accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
               accessibilityRole="button"
@@ -778,129 +814,130 @@ function MainScreen() {
             <View style={styles.recentWorkoutsList}>
               {/* אימונים אמיתיים מההיסטוריה */}
               {profileData.activityHistory?.workouts &&
-              profileData.activityHistory.workouts.length > 0
-                ? profileData.activityHistory.workouts
-                    .slice(0, 3)
-                    .map((workout: unknown, index: number) => {
-                      type MinimalWorkout = {
-                        id?: string;
-                        type?: string;
-                        workoutName?: string;
-                        date?: string | Date;
-                        completedAt?: string;
+              profileData.activityHistory.workouts.length > 0 ? (
+                profileData.activityHistory.workouts
+                  .slice(0, 3)
+                  .map((workout: unknown, index: number) => {
+                    type MinimalWorkout = {
+                      id?: string;
+                      type?: string;
+                      workoutName?: string;
+                      date?: string | Date;
+                      completedAt?: string;
+                      duration?: number;
+                      rating?: number;
+                      startTime?: string;
+                      workout?: {
+                        name?: string;
                         duration?: number;
-                        rating?: number;
                         startTime?: string;
-                        workout?: {
-                          name?: string;
-                          duration?: number;
-                          startTime?: string;
-                        };
-                        stats?: { duration?: number };
-                        feedback?: {
-                          difficulty?: number;
-                          completedAt?: string;
-                        };
                       };
-                      const item = workout as MinimalWorkout;
-                      const title: string =
-                        item?.workout?.name ||
-                        item?.workoutName ||
-                        (item?.type === "strength"
-                          ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
-                          : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
+                      stats?: { duration?: number };
+                      feedback?: {
+                        difficulty?: number;
+                        completedAt?: string;
+                      };
+                    };
+                    const item = workout as MinimalWorkout;
+                    const title: string =
+                      item?.workout?.name ||
+                      item?.workoutName ||
+                      (item?.type === "strength"
+                        ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
+                        : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
 
-                      const dateValue: string | Date =
-                        item?.feedback?.completedAt ||
-                        item?.date ||
-                        item?.completedAt ||
-                        new Date();
+                    const dateValue: string | Date =
+                      item?.feedback?.completedAt ||
+                      item?.date ||
+                      item?.completedAt ||
+                      new Date();
 
-                      const durationMinutes: number | undefined = (() => {
-                        const seconds: number | undefined =
-                          typeof item?.workout?.duration === "number"
-                            ? item.workout.duration
-                            : typeof item?.stats?.duration === "number"
-                              ? item.stats.duration
-                              : typeof item?.duration === "number"
-                                ? item.duration
-                                : undefined;
-                        return typeof seconds === "number"
-                          ? Math.max(1, Math.round(seconds / 60))
-                          : undefined;
-                      })();
+                    const durationMinutes: number | undefined = (() => {
+                      const seconds: number | undefined =
+                        typeof item?.workout?.duration === "number"
+                          ? item.workout.duration
+                          : typeof item?.stats?.duration === "number"
+                            ? item.stats.duration
+                            : typeof item?.duration === "number"
+                              ? item.duration
+                              : undefined;
+                      return typeof seconds === "number"
+                        ? Math.max(1, Math.round(seconds / 60))
+                        : undefined;
+                    })();
 
-                      const startTime: string | undefined =
-                        item?.startTime || item?.workout?.startTime;
+                    const startTime: string | undefined =
+                      item?.startTime || item?.workout?.startTime;
 
-                      const iconName = getWorkoutIcon(
-                        item?.type,
-                        title
-                      ) as MaterialCommunityIconName;
+                    const iconName = getWorkoutIcon(
+                      item?.type,
+                      title
+                    ) as MaterialCommunityIconName;
 
-                      const ratingValue: number =
-                        (typeof item?.feedback?.difficulty === "number"
-                          ? item.feedback.difficulty
-                          : undefined) ||
-                        item?.rating ||
-                        4.0;
+                    const ratingValue: number =
+                      (typeof item?.feedback?.difficulty === "number"
+                        ? item.feedback.difficulty
+                        : undefined) ||
+                      item?.rating ||
+                      4.0;
 
-                      return (
-                        <View
-                          key={item?.id || `workout-${index}`}
-                          style={styles.recentWorkoutItem}
-                        >
-                          <View style={styles.workoutIcon}>
-                            <MaterialCommunityIcons
-                              name={iconName}
-                              size={24}
-                              color={theme.colors.primary}
-                            />
-                          </View>
-                          <View style={styles.workoutInfo}>
-                            <Text style={styles.workoutTitle}>{title}</Text>
-                            <Text style={styles.workoutDate}>
-                              {formatWorkoutDate(
-                                dateValue,
-                                durationMinutes,
-                                startTime
-                              )}
-                            </Text>
-                          </View>
-                          <View style={styles.workoutRating}>
-                            <MaterialCommunityIcons
-                              name="star"
-                              size={16}
-                              color={theme.colors.warning}
-                            />
-                            <Text style={styles.ratingText}>
-                              {formatRating(ratingValue)}
-                            </Text>
-                          </View>
+                    return (
+                      <View
+                        key={item?.id || `workout-${index}`}
+                        style={styles.recentWorkoutItem}
+                      >
+                        <View style={styles.workoutIcon}>
+                          <MaterialCommunityIcons
+                            name={iconName}
+                            size={24}
+                            color={theme.colors.primary}
+                          />
                         </View>
-                      );
-                    })
-                : // אם אין היסטוריה אמיתית - הצג הודעת ריקנות
-                  (
-                    <View style={styles.emptyStateContainer}>
-                      <MaterialCommunityIcons
-                        name="history"
-                        size={48}
-                        color={theme.colors.textSecondary}
-                      />
-                      <Text style={styles.emptyStateText}>
-                        {MAIN_SCREEN_TEXTS.STATUS.NO_RECENT_WORKOUTS}
-                      </Text>
-                      <Text style={styles.emptyStateSubText}>
-                        {MAIN_SCREEN_TEXTS.STATUS.START_FIRST_WORKOUT}
-                      </Text>
-                    </View>
-                  )}
+                        <View style={styles.workoutInfo}>
+                          <Text style={styles.workoutTitle}>{title}</Text>
+                          <Text style={styles.workoutDate}>
+                            {formatWorkoutDate(
+                              dateValue,
+                              durationMinutes,
+                              startTime
+                            )}
+                          </Text>
+                        </View>
+                        <View style={styles.workoutRating}>
+                          <MaterialCommunityIcons
+                            name="star"
+                            size={16}
+                            color={theme.colors.warning}
+                          />
+                          <Text style={styles.ratingText}>
+                            {formatRating(ratingValue)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })
+              ) : (
+                // אם אין היסטוריה אמיתית - הצג הודעת ריקנות
+                <View style={styles.emptyStateContainer}>
+                  <MaterialCommunityIcons
+                    name="history"
+                    size={48}
+                    color={theme.colors.textSecondary}
+                  />
+                  <Text style={styles.emptyStateText}>
+                    {MAIN_SCREEN_TEXTS.STATUS.NO_RECENT_WORKOUTS}
+                  </Text>
+                  <Text style={styles.emptyStateSubText}>
+                    {MAIN_SCREEN_TEXTS.STATUS.START_FIRST_WORKOUT}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <TouchableOpacity
               style={styles.viewAllButton}
               onPress={handleHistoryPress}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY}
               accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY_HINT}
               accessibilityRole="button"
@@ -985,6 +1022,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.surface,
     ...theme.shadows.small,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minWidth: 44,
+    minHeight: 44,
   },
   profileInitials: {
     fontSize: 18, // הוגדל מ-16 לבולטות במסך הנייד
@@ -1073,6 +1113,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minHeight: 44,
   },
   viewAllText: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
@@ -1212,7 +1254,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.error,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minHeight: 44,
+    paddingVertical: Math.max(theme.spacing.sm, 12), // מבטיח גובה של לפחות 44px
   },
   retryButtonText: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
@@ -1270,6 +1314,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: theme.spacing.md,
     ...theme.shadows.small,
+    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
+    minHeight: 44,
   },
   quickWorkoutText: {
     fontSize: 16,

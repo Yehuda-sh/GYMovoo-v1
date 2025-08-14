@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { theme } from "../styles/theme";
 
 interface BlurOverlayProps {
@@ -15,11 +16,16 @@ interface BlurOverlayProps {
   actionText?: string;
   onActionPress?: () => void;
   children?: React.ReactNode;
+  // ✨ תכונות כושר מובייל חדשות
+  intensity?: "light" | "medium" | "heavy";
+  enableHaptic?: boolean;
+  workoutContext?: boolean;
 }
 
 /**
- * רכיב ערפול לתוכן פרימיום
+ * רכיב ערפול לתוכן פרימיום - מותאם לכושר מובייל עם משוב מושגי
  * מציג שכבת ערפול מעל תוכן שמחייב מנוי
+ * Blur overlay component for premium content - fitness mobile optimized with haptic feedback
  */
 export const BlurOverlay: React.FC<BlurOverlayProps> = ({
   isVisible,
@@ -28,7 +34,57 @@ export const BlurOverlay: React.FC<BlurOverlayProps> = ({
   actionText = "שדרג למנוי פרימיום",
   onActionPress,
   children,
+  // ✨ ברירות מחדל לכושר מובייל
+  intensity = "medium",
+  enableHaptic = true,
+  workoutContext = false,
 }) => {
+  // ✨ Performance tracking לרכיבי כושר
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  // ✨ Haptic feedback מותאם לעוצמה
+  const triggerHaptic = useCallback(() => {
+    if (!enableHaptic) return;
+
+    switch (intensity) {
+      case "light":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break;
+      case "heavy":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        break;
+      default:
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  }, [enableHaptic, intensity]);
+
+  // ✨ Enhanced handleActionPress עם haptic feedback
+  const handleActionPress = useCallback(() => {
+    triggerHaptic();
+    onActionPress?.();
+  }, [triggerHaptic, onActionPress]);
+
+  // ✨ משוב ביצועים אוטומטי
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(`⚠️ BlurOverlay render time: ${renderTime.toFixed(2)}ms`);
+    }
+  }, [renderStartTime]);
+  // ✨ Enhanced overlay styles for workout context
+  const overlayStyles = useMemo(() => {
+    const baseStyle = styles.overlay;
+    if (workoutContext) {
+      return [
+        baseStyle,
+        {
+          backgroundColor: "rgba(0, 0, 0, 0.8)", // כהה יותר לאימונים
+        },
+      ];
+    }
+    return baseStyle;
+  }, [workoutContext]);
+
   if (!isVisible) {
     return <>{children}</>;
   }
@@ -39,7 +95,7 @@ export const BlurOverlay: React.FC<BlurOverlayProps> = ({
       <View style={styles.blurredContent}>{children}</View>
 
       {/* שכבת הערפול */}
-      <View style={styles.overlay}>
+      <View style={overlayStyles}>
         <View style={styles.messageContainer}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
@@ -47,7 +103,17 @@ export const BlurOverlay: React.FC<BlurOverlayProps> = ({
           {onActionPress && (
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={onActionPress}
+              onPress={handleActionPress}
+              hitSlop={{
+                top: 20,
+                bottom: 20,
+                left: 20,
+                right: 20,
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={actionText}
+              accessibilityHint="הקש לשדרוג למנוי פרימיום - יופעל משוב מושגי"
             >
               <Text style={styles.actionText}>{actionText}</Text>
             </TouchableOpacity>
@@ -112,6 +178,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 200,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
   },
   actionText: {
     color: "#fff",
