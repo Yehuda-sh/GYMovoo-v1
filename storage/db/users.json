@@ -159,34 +159,35 @@
       },
       "preferences": {
         "language": "he",
-        "rtlPreference": true
+        "rtlPreference": true,
+        "gender": "female"
       },
       "smartQuestionnaireData": {
         "answers": {
-          "gender": "male",
+          "gender": "female",
           "age": "18_25",
-          "weight": "50_60",
-          "height": "150_160",
-          "fitnessLevel": "intermediate",
+          "weight": "61_70",
+          "height": "171_180",
+          "fitnessLevel": "beginner",
           "goals": [
-            "build_muscle"
+            "lose_weight"
           ],
           "equipment": [
-            "kettlebell"
+            "none"
           ],
           "availability": [
-            "4_days"
+            "2_days"
           ],
-          "sessionDuration": "45_60_min",
-          "workoutLocation": "home_equipment",
+          "sessionDuration": "30_45_min",
+          "workoutLocation": "home_bodyweight",
           "nutrition": [
             "none_diet"
           ]
         },
         "metadata": {
-          "completedAt": "2025-08-13T18:34:51.215Z",
+          "completedAt": "2025-08-14T07:38:53.628Z",
           "version": "2.1",
-          "sessionId": "unified_1755110091215",
+          "sessionId": "unified_1755157133628",
           "completionTime": 110,
           "questionsAnswered": 11,
           "totalQuestions": 11,
@@ -199,19 +200,130 @@
       },
       "questionnaireData": {
         "metadata": {
+          "goal": "lose_weight",
+          "experience": "beginner",
           "equipment": [
-            "kettlebell"
+            "chair_available"
           ],
-          "goal": "build_muscle",
-          "experience": "intermediate",
-          "sessionDuration": "45_60_min",
-          "availableDays": "4_days",
-          "location": "home_equipment",
+          "frequency": "2_days",
+          "duration": "30_45_min",
+          "location": "home_bodyweight",
           "diet": "none_diet",
-          "completedAt": "2025-08-13T18:34:51.647Z",
+          "answers": [
+            {
+              "questionId": "gender",
+              "answer": {
+                "id": "female",
+                "label": "נקבה",
+                "description": "תוכנית מותאמת לנשים"
+              },
+              "timestamp": "2025-08-14T06:08:16.812Z"
+            },
+            {
+              "questionId": "age",
+              "answer": {
+                "id": "18_25",
+                "label": "18-25",
+                "description": "אימונים אנרגטיים"
+              },
+              "timestamp": "2025-08-14T07:38:12.329Z"
+            },
+            {
+              "questionId": "weight",
+              "answer": {
+                "id": "61_70",
+                "label": "61-70 ק\"ג",
+                "description": "משקל בינוני"
+              },
+              "timestamp": "2025-08-14T07:38:16.995Z"
+            },
+            {
+              "questionId": "height",
+              "answer": {
+                "id": "171_180",
+                "label": "171-180 ס\"מ",
+                "description": "גובה בינוני-גבוה"
+              },
+              "timestamp": "2025-08-14T07:38:20.529Z"
+            },
+            {
+              "questionId": "fitness_goal",
+              "answer": {
+                "id": "lose_weight",
+                "label": "ירידה במשקל",
+                "description": "שריפת שומן ויצירת גירעון קלורי"
+              },
+              "timestamp": "2025-08-14T07:38:26.044Z"
+            },
+            {
+              "questionId": "experience_level",
+              "answer": {
+                "id": "beginner",
+                "label": "מתחיל",
+                "description": "פחות מ-6 חודשים ניסיון"
+              },
+              "timestamp": "2025-08-14T07:38:29.445Z"
+            },
+            {
+              "questionId": "availability",
+              "answer": {
+                "id": "2_days",
+                "label": "2 ימים בשבוע",
+                "description": "אימונים קצרים ויעילים"
+              },
+              "timestamp": "2025-08-14T07:38:32.162Z"
+            },
+            {
+              "questionId": "session_duration",
+              "answer": {
+                "id": "30_45_min",
+                "label": "30-45 דקות",
+                "description": "אימונים סטנדרטיים"
+              },
+              "timestamp": "2025-08-14T07:38:36.962Z"
+            },
+            {
+              "questionId": "workout_location",
+              "answer": {
+                "id": "home_bodyweight",
+                "label": "בית - משקל גוף",
+                "description": "אימונים ביתיים ללא ציוד מיוחד"
+              },
+              "timestamp": "2025-08-14T07:38:42.711Z"
+            },
+            {
+              "questionId": "bodyweight_equipment",
+              "answer": [
+                {
+                  "id": "chair_available",
+                  "label": "כיסא יציב",
+                  "description": "לתרגילי דחיפה וכוח"
+                }
+              ],
+              "timestamp": "2025-08-14T07:38:50.629Z"
+            },
+            {
+              "questionId": "diet_preferences",
+              "answer": {
+                "id": "none_diet",
+                "label": "אין הגבלות",
+                "description": "אוכל הכל"
+              },
+              "timestamp": "2025-08-14T07:38:53.628Z"
+            }
+          ],
+          "completedAt": "2025-08-14T07:38:53.952Z",
           "source": "UnifiedQuestionnaireScreen"
         },
         "version": "unified-1"
+      },
+      "trainingStats": {
+        "selectedEquipment": [
+          "chair_available"
+        ],
+        "fitnessGoals": [
+          "lose_weight"
+        ]
       }
     }
   ]
