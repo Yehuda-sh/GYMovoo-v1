@@ -1,13 +1,13 @@
 /**
  * @file src/components/ui/UniversalButton.tsx
- * @brief כפתור אוניברסלי עם וריאציות עיצוב וגדלים משופר
- * @dependencies theme, LinearGradient, Ionicons, React.memo
- * @notes תומך ב-primary, secondary, outline, ghost, gradient, danger
- * @recurring_errors וודא העברת variant נכון, ברירת מחדל primary
- * @version 2.0 - Enhanced with React.memo, useMemo, testID, danger variant
+ * @brief כפתור אוניברסלי עם וריאציות עיצוב וגדלים משופר + אופטימיזציה לכושר מובייל
+ * @dependencies theme, LinearGradient, Ionicons, React.memo, expo-haptics
+ * @notes תומך ב-primary, secondary, outline, ghost, gradient, danger, workout + haptic feedback
+ * @recurring_errors וודא העברת variant נכון, ברירת מחדל primary, workout למסכי אימון
+ * @version 3.0 - Fitness mobile optimization, workout variant, haptic feedback, RTL fix, 44px validation
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 
 interface UniversalButtonProps extends TouchableOpacityProps {
@@ -28,7 +29,8 @@ interface UniversalButtonProps extends TouchableOpacityProps {
     | "outline"
     | "ghost"
     | "gradient"
-    | "danger";
+    | "danger"
+    | "workout"; // 🏋️ מצב אימון פעיל - כפתורים גדולים במיוחד
   size?: "small" | "medium" | "large";
   icon?: keyof typeof Ionicons.glyphMap;
   iconPosition?: "left" | "right";
@@ -36,6 +38,7 @@ interface UniversalButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
   fullWidth?: boolean;
   onPress?: () => void;
+  enableHapticFeedback?: boolean; // 🎯 משוב מושגי לכל לחיצה
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
@@ -53,14 +56,29 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
     disabled = false,
     fullWidth = false,
     onPress,
+    enableHapticFeedback = false, // 🎯 ברירת מחדל לא פעיל
     style,
     accessibilityLabel,
     accessibilityHint,
     testID = "universal-button",
-    hitSlop = { top: 10, bottom: 10, left: 10, right: 10 },
+    hitSlop = { top: 20, bottom: 20, left: 20, right: 20 }, // 🏋️ הגדלת hitSlop לכושר
     ...props
   }) => {
     const isDisabled = disabled || loading;
+
+    // 🎯 פונקציית haptic feedback לאפליקציות כושר
+    // Haptic feedback function for fitness apps
+    const handlePress = useCallback(() => {
+      if (enableHapticFeedback && !isDisabled) {
+        // משוב מושגי בהתאם לvariant
+        const feedbackIntensity =
+          variant === "workout" || variant === "danger"
+            ? Haptics.ImpactFeedbackStyle.Heavy
+            : Haptics.ImpactFeedbackStyle.Medium;
+        Haptics.impactAsync(feedbackIntensity);
+      }
+      onPress?.();
+    }, [enableHapticFeedback, isDisabled, variant, onPress]);
 
     // יצירת תווית נגישות מותאמת
     const getAccessibilityLabel = useMemo(() => {
@@ -78,30 +96,57 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
 
     // גדלים דינמיים // Dynamic sizes
     const sizeStyles = useMemo(() => {
+      let baseStyles;
       switch (size) {
         case "small":
-          return {
+          baseStyles = {
             paddingHorizontal: theme.spacing.md,
             paddingVertical: theme.spacing.sm,
             fontSize: theme.typography.buttonSmall.fontSize,
             iconSize: 16,
           };
+          break;
         case "large":
-          return {
+          baseStyles = {
             paddingHorizontal: theme.spacing.xxl,
             paddingVertical: theme.spacing.lg,
             fontSize: theme.typography.buttonLarge.fontSize,
             iconSize: 24,
           };
+          break;
         default:
-          return {
+          baseStyles = {
             paddingHorizontal: theme.spacing.xl,
             paddingVertical: theme.spacing.md,
             fontSize: theme.typography.button.fontSize,
             iconSize: 20,
           };
       }
-    }, [size]);
+
+      // 🏋️ workout variant - כפתורים גדולים במיוחד לאימון
+      if (variant === "workout") {
+        baseStyles = {
+          paddingHorizontal: theme.spacing.xxl * 1.5,
+          paddingVertical: theme.spacing.xl,
+          fontSize: theme.typography.buttonLarge.fontSize * 1.2,
+          iconSize: 28,
+        };
+      }
+
+      // ✅ validation גודל מינימלי 44px לנגישות
+      const minHeight = 44;
+      const currentHeight =
+        baseStyles.paddingVertical * 2 + baseStyles.fontSize;
+      if (currentHeight < minHeight) {
+        const additionalPadding = (minHeight - baseStyles.fontSize) / 2;
+        baseStyles.paddingVertical = Math.max(
+          baseStyles.paddingVertical,
+          additionalPadding
+        );
+      }
+
+      return baseStyles;
+    }, [size, variant]);
 
     // סגנונות לפי וריאנט // Variant styles
     const variantStyles = useMemo(() => {
@@ -135,6 +180,14 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
           return {
             backgroundColor: theme.colors.error,
             borderWidth: 0,
+            textColor: theme.colors.white,
+          };
+        case "workout":
+          // 🏋️ מצב אימון - עיצוב בולט ונגיש
+          return {
+            backgroundColor: theme.colors.primary,
+            borderWidth: 2,
+            borderColor: theme.colors.secondary,
             textColor: theme.colors.white,
           };
         default:
@@ -201,7 +254,7 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
       return (
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={onPress}
+          onPress={handlePress}
           disabled={isDisabled}
           style={[fullWidth && styles.fullWidth, style]}
           accessible={true}
@@ -238,7 +291,7 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={onPress}
+        onPress={handlePress}
         disabled={isDisabled}
         style={[
           styles.button,
@@ -290,6 +343,7 @@ const styles = StyleSheet.create({
   text: {
     fontWeight: "600",
     textAlign: "center",
+    writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים
   },
   iconLeft: {
     marginRight: theme.isRTL ? 0 : theme.spacing.sm,

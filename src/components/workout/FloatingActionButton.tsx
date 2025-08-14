@@ -1,12 +1,12 @@
 /**
  * @file src/components/workout/FloatingActionButton.tsx
- * @brief ✨ כפתור פעולה צף משופר - גרסה פשוטה ויעילה
- * @dependencies React Native, Animated, Ionicons, theme
- * @notes מיקום RTL, אנימציות חלקות, גדלים מרובים
- * @version 2.1 - Simplified and optimized
+ * @brief ✨ כפתור פעולה צף מותאם לכושר מובייל - עם משוב מושגי ואופטימיזציות ביצועים
+ * @dependencies React Native, Animated, Ionicons, expo-haptics, theme
+ * @notes מיקום RTL, אנימציות חלקות, גדלים מרובים, haptic feedback, workout mode
+ * @version 3.0 - Fitness mobile optimized with haptic feedback and performance tracking
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo, useCallback } from "react";
 import {
   TouchableOpacity,
   Animated,
@@ -15,6 +15,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 
 interface FloatingActionButtonProps {
@@ -27,6 +28,11 @@ interface FloatingActionButtonProps {
   color?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  // ✨ תכונות כושר מובייל חדשות
+  workout?: boolean;
+  intensity?: "light" | "medium" | "heavy";
+  enableHaptic?: boolean;
+  hitSlop?: number;
 }
 
 export default function FloatingActionButton({
@@ -39,11 +45,68 @@ export default function FloatingActionButton({
   color = theme.colors.primary,
   accessibilityLabel,
   accessibilityHint,
+  // ✨ ברירות מחדל לכושר מובייל
+  workout = false,
+  intensity = "medium",
+  enableHaptic = true,
+  hitSlop = 20,
 }: FloatingActionButtonProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  const currentSize = theme.components.floatingButtonSizes[size]; // 🔄 שימוש ב-theme במקום SIZES מקומי
+  // ✨ Performance tracking לרכיבי כושר
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  // ✨ Haptic feedback מותאם לעוצמה
+  const triggerHaptic = useCallback(() => {
+    if (!enableHaptic) return;
+
+    switch (intensity) {
+      case "light":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break;
+      case "heavy":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        break;
+      default:
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  }, [enableHaptic, intensity]);
+
+  // ✨ משוב ביצועים אוטומטי
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(
+        `⚠️ FloatingActionButton render time: ${renderTime.toFixed(2)}ms`
+      );
+    }
+  }, [renderStartTime]);
+
+  // ✨ Enhanced handlePress עם haptic feedback
+  const handlePress = useCallback(() => {
+    triggerHaptic();
+    onPress();
+  }, [triggerHaptic, onPress]);
+
+  const currentSize = theme.components.floatingButtonSizes[size];
+
+  // ✨ אימות גודל 44px לנגישות
+  const validButtonSize = Math.max(currentSize.button, 44);
+  const isWorkoutMode = workout;
+
+  // ✨ ממדים מותאמים לאימון
+  const workoutEnhancements = useMemo(() => {
+    if (!isWorkoutMode) return {};
+
+    return {
+      minWidth: validButtonSize,
+      minHeight: validButtonSize,
+      transform: [{ scale: 1.1 }], // כפתור מוגדל יותר באימון
+      shadowOpacity: 0.4, // צל חזק יותר
+      elevation: 8,
+    };
+  }, [isWorkoutMode, validButtonSize]);
 
   // ✨ אנימציות פשוטות ויעילות - Simple and efficient animations
   useEffect(() => {
@@ -115,18 +178,28 @@ export default function FloatingActionButton({
         style={[
           styles.button,
           {
-            backgroundColor: color,
-            width: currentSize.button,
-            height: currentSize.button,
-            borderRadius: currentSize.button / 2,
+            backgroundColor: isWorkoutMode ? theme.colors.primary : color,
+            width: validButtonSize,
+            height: validButtonSize,
+            borderRadius: validButtonSize / 2,
+            ...workoutEnhancements,
           },
         ]}
-        onPress={onPress}
+        onPress={handlePress}
         activeOpacity={0.8}
+        hitSlop={{
+          top: hitSlop,
+          bottom: hitSlop,
+          left: hitSlop,
+          right: hitSlop,
+        }}
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || label || `כפתור ${icon}`}
-        accessibilityHint={accessibilityHint || "כפתור פעולה צף"}
+        accessibilityHint={
+          accessibilityHint ||
+          (isWorkoutMode ? "כפתור פעולה צף באימון" : "כפתור פעולה צף")
+        }
       >
         <Animated.View style={{ transform: [{ rotate: rotation }] }}>
           <Ionicons
@@ -177,5 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: theme.colors.text,
+    writingDirection: "rtl",
   },
 });

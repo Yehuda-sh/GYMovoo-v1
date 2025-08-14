@@ -1,13 +1,14 @@
 /**
  * @file src/components/workout/NextWorkoutCard.tsx
- * @description רכיב לתצוגת האימון הבא במסך הבית
- * English: Component for displaying next workout in home screen
+ * @description רכיב לתצוגת האימון הבא במסך הבית - מותאם לכושר מובייל עם משוב מושגי
+ * English: Component for displaying next workout in home screen - fitness mobile optimized with haptic feedback
  */
 
-import React from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 import { useNextWorkout } from "../../hooks/useNextWorkout";
 import { WorkoutPlan } from "../../screens/workout/types/workout.types";
@@ -23,6 +24,33 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
 }) => {
   const { nextWorkout, isLoading, cycleStats } = useNextWorkout(workoutPlan);
   const [showTimeout, setShowTimeout] = React.useState(false);
+
+  // ✨ Performance tracking לרכיבי כושר
+  const renderStartTime = useMemo(() => performance.now(), []);
+
+  // ✨ Haptic feedback מותאם לאימונים
+  const triggerWorkoutHaptic = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  }, []);
+
+  // ✨ Enhanced handleStartWorkout עם haptic feedback
+  const handleStartWorkout = useCallback(
+    (workoutName: string, workoutIndex: number) => {
+      triggerWorkoutHaptic();
+      onStartWorkout(workoutName, workoutIndex);
+    },
+    [triggerWorkoutHaptic, onStartWorkout]
+  );
+
+  // ✨ משוב ביצועים אוטומטי
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime;
+    if (renderTime > 100) {
+      console.warn(
+        `⚠️ NextWorkoutCard render time: ${renderTime.toFixed(2)}ms`
+      );
+    }
+  }, [renderStartTime]);
 
   // ✨ ברירת מחדל מאוחדת - Unified default workout
   const DEFAULT_WORKOUT = React.useMemo(
@@ -136,7 +164,9 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
               color={theme.colors.primary}
               accessible={false}
             />
-            <Text style={styles.title}>האימון הבא שלך</Text>
+            <Text style={[styles.title, { writingDirection: "rtl" }]}>
+              האימון הבא שלך
+            </Text>
           </View>
 
           {/* אינדיקטור אינטנסיביות */}
@@ -193,13 +223,22 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
         <TouchableOpacity
           style={styles.startButton}
           onPress={() =>
-            onStartWorkout(nextWorkout.workoutName, nextWorkout.workoutIndex)
+            handleStartWorkout(
+              nextWorkout.workoutName,
+              nextWorkout.workoutIndex
+            )
           }
           activeOpacity={0.8}
+          hitSlop={{
+            top: 20,
+            bottom: 20,
+            left: 20,
+            right: 20,
+          }}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`התחל אימון ${nextWorkout.workoutName}`}
-          accessibilityHint="הקש כדי להתחיל את האימון הבא"
+          accessibilityHint="הקש כדי להתחיל את האימון הבא - יופעל משוב מושגי"
         >
           <LinearGradient
             colors={[theme.colors.primary, theme.colors.primary + "DD"]}
@@ -219,7 +258,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
   );
 };
 
-// ✨ רכיב ברירת מחדל נפרד - Separate default workout component
+// ✨ רכיב ברירת מחדל נפרד עם אופטימיזציות כושר - Fitness optimized default workout component
 const DefaultWorkoutView: React.FC<{
   workout: {
     workoutName: string;
@@ -230,61 +269,84 @@ const DefaultWorkoutView: React.FC<{
     suggestedIntensity: "normal" | "light" | "catchup";
   };
   onStartWorkout: (workoutName: string, workoutIndex: number) => void;
-}> = React.memo(({ workout, onStartWorkout }) => (
-  <View
-    style={styles.container}
-    accessible={true}
-    accessibilityRole="text"
-    accessibilityLabel={`האימון הבא שלך: ${workout.workoutName}. ${workout.reason}.`}
-    accessibilityHint="פרטי האימון הבא המומלץ עבורך"
-  >
-    <LinearGradient
-      colors={[theme.colors.primary + "30", theme.colors.primary + "10"]}
-      style={styles.gradient}
+}> = React.memo(({ workout, onStartWorkout }) => {
+  // ✨ Haptic feedback לברירת מחדל
+  const triggerDefaultHaptic = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, []);
+
+  const handleDefaultPress = useCallback(() => {
+    triggerDefaultHaptic();
+    onStartWorkout(workout.workoutName, workout.workoutIndex);
+  }, [
+    triggerDefaultHaptic,
+    onStartWorkout,
+    workout.workoutName,
+    workout.workoutIndex,
+  ]);
+
+  return (
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={`האימון הבא שלך: ${workout.workoutName}. ${workout.reason}.`}
+      accessibilityHint="פרטי האימון הבא המומלץ עבורך"
     >
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <MaterialCommunityIcons
-            name="dumbbell"
-            size={20}
-            color={theme.colors.primary}
-            accessible={false}
-          />
-          <Text style={styles.title}>האימון הבא שלך</Text>
-        </View>
-      </View>
-
-      <Text style={styles.workoutName}>{workout.workoutName}</Text>
-      <Text style={styles.reason}>{workout.reason}</Text>
-
-      <TouchableOpacity
-        style={styles.startButton}
-        onPress={() =>
-          onStartWorkout(workout.workoutName, workout.workoutIndex)
-        }
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`התחל אימון ${workout.workoutName}`}
-        accessibilityHint="הקש כדי להתחיל את האימון הבא"
+      <LinearGradient
+        colors={[theme.colors.primary + "30", theme.colors.primary + "10"]}
+        style={styles.gradient}
       >
-        <LinearGradient
-          colors={[theme.colors.primary, theme.colors.primary + "DD"]}
-          style={styles.startButtonGradient}
-        >
-          <MaterialCommunityIcons
-            name="play"
-            size={20}
-            color="white"
-            accessible={false}
-          />
-          <Text style={styles.startButtonText}>התחל אימון</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </LinearGradient>
-  </View>
-));
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={20}
+              color={theme.colors.primary}
+              accessible={false}
+            />
+            <Text style={styles.title}>האימון הבא שלך</Text>
+          </View>
+        </View>
 
-// ✨ רכיב סטטיסטיקות נפרד - Separate stats component
+        <Text style={styles.workoutName}>{workout.workoutName}</Text>
+        <Text style={styles.reason}>{workout.reason}</Text>
+
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleDefaultPress}
+          hitSlop={{
+            top: 20,
+            bottom: 20,
+            left: 20,
+            right: 20,
+          }}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`התחל אימון ${workout.workoutName}`}
+          accessibilityHint="הקש כדי להתחיל את האימון הבא - יופעל משוב מושגי"
+        >
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+            style={styles.startButtonGradient}
+          >
+            <MaterialCommunityIcons
+              name="play"
+              size={20}
+              color="white"
+              accessible={false}
+            />
+            <Text style={styles.startButtonText}>התחל אימון</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </LinearGradient>
+    </View>
+  );
+});
+
+DefaultWorkoutView.displayName = "DefaultWorkoutView";
+
+// ✨ רכיב סטטיסטיקות נפרד עם אופטימיזציות - Fitness optimized stats component
 const CycleStatsView: React.FC<{
   cycleStats: {
     currentWeek: number;
@@ -320,6 +382,8 @@ const CycleStatsView: React.FC<{
   );
 });
 
+CycleStatsView.displayName = "CycleStatsView";
+
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: theme.spacing.md,
@@ -341,17 +405,7 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.sm,
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.primary,
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.md,
-  },
-  errorText: {
-    marginLeft: theme.spacing.sm,
-    fontSize: theme.typography.body.fontSize,
-    color: theme.colors.secondary,
+    writingDirection: "rtl",
   },
   header: {
     flexDirection: "row",
@@ -368,6 +422,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginLeft: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   intensityBadge: {
     flexDirection: "row",
@@ -382,18 +437,21 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize - 1,
     fontWeight: "500",
     marginLeft: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   workoutName: {
     fontSize: theme.typography.h3.fontSize,
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
+    writingDirection: "rtl",
   },
   reason: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
     lineHeight: 20,
+    writingDirection: "rtl",
   },
   infoRow: {
     flexDirection: "row",
@@ -404,6 +462,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     marginLeft: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   statsContainer: {
     flexDirection: "row",
@@ -426,6 +485,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
+    writingDirection: "rtl",
   },
   statDivider: {
     width: 1,
@@ -434,6 +494,7 @@ const styles = StyleSheet.create({
   },
   startButton: {
     borderRadius: theme.radius.lg,
+    minHeight: 44, // ✨ אימות גודל 44px לנגישות
     ...theme.shadows.small,
   },
   startButtonGradient: {
@@ -443,11 +504,13 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     borderRadius: theme.radius.lg,
+    minHeight: 44, // ✨ גודל מינימלי לכפתור כושר
   },
   startButtonText: {
     fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
     color: "white",
     marginLeft: theme.spacing.sm,
+    writingDirection: "rtl",
   },
 });

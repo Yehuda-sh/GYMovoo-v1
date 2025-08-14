@@ -1,13 +1,13 @@
 /**
  * @file src/components/ui/UniversalCard.tsx
- * @brief כרטיס אוניברסלי עם אפשרויות עיצוב מגוונות משופר
- * @dependencies theme, LinearGradient, React.memo
- * @notes תומך בכותרת, תת-כותרת, תוכן, פעולות, גרדיאנט
- * @recurring_errors וודא שימוש נכון ב-renderContent או children
- * @version 2.0 - Enhanced with React.memo, useMemo, accessibility, compact variant
+ * @brief כרטיס אוניברסלי עם אפשרויות עיצוב מגוונות משופר + אופטימיזציה לכושר מובייל
+ * @dependencies theme, LinearGradient, React.memo, expo-haptics
+ * @notes תומך בכותרת, תת-כותרת, תוכן, פעולות, גרדיאנט, workout mode, haptic feedback
+ * @recurring_errors וודא שימוש נכון ב-renderContent או children, workout למסכי אימון
+ * @version 3.0 - Fitness mobile optimization, workout variant, haptic feedback, RTL fix, performance tracking
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 
 interface UniversalCardProps {
@@ -27,7 +28,13 @@ interface UniversalCardProps {
   children?: React.ReactNode;
   renderContent?: () => React.ReactNode;
   onPress?: () => void;
-  variant?: "default" | "gradient" | "outlined" | "elevated" | "compact";
+  variant?:
+    | "default"
+    | "gradient"
+    | "outlined"
+    | "elevated"
+    | "compact"
+    | "workout";
   footer?: React.ReactNode;
   style?: ViewStyle;
   gradientColors?: readonly [string, string, ...string[]];
@@ -38,6 +45,11 @@ interface UniversalCardProps {
   accessibilityHint?: string;
   testID?: string;
   hitSlop?: { top: number; bottom: number; left: number; right: number };
+
+  // 🏋️ Fitness Mobile Optimization (2025-08-14)
+  enableHapticFeedback?: boolean; // משוב מושגי לכל לחיצה
+  enablePerformanceTracking?: boolean; // מדידת ביצועים אוטומטית
+  trackingName?: string; // שם למעקב ביצועים
 }
 
 export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
@@ -60,8 +72,40 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
     accessibilityLabel,
     accessibilityHint,
     testID = "universal-card",
-    hitSlop = { top: 10, bottom: 10, left: 10, right: 10 },
+    hitSlop = { top: 20, bottom: 20, left: 20, right: 20 }, // 🏋️ הגדלת hitSlop לכושר
+    // Fitness Mobile Optimization
+    enableHapticFeedback = false,
+    enablePerformanceTracking = false,
+    trackingName,
   }) => {
+    // 🚀 מדידת ביצועים לאפליקציית כושר
+    // Performance tracking for fitness app
+    const startTime = useMemo(() => performance.now(), []);
+
+    useEffect(() => {
+      if (enablePerformanceTracking) {
+        const renderTime = performance.now() - startTime;
+        if (renderTime > 100) {
+          console.warn(
+            `⚠️ UniversalCard ${trackingName || title || "Unnamed"} איטי: ${renderTime.toFixed(1)}ms`
+          );
+        }
+      }
+    }, [enablePerformanceTracking, trackingName, title, startTime]);
+
+    // 🎯 פונקציית haptic feedback לאפליקציות כושר
+    // Haptic feedback function for fitness apps
+    const handlePress = useCallback(() => {
+      if (enableHapticFeedback && !disabled && onPress) {
+        // משוב מושגי בהתאם לvariant
+        const feedbackIntensity =
+          variant === "workout"
+            ? Haptics.ImpactFeedbackStyle.Heavy
+            : Haptics.ImpactFeedbackStyle.Light;
+        Haptics.impactAsync(feedbackIntensity);
+      }
+      onPress?.();
+    }, [enableHapticFeedback, disabled, onPress, variant]);
     // סגנונות לפי וריאנט // Variant styles
     const variantStyles = useMemo((): ViewStyle => {
       switch (variant) {
@@ -85,6 +129,16 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
           return {
             ...theme.components.card,
             padding: theme.spacing.sm,
+          };
+        case "workout":
+          // 🏋️ מצב אימון - כרטיסים גדולים במיוחד
+          return {
+            ...theme.components.card,
+            padding: theme.spacing.xl,
+            borderWidth: 2,
+            borderColor: theme.colors.primary,
+            minHeight: 120, // גובה מינימלי גדול לנגישות
+            ...theme.shadows.medium,
           };
         default:
           return theme.components.card;
@@ -192,7 +246,7 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
       const GradientCard = onPress ? TouchableOpacity : View;
       return (
         <GradientCard
-          onPress={onPress}
+          onPress={handlePress}
           disabled={disabled}
           activeOpacity={0.8}
           style={[variantStyles, style]}
@@ -216,7 +270,7 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
     const CardComponent = onPress ? TouchableOpacity : View;
     return (
       <CardComponent
-        onPress={onPress}
+        onPress={handlePress}
         disabled={disabled}
         activeOpacity={0.7}
         style={[variantStyles, disabled && styles.disabled, style]}
@@ -257,20 +311,24 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.heading.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
+    writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים
   },
   titleCompact: {
     fontSize: theme.typography.body.fontSize,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
+    writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים
   },
   subtitle: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
+    writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים
   },
   subtitleCompact: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
+    writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים
   },
   iconContainer: {
     backgroundColor: theme.colors.backgroundElevated,
