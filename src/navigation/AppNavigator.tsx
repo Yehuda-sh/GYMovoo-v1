@@ -39,20 +39,39 @@ import ProgressScreen from "../screens/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
 
+// 🏪 Zustand Store
+import { useUserStore } from "../stores/userStore";
+
 const Stack = createStackNavigator<RootStackParamList>();
 
 /**
  * @component AppNavigator
- * @description ניווט ראשי מותאם לביצועים עם RTL ואופטימיזציות
+ * @description ניווט ראשי מותאם לביצועים עם RTL ואופטימיזציות + בדיקת משתמש מחובר
  * @performance ביצועים משופרים עם freezeOnBlur ואופטימיזציות אנימציה
  * @accessibility תמיכה מלאה בנגישות ו-RTL
  * @returns {JSX.Element} רכיב ניווט מותאם וחכם
  */
 export default memo(function AppNavigator() {
+  // 🔍 בדיקת מצב משתמש להחלטה על מסך התחלתי
+  const { user, getCompletionStatus } = useUserStore();
+
+  // קביעת מסך התחלתי לפי מצב המשתמש
+  const getInitialRouteName = () => {
+    if (!user) {
+      return "Welcome"; // אין משתמש - מסך ברוכים הבאים
+    }
+
+    const completion = getCompletionStatus();
+    if (completion.isFullySetup) {
+      return "MainApp"; // משתמש עם שאלון מושלם - ישר לאפליקציה
+    }
+
+    return "Questionnaire"; // משתמש ללא שאלון - למסך השאלון
+  };
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Welcome"
+        initialRouteName={getInitialRouteName()}
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,

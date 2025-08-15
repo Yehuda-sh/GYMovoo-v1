@@ -71,6 +71,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
@@ -170,9 +171,60 @@ export default function WelcomeScreen() {
   }, [renderStartTime]);
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser } = useUserStore();
+  const { setUser, user, getCompletionStatus } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [lastLoggedOutUserId, setLastLoggedOutUserId] = useState<string | null>(
+    null
+  );
+
+  // 🔍 בדיקה אם יש משתמש מחובר וניווט אוטומטי
+  useEffect(() => {
+    if (user) {
+      const completion = getCompletionStatus();
+      if (__DEV__) {
+        console.warn("🔍 WelcomeScreen: מצא משתמש מחובר", {
+          userId: user.id,
+          hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
+          isFullySetup: completion.isFullySetup,
+        });
+      }
+
+      if (completion.isFullySetup) {
+        if (__DEV__)
+          console.warn(
+            "✅ WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית"
+          );
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        if (__DEV__)
+          console.warn("📝 WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Questionnaire" }],
+        });
+      }
+    }
+  }, [user, getCompletionStatus, navigation]);
+
+  // 🔄 טעינת המשתמש שהתנתק לאחרונה מ-AsyncStorage
+  useEffect(() => {
+    const loadLastLoggedOutUser = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem("lastLoggedOutUserId");
+        if (storedUserId) {
+          setLastLoggedOutUserId(storedUserId);
+        }
+      } catch (error) {
+        if (__DEV__)
+          console.warn("⚠️ Failed to load lastLoggedOutUserId:", error);
+      }
+    };
+    loadLastLoggedOutUser();
+  }, []);
 
   // Generate realistic active users count based on time of day
   // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
@@ -200,44 +252,110 @@ export default function WelcomeScreen() {
   const handleQuickLogin = useCallback(async () => {
     triggerHapticFeedback("medium"); // משוב בינוני להתחברות מהירה
     try {
-      // שליפת משתמשים מ-Supabase ובחירת אחד רנדומלי
+      // שליפת משתמשים מ-Supabase ובחירת אחד רנדומלי (לא זה שהתנתק)
       const users = await userApi.list();
       if (!users || users.length === 0) {
         throw new Error(
           "לא נמצאו משתמשים במסד הנתונים. ודא שיש משתמשים קיימים ב-Supabase."
         );
       }
-      const random = users[Math.floor(Math.random() * users.length)];
+
+      // קריאת המשתמש שהתנתק לאחרונה מ-AsyncStorage
+      const storedLastUserId = await AsyncStorage.getItem(
+        "lastLoggedOutUserId"
+      );
+
+      // סינון המשתמש שהתנתק לאחרונה כדי לקבל משתמש שונה
+      let availableUsers = users;
+      if (storedLastUserId || lastLoggedOutUserId) {
+        const excludeUserId = storedLastUserId || lastLoggedOutUserId;
+        availableUsers = users.filter((u) => u.id !== excludeUserId);
+        if (availableUsers.length === 0) {
+          // אם אין משתמשים אחרים, קח את כל הרשימה
+          availableUsers = users;
+        }
+      }
+
+      const random =
+        availableUsers[Math.floor(Math.random() * availableUsers.length)];
+
+      if (__DEV__) {
+        console.warn("🎲 QuickLogin: בחירת משתמש", {
+          totalUsers: users.length,
+          availableUsers: availableUsers.length,
+          excludedUserId: storedLastUserId || lastLoggedOutUserId,
+          selectedUserId: random.id,
+          selectedUserName: random.name,
+        });
+      }
+
+      // שמירת המזהה של המשתמש הנוכחי למקרה של logout עתידי
+      if (user?.id) {
+        setLastLoggedOutUserId(user.id);
+        await AsyncStorage.setItem("lastLoggedOutUserId", user.id);
+      }
 
       // 1) הגדרת המשתמש האמיתי שנבחר
       setUser(random);
 
-      // 2) איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
-      try {
-        useUserStore.getState().resetSmartQuestionnaire();
-      } catch (e) {
-        if (__DEV__) console.warn("resetSmartQuestionnaire נכשל", e);
-      }
-      try {
-        useUserStore.getState().resetQuestionnaire?.();
-      } catch (e) {
-        if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
-      }
+      // 2) בדיקה אם למשתמש יש כבר שאלון מלא
+      const hasSmartQuestionnaire =
+        random.smartquestionnairedata &&
+        random.smartquestionnairedata.answers &&
+        Object.keys(random.smartquestionnairedata.answers).length >= 10;
 
-      // 3) אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
-      try {
-        useUserStore.getState().initializeSubscription();
-      } catch (e) {
-        if (__DEV__) {
-          console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+      if (hasSmartQuestionnaire) {
+        // אם יש שאלון מלא - ישר לאפליקציה הראשית
+        if (__DEV__)
+          console.warn(
+            "✅ QuickLogin: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית"
+          );
+
+        // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
+        try {
+          useUserStore.getState().initializeSubscription();
+        } catch (e) {
+          if (__DEV__) {
+            console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+          }
         }
-      }
 
-      // 4) מעבר למסך השאלון כמו אחרי הרשמה
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Questionnaire" }],
-      });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        // אם אין שאלון מלא - איפוס והעברה לשאלון
+        if (__DEV__)
+          console.warn("📝 QuickLogin: משתמש ללא שאלון מלא - מעבר לשאלון");
+
+        // איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
+        try {
+          useUserStore.getState().resetSmartQuestionnaire();
+        } catch (e) {
+          if (__DEV__) console.warn("resetSmartQuestionnaire נכשל", e);
+        }
+        try {
+          useUserStore.getState().resetQuestionnaire?.();
+        } catch (e) {
+          if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
+        }
+
+        // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
+        try {
+          useUserStore.getState().initializeSubscription();
+        } catch (e) {
+          if (__DEV__) {
+            console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+          }
+        }
+
+        // מעבר למסך השאלון כמו אחרי הרשמה
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Questionnaire" }],
+        });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMessage(
@@ -251,6 +369,9 @@ export default function WelcomeScreen() {
     navigation,
     setErrorMessage,
     setShowErrorModal,
+    lastLoggedOutUserId,
+    user?.id,
+    setLastLoggedOutUserId,
   ]);
 
   const handleRegister = useCallback(() => {
