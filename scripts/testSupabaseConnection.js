@@ -7,6 +7,10 @@
     $env:EXPO_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY>"
     npm run test:supabase
 */
+
+// טעינת dotenv לקריאת קובץ .env
+require("dotenv").config();
+
 const axios = require("axios");
 
 const SUPABASE_URL =
