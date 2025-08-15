@@ -27,7 +27,7 @@ import {
   WorkoutWithFeedback,
   WorkoutStatistics,
 } from "../../screens/workout/types/workout.types";
-import { workoutHistoryService } from "../workoutHistoryService";
+import { workoutFacadeService } from "../workout/workoutFacadeService";
 import { LOGGING } from "../../constants/logging";
 import { userApi } from "../api/userApi";
 
@@ -176,16 +176,12 @@ class DataManagerService {
       );
     }
 
-    let workoutHistory: WorkoutWithFeedback[] = [];
-    let statistics: WorkoutStatistics | null = null;
-    let congratulationMessage: string | null = null;
-
-    // נתוני משתמש אמיתיים בלבד
-    [workoutHistory, statistics, congratulationMessage] = await Promise.all([
-      workoutHistoryService.getWorkoutHistory(),
-      workoutHistoryService.getGenderGroupedStatistics(),
-      workoutHistoryService.getLatestCongratulationMessage(),
-    ]);
+    const [workoutHistory, statistics, congratulationMessage] =
+      await Promise.all([
+        workoutFacadeService.getHistory(),
+        workoutFacadeService.getGenderGroupedStatistics(),
+        workoutFacadeService.getLatestCongratulationMessage(),
+      ]);
 
     this.cache = {
       workoutHistory,
@@ -332,7 +328,7 @@ class DataManagerService {
   /**
    * לוג מפורט של כל נתוני המשתמש והמערכת
    */
-  private _logCompleteUserData(user: User): void {
+  private _logCompleteUserData(user: User) {
     console.warn("📊 ========== DATA MANAGER - COMPLETE USER DATA ==========");
 
     // 👤 נתוני משתמש בסיסיים

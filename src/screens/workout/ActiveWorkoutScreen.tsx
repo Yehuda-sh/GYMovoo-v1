@@ -58,7 +58,7 @@ import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 // Components
-import ExerciseCard from "./components/ExerciseCard";
+import ExerciseCard from "./components/ExerciseCard/index";
 import { WorkoutStatusBar } from "./components/WorkoutStatusBar";
 import { FloatingActionButton } from "../../components";
 

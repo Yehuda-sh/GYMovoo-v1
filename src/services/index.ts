@@ -39,11 +39,17 @@ export { workoutApi } from "./api/workoutApi";
 // שירותי אימון מתמחים
 // Status: ✅ ACTIVE - Essential workout tracking and progression
 // =======================================
-export { workoutHistoryService } from "./workoutHistoryService";
-export type {
-  PreviousPerformance,
-  PersonalRecord,
-} from "./workoutHistoryService";
+// export { demoUserService } from "./demo/demoUserService";
+export { workoutFacadeService } from "./workout/workoutFacadeService";
+
+// === DEPRECATED / TO BE REMOVED ===
+// The following exports are for legacy services that are being refactored.
+// Avoid using them in new code.
+// export { workoutHistoryService } from "./workoutHistoryService";
+// export type {
+//   PreviousPerformance,
+//   PersonalRecord,
+// } from "./workoutHistoryService";
 
 // Note: workoutSimulationService can be imported directly from "./workoutSimulationService"
 // export { default as workoutSimulationService } from "./workoutSimulationService";

@@ -156,6 +156,8 @@ const realisticUser = {
 - **PostgreSQL case**: כל שדה camelCase → lowercase בבסיס הנתונים (`smartQuestionnaireData` → `smartquestionnairedata`).
 - **ציוד מותאם**: gym_equipment רק לgym, home_equipment רק לhome_equipment, bodyweight_equipment רק לhome_bodyweight.
 - **Email uniqueness**: תמיד צור emails ייחודיים או בדוק קיימים לפני הכנסה לבסיס הנתונים.
+- **Navigation בעיות**: אם כפתורים לא מגיבים - בדוק TouchableOpacity במקום View ב-tabBarButton.
+- **TypeScript נתקע**: אם `npx tsc --noEmit` ללא תגובה 30+ שניות → `Ctrl+C` + `--skipLibCheck` או קובץ ספציפי.
 
 ## 🔍 פרוטוקול "תבדוק לי" מתקדם - בדיקה מסודרת וחכמה (2025-08-15)
 
@@ -1102,9 +1104,47 @@ const QuickNumericInput = ({ label, value, onChange }) => (
 
 ### 🔧 בדיקות בסיסיות (תמיד)
 
-1. **TypeScript Compilation**: `npx tsc --noEmit`
+1. **TypeScript Compilation**: `npx tsc --noEmit` (⚠️ אם נתקע 30+ שניות → `Ctrl+C` ונסה שוב)
 2. **Import/Export תקינות**: חפש שגיאות import אחרי מחיקות
 3. **Linting**: `npx eslint src/ --ext .ts,.tsx` (אם יש)
+
+### 🎯 דיבוג Navigation ו-UI (2025-08-16)
+
+**🚨 לקח קריטי מניווט תחתון:**
+
+**סימפטום**: כפתורי navigation מוצגים אבל לא מגיבים לחיצה
+**סיבה נפוצה**: `tabBarButton` עם View רגיל במקום TouchableOpacity
+**פתרון מהיר**:
+
+```typescript
+// ❌ לא עובד:
+tabBarButton: (props) => (
+  <View {...props} onTouchEnd={() => handlePress()} />
+)
+
+// ✅ עובד:
+tabBarButton: (props) => {
+  const { children, onPress, accessibilityLabel } = props;
+  return (
+    <TouchableOpacity
+      {...props}
+      onPress={(e) => {
+        console.warn(`🔄 לחיצה על: ${accessibilityLabel}`);
+        onPress?.(e);
+      }}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
+```
+
+**🔍 פרוטוקול debug navigation:**
+
+1. בדוק שהרכיב נטען: `console.warn("Component rendering")`
+2. הוסף צבעי debug זמניים: `backgroundColor: "#FF0000"`
+3. בדוק שהכפתורים מגיבים: debug logs ב-onPress
+4. וודא TouchableOpacity עם onPress לא View עם onTouchEnd
 
 ### 🌐 בדיקות Supabase וחיבור שרת (כשרלוונטי)
 
@@ -1163,6 +1203,37 @@ npm run android
 - **Supabase connection fail**: ודא משתני סביבה או בדוק status
 - **Metro bundler crash**: נקה cache עם `npx expo start --clear`
 - **Build fails**: בדוק dependencies עם `npm audit`
+
+### 🚨 טיפול בפקודות TypeScript תקועות (2025-08-16)
+
+**הבעיה**: `npx tsc --noEmit` לפעמים נתקע ללא תגובה
+**פתרונות מהירים**:
+
+```powershell
+# פתרון 1: טיימר של 30 שניות
+$timeout = 30
+$job = Start-Job { npx tsc --noEmit }
+if (Wait-Job $job -Timeout $timeout) {
+    Receive-Job $job
+} else {
+    Stop-Job $job
+    Write-Host "⚠️ TypeScript נתקע - מנסה שוב..."
+    npx tsc --noEmit --skipLibCheck
+}
+
+# פתרון 2: בדיקה מקוצרת
+npx tsc --noEmit --skipLibCheck
+
+# פתרון 3: בדיקת קובץ ספציפי
+npx tsc --noEmit src/navigation/BottomNavigation.tsx --skipLibCheck
+```
+
+**כללי עבודה לפקודות תקועות**:
+
+- אם לא רואה פלט תוך 30 שניות → `Ctrl+C` ונסה שוב
+- השתמש ב-`--skipLibCheck` כפתרון מהיר
+- בדוק קובץ ספציפי במקום הפרויקט כולו
+- אם נתקע שוב → עבור לבדיקות אחרות והחזור אחר כך
 
 **זכור: עדיף לבדוק 2 דקות מאשר לתקן באגים 20 דקות! 🎯**
 
@@ -1701,5 +1772,25 @@ const dbUser = {
 - הפרש זמן מוערך: 75% חיסכון (30 דקות → 7 דקות)
 
 ---
+
+## 🎯 עדכון הנחיות חדש (2025-08-16)
+
+### 📚 לקח Navigation Debugging חדש
+
+**בעיה שנפתרה**: ניווט תחתון לא הגיב לכפתורים למרות שהוצג נכון
+**פתרון**: החלפת `View` + `onTouchEnd` ב-`TouchableOpacity` + `onPress` ב-`tabBarButton`
+**זמן פתרון**: 45 דקות (כולל debug וחיפוש הבעיה)
+
+### ⚙️ שיפור פרוטוקול TypeScript
+
+**בעיה**: `npx tsc --noEmit` נתקע לפעמים ללא תגובה
+**פתרון**: טיימר של 30 שניות + fallback ל-`--skipLibCheck`
+**יתרון**: חיסכון זמן המתנה מיותר ופרודוקטיביות גבוהה יותר
+
+### 🏆 ערך מוסף מהעדכון
+
+- **מניעת באגים**: הוספת בדיקת TouchableOpacity לפרוטוקול debug
+- **יעילות זמן**: פתרון מהיר לפקודות תקועות
+- **איכות קוד**: הנחיות ברורות יותר למניעת חזרות
 
 **🏆 Golden Rule חדש: "תן לקוד הקיים ללמד אותך, אל תלמד אותו בניסוי וטעייה"**

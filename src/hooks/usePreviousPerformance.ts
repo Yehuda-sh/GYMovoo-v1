@@ -1,62 +1,10 @@
 /**
- * @file src/hooks/usePimport { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import {
-  workoutHistoryService,
-  PreviousPerformance,
-} from "../services/workoutHistoryService";
-
-// ================================
-// 🔧 PERFORMANCE CACHE SYSTEM
-// ================================
-
-interface PerformanceCacheEntry {
-  data: SmartPreviousPerformance;
-  timestamp: number;
-  personalDataHash: string;
-}
-
-const PerformanceCache = new Map<string, PerformanceCacheEntry>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// Personal data hashing for cache optimization
-const hashPersonalData = (data?: object): string => {
-  return data ? JSON.stringify(data) : "default";
-};
-
-// ================================
-// 📊 ENHANCED TYPE DEFINITIONS
-// ================================usPerformance.ts
- * @description Hook מתקדם לניתוח ביצועים קודמים עם מערכת AI ללמידה מותאמת אישית
- * @description Advanced hook for analyzing previous performances with AI-powered personalized learning
- * @notes משתמש באלגוריתם חכם עם cache מובנה, ניתוח מגמות מתקדם והמלצות AI
- * @notes Uses smart algorithm with built-in cache, advanced trend analysis and AI recommendations
- * @updated 2025-08-15 הוספת cache מערכת, שיפורי ביצועים, ומודולריות מתקדמת
- *
- * @example
- * // שימוש בסיסי מהיר
- * const { previousPerformance, loading } = usePreviousPerformance("Bench Press");
- *
- * // שימוש עם נתונים אישיים ו-cache אוטומטי
- * const personalData = {
- *   gender: "female",
- *   age: "35_44",
- *   weight: "60_69",
- *   height: "160_169",
- *   fitnessLevel: "intermediate"
- * };
- * const { 
- *   previousPerformance, 
- *   getMotivationalMessage,
- *   aiInsights,
- *   clearCache 
- * } = usePreviousPerformance("Squat", personalData);
+ * @file src/hooks/usePreviousPerformance.ts
+ * Hook לחישוב והפקת ביצועים קודמים + תובנות חכמות
  */
-
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  workoutHistoryService,
-  PreviousPerformance,
-} from "../services/workoutHistoryService";
+import { workoutFacadeService } from "../services";
+import { PreviousPerformance } from "../screens/workout/types/workout.types";
 
 // ================================
 // 🔧 PERFORMANCE CACHE SYSTEM
@@ -281,11 +229,42 @@ export const usePreviousPerformance = (
     [getPersonalAdjustmentFactors]
   );
 
-  // Small helper to get training volume
-  const getVolume = (entry: WorkoutEntryLike | undefined) =>
-    (Number(entry?.weight) || 0) *
-    (Number(entry?.reps) || 0) *
-    (Number(entry?.sets) || 1);
+  // Small helper to get training volume (supports legacy single entry or array-based sets)
+  const getVolume = (
+    entry:
+      | WorkoutEntryLike
+      | PreviousPerformance
+      | (Record<string, unknown> & { sets?: unknown })
+      | undefined
+  ): number => {
+    if (!entry) return 0;
+    // If structure appears to have a sets array of objects with weight & reps
+    if (
+      typeof entry === "object" &&
+      entry !== null &&
+      Array.isArray((entry as { sets?: unknown }).sets)
+    ) {
+      const setsArr = (
+        entry as {
+          sets: Array<{ weight?: unknown; reps?: unknown; sets?: unknown }>;
+        }
+      ).sets;
+      return setsArr.reduce(
+        (sum, s) =>
+          sum +
+          (Number(s?.weight) || 0) *
+            (Number(s?.reps) || 0) *
+            (Number((s as { sets?: unknown })?.sets) || 1),
+        0
+      );
+    }
+    const simple = entry as WorkoutEntryLike;
+    return (
+      (Number(simple?.weight) || 0) *
+      (Number(simple?.reps) || 0) *
+      (Number(simple?.sets) || 1)
+    );
+  };
 
   // פונקציה לחישוב אלגוריתם התקדמות חכם (memoized & pure wrt inputs)
   const calculateSmartProgression = useCallback(
@@ -419,7 +398,7 @@ export const usePreviousPerformance = (
       setError(null);
 
       const rawPerformance =
-        await workoutHistoryService.getPreviousPerformanceForExercise(
+        await workoutFacadeService.getPreviousPerformanceForExercise(
           exerciseName
         );
 
@@ -603,8 +582,9 @@ export const usePreviousPerformance = (
       const aiInsights = generateAIInsights();
       if (!aiInsights) return null;
 
-      const currentWeight = previousPerformance.sets?.[0]?.weight || 0;
-      const currentReps = previousPerformance.sets?.[0]?.reps || 8;
+      const sets = (previousPerformance as PreviousPerformance).sets;
+      const currentWeight = sets?.[0]?.weight || 0;
+      const currentReps = sets?.[0]?.reps || 8;
 
       const improvementFactor =
         (aiInsights.predictedImprovement / 100) * (daysAhead / 7);

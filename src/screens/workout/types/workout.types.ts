@@ -287,6 +287,27 @@ export interface WorkoutHistoryItem {
   [key: string]: unknown; // Allow additional properties
 }
 
+// סיכום אימון
+// Workout summary
+export interface WorkoutSummary {
+  duration: number;
+  totalVolume: number;
+  totalSets: number;
+  totalReps: number;
+  completedExercises: number;
+  workoutName: string;
+}
+
+// תובנות לאימון הבא
+// Next workout insights
+export interface NextWorkoutInsights {
+  suggestedDuration: number;
+  suggestedIntensity: "low" | "moderate" | "high";
+  recoveryRecommendation: string;
+  focusAreas: string[];
+  expectedCalorieBurn: number;
+}
+
 // תשובות שאלון בסיסיות
 // Basic questionnaire answers
 export interface QuestionnaireBasicData {

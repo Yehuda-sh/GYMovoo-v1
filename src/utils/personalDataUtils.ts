@@ -12,6 +12,7 @@ export interface PersonalData {
   weight: string; // "70_79", "80_89", etc.
   height: string; // "170_179", "180_189", etc.
   fitnessLevel: "beginner" | "intermediate" | "advanced";
+  availability?: string; // "2_days", "3_days", etc.
 }
 
 /**

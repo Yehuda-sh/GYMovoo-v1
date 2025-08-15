@@ -1,7 +1,22 @@
 /**
  * @file src/navigation/BottomNavigation.tsx
- * @brief ניווט תחתון ישראלי מתקדם עם AI ואופטימיזציות - 5 מסכים עיקריים בסדר RTL
- * @brief Advanced Israeli bottom navigation with AI and optimizations - 5 main screens in RTL order
+ * @brief ניווט תחתון ישראלי מתקדם עם AI ואופטימיזציות - 5 מסכים עיקריים   // 🚀 Peexport default function BottomNavigation(): React.JSX.Element {
+  // 🚀 Performance optimization - מחושב מראש לביצועיםance optimization - מחושב מראש לביצועים
+  const tabBarStyle = useMemo(
+    () => ({
+      backgroundColor: theme.colors.card,
+      borderTopColor: theme.colors.cardBorder,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingBottom: Platform.OS === "ios" ? 25 : 10,
+      paddingTop: 10,
+      height: Platform.OS === "ios" ? 90 : 70,
+      elevation: 8, // Android shadow
+      shadowColor: "#000", // iOS shadow
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }),
+    []ief Advanced Israeli bottom navigation with AI and optimizations - 5 main screens in RTL order
  * @dependencies React Navigation Bottom Tabs, Ionicons, MaterialCommunityIcons, Haptics
  * @performance Optimized with useMemo, React.memo, and efficient re-renders
  * @accessibility Advanced RTL support, haptic feedback, screen reader optimization
@@ -12,7 +27,7 @@
  */
 
 import React, { useMemo, useCallback } from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet, Platform, TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -119,7 +134,10 @@ TabIcon.displayName = "TabIcon";
  * @accessibility Advanced RTL support and screen reader optimization
  */
 export default function BottomNavigation(): React.JSX.Element {
-  // 🚀 Performance optimization - מחושב מראש לביצועים
+  // � DEBUG: רכיב ניווט תחתון נטען
+  console.warn("🔄 BottomNavigation component is rendering");
+
+  // �🚀 Performance optimization - מחושב מראש לביצועים
   const tabBarStyle = useMemo(
     () => ({
       backgroundColor: theme.colors.card,
@@ -141,8 +159,10 @@ export default function BottomNavigation(): React.JSX.Element {
   const handleTabPress = useCallback((_routeName: string) => {
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      // Android haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    // אפשר להוסיף כאן לוגיקה נוספת כמו analytics
   }, []);
 
   return (
@@ -164,12 +184,21 @@ export default function BottomNavigation(): React.JSX.Element {
           paddingHorizontal: 2,
         },
         // 🎯 Enhanced tab press handling
-        tabBarButton: (props) => (
-          <View
-            {...props}
-            onTouchEnd={() => handleTabPress(props.accessibilityLabel || "")}
-          />
-        ),
+        tabBarButton: (props) => {
+          const { children, onPress, accessibilityLabel } = props;
+          return (
+            <TouchableOpacity
+              {...props}
+              onPress={(e) => {
+                handleTabPress(accessibilityLabel || "");
+                onPress?.(e);
+              }}
+              style={styles.tabButton}
+            >
+              {children}
+            </TouchableOpacity>
+          );
+        },
       }}
     >
       {/* =============================================== */}
@@ -278,6 +307,9 @@ export default function BottomNavigation(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  tabButton: {
+    flex: 1,
+  },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",

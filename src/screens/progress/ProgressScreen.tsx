@@ -12,7 +12,7 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { workoutHistoryService } from "../../services/workoutHistoryService";
+import { workoutFacadeService } from "../../services";
 
 export default function ProgressScreen(): JSX.Element {
   const [loading, setLoading] = React.useState(true);
@@ -28,15 +28,18 @@ export default function ProgressScreen(): JSX.Element {
     let mounted = true;
     const load = async () => {
       try {
-        const [s, a] = await Promise.all([
-          workoutHistoryService.getWorkoutStatistics(),
-          workoutHistoryService
-            .getPersonalizedWorkoutAnalytics()
-            .catch(() => null),
-        ]);
+        const s = await workoutFacadeService.getGenderGroupedStatistics();
+        // The analytics part needs to be refactored to not require personalData or to get it from a store
+        // For now, we'll just get the total records for the badge.
+        const history = await workoutFacadeService.getHistory();
+        const personalRecordsCount = history.reduce(
+          (acc, curr) => acc + (curr.stats?.personalRecords || 0),
+          0
+        );
+
         if (!mounted) return;
-        setStats(s);
-        setPersonalRecords(a?.personalRecordsThisMonth ?? 0);
+        setStats(s.total);
+        setPersonalRecords(personalRecordsCount);
       } catch (e) {
         console.error("ProgressScreen: failed to load stats", e);
       } finally {
