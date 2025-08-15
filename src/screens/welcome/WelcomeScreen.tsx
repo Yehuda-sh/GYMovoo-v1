@@ -1,13 +1,7 @@
 /**
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות מהירה - מותאם לכושר מובייל
- * @description English: Main welcome screen with sig      // שליפת משתמשים מהמאגר המקומי ובחירת אחד רנדומלי
-      const users = localDataService.getUsers();
-      if (!users || users.length === 0) {
-        throw new Error(
-          "לא נמצאו משתמשים במאגר המקומי. ודא שהמאגר מכיל משתמשים."
-        );
-      }d quick login options - fitness mobile optimized
+ * @description English: Main welcome screen with signup and quick login options - fitness mobile optimized
  *
  * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מותאמת לייצור וכושר מובייל
  * - Critical entry point for the entire application
@@ -32,11 +26,11 @@
  * - ✅ Production optimization עם clean imports
  *
  * @architecture
- * - Authentication: Quick login with localDataService + Registration flow
+ * - Authentication: Quick login with Supabase + Registration flow
  * - State Management: Zustand integration עם user store
  * - Navigation: Simple routing to Register or MainApp
  * - Error Handling: Modal feedback for missing users
- * - Local Data: Integration with localDataService for stored users
+ * - Cloud Data: Integration with Supabase for stored users
  *
  * @performance
  * - Minimal imports and dependencies
@@ -54,12 +48,12 @@
  * @integrations
  * - userStore: Zustand state management
  * - React Navigation: Multi-screen navigation
- * - localDataService: Local user data management
+ * - userApi: Supabase cloud data management
  * - theme: Complete design system integration
  * - WELCOME_SCREEN_TEXTS: Localized text constants
  *
- * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, localDataService
- * @updated 2025-08-12 Modernized and simplified after cleanup - removed animations, demo, Google auth
+ * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, userApi (Supabase)
+ * @updated 2025-08-15 Updated Supabase integration and cleaned up legacy localDataService references
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";

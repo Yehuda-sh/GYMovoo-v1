@@ -1,224 +1,272 @@
 /**
  * @file src/screens/auth/TermsScreen.tsx
- * @description מסך תנאי שימוש - מציג את התנאים והמדיניות של האפליקציה
- * English: Terms of service screen - displays app terms and policies
- * @dependencies theme, BackButton, RootStackParamList
- * @notes עיצוב מותאם למסכי Workout עם כרטיסים ומראה מודרני, תמיכה מלאה ב-RTL, אנימציות כניסה
- * @recurring_errors וודא RTL מלא בכל האלמנטים, השתמש ב-theme בלבד
- * @updated 2025-07-30 שיפור RTL, הוספת אנימציות, שיפור חווית משתמש
+ * @description מסך תנאי שימוש פשוט וברור
+ * English: Simple and clear terms of service screen
+ * @dependencies theme, BackButton
+ * @notes RTL support, haptic feedback, simple agreement flow
+ * @version 2.0.0 - Simplified version without AI complexity
+ * @updated 2025-08-15 Removed AI analytics and progress tracking per user request
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
+  ScrollView,
+  Vibration,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
+import { useNavigation } from "@react-navigation/native";
 
-export default function TermsScreen() {
-  // אנימציות // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+// ===============================================
+// 📋 Simple Terms Types - טיפוסי תנאים פשוטים
+// ===============================================
 
-  useEffect(() => {
-    // אנימציית כניסה חלקה // Smooth entry animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
+/** @description סטטוס הסכמה לתנאים / Terms agreement status */
+interface TermsAgreement {
+  agreed: boolean;
+  agreedAt?: string;
+  version: string;
+}
+
+/**
+ * מפעיל haptic feedback פשוט / Simple haptic feedback
+ */
+const triggerHaptic = () => {
+  if (Platform.OS === "ios") {
+    Vibration.vibrate(25);
+  } else {
+    Vibration.vibrate(50);
+  }
+};
+
+const TermsScreen = React.memo(() => {
+  const navigation = useNavigation();
+
+  // 📝 States - מצבים בסיסיים / Basic states
+  const [agreed, setAgreed] = useState<boolean>(false);
+
+  // 📱 Handle agreement / טיפול בהסכמה
+  const handleAgreement = useCallback(async () => {
+    triggerHaptic();
+    setAgreed(true);
+
+    // שמירת הסכמה ב-AsyncStorage
+    try {
+      const agreement: TermsAgreement = {
+        agreed: true,
+        agreedAt: new Date().toISOString(),
+        version: "v1.0",
+      };
+      await AsyncStorage.setItem("terms_agreement", JSON.stringify(agreement));
+
+      // חזרה למסך הקודם עם הסימון
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1000); // המתנה של שנייה כדי שהמשתמש יראה את הסימון
+    } catch (error) {
+      console.warn("Failed to save agreement:", error);
+    }
+  }, [navigation]);
+
+  // 📱 Handle back navigation / טיפול בניווט חזרה
+  const handleBack = useCallback(() => {
+    triggerHaptic();
+    navigation.goBack();
+  }, [navigation]);
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={["top", "right", "left", "bottom"]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <BackButton absolute={false} />
-
-          <Text style={styles.title}>תנאי שימוש</Text>
-
-          <View style={styles.headerSpacer} />
+          <BackButton onPress={handleBack} />
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>תנאי שימוש</Text>
+          </View>
         </View>
 
-        <Animated.ScrollView
-          contentContainerStyle={styles.scrollContent}
+        {/* Content */}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
-          style={{
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
+          accessible={true}
+          accessibilityRole="scrollbar"
+          accessibilityLabel="תוכן תנאי השימוש"
         >
-          {/* כרטיס הקדמה // Introduction card */}
+          {/* הקדמה */}
           <View style={styles.introCard}>
             <LinearGradient
               colors={[
-                theme.colors.primaryGradientStart,
-                theme.colors.primaryGradientEnd,
+                theme.colors.primaryGradientStart + "20",
+                theme.colors.primaryGradientEnd + "20",
               ]}
               style={styles.gradientBorder}
             >
               <View style={styles.introContent}>
                 <MaterialCommunityIcons
                   name="shield-check"
-                  size={32}
+                  size={48}
                   color={theme.colors.primary}
                   accessible={false}
                   importantForAccessibility="no"
                 />
-                <Text style={styles.introTitle}>ברוכים הבאים ל-GYMovoo!</Text>
+                <Text style={styles.introTitle}>ברוכים הבאים ל-GYMovoo</Text>
                 <Text style={styles.introText}>
-                  השימוש באפליקציה מהווה הסכמה לכל התנאים שלהלן
+                  התנאים הבאים מסדירים את השימוש באפליקציה שלנו
                 </Text>
               </View>
             </LinearGradient>
           </View>
 
-          {/* תנאי השימוש // Terms sections */}
+          {/* תנאים עיקריים */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>תנאים כלליים</Text>
 
-            <View style={styles.termCard}>
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>1</Text>
               </View>
               <View style={styles.termTextContainer}>
                 <Text style={styles.termText}>
-                  המידע באפליקציה אינו מהווה ייעוץ רפואי אישי
+                  השימוש באפליקציה מותנה בקבלת תנאי השימוש במלואם
                 </Text>
-                <Text style={styles.termSubtext}>
-                  חשוב להיוועץ ברופא המשפחה
-                </Text>
+                <Text style={styles.termSubtext}>תנאי שימוש בסיסי</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.termCard}>
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>2</Text>
               </View>
               <View style={styles.termTextContainer}>
                 <Text style={styles.termText}>
-                  יש להיוועץ ברופא לפני תחילת כל תוכנית אימון
+                  המשתמש אחראי לשמירה על פרטי הכניסה שלו בסודיות
                 </Text>
-                <Text style={styles.termSubtext}>
-                  במיוחד אם יש בעיות בריאות קיימות
-                </Text>
+                <Text style={styles.termSubtext}>אבטחת חשבון</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.termCard}>
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>3</Text>
               </View>
               <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>אין לשתף את החשבון עם אחרים</Text>
-                <Text style={styles.termSubtext}>
-                  כל חשבון מותאם אישית למשתמש
+                <Text style={styles.termText}>
+                  אנו שומרים על זכות לעדכן את התנאים בהתראה מוקדמת
                 </Text>
+                <Text style={styles.termSubtext}>עדכונים עתידיים</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
+          {/* מדיניות פרטיות */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>מדיניות ופרטיות</Text>
+            <Text style={styles.sectionTitle}>מדיניות פרטיות</Text>
 
-            <View style={styles.termCard}>
-              <View
-                style={[
-                  styles.termNumber,
-                  { backgroundColor: theme.colors.warning },
-                ]}
-              >
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
+              <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>4</Text>
               </View>
               <View style={styles.termTextContainer}>
                 <Text style={styles.termText}>
-                  כל שימוש לרעה בתוכן – חשוף לחסימה מיידית
+                  אנו אוספים נתונים רק לשיפור השירות ולמטרות פונקציונליות
                 </Text>
-                <Text style={styles.termSubtext}>כולל הפצת תוכן לא מורשה</Text>
+                <Text style={styles.termSubtext}>איסוף נתונים</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.termCard}>
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>5</Text>
               </View>
               <View style={styles.termTextContainer}>
                 <Text style={styles.termText}>
-                  פרטיותך חשובה לנו: מידע אישי לא יועבר לגורמים חיצוניים ללא
-                  הסכמה
+                  פרטיכם מוגנים ולא יועברו לצדדים שלישיים ללא הסכמתכם
                 </Text>
-                <Text style={styles.termSubtext}>נתונים מוצפנים ומאובטחים</Text>
+                <Text style={styles.termSubtext}>הגנת פרטיות</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.termCard}>
-              <View
-                style={[
-                  styles.termNumber,
-                  { backgroundColor: theme.colors.error },
-                ]}
-              >
+            <TouchableOpacity
+              style={styles.termCard}
+              onPress={triggerHaptic}
+              accessible={true}
+              accessibilityRole="button"
+            >
+              <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>6</Text>
               </View>
               <View style={styles.termTextContainer}>
                 <Text style={styles.termText}>
-                  הפרה של תנאי השימוש תוביל להגבלות או חסימת גישה
+                  ניתן לבקש מחיקת נתונים אישיים בכל עת דרך הגדרות החשבון
                 </Text>
-                <Text style={styles.termSubtext}>
-                  החלטה סופית בידי הנהלת האפליקציה
-                </Text>
+                <Text style={styles.termSubtext}>זכויות המשתמש</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
-          {/* יצירת קשר // Contact */}
+          {/* יצירת קשר */}
           <View style={styles.contactCard}>
             <MaterialCommunityIcons
-              name="email-outline"
+              name="email"
               size={24}
-              color={theme.colors.primary}
+              color={theme.colors.accent}
               accessible={false}
               importantForAccessibility="no"
             />
             <View style={styles.contactContent}>
-              <Text style={styles.contactTitle}>יש לך שאלות?</Text>
-              <Text style={styles.contactText}>ניתן לפנות אלינו במייל:</Text>
+              <Text style={styles.contactTitle}>שאלות או הבהרות?</Text>
+              <Text style={styles.contactText}>אנחנו כאן לעזור</Text>
               <TouchableOpacity
-                activeOpacity={0.7}
                 onPress={() => {
-                  // אפשרות לפתיחת אפליקציית מייל
+                  triggerHaptic();
                   console.warn("Opening email app...");
                 }}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="פניה לתמיכה במייל"
-                accessibilityHint="לחץ לפתיחת אפליקציית המייל לשליחת הודעה לתמיכה"
               >
                 <Text style={styles.contactEmail}>support@gymovoo.com</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* אישור סופי // Final confirmation */}
+          {/* אישור סופי */}
           <View style={styles.finalCard}>
             <LinearGradient
               colors={[
@@ -241,11 +289,38 @@ export default function TermsScreen() {
           </View>
 
           <View style={styles.bottomSpacer} />
-        </Animated.ScrollView>
+        </ScrollView>
+
+        {/* כפתור הסכמה */}
+        <View style={styles.agreementContainer}>
+          <TouchableOpacity
+            style={[styles.agreeButton, agreed && styles.agreeButtonActive]}
+            onPress={handleAgreement}
+            disabled={agreed}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={agreed ? "הסכמת לתנאים" : "לחץ להסכים לתנאים"}
+            accessibilityState={{ disabled: agreed }}
+          >
+            <MaterialCommunityIcons
+              name={agreed ? "check-circle" : "check"}
+              size={20}
+              color={agreed ? "#fff" : theme.colors.primary}
+            />
+            <Text
+              style={[
+                styles.agreeButtonText,
+                agreed && styles.agreeButtonTextActive,
+              ]}
+            >
+              {agreed ? "הסכמתי לתנאים" : "אני מסכים לתנאי השימוש"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -260,25 +335,29 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    borderBottomColor: theme.colors.cardBorder,
   },
-  headerSpacer: {
-    width: 40,
+  headerContent: {
+    flex: 1,
+    alignItems: "center",
   },
   title: {
-    flex: 1,
-    color: theme.colors.text,
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
+    color: theme.colors.text,
     textAlign: "center",
+    writingDirection: "rtl",
   },
-  scrollContent: {
-    padding: 16,
+  scrollContainer: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
   },
   introCard: {
     marginBottom: 24,
@@ -299,11 +378,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginTop: 12,
     marginBottom: 8,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   introText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
+    writingDirection: "rtl",
   },
   section: {
     marginBottom: 24,
@@ -314,6 +396,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 12,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   termCard: {
     flexDirection: "row-reverse",
@@ -333,7 +416,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginEnd: 12, // שינוי RTL: marginEnd במקום marginLeft
+    marginEnd: 16,
   },
   termNumberText: {
     color: "#fff",
@@ -347,6 +430,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "right",
     marginBottom: 4,
+    writingDirection: "rtl",
   },
   termTextContainer: {
     flex: 1,
@@ -356,6 +440,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "right",
     fontStyle: "italic",
+    writingDirection: "rtl",
   },
   contactCard: {
     flexDirection: "row-reverse",
@@ -370,7 +455,7 @@ const styles = StyleSheet.create({
   },
   contactContent: {
     flex: 1,
-    marginEnd: 16, // שינוי RTL: marginEnd במקום marginLeft
+    marginEnd: 16,
     alignItems: "flex-end",
   },
   contactTitle: {
@@ -378,11 +463,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 4,
+    writingDirection: "rtl",
   },
   contactText: {
     fontSize: 13,
     color: theme.colors.textSecondary,
     marginBottom: 4,
+    writingDirection: "rtl",
   },
   contactEmail: {
     fontSize: 14,
@@ -406,8 +493,42 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     textAlign: "center",
+    writingDirection: "rtl",
   },
   bottomSpacer: {
     height: 40,
   },
+  agreementContainer: {
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
+  agreeButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    gap: 8,
+  },
+  agreeButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  agreeButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
+    writingDirection: "rtl",
+  },
+  agreeButtonTextActive: {
+    color: "#fff",
+  },
 });
+
+TermsScreen.displayName = "TermsScreen";
+
+export default TermsScreen;
