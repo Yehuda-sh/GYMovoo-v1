@@ -14,18 +14,21 @@
 ## 🚨 לקחים קריטיים מתהליך יצירת משתמשים (2025-08-15)
 
 ### 🔍 חקירת מבנה נתונים לפני קידוד
+
 - **תמיד לבדוק את השאלון האמיתי**: `src/data/unifiedQuestionnaire.ts` מכיל 10 שאלות, לא 13!
 - **לא להניח מבנה נתונים**: בדוק תמיד את הקבצים המרכזיים לפני יצירת scripts
 - **PostgreSQL lowercase**: כל שדה camelCase הופך לאותיות קטנות בבסיס הנתונים
 - **בדיקת schema**: השתמש ב-`docs/SUPABASE_USERS_SCHEMA.sql` לוודא שדות קיימים
 
 ### 🔧 טיפול בשגיאות נפוצות ב-Supabase
+
 - **שגיאת "column not found"**: בדוק case sensitivity - השתמש ב-lowercase
 - **שגיאת "duplicate key"**: Email ייחודי - צור אימיילים חדשים או מחק קיימים קודם
 - **שגיאת "Could not find column"**: השתמש רק בשדות הקיימים בטבלה
 - **בדיקת חיבור**: הרץ תמיד `npm run test:supabase` לפני הפעלת scripts
 
 ### 📊 יצירת נתונים אמיתיים ומלאים
+
 - **ציוד מותאם למיקום**: gym_equipment ≠ home_equipment ≠ bodyweight_equipment
 - **העדפות תזונה ספציפיות**: balanced_diet, high_protein, vegetarian, vegan, keto, etc.
 - **נתוני המשך אימון**: activityhistory, workoutplans, preferences - כל השדות הקיימים
@@ -33,6 +36,7 @@
 - **תאימות לאחור**: questionnaire legacy + smartquestionnairedata חדש
 
 ### 🐛 תיקון באגים במהלך פיתוח
+
 - **הצגת ציוד נכונה**: בדוק workout_location לפני הצגת gym_equipment
 - **טיפול בשדות undefined**: השתמש ב-fallbacks וב-optional chaining
 - **console.log מותנה**: הצג רק נתונים רלוונטיים לכל משתמש
@@ -66,7 +70,7 @@ const realisticUser = {
   // פרטי יסוד
   name: "שם משתמש",
   email: "unique@email.com", // חובה ייחודי!
-  
+
   // 10 שאלות שאלון (מ-unifiedQuestionnaire.ts)
   gender: "male|female",
   age: "18_25|26_35|36_45|46_55|55_plus",
@@ -78,22 +82,33 @@ const realisticUser = {
   session_duration: "15_30_min|30_45_min|45_60_min|60_plus_min",
   workout_location: "home_bodyweight|home_equipment|gym|outdoor",
   diet_preferences: "balanced_diet|high_protein|vegetarian|vegan|keto|paleo",
-  
+
   // ציוד מותאם למיקום (בחר אחד בלבד!)
   gym_equipment: ["barbells", "dumbbells", "cable_machines"], // אם gym
-  home_equipment: ["dumbbells", "resistance_bands"], // אם home_equipment  
+  home_equipment: ["dumbbells", "resistance_bands"], // אם home_equipment
   bodyweight_equipment: ["yoga_mat", "towel"], // אם home_bodyweight
-  
+
   // נתוני Supabase (lowercase שמות עמודות!)
-  smartquestionnairedata: { /* נתוני שאלון */ },
-  questionnaire: { /* legacy support */ },
-  preferences: { /* העדפות מורחבות */ },
-  activityhistory: { /* היסטוריית אימונים */ },
-  workoutplans: { /* תוכניות אימון */ }
+  smartquestionnairedata: {
+    /* נתוני שאלון */
+  },
+  questionnaire: {
+    /* legacy support */
+  },
+  preferences: {
+    /* העדפות מורחבות */
+  },
+  activityhistory: {
+    /* היסטוריית אימונים */
+  },
+  workoutplans: {
+    /* תוכניות אימון */
+  },
 };
 ```
 
 **בדיקות חובה לפני הפעלה:**
+
 1. בדוק uniqueness של email
 2. ודא שכל ערך קיים ב-unifiedQuestionnaire.ts
 3. הרץ `npm run test:supabase` לוודא חיבור
@@ -102,21 +117,25 @@ const realisticUser = {
 ### 🔄 תהליך עבודה מומלץ ליצירת Scripts (2025-08-15)
 
 **📝 לפני כתיבת קוד - חקירה:**
+
 1. **קרא קבצים מרכזיים**: `unifiedQuestionnaire.ts`, `SUPABASE_USERS_SCHEMA.sql`
 2. **בדוק שדות קיימים**: הרץ `npm run test:supabase` לוודא מבנה טבלה
 3. **זהה constraint-ים**: בדוק email uniqueness, required fields
 
 **⚙️ בזמן כתיבה - validation:**
+
 1. **השתמש בערכים קיימים**: רק מהקבצים המרכזיים, לא המצאה
 2. **Case sensitivity**: camelCase לקוד → lowercase לPostgreSQL
 3. **טיפול בציוד**: תנאי לפי workout_location (gym/home_equipment/home_bodyweight)
 
 **🧪 אחרי כתיבה - בדיקות:**
+
 1. **הרץ TypeScript**: `npx tsc --noEmit` לפני ההפעלה
 2. **בדוק שגיאות**: duplicate key, column not found, missing fields
 3. **וודא תוצאות**: הצגה נכונה של כל הנתונים (ציוד, תזונה, etc.)
 
 **🚨 שגיאות נפוצות למניעה:**
+
 - ❌ `gym_equipment.join()` למשתמשים ללא gym_equipment
 - ❌ שדות camelCase בהכנסה לבסיס נתונים
 - ❌ emails כפולים ללא בדיקה מוקדמת
@@ -1601,56 +1620,61 @@ npm run validate:all
 ### 💡 תובנות טכניות קריטיות
 
 **🔍 חקירה לפני קוד - חסכון 80% מהזמן:**
+
 - קריאת `unifiedQuestionnaire.ts` חשפה 10 שאלות במקום 13 המשוערות
 - הניח שמות שדות PostgreSQL המובנים (lowercase) למנע שגיאות columns
 - בדיקת schema מפיל bugs לפני שהם קורים, לא אחרי
 
 **🚨 דפוסי שגיאות נפוצים שחוזרים:**
-- `gym_equipment.join()` על משתמש עם `home_bodyweight` → NPE 
+
+- `gym_equipment.join()` על משתמש עם `home_bodyweight` → NPE
 - Email duplicates ללא בדיקה → constraint violation
 - שדות camelCase בהכנסה לDB → column not found
 - Assumption על מבנה בלי verification → שעות debugging מיותרות
 
 **⚡ פתרונות מוכחים:**
+
 ```javascript
 // 🔧 טיפול בציוד מותאם
 const getEquipmentDisplay = (user) => {
-  if (user.workout_location === "gym" && user.gym_equipment) 
+  if (user.workout_location === "gym" && user.gym_equipment)
     return user.gym_equipment.join(", ");
-  if (user.workout_location === "home_equipment" && user.home_equipment) 
+  if (user.workout_location === "home_equipment" && user.home_equipment)
     return user.home_equipment.join(", ");
-  if (user.workout_location === "home_bodyweight" && user.bodyweight_equipment) 
+  if (user.workout_location === "home_bodyweight" && user.bodyweight_equipment)
     return user.bodyweight_equipment.join(", ");
   return "לא צוין";
 };
 
 // 🔧 Unique email generation
-const generateUniqueEmail = (baseName) => 
-  `${baseName}.${Date.now()}@test.com`;
+const generateUniqueEmail = (baseName) => `${baseName}.${Date.now()}@test.com`;
 
 // 🔧 Safe field mapping (PostgreSQL lowercase)
 const dbUser = {
   smartquestionnairedata: tsUser.smartQuestionnaireData,
   activityhistory: tsUser.activityHistory,
-  workoutplans: tsUser.workoutPlans
+  workoutplans: tsUser.workoutPlans,
 };
 ```
 
 ### 📋 Checklist עבודה מוכח למשתמשים חדשים
 
 **לפני כתיבת script:**
+
 - [ ] קרא `unifiedQuestionnaire.ts` לוודא מבנה שאלון
-- [ ] בדוק `SUPABASE_USERS_SCHEMA.sql` לוודא שדות קיימים  
+- [ ] בדוק `SUPABASE_USERS_SCHEMA.sql` לוודא שדות קיימים
 - [ ] הרץ `npm run test:supabase` לוודא חיבור
 - [ ] זהה constraints (email unique, required fields)
 
 **בזמן כתיבה:**
+
 - [ ] השתמש רק בערכים מ-`unifiedQuestionnaire.ts`
 - [ ] שמות שדות lowercase ל-PostgreSQL
 - [ ] ציוד מותאם ל-`workout_location`
 - [ ] emails ייחודיים לכל משתמש
 
 **אחרי כתיבה:**
+
 - [ ] `npx tsc --noEmit` לוודא TypeScript
 - [ ] בדיקת הצגה נכונה לכל סוגי ציוד
 - [ ] test run עם user אחד לפני batch
@@ -1659,17 +1683,20 @@ const dbUser = {
 ### 🎯 ROI המובטח מהתהליך המשופר
 
 **⏱️ חיסכון זמן:**
+
 - בדיקת schema מראש: 5 דקות → חיסכון 2 שעות debugging
 - שימוש בערכים קיימים: 2 דקות → חיסכון 30 דקות המצאת ערכים
 - עיצוב ציוד מותאם: 10 דקות → חיסכון 1 שעה debug runtime errors
 
 **🎯 איכות משופרת:**
+
 - 0 שגיאות column not found (במקום 3-5 בממוצע)
-- 0 runtime errors ציוד (במקום 2-3 בממוצע)  
+- 0 runtime errors ציוד (במקום 2-3 בממוצע)
 - 100% תצוגה נכונה ברגע ראשון (במקום iterazioni)
 
 **📈 ניסיון מוכח מהשיחה:**
-- Script ראשון: 2 iteration rounds + 3 בעיות column  
+
+- Script ראשון: 2 iteration rounds + 3 בעיות column
 - Script משופר: 1 iteration + 0 בעיות טכניות
 - הפרש זמן מוערך: 75% חיסכון (30 דקות → 7 דקות)
 
