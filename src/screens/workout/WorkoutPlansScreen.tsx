@@ -1,8 +1,8 @@
 /**
- * @file src/screens/workout/WorkoutPlansScreenNew.tsx
- * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר (גרסה מרוכזת)
+ * @file src/screens/workout/WorkoutPlansScreen.tsx
+ * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר (גרסה מאוחדת)
  * @dependencies React Native, Custom Hooks, UI Components
- * @updated August 2025 - Completely refactored with modular architecture
+ * @updated August 2025 - Unified architecture with consolidated services
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -38,8 +38,10 @@ import QuickActions from "./components/QuickActions";
 import WorkoutErrorBoundary from "./components/WorkoutErrorBoundary";
 
 // Custom Hooks
-import { useWorkoutGeneration } from "./hooks/useWorkoutGeneration";
 import { useModalManager } from "./hooks/useModalManager";
+
+// Unified Workout Services - שירות מרכזי מאוחד
+import { questionnaireService } from "../../services/questionnaireService";
 
 // Performance tracking
 import { PERFORMANCE_THRESHOLDS } from "./constants/workoutConstants";
@@ -58,7 +60,7 @@ interface WorkoutPlanScreenProps {
   };
 }
 
-export default function WorkoutPlansScreenNew({
+export default function WorkoutPlansScreen({
   route: _,
 }: WorkoutPlanScreenProps) {
   // 🚀 Performance Tracking
@@ -89,7 +91,7 @@ export default function WorkoutPlansScreenNew({
   }, []);
 
   // Core hooks and state
-  const _navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
 
   // Subscription state
@@ -97,7 +99,7 @@ export default function WorkoutPlansScreenNew({
   const trialEnded = (user as any)?.trialEnded === true;
   const canAccessAI = hasActiveSubscription || !trialEnded;
 
-  // Component state
+  // Component state - ניהול מצב מרכזי מבלי לכפול שירותים
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPlanType, setSelectedPlanType] = useState<"basic" | "smart">(
     "basic"
@@ -109,6 +111,7 @@ export default function WorkoutPlansScreenNew({
     plan: WorkoutPlan;
     type: "basic" | "smart";
   } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Modal management
   const {
@@ -120,11 +123,99 @@ export default function WorkoutPlansScreenNew({
     hideModal,
   } = useModalManager();
 
-  // Workout generation hook
-  const { loading, generateBasicPlan, generateAIPlan } = useWorkoutGeneration({
-    onSuccess: showSuccess,
-    onError: showError,
-  });
+  // 🔄 יצירת תוכניות מאוחדת - מניעת כפילויות שירותים
+  const generateBasicPlan = useCallback(
+    async (showNotification: boolean = true): Promise<WorkoutPlan | null> => {
+      try {
+        setLoading(true);
+
+        if (!user) {
+          showError("שגיאה", "לא נמצא משתמש");
+          return null;
+        }
+
+        // שימוש בשירות questionnaireService במקום כפילות
+        const basicPlan = await questionnaireService.generateBasicWorkoutPlan();
+
+        // המרה לטיפוס הנכון עם השדות הנדרשים
+        const plan: WorkoutPlan = {
+          ...basicPlan,
+          type: "basic" as const,
+          features: {
+            personalizedWorkouts: false,
+            equipmentOptimization: false,
+            progressTracking: false,
+            aiRecommendations: false,
+            customSchedule: false,
+          },
+          requiresSubscription: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        if (showNotification) {
+          showSuccess("תוכנית נוצרה!", "תוכנית בסיסית נוצרה בהצלחה");
+        }
+
+        return plan;
+      } catch (error) {
+        console.error("Error generating basic plan:", error);
+        showError("שגיאה", "לא הצלחנו ליצור תוכנית בסיסית");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, showError, showSuccess]
+  );
+
+  const generateAIPlan = useCallback(
+    async (showNotification: boolean = true): Promise<WorkoutPlan | null> => {
+      try {
+        setLoading(true);
+
+        if (!user) {
+          showError("שגיאה", "לא נמצא משתמש");
+          return null;
+        }
+
+        if (!canAccessAI) {
+          showError("גישה מוגבלת", "תכונות AI זמינות רק למנויים");
+          return null;
+        }
+
+        // שימוש בשירות questionnaireService לתוכנית חכמה
+        const smartPlan = await questionnaireService.generateSmartWorkoutPlan();
+
+        // המרה לטיפוס הנכון עם תכונות AI
+        const plan: WorkoutPlan = {
+          ...smartPlan,
+          type: "smart" as const,
+          features: {
+            personalizedWorkouts: true,
+            equipmentOptimization: true,
+            progressTracking: true,
+            aiRecommendations: true,
+            customSchedule: true,
+          },
+          requiresSubscription: !canAccessAI,
+          createdAt: new Date().toISOString(),
+        };
+
+        if (showNotification) {
+          showSuccess("תוכנית AI נוצרה!", "תוכנית חכמה נוצרה במיוחד עבורך");
+        }
+
+        return plan;
+      } catch (error) {
+        console.error("Error generating AI plan:", error);
+        showError("שגיאה", "לא הצלחנו ליצור תוכנית AI");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, canAccessAI, showError, showSuccess]
+  );
 
   // Get current active plan
   const currentWorkoutPlan =
@@ -175,11 +266,11 @@ export default function WorkoutPlansScreenNew({
 
     triggerHaptic("heavy");
 
-    // Navigate to workout - simplified for now
+    // מעבר למסך אימון פעיל
     showSuccess("אימון מתחיל!", "מעבר למסך האימון");
 
-    // Navigate to workout execution screen
-    // navigation.navigate('ActiveWorkout', { workoutData: ... });
+    // TODO: Navigate to ActiveWorkout when ready
+    // navigation.navigate('ActiveWorkout', { workoutPlan: currentWorkoutPlan });
   }, [currentWorkoutPlan, triggerHaptic, showSuccess, showError]);
 
   // Handle refresh

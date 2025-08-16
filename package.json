@@ -12,6 +12,12 @@
     "test:supabase": "node ./scripts/testSupabaseConnection.js",
     "supabase:import-users": "node ./scripts/importUsersToSupabase.js",
     "supabase:sync-equipment": "node ./scripts/syncEquipmentForExistingUsers.js",
+    "supabase:generate-plans": "node ./scripts/generateWorkoutPlansForUsers.js",
+    "supabase:update-workout-details": "node ./scripts/updateWorkoutDetails.js",
+    "supabase:fix-equipment": "node ./scripts/fixEquipmentData.js",
+    "supabase:check-equipment": "node ./scripts/checkEquipmentData.js",
+    "supabase:check-data": "node ./scripts/checkWorkoutPlansData.js",
+    "supabase:check-workout-details": "node ./scripts/checkWorkoutDetails.js",
     "check:legacy-storage": "node ./scripts/validateNoLegacyStorage.js"
   },
   "dependencies": {

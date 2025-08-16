@@ -59,7 +59,7 @@ import { useUserStore } from "../../stores/userStore";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
-import { User } from "../../types";
+import { User, SmartQuestionnaireData } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
 import { userApi } from "../../services/api/userApi";
@@ -706,6 +706,37 @@ function ProfileScreen() {
     } | null;
     if (smartAnswers?.equipment) {
       equipment.push(...smartAnswers.equipment);
+    }
+
+    // 1.5. New structured equipment data
+    const smartData =
+      currentUser.smartquestionnairedata as SmartQuestionnaireData & {
+        workout_location?: string;
+        gym_equipment?: string[];
+        home_equipment?: string[];
+        bodyweight_equipment?: string[];
+        equipment?: string[];
+      };
+    if (smartData) {
+      const workoutLocation = smartData.workout_location;
+      if (workoutLocation === "gym" && smartData.gym_equipment) {
+        equipment.push(...smartData.gym_equipment);
+      } else if (
+        workoutLocation === "home_equipment" &&
+        smartData.home_equipment
+      ) {
+        equipment.push(...smartData.home_equipment);
+      } else if (
+        workoutLocation === "home_bodyweight" &&
+        smartData.bodyweight_equipment
+      ) {
+        equipment.push(...smartData.bodyweight_equipment);
+      }
+
+      // Also include generic equipment field if it exists
+      if (smartData.equipment && Array.isArray(smartData.equipment)) {
+        equipment.push(...smartData.equipment);
+      }
     }
 
     // 2. Training stats selected equipment

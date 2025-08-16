@@ -623,6 +623,21 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           });
           setServerSaved(true);
           console.warn("🌐 Questionnaire saved to server for user", user.id);
+
+          // 🚀 הפעלת שירות ה-onboarding האוטומטי לכל משתמש חדש
+          try {
+            const { completeUserOnboarding } = await import(
+              "../../services/userOnboardingService"
+            );
+            const onboardingResult = await completeUserOnboarding(user.id);
+            console.warn(
+              "✅ User onboarding completed successfully:",
+              onboardingResult
+            );
+          } catch (onboardingError) {
+            console.error("❌ Error in user onboarding:", onboardingError);
+            // לא נעצור את התהליך אם יש שגיאה באונבורדינג - המשתמש יכול להמשיך
+          }
         }
       } catch (serverErr) {
         console.error(
