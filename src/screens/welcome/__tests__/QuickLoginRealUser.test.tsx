@@ -34,16 +34,18 @@ describe("QuickLoginRealUser", () => {
     useUserStore.setState({ user: null });
   });
 
-  test("בחר משתמש אמיתי (id שאינו demo_) ומגדיר ב-store", async () => {
+  test("בחר משתמש דמו בלבד לבטיחות", async () => {
     const fakeUsers = [
       {
-        id: "real_1",
-        name: "User One",
+        id: "demo_1",
+        name: "Demo User One",
+        isDemo: true,
         smartquestionnairedata: { answers: { age: "26_35" } },
       },
       {
         id: "real_2",
-        name: "User Two",
+        name: "Real User Two",
+        isDemo: false,
         smartquestionnairedata: { answers: { age: "18_25" } },
       },
     ];
@@ -56,8 +58,9 @@ describe("QuickLoginRealUser", () => {
     await waitFor(() => {
       const st = useUserStore.getState();
       expect(st.user).not.toBeNull();
+      // וידוא שנבחר רק משתמש demo
       expect(st.user && st.user.id && st.user.id.startsWith("demo_")).toBe(
-        false
+        true
       );
     });
   });

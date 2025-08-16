@@ -28,6 +28,9 @@ import TermsScreen from "../screens/auth/TermsScreen";
 // 🧠 שאלון חכם מתקדם עם AI
 import UnifiedQuestionnaireScreen from "../screens/questionnaire/UnifiedQuestionnaireScreen";
 
+// 🛠️ מסך פיתוח (development only)
+import DeveloperScreen from "../screens/developer/DeveloperScreen";
+
 // 💪 מסכי אימון
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import ActiveWorkoutScreen from "../screens/workout/ActiveWorkoutScreen";
@@ -235,6 +238,18 @@ export default memo(function AppNavigator() {
             freezeOnBlur: true,
           }}
         />
+
+        {/* 🛠️ מסך פיתוח (development only) */}
+        {__DEV__ && (
+          <Stack.Screen
+            name="DeveloperScreen"
+            component={DeveloperScreen}
+            options={{
+              headerShown: false,
+              freezeOnBlur: true,
+            }}
+          />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

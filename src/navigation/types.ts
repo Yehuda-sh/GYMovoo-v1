@@ -100,6 +100,9 @@ export type RootStackParamList = {
       }
     | undefined;
 
+  /** @description מסך פיתוח עם כלי ניפוי שגיאות / Developer screen with debugging tools (DEV only) */
+  DeveloperScreen: undefined;
+
   /** @description שאלון חכם עם AI לפרופיל ואימון ואנליטיקה / Smart AI questionnaire for profile and training with analytics */
   Questionnaire: {
     stage?: QuestionnaireStage;

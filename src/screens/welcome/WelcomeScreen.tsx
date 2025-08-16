@@ -73,6 +73,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fieldMapper } from "../../utils/fieldMapper";
+import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { StorageKeys } from "../../constants/StorageKeys";
@@ -168,7 +169,9 @@ export default function WelcomeScreen() {
   useEffect(() => {
     const renderTime = performance.now() - renderStartTime;
     if (renderTime > 100) {
-      console.warn(`⚠️ WelcomeScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
+      logger.warn("WelcomeScreen רינדור איטי", "performance", {
+        renderTime: renderTime.toFixed(2) + "ms",
+      });
     }
   }, [renderStartTime]);
 
@@ -185,7 +188,7 @@ export default function WelcomeScreen() {
     if (user) {
       const completion = getCompletionStatus();
       if (__DEV__) {
-        console.warn("🔍 WelcomeScreen: מצא משתמש מחובר", {
+        logger.debug("WelcomeScreen: מצא משתמש מחובר", "user", {
           userId: user.id,
           hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
           isFullySetup: completion.isFullySetup,
@@ -194,8 +197,9 @@ export default function WelcomeScreen() {
 
       if (completion.isFullySetup) {
         if (__DEV__)
-          console.warn(
-            "✅ WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית"
+          logger.debug(
+            "WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
+            "navigation"
           );
         navigation.reset({
           index: 0,
@@ -203,7 +207,10 @@ export default function WelcomeScreen() {
         });
       } else {
         if (__DEV__)
-          console.warn("📝 WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון");
+          logger.debug(
+            "WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון",
+            "navigation"
+          );
         navigation.reset({
           index: 0,
           routes: [{ name: "Questionnaire" }],
@@ -224,7 +231,7 @@ export default function WelcomeScreen() {
         }
       } catch (error) {
         if (__DEV__)
-          console.warn("⚠️ Failed to load lastLoggedOutUserId:", error);
+          logger.error("Failed to load lastLoggedOutUserId", "storage", error);
       }
     };
     loadLastLoggedOutUser();
@@ -256,7 +263,7 @@ export default function WelcomeScreen() {
   const handleQuickLogin = useCallback(async () => {
     triggerHapticFeedback("medium"); // משוב בינוני להתחברות מהירה
     try {
-      // שליפת משתמשים מ-Supabase ובחירת אחד רנדומלי (לא זה שהתנתק)
+      // שליפת משתמשים מ-Supabase - רק משתמשי דמו לבטיחות
       const users = await userApi.list();
       if (!users || users.length === 0) {
         throw new Error(
@@ -264,19 +271,29 @@ export default function WelcomeScreen() {
         );
       }
 
+      // סינון רק למשתמשי דמו לצורך בטיחות
+      const demoUsers = users.filter((u) => u.isDemo === true);
+      if (demoUsers.length === 0) {
+        setErrorMessage(
+          "אין משתמשי דמו זמינים. צור משתמש דמו קודם או השתמש בהרשמה רגילה."
+        );
+        setShowErrorModal(true);
+        return;
+      }
+
       // קריאת המשתמש שהתנתק לאחרונה מ-AsyncStorage
       const storedLastUserId = await AsyncStorage.getItem(
-        "lastLoggedOutUserId"
+        StorageKeys.LAST_LOGGED_OUT_USER_ID
       );
 
-      // סינון המשתמש שהתנתק לאחרונה כדי לקבל משתמש שונה
-      let availableUsers = users;
+      // סינון המשתמש שהתנתק לאחרונה כדי לקבל משתמש שונה (רק מתוך דמו)
+      let availableUsers = demoUsers;
       if (storedLastUserId || lastLoggedOutUserId) {
         const excludeUserId = storedLastUserId || lastLoggedOutUserId;
-        availableUsers = users.filter((u) => u.id !== excludeUserId);
+        availableUsers = demoUsers.filter((u) => u.id !== excludeUserId);
         if (availableUsers.length === 0) {
-          // אם אין משתמשים אחרים, קח את כל הרשימה
-          availableUsers = users;
+          // אם אין משתמשי דמו אחרים, קח את כל רשימת הדמו
+          availableUsers = demoUsers;
         }
       }
 
@@ -284,8 +301,9 @@ export default function WelcomeScreen() {
         availableUsers[Math.floor(Math.random() * availableUsers.length)];
 
       if (__DEV__) {
-        console.warn("🎲 QuickLogin: בחירת משתמש", {
+        logger.debug("QuickLogin: בחירת משתמש דמו", "user", {
           totalUsers: users.length,
+          totalDemoUsers: demoUsers.length,
           availableUsers: availableUsers.length,
           excludedUserId: storedLastUserId || lastLoggedOutUserId,
           selectedUserId: random.id,
@@ -314,8 +332,9 @@ export default function WelcomeScreen() {
       if (hasSmartQuestionnaire) {
         // אם יש שאלון מלא - ישר לאפליקציה הראשית
         if (__DEV__)
-          console.warn(
-            "✅ QuickLogin: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית"
+          logger.debug(
+            "QuickLogin: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
+            "navigation"
           );
 
         // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
@@ -323,7 +342,11 @@ export default function WelcomeScreen() {
           useUserStore.getState().initializeSubscription();
         } catch (e) {
           if (__DEV__) {
-            console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+            logger.error(
+              "initializeSubscription נכשל במהלך התחברות מהירה - main app",
+              "user",
+              e
+            );
           }
         }
 
@@ -334,18 +357,21 @@ export default function WelcomeScreen() {
       } else {
         // אם אין שאלון מלא - איפוס והעברה לשאלון
         if (__DEV__)
-          console.warn("📝 QuickLogin: משתמש ללא שאלון מלא - מעבר לשאלון");
+          logger.debug(
+            "QuickLogin: משתמש ללא שאלון מלא - מעבר לשאלון",
+            "navigation"
+          );
 
         // איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
         try {
           useUserStore.getState().resetSmartQuestionnaire();
         } catch (e) {
-          if (__DEV__) console.warn("resetSmartQuestionnaire נכשל", e);
+          if (__DEV__) logger.error("resetSmartQuestionnaire נכשל", "user", e);
         }
         try {
           useUserStore.getState().resetQuestionnaire?.();
         } catch (e) {
-          if (__DEV__) console.warn("resetQuestionnaire נכשל", e);
+          if (__DEV__) logger.error("resetQuestionnaire נכשל", "user", e);
         }
 
         // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
@@ -353,7 +379,11 @@ export default function WelcomeScreen() {
           useUserStore.getState().initializeSubscription();
         } catch (e) {
           if (__DEV__) {
-            console.warn("initializeSubscription נכשל במהלך התחברות מהירה", e);
+            logger.error(
+              "initializeSubscription נכשל במהלך התחברות מהירה - questionnaire",
+              "user",
+              e
+            );
           }
         }
 
@@ -389,7 +419,7 @@ export default function WelcomeScreen() {
   const handleGoogleSignIn = useCallback(async () => {
     triggerHapticFeedback("heavy"); // משוב חזק לפעולה קריטית
     try {
-      // TODO: השלמת אינטגרציה עם Google Sign-In SDK
+      // Google Sign-In integration placeholder
       setErrorMessage(
         "התחברות Google תהיה זמינה בגרסה הבאה. השתמש בהרשמה לפיתוח."
       );
@@ -572,6 +602,24 @@ export default function WelcomeScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Developer Button - Development Mode Only */}
+        {__DEV__ && (
+          <TouchableButton
+            style={styles.developerButton}
+            onPress={() => navigation.navigate("DeveloperScreen")}
+            accessibilityLabel="מסך פיתוח"
+            accessibilityHint="גישה לכלי פיתוח וניפוי שגיאות"
+          >
+            <Ionicons
+              name="code-slash"
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.developerButtonText}>מסך פיתוח</Text>
+          </TouchableButton>
+        )}
+
         {/* Error Modal */}
         <ConfirmationModal
           visible={showErrorModal}
@@ -785,6 +833,27 @@ const styles = StyleSheet.create({
   },
 
   // Development tools styles // סטיילים לכלי פיתוח
+  developerButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    ...theme.shadows.small,
+    gap: theme.spacing.xs,
+  },
+  developerButtonText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: "500",
+  },
+
   // Utility styles added during logger refactor / loading extraction
   flexFull: { flex: 1 },
 });
