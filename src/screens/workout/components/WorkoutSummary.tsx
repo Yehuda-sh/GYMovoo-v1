@@ -96,7 +96,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
     // State management
     const [difficulty, setDifficulty] = useState<number>(0);
     const [feeling, setFeeling] = useState<string>("");
-    const [readyForMore] = useState<boolean>(false); // TODO: implement UI for this feedback
+    const [readyForMore] = useState<boolean>(false); // UI feedback placeholder
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>(
       []
     );

@@ -229,8 +229,7 @@ const requiredServices = [
   "authService.ts",
   "exerciseService.ts",
   "questionnaireService.ts",
-  "quickWorkoutGenerator.ts",
-  "workoutDataService.ts",
+  "workoutDataService.ts", // quickWorkoutGenerator removed 2025-08-16
 ];
 
 let serviceCount = 0;

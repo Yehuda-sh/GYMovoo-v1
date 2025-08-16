@@ -359,7 +359,7 @@ function checkFile {
 
 ### 🔌 בדיקות חיבור ו-API
 
-- **יש imports ל-API מקומי?** חפש `userApi`, `workoutApi`, `http://localhost`, `3001`, `EXPO_PUBLIC_STORAGE_BASE_URL`
+- **בדוק APIs פעילים בלבד**: `userApi`, `workoutApi` (Supabase). אין יותר `http://localhost` או `EXPO_PUBLIC_STORAGE_BASE_URL`.
 - **יש קריאות לשרת מקומי?** חפש `fetch(`, `axios.`, `api.get(`, `api.post(`
 - **יש AsyncStorage כמקור אמת?** חפש `AsyncStorage.getItem`, `AsyncStorage.setItem` (אמור להיות cache בלבד)
 - **יש Supabase imports?** חפש `@supabase/supabase-js`, `supabase.from`, `createClient`
@@ -380,8 +380,7 @@ function checkFile {
 
 **מחק/עדכן מיידית אם נמצא:**
 
-- ❌ `http://10.0.2.2:3001` או כל URL מקומי אחר
-- ❌ `EXPO_PUBLIC_STORAGE_BASE_URL` (משתנה סביבה ישן)
+- ❌ (נמחק) כל URL מקומי ישן (`http://10.0.2.2:3001`, `localhost:3001`)
 - ❌ `userApi.getUsersFromLocalFile()` או פונקציות מקומיות דומות
 - ❌ נתוני JSON מקומיים ב-`storage/db/` כמקור אמת
 - ❌ `axios.create({ baseURL: localServerUrl })` בלי fallback ל-Supabase
@@ -429,7 +428,7 @@ function checkFile {
 
 ```typescript
 // ❌ לפני (מחק/עדכן):
-const response = await fetch("http://10.0.2.2:3001/api/users");
+// דוגמה ישנה הוסרה – שימוש כעת רק בספריית Supabase
 
 // ✅ אחרי (Supabase):
 const { data, error } = await supabase.from("users").select("*");
@@ -503,8 +502,8 @@ const equipment = unifiedQuestionnaire.questions.equipment.options.map(
 
 ### 📡 **שרת מקומי (לא רלוונטי יותר)**
 
-- ❌ `http://10.0.2.2:3001` - URLs לשרת מקומי
-- ❌ `EXPO_PUBLIC_STORAGE_BASE_URL` - משתנה סביבה ישן
+// הוסרו: URLs מקומיים + משתנה סביבה ישן `EXPO_PUBLIC_STORAGE_BASE_URL`
+
 - ❌ `express`, `cors`, `body-parser` - imports לשרת Express
 - ❌ ~~`storage/db/users.json`~~ - **הועבר ל-Supabase** (היה קובץ JSON מקומי)
 - ❌ `userApi.getUsersFromLocalFile()` - פונקציות API מקומיות

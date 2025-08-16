@@ -91,24 +91,28 @@ function checkQuestionnaireCompletion(user) {
   );
 }
 
-// פונקציית בדיקה לפרטים בתוכניות אימון
+// פונקציית בדיקה לפרטים בתוכניות אימון (שימוש במיפוי חכם)
+function getSmartAnswers(user) {
+  if (!user) return null;
+  const sqa = user.smartQuestionnaireData || user.smartquestionnairedata;
+  if (!sqa || !sqa.answers) return null;
+  return sqa.answers;
+}
+
 function checkWorkoutPlanQuestionnaire(user) {
+  const answers = getSmartAnswers(user);
   const userQuestionnaireData =
     user?.questionnaire ||
     user?.questionnaireData ||
-    (user?.smartQuestionnaireData?.answers
+    (answers
       ? {
-          // Convert smartQuestionnaireData to expected format
-          experience:
-            user.smartQuestionnaireData.answers.fitnessLevel || "intermediate",
-          gender: user.smartQuestionnaireData.answers.gender || "other",
-          equipment: user.smartQuestionnaireData.answers.equipment || ["none"],
-          goals: user.smartQuestionnaireData.answers.goals || ["muscle_gain"],
-          frequency:
-            user.smartQuestionnaireData.answers.availability?.[0] ||
-            "3_times_week",
+          experience: answers.fitnessLevel || "intermediate",
+          gender: answers.gender || "other",
+          equipment: answers.equipment || ["none"],
+          goals: answers.goals || ["muscle_gain"],
+          frequency: answers.availability?.[0] || "3_times_week",
           duration: "45_60_min",
-          goal: user.smartQuestionnaireData.answers.goals?.[0] || "muscle_gain",
+          goal: answers.goals?.[0] || "muscle_gain",
           age: "25-35",
           height: "170",
           weight: "70",

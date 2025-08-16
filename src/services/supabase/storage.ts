@@ -1,31 +1,18 @@
 /**
- * Storage URL helper – שומר על חוזה קיים עם EXPO_PUBLIC_STORAGE_BASE_URL.
- * אם הוגדר Supabase, מחזיר base ציבורי ל-bucket ייעודי (למשל "public/videos").
+ * Storage URL helper – Supabase בלבד (ניקוי: ללא EXPO_PUBLIC_STORAGE_BASE_URL).
  */
 import { getSupabaseProjectUrl, hasSupabaseConfig } from "./client";
 
 /**
- * מחזיר base URL ציבורי לקבצים
- * קדימות:
- * 1) EXPO_PUBLIC_STORAGE_BASE_URL (כפי שנקבע במסמכים)
- * 2) Supabase public storage: {SUPABASE_URL}/storage/v1/object/public/{bucket}
+ * מחזיר base URL ציבורי לקבצים (רק Supabase public storage).
  */
 export function getPublicStorageBaseUrl(bucket = "public"): string | null {
-  const explicit = (process.env.EXPO_PUBLIC_STORAGE_BASE_URL || "").trim();
-
-  // אם ההגדרה המפורשת מצביעה כבר ל-Supabase Storage – השתמש בה
-  // זיהוי מפורש של Supabase (לא בשימוש כרגע – הלוגיקה מעדיפה Supabase בכל מקרה כאשר מוגדר)
-
-  // אם יש קונפיג של Supabase – העדף את בסיס האחסון של Supabase עבור קבצים ציבוריים
+  // אם יש קונפיג של Supabase – בנה URL ציבורי לבאקט
   if (hasSupabaseConfig) {
     const url = getSupabaseProjectUrl();
     if (url)
       return `${url.replace(/\/+$/, "")}/storage/v1/object/public/${bucket}`;
   }
-
-  // ללא Supabase – חזור ל-explicit אם קיים (עלול להיות שרת מקומי שמגיש קבצים)
-  if (explicit) return explicit.replace(/\/+$/, "");
-
   return null;
 }
 

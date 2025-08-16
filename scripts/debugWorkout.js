@@ -4,7 +4,7 @@
  */
 
 import { QuestionnaireService } from "./src/services/questionnaireService.js";
-import { QuickWorkoutGenerator } from "./src/services/quickWorkoutGenerator.js";
+// QuickWorkoutGenerator removed (2025-08-16). Using placeholder demo generation via questionnaire service only.
 
 console.log("🔍 Starting workout generation debug...");
 
@@ -28,13 +28,9 @@ async function debugWorkoutGeneration() {
     console.log("🎯 User goal:", goal);
 
     console.log("\n🏋️ Generating workout...");
-    const workout = await QuickWorkoutGenerator.generateQuickWorkout();
-    console.log("Generated workout exercises:");
-    workout.forEach((exercise, index) => {
-      console.log(
-        `${index + 1}. ${exercise.name} (Equipment: ${exercise.equipment})`
-      );
-    });
+    console.log(
+      "(Generator removed) – implement workoutDataService demo call here if needed."
+    );
   } catch (error) {
     console.error("❌ Debug error:", error);
   }

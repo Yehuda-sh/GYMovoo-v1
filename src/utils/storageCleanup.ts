@@ -15,6 +15,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StorageKeys } from "../constants/StorageKeys";
 
 interface StorageSize {
   totalKeys: number;
@@ -321,9 +322,9 @@ export class StorageCleanup {
     try {
       const essentialKeys = [
         "userPreferences",
-        "smart_questionnaire_results",
-        "user_gender_preference",
-        "selected_equipment",
+        StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+        StorageKeys.USER_GENDER_PREFERENCE,
+        StorageKeys.SELECTED_EQUIPMENT,
       ];
 
       const backupData: BackupData = {};
@@ -374,7 +375,7 @@ export class StorageCleanup {
     try {
       const userPrefs = await AsyncStorage.getItem("userPreferences");
       const questionnaireResults = await AsyncStorage.getItem(
-        "smart_questionnaire_results"
+        StorageKeys.SMART_QUESTIONNAIRE_RESULTS
       );
 
       if (!userPrefs || !questionnaireResults) {

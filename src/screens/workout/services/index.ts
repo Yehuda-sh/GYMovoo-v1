@@ -39,8 +39,8 @@ export { default as workoutErrorHandlingService } from "./workoutErrorHandlingSe
 // User feedback and analytics collection
 export { default as workoutFeedbackService } from "./workoutFeedbackService";
 
-// Advanced storage management with backup capabilities
-export { default as workoutStorageService } from "./workoutStorageService";
+// Advanced storage management - now centralized in services/workout
+// export { default as workoutStorageService } from "./workoutStorageService"; // REMOVED
 
 /**
  * דוגמת שימוש:

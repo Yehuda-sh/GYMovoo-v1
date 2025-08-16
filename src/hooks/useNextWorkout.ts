@@ -13,6 +13,8 @@ import {
   NextWorkoutRecommendation,
 } from "../services/nextWorkoutLogicService";
 import { useUserStore } from "../stores/userStore";
+import { getPersonalDataFromUser } from "../utils/questionnaireUtils";
+import { fieldMapper } from "../utils/fieldMapper";
 import { WorkoutPlan } from "../screens/workout/types/workout.types";
 
 export interface UseNextWorkoutReturn {
@@ -138,8 +140,21 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     let data = {};
 
     // מהשאלון החדש (עדיפות גבוהה)
-    if (user.smartquestionnairedata?.answers) {
-      const answers = user.smartquestionnairedata.answers;
+    const smartAnswers = fieldMapper.getSmartAnswers(user);
+    if (smartAnswers) {
+      const answers = smartAnswers as {
+        gender?: string;
+        age?: string | number;
+        weight?: string | number;
+        height?: string | number;
+        fitnessLevel?: string;
+        goals?: string[];
+        equipment?: string[];
+        availability?: string[] | string;
+        sessionDuration?: string;
+        workoutLocation?: string;
+        nutrition?: string[];
+      };
       data = {
         gender: answers.gender as string,
         age: String(answers.age || ""),
@@ -153,12 +168,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         workoutLocation: answers.workoutLocation,
         nutrition: answers.nutrition || [],
         // ✅ נתונים מתקדמים מ-metadata
-        questionnaire: {
-          version: user.smartquestionnairedata.metadata?.version,
-          completedAt: user.smartquestionnairedata.metadata?.completedAt,
-          // analytics: user.smartquestionnairedata.metadata?.analytics, // יתווסף בעתיד
-          // recommendations: user.smartquestionnairedata.metadata?.recommendations, // יתווסף בעתיד
-        },
+        questionnaire: user.smartquestionnairedata?.metadata
+          ? {
+              version: user.smartquestionnairedata.metadata?.version,
+              completedAt: user.smartquestionnairedata.metadata?.completedAt,
+            }
+          : undefined,
       };
     }
     // fallback לשאלון ישן
@@ -188,8 +203,11 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
    * יצירת תוכנית שבועית מיטבית עם cache חכם
    */
   const extractFrequencyFromUser = useCallback((): string => {
-    if (user?.smartquestionnairedata?.answers?.availability) {
-      const availability = user.smartquestionnairedata.answers.availability;
+    const smartAnswers2 = fieldMapper.getSmartAnswers(user) as {
+      availability?: string[] | string;
+    } | null;
+    if (smartAnswers2?.availability) {
+      const availability = smartAnswers2.availability;
       const freq = Array.isArray(availability) ? availability[0] : availability;
       debug("frequency from smartquestionnairedata", freq);
       return freq;
@@ -411,17 +429,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
       // ✅ הכנת נתונים אישיים מהשאלון החדש לשיפור המלצות - משופר
       const personalData =
-        enhancedPersonalData ||
-        (user?.smartquestionnairedata?.answers
-          ? {
-              gender: user.smartquestionnairedata.answers.gender as string,
-              age: String(user.smartquestionnairedata.answers.age || ""),
-              weight: String(user.smartquestionnairedata.answers.weight || ""),
-              height: String(user.smartquestionnairedata.answers.height || ""),
-              fitnessLevel: user.smartquestionnairedata.answers
-                .fitnessLevel as string,
-            }
-          : undefined);
+        enhancedPersonalData || getPersonalDataFromUser(user);
 
       debug("🎯 Enhanced personal data for recommendations", personalData);
 

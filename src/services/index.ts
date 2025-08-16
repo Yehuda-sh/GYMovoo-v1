@@ -63,15 +63,7 @@ export type {
 // 🔴 Demo services (DEV ONLY)
 // 🔴 Demo services הוסרו (2025-08-13 cleanup) - אין יותר ייצואי דמו פעילים
 
-// =======================================
-// ⚡ Quick Workout Generation
-// יצירת אימונים מהירים
-// Status: ⚠️ ACTIVE but OVERLAPPING - Consider consolidation with workoutDataService
-// =======================================
-export {
-  QuickWorkoutGenerator,
-  generateQuickWorkout,
-} from "./quickWorkoutGenerator";
+// (QuickWorkoutGenerator removed 2025-08-16 – merged into workoutDataService logic)
 
 // =======================================
 // 🎯 Workout Screen Services (Legacy)
@@ -84,7 +76,7 @@ export {
   workoutValidationService,
   workoutErrorHandlingService,
   workoutFeedbackService,
-  workoutStorageService as WorkoutScreenStorageService, // Renamed to avoid conflicts
+  // workoutStorageService (advanced) removed – unified simple storage used via facade
 } from "../screens/workout/services";
 
 // =======================================

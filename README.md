@@ -30,7 +30,7 @@
 
 #### 🆕 עדכונים אחרונים (אוגוסט 2025)
 
-- 🌐 מקור אמת: השרת בלבד – נתוני דמו הוסרו; חובה להגדיר `EXPO_PUBLIC_STORAGE_BASE_URL` (באמולטור אנדרואיד: http://10.0.2.2:3001)
+- 🌐 מקור אמת: Supabase בלבד – נתוני דמו הוסרו; אין יותר צורך בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`
 - **🔧 TypeScript Cleanup מלא** - 50+ `any` types הוחלפו בטיפוסים מדויקים ב-7 מסכי Screen מרכזיים
 - **🐛 תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
 - **⚡ אופטימיזציה מתקדמת** - קובץ questionnaireService צומצם מ-1428 ל-1417 שורות (הסרת כפילויות)
@@ -100,8 +100,8 @@ npx expo start --tunnel
 - **`npm run start` גם עובד** - מוגדר לקרוא ל-`npx expo start`
 - אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הcache
 - במקרה של בעיות רשת, השתמש ב-`--tunnel`
-- חובה להגדיר משתנה סביבה `EXPO_PUBLIC_STORAGE_BASE_URL` לכתובת השרת. באמולטור אנדרואיד השתמשו ב-`http://10.0.2.2:3001`.
-- `AsyncStorage` משמש כ-cache בלבד; השרת הוא מקור אמת. ללא שרת פעיל לא מתבצעת התקדמות בפיצ'רים קריטיים (למשל מעבר ל-Home ללא שאלון שלם).
+- Supabase מוגדר עם `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- `AsyncStorage` משמש כ-cache בלבד; Supabase הוא מקור אמת. ללא חיבור תקין חלק מהפיצ'רים יושהו.
 
 ### הרצה במכשיר
 
@@ -452,7 +452,8 @@ eas build -p ios
 
 #### 🆕 Latest Updates (August 2025)
 
-- 🌐 Server as the single source of truth – demo data removed; requires `EXPO_PUBLIC_STORAGE_BASE_URL` (Android emulator: http://10.0.2.2:3001)
+<!-- Local server reference removed: Supabase only -->
+
 - **🔧 Complete TypeScript Cleanup** - 50+ `any` types replaced with precise typing across 7 major Screen components
 - **🐛 Critical Bug Fixes** - Resolved 52+ TypeScript errors in WelcomeScreen, useUserPreferences, and MuscleMapInteractive
 - **⚡ Advanced Optimization** - questionnaireService reduced from 1428 to 1417 lines (removed duplications)
@@ -501,7 +502,7 @@ npx expo start
 
 # Important notes
 
-- Set the `EXPO_PUBLIC_STORAGE_BASE_URL` environment variable to your server URL. On Android emulator use `http://10.0.2.2:3001`.
+<!-- Removed obsolete storage base URL instructions -->
 - AsyncStorage is used as cache only. Without a running server, critical features won't progress (e.g., gating after questionnaire).
 ```
 

@@ -1,6 +1,6 @@
 # 🏋️ Workout Hooks Documentation / תיעוד הוקי האימון
 
-> Updated: 2025-01-17 – תיעוד הוקי האימון (טיימרים ופונקציונליות מתקדמת)
+> Updated: 2025-08-16 – נוספה תמיכה ב-`usePreviousPerformance` (AI + Cache + Facade Refactor)
 
 ## 📚 Table of Contents / תוכן עניינים
 
@@ -8,7 +8,8 @@
 - 🔧 Available Hooks / הוקים הזמינים
   - ⏱️ useWorkoutTimer
   - ⏰ useRestTimer
-- 🔄 Integration / אינטגרציה
+  - � usePreviousPerformance
+- �🔄 Integration / אינטגרציה
 - 🚀 Performance Improvements / שיפורי ביצועים
 - 📱 Usage Examples / דוגמאות שימוש
 - 🔍 Technical Notes / הערות טכניות
@@ -101,6 +102,97 @@ const {
 
 ---
 
+### 📈 `usePreviousPerformance`
+
+**Purpose:** ניתוח ביצועים קודמים + מגמות + המלצות AI / Previous performance analytics & AI recommendations.
+
+**Core Capabilities:**
+
+- 🔄 טוען ביצועים קודמים מתווך הפאסאד `workoutFacadeService`
+- 🧠 מחשב מגמה (improving | stable | declining | new)
+- 🎯 יוצר המלצת התקדמות (משקל / חזרות / סטים + reasoning)
+- 🔍 מזהה פער ימים מהאימון האחרון + עקביות (consistencyScore)
+- 🤖 AI Insights: סיכון, שיפור צפוי, מנוחה מיטבית, טיפים מותאמים
+- ⚡ Cache בזיכרון (TTL 5 דקות) עם hash לנתוני משתמש (age / gender / fitnessLevel)
+
+**Usage:**
+
+```ts
+const {
+  previousPerformance,
+  loading,
+  error,
+  refetch,
+  getProgressionInsight,
+  shouldIncreaseWeight,
+  getMotivationalMessage,
+  generateAIInsights,
+  getPredictedPerformance,
+  clearCache,
+  getCacheStats,
+} = usePreviousPerformance("Bench Press", {
+  gender: "male",
+  age: "26_35",
+  fitnessLevel: "intermediate",
+});
+```
+
+**Returns (selected):**
+
+- `previousPerformance.progressionTrend`
+- `previousPerformance.recommendedProgression.{weight,reps,sets,reasoning}`
+- `generateAIInsights(): AIPerformanceInsights`
+- `getPredictedPerformance(daysAhead=7)` – תחזית משקל / חזרות
+- `getCacheStats()` – { isFromCache, cacheAge, hits }
+
+**Cache Logic:**
+
+```
+Map<exerciseName + personalDataHash, { data, timestamp }>
+TTL = 5m → מעבר לכך טעינה רעננה
+```
+
+**AI Heuristics (פשטות נוכחית):**
+
+- שיפור צפוי נגזר מהמגמה + strengthGain
+- סיכון (riskAssessment) נקבע לפי פער ימים וירידה ביציבות
+- מנוחה מומלצת (optimalRestDays) 1–2
+
+**Integration Notes:**
+
+- אין לכתוב ל-AsyncStorage מההוק – קריאה בלבד דרך השירותים
+- נתמך ע"י: `personalRecordService` ← `workoutFacadeService`
+- מתאים להטריגר רענון אחרי סיום אימון חדש (`refetch`)
+
+**When to Use:**
+
+- בראש מסכי תרגיל להצגת “ביצוע קודם”
+- במסך התקדמות להצגת מגמות
+
+**Recommended UI:**
+
+```
+if (loading) Spinner
+else if (!previousPerformance) EmptyState
+else <PreviousPerformanceCard ... />
+```
+
+**Edge Cases Covered:**
+
+- אין נתונים קודמים → החזרה null + הודעת התחלה
+- חוסר סט קודם להשוואה → trend = "new"
+- פער גדול (>14 ימים) → המלצה זהירה (הפחת משקל)
+
+**Future Extensions (לא מומש עדיין):**
+
+- אחסון cache per user persistently
+- Fine-grained PR attribution per set
+- ML מבוסס רצפים (אם יתווסף backend מתאים)
+
+---
+
+---
+
 ## 🔄 Integration / אינטגרציה
 
 ### עם QuickWorkoutScreen / With QuickWorkoutScreen
@@ -118,7 +210,19 @@ useEffect(() => {
     pauseTimer();
   }
 }, [isRestTimerActive, pauseTimer]);
+
+// שילוב עם ביצועים קודמים (הדמיה)
+const { previousPerformance, getProgressionInsight } = usePreviousPerformance(
+  currentExerciseName,
+  userProfileBasic
+);
+
+const recommendation = previousPerformance?.recommendedProgression;
 ```
+
+---
+
+````
 
 ---
 
@@ -171,7 +275,7 @@ const WorkoutScreen = () => {
     </View>
   );
 };
-```
+````
 
 ### Rest Timer with Exercise Context / טיימר מנוחה עם הקשר תרגיל
 
@@ -215,6 +319,18 @@ Both hooks use consistent interval management:
 - Error handling for storage limits
 - Cleanup of old data to prevent quota issues
 
+### Facade Architecture / ארכיטקטורת פאסאד
+
+- כל גישה לנתוני עבר מתועלת כעת דרך `workoutFacadeService` (החלפת God Object ישן)
+- חלוקה ל: storage / analytics / personalRecords / recommendations
+- מפחית צימוד ומאפשר בדיקות יחידה ממוקדות
+
+### Caching & AI Layer / שכבת Cache ו-AI
+
+- In-memory בלבד (ללא persisting) → מהיר ונקי
+- Hash לנתוני התאמה אישית כדי למנוע התנגשות בין משתמשים שונים
+- ניתן לניקוי ידני (`clearCache`) או בריענון TTL
+
 ### Performance Considerations / שיקולי ביצועים
 
 - useCallback for all functions to prevent unnecessary re-renders
@@ -246,6 +362,36 @@ it("counts rest timer down", () => {
 });
 ```
 
+### Testing usePreviousPerformance
+
+```ts
+jest.useFakeTimers();
+
+it("returns null initially then data", async () => {
+  const { result, waitForNextUpdate } = renderHook(() =>
+    usePreviousPerformance("Bench Press", { gender: "male" })
+  );
+  expect(result.current.previousPerformance).toBeNull();
+  await waitForNextUpdate();
+  expect(result.current.previousPerformance).not.toBeNull();
+});
+
+it("generates AI insights", async () => {
+  const { result, waitForNextUpdate } = renderHook(() =>
+    usePreviousPerformance("Bench Press")
+  );
+  await waitForNextUpdate();
+  const insights = result.current.generateAIInsights();
+  expect(insights?.riskAssessment).toBeDefined();
+});
+```
+
+**Test Notes:**
+
+- מומלץ למקם mock ל-`workoutFacadeService.getPreviousPerformanceForExercise`
+- לבדיקת cache: קריאה שנייה צריכה להיות מהירה וללא גישה לשירות (ספיי)
+- לעקיפת זמן: השתמש ב-`Date.now = jest.fn()` או `jest.setSystemTime()`
+
 - הערות:
   - ודאו ניקוי טיימרים בין בדיקות (`jest.clearAllTimers()` ב-afterEach אם צריך).
   - אימות חוויית משתמש: בדקו טקסט/מצב כפתורים ולא משתנים פנימיים.
@@ -260,6 +406,8 @@ it("counts rest timer down", () => {
 2. **Test timer accuracy** - בדיקת דיוק הטיימרים
 3. **Check memory leaks** - בדיקת דליפות זיכרון
 4. **Update dependencies** - עדכון תלויות
+5. **Invalidate performance cache after workout save**
+6. **Audit AI heuristics אחת לחודשיים**
 
 ### Known Issues / בעיות ידועות
 
@@ -271,9 +419,11 @@ None currently identified after 2025-01-17 comprehensive audit and improvements.
 - ✅ Resolved function redeclaration issues
 - ✅ Enhanced error handling for AsyncStorage edge cases
 - ✅ Improved memory leak prevention across both hooks
+- ✅ Added smart performance & AI insights hook (`usePreviousPerformance`)
+- ✅ Introduced facade-based workout services decomposition
 
 ---
 
-_Last Updated: 2025-01-17_  
+_Last Updated: 2025-08-16_  
 _Documentation maintained by: GitHub Copilot_  
-_Status: Comprehensive audit completed with full functionality verification_
+_Status: Timer hooks stable; performance analytics (AI + cache) in active monitoring_

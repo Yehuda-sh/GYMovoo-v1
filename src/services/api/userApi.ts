@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { User } from "../../types";
+import { fieldMapper } from "../../utils/fieldMapper";
 
 // Supabase REST API Configuration
 const SUPABASE_URL = (
@@ -59,36 +60,56 @@ export const userApi = {
     const { data } = await api.get<User[]>(`/users`, {
       params: { select: "*" },
     });
-    return data;
+    return (data || []).map((u) =>
+      fieldMapper.fromDB(u as unknown as Record<string, unknown>)
+    );
   },
 
   getById: async (id: string) => {
     const { data } = await api.get<User[]>(`/users`, {
       params: { select: "*", id: `eq.${id}` },
     });
-    return data?.[0] as User;
+    const raw = data?.[0] as User | undefined;
+    return raw
+      ? (fieldMapper.fromDB(raw as unknown as Record<string, unknown>) as User)
+      : (undefined as unknown as User);
   },
 
   getByEmail: async (email: string) => {
     const { data } = await api.get<User[]>(`/users`, {
       params: { select: "*", email: `eq.${email}` },
     });
-    return data?.[0] as User;
+    const raw = data?.[0] as User | undefined;
+    return raw
+      ? (fieldMapper.fromDB(raw as unknown as Record<string, unknown>) as User)
+      : (undefined as unknown as User);
   },
 
   create: async (user: Pick<User, "name" | "email"> & Partial<User>) => {
-    const { data } = await api.post<User[]>(`/users`, user);
-    return (
+    const payload = fieldMapper.toDB(
+      user as unknown as Record<string, unknown>
+    );
+    const { data } = await api.post<User[]>(`/users`, payload);
+    const created = (
       data && Array.isArray(data) ? data[0] : (data as unknown as User)
+    ) as User;
+    return fieldMapper.fromDB(
+      created as unknown as Record<string, unknown>
     ) as User;
   },
 
   update: async (id: string, updates: Partial<User>) => {
-    const { data } = await api.patch<User[]>(`/users`, updates, {
+    const payload = fieldMapper.toDB(
+      updates as unknown as Record<string, unknown>
+    );
+    const { data } = await api.patch<User[]>(`/users`, payload, {
       params: { id: `eq.${id}` },
     });
-    return (
+    const updated = (
       data && Array.isArray(data) ? data[0] : (data as unknown as User)
+    ) as User;
+    return fieldMapper.fromDB(
+      updated as unknown as Record<string, unknown>
     ) as User;
   },
 

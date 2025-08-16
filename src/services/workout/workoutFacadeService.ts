@@ -4,6 +4,8 @@
  * This service acts as a single entry point for all workout history,
  * analytics, records, and recommendation functionalities.
  */
+// NOTE (2025-08-16): Advanced screen-level workoutStorageService removed.
+// Facade now exclusively uses unified simple workoutStorageService for persistence.
 import { workoutStorageService } from "./workoutStorageService";
 import { workoutAnalyticsService } from "./workoutAnalyticsService";
 import { personalRecordService } from "./personalRecordService";

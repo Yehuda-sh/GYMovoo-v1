@@ -161,8 +161,7 @@ private shouldSkipQuestion(question: Question): boolean {
 
 ### הערות סביבה
 
-- נדרש `EXPO_PUBLIC_STORAGE_BASE_URL` מוגדר.
-- אמולטור אנדרואיד: `http://10.0.2.2:3001` לשרת מקומי.
+// חיבור: Supabase בלבד (אין צורך עוד בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`). ודא הגדרת `EXPO_PUBLIC_SUPABASE_URL` ו-`EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 
 ## 🔧 פתרון בעיות באמולטור
 

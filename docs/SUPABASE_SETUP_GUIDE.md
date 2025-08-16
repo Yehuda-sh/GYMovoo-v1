@@ -1,6 +1,6 @@
 # Supabase – חיבור מהיר (CLI בלבד)
 
-> מדריך מינימלי לשילוב Supabase בפרויקט, ללא GUI. שומר על חוזים קיימים (EXPO_PUBLIC_STORAGE_BASE_URL).
+> מדריך מינימלי לשילוב Supabase בפרויקט, ללא GUI. (הגדרת `EXPO_PUBLIC_STORAGE_BASE_URL` אינה נדרשת עוד)
 
 ## התקנה וחיבור (Windows PowerShell)
 
@@ -66,8 +66,6 @@ supabase db remote commit # לאחר קישור לפרויקט ענן
 ```powershell
 $env:EXPO_PUBLIC_SUPABASE_URL = "https://<project>.supabase.co"
 $env:EXPO_PUBLIC_SUPABASE_ANON_KEY = "<ANON_KEY>"
-# לשמירה על חוזה קיים – ניתן להגדיר גם base מפורש
-$env:EXPO_PUBLIC_STORAGE_BASE_URL = "$env:EXPO_PUBLIC_SUPABASE_URL/storage/v1/object/public/public"
 ```
 
 ## שימוש בקוד

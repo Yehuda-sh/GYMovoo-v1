@@ -27,6 +27,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import { fieldMapper } from "../../utils/fieldMapper";
 import {
   View,
   Text,
@@ -694,8 +695,11 @@ function ProfileScreen() {
     const equipment: string[] = [];
 
     // 1. Smart questionnaire data (priority source)
-    if (currentUser.smartquestionnairedata?.answers?.equipment) {
-      equipment.push(...currentUser.smartquestionnairedata.answers.equipment);
+    const smartAnswers = fieldMapper.getSmartAnswers(currentUser) as {
+      equipment?: string[];
+    } | null;
+    if (smartAnswers?.equipment) {
+      equipment.push(...smartAnswers.equipment);
     }
 
     // 2. Training stats selected equipment

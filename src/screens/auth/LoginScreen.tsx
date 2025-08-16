@@ -31,6 +31,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StorageKeys } from "../../constants/StorageKeys";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
@@ -466,7 +467,7 @@ const LoginScreen = React.memo(() => {
    */
   const loadSavedCredentials = async () => {
     try {
-      const savedEmail = await AsyncStorage.getItem("savedEmail");
+      const savedEmail = await AsyncStorage.getItem(StorageKeys.SAVED_EMAIL);
       if (savedEmail) {
         setEmail(savedEmail);
         setRememberMe(true);
@@ -594,14 +595,14 @@ const LoginScreen = React.memo(() => {
 
           // Persist email only if remember me after successful login
           if (rememberMe) {
-            await AsyncStorage.setItem("savedEmail", email.trim());
+            await AsyncStorage.setItem(StorageKeys.SAVED_EMAIL, email.trim());
             if (performanceConfig.cacheCredentials) {
               await LoginCacheManager.updateCache({
                 rememberedEmail: email.trim(),
               });
             }
           } else {
-            await AsyncStorage.removeItem("savedEmail");
+            await AsyncStorage.removeItem(StorageKeys.SAVED_EMAIL);
             await LoginCacheManager.updateCache({ rememberedEmail: undefined });
           }
 

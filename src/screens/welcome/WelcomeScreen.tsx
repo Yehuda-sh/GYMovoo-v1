@@ -72,8 +72,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fieldMapper } from "../../utils/fieldMapper";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
+import { StorageKeys } from "../../constants/StorageKeys";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { userApi } from "../../services/api/userApi";
 // Removed unused demo/google auth imports
@@ -214,7 +216,9 @@ export default function WelcomeScreen() {
   useEffect(() => {
     const loadLastLoggedOutUser = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem("lastLoggedOutUserId");
+        const storedUserId = await AsyncStorage.getItem(
+          StorageKeys.LAST_LOGGED_OUT_USER_ID
+        );
         if (storedUserId) {
           setLastLoggedOutUserId(storedUserId);
         }
@@ -292,17 +296,20 @@ export default function WelcomeScreen() {
       // שמירת המזהה של המשתמש הנוכחי למקרה של logout עתידי
       if (user?.id) {
         setLastLoggedOutUserId(user.id);
-        await AsyncStorage.setItem("lastLoggedOutUserId", user.id);
+        await AsyncStorage.setItem(
+          StorageKeys.LAST_LOGGED_OUT_USER_ID,
+          user.id
+        );
       }
 
       // 1) הגדרת המשתמש האמיתי שנבחר
       setUser(random);
 
       // 2) בדיקה אם למשתמש יש כבר שאלון מלא
-      const hasSmartQuestionnaire =
-        random.smartquestionnairedata &&
-        random.smartquestionnairedata.answers &&
-        Object.keys(random.smartquestionnairedata.answers).length >= 10;
+      const answers = fieldMapper.getSmartAnswers(random);
+      const hasSmartQuestionnaire = Array.isArray(answers)
+        ? answers.length >= 10
+        : !!(answers && Object.keys(answers).length >= 10);
 
       if (hasSmartQuestionnaire) {
         // אם יש שאלון מלא - ישר לאפליקציה הראשית

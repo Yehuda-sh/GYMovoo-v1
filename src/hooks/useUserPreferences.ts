@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { questionnaireService } from "../services/questionnaireService";
+import { fieldMapper } from "../utils/fieldMapper";
 import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
 import {
   scoreFrequency,
@@ -434,14 +435,20 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       if (rawPreferences) {
         // ✅ טען נתונים אישיים מהשאלון החדש
-        const userPersonalData = user?.smartquestionnairedata?.answers
+        const smartAnswers = fieldMapper.getSmartAnswers(user) as {
+          gender?: string;
+          age?: string | number;
+          weight?: string | number;
+          height?: string | number;
+          fitnessLevel?: string;
+        } | null;
+        const userPersonalData = smartAnswers
           ? {
-              gender: user.smartquestionnairedata.answers.gender as string,
-              age: String(user.smartquestionnairedata.answers.age || ""),
-              weight: String(user.smartquestionnairedata.answers.weight || ""),
-              height: String(user.smartquestionnairedata.answers.height || ""),
-              fitnessLevel: user.smartquestionnairedata.answers
-                .fitnessLevel as string,
+              gender: smartAnswers.gender || "",
+              age: String(smartAnswers.age || ""),
+              weight: String(smartAnswers.weight || ""),
+              height: String(smartAnswers.height || ""),
+              fitnessLevel: smartAnswers.fitnessLevel || "",
             }
           : null;
 

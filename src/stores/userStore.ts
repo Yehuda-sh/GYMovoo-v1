@@ -26,6 +26,9 @@ import {
   WorkoutPlan,
 } from "../types";
 import { userApi } from "../services/api/userApi";
+import { StorageKeys } from "../constants/StorageKeys";
+import { fieldMapper } from "../utils/fieldMapper";
+import { extractSmartAnswers } from "../utils/questionnaireUtils";
 /* eslint-disable no-console */
 
 // ==============================
@@ -260,7 +263,7 @@ export const useUserStore = create<UserStore>()(
 
         // שמירה ב-AsyncStorage
         AsyncStorage.setItem(
-          "smart_questionnaire_results",
+          StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
           JSON.stringify(data)
         )
           .then(() => console.log("✅ smart_questionnaire_results נשמר"))
@@ -268,13 +271,16 @@ export const useUserStore = create<UserStore>()(
 
         // שמירת העדפת מגדר בנפרד
         if (data.answers.gender) {
-          AsyncStorage.setItem("user_gender_preference", data.answers.gender);
+          AsyncStorage.setItem(
+            StorageKeys.USER_GENDER_PREFERENCE,
+            data.answers.gender
+          );
         }
 
         // שמירת ציוד נבחר
         if (data.answers.equipment) {
           AsyncStorage.setItem(
-            "selected_equipment",
+            StorageKeys.SELECTED_EQUIPMENT,
             JSON.stringify(normalizeEquipment(data.answers.equipment))
           );
         }
@@ -294,10 +300,11 @@ export const useUserStore = create<UserStore>()(
                   ? {
                       ...state.user.smartquestionnairedata,
                       ...updates,
+                      // מיזוג בטוח של answers ללא גישה ישירה במקומות אחרים בקוד
                       answers: {
-                        ...state.user.smartquestionnairedata.answers,
-                        ...updates.answers,
-                      },
+                        ...(extractSmartAnswers(state.user) || {}),
+                        ...(updates.answers || {}),
+                      } as Record<string, unknown>,
                       metadata: {
                         ...state.user.smartquestionnairedata.metadata,
                         ...updates.metadata,
@@ -332,10 +339,10 @@ export const useUserStore = create<UserStore>()(
 
         // ניקוי מ-AsyncStorage
         AsyncStorage.multiRemove([
-          "smart_questionnaire_results",
-          "user_gender_preference",
-          "selected_equipment",
-          "gender_adaptation_data",
+          StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+          StorageKeys.USER_GENDER_PREFERENCE,
+          StorageKeys.SELECTED_EQUIPMENT,
+          StorageKeys.GENDER_ADAPTATION_DATA,
         ]);
 
         get().scheduleServerSync("resetSmartQuestionnaire");
@@ -360,7 +367,7 @@ export const useUserStore = create<UserStore>()(
         }));
 
         // שמירה ב-AsyncStorage
-        AsyncStorage.setItem("user_gender_preference", gender);
+        AsyncStorage.setItem(StorageKeys.USER_GENDER_PREFERENCE, gender);
 
         get().scheduleServerSync("setUserGender");
       },
@@ -432,7 +439,10 @@ export const useUserStore = create<UserStore>()(
         }));
 
         // שמירה גם ב-AsyncStorage הנפרד לתאימות
-        AsyncStorage.setItem("questionnaire_answers", JSON.stringify(answers))
+        AsyncStorage.setItem(
+          StorageKeys.QUESTIONNAIRE_ANSWERS,
+          JSON.stringify(answers)
+        )
           .then(() =>
             console.log("✅ questionnaire_answers נשמר ב-AsyncStorage")
           )
@@ -441,7 +451,10 @@ export const useUserStore = create<UserStore>()(
           );
 
         // שמירת המטאדאטה המורחבת
-        AsyncStorage.setItem("questionnaire_metadata", JSON.stringify(answers))
+        AsyncStorage.setItem(
+          StorageKeys.QUESTIONNAIRE_METADATA,
+          JSON.stringify(answers)
+        )
           .then(() =>
             console.log("✅ questionnaire_metadata נשמר ב-AsyncStorage")
           )
@@ -557,7 +570,10 @@ export const useUserStore = create<UserStore>()(
       saveToStorage: async () => {
         const state = get();
         if (state.user) {
-          await AsyncStorage.setItem("user-storage", JSON.stringify(state));
+          await AsyncStorage.setItem(
+            StorageKeys.USER_PERSISTENCE,
+            JSON.stringify(state)
+          );
         }
       },
 
@@ -1149,20 +1165,35 @@ useUserStore.setState((prev) => ({
         if (!u?.id || typeof u.id !== "string") return;
         if (u.id.startsWith("demo_")) return; // אל תסנכרן משתמש דמו
         try {
-          const payload: Partial<User> = {
-            // שדות שניתן לסנכרן בבטחה
-            smartquestionnairedata: u.smartquestionnairedata,
-            ...(u.questionnaire ? { questionnaire: u.questionnaire } : {}),
-            ...(u.questionnairedata
-              ? { questionnairedata: u.questionnairedata }
-              : {}),
-            ...(u.preferences ? { preferences: u.preferences } : {}),
-            ...(u.genderprofile ? { genderprofile: u.genderprofile } : {}),
-            ...(u.trainingstats ? { trainingstats: u.trainingstats } : {}),
-            ...(u.workoutplans ? { workoutplans: u.workoutplans } : {}),
-            ...(u.subscription ? { subscription: u.subscription } : {}),
-          };
-          await userApi.update(u.id, payload);
+          // בניית אובייקט קנוני (camelCase) ורק שדות רלוונטיים לסנכרון
+          // הערה: אם נוסיף שדות חדשים בעתיד מספיק להוסיף אותם לרשימה זו;
+          // fieldMapper.toDB ימיר ללואורקייס / מפה מותאמת.
+          const canonicalUpdates: Record<string, unknown> = {};
+          const ux = u as Partial<User> & Record<string, unknown>;
+          if (
+            ux.smartquestionnairedata ||
+            (ux as Record<string, unknown>)["smartQuestionnaireData"]
+          ) {
+            canonicalUpdates.smartQuestionnaireData =
+              (ux as Record<string, unknown>)["smartQuestionnaireData"] ||
+              ux.smartquestionnairedata;
+          }
+          if (ux.questionnaire)
+            canonicalUpdates.questionnaire = ux.questionnaire;
+          if (ux.questionnairedata)
+            canonicalUpdates.questionnairedata = ux.questionnairedata;
+          if (ux.preferences) canonicalUpdates.preferences = ux.preferences;
+          if (ux.genderprofile)
+            canonicalUpdates.genderprofile = ux.genderprofile;
+          if (ux.trainingstats)
+            canonicalUpdates.trainingstats = ux.trainingstats;
+          if (ux.workoutplans) canonicalUpdates.workoutplans = ux.workoutplans;
+          if (ux.subscription) canonicalUpdates.subscription = ux.subscription;
+
+          if (Object.keys(canonicalUpdates).length === 0) return;
+
+          const payload = fieldMapper.toDB(canonicalUpdates);
+          await userApi.update(u.id, payload as Partial<User>);
           // אופציונלי: רענון כדי למשוך אמת מהשרת
           // const fresh = await userApi.getById(u.id);
           // useUserStore.setState((curr) => ({ ...curr, user: { ...fresh } }));

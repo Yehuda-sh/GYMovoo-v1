@@ -6,6 +6,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { workoutApi } from "../api/workoutApi";
 import { useUserStore } from "../../stores/userStore";
+import { logger } from "../../utils/logger";
 import {
   WorkoutWithFeedback,
   WorkoutHistoryItem,
@@ -51,7 +52,7 @@ class WorkoutStorageService {
       const data: WorkoutWithFeedback[] = raw ? JSON.parse(raw) : [];
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error("❌ WorkoutStorageService.getLocalHistory - Error:", error);
+      logger.error("WorkoutStorageService.getLocalHistory", "storage", error);
       return [];
     }
   }
@@ -92,9 +93,9 @@ class WorkoutStorageService {
 
       // Clear local history after successful sync
       await AsyncStorage.removeItem(WORKOUT_HISTORY_KEY);
-      console.warn("✅ Local workout history synced successfully.");
+      logger.info("Local workout history synced successfully", "storage");
     } catch (error) {
-      console.error("❌ Error syncing local workout history:", error);
+      logger.error("Error syncing local workout history", "storage", error);
     }
   }
 
@@ -109,10 +110,13 @@ class WorkoutStorageService {
       if (user?.id) {
         // This assumes workoutApi has a method to delete all workouts for a user.
         // await workoutApi.deleteAllForUser(user.id);
-        console.warn("Remote history clearing not implemented in API.");
+        logger.warn(
+          "Remote history clearing not implemented in API",
+          "storage"
+        );
       }
     } catch (error) {
-      console.error("Error clearing workout history:", error);
+      logger.error("Error clearing workout history", "storage", error);
       throw error;
     }
   }

@@ -21,6 +21,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StorageKeys } from "../../constants/StorageKeys";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
@@ -66,7 +67,10 @@ const TermsScreen = React.memo(() => {
         agreedAt: new Date().toISOString(),
         version: "v1.0",
       };
-      await AsyncStorage.setItem("terms_agreement", JSON.stringify(agreement));
+      await AsyncStorage.setItem(
+        StorageKeys.TERMS_AGREEMENT,
+        JSON.stringify(agreement)
+      );
 
       // חזרה למסך הקודם עם הסימון
       setTimeout(() => {

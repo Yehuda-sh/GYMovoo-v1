@@ -376,7 +376,7 @@ src/services/
 ├── authService.ts         # שירותי אימות (כולל dev mode)
 ├── exerciseService.ts     # ניהול תרגילים
 ├── questionnaireService.ts # עיבוד שאלון
-├── quickWorkoutGenerator.ts # יצירת אימונים
+// quickWorkoutGenerator.ts (נמחק – לוגיקת יצירה מאוחדת)
 ├── workoutDataService.ts  # ניהול נתוני אימון
 ├── wgerService.ts         # שירות WGER ראשי (הנכון לשימוש)
 ├── wgerApiService.ts      # שירות WGER משני (גיבוי)
@@ -407,7 +407,7 @@ src/services/
 ├── authService.ts         # שירותי אימות
 ├── exerciseService.ts     # ניהול תרגילים
 ├── questionnaireService.ts # עיבוד שאלון
-├── quickWorkoutGenerator.ts # יצירת אימונים
+// quickWorkoutGenerator.ts (נמחק – לוגיקת יצירה מאוחדת)
 └── workoutDataService.ts  # ניהול נתוני אימון
 ```
 
@@ -495,7 +495,7 @@ GYMovoo/
 - **Authentication**: authService
 - **Exercise**: exerciseService, wgerService (main), wgerApiService (backup)
 - **Questionnaire**: questionnaireService
-- **Workout Generation**: quickWorkoutGenerator, workoutDataService, nextWorkoutLogicService
+- **Workout Generation**: workoutDataService, nextWorkoutLogicService (איחוד – quickWorkoutGenerator הוסר)
 - **~~Scientific AI~~**: ~~scientificAIService~~, scientificUserGenerator, realisticDemoService - ✅ **AI ניסיוני נמחק**
 - **History & Simulation**: workoutHistoryService (with gender adaptation), workoutSimulationService
 

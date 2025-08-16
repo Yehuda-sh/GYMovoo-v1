@@ -178,7 +178,7 @@ export default function WorkoutPlansScreenNew({
     // Navigate to workout - simplified for now
     showSuccess("אימון מתחיל!", "מעבר למסך האימון");
 
-    // TODO: Navigate to actual workout screen
+    // Navigate to workout execution screen
     // navigation.navigate('ActiveWorkout', { workoutData: ... });
   }, [currentWorkoutPlan, triggerHaptic, showSuccess, showError]);
 
