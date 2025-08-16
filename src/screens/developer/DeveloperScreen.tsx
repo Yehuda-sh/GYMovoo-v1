@@ -25,6 +25,7 @@ import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { User } from "../../types";
+import { fieldMapper } from "../../utils/fieldMapper";
 
 const DeveloperScreen = () => {
   const navigation = useNavigation();
@@ -102,9 +103,44 @@ const DeveloperScreen = () => {
       setLoading(true);
       logger.info("developer", `מתחבר כמשתמש: ${selectedUser.name}`);
 
+      // 1) הגדרת המשתמש
       setUser(selectedUser);
-      Alert.alert("הצלחה", `התחברת בהצלחה כ-${selectedUser.name}`);
-      navigation.goBack();
+
+      // 2) בדיקה אם למשתמש יש שאלון מלא
+      const answers = fieldMapper.getSmartAnswers(selectedUser);
+      const hasSmartQuestionnaire = Array.isArray(answers)
+        ? answers.length >= 10
+        : !!(answers && Object.keys(answers).length >= 10);
+
+      logger.info("developer", `בדיקת שאלון למשתמש ${selectedUser.name}`, {
+        hasAnswers: !!answers,
+        answersCount: answers ? Object.keys(answers).length : 0,
+        hasSmartQuestionnaire,
+      });
+
+      if (hasSmartQuestionnaire) {
+        // יש שאלון מלא - מעבר לאפליקציה הראשית
+        logger.info("developer", "משתמש עם שאלון מלא - מעבר לאפליקציה ראשית");
+        Alert.alert("הצלחה", `התחברת בהצלחה כ-${selectedUser.name}`, [
+          {
+            text: "אישור",
+            onPress: () => navigation.navigate("MainApp"),
+          },
+        ]);
+      } else {
+        // אין שאלון מלא - מעבר לשאלון
+        logger.info("developer", "משתמש ללא שאלון מלא - מעבר לשאלון");
+        Alert.alert(
+          "התחברות בהצלחה",
+          `התחברת כ-${selectedUser.name}. כעת תעבור להשלמת השאלון.`,
+          [
+            {
+              text: "המשך לשאלון",
+              onPress: () => navigation.navigate("Questionnaire", {}),
+            },
+          ]
+        );
+      }
     } catch (error) {
       logger.error("developer", "שגיאה בהתחברות כמשתמש", error);
       Alert.alert("שגיאה", "לא ניתן להתחבר כמשתמש זה");
@@ -147,6 +183,30 @@ const DeveloperScreen = () => {
     } catch (error) {
       logger.error("developer", "שגיאה ביצירת משתמש דמו", error);
       Alert.alert("שגיאה", "לא ניתן ליצור משתמש דמו");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // יצירת משתמש ללא שאלון לבדיקה
+  const createUserWithoutQuestionnaire = async () => {
+    try {
+      setLoading(true);
+      logger.info("developer", "יוצר משתמש ללא שאלון לבדיקה");
+
+      const testUser = {
+        name: `משתמש חסר שאלון ${Date.now()}`,
+        email: `no-questionnaire${Date.now()}@test.com`,
+        // ללא smartquestionnairedata - כדי לבדוק את הניווט לשאלון
+      };
+
+      const newUser = await userApi.create(testUser);
+      logger.info("developer", `נוצר משתמש ללא שאלון: ${newUser.id}`);
+      Alert.alert("הצלחה", "משתמש ללא שאלון נוצר בהצלחה");
+      await loadUsers();
+    } catch (error) {
+      logger.error("developer", "שגיאה ביצירת משתמש ללא שאלון", error);
+      Alert.alert("שגיאה", "לא ניתן ליצור משתמש ללא שאלון");
     } finally {
       setLoading(false);
     }
@@ -330,6 +390,12 @@ const DeveloperScreen = () => {
               onPress={createDemoUser}
             />
             <ActionButton
+              title="משתמש ללא שאלון"
+              icon="person-outline"
+              onPress={createUserWithoutQuestionnaire}
+              color={theme.colors.warning || theme.colors.primary}
+            />
+            <ActionButton
               title="איפוס נתונים"
               icon="trash-outline"
               onPress={resetAllData}
@@ -370,26 +436,51 @@ const DeveloperScreen = () => {
           <Text style={styles.sectionTitle}>
             רשימת משתמשים ({users.length})
           </Text>
-          {users.map((userItem) => (
-            <TouchableOpacity
-              key={userItem.id}
-              style={styles.userItem}
-              onPress={() => loginAsUser(userItem)}
-            >
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{userItem.name}</Text>
-                <Text style={styles.userEmail}>{userItem.email}</Text>
-                {userItem.name?.includes("דמו") && (
-                  <Text style={styles.demoTag}>דמו</Text>
-                )}
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ))}
+          {users.map((userItem) => {
+            // בדיקת מצב השאלון לכל משתמש
+            const answers = fieldMapper.getSmartAnswers(userItem);
+            const hasSmartQuestionnaire = Array.isArray(answers)
+              ? answers.length >= 10
+              : !!(answers && Object.keys(answers).length >= 10);
+
+            return (
+              <TouchableOpacity
+                key={userItem.id}
+                style={styles.userItem}
+                onPress={() => loginAsUser(userItem)}
+              >
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{userItem.name}</Text>
+                  <Text style={styles.userEmail}>{userItem.email}</Text>
+                  <View style={styles.userTags}>
+                    {userItem.name?.includes("דמו") && (
+                      <Text style={styles.demoTag}>דמו</Text>
+                    )}
+                    <Text
+                      style={[
+                        styles.questionnaireTag,
+                        {
+                          backgroundColor: hasSmartQuestionnaire
+                            ? theme.colors.success + "20"
+                            : theme.colors.error + "20",
+                          color: hasSmartQuestionnaire
+                            ? theme.colors.success
+                            : theme.colors.error,
+                        },
+                      ]}
+                    >
+                      {hasSmartQuestionnaire ? "שאלון מלא" : "דרוש שאלון"}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+            );
+          })}
 
           {users.length === 0 && !loading && (
             <Text style={styles.emptyText}>אין משתמשים</Text>
@@ -527,6 +618,13 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "right",
   },
+  userTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 4,
+    justifyContent: "flex-end",
+  },
   demoTag: {
     fontSize: 12,
     color: theme.colors.primary,
@@ -534,7 +632,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 4,
+    overflow: "hidden",
+  },
+  questionnaireTag: {
+    fontSize: 12,
+    fontWeight: "600",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
     overflow: "hidden",
   },
   emptyText: {

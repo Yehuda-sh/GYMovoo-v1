@@ -199,6 +199,8 @@ export const PROFILE_SCREEN_TEXTS = {
     ENDURANCE_IMPROVEMENT: "שיפור סיבולת",
     GENERAL_HEALTH: "בריאות כללית",
     FITNESS_MAINTENANCE: "שמירה על כושר",
+    ATHLETIC_PERFORMANCE: "ביצועים ספורטיביים",
+    GENERAL_FITNESS: "כושר כללי",
 
     // Workout locations / מיקומי אימון
     HOME: "בבית",
@@ -216,18 +218,24 @@ export const PROFILE_SCREEN_TEXTS = {
     DURATION_90_PLUS: "90+ דקות",
 
     // Workout frequencies / תדירויות אימון
-    FREQUENCY_2_TIMES: "פעמיים בשבוע",
+    FREQUENCY_2_TIMES: "2 פעמים בשבוע",
     FREQUENCY_3_TIMES: "3 פעמים בשבוע",
     FREQUENCY_4_TIMES: "4 פעמים בשבוע",
-    FREQUENCY_5_TIMES: "5 פעמים בשבוע",
-    FREQUENCY_6_PLUS: "6+ פעמים בשבוע",
-
-    // Health statuses / מצבים בריאותיים
+    FREQUENCY_5_TIMES: "5+ פעמים בשבוע",
+    FREQUENCY_6_PLUS: "6+ פעמים בשבוע", // Health statuses / מצבים בריאותיים
     EXCELLENT_HEALTH: "בריאות מצוינת",
     GOOD_HEALTH: "בריאות טובה",
     FAIR_HEALTH: "בריאות סבירה",
     HEALTH_CONCERNS: "חששות בריאותיים",
     MEDICAL_LIMITATIONS: "מגבלות רפואיות",
+
+    // Diet preferences / העדפות תזונה
+    BALANCED_DIET: "תזונה מאוזנת",
+    HIGH_PROTEIN: "עתיר חלבון",
+    VEGETARIAN: "צמחוני",
+    VEGAN: "טבעוני",
+    KETO: "קטוגנית",
+    PALEO: "פליאו",
   },
 
   // הודעות מערכת / System messages
@@ -368,13 +376,13 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   }
 
   // Goals (single) / מטרה
-  if (key === "goal") {
+  if (key === "goal" || key === "fitness_goal") {
     const goalMap: { [key: string]: string } = {
       // Unified IDs
       build_muscle: VALUES.MUSCLE_GAIN,
       lose_weight: VALUES.WEIGHT_LOSS,
-      general_fitness: "כושר כללי",
-      athletic_performance: "ביצועים ספורטיביים",
+      general_fitness: VALUES.GENERAL_FITNESS,
+      athletic_performance: VALUES.ATHLETIC_PERFORMANCE,
       // Legacy/alternate IDs
       muscle_gain: VALUES.MUSCLE_GAIN,
       strength_improvement: VALUES.STRENGTH_IMPROVEMENT,
@@ -392,8 +400,8 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
         ({
           build_muscle: VALUES.MUSCLE_GAIN,
           lose_weight: VALUES.WEIGHT_LOSS,
-          general_fitness: "כושר כללי",
-          athletic_performance: "ביצועים ספורטיביים",
+          general_fitness: VALUES.GENERAL_FITNESS,
+          athletic_performance: VALUES.ATHLETIC_PERFORMANCE,
           muscle_gain: VALUES.MUSCLE_GAIN,
           strength_improvement: VALUES.STRENGTH_IMPROVEMENT,
           endurance_improvement: VALUES.ENDURANCE_IMPROVEMENT,
@@ -405,14 +413,18 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   }
 
   // Primary goals / מטרות עיקריות
-  if (key === "primary_goal") {
+  if (key === "primary_goal" || key === "fitness_goal") {
     const goalMap: { [key: string]: string } = {
       weight_loss: VALUES.WEIGHT_LOSS,
+      lose_weight: VALUES.WEIGHT_LOSS,
       muscle_gain: VALUES.MUSCLE_GAIN,
+      build_muscle: VALUES.MUSCLE_GAIN,
       strength_improvement: VALUES.STRENGTH_IMPROVEMENT,
       endurance_improvement: VALUES.ENDURANCE_IMPROVEMENT,
       general_health: VALUES.GENERAL_HEALTH,
+      general_fitness: VALUES.GENERAL_FITNESS,
       fitness_maintenance: VALUES.FITNESS_MAINTENANCE,
+      athletic_performance: VALUES.ATHLETIC_PERFORMANCE,
     };
     return goalMap[value] || value;
   }
@@ -473,7 +485,8 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       "2_days": VALUES.FREQUENCY_2_TIMES,
       "3_days": VALUES.FREQUENCY_3_TIMES,
       "4_days": VALUES.FREQUENCY_4_TIMES,
-      "5_days": VALUES.FREQUENCY_5_TIMES,
+      "5_days": VALUES.FREQUENCY_5_TIMES, // 5+ ימים בשבוע בשאלון
+      "6_plus_days": VALUES.FREQUENCY_6_PLUS,
     };
     return frequencyMap[value] || value;
   }
@@ -486,13 +499,15 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
   }
 
   // Diet preferences / תזונה
-  if (key === "diet" || key === "diet_type") {
+  if (key === "diet" || key === "diet_type" || key === "diet_preferences") {
     const dietMap: { [key: string]: string } = {
       none_diet: "אין הגבלות",
-      vegetarian: "צמחוני",
-      vegan: "טבעוני",
-      keto: "קטוגנית",
-      paleo: "פליאו",
+      vegetarian: VALUES.VEGETARIAN,
+      vegan: VALUES.VEGAN,
+      keto: VALUES.KETO,
+      paleo: VALUES.PALEO,
+      balanced_diet: VALUES.BALANCED_DIET,
+      high_protein: VALUES.HIGH_PROTEIN,
     };
     return dietMap[String(value)] || String(value);
   }
@@ -509,22 +524,110 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     return healthMap[value] || value;
   }
 
+  // Health conditions / מצבים רפואיים
+  if (key === "health_conditions") {
+    const conditionsMap: { [key: string]: string } = {
+      none: "ללא מגבלות",
+      back_pain: "כאבי גב",
+      knee_issues: "בעיות ברכיים",
+      heart_condition: "מצב לב",
+      diabetes: "סוכרת",
+      high_blood_pressure: "לחץ דם גבוה",
+      asthma: "אסתמה",
+      arthritis: "דלקת פרקים",
+      other: "אחר",
+    };
+    return conditionsMap[String(value)] || String(value);
+  }
+
+  // Activity level / רמת פעילות
+  if (key === "activity_level") {
+    const activityMap: { [key: string]: string } = {
+      sedentary: "יושב רוב היום",
+      lightly_active: "פעיל קלות",
+      moderately_active: "פעיל בינוני",
+      very_active: "פעיל מאוד",
+      extremely_active: "פעיל ביותר",
+    };
+    return activityMap[String(value)] || String(value);
+  }
+
+  // Workout time preferences / העדפות זמן אימון
+  if (key === "workout_time") {
+    const timeMap: { [key: string]: string } = {
+      morning: "בוקר",
+      afternoon: "אחר הצהריים",
+      evening: "ערב",
+      night: "לילה",
+      flexible: "גמיש",
+    };
+    return timeMap[String(value)] || String(value);
+  }
+
+  // Motivation / מוטיבציה
+  if (key === "motivation") {
+    const motivationMap: { [key: string]: string } = {
+      health: "בריאות",
+      appearance: "מראה חיצוני",
+      strength: "כוח",
+      energy: "אנרגיה",
+      stress_relief: "הפגת לחץ",
+      social: "חברתי",
+      sport_performance: "ביצועים ספורטיביים",
+    };
+    return motivationMap[String(value)] || String(value);
+  }
+
+  // Body type / מבנה גוף
+  if (key === "body_type") {
+    const bodyTypeMap: { [key: string]: string } = {
+      ectomorph: "דק (אקטומורף)",
+      mesomorph: "אתלטי (מזומורף)",
+      endomorph: "מלא (אנדומורף)",
+      mixed: "מעורב",
+    };
+    return bodyTypeMap[String(value)] || String(value);
+  }
+
+  // Sleep hours / שעות שינה
+  if (key === "sleep_hours") {
+    const sleepMap: { [key: string]: string } = {
+      less_than_6: "פחות מ-6 שעות",
+      "6_7": "6-7 שעות",
+      "7_8": "7-8 שעות",
+      "8_9": "8-9 שעות",
+      more_than_9: "יותר מ-9 שעות",
+    };
+    return sleepMap[String(value)] || String(value);
+  }
+
+  // Stress level / רמת לחץ
+  if (key === "stress_level") {
+    const stressMap: { [key: string]: string } = {
+      low: "נמוכה",
+      moderate: "בינונית",
+      high: "גבוהה",
+      very_high: "גבוהה מאוד",
+    };
+    return stressMap[String(value)] || String(value);
+  }
+
   // Available equipment / ציוד זמין
   if (key === "available_equipment" && Array.isArray(value)) {
     if (value.length === 0) return PROFILE_SCREEN_TEXTS.MESSAGES.NO_EQUIPMENT;
 
     const equipmentMap: { [key: string]: string } = {
-      // Home equipment
-      dumbbells: "משקולות יד",
+      // Home equipment - מסונכרן עם equipmentData.ts
+      dumbbells: "דמבלים",
       resistance_bands: "רצועות התנגדות",
       kettlebell: "קטלבל",
-      yoga_mat: "מזרון יוגה",
+      yoga_mat: "מזרן יוגה",
       pullup_bar: "מתקן מתח",
       foam_roller: "גליל קצף",
       exercise_ball: "כדור פיטנס",
       trx: "TRX",
 
-      // Gym equipment
+      // Gym equipment - מסונכרן עם equipmentData.ts
       free_weights: "משקולות חופשיות",
       cable_machine: "מכונת כבלים",
       squat_rack: "מתקן סקוואט",

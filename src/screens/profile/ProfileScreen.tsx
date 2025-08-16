@@ -586,24 +586,30 @@ function ProfileScreen() {
         getOrDefault("age", questionnaire, smartData, user)
       ),
       goal: formatQuestionnaireValue(
-        "goal",
-        getOrDefault("goal", questionnaire, smartData, user)
+        "fitness_goal",
+        getOrDefault("fitness_goal", questionnaire, smartData, user)
       ),
       experience: formatQuestionnaireValue(
-        "experience",
-        getOrDefault("experience", questionnaire, smartData, user)
+        "experience_level",
+        getOrDefault("experience_level", questionnaire, smartData, user)
       ),
-      frequency: formatQuestionnaireValue(
-        "frequency",
-        getOrDefault("frequency", questionnaire, smartData, user)
-      ),
+      frequency: (() => {
+        const val = getOrDefault("frequency", questionnaire, smartData, user);
+        if (val === "לא צוין") return val;
+        // אם זה נראה כמו ערך של availability (2_days, 3_days וכו'), השתמש במפתח availability
+        if (typeof val === "string" && val.includes("_days")) {
+          return formatQuestionnaireValue("availability", val);
+        }
+        // אחרת, השתמש במפתח frequency הרגיל
+        return formatQuestionnaireValue("frequency", val);
+      })(),
       duration: formatQuestionnaireValue(
         "duration",
         getOrDefault("duration", questionnaire, smartData, user)
       ),
       location: formatQuestionnaireValue(
-        "location",
-        getOrDefault("location", questionnaire, smartData, user)
+        "workout_location",
+        getOrDefault("workout_location", questionnaire, smartData, user)
       ),
       gender: formatQuestionnaireValue(
         "gender",
