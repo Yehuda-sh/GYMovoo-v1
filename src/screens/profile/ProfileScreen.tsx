@@ -80,6 +80,14 @@ import {
 } from "../../constants/achievementsConfig";
 
 // =======================================
+// 🪵 devLog - לוג מרוכז לסביבת פיתוח בלבד
+// מפחית רעש לוגים בפרודקשן ושומר Prefixed אחיד
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devLog = (...args: any[]) => {
+  if (__DEV__) console.warn("[ProfileScreen]", ...args);
+};
+
+// =======================================
 // 🎯 TypeScript Interfaces & Types
 // ממשקי טייפסקריפט וטיפוסים
 // =======================================
@@ -266,6 +274,12 @@ function ProfileScreen() {
   /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
   const achievements = useMemo(() => calculateAchievements(user), [user]);
 
+  // ✅ הישגים פתוחים בלבד (נגזרת ממומואיזציה לחיסכון בסינון חוזר)
+  const unlockedAchievements = useMemo(
+    () => achievements.filter((a) => a.unlocked),
+    [achievements]
+  );
+
   useEffect(() => {
     // אנימציות כניסה חלקה // Smooth entry animations
     Animated.parallel([
@@ -300,7 +314,6 @@ function ProfileScreen() {
 
   // אנימציית פולס להישגים חדשים // Pulse animation for new achievements
   useEffect(() => {
-    const unlockedAchievements = achievements.filter((a) => a.unlocked);
     if (unlockedAchievements.length > 0) {
       Animated.loop(
         Animated.sequence([
@@ -317,7 +330,7 @@ function ProfileScreen() {
         ])
       ).start();
     }
-  }, [achievements, achievementPulseAnim]);
+  }, [unlockedAchievements, achievementPulseAnim]);
 
   // עדכון avatar כאשר user משתנה
   useEffect(() => {
@@ -352,7 +365,7 @@ function ProfileScreen() {
         if (fresh.avatar) setSelectedAvatar(fresh.avatar);
       }
     } catch (e) {
-      console.warn("ProfileScreen: שגיאה בטעינת משתמש מהשרת", e);
+      devLog("שגיאה בטעינת משתמש מהשרת", e);
       setError("שגיאה בטעינת נתוני משתמש מהשרת");
     }
   }, [user?.id, user?.email, setUser]);

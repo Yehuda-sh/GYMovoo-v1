@@ -1,11 +1,11 @@
 /**
  * @file src/screens/workout/types/workout.types.ts
- * @description טיפוסים עבור מסך האימון - מעודכן לינואר 2025
- * @description English: Types for workout screen - Updated January 2025
- * @updated 2025-01-17 Enhanced documentation for audit completion
+ * @description טיפוסים עבור מסך האימון - מעודכן לאוגוסט 2025
+ * @description English: Types for workout screen - Updated August 2025
+ * @updated 2025-08-17 תיקון כפילות Exercise + עדכון תיעוד
  *
  * ✅ CORE & CRITICAL: קובץ טיפוסים מרכזי בשימוש נרחב
- * - 20+ files: Services, components, screens מייבאים מכאן
+ * - 15+ files: Services, components, screens מייבאים מכאן
  * - src/types/index.ts: מייצא הכל מקובץ זה כנקודה מרכזית
  * - DataManager, WorkoutHistoryService: תלויים בטיפוסים אלה
  * - All workout components: משתמשים בממשקים המוגדרים כאן
@@ -16,11 +16,14 @@
  * @performance Type-only imports ensure no runtime overhead
  *
  * @interfaces
- * - Set, Exercise, WorkoutData: Core workout building blocks
+ * - Set, WorkoutExercise, WorkoutData: Core workout building blocks
  * - WorkoutPlan, WorkoutTemplate: Workout planning and templates
  * - WorkoutWithFeedback: Complete workout with user feedback
  * - WorkoutStatistics: Comprehensive analytics data
  * - PersonalRecord, ProgressData: Performance tracking
+ *
+ * @note WorkoutExercise vs Exercise: WorkoutExercise מייצג תרגיל באימון פעיל
+ *       Exercise (מ-data/exercises/types) מייצג תרגיל במאגר הנתונים
  */
 
 // === סוגי עזר כלליים ===
@@ -47,9 +50,9 @@ export interface Set {
   timeToComplete?: number; // Time to complete the set in seconds
 }
 
-// תרגיל - אוסף של סטים עם מטא-דאטה
-// Exercise - collection of sets with metadata
-export interface Exercise {
+// תרגיל באימון - אוסף של סטים עם מטא-דאטה (שונה מ-Exercise במאגר הנתונים)
+// Workout exercise - collection of sets with metadata (different from Exercise in data repository)
+export interface WorkoutExercise {
   id: string;
   name: string;
   category: string;
@@ -65,6 +68,9 @@ export interface Exercise {
   tips?: string[];
 }
 
+// Backward compatibility alias - תמיכה לאחור
+export type Exercise = WorkoutExercise;
+
 // === WORKOUT MANAGEMENT & PLANNING ===
 // === ניהול ותכנון אימונים ===
 
@@ -76,7 +82,7 @@ export interface WorkoutData {
   startTime: ISODateString;
   endTime?: ISODateString;
   duration: number; // בשניות
-  exercises: Exercise[];
+  exercises: WorkoutExercise[];
   totalVolume: number;
   totalSets?: number;
   completedSets?: number;

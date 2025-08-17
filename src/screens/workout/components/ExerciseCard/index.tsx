@@ -53,7 +53,7 @@ import { triggerVibration } from "../../../../utils/workoutHelpers";
 
 // ייבוא ה-types
 // Import types
-import { Exercise, Set as WorkoutSet } from "../../types/workout.types";
+import { WorkoutExercise, Set as WorkoutSet } from "../../types/workout.types";
 
 // אפשור LayoutAnimation באנדרואיד
 // Enable LayoutAnimation on Android
@@ -76,7 +76,7 @@ const log = (message: string, data?: object) => {
 };
 
 interface ExerciseCardProps {
-  exercise: Exercise;
+  exercise: WorkoutExercise;
   sets: WorkoutSet[];
   onUpdateSet: (setId: string, updates: Partial<WorkoutSet>) => void;
   onAddSet: () => void;

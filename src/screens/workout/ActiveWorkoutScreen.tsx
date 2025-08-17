@@ -83,6 +83,12 @@ const ActiveWorkoutScreen: React.FC = () => {
   const route = useRoute();
   const { user } = useUserStore();
 
+  // קבועי אינטראקציה - אופטימיזציה
+  const HIT_SLOP = useMemo(
+    () => ({ top: 8, bottom: 8, left: 8, right: 8 }),
+    []
+  );
+
   // קבלת פרמטרים מהניווט - עכשיו מקבלים אימון מלא
   const { workoutData, pendingExercise } =
     (route.params as {
@@ -135,7 +141,6 @@ const ActiveWorkoutScreen: React.FC = () => {
     }
     return base;
   });
-  // (ניקוי) סטייט הרחבה לא בשימוש הוסר
 
   // Modal states
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -144,15 +149,16 @@ const ActiveWorkoutScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
 
-  // (הוסר) פונקציות הרחבה/כיווץ לא בשימוש
-
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
     return calculateWorkoutStats(exercises);
   }, [exercises]);
 
-  // טיימרים
-  const workoutId = useMemo(() => `active-workout-${Date.now()}`, []);
+  // טיימרים - workoutId יציב לאורך חיי הקומפוננט
+  const workoutId = useMemo(() => {
+    const timestamp = workoutData?.startTime || Date.now();
+    return `active-workout-${timestamp}`;
+  }, [workoutData?.startTime]);
   const { formattedTime, isRunning, startTimer, pauseTimer } =
     useWorkoutTimer(workoutId);
   const {
@@ -174,9 +180,8 @@ const ActiveWorkoutScreen: React.FC = () => {
     };
   }, [startTimer, pauseTimer, skipRestTimer]);
 
-  // הפקת תוכנית שבועית לזיהוי אינדקס האימון להשלמה
+  // הפקת תוכנית שבועית לזיהוי אינדקס האימון - אופטימיזציה בסיסית
   const weeklyPlan = useMemo(() => {
-    // מיפוי ברירת מחדל לפי תדירות
     const WORKOUT_DAYS_MAP: Record<number, string[]> = {
       1: ["אימון מלא"],
       2: ["פלג גוף עליון", "פלג גוף תחתון"],
@@ -187,78 +192,36 @@ const ActiveWorkoutScreen: React.FC = () => {
       7: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן", "קרדיו קל"],
     };
 
-    // שליפת תדירות בשבוע ממקורות שונים (שמירה על תאימות)
-    const extractRawFrequency = (): string => {
-      const smart = user?.smartquestionnairedata?.answers?.availability;
-      if (smart) {
-        return Array.isArray(smart) ? String(smart[0]) : String(smart);
-      }
-      if (user?.trainingstats?.preferredWorkoutDays) {
-        return String(user.trainingstats.preferredWorkoutDays);
-      }
-      if (user?.questionnairedata?.answers) {
-        const answers = user.questionnairedata.answers as Record<
-          string,
-          unknown
-        >;
-        return String(answers.frequency || "");
-      }
-      if (user?.questionnaire) {
-        let legacy = "";
-        Object.values(user.questionnaire).forEach((value) => {
-          if (
-            typeof value === "string" &&
-            (value.includes("times") || value.includes("פעמים"))
-          ) {
-            legacy = value;
-          }
-        });
-        return legacy;
-      }
-      return "";
-    };
-
-    const raw = extractRawFrequency().trim().toLowerCase();
+    // שליפת תדירות מהירה ופשוטה
     let days = 3; // ברירת מחדל
-    const directMap: Record<string, number> = {
-      "2-times": 2,
-      "2_times": 2,
-      "2 times per week": 2,
-      "3-times": 3,
-      "3_times": 3,
-      "3 times per week": 3,
-      "4-times": 4,
-      "4_times": 4,
-      "4 times per week": 4,
-      "5-plus": 5,
-      "5_times": 5,
-      "5 times per week": 5,
-      "6 times per week": 6,
-      "7 times per week": 7,
-      "1-2 פעמים": 2,
-      "3 פעמים": 3,
-      "4 פעמים": 4,
-      "5+ פעמים": 5,
-      "2 פעמים בשבוע": 2,
-      "3 פעמים בשבוע": 3,
-      "5 פעמים בשבוע": 5,
-      "כל יום": 6,
-      "6_times": 6,
-    };
-    if (directMap[raw] != null) {
-      days = directMap[raw];
-    } else if (/^\d$/.test(raw)) {
-      days = Math.min(7, Math.max(1, Number(raw)));
-    } else if (/5-6/.test(raw)) {
-      days = 5;
-    } else if (/3-4/.test(raw)) {
-      days = 3;
-    } else if (/1-2/.test(raw)) {
-      days = 2;
+
+    // בדיקה מהירה - נתונים חכמים
+    const smart = user?.smartquestionnairedata?.answers?.availability;
+    if (smart) {
+      const raw = Array.isArray(smart) ? String(smart[0]) : String(smart);
+      const quickMap: Record<string, number> = {
+        "2_days": 2,
+        "3_days": 3,
+        "4_days": 4,
+        "5_days": 5,
+        "6_plus_days": 6,
+      };
+      if (quickMap[raw]) days = quickMap[raw];
+    }
+
+    // fallback לנתוני stats אם אין נתונים חכמים
+    else if (user?.trainingstats?.preferredWorkoutDays) {
+      days = Math.min(
+        7,
+        Math.max(1, Number(user.trainingstats.preferredWorkoutDays))
+      );
     }
 
     return WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
-  }, [user]);
+  }, [
+    user?.smartquestionnairedata?.answers?.availability,
+    user?.trainingstats?.preferredWorkoutDays,
+  ]);
 
   const workoutIndexInPlan = useMemo(() => {
     const name = workoutData?.name?.trim();
@@ -363,7 +326,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     );
   }, []);
 
-  // מחיקת סט מתרגיל
+  // מחיקת סט מתרגיל - בדיקת שגיאות מיועלת
   const handleDeleteSet = useCallback(
     (exerciseId: string, setId: string) => {
       const exercise = exercises.find((ex) => ex.id === exerciseId);
@@ -412,10 +375,13 @@ const ActiveWorkoutScreen: React.FC = () => {
     []
   );
 
-  // סיום האימון המלא
-  const handleFinishWorkout = useCallback(() => {
-    const hasCompletedExercises = workoutStats.completedExercises > 0;
+  // סיום האימון המלא - בדיקה מותנית ביצועים
+  const hasCompletedExercises = useMemo(
+    () => workoutStats.completedExercises > 0,
+    [workoutStats.completedExercises]
+  );
 
+  const handleFinishWorkout = useCallback(() => {
     if (!hasCompletedExercises) {
       setErrorMessage("יש להשלים לפחות תרגיל אחד לפני סיום האימון");
       setShowErrorModal(true);
@@ -423,7 +389,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     }
 
     setShowExitModal(true);
-  }, [workoutStats]);
+  }, [hasCompletedExercises]);
 
   // הוספת תרגיל חדש לאימון הפעיל
   const handleAddExercise = useCallback(() => {
@@ -468,8 +434,6 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
     );
   }
-
-  const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -661,8 +625,9 @@ const ActiveWorkoutScreen: React.FC = () => {
               workoutIndexInPlan,
               workoutData?.name || "אימון"
             );
-          } catch (e) {
-            console.warn("⚠️ ActiveWorkout: failed to update completion", e);
+          } catch (error) {
+            console.warn("⚠️ ActiveWorkout: שגיאה בעדכון השלמת אימון:", error);
+            // המשך ליציאה גם אם יש שגיאה בעדכון הרשומה
           } finally {
             navigation.goBack();
           }
@@ -838,7 +803,6 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     gap: theme.spacing.md,
   },
-  // סטיילים לא בשימוש הוסרו
   finishButtonText: {
     color: theme.colors.card,
     fontSize: theme.typography.button.fontSize,

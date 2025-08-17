@@ -1,20 +1,16 @@
 /**
  * @file src/services/core/DataManager.ts
- * @brief מנהל נתונים מרכזי - יכין נתונים בכנ           hasActivityHistory: !!user.activityhistory,
-         workoutsCount: user.activityhistory?.workouts?.length || 0,
-         hasScientificProfile: !!user.scientificprofile,    hasActivityHistory: !!user.activityhistory,
-         workoutsCount: user.activityhistory?.workouts?.length || 0,
-         hasScientificProfile: !!user.scientificprofile, ויתמוך בשרת בעתיד
- * @brief Central Data Manager - prepares data at startup and supports future server integration
- * @dependencies userStore, demoHistoryService, workoutHistoryService
+ * @brief מנהל נתונים מרכזי – מכין ומטמון נתונים בעת עליית האפליקציה ותומך בהתרחבות עתידית לשרת
+ * @brief Central Data Manager – initializes & caches core data at app startup (server-ready architecture)
+ * @dependencies userStore, workoutFacadeService, userApi
  * @updated 2025-01-17 מערכת חדשה למרכוז ניהול נתונים
  *
- * ✅ ACTIVE & CRITICAL: מנהל נתונים מרכזי בשימוש פעיל
- * - HistoryScreen.tsx/simple.tsx: מספק נתוני אימונים וסטטיסטיקות
- * - Singleton pattern: instance יחיד למערכת כולה
- * - Cache management: מנהל זיכרון מטמון עם תמיכה demo/real
- * - Future server support: מוכן לשילוב עם שרת
- * - Error handling: fallback מקומי במקרה של כשל שרת
+ * ✅ ACTIVE & CRITICAL / בשימוש פעיל
+ * - מספק היסטוריית אימונים, סטטיסטיקות והודעות ברכה למסכים שונים
+ * - Singleton pattern (instance יחיד)
+ * - In-memory caching להפחתת גישות חוזרות
+ * - Graceful fallback מקומי אם שרת לא זמין
+ * - מוכן להרחבת סנכרון דו-כיווני בעתיד
  *
  * @architecture Central data hub with smart caching and server preparation
  * @usage 20+ files depend on this service across the application
@@ -30,6 +26,15 @@ import {
 import { workoutFacadeService } from "../workout/workoutFacadeService";
 import { LOGGING } from "../../constants/logging";
 import { userApi } from "../api/userApi";
+
+// =====================================
+// 🪵 Dev Logger (only in __DEV__)
+// =====================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devLog = (...args: any[]) => {
+  if (__DEV__ && LOGGING.DATA_MANAGER_SUMMARY)
+    console.warn("[DataManager]", ...args);
+};
 
 export interface AppDataCache {
   workoutHistory: WorkoutWithFeedback[];
@@ -83,13 +88,10 @@ class DataManagerService {
     try {
       // בדיקת זמינות שרת לפני טעינה
       this.serverReachable = await this._checkServerHealth();
+      devLog("🌐 Server reachable:", this.serverReachable);
+      devLog("🚀 Starting initialization...");
       if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("🌐 DataManager: Server reachable:", this.serverReachable);
-      }
-
-      if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("🚀 DataManager: Starting initialization...");
-        console.warn("👤 DataManager: User data preview:", {
+        console.warn("[DataManager] 👤 User data preview:", {
           id: user.id,
           name: user.name,
           email: user.email,
@@ -109,14 +111,10 @@ class DataManagerService {
       }
 
       // 📊 לוג מפורט של כל הנתונים שנוצרו (רק במצב VERBOSE)
-      if (LOGGING.VERBOSE) {
-        this._logCompleteUserData(user);
-      }
+      if (LOGGING.VERBOSE) this._logCompleteUserData(user);
 
       this.isInitialized = true;
-      if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("✅ DataManager: Initialization completed");
-      }
+      devLog("✅ Initialization completed");
     } catch (error) {
       console.error("❌ DataManager: Initialization failed", error);
       // במקרה של כשל, ננסה לטעון נתונים מקומיים
@@ -142,7 +140,7 @@ class DataManagerService {
    */
   private async _loadFromServer(user: User): Promise<void> {
     try {
-      console.warn("🌐 DataManager: Loading from server...");
+      devLog("🌐 Loading from server...");
 
       // כאן יהיה הקוד לטעינה מהשרת בעתיד
       // const serverData = await this._fetchFromServer(user.id);
@@ -170,11 +168,7 @@ class DataManagerService {
     // אין שימוש בדמו – תמיד נטען נתונים אמיתיים
     const isDemo = false;
 
-    if (LOGGING.DATA_MANAGER_SUMMARY) {
-      console.warn(
-        `📦 DataManager: Loading from ${isDemo ? "demo" : "user"} sources...`
-      );
-    }
+    devLog(`📦 Loading from ${isDemo ? "demo" : "user"} sources...`);
 
     const [workoutHistory, statistics, congratulationMessage] =
       await Promise.all([
@@ -191,46 +185,30 @@ class DataManagerService {
       isDemo,
     };
 
-    if (LOGGING.DATA_MANAGER_SUMMARY) {
-      console.warn(
-        `✅ DataManager: Loaded ${workoutHistory.length} workouts (${isDemo ? "demo" : "real"})`
-      );
-    }
+    devLog(
+      `✅ Loaded ${workoutHistory.length} workouts (${isDemo ? "demo" : "real"})`
+    );
   }
 
   /**
    * קבלת נתוני אימונים
    */
   getWorkoutHistory(): WorkoutWithFeedback[] {
-    if (!this.cache) {
-      console.warn(
-        "⚠️ DataManager: Cache not initialized, returning empty array"
-      );
-      return [];
-    }
-    return this.cache.workoutHistory;
+    return this._getCacheOrWarn()?.workoutHistory || [];
   }
 
   /**
    * קבלת סטטיסטיקות
    */
   getStatistics(): WorkoutStatistics | null {
-    if (!this.cache) {
-      console.warn("⚠️ DataManager: Cache not initialized, returning null");
-      return null;
-    }
-    return this.cache.statistics;
+    return this._getCacheOrWarn()?.statistics || null;
   }
 
   /**
    * קבלת הודעת ברכה
    */
   getCongratulationMessage(): string | null {
-    if (!this.cache) {
-      console.warn("⚠️ DataManager: Cache not initialized, returning null");
-      return null;
-    }
-    return this.cache.congratulationMessage;
+    return this._getCacheOrWarn()?.congratulationMessage || null;
   }
 
   /**
@@ -266,9 +244,7 @@ class DataManagerService {
    * @param {User} user - נתוני המשתמש לרענון
    */
   async refresh(user: User): Promise<void> {
-    if (LOGGING.DATA_MANAGER_SUMMARY) {
-      console.warn("🔄 DataManager: Refreshing data...");
-    }
+    devLog("🔄 Refreshing data...");
     this.isInitialized = false;
     this.cache = null;
     this.initPromise = null;
@@ -281,9 +257,7 @@ class DataManagerService {
    */
   configureServer(config: Partial<ServerConfig>): void {
     this.serverConfig = { ...this.serverConfig, ...config };
-    if (LOGGING.DATA_MANAGER_SUMMARY) {
-      console.warn("🔧 DataManager: Server config updated", this.serverConfig);
-    }
+    devLog("🔧 Server config updated", this.serverConfig);
   }
 
   /**
@@ -292,22 +266,18 @@ class DataManagerService {
    */
   async syncWithServer(_user: User): Promise<void> {
     if (!this.serverConfig.enabled) {
-      console.warn("🌐 DataManager: Server sync disabled");
+      devLog("🌐 Server sync disabled");
       return;
     }
 
     try {
-      if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("🔄 DataManager: Syncing with server...");
-      }
+      devLog("🔄 Syncing with server...");
 
       // כאן יהיה הקוד לסנכרון עם שרת בעתיד
       // await this._uploadToServer(_user, this.cache);
       // await this._downloadFromServer(_user);
 
-      if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("✅ DataManager: Sync completed");
-      }
+      devLog("✅ Sync completed");
     } catch (error) {
       console.error("❌ DataManager: Sync failed", error);
     }
@@ -317,12 +287,21 @@ class DataManagerService {
    * ניקוי מטמון ומצב - לצרכי דיבוג ופיתוח
    */
   clearCache(): void {
-    if (LOGGING.DATA_MANAGER_SUMMARY) {
-      console.warn("🗑️ DataManager: Clearing cache");
-    }
+    devLog("🗑️ Clearing cache");
     this.cache = null;
     this.isInitialized = false;
     this.initPromise = null;
+  }
+
+  /**
+   * Helper: unify cache-not-ready warning & return cache (DEV only logs)
+   */
+  private _getCacheOrWarn(): AppDataCache | null {
+    if (!this.cache) {
+      devLog("⚠️ Cache not initialized");
+      return null;
+    }
+    return this.cache;
   }
 
   /**
@@ -395,9 +374,18 @@ class DataManagerService {
         user.activityhistory.workouts.length > 0
       ) {
         console.warn("🏋️ === WORKOUTS PREVIEW (First 3) ===");
-        user.activityhistory.workouts
+        type PreviewWorkout = {
+          name?: string;
+          date?: string;
+          completedAt?: string;
+          duration?: number;
+          exercises?: unknown[];
+          feedback?: { overallRating?: number | string };
+          plannedVsActual?: unknown;
+        };
+        (user.activityhistory.workouts as PreviewWorkout[])
           .slice(0, 3)
-          .forEach((workout: any, index: number) => {
+          .forEach((workout, index: number) => {
             console.warn(`• Workout ${index + 1}:`, {
               name: workout.name,
               date: workout.date || workout.completedAt,

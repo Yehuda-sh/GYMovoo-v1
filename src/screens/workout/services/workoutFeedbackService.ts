@@ -1,11 +1,15 @@
 /**
  * @file src/screens/workout/services/workoutFeedbackService.ts
  * @description שירות לניהול משוב ופידבק על אימונים
- * English: Workout feedback and response management service
+ * @description English: Workout feedback and response management service
+ * @created 2025-08-11
+ * @updated 2025-08-17 - ✅ Successfully migrated to Supabase from AsyncStorage
  * @inspired מהטיפול המוצלח במשוב במסך ההיסטוריה
+ * @architecture Singleton service with personalized feedback validation and analytics using Supabase
+ * @supabase_table workout_feedback - requires manual creation (see scripts/createWorkoutFeedbackTable.sql)
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../../../services/supabase/client"; // ✅ Supabase במקום AsyncStorage
 import { WorkoutWithFeedback } from "../types/workout.types";
 import workoutErrorHandlingService from "./workoutErrorHandlingService";
 
@@ -227,17 +231,27 @@ class WorkoutFeedbackService {
       const validation = this.validateFeedback(feedback);
       const finalFeedback = validation.correctedFeedback || feedback;
 
-      // שמירה
-      const feedbackWithId = {
-        workoutId,
-        feedback: finalFeedback,
-        savedAt: new Date().toISOString(),
+      // שמירה ב-Supabase
+      const feedbackData = {
+        workout_id: workoutId,
+        feedback_data: finalFeedback,
+        saved_at: new Date().toISOString(),
       };
 
-      await AsyncStorage.setItem(
-        `${this.FEEDBACK_STORAGE_KEY}_${workoutId}`,
-        JSON.stringify(feedbackWithId)
-      );
+      if (!supabase) {
+        throw new Error("Supabase client not available");
+      }
+
+      const { error } = await supabase
+        .from("workout_feedback")
+        .upsert(feedbackData, {
+          onConflict: "workout_id",
+        });
+
+      if (error) {
+        console.error("Error saving feedback to Supabase:", error);
+        throw error;
+      }
 
       return {
         success: true,
@@ -262,15 +276,20 @@ class WorkoutFeedbackService {
    */
   async getFeedback(workoutId: string): Promise<WorkoutFeedback | null> {
     try {
-      const data = await AsyncStorage.getItem(
-        `${this.FEEDBACK_STORAGE_KEY}_${workoutId}`
-      );
-      if (!data) return null;
+      if (!supabase) {
+        throw new Error("Supabase client not available");
+      }
 
-      const parsed = JSON.parse(data);
-      const validation = this.validateFeedback(parsed.feedback);
+      const { data, error } = await supabase
+        .from("workout_feedback")
+        .select("feedback_data")
+        .eq("workout_id", workoutId)
+        .single();
 
-      return validation.correctedFeedback || parsed.feedback;
+      if (error || !data) return null;
+
+      const validation = this.validateFeedback(data.feedback_data);
+      return validation.correctedFeedback || data.feedback_data;
     } catch (error) {
       const result = await workoutErrorHandlingService.handleDataLoadError<{
         difficulty: number;
@@ -477,32 +496,24 @@ class WorkoutFeedbackService {
    */
   async cleanOldFeedback(olderThanDays: number = 90): Promise<void> {
     try {
-      const keys = await AsyncStorage.getAllKeys();
-      const feedbackKeys = keys.filter((key) =>
-        key.startsWith(this.FEEDBACK_STORAGE_KEY)
-      );
-
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      for (const key of feedbackKeys) {
-        try {
-          const data = await AsyncStorage.getItem(key);
-          if (data) {
-            const parsed = JSON.parse(data);
-            const savedDate = new Date(parsed.savedAt);
-
-            if (savedDate < cutoffDate) {
-              await AsyncStorage.removeItem(key);
-              console.warn("🧹 Removed old feedback:", key);
-            }
-          }
-        } catch {
-          // אם יש שגיאה בקריאה, מחק את הפריט
-          await AsyncStorage.removeItem(key);
-          console.warn("🗑️ Removed corrupted feedback:", key);
-        }
+      if (!supabase) {
+        throw new Error("Supabase client not available");
       }
+
+      const { error } = await supabase
+        .from("workout_feedback")
+        .delete()
+        .lt("saved_at", cutoffDate.toISOString());
+
+      if (error) {
+        console.error("Error cleaning old feedback:", error);
+        throw error;
+      }
+
+      console.warn("🧹 Cleaned old feedback older than", olderThanDays, "days");
     } catch (error) {
       console.error("Error cleaning old feedback:", error);
     }
@@ -513,22 +524,21 @@ class WorkoutFeedbackService {
    */
   async exportFeedbackData(): Promise<Record<string, unknown>[]> {
     try {
-      const keys = await AsyncStorage.getAllKeys();
-      const feedbackKeys = keys.filter((key) =>
-        key.startsWith(this.FEEDBACK_STORAGE_KEY)
-      );
+      if (!supabase) {
+        throw new Error("Supabase client not available");
+      }
 
-      const allFeedback = await AsyncStorage.multiGet(feedbackKeys);
+      const { data, error } = await supabase
+        .from("workout_feedback")
+        .select("*")
+        .order("saved_at", { ascending: false });
 
-      return allFeedback
-        .map(([_key, value]) => {
-          try {
-            return value ? JSON.parse(value) : null;
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
+      if (error) {
+        console.error("Error exporting feedback data:", error);
+        return [];
+      }
+
+      return data || [];
     } catch (error) {
       console.error("Error exporting feedback data:", error);
       return [];

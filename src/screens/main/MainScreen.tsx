@@ -39,6 +39,7 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
 
 // New imports for optimized components and constants
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
@@ -107,9 +108,71 @@ function MainScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [advancedStats, setAdvancedStats] = useState<{
+    insights: string[];
+    genderStats?: {
+      total: {
+        totalWorkouts: number;
+        currentStreak: number;
+        averageDifficulty: number;
+        workoutStreak: number;
+      };
+    };
+    totalWorkouts: number;
+    currentStreak: number;
+  } | null>(null);
 
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => performance.now(), []);
+
+  // 📊 טעינת נתונים מתקדמים מ-WorkoutFacadeService
+  const loadAdvancedData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const [historyItems, genderGroupedStats] = await Promise.all([
+        workoutFacadeService.getHistoryForList(),
+        workoutFacadeService.getGenderGroupedStatistics(),
+      ]);
+
+      const personalData = {
+        age: "unknown" as const,
+        gender: "male" as const, // מתאים לטיפוס PersonalData
+        availability: "3_days" as const,
+        goals: [] as string[],
+        fitnessLevel: "beginner" as const,
+        weight: "70",
+        height: "170",
+      }; // מבנה נתונים פשוט לצורך הדמו
+
+      const insights =
+        await workoutFacadeService.getPersonalizedWorkoutAnalytics(
+          historyItems,
+          personalData
+        );
+
+      setAdvancedStats({
+        insights,
+        genderStats: {
+          total: {
+            totalWorkouts: genderGroupedStats.total.totalWorkouts,
+            currentStreak: genderGroupedStats.total.workoutStreak, // workoutStreak הוא currentStreak
+            averageDifficulty: genderGroupedStats.total.averageDifficulty,
+            workoutStreak: genderGroupedStats.total.workoutStreak,
+          },
+        },
+        totalWorkouts: genderGroupedStats.total.totalWorkouts,
+        currentStreak: genderGroupedStats.total.workoutStreak,
+      });
+    } catch (error) {
+      console.warn("⚠️ שגיאה בטעינת נתונים מתקדמים:", error);
+      // המשך עם נתונים קיימים מה-store
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadAdvancedData();
+  }, [loadAdvancedData]);
 
   useEffect(() => {
     const renderTime = performance.now() - renderStartTime;
@@ -244,14 +307,23 @@ function MainScreen() {
   /** @description נתוני סטטיסטיקה מעובדים לתצוגה / Processed statistics for display */
   const stats: ProcessedStats = useMemo(
     () => ({
-      totalWorkouts: profileData.currentStats?.totalWorkouts || 0,
-      currentStreak: profileData.currentStats?.currentStreak || 0,
+      totalWorkouts:
+        advancedStats?.totalWorkouts ||
+        profileData.currentStats?.totalWorkouts ||
+        0,
+      currentStreak:
+        advancedStats?.currentStreak ||
+        profileData.currentStats?.currentStreak ||
+        0,
       totalVolume: profileData.currentStats?.totalVolume || 0,
-      averageRating: profileData.currentStats?.averageRating || 0,
+      averageRating:
+        advancedStats?.genderStats?.total?.averageDifficulty ||
+        profileData.currentStats?.averageRating ||
+        0,
       fitnessLevel:
         profileData.scientificProfile?.fitnessTests?.overallLevel || "beginner",
     }),
-    [profileData]
+    [profileData, advancedStats]
   );
 
   /** @description חישוב היום הבא המומלץ לאימון / Calculate next recommended workout day */
@@ -327,13 +399,13 @@ function MainScreen() {
       // רענון נתונים אמיתיים // Real data refresh
       const userState = useUserStore.getState();
 
-      // אין צורך בהשהיה מלאכותית, הלוגיקה תשתמש בנתונים מה-store
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-
       // בדיקה אם יש משתמש זמין // Check if user is available
       if (!userState.user) {
         throw new Error(MAIN_SCREEN_TEXTS.STATUS.NO_USER_FOUND);
       }
+
+      // רענון נתונים מתקדמים מ-WorkoutFacadeService
+      await loadAdvancedData();
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -345,7 +417,7 @@ function MainScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [loadAdvancedData]);
 
   const handleStartWorkout = useCallback(() => {
     triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
@@ -678,6 +750,28 @@ function MainScreen() {
                     </Text>
                   </View>
                 )}
+
+                {/* תובנות מתקדמות מ-WorkoutFacadeService */}
+                {advancedStats?.insights &&
+                  advancedStats.insights.length > 0 && (
+                    <View style={styles.advancedInsightsContainer}>
+                      <Text style={styles.advancedInsightsTitle}>
+                        📊 תובנות אימון מתקדמות
+                      </Text>
+                      {advancedStats.insights
+                        .slice(0, 2)
+                        .map((insight, index) => (
+                          <View key={index} style={styles.insightItem}>
+                            <MaterialCommunityIcons
+                              name="chart-line"
+                              size={14}
+                              color={theme.colors.success}
+                            />
+                            <Text style={styles.insightText}>{insight}</Text>
+                          </View>
+                        ))}
+                    </View>
+                  )}
               </View>
             </Animated.View>
           )}
@@ -1322,6 +1416,37 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.surface,
     marginStart: theme.spacing.sm,
+    writingDirection: "rtl",
+  },
+
+  // Advanced insights styles // סטיילים לתובנות מתקדמות
+  advancedInsightsContainer: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.success + "30",
+  },
+  advancedInsightsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.success,
+    marginBottom: theme.spacing.xs,
+    writingDirection: "rtl",
+  },
+  insightItem: {
+    flexDirection: "row-reverse",
+    alignItems: "flex-start",
+    marginBottom: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  insightText: {
+    fontSize: 13,
+    color: theme.colors.text,
+    lineHeight: 16,
+    marginEnd: theme.spacing.xs,
+    flex: 1,
     writingDirection: "rtl",
   },
 });

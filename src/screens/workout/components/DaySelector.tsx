@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../../styles/theme";
-import { DAY_ICONS } from "../constants/workoutConstants";
+import { DAY_ICONS } from "../utils/workoutConstants";
 
 interface DaySelectorProps {
   workoutDays: string[];

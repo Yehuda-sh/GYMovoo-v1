@@ -12,7 +12,7 @@
  *
  * @dependencies React Native Dimensions, Platform, rtlHelpers
  * @usage Used throughout the entire application for consistent design
- * @updated 2025-08-11 ניקוי legacy code ושיפור ארגון
+ * @updated 2025-08-17 ניקוי כפילויות ושיפור ארגון
  */
 
 import { Dimensions, Platform } from "react-native";
@@ -357,151 +357,9 @@ export const components = {
     ...shadows.medium,
   },
 
-  // Legacy Smart Questionnaire Components - DEPRECATED
-  // קומפוננטות שאלון חכם ישנות - מיועדות למחיקה
-  // Note: These are kept temporarily for backward compatibility
-  questionnaireCard: {
-    backgroundColor: colors.card, // Changed from non-existent color
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border, // Changed from non-existent color
-    ...shadows.medium,
-  },
-
-  questionnaireOption: {
-    backgroundColor: colors.backgroundElevated,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: isRTL ? "row-reverse" : "row",
-    alignItems: "center" as const,
-    paddingRight: spacing.lg, // RTL support
-  },
-
-  questionnaireOptionSelected: {
-    backgroundColor: colors.primary + "20", // Changed from non-existent color
-    borderColor: colors.primary, // Changed from non-existent color
-    borderWidth: 2,
-  },
-
-  questionnaireOptionContent: {
-    flex: 1,
-    alignItems: isRTL ? "flex-end" : "flex-start",
-  },
-
-  questionnaireText: {
-    textAlign: isRTL ? "right" : "left",
-    writingDirection: isRTL ? "rtl" : "ltr",
-    width: "100%",
-  },
-
-  genderButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.lg,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    minWidth: 100,
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-
-  genderButtonMale: {
-    backgroundColor: colors.genderMale,
-    borderColor: colors.genderMale,
-  },
-
-  genderButtonFemale: {
-    backgroundColor: colors.genderFemale,
-    borderColor: colors.genderFemale,
-  },
-
-  genderButtonNeutral: {
-    backgroundColor: colors.genderNeutral,
-    borderColor: colors.genderNeutral,
-  },
-
-  progressIndicator: {
-    height: 4,
-    backgroundColor: colors.backgroundElevated, // Changed from non-existent color
-    borderRadius: 2,
-    overflow: "hidden" as const,
-    marginBottom: spacing.md,
-  },
-
-  progressIndicatorFill: {
-    height: "100%",
-    backgroundColor: colors.primary, // Changed from non-existent color
-    borderRadius: 2,
-  },
-
-  floatingActionButton: {
-    position: "absolute" as const,
-    bottom: spacing.xl,
-    right: isRTL ? undefined : spacing.lg,
-    left: isRTL ? spacing.lg : undefined,
-    backgroundColor: colors.primary,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    ...shadows.glow,
-    zIndex: 1000,
-  },
-
-  // ✨ סגנונות כפתור צף משופרים - Enhanced floating button styles
-  floatingButtonSizes: {
-    small: { button: 48, icon: 20 },
-    medium: { button: 56, icon: 24 },
-    large: { button: 64, icon: 28 },
-  },
-
-  floatingButtonContainer: {
-    position: "absolute" as const,
-    left: isRTL ? spacing.lg : undefined,
-    right: isRTL ? undefined : spacing.lg,
-    flexDirection: isRTL ? "row-reverse" : "row",
-    alignItems: "center" as const,
-    zIndex: 999,
-  },
-
-  floatingButtonBase: {
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.5,
-    overflow: "hidden" as const,
-  },
-
-  floatingButtonLabel: {
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: isRTL ? 0 : 8,
-    marginRight: isRTL ? 8 : 0,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-
-  floatingButtonLabelText: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: colors.text,
-  },
+  // Legacy Smart Questionnaire Components - REMOVED 2025-08-17
+  // רכיבי שאלון חכם ישנים - הוסרו לטובת מערכת אחודה
+  // These components moved to unified questionnaire system
 
   selectionIndicator: {
     position: "absolute" as const,
@@ -675,7 +533,7 @@ export const components = {
     flexDirection: isRTL ? "row-reverse" : "row",
   },
 
-  // קומפוננטות חדשות
+  // כפתור צף ראשי - Enhanced floating button
   floatingButton: {
     position: "absolute" as const,
     bottom: spacing.xl,
@@ -688,6 +546,7 @@ export const components = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
     ...shadows.large,
+    zIndex: zIndex.floatingButton,
   },
 
   backButton: {
@@ -887,25 +746,32 @@ export const genderHelpers = {
   },
 
   /**
-   * קבלת סגנון כפתור מגדר
-   * Get gender button style
+   * קבלת סגנון כפתור מגדר - צור ידנית עם צבעי מגדר
+   * Get gender button style - create manually with gender colors
    */
   getGenderButtonStyle: (
     gender: "male" | "female" | "other",
     isSelected: boolean = false
   ) => {
-    const baseStyle = components.genderButton;
+    const baseStyle = {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: radius.lg,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      minWidth: 100,
+      borderWidth: 2,
+      borderColor: colors.border,
+    };
 
     if (!isSelected) return baseStyle;
 
-    switch (gender) {
-      case "male":
-        return { ...baseStyle, ...components.genderButtonMale };
-      case "female":
-        return { ...baseStyle, ...components.genderButtonFemale };
-      default:
-        return { ...baseStyle, ...components.genderButtonNeutral };
-    }
+    const genderColor = genderHelpers.getGenderColor(gender);
+    return {
+      ...baseStyle,
+      backgroundColor: genderColor,
+      borderColor: genderColor,
+    };
   },
 };
 
@@ -962,34 +828,58 @@ export const rtlHelpers = {
   getRTLInputStyle: () => components.rtlInput,
 };
 
-// --- Smart Questionnaire Theme Helpers (Legacy - לא בשימוש) ---
+// --- Smart Questionnaire Theme Helpers (Legacy - DEPRECATED 2025-08-17) ---
 export const questionnaireHelpers = {
   /**
-   * קבלת סגנון אפשרות שאלון
-   * Get questionnaire option style
+   * @deprecated Legacy - השתמש ב-components.card במקום זה
+   * Use components.card instead
    */
   getOptionStyle: (isSelected: boolean = false) => {
-    const baseStyle = components.questionnaireOption;
+    const baseStyle = {
+      backgroundColor: colors.backgroundElevated,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: isRTL ? "row-reverse" : "row",
+      alignItems: "center" as const,
+      paddingRight: spacing.lg,
+    };
+
     return isSelected
-      ? { ...baseStyle, ...components.questionnaireOptionSelected }
+      ? {
+          ...baseStyle,
+          backgroundColor: colors.primary + "20",
+          borderColor: colors.primary,
+          borderWidth: 2,
+        }
       : baseStyle;
   },
 
   /**
-   * קבלת סגנון התקדמות
-   * Get progress style
+   * @deprecated Legacy - השתמש ב-theme.progressBar במקום זה
+   * Use theme.progressBar instead
    */
   getProgressStyle: (progress: number) => ({
-    container: components.progressIndicator,
+    container: {
+      height: 4,
+      backgroundColor: colors.backgroundElevated,
+      borderRadius: 2,
+      overflow: "hidden" as const,
+      marginBottom: spacing.md,
+    },
     fill: {
-      ...components.progressIndicatorFill,
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: 2,
       width: `${Math.min(100, Math.max(0, progress))}%`,
     },
   }),
 
   /**
-   * ✨ קבלת סגנון כפתור צף מלא - Complete floating button style
-   * Get complete floating button style with animation support
+   * @deprecated Legacy - השתמש ב-components.floatingButton במקום זה
+   * Use components.floatingButton instead - this method is deprecated
    */
   getFloatingButtonStyle: (
     options: {
@@ -1008,25 +898,60 @@ export const questionnaireHelpers = {
       withAnimation = true,
     } = options;
 
-    const sizeConfig = components.floatingButtonSizes[size];
+    // Manual size config since we removed the components
+    const sizeConfig = {
+      small: { button: 48, icon: 20 },
+      medium: { button: 56, icon: 24 },
+      large: { button: 64, icon: 28 },
+    }[size];
 
     return {
       container: {
-        ...components.floatingButtonContainer,
+        position: "absolute" as const,
+        left: isRTL ? spacing.lg : undefined,
+        right: isRTL ? undefined : spacing.lg,
+        flexDirection: isRTL ? "row-reverse" : "row",
+        alignItems: "center" as const,
+        zIndex: 999,
         bottom,
         opacity: withAnimation ? (isVisible ? 1 : 0) : 1,
         transform: withAnimation ? [{ scale: isVisible ? 1 : 0.8 }] : [],
       },
       button: {
-        ...components.floatingButtonBase,
+        justifyContent: "center" as const,
+        alignItems: "center" as const,
+        elevation: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.5,
+        overflow: "hidden" as const,
         backgroundColor: color,
         width: sizeConfig.button,
         height: sizeConfig.button,
         borderRadius: sizeConfig.button / 2,
       },
       iconSize: sizeConfig.icon,
-      label: components.floatingButtonLabel,
-      labelText: components.floatingButtonLabelText,
+      label: {
+        backgroundColor: colors.card,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginLeft: isRTL ? 0 : 8,
+        marginRight: isRTL ? 8 : 0,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+      },
+      labelText: {
+        fontSize: 12,
+        fontWeight: "600" as const,
+        color: colors.text,
+      },
     };
   },
 

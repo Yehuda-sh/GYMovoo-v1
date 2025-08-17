@@ -18,7 +18,7 @@ import {
   DEFAULT_DURATION,
   DEFAULT_FREQUENCY,
   DEFAULT_GOAL,
-} from "../constants/workoutConstants";
+} from "../utils/workoutConstants";
 
 // Global exercise state for repetition prevention
 interface GlobalExerciseState {

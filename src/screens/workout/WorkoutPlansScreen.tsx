@@ -16,14 +16,14 @@ import {
   RefreshControl,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useNavigation } from "@react-navigation/native";
-import type { StackNavigationProp } from "@react-navigation/stack";
+// import { useNavigation } from "@react-navigation/native"; // TODO: Will be used for ActiveWorkout navigation
+// import type { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Core System Imports
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { RootStackParamList } from "../../navigation/types";
+// import { RootStackParamList } from "../../navigation/types"; // TODO: Will be used for navigation types
 import type { WorkoutPlan } from "../../types/index";
 
 // Component Imports
@@ -44,7 +44,7 @@ import { useModalManager } from "./hooks/useModalManager";
 import { questionnaireService } from "../../services/questionnaireService";
 
 // Performance tracking
-import { PERFORMANCE_THRESHOLDS } from "./constants/workoutConstants";
+import { PERFORMANCE_THRESHOLDS } from "./utils/workoutConstants";
 
 interface WorkoutPlanScreenProps {
   route?: {
@@ -91,8 +91,8 @@ export default function WorkoutPlansScreen({
   }, []);
 
   // Core hooks and state
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user } = useUserStore();
+  // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>(); // TODO: Will be used for navigation to ActiveWorkout
+  const { user, updateUser } = useUserStore();
 
   // Subscription state
   const hasActiveSubscription = user?.subscription?.isActive === true;
@@ -156,6 +156,15 @@ export default function WorkoutPlansScreen({
           showSuccess("תוכנית נוצרה!", "תוכנית בסיסית נוצרה בהצלחה");
         }
 
+        // שמור בזיכרון המקומי ובמשתמש
+        await updateUser({
+          workoutplans: {
+            ...user?.workoutplans,
+            basicPlan: plan,
+            lastUpdated: new Date().toISOString(),
+          },
+        });
+
         return plan;
       } catch (error) {
         console.error("Error generating basic plan:", error);
@@ -165,7 +174,7 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, showError, showSuccess]
+    [user, showError, showSuccess, updateUser]
   );
 
   const generateAIPlan = useCallback(
@@ -205,6 +214,15 @@ export default function WorkoutPlansScreen({
           showSuccess("תוכנית AI נוצרה!", "תוכנית חכמה נוצרה במיוחד עבורך");
         }
 
+        // שמור בזיכרון המקומי ובמשתמש
+        await updateUser({
+          workoutplans: {
+            ...user?.workoutplans,
+            smartPlan: plan,
+            lastUpdated: new Date().toISOString(),
+          },
+        });
+
         return plan;
       } catch (error) {
         console.error("Error generating AI plan:", error);
@@ -214,7 +232,7 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, canAccessAI, showError, showSuccess]
+    [user, canAccessAI, showError, showSuccess, updateUser]
   );
 
   // Get current active plan
@@ -223,11 +241,19 @@ export default function WorkoutPlansScreen({
 
   // Handle plan type selection
   const handleSelectPlanType = useCallback(
-    (type: "basic" | "smart") => {
+    async (type: "basic" | "smart") => {
       triggerHaptic("light");
       setSelectedPlanType(type);
+
+      // שמור העדפה ב-userStore
+      await updateUser({
+        workoutplans: {
+          ...user?.workoutplans,
+          planPreference: type,
+        },
+      });
     },
-    [triggerHaptic]
+    [triggerHaptic, updateUser, user?.workoutplans]
   );
 
   // Handle plan generation
@@ -291,10 +317,24 @@ export default function WorkoutPlansScreen({
 
   // Initialize with basic plan on mount
   useEffect(() => {
-    if (!basicPlan) {
+    // טען תוכניות קיימות מהמשתמש תחילה
+    if (user?.workoutplans?.basicPlan && !basicPlan) {
+      setBasicPlan(user.workoutplans.basicPlan);
+    }
+    if (user?.workoutplans?.smartPlan && !smartPlan) {
+      setSmartPlan(user.workoutplans.smartPlan);
+    }
+
+    // אם יש העדפה שמורה, בחר אותה
+    if (user?.workoutplans?.planPreference) {
+      setSelectedPlanType(user.workoutplans.planPreference);
+    }
+
+    // אם אין תוכנית בסיסית, צור אחת
+    if (!basicPlan && !user?.workoutplans?.basicPlan) {
       generateBasicPlan(false);
     }
-  }, [basicPlan, generateBasicPlan]);
+  }, [basicPlan, smartPlan, user?.workoutplans, generateBasicPlan]);
 
   // Loading state
   if (loading) {
@@ -344,10 +384,35 @@ export default function WorkoutPlansScreen({
           {/* Current Plan Display */}
           {currentWorkoutPlan && (
             <View style={styles.planCard}>
-              <Text style={styles.planName}>{currentWorkoutPlan.name}</Text>
+              <View style={styles.planHeader}>
+                <Text style={styles.planName}>{currentWorkoutPlan.name}</Text>
+                {/* אינדיקטור מקור התוכנית */}
+                {user?.workoutplans?.lastUpdated && (
+                  <Text style={styles.planSource}>
+                    {selectedPlanType === "basic" &&
+                    user?.workoutplans?.basicPlan
+                      ? "💾 נטען מהזיכרון"
+                      : selectedPlanType === "smart" &&
+                          user?.workoutplans?.smartPlan
+                        ? "💾 נטען מהזיכרון"
+                        : "✨ נוצר חדש"}
+                  </Text>
+                )}
+              </View>
               <Text style={styles.planDescription}>
                 {currentWorkoutPlan.description}
               </Text>
+
+              {/* תאריך עדכון אחרון */}
+              {user?.workoutplans?.lastUpdated && (
+                <Text style={styles.lastUpdated}>
+                  עודכן:{" "}
+                  {new Date(user.workoutplans.lastUpdated).toLocaleDateString(
+                    "he-IL"
+                  )}
+                </Text>
+              )}
+
               <View style={styles.planStats}>
                 <Text style={styles.planStat}>
                   🏋️ {currentWorkoutPlan.workouts?.length || 0} אימונים
@@ -457,17 +522,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
+  planHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   planName: {
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.text,
-    marginBottom: 8,
+    flex: 1,
+  },
+  planSource: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
   },
   planDescription: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 16,
     lineHeight: 20,
+  },
+  lastUpdated: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 12,
+    fontStyle: "italic",
   },
   planStats: {
     flexDirection: "row",

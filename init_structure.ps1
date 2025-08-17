@@ -11,9 +11,12 @@
   - Extended data folders (src/data/...)
   - Safe: no overwrite of existing non-empty files
   - Summary breakdown (Created / Existing / Skipped)
- Updated (2025-08-14):
+ Updated (2025-08-17):
   - Removed references to scientificAIService (deleted)
   - Updated service list to reflect current state
+  - Added workoutErrorHandlingService and workoutFeedbackService Supabase migration notes
+  - Updated RestTimer → TimerDisplay transition
+  - Clarified exercises vs exercise directories
  Future Option: external JSON manifest (structure.json)
 =======================================================================
 #>
@@ -21,14 +24,13 @@
 [CmdletBinding()]
 param(
   [switch]$DryRun,
-  [switch]$SkipPlaceholders,
-  [switch]$Verbose
+  [switch]$SkipPlaceholders
 )
 
 function Write-Info($msgHe, $msgEn) { Write-Host "ℹ️  $msgHe | $msgEn" -ForegroundColor Cyan }
-function Write-Ok($msgHe, $msgEn)   { Write-Host "✓ $msgHe | $msgEn" -ForegroundColor Green }
+function Write-Ok($msgHe, $msgEn)   { Write-Host "✅ $msgHe | $msgEn" -ForegroundColor Green }
 function Write-WarnMsg($msgHe, $msgEn){ Write-Host "⚠️  $msgHe | $msgEn" -ForegroundColor Yellow }
-function Write-Action($msgHe,$msgEn){ Write-Host "➡ $msgHe | $msgEn" -ForegroundColor Magenta }
+function Write-Action($msgHe,$msgEn){ Write-Host "➡️ $msgHe | $msgEn" -ForegroundColor Magenta }
 function Write-Title($tHe,$tEn){ Write-Host "`n===== $tHe | $tEn =====" -ForegroundColor White }
 
 if ($DryRun) { Write-WarnMsg "מצב סימולציה בלבד – לא יבוצעו שינויים" "DryRun mode – no changes will be written" }
@@ -46,8 +48,8 @@ ${folders} = @(
   "src/screens/plans/components",             # Legacy? keep pending cleanup
   "src/screens/plan-detail/components",       # Legacy? mark for audit
   "src/screens/workout/components",
-  "src/screens/exercises",                    # New consolidated exercises dir
-  "src/screens/exercise",                     # Transitional (legacy single list)
+  "src/screens/exercises",                    # New consolidated exercises dir (2025+)
+  "src/screens/exercise",                     # Legacy single exercise list (transitional)
   # Shared components & infra
   "src/components/common",
   "src/components/forms",
@@ -97,34 +99,9 @@ Write-Host "📁 Created $createdFolders new folders" -ForegroundColor Cyan
 # יצירת קבצי app layout | Create app layout files
 Write-Action "(מדלג) קבצי app layout (Expo Router הוסר)" "Skipping app layout (Expo Router removed)"
 
-$appLayoutContent = @"
-// _layout.tsx - Main app layout
-// English: Root layout component for the app
-import React from 'react';
-import { Stack } from 'expo-router';
-
-export default function RootLayout() {
-  return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-    </Stack>
-  );
-}
-"@
-
-$appIndexContent = @"
-// index.tsx - App entry point
-// English: Main entry point for the app
-import React from 'react';
-import { Redirect } from 'expo-router';
-
-export default function Index() {
-  return <Redirect href="/welcome" />;
-}
-"@
-
 # הערה: תיקיית app/ הוסרה - הפרויקט משתמש ב-Stack Navigator במקום Expo Router
 # Note: app/ directory removed - project uses Stack Navigator instead of Expo Router
+# עדכון 2025-08-17: מבנה הניווט מבוסס על React Navigation ללא Expo Router
 
 # רשימת קבצים ליצירה | Files to create  
 if (-not $SkipPlaceholders) {
@@ -160,7 +137,7 @@ ${files} = @(
   "src/screens/workout/components/ExerciseCard/ExerciseMenu.tsx",
   "src/screens/workout/components/PlateCalculatorModal.tsx",
   "src/screens/workout/components/NextExerciseBar.tsx",
-  "src/screens/workout/components/RestTimer.tsx",
+  # "src/screens/workout/components/RestTimer.tsx", # הוסר 2025-08-17 - שימוש ב-TimerDisplay במקום
   "src/screens/workout/components/shared/TimerDisplay.tsx",
   "src/screens/workout/components/shared/TimeButton.tsx",
   "src/screens/workout/components/shared/TimeAdjustButton.tsx",
@@ -186,12 +163,14 @@ ${files} = @(
   # Stores (existing)
   "src/stores/userStore.ts",
 
-  # Services (existing)
+  # Services (existing + updated 2025-08-17)
   "src/services/questionnaireService.ts",
   # "src/services/realisticDemoService.ts", # הוסר – דמו לא בשימוש
   "src/services/workoutHistoryService.ts",
   # "src/services/workoutSimulationService.ts", # הוסר בניקוי 2025-08-13
   # "src/services/scientificAIService.ts", # הוסר בניקוי 2025-08-14 (מערכת AI ניסיונית מורכבת)
+  "src/screens/workout/services/workoutErrorHandlingService.ts", # משופר 2025-08-17 עם Supabase
+  "src/screens/workout/services/workoutFeedbackService.ts", # מוהגר ל-Supabase 2025-08-17
 
   # Types and utils (existing)
   "src/screens/workout/types/workout.types.ts",
@@ -237,7 +216,7 @@ if (-not $SkipPlaceholders) {
     } elseif (!(Test-Path $parent)) {
       Write-WarnMsg "דילוג (תיקיית אב חסרה): $file" "Skipped (missing parent folder): $file"
     } else {
-      if ($Verbose) { Write-Host "  → Exists: $file" -ForegroundColor DarkGray }
+      if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"]) { Write-Host "  → Exists: $file" -ForegroundColor DarkGray }
     }
   }
 }

@@ -30,7 +30,9 @@
 
 #### 🆕 עדכונים אחרונים (אוגוסט 2025)
 
-- 🌐 מקור אמת: Supabase בלבד – נתוני דמו הוסרו; אין יותר צורך בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`
+- 🌐 **מיגרציה מלאה ל-Supabase** – נתוני דמו הוסרו; אין יותר צורך בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`
+- 🛡️ **שיפור טיפול בשגיאות** - workoutErrorHandlingService עודכן עם תמיכה מלאה בSupabase (2025-08-17)
+- 💾 **מיגרציית שירותים** - workoutFeedbackService הועבר ל-Supabase עם fallback mechanisms מתקדמים
 - **🔧 TypeScript Cleanup מלא** - 50+ `any` types הוחלפו בטיפוסים מדויקים ב-7 מסכי Screen מרכזיים
 - **🐛 תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
 - **⚡ אופטימיזציה מתקדמת** - קובץ questionnaireService צומצם מ-1428 ל-1417 שורות (הסרת כפילויות)
@@ -100,8 +102,9 @@ npx expo start --tunnel
 - **`npm run start` גם עובד** - מוגדר לקרוא ל-`npx expo start`
 - אם האפליקציה לא נטענת, נסה עם `--clear` לניקוי הcache
 - במקרה של בעיות רשת, השתמש ב-`--tunnel`
-- Supabase מוגדר עם `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
-- `AsyncStorage` משמש כ-cache בלבד; Supabase הוא מקור אמת. ללא חיבור תקין חלק מהפיצ'רים יושהו.
+- Supabase מוגדר עם `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `AsyncStorage` משמש כ-cache בלבד; Supabase הוא מקור אמת
+- ללא חיבור Supabase תקין חלק מהפיצ'רים יושהו (שמירת נתונים, היסטוריה)
 
 ### הרצה במכשיר
 
@@ -123,53 +126,54 @@ npx expo start --tunnel
 
 - **📱 מסכים פעילים:** 27 מסכים ראשיים (ללא רכיבים וגיבויים)
 - **🧩 רכיבים:** 12 רכיבים ב-3 קטגוריות (common, ui, workout)
-- **🔧 שירותים:** 13 שירותים פעילים (שירותי סימולציה, דמו ו-AI ניסיוני הוסרו) כולל workoutHistoryService
-- **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי)
+- **🔧 שירותים:** 13 שירותים פעילים כולל workoutHistoryService ו-workoutErrorHandlingService (מחוזק 2025-08-17)
+- **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי שירותי דמו וסימולציה)
 
-> עדכון סטטיסטיקות אחרון: 2025-08-14 (לאחר ניקוי מערכות ניסיוניות וקבצי תיעוד מיותרים)
+> עדכון סטטיסטיקות אחרון: 2025-08-17 (לאחר ניקוי מערכות ניסיוניות וקבצי תיעוד מיותרים)
 
 ### 🗺️ מפת קוד (High-Level Code Map)
 
-| שכבה                      | מיקום                          | מטרה עיקרית                                                 | הערות תחזוקה                                 |
-| ------------------------- | ------------------------------ | ----------------------------------------------------------- | -------------------------------------------- |
-| Screens                   | `src/screens/*`                | לוגיקת תצוגה לכל דומיין (auth, workout, questionnaire וכו') | לבדוק פיצול עתידי אם מסך > 500 שורות         |
-| Components /common        | `src/components/common`        | רכיבי UI קטנים לשימוש רחב                                   | שמור נטול לוגיקה עסקית                       |
-| Components /ui            | `src/components/ui`            | אלמנטים ויזואליים מורחבים                                   | לרכז סטנדרטים (Spacing / Shadows)            |
-| Components /workout       | `src/components/workout`       | רכיבי אימון (טיימר, סטים, ברים)                             | טיימר מאוחד – אין RestTimer ישן              |
-| Components /questionnaire | `src/components/questionnaire` | רכיבי שאלון דינמי                                           | לאחר איחוד – לתעד זרימת סטייט                |
-| Navigation                | `src/navigation`               | App / Bottom navigators + טיפוסים                           | לוודא סנכרון עם מסכים חדשים                  |
-| Services                  | `src/services`                 | לוגיקה עסקית: שאלון, היסטוריה, דמו, סימולציה                | מועמדי איחוד: demo / simulation / scientific |
-| Store                     | `src/stores`                   | Zustand stores (כעת userStore יחיד)                         | לייצר index אם נוספים מתווספים               |
-| Data                      | `src/data`                     | מקורות סטטיים (תרגילים, ציוד, unifiedQuestionnaire)         | שני קבצי ציוד – דורש החלטה                   |
-| Utils                     | `src/utils`                    | פונקציות עזר (format, gender, stats, logger)                | לרכז pure logic בלבד                         |
-| Constants                 | `src/constants`                | טקסטים / קונפיג UI פר-מסך                                   | לאחד naming (texts/config/colors)            |
-| Styles                    | `src/styles/theme.ts`          | Theme מרכזי                                                 | שקול פירוק light/dark אם יתרחב               |
-| Types                     | `src/types + inline types`     | מודלי דטה גלובליים                                          | להתחיל הקשחת variant scopes                  |
-| Assets                    | `assets/*`                     | אייקונים / תמונות / ציוד                                    | לבדוק כפילויות (icons דומים)                 |
-| Docs                      | `docs/*`                       | מדריכים, דוחות, אופטימיזציות                                | להעביר דוחות לתיקיית reports/                |
+| שכבה                      | מיקום                          | מטרה עיקרית                                                 | הערות תחזוקה                         |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------- | ------------------------------------ |
+| Screens                   | `src/screens/*`                | לוגיקת תצוגה לכל דומיין (auth, workout, questionnaire וכו') | לבדוק פיצול עתידי אם מסך > 500 שורות |
+| Components /common        | `src/components/common`        | רכיבי UI קטנים לשימוש רחב                                   | שמור נטול לוגיקה עסקית               |
+| Components /ui            | `src/components/ui`            | אלמנטים ויזואליים מורחבים                                   | לרכז סטנדרטים (Spacing / Shadows)    |
+| Components /workout       | `src/components/workout`       | רכיבי אימון (טיימר, סטים, ברים)                             | טיימר מאוחד – אין RestTimer ישן      |
+| Components /questionnaire | `src/components/questionnaire` | רכיבי שאלון דינמי                                           | לאחר איחוד – לתעד זרימת סטייט        |
+| Navigation                | `src/navigation`               | App / Bottom navigators + טיפוסים                           | לוודא סנכרון עם מסכים חדשים          |
+| Services                  | `src/services`                 | לוגיקה עסקית: שאלון, היסטוריה, אימונים                      | שירותים מרכזיים מותמחים לפי דומיין   |
+| Store                     | `src/stores`                   | Zustand stores (כעת userStore יחיד)                         | לייצר index אם נוספים מתווספים       |
+| Data                      | `src/data`                     | מקורות סטטיים (תרגילים, ציוד, unifiedQuestionnaire)         | שני קבצי ציוד – דורש החלטה           |
+| Utils                     | `src/utils`                    | פונקציות עזר (format, gender, stats, logger)                | לרכז pure logic בלבד                 |
+| Constants                 | `src/constants`                | טקסטים / קונפיג UI פר-מסך                                   | לאחד naming (texts/config/colors)    |
+| Styles                    | `src/styles/theme.ts`          | Theme מרכזי                                                 | שקול פירוק light/dark אם יתרחב       |
+| Types                     | `src/types + inline types`     | מודלי דטה גלובליים                                          | להתחיל הקשחת variant scopes          |
+| Assets                    | `assets/*`                     | אייקונים / תמונות / ציוד                                    | לבדוק כפילויות (icons דומים)         |
+| Docs                      | `docs/*`                       | מדריכים, דוחות, אופטימיזציות                                | להעביר דוחות לתיקיית reports/        |
 
 ### 🛠 הערות תחזוקה קריטיות (Maintenance Notes)
 
 1. איחוד טיימר: כל הלוגיקה עוברת דרך `WorkoutStatusBar` + `shared/TimerDisplay` + `TimeAdjustButton`. רכיב RestTimer הוסר – אין להוסיף חדש נפרד.
 2. Variants: האיחוד הבא מתוכנן – צמצום `WorkoutVariant` לפי שימוש אמיתי (pills בשימוש רק ב-NextExerciseBar). ראו TODO.
 3. שאלון: קבצים מרובים (FINAL*QUESTIONNAIRE_SOLUTION / DYNAMIC_FLOW / DETECTION_FIX / SERVICE_OPTIMIZATION / REALISTIC_USER*\*) – מיזוג מתוכנן למסמך יחיד.
-4. Demo Services: `advancedDemoService` + `realisticDemoService` + סימולציה → יעד: DEMO_SYSTEM_GUIDE + בחינת איחוד.
-5. ציוד: שני קבצים (`equipmentData.ts`, `equipmentData_new.ts`) – החלטה: לשמור רק אחד אחרי בדיקת שימוש ב-import בפועל.
-6. דוחות Root (BUG*FIXES*_, OPTIMIZATION*REPORT*_) – יעברו ל-`docs/reports/` לשמירה היסטורית.
-7. טיפוסים: לבצע הקשחה פר קומפוננט (HeaderVariant, DashboardVariant וכו') מבלי לשבור API חיצוני – שלב ראשון תיעוד, שלב שני שינוי קוד.
-8. סטטיסטיקות README: נתפסות כצילום מצב – לא להבטיח עדכניות בלי ריצת סקריפט איסוף.
-9. נגישות: רכיבים חדשים – חובה `accessibilityLabel` בעברית + סימון role היכן רלוונטי.
-10. RTL: כל טקסט חדש – לוודא `writingDirection: 'rtl'` אם אינו יורש סגנון גלובלי.
+4. שירותי ציוד: `equipmentData.ts`, `equipmentData_new.ts` → החלטה: לשמור רק אחד אחרי בדיקת שימוש.
+5. ניהול שגיאות: workoutErrorHandlingService משופר עם טיפול בSupabase (2025-08-17).
+6. תיעוד: מיגרציה ל-Supabase מהשרת המקומי הושלמה בכל השירותים.
+7. דוחות Root (BUG*FIXES*_, OPTIMIZATION*REPORT*_) – יעברו ל-`docs/reports/` לשמירה היסטורית.
+8. טיפוסים: לבצע הקשחה פר קומפוננט (HeaderVariant, DashboardVariant וכו') מבלי לשבור API חיצוני – שלב ראשון תיעוד, שלב שני שינוי קוד.
+9. סטטיסטיקות README: נתפסות כצילום מצב – לא להבטיח עדכניות בלי ריצת סקריפט איסוף.
+10. נגישות: רכיבים חדשים – חובה `accessibilityLabel` בעברית + סימון role היכן רלוונטי.
+11. RTL: כל טקסט חדש – לוודא `writingDirection: 'rtl'` אם אינו יורש סגנון גלובלי.
 
 ### 📂 סטטוס תיעוד – מועמדי איחוד / סידור
 
 | קבוצה                | קבצים נוכחיים                                                                                                                                                                              | פעולה מוצעת                                                     |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | Questionnaire        | FINAL_QUESTIONNAIRE_SOLUTION.md, QUESTIONNAIRE_DYNAMIC_FLOW_ANALYSIS.md, QUESTIONNAIRE_DETECTION_FIX.md, QUESTIONNAIRE_SERVICE_OPTIMIZATION_REPORT.md, REALISTIC_USER_QUESTIONNAIRE_FIX.md | למזג ל-`docs/questionnaire/QUESTIONNAIRE_SYSTEM.md` + נספח FLOW |
-| Demo / Realistic     | REALISTIC_DEMO_FLOW_ANALYSIS.md, REALISTIC_USER_FIXES_REPORT.md, advancedDemoService, realisticDemoService                                                                                 | ליצור `DEMO_SYSTEM_GUIDE.md` + לבדוק איחוד שירותים              |
 | Optimization Reports | OPTIMIZATION*REPORT*_ + BUG*FIXES*_ + WORKOUTDASHBOARD_OPTIMIZATION_REPORT.md                                                                                                              | להעביר ל-`docs/reports/` ולהוסיף אינדקס                         |
 | Equipment            | equipmentData.ts, equipmentData_new.ts                                                                                                                                                     | לבדוק שימוש; לסמן unused כ-deprecated                           |
 | Variants Typing      | types.ts (WorkoutVariant)                                                                                                                                                                  | להוסיף הערות JSDoc + לפצל בהמשך                                 |
+| Error Handling       | workoutErrorHandlingService.ts                                                                                                                                                             | ✅ משופר עם תמיכה בSupabase (2025-08-17)                        |
 
 ### 🧪 צעדי אימות מוצעים בעת שינויים מבניים
 
@@ -452,8 +456,9 @@ eas build -p ios
 
 #### 🆕 Latest Updates (August 2025)
 
-<!-- Local server reference removed: Supabase only -->
-
+- 🌐 **Complete Supabase Migration** – Demo data removed; no more local server or `EXPO_PUBLIC_STORAGE_BASE_URL` needed
+- 🛡️ **Enhanced Error Handling** - workoutErrorHandlingService updated with full Supabase support (2025-08-17)
+- 💾 **Service Migration** - workoutFeedbackService migrated to Supabase with advanced fallback mechanisms
 - **🔧 Complete TypeScript Cleanup** - 50+ `any` types replaced with precise typing across 7 major Screen components
 - **🐛 Critical Bug Fixes** - Resolved 52+ TypeScript errors in WelcomeScreen, useUserPreferences, and MuscleMapInteractive
 - **⚡ Advanced Optimization** - questionnaireService reduced from 1428 to 1417 lines (removed duplications)
@@ -502,8 +507,9 @@ npx expo start
 
 # Important notes
 
-<!-- Removed obsolete storage base URL instructions -->
-- AsyncStorage is used as cache only. Without a running server, critical features won't progress (e.g., gating after questionnaire).
+- Supabase מוגדר עם `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- AsyncStorage משמש כ-cache בלבד; Supabase הוא מקור אמת
+- ללא חיבור Supabase תקין, חלק מהפיצ'רים יושהו (למשל: שמירת שאלון, היסטוריית אימונים)
 ```
 
 ### Running on Device

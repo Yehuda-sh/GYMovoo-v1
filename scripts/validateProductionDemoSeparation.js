@@ -15,7 +15,8 @@ const config = {
   projectRoot: process.cwd(),
   productionServices: [
     // סימולציית אימונים ודמו הוסרו בניקוי 2025-08-13
-    "src/services/workoutHistoryService.ts",
+    // workoutHistoryService.ts הוחלף ב-workoutDataService.ts (אוגוסט 2025)
+    "src/services/workoutDataService.ts",
     "src/services/questionnaireService.ts",
     "src/utils/personalDataUtils.ts",
   ],
@@ -123,13 +124,24 @@ function checkArchitecture() {
   // demoWorkoutService משתמש ב-production
   // אין demoWorkoutService יותר
 
-  // exports נכונים
+  // exports נכונים - ודא שאין exports פעילים של demo
   const indexContent = readFile("src/services/index.ts");
   if (indexContent) {
-    const hasExports =
-      indexContent.includes("demo/index") ||
-      indexContent.includes("demo/demoUserService");
-    check("exports נכונים", hasExports);
+    // חפש רק exports פעילים (לא מוערים)
+    const activeDemoExports = indexContent
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("//")) // סנן שורות מוערות
+      .some(
+        (line) =>
+          line.includes("demo/index") || line.includes("demo/demoUserService")
+      );
+    check(
+      "exports נכונים",
+      !activeDemoExports,
+      activeDemoExports
+        ? "נמצאו exports פעילים של demo שצריכים להיות מוסרים"
+        : ""
+    );
   }
 }
 

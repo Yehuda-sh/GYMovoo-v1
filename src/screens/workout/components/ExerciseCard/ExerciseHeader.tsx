@@ -21,10 +21,10 @@ import {
   getEquipmentIcon,
   getEquipmentHebrewName,
 } from "../../../../utils/equipmentIconMapping";
-import { Exercise, Set as WorkoutSet } from "../../types/workout.types";
+import { WorkoutExercise, Set as WorkoutSet } from "../../types/workout.types";
 
 interface ExerciseHeaderProps {
-  exercise: Exercise;
+  exercise: WorkoutExercise;
   sets: WorkoutSet[];
   isCompleted: boolean;
   isExpanded: boolean;

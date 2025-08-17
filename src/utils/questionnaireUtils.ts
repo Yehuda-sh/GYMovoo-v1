@@ -1,13 +1,6 @@
 import { fieldMapper } from "./fieldMapper";
 import { User } from "../types";
-
-export interface PersonalData {
-  gender?: string;
-  age?: string;
-  weight?: string;
-  height?: string;
-  fitnessLevel?: string;
-}
+import { PersonalData } from "./personalDataUtils"; // ✅ משתמש ב-PersonalData המרכזי והמתקדם
 
 export function extractSmartAnswers(user: unknown) {
   return fieldMapper.getSmartAnswers(user);
@@ -26,13 +19,31 @@ export function getPersonalDataFromUser(
 ): PersonalData | undefined {
   const answers = extractSmartAnswers(user) as AnswersShape | null;
   if (!answers) return undefined;
+
   const toStr = (v: unknown) =>
     v === undefined || v === null || v === "" ? undefined : String(v);
+
+  // ✅ Validation לפי PersonalData המחמיר מ-personalDataUtils
+  const gender = answers.gender as "male" | "female" | undefined;
+  const age = toStr(answers.age);
+  const weight = toStr(answers.weight);
+  const height = toStr(answers.height);
+  const fitnessLevel = answers.fitnessLevel as
+    | "beginner"
+    | "intermediate"
+    | "advanced"
+    | undefined;
+
+  // Return only if we have the required fields
+  if (!gender || !age || !weight || !height || !fitnessLevel) {
+    return undefined;
+  }
+
   return {
-    gender: answers.gender,
-    age: toStr(answers.age),
-    weight: toStr(answers.weight),
-    height: toStr(answers.height),
-    fitnessLevel: answers.fitnessLevel,
+    gender,
+    age,
+    weight,
+    height,
+    fitnessLevel,
   };
 }

@@ -49,7 +49,7 @@
  * - triggerVibration: משוב הפטי
  * - animationConfig: קונפיגורציות אנימציה מרכזיות
  *
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @updated 2025-08-17 Enhanced documentation and status for audit completion
  */
 
 import React, { useEffect, useRef, useCallback } from "react";

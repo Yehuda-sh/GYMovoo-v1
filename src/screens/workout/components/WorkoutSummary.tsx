@@ -45,7 +45,7 @@
  * - calculateWorkoutStats: חישוב סטטיסטיקות מרכזי
  * - UniversalModal: מודל אחיד להודעות
  *
- * @updated 2025-01-17 Enhanced documentation and ESLint compliance for audit
+ * @updated 2025-08-17 Enhanced documentation and ESLint compliance for audit
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";

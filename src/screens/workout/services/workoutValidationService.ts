@@ -3,10 +3,10 @@
  * @description שירות וידוא נתונים לאימונים - מתקדם עם התאמה אישית חכמה
  * @description English: Workout data validation service - Advanced with smart personalization
  * @inspired מתוך ההצלחה במסך ההיסטוריה עם validateWorkoutData
- * @updated 2025-01-17 Enhanced documentation for audit completion
+ * @updated 2025-08-17 Updated documentation and PersonalData import standardization
  *
  * ✅ CORE & INNOVATIVE: שירות וידוא נתונים מתקדם ומותאם אישית
- * - Used by 4+ services: autoSaveService, workoutStorageService, workoutErrorHandlingService
+ * - Used by 4+ services: autoSaveService, workoutErrorHandlingService, workoutStorageService
  * - Exported system-wide via services/index.ts and src/services/index.ts
  * - Singleton pattern: instance יחיד לכל המערכת
  * - Personalized validation: וידוא מותאם לגיל, מין, משקל, רמת כושר (חדשנות!)

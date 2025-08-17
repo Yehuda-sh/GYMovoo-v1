@@ -1,6 +1,8 @@
-// COPILOT_GUIDELINES.md
+<!-- COPILOT_GUIDELINES.md -->
 
 # GitHub Copilot - הנחיות עבודה לפרויקט GYMovoo
+
+_Last updated: 2025-08-17_
 
 ## 🚫 פקודות טרמינל אסורות
 
@@ -51,16 +53,14 @@
 - "חישוב תקין של דירוגים"
 - תיאור יכולות, לא תוצאות נוכחיות
 
-## 📱 מידע על הפרויקט
+## 📱 מידע על הפרויקט (סקירה כללית)
 
-- **שם הפרויקט:** GYMovoo - אפליקציית כושר בעברית
-- **טכנולוגיות:** React Native + Expo + TypeScript
-- **אינטגרציה:** WGER API לתרגילי כושר באנגלית + בסיס נתונים מקומי בעברית
-- **מטרה:** לספק תוכניות אימון מותאמות אישית עם מערכת AI חכמה
-- **מצב נוכחי:** 27 מסכים ראשיים פעילים, 3 קטגוריות רכיבים (common/ui/workout), 15 שירותים פעילים
-- **🆕 היסטוריה:** HistoryScreen עם תמיכה מלאה בנתוני דמו ריאליסטיים ואינטגרציה מושלמת
-- **🎯 תכונות עיקריות:** שאלון חכם 7 שאלות, מאגר ציוד 100+ פריטים, מערכת התאמת מגדר מתקדמת
-- **🔄 עדכונים אחרונים:** שירותים מחודשים עם TypeScript מתקדם, נגישות מקיפה, ותמיכת RTL משופרת
+- **שם הפרויקט:** GYMovoo – אפליקציית כושר חכמה בעברית
+- **טכנולוגיות:** React Native, Expo, TypeScript, Supabase
+- **אינטגרציה:** WGER API + מאגר תרגילים מקומי
+- **מטרה:** בניית תוכניות אימון מותאמות אישית ע"פ שאלון ונתוני משתמש
+- **תכונות מרכזיות:** שאלון חכם, התאמת מגדר, מאגר ציוד רחב, נגישות + RTL
+- **מצב:** מערכת יציבה עם מספר מסכים, רכיבים ושירותים ליבתיים (ללא ציון מספרים דינמיים)
 
 ## 🔧 הערות טכניות חשובות
 
@@ -89,12 +89,9 @@
   - **RTL נכון:** אייקון chevron-forward (לא chevron-back)
 - **איסור כפתורי חזרה ידניים:** אל תיצור TouchableOpacity עם navigation.goBack() ישירות
 
-## 📊 סטטיסטיקות הפרויקט המעודכנות
+## 📊 סטטיסטיקות (Generalized)
 
-- **📱 מסכים פעילים:** 27 מסכים ראשיים (ללא רכיבים וגיבויים)
-- **🧩 קטגוריות רכיבים:** 3 (common, ui, workout) עם 12 רכיבים
-- **🔧 שירותים פעילים:** 15 שירותים כולל workoutHistoryService
-- **📚 תיעוד:** 17 קבצי .md מאורגנים
+לא נרשמות כאן ספירות מדויקות (מסכים, שירותים, קבצי תיעוד) כדי למנוע התיישנות. במקרה הצורך בדוק את העץ (`src/`) או קבצי הסיכום ב-`docs/`.
 
 ## 🧹 ניקוי Cache - מתי זה חשוב?
 
@@ -126,28 +123,13 @@ wgerApiService.ts - שירות WGER מאופטם עם מטמון ומפשקים 
 questionnaireService - שאלון חכם עם TypeScript מתקדם ונגישות מלאה
 ```
 
-### דוגמת שימוש נכון ב-BackButton:
+### BackButton – שימוש נכון (רוכז)
 
-```typescript
-// ✅ שימוש נכון
+```tsx
 import BackButton from "../../components/common/BackButton";
-
-// במסך רגיל
-<BackButton absolute={false} />
-
-// במסך עם header minimal
-<BackButton absolute={false} variant="minimal" />
-
-// במסך עם header גדול
-<BackButton absolute={false} variant="large" />
-
-// עם פונקציה מותאמת אישית
-<BackButton absolute={false} onPress={handleCustomBack} />
-
-// ❌ שימוש שגוי - אל תעשה כך!
-<TouchableOpacity onPress={() => navigation.goBack()}>
-  <Ionicons name="chevron-forward" size={24} />
-</TouchableOpacity>
+<BackButton variant="default" />;
+// Optional: <BackButton variant="minimal" /> | <BackButton variant="large" onPress={customHandler} />
+// ❌ אין ליצור TouchableOpacity ידני עם navigation.goBack()
 ```
 
 ### 🔔 ConfirmationModal - תחליף נגיש ל-Alert.alert
@@ -263,23 +245,20 @@ const handleAction = () => {
 />
 ```
 
-## 🏗️ ארכיטקטורה מרכזית
+## 🏗️ ארכיטקטורה מרכזית (תמצית)
 
-- **ניווט:** AppNavigator.tsx (Stack) + BottomNavigation.tsx (Tabs)
-- **AI System:** workoutDataService.ts עם אלגוריתם חכם לבחירת תרגילים
-- **שאלון חכם:** SmartQuestionnaireManager עם 7 שאלות דינמיות + התאמת מגדר
-- **Hook מרכזי:** useWgerExercises.ts למשיכת תרגילים מ-WGER (מאומת)
-- **מאגר ציוד:** 100+ פריטי ציוד עם קטגוריזציה חכמה
-- **🆕 היסטוריה:** HistoryScreen עם תמיכה מלאה בנתוני דמו ריאליסטיים ואינטגרציה מושלמת (27 מסכים פעילים)
-- **🔧 ניהול מצב:** userStore מורחב עם פונקציות מתקדמות לשאלון ומגדר (15 services פעילים)
-- **🆕 שירותים מחודשים:** questionnaireService, WorkoutPlansScreen מחודשים עם TypeScript מתקדם ונגישות מקיפה
+- **ניווט:** Stack ראשי + Tabs
+- **AI / תוכניות:** שירות ייעודי להרכבת אימון (אלגוריתם בסיסי מתרחב)
+- **שאלון:** מנהל שאלון מאוחד + התאמות מגדר
+- **תרגילים:** שירות WGER מאוחד + מאגר מקומי
+- **מצב גלובלי:** userStore / workoutStore / historyStore (Zustand)
+- **היסטוריה:** HistoryScreen צורך נתוני משתמש + דמו באותה תשתית
 
-## 🔄 שירותים ורכיבים מחודשים (יולי 2025)
+## 🔄 שירותים ורכיבים מחודשים (High-Level)
 
-### ✅ שירותים שעודכנו לסטנדרט חדש:
+### דוגמאות שעודכנו לסטנדרט החדש
 
-- **questionnaireService.ts** - TypeScript מתקדם, ממשקים מקיפים, אלגוריתמי AI משופרים
-- **WorkoutPlansScreen.tsx** - נגישות מלאה, TypeScript נקי, תמיכת RTL מתקדמת
+questionnaireService.ts, WorkoutPlansScreen.tsx – משמשים כמודל לקונבנציות (TypeScript מחמיר, RTL, נגישות, JSDoc).
 
 ### 🎯 הסטנדרטים החדשים כוללים:
 
@@ -310,11 +289,11 @@ const handleAction = () => {
 // סטטוס: לא נדרש כעת - כל ממשק משרת מטרה ייחודית
 ```
 
-### 🎯 עקרונות איחוד:
+### 🎯 עקרונות איחוד
 
-- **בטיחות ראשונה:** כל שדרוג נבדק עם `npx tsc --noEmit --skipLibCheck`
-- **שלבים קטנים:** לא לשבור יותר מקובץ אחד בכל פעם
-- **תיעוד מלא:** כל שינוי מתועד ב-COPILOT_GUIDELINES
+1. בטיחות טיפוסים קודם
+2. צעדים קטנים + קומפילציה נקייה
+3. תיעוד שינוי משמעותי
 
 ## ⚠️ בעיות ידועות וטעויות נפוצות
 
@@ -390,31 +369,13 @@ const handleAction = () => {
 - אין שימוש ב-any בTypeScript
 - כל קומפוננטה פונקציונלית בלבד
 
-## 🎉 הצלחות וחידושים (יולי 2025)
+## 🎉 תקציר הצלחות (תמציתי)
 
-### ✅ הישגים טכניים מרכזיים:
-
-- **TypeScript מתקדם:** מעבר מ-`any` לטיפוסים מדויקים בכל השירותים המחודשים
-- **נגישות מקיפה:** כל TouchableOpacity כולל `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`
-- **RTL מושלם:** chevron-forward, כיוון טקסט נכון, פריסה מותאמת
-- **Global State מוגדר:** מעבר מ-`global as any` לממשקים TypeScript מוגדרים
-- **Theme עקבי:** החלפת ערכים קשיחים בצבעי theme מוגדרים
-
-### 🔧 שיפורים ארכיטקטוניים:
-
-- **ConfirmationModal:** תחליף נגיש ל-Alert.alert עם תמיכת RTL מלאה
-- **BackButton מרכזי:** קומפוננטה אחידה עם variants למניעת כפילויות
-- **Service Modernization:** questionnaireService ו-WorkoutPlansScreen כדוגמת סטנדרט חדש
-- **Documentation Standards:** JSDoc עם תגי @performance, @rtl, @accessibility
-
-### 📊 איכות קוד מוכחת:
-
-- **Zero TypeScript Errors:** כל הקבצים המחודשים עוברים `npx tsc --noEmit --skipLibCheck`
-- **Accessibility Compliance:** תמיכה מלאה בקוראי מסך ונגישות
-- **RTL Perfection:** תמיכה מושלמת בעברית עם כיוון נכון
-- **Performance Optimized:** מיטוב זיכרון ועיבוד עם intelligent caching
+- TypeScript מחמיר ללא any
+- נגישות + RTL עקביים
+- הפחתת כפילויות (BackButton, ConfirmationModal)
+- מטמון ויעילות קריאות API (שירות WGER)
 
 ---
 
-_קובץ זה נועד להבטיח עבודה חלקה ויעילה בין GitHub Copilot למשתמש_  
-_🔄 עודכן: יולי 30, 2025 - הוספת סטנדרטים חדשים לשירותים ורכיבים מחודשים_
+_מסמך זה מתוחזק כתקציר עקרונות – הימנע מהחזרת נתונים דינמיים. לעדכון מהותי: עדכן חותמת תאריך בראש._

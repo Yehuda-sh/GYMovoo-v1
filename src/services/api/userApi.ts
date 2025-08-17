@@ -1,122 +1,121 @@
-import axios from "axios";
 import type { User } from "../../types";
 import { fieldMapper } from "../../utils/fieldMapper";
+import { supabase } from "../supabase/client";
 
-// Supabase REST API Configuration
-const SUPABASE_URL = (
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  ""
-).trim();
-
-const SUPABASE_ANON = (
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_KEY ||
-  ""
-).trim();
-
-const isSupabaseEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON);
-
-if (!isSupabaseEnabled) {
+// Local non-null assertion – we already validated env vars during client creation.
+const sb = supabase as NonNullable<typeof supabase> | null;
+if (!sb) {
   throw new Error(
-    "⚠️ Supabase configuration missing. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY"
+    "Supabase client not initialized. Ensure EXPO_PUBLIC_SUPABASE_URL & EXPO_PUBLIC_SUPABASE_ANON_KEY are set."
   );
 }
 
-// Create Supabase axios instance
-const api = axios.create({
-  baseURL: `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1`,
-  timeout: 10000,
-  headers: {
-    apikey: SUPABASE_ANON,
-    Authorization: `Bearer ${SUPABASE_ANON}`,
-    Prefer: "return=representation",
-  },
-});
+// After runtime guard we can safely assert non-null
+const client = sb!;
 
-// Add request/response interceptors for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("❌ API Error:", error.response?.status, error.message);
-    if (error.response?.data) {
-      console.error("   Error Data:", error.response.data);
-    }
-    return Promise.reject(error);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const devLog = (...args: any[]) => {
+  if (__DEV__) console.warn("[userApi]", ...args);
+};
+
+// Helpers to reduce duplication
+const mapFromDB = (raw: unknown): User | undefined => {
+  if (!raw) return undefined;
+  return fieldMapper.fromDB(raw as Record<string, unknown>) as User;
+};
+const mapToDB = (value: unknown): Record<string, unknown> =>
+  fieldMapper.toDB(value as Record<string, unknown>);
+
+async function selectSingleBy(
+  column: string,
+  value: string
+): Promise<User | undefined> {
+  const { data, error } = await client
+    .from("users")
+    .select("*")
+    .eq(column, value)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    devLog(`selectSingleBy error (${column})`, error.message);
+    return undefined;
   }
-);
+  return mapFromDB(data);
+}
 
 export const userApi = {
   // Health check - verify Supabase connection
-  health: async () => {
-    const { data } = await api.get<{ id: string }[]>(`/users`, {
-      params: { select: "id", limit: 1 },
-    });
+  health: async (): Promise<string> => {
+    const { data, error } = await client
+      .from("users")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      devLog("health error", error.message);
+      return "fail";
+    }
     return data ? "ok" : "fail";
   },
 
-  list: async () => {
-    const { data } = await api.get<User[]>(`/users`, {
-      params: { select: "*" },
-    });
-    return (data || []).map((u) =>
-      fieldMapper.fromDB(u as unknown as Record<string, unknown>)
-    );
+  list: async (): Promise<User[]> => {
+    const { data, error } = await client.from("users").select("*");
+    if (error) {
+      devLog("list error", error.message);
+      return [];
+    }
+    return (data || [])
+      .map((u) => mapFromDB(u) as User)
+      .filter(Boolean) as User[];
   },
 
-  getById: async (id: string) => {
-    const { data } = await api.get<User[]>(`/users`, {
-      params: { select: "*", id: `eq.${id}` },
-    });
-    const raw = data?.[0] as User | undefined;
-    return raw
-      ? (fieldMapper.fromDB(raw as unknown as Record<string, unknown>) as User)
-      : (undefined as unknown as User);
+  getById: async (id: string): Promise<User | undefined> => {
+    return selectSingleBy("id", id);
   },
 
-  getByEmail: async (email: string) => {
-    const { data } = await api.get<User[]>(`/users`, {
-      params: { select: "*", email: `eq.${email}` },
-    });
-    const raw = data?.[0] as User | undefined;
-    return raw
-      ? (fieldMapper.fromDB(raw as unknown as Record<string, unknown>) as User)
-      : (undefined as unknown as User);
+  getByEmail: async (email: string): Promise<User | undefined> => {
+    return selectSingleBy("email", email);
   },
 
-  create: async (user: Pick<User, "name" | "email"> & Partial<User>) => {
-    const payload = fieldMapper.toDB(
-      user as unknown as Record<string, unknown>
-    );
-    const { data } = await api.post<User[]>(`/users`, payload);
-    const created = (
-      data && Array.isArray(data) ? data[0] : (data as unknown as User)
-    ) as User;
-    return fieldMapper.fromDB(
-      created as unknown as Record<string, unknown>
-    ) as User;
+  create: async (
+    user: Pick<User, "name" | "email"> & Partial<User>
+  ): Promise<User> => {
+    const payload = mapToDB(user);
+    const { data, error } = await client
+      .from("users")
+      .insert(payload)
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      throw error || new Error("Failed to create user");
+    }
+    const mapped = mapFromDB(data);
+    if (!mapped) throw new Error("Mapping failure on create");
+    return mapped;
   },
 
-  update: async (id: string, updates: Partial<User>) => {
-    const payload = fieldMapper.toDB(
-      updates as unknown as Record<string, unknown>
-    );
-    const { data } = await api.patch<User[]>(`/users`, payload, {
-      params: { id: `eq.${id}` },
-    });
-    const updated = (
-      data && Array.isArray(data) ? data[0] : (data as unknown as User)
-    ) as User;
-    return fieldMapper.fromDB(
-      updated as unknown as Record<string, unknown>
-    ) as User;
+  update: async (id: string, updates: Partial<User>): Promise<User> => {
+    const payload = mapToDB(updates);
+    const { data, error } = await client
+      .from("users")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      throw error || new Error("Failed to update user");
+    }
+    const mapped = mapFromDB(data);
+    if (!mapped) throw new Error("Mapping failure on update");
+    return mapped;
   },
 
-  remove: async (id: string) => {
-    const { status } = await api.delete(`/users`, {
-      params: { id: `eq.${id}` },
-    });
-    return status === 204 || status === 200;
+  remove: async (id: string): Promise<boolean> => {
+    const { error } = await client.from("users").delete().eq("id", id);
+    if (error) {
+      devLog("remove error", error.message);
+      return false;
+    }
+    return true;
   },
 };

@@ -1,12 +1,107 @@
 /**
  * @file src/screens/workout/utils/workoutConstants.ts
- * @description קבועים ואפשרויות למערכת האימון
- * English: Constants and options for workout system
- * @updated 2025-08-10 הוספת קבועים מותאמים אישית לפי נתונים אישיים
+ * @description קבועים ואפשרויות למערכת האימון (מאוחד)
+ * English: Unified constants and options for workout system
+ * @updated 2025-08-17 איחוד מ-constants/workoutConstants.ts + הסרת קוד לא בשימוש
  */
 
 // ✅ Import PersonalData from central utils
 import { PersonalData } from "../../../utils/personalDataUtils";
+
+// ===============================================
+// 🏋️ Workout Plan Constants - קבועי תוכניות אימון
+// ===============================================
+
+// Workout day templates (מאוחד מ-constants/)
+export const WORKOUT_DAYS = {
+  1: ["אימון מלא"],
+  2: ["פלג גוף עליון", "פלג גוף תחתון"],
+  3: ["דחיפה", "משיכה", "רגליים"],
+  4: ["חזה + טריצפס", "גב + ביצפס", "רגליים", "כתפיים + בטן"],
+  5: ["חזה", "גב", "רגליים", "כתפיים", "ידיים + בטן"],
+  6: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן + קרדיו"],
+} as const;
+
+// Icons mapping for workout days (מאוחד מ-constants/)
+export const DAY_ICONS: { [key: string]: string } = {
+  "אימון מלא": "dumbbell",
+  "פלג גוף עליון": "arm-flex",
+  "פלג גוף תחתון": "run",
+  דחיפה: "arrow-up-bold",
+  משיכה: "arrow-down-bold",
+  רגליים: "run",
+  חזה: "shield",
+  גב: "human",
+  "גב + ביצפס": "human",
+  כתפיים: "human-handsup",
+  ידיים: "arm-flex",
+  בטן: "ab-testing",
+  "חזה + טריצפס": "shield",
+  "כתפיים + בטן": "human-handsup",
+  "ידיים + בטן": "arm-flex",
+  "בטן + קרדיו": "run-fast",
+} as const;
+
+// Default values for workout generation (מאוחד מ-constants/)
+export const DEFAULT_EXPERIENCE = "intermediate";
+export const DEFAULT_DURATION = "45-60";
+export const DEFAULT_FREQUENCY = "3_times";
+export const DEFAULT_GOAL = "build_muscle";
+
+// Experience level mappings (מאוחד מ-constants/)
+export const EXPERIENCE_MAP = {
+  beginner: "beginner",
+  intermediate: "intermediate",
+  advanced: "advanced",
+  expert: "advanced", // fallback for expert level
+} as const;
+
+// Duration mappings (מאוחד מ-constants/)
+export const DURATION_MAP = {
+  "30_45_min": "30-45",
+  "45_60_min": "45-60",
+  "60_90_min": "60-90",
+  "90_plus_min": "90+",
+} as const;
+
+// Goal mappings (מאוחד מ-constants/)
+export const GOAL_MAP = {
+  build_muscle: "build_muscle",
+  lose_weight: "weight_loss",
+  get_stronger: "strength",
+  improve_endurance: "endurance",
+  general_fitness: "general_fitness",
+  muscle_gain: "build_muscle", // alias
+  weight_loss: "weight_loss",
+  strength: "strength",
+  endurance: "endurance",
+} as const;
+
+// Performance tracking thresholds (מאוחד מ-constants/)
+export const PERFORMANCE_THRESHOLDS = {
+  SLOW_RENDER_WARNING: 100, // ms
+  CRITICAL_RENDER_WARNING: 200, // ms
+  SLOW_RENDER_MS: 100,
+  AUTO_START_DELAY: 1500,
+  PRE_SELECTED_DELAY: 1000,
+} as const;
+
+// Haptic feedback types (מאוחד מ-constants/)
+export type HapticIntensity = "light" | "medium" | "heavy";
+
+// Global exercise state interface (מאוחד מ-constants/)
+export interface GlobalExerciseState {
+  usedExercises_day0?: Set<string>;
+  usedExercises_day1?: Set<string>;
+  usedExercises_day2?: Set<string>;
+  [key: string]: Set<string> | undefined;
+}
+
+// Workout plan types (מאוחד מ-constants/)
+export type PlanType = "basic" | "smart";
+
+// Equipment display types (מאוחד מ-constants/)
+export type EquipmentDisplayState = string[];
 
 // ===============================================
 // 🕒 Rest Timer Constants - קבועי טיימר מנוחה
@@ -113,7 +208,7 @@ export const DEFAULT_REST_TIMES: RestTimes = {
   warmup: 30, // חימום
 };
 
-// ✅ זמני מנוחה מותאמים אישית
+// ✅ זמני מנוחה מותאמים אישית (בשימוש ב-questionnaireService)
 export const getPersonalizedRestTimes = (
   personalData?: PersonalData
 ): RestTimes => {
@@ -161,266 +256,7 @@ export const SET_TYPES = [
   { value: "failure", label: "כישלון", color: "#FF3B30" },
 ] as const;
 
-// אפשרויות RPE (מאמץ נתפס)
-// RPE options (Rate of Perceived Exertion)
-export const RPE_SCALE = [
-  { value: 6, label: "קל מאוד", color: "#34C759" },
-  { value: 7, label: "קל", color: "#5AC757" },
-  { value: 7.5, label: "בינוני", color: "#FFCC00" },
-  { value: 8, label: "מאתגר", color: "#FF9500" },
-  { value: 8.5, label: "קשה", color: "#FF6B35" },
-  { value: 9, label: "קשה מאוד", color: "#FF3B30" },
-  { value: 9.5, label: "כמעט מקסימום", color: "#C7253E" },
-  { value: 10, label: "מקסימום", color: "#8B0000" },
-] as const;
-
-// ✅ המלצות RPE מותאמות אישית
-export const getPersonalizedRPERecommendations = (
-  personalData?: PersonalData
-): RpeRecommendations => {
-  const recommendations: RpeRecommendations = {
-    warmup: { min: 6, max: 7, description: "חימום קל" },
-    working: { min: 7.5, max: 8.5, description: "סטי עבודה" },
-    intensity: { min: 8.5, max: 9.5, description: "סטים אינטנסיביים" },
-    maxEffort: { min: 9.5, max: 10, description: "מאמץ מקסימלי" },
-  };
-
-  if (!personalData) return recommendations;
-
-  // התאמה לגיל
-  if (personalData.age) {
-    if (isOlderAgeRange(personalData.age)) {
-      // מבוגרים - יותר זהירים עם אינטנסיביות
-      recommendations.working = {
-        min: 7,
-        max: 8,
-        description: "סטי עבודה (מתואם לגיל)",
-      };
-      recommendations.intensity = {
-        min: 8,
-        max: 9,
-        description: "סטים אינטנסיביים (זהירות)",
-      };
-      recommendations.maxEffort = {
-        min: 9,
-        max: 9.5,
-        description: "מאמץ גבוה (לא מקסימלי)",
-      };
-    } else if (isYoungerAgeRange(personalData.age)) {
-      // צעירים - יכולים ללכת יותר חזק
-      recommendations.working = {
-        min: 8,
-        max: 9,
-        description: "סטי עבודה (אנרגיה צעירה)",
-      };
-      recommendations.intensity = {
-        min: 9,
-        max: 10,
-        description: "סטים אינטנסיביים (מלא גז)",
-      };
-    }
-  }
-
-  // התאמה לרמת כושר
-  if (personalData.fitnessLevel === "beginner") {
-    // מתחילים - מתחילים עם RPE נמוך יותר
-    recommendations.warmup = {
-      min: 6,
-      max: 6.5,
-      description: "חימום עדין למתחיל",
-    };
-    recommendations.working = {
-      min: 7,
-      max: 8,
-      description: "סטי עבודה (למידה)",
-    };
-    recommendations.intensity = { min: 8, max: 8.5, description: "אתגר מתון" };
-    recommendations.maxEffort = {
-      min: 8.5,
-      max: 9,
-      description: "מאמץ גבוה (לא מקסימלי)",
-    };
-  } else if (personalData.fitnessLevel === "advanced") {
-    // מתקדמים - יכולים ללכת חזק יותר
-    recommendations.working = {
-      min: 8,
-      max: 9,
-      description: "סטי עבודה מתקדמים",
-    };
-    recommendations.intensity = {
-      min: 9,
-      max: 10,
-      description: "אינטנסיביות גבוהה",
-    };
-    recommendations.maxEffort = {
-      min: 9.5,
-      max: 10,
-      description: "מאמץ מקסימלי מתקדם",
-    };
-  }
-
-  // התאמה לפי מין - נשים לפעמים נוטות להיות זהירות יותר
-  if (personalData.gender === "female") {
-    // עידוד לנשים ללכת חזק יותר (שבירת מחסומים מנטליים)
-    recommendations.working.description += " - את יכולה יותר!";
-    recommendations.intensity.description += " - שברי מחסומים!";
-  }
-
-  return recommendations;
-};
-
-// הודעות עידוד
-// Encouragement messages
-export const ENCOURAGEMENT_MESSAGES = {
-  newPR: [
-    "🏆 שיא אישי חדש! כל הכבוד!",
-    "💪 וואו! שברת את השיא הקודם!",
-    "🔥 אש! שיא חדש נרשם!",
-    "⚡ מדהים! עברת את הגבול!",
-  ],
-  goodSet: ["💪 סט מעולה!", "👏 עבודה טובה!", "🎯 ממוקד וחזק!", "✨ המשך ככה!"],
-  lastSet: [
-    "🏁 סט אחרון! תן הכל!",
-    "💯 אחרון חביב! בוא נסיים חזק!",
-    "🚀 סט סיום! תדחוף!",
-  ],
-  workoutComplete: [
-    "🎉 סיימת! אימון מדהים!",
-    "🏅 כל הכבוד! אימון הושלם בהצלחה!",
-    "✅ מעולה! עוד אימון מאחוריך!",
-    "🌟 פנטסטי! המשך כך!",
-  ],
-} as const;
-
-// ✅ הודעות עידוד מותאמות אישית
-export const getPersonalizedEncouragement = (
-  type: keyof typeof ENCOURAGEMENT_MESSAGES,
-  personalData?: PersonalData
-): string => {
-  const baseMessages = ENCOURAGEMENT_MESSAGES[type];
-
-  if (!personalData) {
-    return baseMessages[Math.floor(Math.random() * baseMessages.length)];
-  }
-
-  let personalizedMessages: string[] = [];
-
-  // הודעות מותאמות למין
-  if (personalData.gender === "female") {
-    switch (type) {
-      case "newPR":
-        personalizedMessages = [
-          "👑 שיא חדש! את פשוט מדהימה!",
-          "💎 יופי של שיא! girl power!",
-          "🌟 את שוברת גבולות! כל הכבוד!",
-          "✨ שיא אישי חדש! את מלכה!",
-        ];
-        break;
-      case "workoutComplete":
-        personalizedMessages = [
-          "🌸 סיימת! את לוחמת אמיתית!",
-          "💖 אימון מושלם! את מעוררת השראה!",
-          "🦋 מדהים! ממשיכה להאמין בעצמך!",
-          "👸 אלופה! עוד אימון מאחוריך!",
-        ];
-        break;
-    }
-  } else if (personalData.gender === "male") {
-    switch (type) {
-      case "newPR":
-        personalizedMessages = [
-          "🔥 שיא חדש! אלוף אמיתי!",
-          "⚡ מפלצת! שברת את השיא!",
-          "🏆 גבר של פלדה! כל הכבוד!",
-          "💀 חיה! שיא אישי חדש!",
-        ];
-        break;
-      case "workoutComplete":
-        personalizedMessages = [
-          "⚔️ סיימת! לוחם אמיתי!",
-          "🔨 אימון של גיבור! כל הכבוד!",
-          "🗿 סולידי! עוד אימון מאחוריך!",
-          "👑 מלך! המשך לשלוט!",
-        ];
-        break;
-    }
-  }
-
-  // הודעות מותאמות לגיל
-  if (personalData.age) {
-    if (isOlderAgeRange(personalData.age)) {
-      switch (type) {
-        case "newPR":
-          personalizedMessages.push(
-            "🏅 שיא מרשים בגילך! מעורר השראה!",
-            "💎 ותיק מנצח! שיא חדש!",
-            "👴 גיל זה רק מספר! שיא מדהים!"
-          );
-          break;
-        case "workoutComplete":
-          personalizedMessages.push(
-            "🌟 אימון מופתי! מוכיח שגיל זה רק מספר!",
-            "🏆 מעורר השראה! המשך ככה!",
-            "💪 חזק ובריא! כל הכבוד!"
-          );
-          break;
-      }
-    } else if (isYoungerAgeRange(personalData.age)) {
-      switch (type) {
-        case "newPR":
-          personalizedMessages.push(
-            "🚀 צעיר ועוצמתי! שיא מדהים!",
-            "⚡ אנרגיה צעירה! שבירת גבולות!",
-            "🔥 דור הזהב! שיא חדש!"
-          );
-          break;
-      }
-    }
-  }
-
-  // הודעות מותאמות לרמת כושר
-  if (personalData.fitnessLevel === "beginner") {
-    switch (type) {
-      case "newPR":
-        personalizedMessages.push(
-          "🌱 התקדמות מעולה למתחיל! שיא ראשון!",
-          "📈 בדרך הנכונה! שיא מדהים!",
-          "🎯 התחלה מושלמת! שיא חדש!"
-        );
-        break;
-      case "workoutComplete":
-        personalizedMessages.push(
-          "👶 מתחיל מוצלח! כל אימון הוא ניצחון!",
-          "🌟 בונה בסיס חזק! המשך ככה!",
-          "📚 לומד ומתקדם! מעולה!"
-        );
-        break;
-    }
-  } else if (personalData.fitnessLevel === "advanced") {
-    switch (type) {
-      case "newPR":
-        personalizedMessages.push(
-          "🎖️ מתקדם אמיתי! שיא ברמה גבוהה!",
-          "🏆 אליטה! שיא של מקצוען!",
-          "⚡ רמה עליונה! שיא מדהים!"
-        );
-        break;
-    }
-  }
-
-  // אם יש הודעות מותאמות אישית, בחר מהן
-  if (personalizedMessages.length > 0) {
-    return personalizedMessages[
-      Math.floor(Math.random() * personalizedMessages.length)
-    ];
-  }
-
-  // אחרת, חזור להודעות הבסיסיות
-  return baseMessages[Math.floor(Math.random() * baseMessages.length)];
-};
-
-// משקלי פלטות סטנדרטיים (ק"ג)
-// Standard plate weights (kg)
+// ✅ משקלי פלטות סטנדרטיים (בשימוש ב-PlateCalculatorModal)
 export const PLATE_WEIGHTS = [
   { weight: 25, color: "#FF3B30", label: "25" },
   { weight: 20, color: "#007AFF", label: "20" },
@@ -431,7 +267,7 @@ export const PLATE_WEIGHTS = [
   { weight: 1.25, color: "#8E8E93", label: "1.25" },
 ] as const;
 
-// ✅ המלצות משקל התחלתי מותאמות אישית
+// ✅ המלצות משקל התחלתי מותאמות אישית (בשימוש ב-questionnaireService)
 export const getPersonalizedStartingWeights = (
   personalData?: PersonalData
 ): StartingWeights => {
@@ -514,38 +350,7 @@ export const getPersonalizedStartingWeights = (
   return recommendations;
 };
 
-// הגדרות צלילים
-// Sound settings
-export const SOUND_OPTIONS = {
-  countdown: {
-    beep: "countdown_beep.mp3",
-    tick: "countdown_tick.mp3",
-    voice: "countdown_voice.mp3",
-  },
-  complete: "rest_complete.mp3",
-  newPR: "achievement.mp3",
-  workoutStart: "workout_start.mp3",
-  workoutEnd: "workout_complete.mp3",
-} as const;
-
-// הגדרות רטט
-// Vibration patterns
-export const VIBRATION_PATTERNS = {
-  restComplete: [0, 200, 100, 200] as number[], // רטט כפול
-  countdown: [0, 50] as number[], // רטט קצר
-  newPR: [0, 100, 50, 100, 50, 300] as number[], // רטט חגיגי
-};
-
-// אנימציות למסך סיכום
-// Summary screen animations
-export const SUMMARY_ANIMATIONS = {
-  duration: 3000,
-  types: ["confetti", "fireworks", "fire", "stars"],
-  colors: ["#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#007AFF", "#5856D6"],
-} as const;
-
-// הגדרות שמירה אוטומטית
-// Auto-save settings
+// ✅ הגדרות שמירה אוטומטית (בשימוש ב-autoSaveService + workoutValidationService)
 export const AUTO_SAVE = {
   interval: 30000, // כל 30 שניות
   maxDrafts: 5, // מקסימום טיוטות
