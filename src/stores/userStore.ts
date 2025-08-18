@@ -30,18 +30,15 @@ import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
 import { extractSmartAnswers } from "../utils/questionnaireUtils";
 import { logger } from "../utils/logger";
+import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipmentCatalog";
 /* eslint-disable no-console */
 
 // ==============================
 // Utilities
 // ==============================
-const normalizeEquipment = (arr?: string[]) => {
-  if (!Array.isArray(arr)) return [] as string[];
-  const mapped = arr
-    .filter((e): e is string => typeof e === "string" && e.trim().length > 0)
-    .map((e) => (e === "none" || e === "no_equipment" ? "bodyweight" : e));
-  // הסרת כפילויות
-  return Array.from(new Set(mapped));
+const normalizeEquipment = (arr?: string[]): string[] => {
+  // Use the centralized catalog normalization and convert back to strings
+  return normalizeEquipmentCatalog(arr) as string[];
 };
 
 // טיפוס תשובות השאלון הישן (לתאימות לאחור)
@@ -1094,6 +1091,20 @@ export type {
 
 export const useUser = () => useUserStore((state) => state.user);
 export const useIsLoggedIn = () => useUserStore((state) => state.user !== null);
+
+// Thin selector for normalized equipment (for workout generation)
+export const useUserEquipment = () => {
+  const user = useUserStore((state) => state.user);
+
+  // Try to get equipment from multiple possible sources
+  const equipment =
+    user?.customDemoUser?.equipment ||
+    user?.trainingstats?.selectedEquipment ||
+    [];
+
+  return normalizeEquipment(equipment);
+};
+
 // useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
 export const useQuestionnaireCompleted = () =>
   useUserStore(

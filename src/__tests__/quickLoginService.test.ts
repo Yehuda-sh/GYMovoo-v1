@@ -3,7 +3,10 @@
  * @description טסטים עבור שירות Quick Login מבוסס Supabase session
  */
 
-import { isQuickLoginAvailable, tryQuickLogin } from "../services/auth/quickLoginService";
+import {
+  isQuickLoginAvailable,
+  tryQuickLogin,
+} from "../services/auth/quickLoginService";
 
 // Mock של הכל כפונקציות פשוטות
 jest.mock("../services/supabase/client", () => ({
@@ -67,15 +70,17 @@ describe("quickLoginService", () => {
   describe("tryQuickLogin", () => {
     it("should return a QuickLoginResult object", async () => {
       const result = await tryQuickLogin();
-      
+
       expect(result).toHaveProperty("ok");
-      
+
       if (result.ok) {
         expect(result).toHaveProperty("userId");
         expect(typeof result.userId).toBe("string");
       } else {
         expect(result).toHaveProperty("reason");
-        expect(["NO_SESSION", "REFRESH_FAILED", "FETCH_USER_FAILED"]).toContain(result.reason);
+        expect(["NO_SESSION", "REFRESH_FAILED", "FETCH_USER_FAILED"]).toContain(
+          result.reason
+        );
       }
     });
 
@@ -87,7 +92,7 @@ describe("quickLoginService", () => {
       });
 
       const result = await tryQuickLogin();
-      
+
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe("NO_SESSION");
@@ -97,7 +102,7 @@ describe("quickLoginService", () => {
     it("should handle user not found scenario", async () => {
       const mockSupabase = require("../services/supabase/client").supabase;
       const mockUserApi = require("../services/api/userApi").userApi;
-      
+
       // Mock valid session
       mockSupabase.auth.getSession.mockResolvedValue({
         data: {
@@ -113,7 +118,7 @@ describe("quickLoginService", () => {
       mockUserApi.getByAuthId.mockResolvedValue(undefined);
 
       const result = await tryQuickLogin();
-      
+
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe("FETCH_USER_FAILED");
@@ -124,9 +129,9 @@ describe("quickLoginService", () => {
       const mockSupabase = require("../services/supabase/client").supabase;
       const mockUserApi = require("../services/api/userApi").userApi;
       const mockUserStore = require("../stores/userStore").useUserStore;
-      
+
       const mockSetUser = jest.fn();
-      
+
       // Mock valid session
       mockSupabase.auth.getSession.mockResolvedValue({
         data: {
@@ -151,19 +156,21 @@ describe("quickLoginService", () => {
       });
 
       const result = await tryQuickLogin();
-      
+
       if (result.ok) {
         expect(result.userId).toBe("user-123");
         expect(mockSetUser).toHaveBeenCalled();
       } else {
         // אם נכשל, לפחות בדוק שהתנאים הבסיסיים עובדים
-        expect(["NO_SESSION", "REFRESH_FAILED", "FETCH_USER_FAILED"]).toContain(result.reason);
+        expect(["NO_SESSION", "REFRESH_FAILED", "FETCH_USER_FAILED"]).toContain(
+          result.reason
+        );
       }
     });
 
     it("should pass context in reason parameter", async () => {
       const result = await tryQuickLogin({ reason: "test context" });
-      
+
       // בדיקה בסיסית שהפונקציה מקבלת פרמטר והחזירה תוצאה תקפה
       expect(result).toHaveProperty("ok");
     });

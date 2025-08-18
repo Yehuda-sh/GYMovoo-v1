@@ -77,7 +77,10 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { StorageKeys } from "../../constants/StorageKeys";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { isQuickLoginAvailable, tryQuickLogin } from "../../services/auth/quickLoginService";
+import {
+  isQuickLoginAvailable,
+  tryQuickLogin,
+} from "../../services/auth/quickLoginService";
 // Removed unused demo/google auth imports
 import { RootStackParamList } from "../../navigation/types";
 import {
@@ -252,16 +255,24 @@ const WelcomeScreen = React.memo(() => {
         const available = await isQuickLoginAvailable();
         setIsQuickLoginVisible(available);
         if (__DEV__) {
-          logger.debug("WelcomeScreen", "Quick Login availability", available ? "Available" : "Not available");
+          logger.debug(
+            "WelcomeScreen",
+            "Quick Login availability",
+            available ? "Available" : "Not available"
+          );
         }
       } catch (error) {
         if (__DEV__) {
-          logger.debug("WelcomeScreen", "Quick Login check failed", String(error));
+          logger.debug(
+            "WelcomeScreen",
+            "Quick Login check failed",
+            String(error)
+          );
         }
         setIsQuickLoginVisible(false);
       }
     };
-    
+
     checkQuickLoginAvailability();
   }, []);
 
@@ -308,13 +319,19 @@ const WelcomeScreen = React.memo(() => {
   // 🔧 Optimized Navigation Functions with Haptic Feedback
   const handleQuickLogin = useCallback(async () => {
     triggerHapticFeedback("medium"); // משוב בינוני להתחברות מהירה
-    
+
     try {
-      const result = await tryQuickLogin({ reason: "WelcomeScreen user action" });
-      
+      const result = await tryQuickLogin({
+        reason: "WelcomeScreen user action",
+      });
+
       if (result.ok) {
         if (__DEV__) {
-          logger.debug("WelcomeScreen", "Quick login successful", `userId: ${result.userId}`);
+          logger.debug(
+            "WelcomeScreen",
+            "Quick login successful",
+            `userId: ${result.userId}`
+          );
         }
 
         // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
@@ -322,17 +339,20 @@ const WelcomeScreen = React.memo(() => {
           useUserStore.getState().initializeSubscription();
         } catch (e) {
           if (__DEV__) {
-            logger.error("WelcomeScreen", "initializeSubscription failed during quick login", String(e));
+            logger.error(
+              "WelcomeScreen",
+              "initializeSubscription failed during quick login",
+              String(e)
+            );
           }
         }
 
         // המשתמש כבר הוגדר ב-tryQuickLogin, ה-useEffect יטפל בניווט
         // כי user state ישתנה ויפעיל את ה-useEffect שבודק completion status
-        
       } else {
         // כשלון בהתחברות מהירה - הצגת הודעה לא פולשנית
         let errorMsg = "התחברות מהירה לא זמינה כרגע";
-        
+
         switch (result.reason) {
           case "NO_SESSION":
             errorMsg = "לא נמצא חיבור פעיל. אנא התחבר/הירשם מחדש";
@@ -344,16 +364,18 @@ const WelcomeScreen = React.memo(() => {
             errorMsg = "שגיאה בטעינת נתוני משתמש. נסה שוב מאוחר יותר";
             break;
         }
-        
+
         setErrorMessage(errorMsg);
         setShowErrorModal(true);
-        
+
         // הסתרת כפתור Quick Login אם הסשן לא בר-תקנה
-        if (result.reason === "NO_SESSION" || result.reason === "REFRESH_FAILED") {
+        if (
+          result.reason === "NO_SESSION" ||
+          result.reason === "REFRESH_FAILED"
+        ) {
           setIsQuickLoginVisible(false);
         }
       }
-      
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (__DEV__) {
@@ -362,7 +384,12 @@ const WelcomeScreen = React.memo(() => {
       setErrorMessage("שגיאה בהתחברות מהירה. נסה שוב מאוחר יותר");
       setShowErrorModal(true);
     }
-  }, [triggerHapticFeedback, setErrorMessage, setShowErrorModal, setIsQuickLoginVisible]);
+  }, [
+    triggerHapticFeedback,
+    setErrorMessage,
+    setShowErrorModal,
+    setIsQuickLoginVisible,
+  ]);
 
   const handleRegister = useCallback(() => {
     triggerHapticFeedback("light"); // משוב קל לניווט להרשמה
