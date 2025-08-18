@@ -7,6 +7,8 @@ export const StorageKeys = {
   LAST_LOGGED_OUT_USER_ID: "lastLoggedOutUserId",
   TERMS_AGREEMENT: "terms_agreement",
   SAVED_EMAIL: "savedEmail",
+  LAST_USER_ID: "lastUserId",
+  LAST_EMAIL: "lastEmail",
   WORKOUT_PLANS: "workout_plans",
   WORKOUT_HISTORY: "workout_history",
   SMART_QUESTIONNAIRE_RESULTS: "smart_questionnaire_results", // legacy persisted smart questionnaire blob

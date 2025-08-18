@@ -42,14 +42,14 @@
  * }
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -58,9 +58,13 @@ import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 // Components
-import ExerciseCard from "./components/ExerciseCard/index";
-import { WorkoutStatusBar } from "./components/WorkoutStatusBar";
+import ExercisesList from "./components/ExercisesList";
 import { FloatingActionButton } from "../../components";
+
+// Lazy Components for performance
+const WorkoutStatusBar = React.lazy(
+  () => import("./components/WorkoutStatusBar")
+);
 
 // Hooks & Services
 import { useRestTimer } from "./hooks/useRestTimer";
@@ -83,7 +87,9 @@ import { errorHandler } from "../../utils/errorHandler";
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useUserStore();
+
+  // סלקטור ממוקד ל-userStore - אופטימיזציה לביצועים
+  const user = useUserStore(useCallback((state) => state.user, []));
 
   // קבועי אינטראקציה - אופטימיזציה
   const HIT_SLOP = useMemo(
@@ -505,15 +511,17 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
 
       {/* Status Bar - Rest Timer */}
-      <WorkoutStatusBar
-        isRestActive={isRestTimerActive}
-        restTimeLeft={restTimeRemaining}
-        onAddRestTime={addRestTime}
-        onSubtractRestTime={subtractRestTime}
-        onSkipRest={skipRestTimer}
-        nextExercise={null}
-        onSkipToNext={() => {}}
-      />
+      <Suspense fallback={null}>
+        <WorkoutStatusBar
+          isRestActive={isRestTimerActive}
+          restTimeLeft={restTimeRemaining}
+          onAddRestTime={addRestTime}
+          onSubtractRestTime={subtractRestTime}
+          onSkipRest={skipRestTimer}
+          nextExercise={null}
+          onSkipToNext={() => {}}
+        />
+      </Suspense>
 
       {/* Workout Stats - פורמט משופר */}
       <View style={styles.statsContainer}>
@@ -534,41 +542,19 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
 
       {/* All Exercises List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={false}
-        testID="scroll-exercises"
-      >
-        {exercises.map((exercise, index) => (
-          <ExerciseCard
-            key={exercise.id}
-            exercise={exercise}
-            sets={exercise.sets}
-            onUpdateSet={(setId: string, updates: Partial<Set>) =>
-              handleUpdateSet(exercise.id, setId, updates)
-            }
-            onAddSet={() => handleAddSet(exercise.id)}
-            onCompleteSet={(setId: string) =>
-              handleCompleteSet(exercise.id, setId)
-            }
-            onDeleteSet={(setId: string) => handleDeleteSet(exercise.id, setId)}
-            onReorderSets={(fromIndex: number, toIndex: number) =>
-              handleReorderSets(exercise.id, fromIndex, toIndex)
-            }
-            onRemoveExercise={() => {
-              setDeleteExerciseId(exercise.id);
-              setShowDeleteModal(true);
-            }}
-            onStartRest={(duration: number) => {
-              startRestTimer(duration, exercise.name);
-            }}
-            isFirst={index === 0}
-            isLast={index === exercises.length - 1}
-          />
-        ))}
-      </ScrollView>
+      <ExercisesList
+        exercises={exercises}
+        onUpdateSet={handleUpdateSet}
+        onAddSet={handleAddSet}
+        onCompleteSet={handleCompleteSet}
+        onDeleteSet={handleDeleteSet}
+        onReorderSets={handleReorderSets}
+        onRemoveExercise={(exerciseId: string) => {
+          setDeleteExerciseId(exerciseId);
+          setShowDeleteModal(true);
+        }}
+        onStartRest={startRestTimer}
+      />
 
       {/* Finish Workout Button */}
       <View style={styles.navigationContainer}>
@@ -791,13 +777,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.xs,
     writingDirection: "rtl",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.md,
-  },
-  contentContainer: {
-    paddingBottom: theme.spacing.xxl ?? theme.spacing.xl * 4,
   },
   navigationContainer: {
     flexDirection: "row-reverse",

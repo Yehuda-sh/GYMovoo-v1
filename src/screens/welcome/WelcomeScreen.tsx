@@ -72,13 +72,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fieldMapper } from "../../utils/fieldMapper";
 import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { StorageKeys } from "../../constants/StorageKeys";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { userApi } from "../../services/api/userApi";
+import { isQuickLoginAvailable, tryQuickLogin } from "../../services/auth/quickLoginService";
 // Removed unused demo/google auth imports
 import { RootStackParamList } from "../../navigation/types";
 import {
@@ -208,9 +207,7 @@ const WelcomeScreen = React.memo(() => {
   const { setUser, user, getCompletionStatus } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [lastLoggedOutUserId, setLastLoggedOutUserId] = useState<string | null>(
-    null
-  );
+  const [isQuickLoginVisible, setIsQuickLoginVisible] = useState(false);
 
   // 🔍 בדיקה אם יש משתמש מחובר וניווט אוטומטי
   useEffect(() => {
@@ -248,7 +245,27 @@ const WelcomeScreen = React.memo(() => {
     }
   }, [user, getCompletionStatus, navigation]);
 
-  // 🔄 טעינת המשתמש שהתנתק לאחרונה מ-AsyncStorage
+  // � בדיקת זמינות Quick Login מבוסס Supabase session
+  useEffect(() => {
+    const checkQuickLoginAvailability = async () => {
+      try {
+        const available = await isQuickLoginAvailable();
+        setIsQuickLoginVisible(available);
+        if (__DEV__) {
+          logger.debug("WelcomeScreen", "Quick Login availability", available ? "Available" : "Not available");
+        }
+      } catch (error) {
+        if (__DEV__) {
+          logger.debug("WelcomeScreen", "Quick Login check failed", String(error));
+        }
+        setIsQuickLoginVisible(false);
+      }
+    };
+    
+    checkQuickLoginAvailability();
+  }, []);
+
+  // �🔄 טעינת המשתמש שהתנתק לאחרונה מ-AsyncStorage
   useEffect(() => {
     const loadLastLoggedOutUser = async () => {
       try {
@@ -256,7 +273,7 @@ const WelcomeScreen = React.memo(() => {
           StorageKeys.LAST_LOGGED_OUT_USER_ID
         );
         if (storedUserId) {
-          setLastLoggedOutUserId(storedUserId);
+          // מידע זה כבר לא נדרש - הוסר עם מעבר לquick login מבוסס session
         }
       } catch (error) {
         if (__DEV__)
@@ -291,156 +308,61 @@ const WelcomeScreen = React.memo(() => {
   // 🔧 Optimized Navigation Functions with Haptic Feedback
   const handleQuickLogin = useCallback(async () => {
     triggerHapticFeedback("medium"); // משוב בינוני להתחברות מהירה
+    
     try {
-      // שליפת משתמשים מ-Supabase - רק משתמשי דמו לבטיחות
-      const users = await userApi.list();
-      if (!users || users.length === 0) {
-        throw new Error(
-          "לא נמצאו משתמשים במסד הנתונים. ודא שיש משתמשים קיימים ב-Supabase."
-        );
-      }
-
-      // סינון רק למשתמשי דמו לצורך בטיחות
-      const demoUsers = users.filter(
-        (u) => "isDemo" in u && (u as { isDemo?: boolean }).isDemo === true
-      );
-      if (demoUsers.length === 0) {
-        setErrorMessage(
-          "אין משתמשי דמו זמינים. צור משתמש דמו קודם או השתמש בהרשמה רגילה."
-        );
-        setShowErrorModal(true);
-        return;
-      }
-
-      // קריאת המשתמש שהתנתק לאחרונה מ-AsyncStorage
-      const storedLastUserId = await AsyncStorage.getItem(
-        StorageKeys.LAST_LOGGED_OUT_USER_ID
-      );
-
-      // סינון המשתמש שהתנתק לאחרונה כדי לקבל משתמש שונה (רק מתוך דמו)
-      let availableUsers = demoUsers;
-      if (storedLastUserId || lastLoggedOutUserId) {
-        const excludeUserId = storedLastUserId || lastLoggedOutUserId;
-        availableUsers = demoUsers.filter((u) => u.id !== excludeUserId);
-        if (availableUsers.length === 0) {
-          // אם אין משתמשי דמו אחרים, קח את כל רשימת הדמו
-          availableUsers = demoUsers;
+      const result = await tryQuickLogin({ reason: "WelcomeScreen user action" });
+      
+      if (result.ok) {
+        if (__DEV__) {
+          logger.debug("WelcomeScreen", "Quick login successful", `userId: ${result.userId}`);
         }
-      }
-
-      const random =
-        availableUsers[Math.floor(Math.random() * availableUsers.length)];
-
-      if (__DEV__) {
-        logger.debug("QuickLogin: בחירת משתמש דמו", "user", {
-          totalUsers: users.length,
-          totalDemoUsers: demoUsers.length,
-          availableUsers: availableUsers.length,
-          excludedUserId: storedLastUserId || lastLoggedOutUserId,
-          selectedUserId: random.id,
-          selectedUserName: random.name,
-        });
-      }
-
-      // שמירת המזהה של המשתמש הנוכחי למקרה של logout עתידי
-      if (user?.id) {
-        setLastLoggedOutUserId(user.id);
-        await AsyncStorage.setItem(
-          StorageKeys.LAST_LOGGED_OUT_USER_ID,
-          user.id
-        );
-      }
-
-      // 1) הגדרת המשתמש האמיתי שנבחר
-      setUser(random);
-
-      // 2) בדיקה אם למשתמש יש כבר שאלון מלא
-      const answers = fieldMapper.getSmartAnswers(random);
-      const hasSmartQuestionnaire = Array.isArray(answers)
-        ? answers.length >= 10
-        : !!(answers && Object.keys(answers).length >= 10);
-
-      if (hasSmartQuestionnaire) {
-        // אם יש שאלון מלא - ישר לאפליקציה הראשית
-        if (__DEV__)
-          logger.debug(
-            "QuickLogin: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
-            "navigation"
-          );
 
         // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
         try {
           useUserStore.getState().initializeSubscription();
         } catch (e) {
           if (__DEV__) {
-            logger.error(
-              "initializeSubscription נכשל במהלך התחברות מהירה - main app",
-              "user",
-              e
-            );
+            logger.error("WelcomeScreen", "initializeSubscription failed during quick login", String(e));
           }
         }
 
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "MainApp" }],
-        });
+        // המשתמש כבר הוגדר ב-tryQuickLogin, ה-useEffect יטפל בניווט
+        // כי user state ישתנה ויפעיל את ה-useEffect שבודק completion status
+        
       } else {
-        // אם אין שאלון מלא - איפוס והעברה לשאלון
-        if (__DEV__)
-          logger.debug(
-            "QuickLogin: משתמש ללא שאלון מלא - מעבר לשאלון",
-            "navigation"
-          );
-
-        // איפוס כל נתוני השאלון (חדש/ישן) כדי להמשיך בדיוק כמו אחרי הרשמה
-        try {
-          useUserStore.getState().resetSmartQuestionnaire();
-        } catch (e) {
-          if (__DEV__) logger.error("resetSmartQuestionnaire נכשל", "user", e);
+        // כשלון בהתחברות מהירה - הצגת הודעה לא פולשנית
+        let errorMsg = "התחברות מהירה לא זמינה כרגע";
+        
+        switch (result.reason) {
+          case "NO_SESSION":
+            errorMsg = "לא נמצא חיבור פעיל. אנא התחבר/הירשם מחדש";
+            break;
+          case "REFRESH_FAILED":
+            errorMsg = "חיבור פג תוקף. אנא התחבר/הירשם מחדש";
+            break;
+          case "FETCH_USER_FAILED":
+            errorMsg = "שגיאה בטעינת נתוני משתמש. נסה שוב מאוחר יותר";
+            break;
         }
-        try {
-          useUserStore.getState().resetQuestionnaire?.();
-        } catch (e) {
-          if (__DEV__) logger.error("resetQuestionnaire נכשל", "user", e);
+        
+        setErrorMessage(errorMsg);
+        setShowErrorModal(true);
+        
+        // הסתרת כפתור Quick Login אם הסשן לא בר-תקנה
+        if (result.reason === "NO_SESSION" || result.reason === "REFRESH_FAILED") {
+          setIsQuickLoginVisible(false);
         }
-
-        // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
-        try {
-          useUserStore.getState().initializeSubscription();
-        } catch (e) {
-          if (__DEV__) {
-            logger.error(
-              "initializeSubscription נכשל במהלך התחברות מהירה - questionnaire",
-              "user",
-              e
-            );
-          }
-        }
-
-        // מעבר למסך השאלון כמו אחרי הרשמה
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Questionnaire" }],
-        });
       }
+      
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setErrorMessage(
-        `שגיאה בהתחברות מהירה: ${msg}.\nודא שהחיבור ל-Supabase תקין.`
-      );
+      if (__DEV__) {
+        logger.debug("WelcomeScreen", "Quick login unexpected error", msg);
+      }
+      setErrorMessage("שגיאה בהתחברות מהירה. נסה שוב מאוחר יותר");
       setShowErrorModal(true);
     }
-  }, [
-    triggerHapticFeedback,
-    setUser,
-    navigation,
-    setErrorMessage,
-    setShowErrorModal,
-    lastLoggedOutUserId,
-    user?.id,
-    setLastLoggedOutUserId,
-  ]);
+  }, [triggerHapticFeedback, setErrorMessage, setShowErrorModal, setIsQuickLoginVisible]);
 
   const handleRegister = useCallback(() => {
     triggerHapticFeedback("light"); // משוב קל לניווט להרשמה
@@ -601,20 +523,24 @@ const WelcomeScreen = React.memo(() => {
 
             {/* Alternative authentication methods group */}
             <View style={styles.authGroup}>
-              {/* כפתור התחברות מהירה למשתמש אמיתי ממאגר מקומי */}
-              <TouchableButton
-                style={styles.secondaryButton}
-                onPress={handleQuickLogin}
-                accessibilityLabel="התחברות מהירה למשתמש אמיתי"
-                accessibilityHint="התחברות מיידית למשתמש אמיתי עם נתונים אמיתיים"
-              >
-                <MaterialCommunityIcons
-                  name="account-check"
-                  size={18}
-                  color={theme.colors.success}
-                />
-                <Text style={styles.secondaryButtonText}>התחברות מהירה</Text>
-              </TouchableButton>
+              {/* כפתור התחברות מהירה מבוסס Supabase session - מוצג רק כשזמין */}
+              {isQuickLoginVisible && (
+                <TouchableButton
+                  style={styles.quickLoginButton}
+                  onPress={handleQuickLogin}
+                  accessibilityLabel="כניסה מהירה"
+                  accessibilityHint="כניסה מהירה עם חיבור קיים"
+                >
+                  <View testID="quick-login-btn">
+                    <MaterialCommunityIcons
+                      name="lightning-bolt"
+                      size={CONSTANTS.ICON_SIZES.SMALL}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.quickLoginButtonText}>כניסה מהירה</Text>
+                  </View>
+                </TouchableButton>
+              )}
 
               {/* כפתור התחברות מהירה לגוגל */}
               <TouchableButton
@@ -828,25 +754,30 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: theme.spacing.sm,
   },
-  secondaryButton: {
-    flexDirection: "row-reverse",
+
+  // Quick Login button styles - כפתור קטן מותאם לSession-based quick login
+  quickLoginButton: {
+    position: "absolute",
+    bottom: 80,
+    left: 20,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
     ...theme.shadows.small,
+    gap: theme.spacing.xs,
   },
-  secondaryButtonText: {
-    fontSize: theme.typography.button.fontSize,
+  quickLoginButtonText: {
+    fontSize: 12,
     color: theme.colors.primary,
     fontWeight: "500",
-    marginEnd: theme.spacing.xs,
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
+
   googleButton: {
     flexDirection: "row-reverse",
     alignItems: "center",

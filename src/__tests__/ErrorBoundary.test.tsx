@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Text } from "react-native";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { ErrorBoundary } from "../components/common/ErrorBoundary";
 import { errorHandler } from "../utils/errorHandler";
 
@@ -104,20 +104,14 @@ describe("ErrorBoundary", () => {
     expect(getByText(customMessage)).toBeTruthy();
   });
 
-  it("should reset error state when retry button is pressed", () => {
+  it("should reset error state when retry button is pressed", async () => {
+    let shouldThrow = true;
+
     const TestComponent: React.FC = () => {
-      const [shouldThrow, setShouldThrow] = React.useState(true);
-
-      React.useEffect(() => {
-        // אחרי רינדור ראשון, שנה למצב שלא זורק שגיאה
-        const timer = setTimeout(() => setShouldThrow(false), 100);
-        return () => clearTimeout(timer);
-      }, []);
-
       return <ThrowingComponent shouldThrow={shouldThrow} />;
     };
 
-    const { getByText, queryByTestId } = render(
+    const { getByText, queryByTestId, rerender } = render(
       <ErrorBoundary>
         <TestComponent />
       </ErrorBoundary>
@@ -126,14 +120,26 @@ describe("ErrorBoundary", () => {
     // בדיקה שהשגיאה מוצגת תחילה
     expect(getByText("משהו השתבש")).toBeTruthy();
 
+    // שנה את המצב לפני הלחיצה על retry
+    shouldThrow = false;
+
     // לחיצה על נסה שוב
     fireEvent.press(getByText("נסה שוב"));
 
+    // רינדור מחדש עם המצב החדש
+    rerender(
+      <ErrorBoundary>
+        <TestComponent />
+      </ErrorBoundary>
+    );
+
     // בדיקה שהקומפוננט חזר לפעולה
-    setTimeout(() => {
-      expect(queryByTestId("working-component")).toBeTruthy();
-      expect(queryByTestId("משהו השתבש")).toBeNull();
-    }, 150);
+    await waitFor(
+      () => {
+        expect(queryByTestId("working-component")).toBeTruthy();
+      },
+      { timeout: 500 }
+    );
   });
 
   it("should show error details in development mode", () => {

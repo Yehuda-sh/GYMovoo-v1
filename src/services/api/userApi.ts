@@ -77,6 +77,10 @@ export const userApi = {
     return selectSingleBy("email", email);
   },
 
+  getByAuthId: async (authId: string): Promise<User | undefined> => {
+    return selectSingleBy("auth_id", authId);
+  },
+
   create: async (
     user: Pick<User, "name" | "email"> & Partial<User>
   ): Promise<User> => {
