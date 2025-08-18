@@ -5,6 +5,7 @@
  * @version 1.0.0
  * @author GYMovoo Development Team
  * @created 2025-08-06
+ * @updated 2025-08-17 החלפת alert ב-ConfirmationModal, הוספת React.memo, החלפת console.debug בלוגים מותנים, מניעת כפילויות
  *
  * @description
  * מסך מפורט להצגת כל הפרטים על תרגיל ספציפי:
@@ -31,7 +32,7 @@
  * }
  */
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -44,6 +45,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
+
+const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISE_DETAILS === "1";
+const dlog = (m: string, data?: unknown) => {
+  if (DEBUG) console.warn(`🏋️ ExerciseDetailsScreen: ${m}`, data || "");
+};
 
 // Types
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -69,8 +76,10 @@ type ExerciseDetailsNavigationProp = StackNavigationProp<
   "ExerciseDetails"
 >;
 
-const ExerciseDetailsScreen: React.FC = () => {
+const ExerciseDetailsScreen: React.FC = React.memo(() => {
   const navigation = useNavigation<ExerciseDetailsNavigationProp>();
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   type ExerciseDetailsRouteProp = RouteProp<
     RootStackParamList,
     "ExerciseDetails"
@@ -81,10 +90,9 @@ const ExerciseDetailsScreen: React.FC = () => {
     (route.params as ExerciseDetailsScreenParams) || {};
 
   // דיבוג לעזרה בפתרון בעיות
-  if (__DEV__) {
+  if (DEBUG) {
     // לוג דיבוג מפורט רק בזמן פיתוח
-    // eslint-disable-next-line no-console
-    console.debug("🔍 ExerciseDetailsScreen Debug:", {
+    dlog("Debug info", {
       exerciseId,
       exerciseName,
       muscleGroup,
@@ -212,11 +220,11 @@ const ExerciseDetailsScreen: React.FC = () => {
 
   // פעולות משוב
   const handleJoinCommunity = useCallback(() => {
-    alert("בקרוב ניתן יהיה להצטרף לקהילה ולהשפיע על פיתוח התרגיל");
+    setShowCommunityModal(true);
   }, []);
 
   const handleReportIssue = useCallback(() => {
-    alert("תודה! נפתח ערוץ לדיווח בעיות ושיפורים בקרוב");
+    setShowReportModal(true);
   }, []);
 
   // בדיקה אם יש מידע בסיסי לתצוגה
@@ -532,8 +540,47 @@ const ExerciseDetailsScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Community Modal */}
+      <ConfirmationModal
+        visible={showCommunityModal}
+        onClose={() => setShowCommunityModal(false)}
+        onConfirm={() => setShowCommunityModal(false)}
+        title="הצטרפות לקהילה"
+        message="בקרוב ניתן יהיה להצטרף לקהילה ולהשפיע על פיתוח התרגיל"
+        variant="info"
+        singleButton={true}
+        confirmText="הבנתי"
+      />
+
+      {/* Report Modal */}
+      <ConfirmationModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onConfirm={() => setShowReportModal(false)}
+        title="דיווח בעיות"
+        message="תודה! נפתח ערוץ לדיווח בעיות ושיפורים בקרוב"
+        variant="success"
+        singleButton={true}
+        confirmText="נהדר"
+      />
     </SafeAreaView>
   );
+});
+
+// Constants to prevent duplications
+const CONSTANTS = {
+  IMAGE_SIZE: 200,
+  FONT_SIZES: {
+    title: 20,
+    subtitle: 16,
+    body: 14,
+    small: 12,
+  },
+  RTL_WRITING: "rtl" as const,
+  BORDER_STYLES: {
+    dashed: "dashed" as const,
+  },
 };
 
 const styles = StyleSheet.create({
@@ -556,18 +603,18 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.md,
   },
   exerciseTitle: {
-    fontSize: 20,
+    fontSize: CONSTANTS.FONT_SIZES.title,
     fontWeight: "bold",
     color: theme.colors.text,
     textAlign: "center",
     marginBottom: theme.spacing.xs,
-    writingDirection: "rtl", // ✅ RTL support
+    writingDirection: CONSTANTS.RTL_WRITING, // ✅ RTL support
   },
   muscleGroupText: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    writingDirection: "rtl", // ✅ RTL support
+    writingDirection: CONSTANTS.RTL_WRITING, // ✅ RTL support
   },
   headerActions: {
     flexDirection: "row-reverse",
@@ -589,21 +636,21 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.lg,
   },
   imagePlaceholder: {
-    width: 200,
-    height: 200,
+    width: CONSTANTS.IMAGE_SIZE,
+    height: CONSTANTS.IMAGE_SIZE,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: theme.colors.border,
-    borderStyle: "dashed",
+    borderStyle: CONSTANTS.BORDER_STYLES.dashed,
   },
   imagePlaceholderText: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
-    writingDirection: "rtl", // ✅ RTL support
+    writingDirection: CONSTANTS.RTL_WRITING, // ✅ RTL support
   },
   infoContainer: {
     backgroundColor: theme.colors.card,
@@ -657,7 +704,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
   },
   listNumber: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     fontWeight: "bold",
     color: theme.colors.primary,
     marginLeft: theme.spacing.sm,
@@ -665,13 +712,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   listText: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     color: theme.colors.text,
     flex: 1,
     textAlign: "right",
     lineHeight: 20,
     marginLeft: theme.spacing.sm,
-    writingDirection: "rtl", // ✅ RTL support
+    writingDirection: CONSTANTS.RTL_WRITING, // ✅ RTL support
   },
   bottomActions: {
     padding: theme.spacing.md,
@@ -823,5 +870,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl", // ✅ RTL support
   },
 });
+
+ExerciseDetailsScreen.displayName = "ExerciseDetailsScreen";
 
 export default ExerciseDetailsScreen;

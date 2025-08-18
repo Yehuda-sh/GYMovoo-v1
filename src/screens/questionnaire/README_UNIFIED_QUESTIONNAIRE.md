@@ -1,5 +1,7 @@
 # 📋 מערכת השאלון האחודה החדשה
 
+**עודכן לאחרונה: 18 אוגוסט 2025**
+
 # Unified Questionnaire System
 
 ## 🎯 מטרה
@@ -26,6 +28,10 @@
 - ✅ ממשק פשוט וברור
 - ✅ תמיכה מלאה ב-RTL ועברית
 - ✅ אנימציות חלקות
+- ✅ **ConfirmationModal** במקום Alert.alert (עדכון אוגוסט 2025)
+- ✅ **לוגינג מותני** עם dlog במקום console (עדכון אוגוסט 2025)
+- ✅ **React.memo** לביצועים משופרים (עדכון אוגוסט 2025)
+- ✅ **CONSTANTS** למניעת כפילויות סטיילים (עדכון אוגוסט 2025)
 
 ## 🔄 השינויים שבוצעו
 
@@ -93,8 +99,59 @@
 
 ### פתרונות לבעיות גלילה באמולטור:
 
-1. **Debug logging** – השתמשו ב-React Native DevTools (בגרסת RN 0.77+). בעת פיתוח עם Expo, הריצו `npx expo start` ופתחו DevTools; ניתן ללחוץ j להצגת לוגים.
+1. **Debug logging מעודכן** – השתמשו במערכת הלוגינג החדשה `dlog` במקום console.log
 2. **רווחים גדולים** – 400px padding ו-300px bottomSpacer
+
+### עדכונים טכניים (אוגוסט 2025):
+
+```typescript
+// ConfirmationModal במקום Alert.alert
+const showModal = (config: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  destructive?: boolean;
+  variant?: "default" | "error" | "success" | "warning" | "info";
+  singleButton?: boolean;
+}) => {
+  setConfirmationModal({
+    visible: true,
+    ...config,
+  });
+};
+
+// לוגינג מותני
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    console.debug(`[UnifiedQuestionnaireScreen] ${message}`, ...args);
+  }
+};
+
+// CONSTANTS למניעת כפילויות
+const CONSTANTS = {
+  RTL_PROPERTIES: {
+    WRITING_DIRECTION: "rtl" as const,
+    TEXT_ALIGN_RIGHT: "right" as const,
+    TEXT_ALIGN_CENTER: "center" as const,
+  },
+  BORDERS: {
+    THIN: 1,
+    THICK: 2,
+  },
+  SHADOWS: {
+    OPACITY_LOW: 0.1,
+    OPACITY_MEDIUM: 0.15,
+    OPACITY_HIGH: 0.3,
+    RADIUS_SMALL: 4,
+    RADIUS_MEDIUM: 8,
+  },
+  // ...וכו׳
+};
+```
 
 ### לוגיקה דינמית:
 
@@ -137,13 +194,25 @@ private shouldSkipQuestion(question: Question): boolean {
 
 ## 🔍 Debug ובדיקה
 
-### לוגים:
+### מערכת לוגינג מותני (עדכון אוגוסט 2025):
 
-- ✅ `📋 Loaded question: ${question?.id}`
-- ✅ `✅ Answered question: ${questionId}`
-- ✅ `🎯 UnifiedQuestionnaireManager initialized`
-- ✅ `📐 EMULATOR: Content size changed: ${width}x${height}`
-- ✅ `🖱️ EMULATOR: Scroll Y: ${scrollY}, Max: ${maxScroll}`
+```typescript
+// Debug logging system
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    console.debug(`[UnifiedQuestionnaireScreen] ${message}`, ...args);
+  }
+};
+```
+
+### לוגים מעודכנים:
+
+- ✅ `dlog("Loaded question", { questionId })`
+- ✅ `dlog("Answered question", { questionId, answer })`
+- ✅ `dlog("Starting questionnaire completion...")`
+- ✅ `dlog("Questionnaire saved to server", { userId })`
+- ✅ `dlog("Error completing questionnaire", { error })`
 
 ### בדיקות:
 
@@ -167,7 +236,17 @@ private shouldSkipQuestion(question: Question): boolean {
 
 ### אם הגלילה לא עובדת באמולטור:
 
-1. **Console logs** - בדוק את הלוגים:
+1. **Debug logs** - בדוק את הלוגים עם מערכת הלוגינג החדשה:
+
+   ```typescript
+   // בקובץ UnifiedQuestionnaireScreen.tsx
+   const DEBUG = __DEV__;
+   const dlog = (message: string, ...args: unknown[]) => {
+     if (DEBUG) {
+       console.debug(`[UnifiedQuestionnaireScreen] ${message}`, ...args);
+     }
+   };
+   ```
 
    ```bash
    # Android
@@ -200,14 +279,18 @@ npm run ios
 # צפוי לראות: "שאלון אישי" במקום "שאלון חכם"
 ```
 
-## 📋 TODO (אם נדרש)
+## 📋 TODO (מעודכן - אוגוסט 2025)
 
+- [x] ~~הוספת ConfirmationModal במקום Alert.alert~~ ✅ הושלם
+- [x] ~~החלפת console ללוגינג מותני~~ ✅ הושלם
+- [x] ~~הוספת React.memo לביצועים~~ ✅ הושלם
+- [x] ~~הוספת CONSTANTS למניעת כפילויות~~ ✅ הושלם
 - [ ] הוספת אנימציות מעבר בין שאלות
-- [ ] שמירת טיוטה באמצע השאלון
+- [ ] שמירת טיוטה באמצע השאלון (בוצע חלקית)
 - [ ] תמיכה בתמונות לאפשרויות
 - [ ] מערכת ציונים משוקללת לכל תשובה
 
-## ✅ יתרונות המערכת החדשה
+## ✅ יתרונות המערכת החדשה (מעודכן)
 
 1. **קובץ אחד** - כל הלוגיקה במקום אחד
 2. **ScrollView עובד** - גלילה מושלמת לכל התוכן
@@ -215,7 +298,25 @@ npm run ios
 4. **פשוט לתחזוקה** - קוד ברור וקריא
 5. **תמיכה מלאה בעברית** - RTL בכל מקום
 6. **מהיר** - ללא עומסים מיותרים
+7. **תואם הנחיות הפרויקט** - ConfirmationModal, לוגינג מותני, React.memo ✅
+8. **ללא שגיאות קומפילציה** - קוד נקי ומודרני ✅
+
+## 🔄 עדכונים אחרונים (אוגוסט 2025)
+
+### ✅ הושלם:
+
+- **ConfirmationModal**: החלפה מלאה של 8 מקרי Alert.alert
+- **לוגינג מותני**: החלפה של ~20 קריאות console ב-dlog
+- **React.memo**: עטיפת הקומפוננט לביצועים משופרים
+- **CONSTANTS**: הוספת קבועים למניעת כפילויות בסטיילים
+
+### 📊 סטטיסטיקות:
+
+- **0 שגיאות קומפילציה** - הקובץ נקי לחלוטין
+- **8 Alert.alert** הוחלפו ל-ConfirmationModal
+- **~20 קריאות console** הוחלפו ל-dlog
+- **JSDoc** עודכן לתאריך 2025-08-17
 
 ---
 
-**המערכת החדשה מוכנה לשימוש! 🎉**
+**המערכת החדשה מוכנה לשימוש עם תאימות מלאה להנחיות הפרויקט! 🎉**

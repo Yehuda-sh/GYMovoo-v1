@@ -1,10 +1,11 @@
 /**
  * @file src/screens/history/HistoryScreen.tsx
  * @brief מסך היסטוריית אימונים פשוט - שליפת נתונים מוכנים ממנהל מרכזי
- * @brief Simple workout history screen - fetches ready data from central manager
+ * @description מציג היסטוריית אימונים עם סטטיסטיקות, תמיכה ב-RTL ואנימציות
  * @dependencies theme, dataManager, MaterialCommunityIcons, workoutHelpers
  * @notes תמיכה מלאה RTL, נתונים מוכנים מראש, ללא לוגיקה מורכבת
- * @updated 2025-08-10 פישוט מהותי - שליפת נתונים פשוטה ממנהל מרכזי
+ * @created 2025-01-XX
+ * @updated 2025-08-17 החלפת console calls בלוגינג מותני, הוספת React.memo, הוספת CONSTANTS למניעת כפילויות
  */
 
 import React, {
@@ -48,7 +49,39 @@ import {
   formatDifficultyScore,
 } from "./utils/historyHelpers";
 
-export default function HistoryScreen() {
+// Debug logging system
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.debug(`[HistoryScreen] ${message}`, ...args);
+  }
+};
+
+// Constants to prevent duplications
+const CONSTANTS = {
+  RTL_PROPERTIES: {
+    WRITING_DIRECTION: "rtl" as const,
+    TEXT_ALIGN_RIGHT: "right" as const,
+    TEXT_ALIGN_CENTER: "center" as const,
+  },
+  ANIMATIONS: {
+    FADE_INITIAL: 0,
+    FADE_FINAL: 1,
+    SLIDE_INITIAL: 50,
+    SLIDE_FINAL: 0,
+  },
+  TIMING: {
+    MINUTES_CONVERTER: 60,
+  },
+  BORDERS: {
+    CONGRATULATION_WIDTH: 4,
+    CARD_WIDTH: 0.5,
+    STATS_WIDTH: 0,
+  },
+};
+
+const HistoryScreen: React.FC = React.memo(() => {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
   const [statistics, setStatistics] = useState<WorkoutStatistics | null>(null);
   const [congratulationMessage, setCongratulationMessage] = useState<
@@ -64,8 +97,12 @@ export default function HistoryScreen() {
   const ITEMS_PER_PAGE = HISTORY_SCREEN_CONFIG.ITEMS_PER_PAGE;
 
   // אנימציות
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const fadeAnim = useRef(
+    new Animated.Value(CONSTANTS.ANIMATIONS.FADE_INITIAL)
+  ).current;
+  const slideAnim = useRef(
+    new Animated.Value(CONSTANTS.ANIMATIONS.SLIDE_INITIAL)
+  ).current;
 
   /**
    * טעינת נתונים מהמנהל המרכזי
@@ -80,12 +117,10 @@ export default function HistoryScreen() {
         // וודא שהמנהל מאותחל
         if (!dataManager.isReady()) {
           if (user) {
-            console.warn("📊 HistoryScreen: Initializing data manager...");
+            dlog("Initializing data manager...");
             await dataManager.initialize(user);
           } else {
-            console.warn(
-              "⚠️ HistoryScreen: No user available for initialization"
-            );
+            dlog("No user available for initialization");
             return;
           }
         }
@@ -105,11 +140,9 @@ export default function HistoryScreen() {
         setCurrentPage(1);
         setHasMoreData(allWorkouts.length > ITEMS_PER_PAGE);
 
-        console.warn(
-          `✅ HistoryScreen: Loaded ${initialData.length}/${allWorkouts.length} workouts`
-        );
+        dlog(`Loaded ${initialData.length}/${allWorkouts.length} workouts`);
       } catch (error) {
-        console.error("❌ HistoryScreen: Failed to load data", error);
+        dlog("Failed to load data", { error });
       } finally {
         if (!options?.silent) {
           setLoading(false);
@@ -139,7 +172,7 @@ export default function HistoryScreen() {
         setHasMoreData(false);
       }
     } catch (error) {
-      console.error("❌ HistoryScreen: Failed to load more data", error);
+      dlog("Failed to load more data", { error });
     }
   }, [currentPage, ITEMS_PER_PAGE, hasMoreData, loading, refreshing]);
 
@@ -151,11 +184,11 @@ export default function HistoryScreen() {
 
     setRefreshing(true);
     try {
-      console.warn("🔄 HistoryScreen: Refreshing data...");
+      dlog("Refreshing data...");
       await dataManager.refresh(user);
       await loadData({ silent: true });
     } catch (error) {
-      console.error("❌ HistoryScreen: Refresh failed", error);
+      dlog("Refresh failed", { error });
     } finally {
       setRefreshing(false);
     }
@@ -171,12 +204,12 @@ export default function HistoryScreen() {
       // אנימציית כניסה
       Animated.parallel([
         Animated.timing(fadeAnim, {
-          toValue: 1,
+          toValue: CONSTANTS.ANIMATIONS.FADE_FINAL,
           duration: HISTORY_SCREEN_CONFIG.ANIMATION_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: 0,
+          toValue: CONSTANTS.ANIMATIONS.SLIDE_FINAL,
           duration: HISTORY_SCREEN_CONFIG.ANIMATION_DURATION,
           useNativeDriver: true,
         }),
@@ -377,7 +410,11 @@ export default function HistoryScreen() {
                 color={theme.colors.textSecondary}
               />
               <Text style={styles.statText}>
-                {Math.round((item.stats.duration || 0) / 60)} דקות
+                {Math.round(
+                  (item.stats.duration || 0) /
+                    CONSTANTS.TIMING.MINUTES_CONVERTER
+                )}{" "}
+                דקות
               </Text>
             </View>
 
@@ -614,7 +651,11 @@ export default function HistoryScreen() {
       </Animated.View>
     </SafeAreaView>
   );
-}
+});
+
+HistoryScreen.displayName = "HistoryScreen";
+
+export default HistoryScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -652,7 +693,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "600",
     marginEnd: theme.spacing.sm,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   congratulationCard: {
     backgroundColor: theme.colors.primary + "10",
@@ -662,7 +703,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     flexDirection: "row-reverse",
     alignItems: "center",
-    borderLeftWidth: 4,
+    borderLeftWidth: CONSTANTS.BORDERS.CONGRATULATION_WIDTH,
     borderLeftColor: theme.colors.primary,
   },
   congratulationText: {
@@ -671,7 +712,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginEnd: theme.spacing.sm,
     flex: 1,
-    textAlign: "right",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
   },
   statisticsCard: {
     backgroundColor: theme.colors.card,
@@ -688,8 +729,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "center",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   statsGrid: {
     flexDirection: "row-reverse",
@@ -708,14 +749,14 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
-    textAlign: "center",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   sectionTitle: {
     fontSize: theme.typography.h3.fontSize,
     fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "right",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
   },
   sectionTitleContainer: {
     flexDirection: "row-reverse",
@@ -737,7 +778,7 @@ const styles = StyleSheet.create({
   loadMoreHint: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
     fontStyle: "italic",
     marginBottom: theme.spacing.md,
   },
@@ -748,7 +789,7 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.sm,
     marginHorizontal: theme.spacing.md,
     ...theme.shadows.small,
-    borderWidth: 0.5,
+    borderWidth: CONSTANTS.BORDERS.CARD_WIDTH,
     borderColor: theme.colors.textSecondary + "15",
   },
   workoutHeader: {
@@ -765,12 +806,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     flex: 1,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   workoutDate: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   dateTimeRow: {
     flexDirection: "row-reverse",
@@ -791,7 +832,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background + "40",
     borderRadius: theme.radius.sm,
     flexWrap: "wrap",
-    borderWidth: 0,
+    borderWidth: CONSTANTS.BORDERS.STATS_WIDTH,
   },
   statItem: {
     flexDirection: "row-reverse",
@@ -802,7 +843,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginEnd: theme.spacing.xs,
-    textAlign: "right",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
     fontWeight: "500",
   },
   workoutFeedback: {
@@ -819,18 +860,18 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
   },
   feedbackValue: {
     fontSize: theme.typography.h4.fontSize,
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
   },
   congratulationInCard: {
     backgroundColor: theme.colors.primary + "08",
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
-    borderLeftWidth: 4,
+    borderLeftWidth: CONSTANTS.BORDERS.CONGRATULATION_WIDTH,
     borderLeftColor: theme.colors.primary,
     marginHorizontal: theme.spacing.xs,
   },
@@ -853,6 +894,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
   },
 });

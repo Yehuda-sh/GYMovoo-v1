@@ -2,10 +2,10 @@
  * @file src/screens/exercise/ExerciseDetailsModal.tsx
  * @description מודל להצגת פרטי תרגיל מלאים - תמונה, שרירים, ותיאור
  * English: Modal for displaying full exercise details - image, muscles, and description
- * @dependencies Exercise type, theme, Animated
+ * @dependencies Exercise type, theme, Animated, BackButton
  * @notes כולל ניקוי HTML מתיאורים, RTL מלא, עיצוב מותאם למסכי Workout, אנימציות מתקדמות
  * @recurring_errors וודא שכל הטקסטים מיושרים לימין, שמות שרירים באנגלית, השתמש ב-theme בלבד
- * @updated 2025-07-30 שיפור אנימציות, הוספת gesture לסגירה, שיפור חווית משתמש
+ * @updated 2025-08-17 החלפת TouchableOpacity ב-BackButton, הסרת כפילות בכפתורי סגירה, התאמה להנחיות מאוחדות
  */
 
 import React, { useState, useRef, useMemo } from "react";
@@ -15,7 +15,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Animated,
   ActivityIndicator,
   Pressable,
@@ -23,6 +22,7 @@ import {
 import { Exercise } from "../../data/exercises";
 import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import BackButton from "../../components/common/BackButton";
 
 type Props = {
   exercise: Exercise;
@@ -158,17 +158,12 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
         <Pressable onPress={() => {}} style={styles.flexOne}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.closeButton}
+            <BackButton
+              absolute={false}
               onPress={handleClose}
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="סגור מודל פרטי תרגיל"
-              accessibilityHint="לחץ כדי לסגור את חלון פרטי התרגיל"
-            >
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
+              variant="minimal"
+              style={styles.backButton}
+            />
             <Text style={styles.headerTitle}>פרטי תרגיל</Text>
             <View style={styles.spacer40} />
           </View>
@@ -350,19 +345,6 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
                 </View>
               </View>
             )}
-
-            {/* כפתור סגירה תחתון // Bottom close button */}
-            <TouchableOpacity
-              style={styles.bottomCloseButton}
-              onPress={handleClose}
-              activeOpacity={0.8}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="סגור"
-              accessibilityHint="לחץ כדי לסגור את חלון פרטי התרגיל"
-            >
-              <Text style={styles.bottomCloseText}>סגור</Text>
-            </TouchableOpacity>
           </ScrollView>
         </Pressable>
       </Animated.View>
@@ -399,7 +381,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.divider,
     backgroundColor: theme.colors.card,
   },
-  closeButton: {
+  backButton: {
     padding: 8,
     borderRadius: 20,
     backgroundColor: theme.colors.background,
@@ -538,20 +520,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "right",
     writingDirection: "rtl",
-  },
-  bottomCloseButton: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  bottomCloseText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
   },
   imageLoadingContainer: {
     position: "absolute",

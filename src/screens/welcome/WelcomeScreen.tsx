@@ -53,7 +53,7 @@
  * - WELCOME_SCREEN_TEXTS: Localized text constants
  *
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, userApi (Supabase)
- * @updated 2025-08-15 Updated Supabase integration and cleaned up legacy localDataService references
+ * @updated 2025-08-18 הוספת React.memo, CONSTANTS למניעת כפילויות, עדכון JSDoc
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -87,6 +87,30 @@ import {
   formatActiveUsersText,
 } from "../../constants/welcomeScreenTexts";
 
+// Constants to prevent duplications
+const CONSTANTS = {
+  RTL_PROPERTIES: {
+    WRITING_DIRECTION: "rtl" as const,
+    TEXT_ALIGN_CENTER: "center" as const,
+  },
+  ICON_SIZES: {
+    SMALL: 16,
+    MEDIUM: 18,
+    MEDIUM_LARGE: 20,
+    LARGE: 22,
+    EXTRA_LARGE: 28,
+    LOGO: 80,
+  },
+  HIT_SLOP: {
+    TOP: 20,
+    BOTTOM: 20,
+    LEFT: 20,
+    RIGHT: 20,
+  },
+  MIN_TOUCH_TARGET: 44,
+  PERFORMANCE_THRESHOLD: 100,
+};
+
 // Helper function was removed - inline logic used instead for better performance optimization
 
 // Enhanced TouchableButton props interface with comprehensive accessibility support
@@ -111,11 +135,16 @@ const TouchableButton = ({
   accessibilityHint,
 }: TouchableButtonProps) => {
   // 📱 Fitness Mobile Optimization: Enlarged hitSlop for workout scenarios
-  const enhancedHitSlop = { top: 20, bottom: 20, left: 20, right: 20 };
+  const enhancedHitSlop = {
+    top: CONSTANTS.HIT_SLOP.TOP,
+    bottom: CONSTANTS.HIT_SLOP.BOTTOM,
+    left: CONSTANTS.HIT_SLOP.LEFT,
+    right: CONSTANTS.HIT_SLOP.RIGHT,
+  };
 
   // 📏 44px Minimum Touch Target Validation for Accessibility
   const buttonStyle = Array.isArray(style) ? StyleSheet.flatten(style) : style;
-  const minTouchTarget = 44;
+  const minTouchTarget = CONSTANTS.MIN_TOUCH_TARGET;
 
   // Native feedback for Android, fallback for iOS
   if (Platform.OS === "android") {
@@ -162,13 +191,13 @@ const TouchableButton = ({
   );
 };
 
-export default function WelcomeScreen() {
+const WelcomeScreen = React.memo(() => {
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => performance.now(), []);
 
   useEffect(() => {
     const renderTime = performance.now() - renderStartTime;
-    if (renderTime > 100) {
+    if (renderTime > CONSTANTS.PERFORMANCE_THRESHOLD) {
       logger.warn("WelcomeScreen רינדור איטי", "performance", {
         renderTime: renderTime.toFixed(2) + "ms",
       });
@@ -272,7 +301,9 @@ export default function WelcomeScreen() {
       }
 
       // סינון רק למשתמשי דמו לצורך בטיחות
-      const demoUsers = users.filter((u) => u.isDemo === true);
+      const demoUsers = users.filter(
+        (u) => "isDemo" in u && (u as { isDemo?: boolean }).isDemo === true
+      );
       if (demoUsers.length === 0) {
         setErrorMessage(
           "אין משתמשי דמו זמינים. צור משתמש דמו קודם או השתמש בהרשמה רגילה."
@@ -447,7 +478,7 @@ export default function WelcomeScreen() {
             <View style={styles.logoWrapper}>
               <MaterialCommunityIcons
                 name="weight-lifter"
-                size={80}
+                size={CONSTANTS.ICON_SIZES.LOGO}
                 color={theme.colors.primary}
               />
             </View>
@@ -474,7 +505,7 @@ export default function WelcomeScreen() {
               <View style={styles.feature}>
                 <MaterialCommunityIcons
                   name="bullseye-arrow"
-                  size={28}
+                  size={CONSTANTS.ICON_SIZES.EXTRA_LARGE}
                   color={theme.colors.primary}
                 />
                 <Text style={styles.featureText}>
@@ -484,7 +515,7 @@ export default function WelcomeScreen() {
               <View style={styles.feature}>
                 <MaterialCommunityIcons
                   name="trending-up"
-                  size={28}
+                  size={CONSTANTS.ICON_SIZES.EXTRA_LARGE}
                   color={theme.colors.primary}
                 />
                 <Text style={styles.featureText}>
@@ -496,7 +527,7 @@ export default function WelcomeScreen() {
               <View style={styles.feature}>
                 <MaterialCommunityIcons
                   name="lightning-bolt"
-                  size={28}
+                  size={CONSTANTS.ICON_SIZES.EXTRA_LARGE}
                   color={theme.colors.primary}
                 />
                 <Text style={styles.featureText}>
@@ -506,7 +537,7 @@ export default function WelcomeScreen() {
               <View style={styles.feature}>
                 <MaterialCommunityIcons
                   name="account-group"
-                  size={28}
+                  size={CONSTANTS.ICON_SIZES.EXTRA_LARGE}
                   color={theme.colors.primary}
                 />
                 <Text style={styles.featureText}>
@@ -640,7 +671,11 @@ export default function WelcomeScreen() {
       </LinearGradient>
     </SafeAreaView>
   );
-}
+});
+
+WelcomeScreen.displayName = "WelcomeScreen";
+
+export default WelcomeScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -670,13 +705,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   tagline: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Live activity indicator section // מדור מחוון פעילות חי
@@ -698,7 +733,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.bodySmall.fontSize,
     color: theme.colors.text,
     fontWeight: "500",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   // Features showcase section // מדור הצגת תכונות
   featuresContainer: {
@@ -719,7 +754,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
     fontWeight: "500",
   },
 
@@ -748,7 +783,7 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     marginStart: theme.spacing.xs,
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Promotional elements // אלמנטים קידומיים
@@ -766,7 +801,7 @@ const styles = StyleSheet.create({
     color: theme.colors.warning,
     marginEnd: theme.spacing.xs,
     fontWeight: "500",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Content separators // מפרידי תוכן
@@ -810,7 +845,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "500",
     marginEnd: theme.spacing.xs,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   googleButton: {
     flexDirection: "row-reverse",
@@ -829,7 +864,7 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontWeight: "500",
     marginEnd: theme.spacing.xs,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Development tools styles // סטיילים לכלי פיתוח

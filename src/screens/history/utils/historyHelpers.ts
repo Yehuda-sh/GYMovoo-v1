@@ -1,7 +1,11 @@
 /**
- * @fileoverview פונקציות עזר מותאמות עבור מסך היסטוריית אימונים
+ * @file src/screens/history/utils/historyHelpers.ts
+ * @brief פונקציות עזר מותאמות עבור מסך היסטוריית אימונים
+ * @description מספק פונקציות utility לעיבוד נתונים, עיצוב תאריכים ותצוגה של נתוני אימונים
  * @version 2025.1
  * @author GYMovoo Development Team
+ * @created 2025-01-XX
+ * @updated 2025-08-17 החלפת console calls בלוגינג מותני, הוספת CONSTANTS למניעת כפילויות
  */
 
 import {
@@ -9,6 +13,41 @@ import {
   HISTORY_SCREEN_FORMATS,
 } from "../../../constants/historyScreenConfig";
 import { HISTORY_SCREEN_ICONS } from "../../../constants/historyScreenTexts";
+
+// Debug logging system
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.debug(`[HistoryHelpers] ${message}`, ...args);
+  }
+};
+
+// Constants to prevent duplications
+const CONSTANTS = {
+  TIME_INTERVALS: {
+    MILLISECONDS_PER_DAY: 1000 * 60 * 60 * 24,
+    DAYS_IN_WEEK: 7,
+    DAYS_IN_MONTH: 30,
+    DAYS_IN_YEAR: 365,
+  },
+  DATE_RANGES: {
+    TODAY: 0,
+    YESTERDAY: 1,
+    WEEK_THRESHOLD: 7,
+    MONTH_THRESHOLD: 30,
+    YEAR_THRESHOLD: 365,
+  },
+  VALIDATION: {
+    MIN_VALUE: 0,
+    INVALID_TIMESTAMP: 0,
+    DECIMAL_PRECISION: 10,
+  },
+  MATH: {
+    HALF_STAR_THRESHOLD: 0.5,
+    PERCENTAGE_MAX: 100,
+  },
+};
 
 /**
  * מחזיר אייקון מתאים למגדר המשתמש
@@ -38,7 +77,8 @@ export const getDifficultyStars = (difficulty: number): string => {
   );
 
   const fullStars = Math.floor(clampedDifficulty);
-  const hasHalfStar = clampedDifficulty % 1 >= 0.5;
+  const hasHalfStar =
+    clampedDifficulty % 1 >= CONSTANTS.MATH.HALF_STAR_THRESHOLD;
 
   let stars = "⭐".repeat(fullStars);
   if (hasHalfStar && fullStars < HISTORY_SCREEN_CONFIG.MAX_DIFFICULTY) {
@@ -133,17 +173,23 @@ export const formatDateHebrew = (
     }
 
     // בדיקה שהתאריך תקין
-    if (!date || isNaN(date.getTime()) || date.getTime() <= 0) {
-      console.warn("Invalid date provided:", dateInput);
+    if (
+      !date ||
+      isNaN(date.getTime()) ||
+      date.getTime() <= CONSTANTS.VALIDATION.INVALID_TIMESTAMP
+    ) {
+      dlog("Invalid date provided", { dateInput });
       return "תאריך לא תקין";
     }
 
     const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(
+      diffTime / CONSTANTS.TIME_INTERVALS.MILLISECONDS_PER_DAY
+    );
 
     // תאריך עתידי - זה לא אמור לקרות באימונים
-    if (diffDays < 0) {
-      console.warn("Future date found in workout history:", dateInput);
+    if (diffDays < CONSTANTS.VALIDATION.MIN_VALUE) {
+      dlog("Future date found in workout history", { dateInput });
       // נציג את התאריך המלא במקום "מחר"
       return date.toLocaleDateString("he-IL", {
         day: "numeric",
@@ -153,17 +199,21 @@ export const formatDateHebrew = (
     }
 
     // תאריכים קרובים
-    if (diffDays === 0) {
+    if (diffDays === CONSTANTS.DATE_RANGES.TODAY) {
       return "היום";
-    } else if (diffDays === 1) {
+    } else if (diffDays === CONSTANTS.DATE_RANGES.YESTERDAY) {
       return "אתמול";
-    } else if (diffDays < 7) {
+    } else if (diffDays < CONSTANTS.DATE_RANGES.WEEK_THRESHOLD) {
       return `לפני ${diffDays} ימים`;
-    } else if (diffDays < 30) {
-      const weeks = Math.floor(diffDays / 7);
+    } else if (diffDays < CONSTANTS.DATE_RANGES.MONTH_THRESHOLD) {
+      const weeks = Math.floor(
+        diffDays / CONSTANTS.TIME_INTERVALS.DAYS_IN_WEEK
+      );
       return `לפני ${weeks} שבוע${weeks > 1 ? "ות" : ""}`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
+    } else if (diffDays < CONSTANTS.DATE_RANGES.YEAR_THRESHOLD) {
+      const months = Math.floor(
+        diffDays / CONSTANTS.TIME_INTERVALS.DAYS_IN_MONTH
+      );
       return `לפני ${months} חודש${months > 1 ? "ים" : ""}`;
     } else {
       // תצוגת תאריך מלא לתאריכים ישנים
@@ -174,12 +224,7 @@ export const formatDateHebrew = (
       });
     }
   } catch (error) {
-    console.error(
-      "Error formatting date:",
-      error,
-      "Original input:",
-      dateInput
-    );
+    dlog("Error formatting date", { error, originalInput: dateInput });
     return "תאריך לא זמין";
   }
 };
@@ -191,9 +236,10 @@ export const calculateProgressPercentage = (
   current: number,
   total: number
 ): number => {
-  const safeCurrent = Math.max(0, current);
-  const safeTotal = Math.max(0, total);
-  if (safeTotal === 0) return 0;
+  const safeCurrent = Math.max(CONSTANTS.VALIDATION.MIN_VALUE, current);
+  const safeTotal = Math.max(CONSTANTS.VALIDATION.MIN_VALUE, total);
+  if (safeTotal === CONSTANTS.VALIDATION.MIN_VALUE)
+    return CONSTANTS.VALIDATION.MIN_VALUE;
   return Math.min(
     HISTORY_SCREEN_FORMATS.PERCENTAGE_MULTIPLIER,
     Math.round(
@@ -206,7 +252,7 @@ export const calculateProgressPercentage = (
  * יוצר טקסט התקדמות
  */
 export const formatProgressText = (loaded: number, total: number): string => {
-  if (total <= 0) {
+  if (total <= CONSTANTS.VALIDATION.MIN_VALUE) {
     return HISTORY_SCREEN_FORMATS.PROGRESS_TEMPLATE.replace("{loaded}", "0")
       .replace("{total}", "0")
       .replace("{percentage}", "0");
@@ -214,9 +260,12 @@ export const formatProgressText = (loaded: number, total: number): string => {
   const percentage = calculateProgressPercentage(loaded, total);
   return HISTORY_SCREEN_FORMATS.PROGRESS_TEMPLATE.replace(
     "{loaded}",
-    Math.max(0, loaded).toString()
+    Math.max(CONSTANTS.VALIDATION.MIN_VALUE, loaded).toString()
   )
-    .replace("{total}", Math.max(0, total).toString())
+    .replace(
+      "{total}",
+      Math.max(CONSTANTS.VALIDATION.MIN_VALUE, total).toString()
+    )
     .replace("{percentage}", percentage.toString());
 };
 
@@ -234,9 +283,10 @@ export const formatSetRatio = (completed: number, planned: number): string => {
  * מעצב ציון קושי לתצוגה
  */
 export const formatDifficultyScore = (difficulty: number): string => {
-  return (Math.round(difficulty * 10) / 10).toFixed(
-    HISTORY_SCREEN_CONFIG.DIFFICULTY_DECIMAL_PLACES
-  );
+  return (
+    Math.round(difficulty * CONSTANTS.VALIDATION.DECIMAL_PRECISION) /
+    CONSTANTS.VALIDATION.DECIMAL_PRECISION
+  ).toFixed(HISTORY_SCREEN_CONFIG.DIFFICULTY_DECIMAL_PLACES);
 };
 
 /**
@@ -312,7 +362,10 @@ export const validateWorkoutData = <T = unknown>(workout: T): T => {
             return new Date().toISOString();
           }
           const testDate = new Date(currentDate);
-          if (isNaN(testDate.getTime()) || testDate.getTime() <= 0) {
+          if (
+            isNaN(testDate.getTime()) ||
+            testDate.getTime() <= CONSTANTS.VALIDATION.INVALID_TIMESTAMP
+          ) {
             return new Date().toISOString();
           }
           return currentDate;
@@ -327,11 +380,26 @@ export const validateWorkoutData = <T = unknown>(workout: T): T => {
         feeling: w.feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
       },
       stats: {
-        duration: Math.max(0, w.stats?.duration || 0),
-        personalRecords: Math.max(0, w.stats?.personalRecords || 0),
-        totalSets: Math.max(0, w.stats?.totalSets || 0),
-        totalPlannedSets: Math.max(0, w.stats?.totalPlannedSets || 0),
-        totalVolume: Math.max(0, w.stats?.totalVolume || 0),
+        duration: Math.max(
+          CONSTANTS.VALIDATION.MIN_VALUE,
+          w.stats?.duration || 0
+        ),
+        personalRecords: Math.max(
+          CONSTANTS.VALIDATION.MIN_VALUE,
+          w.stats?.personalRecords || 0
+        ),
+        totalSets: Math.max(
+          CONSTANTS.VALIDATION.MIN_VALUE,
+          w.stats?.totalSets || 0
+        ),
+        totalPlannedSets: Math.max(
+          CONSTANTS.VALIDATION.MIN_VALUE,
+          w.stats?.totalPlannedSets || 0
+        ),
+        totalVolume: Math.max(
+          CONSTANTS.VALIDATION.MIN_VALUE,
+          w.stats?.totalVolume || 0
+        ),
       },
       workout: {
         ...w.workout,
@@ -342,7 +410,7 @@ export const validateWorkoutData = <T = unknown>(workout: T): T => {
       },
     } as T;
   } catch (error) {
-    console.error("Error validating workout data:", error);
+    dlog("Error validating workout data", { error });
     return workout;
   }
 };

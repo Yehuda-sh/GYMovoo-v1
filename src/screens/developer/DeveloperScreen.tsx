@@ -1,7 +1,9 @@
 /**
  * @file src/screens/developer/DeveloperScreen.tsx
- * @description מסך פיתוח מקיף עם כלי בדיקה ודיבוג
- * Developer screen with comprehensive testing and debugging tools
+ * @brief מסך פיתוח מקיף עם כלי בדיקה ודיבוג מותאמים לפרויקט
+ * @dependencies React Native, Expo, userApi, userStore, BackButton, ConfirmationModal
+ * @notes תומך ב-RTL ונגישות, משתמש בעקרונות מאוחדות (BackButton, ConfirmationModal)
+ * @updates 2025-08-17: החלפת Alert.alert ב-ConfirmationModal, החלפת כפתור חזרה ב-BackButton
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -10,7 +12,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Switch,
   RefreshControl,
@@ -26,6 +27,8 @@ import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { User } from "../../types";
 import { fieldMapper } from "../../utils/fieldMapper";
+import BackButton from "../../components/common/BackButton";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 const DeveloperScreen = () => {
   const navigation = useNavigation();
@@ -33,6 +36,45 @@ const DeveloperScreen = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Modal state for ConfirmationModal
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "אישור",
+    cancelText: "ביטול",
+    destructive: false,
+    singleButton: false,
+  });
+
+  // Helper function to show modal
+  const showConfirmationModal = useCallback(
+    (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      options: {
+        confirmText?: string;
+        cancelText?: string;
+        destructive?: boolean;
+        singleButton?: boolean;
+      } = {}
+    ) => {
+      setModalConfig({
+        title,
+        message,
+        onConfirm,
+        confirmText: options.confirmText || "אישור",
+        cancelText: options.cancelText || "ביטול",
+        destructive: options.destructive || false,
+        singleButton: options.singleButton || false,
+      });
+      setShowModal(true);
+    },
+    []
+  );
 
   // Debug settings
   const [debugSettings, setDebugSettings] = useState({
@@ -72,7 +114,7 @@ const DeveloperScreen = () => {
   }, [loadSystemInfo]);
 
   // טעינת רשימת משתמשים
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const allUsers = await userApi.list();
@@ -80,22 +122,27 @@ const DeveloperScreen = () => {
       logger.info("developer", `נטענו ${allUsers?.length || 0} משתמשים`);
     } catch (error) {
       logger.error("developer", "שגיאה בטעינת משתמשים", error);
-      Alert.alert("שגיאה", "לא ניתן לטעון את רשימת המשתמשים");
+      showConfirmationModal(
+        "שגיאה",
+        "לא ניתן לטעון את רשימת המשתמשים",
+        () => {},
+        { singleButton: true }
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [showConfirmationModal]);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   // רענון נתונים
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([loadUsers(), loadSystemInfo()]);
     setRefreshing(false);
-  }, [loadSystemInfo]);
+  }, [loadUsers, loadSystemInfo]);
 
   // התחברות כמשתמש נבחר
   const loginAsUser = async (selectedUser: User) => {
@@ -121,29 +168,27 @@ const DeveloperScreen = () => {
       if (hasSmartQuestionnaire) {
         // יש שאלון מלא - מעבר לאפליקציה הראשית
         logger.info("developer", "משתמש עם שאלון מלא - מעבר לאפליקציה ראשית");
-        Alert.alert("הצלחה", `התחברת בהצלחה כ-${selectedUser.name}`, [
-          {
-            text: "אישור",
-            onPress: () => navigation.navigate("MainApp"),
-          },
-        ]);
+        showConfirmationModal(
+          "הצלחה",
+          `התחברת בהצלחה כ-${selectedUser.name}`,
+          () => navigation.navigate("MainApp"),
+          { singleButton: true, confirmText: "אישור" }
+        );
       } else {
         // אין שאלון מלא - מעבר לשאלון
         logger.info("developer", "משתמש ללא שאלון מלא - מעבר לשאלון");
-        Alert.alert(
+        showConfirmationModal(
           "התחברות בהצלחה",
           `התחברת כ-${selectedUser.name}. כעת תעבור להשלמת השאלון.`,
-          [
-            {
-              text: "המשך לשאלון",
-              onPress: () => navigation.navigate("Questionnaire", {}),
-            },
-          ]
+          () => navigation.navigate("Questionnaire", {}),
+          { singleButton: true, confirmText: "המשך לשאלון" }
         );
       }
     } catch (error) {
       logger.error("developer", "שגיאה בהתחברות כמשתמש", error);
-      Alert.alert("שגיאה", "לא ניתן להתחבר כמשתמש זה");
+      showConfirmationModal("שגיאה", "לא ניתן להתחבר כמשתמש זה", () => {}, {
+        singleButton: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -178,11 +223,15 @@ const DeveloperScreen = () => {
 
       const newUser = await userApi.create(testUser);
       logger.info("developer", `נוצר משתמש דמו: ${newUser.id}`);
-      Alert.alert("הצלחה", "משתמש דמו נוצר בהצלחה");
+      showConfirmationModal("הצלחה", "משתמש דמו נוצר בהצלחה", () => {}, {
+        singleButton: true,
+      });
       await loadUsers();
     } catch (error) {
       logger.error("developer", "שגיאה ביצירת משתמש דמו", error);
-      Alert.alert("שגיאה", "לא ניתן ליצור משתמש דמו");
+      showConfirmationModal("שגיאה", "לא ניתן ליצור משתמש דמו", () => {}, {
+        singleButton: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -202,11 +251,18 @@ const DeveloperScreen = () => {
 
       const newUser = await userApi.create(testUser);
       logger.info("developer", `נוצר משתמש ללא שאלון: ${newUser.id}`);
-      Alert.alert("הצלחה", "משתמש ללא שאלון נוצר בהצלחה");
+      showConfirmationModal("הצלחה", "משתמש ללא שאלון נוצר בהצלחה", () => {}, {
+        singleButton: true,
+      });
       await loadUsers();
     } catch (error) {
       logger.error("developer", "שגיאה ביצירת משתמש ללא שאלון", error);
-      Alert.alert("שגיאה", "לא ניתן ליצור משתמש ללא שאלון");
+      showConfirmationModal(
+        "שגיאה",
+        "לא ניתן ליצור משתמש ללא שאלון",
+        () => {},
+        { singleButton: true }
+      );
     } finally {
       setLoading(false);
     }
@@ -214,37 +270,35 @@ const DeveloperScreen = () => {
 
   // איפוס נתונים מלא
   const resetAllData = async () => {
-    Alert.alert(
+    showConfirmationModal(
       "איפוס נתונים",
       "האם אתה בטוח שברצונך למחוק את כל הנתונים? פעולה זו אינה הפיכה.",
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק הכל",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              logger.warn("developer", "מבצע איפוס נתונים מלא");
+      async () => {
+        try {
+          setLoading(true);
+          logger.warn("developer", "מבצע איפוס נתונים מלא");
 
-              // איפוס משתמש נוכחי
-              setUser(null);
+          // איפוס משתמש נוכחי
+          setUser(null);
 
-              // ניקוי AsyncStorage
-              const allKeys = await AsyncStorage.getAllKeys();
-              await AsyncStorage.multiRemove(allKeys);
+          // ניקוי AsyncStorage
+          const allKeys = await AsyncStorage.getAllKeys();
+          await AsyncStorage.multiRemove(allKeys);
 
-              Alert.alert("הצלחה", "כל הנתונים נמחקו בהצלחה");
-              await loadSystemInfo();
-            } catch (error) {
-              logger.error("developer", "שגיאה באיפוס נתונים", error);
-              Alert.alert("שגיאה", "לא ניתן לאפס את הנתונים");
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
+          showConfirmationModal("הצלחה", "כל הנתונים נמחקו בהצלחה", () => {}, {
+            singleButton: true,
+          });
+          await loadSystemInfo();
+        } catch (error) {
+          logger.error("developer", "שגיאה באיפוס נתונים", error);
+          showConfirmationModal("שגיאה", "לא ניתן לאפס את הנתונים", () => {}, {
+            singleButton: true,
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+      { destructive: true, confirmText: "מחק הכל" }
     );
   };
 
@@ -264,13 +318,17 @@ const DeveloperScreen = () => {
       logger.info("developer", "בודק חיבור Supabase");
 
       const result = await userApi.health();
-      Alert.alert(
+      showConfirmationModal(
         "חיבור Supabase",
-        result === "ok" ? "חיבור תקין" : "בעיה בחיבור"
+        result === "ok" ? "חיבור תקין" : "בעיה בחיבור",
+        () => {},
+        { singleButton: true }
       );
     } catch (error) {
       logger.error("developer", "שגיאה בבדיקת Supabase", error);
-      Alert.alert("שגיאה", "בעיה בחיבור ל-Supabase");
+      showConfirmationModal("שגיאה", "בעיה בחיבור ל-Supabase", () => {}, {
+        singleButton: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -326,9 +384,7 @@ const DeveloperScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
+        <BackButton variant="minimal" />
         <Text style={styles.headerTitle}>מסך פיתוח</Text>
         <TouchableOpacity onPress={onRefresh}>
           <Ionicons name="refresh" size={24} color={theme.colors.primary} />
@@ -495,6 +551,23 @@ const DeveloperScreen = () => {
           </View>
         </View>
       )}
+
+      {/* ConfirmationModal */}
+      <ConfirmationModal
+        visible={showModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setShowModal(false)}
+        onConfirm={() => {
+          setShowModal(false);
+          modalConfig.onConfirm();
+        }}
+        onCancel={() => setShowModal(false)}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        destructive={modalConfig.destructive}
+        singleButton={modalConfig.singleButton}
+      />
     </SafeAreaView>
   );
 };

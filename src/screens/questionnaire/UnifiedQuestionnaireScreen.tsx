@@ -1,13 +1,18 @@
 /**
  * @file src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx
  * @brief מסך שאלון אחוד חדש - פשוט, יעיל ועובד
- * @description New unified questionnaire screen - simple, efficient and working
+ * @description מסך שאלון מאוחד עם תמיכה מלאה ב-RTL, גלילה מושלמת ואנימציות
  *
- * 🎯 החלפת SmartQuestionnaireScreen הישן
- * ✅ גלילה מושלמת עם ScrollView
- * ✅ רשימת אפשרויות מלאה וזמינה
- * ✅ ממשק פשוט וברור
- * ✅ תמיכה מלאה ב-RTL ועברית
+ * Features:
+ * - החלפת SmartQuestionnaireScreen הישן
+ * - גלילה מושלמת עם ScrollView
+ * - רשימת אפשרויות מלאה וזמינה
+ * - ממשק פשוט וברור
+ * - תמיכה מלאה ב-RTL ועברית
+ * - שמירה אוטומטית של התקדמות
+ *
+ * @created 2025-01-XX
+ * @updated 2025-08-17 החלפת Alert ב-ConfirmationModal, החלפת console בלוגינג מותני, הוספת React.memo, הוספת CONSTANTS
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -17,7 +22,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +29,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Import ConfirmationModal
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 // המערכת החדשה האחודה
 import {
@@ -38,13 +45,58 @@ import { useUserStore } from "../../stores/userStore";
 import { userApi } from "../../services/api/userApi";
 import { theme } from "../../styles/theme";
 import type { SmartQuestionnaireData } from "../../types";
+
+// Debug logging system
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.debug(`[UnifiedQuestionnaireScreen] ${message}`, ...args);
+  }
+};
+
+// Constants to prevent duplications
+const CONSTANTS = {
+  RTL_PROPERTIES: {
+    WRITING_DIRECTION: "rtl" as const,
+    TEXT_ALIGN_RIGHT: "right" as const,
+    TEXT_ALIGN_CENTER: "center" as const,
+  },
+  BORDERS: {
+    THIN: 1,
+    THICK: 2,
+  },
+  SHADOWS: {
+    OPACITY_LOW: 0.1,
+    OPACITY_MEDIUM: 0.15,
+    OPACITY_HIGH: 0.3,
+    RADIUS_SMALL: 4,
+    RADIUS_MEDIUM: 8,
+  },
+  TIMINGS: {
+    DEBOUNCE_SAVE: 1200,
+    QUESTION_TRANSITION: 300,
+  },
+  ELEVATIONS: {
+    LOW: 8,
+    HIGH: 10,
+  },
+  SIZES: {
+    ICON_SMALL: 16,
+    ICON_MEDIUM: 24,
+    ICON_LARGE: 48,
+    BUTTON_HEIGHT: 56,
+    INDICATOR_SIZE: 24,
+    INDICATOR_RADIUS: 12,
+  },
+};
 // בוטל שימוש ב-demo; עובדים רק עם משתמש אמיתי מה-store
 
 // =====================================
 // 🎯 המסך החדש - פשוט ויעיל
 // =====================================
 
-const UnifiedQuestionnaireScreen: React.FC = () => {
+const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   const navigation = useNavigation();
   const { updateUser, logout, setSmartQuestionnaireData, user } =
     useUserStore();
@@ -61,10 +113,54 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
     answersBullets: string;
   } | null>(null);
   const [serverSaved, setServerSaved] = useState(false);
-  // future: modal completion UI
+
+  // ConfirmationModal state
+  const [confirmationModal, setConfirmationModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Debug עבור אמולטור
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Helper function for modal operations
+  const hideModal = () =>
+    setConfirmationModal({
+      visible: false,
+      title: "",
+      message: "",
+      onConfirm: () => {},
+    });
+
+  const showModal = (config: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }) => {
+    setConfirmationModal({
+      visible: true,
+      ...config,
+    });
+  };
 
   // שמירה לשרת בדיבאונס כדי לא להציף קריאות בזמן מענה על שאלות
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,10 +171,9 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       saveTimerRef.current = setTimeout(async () => {
         try {
           await userApi.update(user.id!, { smartquestionnairedata: data });
-          if (__DEV__)
-            console.warn("☁️ Synced questionnaire snapshot to server");
+          dlog("Synced questionnaire snapshot to server");
         } catch (e) {
-          if (__DEV__) console.warn("⚠️ Server sync (debounced) failed", e);
+          dlog("Server sync (debounced) failed", { error: e });
         }
       }, 1200);
     },
@@ -122,8 +217,8 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
             manager.answerQuestion(answer.questionId, answer.answer);
           });
 
-          console.warn(
-            `✅ Restored ${progressData.answers.length} answers from saved progress`
+          dlog(
+            `Restored ${progressData.answers.length} answers from saved progress`
           );
         }
 
@@ -133,7 +228,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         // מחק את ההתקדמות השמורה כי היא נטענה
         AsyncStorage.removeItem("questionnaire_draft");
       } catch (error) {
-        console.error("❌ Error restoring progress:", error);
+        dlog("Error restoring progress", { error });
         loadCurrentQuestion();
       }
     },
@@ -147,7 +242,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
       if (savedProgress) {
         const progressData = JSON.parse(savedProgress) as SavedProgress;
-        console.warn("📋 Found saved questionnaire progress:", {
+        dlog("Found saved questionnaire progress", {
           totalAnswered: progressData.totalAnswered,
           progress: progressData.progress,
           savedAt: progressData.savedAt,
@@ -160,13 +255,13 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           manager.goToNextUnanswered();
           loadCurrentQuestion();
         } catch (e) {
-          if (__DEV__) console.warn("auto-restore navigation failed", e);
+          dlog("auto-restore navigation failed", { error: e });
         }
       } else {
         loadCurrentQuestion();
       }
     } catch (error) {
-      console.error("❌ Error checking saved progress:", error);
+      dlog("Error checking saved progress", { error });
       loadCurrentQuestion();
     }
   }, [loadCurrentQuestion, restoreProgress, manager]);
@@ -188,107 +283,92 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
         if (currentAnswers.length === 0) {
           // 🚪 אם אין תשובות - יציאה מהירה ללא שמירה
-          Alert.alert("יציאה מהשאלון", "האם אתה בטוח שברצונך לצאת מהשאלון?", [
-            { text: "ביטול", style: "cancel" },
-            {
-              text: "יציאה",
-              style: "destructive",
-              onPress: async () => {
-                console.warn(
-                  "🚪 User exited questionnaire with no progress - full logout and reset"
-                );
-                try {
-                  // התנתק מהמשתמש הנוכחי
-                  await logout();
-
-                  console.warn(
-                    "✅ Full logout completed - navigating to clean Welcome"
-                  );
-
-                  // חזור למסך Welcome נקי לגמרי
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Welcome" }],
-                  });
-                } catch (error) {
-                  console.error("❌ Error during full logout:", error);
-                  // גם אם יש שגיאה, נווט למסך Welcome
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Welcome" }],
-                  });
-                }
-              },
+          setConfirmationModal({
+            visible: true,
+            title: "יציאה מהשאלון",
+            message: "האם אתה בטוח שברצונך לצאת מהשאלון?",
+            confirmText: "יציאה",
+            cancelText: "ביטול",
+            destructive: true,
+            onConfirm: async () => {
+              dlog(
+                "User exited questionnaire with no progress - full logout and reset"
+              );
+              try {
+                // התנתק מהמשתמש הנוכחי
+                await logout();
+                dlog("Full logout completed - navigating to clean Welcome");
+                // חזור למסך Welcome נקי לגמרי
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Welcome" }],
+                });
+              } catch (error) {
+                dlog("Error during full logout", { error });
+                // גם אם יש שגיאה, נווט למסך Welcome
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Welcome" }],
+                });
+              }
             },
-          ]);
+          });
         } else {
           // 💾 אם יש תשובות - הצע שמירה
-          Alert.alert(
-            "יציאה מהשאלון",
-            `יש לך ${currentAnswers.length} תשובות שנשמרו.\nההתקדמות תישמר ותוכל להמשיך בפעם הבאה.`,
-            [
-              { text: "ביטול", style: "cancel" },
-              {
-                text: "יציאה עם שמירה",
-                style: "default",
-                onPress: () => {
-                  // שמור התקדמות
-                  const progress = manager.getProgress();
-                  AsyncStorage.setItem(
-                    "questionnaire_draft",
-                    JSON.stringify({
-                      answers: currentAnswers,
-                      progress: progress,
-                      totalAnswered: currentAnswers.length,
-                      savedAt: new Date().toISOString(),
-                    })
-                  );
-                  // חזור למסך Welcome עם ההתקדמות השמורה
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Welcome" }],
-                  });
-                },
-              },
-              {
-                text: "יציאה ללא שמירה",
-                style: "destructive",
-                onPress: async () => {
-                  console.warn(
-                    "🗑️ User chose to exit without saving progress - full logout and reset"
-                  );
-                  try {
-                    // מחק כל הנתונים הקשורים לשאלון
-                    await AsyncStorage.multiRemove([
-                      "questionnaire_draft",
-                      "questionnaire_metadata",
-                      "user_profile",
-                    ]);
-
-                    // התנתק מהמשתמש הנוכחי
-                    await logout();
-
-                    console.warn(
-                      "✅ Full logout completed - navigating to clean Welcome"
-                    );
-
-                    // חזור למסך Welcome נקי לגמרי
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "Welcome" }],
-                    });
-                  } catch (error) {
-                    console.error("❌ Error during full logout:", error);
-                    // גם אם יש שגיאה, נווט למסך Welcome
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "Welcome" }],
-                    });
-                  }
-                },
-              },
-            ]
-          );
+          // Note: ConfirmationModal doesn't support 3 buttons, so we'll handle this differently
+          showModal({
+            title: "יציאה מהשאלון",
+            message: `יש לך ${currentAnswers.length} תשובות שנשמרו.\nהאם לשמור את ההתקדמות?`,
+            confirmText: "שמור וצא",
+            cancelText: "צא בלי שמירה",
+            destructive: false,
+            onConfirm: () => {
+              // שמור התקדמות
+              const progress = manager.getProgress();
+              AsyncStorage.setItem(
+                "questionnaire_draft",
+                JSON.stringify({
+                  answers: currentAnswers,
+                  progress: progress,
+                  totalAnswered: currentAnswers.length,
+                  savedAt: new Date().toISOString(),
+                })
+              );
+              // חזור למסך Welcome עם ההתקדמות השמורה
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Welcome" }],
+              });
+            },
+            onCancel: async () => {
+              dlog(
+                "User chose to exit without saving progress - full logout and reset"
+              );
+              try {
+                // מחק כל הנתונים הקשורים לשאלון
+                await AsyncStorage.multiRemove([
+                  "questionnaire_draft",
+                  "questionnaire_metadata",
+                  "user_profile",
+                ]);
+                // התנתק מהמשתמש הנוכחי
+                await logout();
+                dlog("Full logout completed - navigating to clean Welcome");
+                // חזור למסך Welcome נקי לגמרי
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Welcome" }],
+                });
+              } catch (error) {
+                dlog("Error during full logout", { error });
+                // גם אם יש שגיאה, נווט למסך Welcome
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Welcome" }],
+                });
+              }
+            },
+          });
         }
         return true; // מונע יציאה אוטומטית
       }
@@ -351,7 +431,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         })
       ).catch(() => {});
     } catch (e) {
-      if (__DEV__) console.warn("draft save failed", e);
+      dlog("draft save failed", { error: e });
     }
 
     // ⚡ עדכון בזמן אמת ל-store עם תמונת מצב חוקית (IDs מהשאלון בלבד)
@@ -362,7 +442,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       scheduleServerSync(snapshot);
     } catch (e) {
       // שקט כברירת מחדל
-      if (__DEV__) console.warn("setSmartQuestionnaireData snapshot failed", e);
+      dlog("setSmartQuestionnaireData snapshot failed", { error: e });
     }
 
     // הדפסת מערך תשובות מסודר לאחר כל תשובה
@@ -373,9 +453,9 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         value: extractIds(a.answer),
       }));
       // לוג יחיד מרוכז
-      console.warn("🧾 Questionnaire answers (compact):", compact);
+      dlog("Questionnaire answers (compact)", compact);
     } catch (e) {
-      if (__DEV__) console.warn("Failed to build compact answers log", e);
+      dlog("Failed to build compact answers log", { error: e });
     }
 
     // Move to next question
@@ -403,9 +483,9 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
   // Complete questionnaire
   const completeQuestionnaire = async () => {
     try {
-      console.warn("🎯 Starting questionnaire completion...");
+      dlog("Starting questionnaire completion...");
       const results = manager.getResults();
-      console.warn("📊 Questionnaire results:", {
+      dlog("Questionnaire results", {
         answersCount: results.answers.length,
         answers: results.answers.map((a) => ({
           id: a.questionId,
@@ -454,7 +534,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         return answer.label ?? null;
       };
 
-      console.warn("🔍 Raw answers from questionnaire:", {
+      dlog("Raw answers from questionnaire", {
         fitness_goal: getAnswerValue(answersMap, "fitness_goal"),
         experience_level: getAnswerValue(answersMap, "experience_level"),
         availability: getAnswerValue(answersMap, "availability"),
@@ -495,7 +575,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       );
       const finalEquipment =
         realEquipment.length > 0 ? realEquipment : ["none"];
-      console.warn("🛠️ Equipment extraction (unified):", {
+      dlog("Equipment extraction (unified)", {
         keysScanned: Object.keys(answersMap).filter((k) =>
           k.includes("equipment")
         ),
@@ -524,8 +604,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       try {
         setSmartQuestionnaireData(smartData);
       } catch (e) {
-        if (__DEV__)
-          console.warn("setSmartQuestionnaireData failed on completion", e);
+        dlog("setSmartQuestionnaireData failed on completion", { error: e });
       }
 
       updateUser({
@@ -550,7 +629,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         },
       });
 
-      console.warn("💾 Saved questionnaire to real user (store)", {
+      dlog("Saved questionnaire to real user (store)", {
         equipment: finalEquipment,
         goal: questionnairePayload.goal,
         experience: questionnairePayload.experience,
@@ -582,14 +661,13 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           "questionnaire_metadata",
           JSON.stringify(questionnaireMetadata)
         );
-        console.warn(
-          "✅ Questionnaire metadata saved to AsyncStorage for WorkoutPlansScreen"
+        dlog(
+          "Questionnaire metadata saved to AsyncStorage for WorkoutPlansScreen"
         );
       } catch (storageError) {
-        console.error(
-          "❌ Error saving questionnaire data to AsyncStorage:",
-          storageError
-        );
+        dlog("Error saving questionnaire data to AsyncStorage", {
+          error: storageError,
+        });
       }
 
       // 📡 שמירה לשרת (אם יש משתמש מחובר עם id)
@@ -622,7 +700,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
             },
           });
           setServerSaved(true);
-          console.warn("🌐 Questionnaire saved to server for user", user.id);
+          dlog("Questionnaire saved to server for user", user.id);
 
           // 🚀 הפעלת שירות ה-onboarding האוטומטי לכל משתמש חדש
           try {
@@ -630,32 +708,31 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
               "../../services/userOnboardingService"
             );
             const onboardingResult = await completeUserOnboarding(user.id);
-            console.warn(
-              "✅ User onboarding completed successfully:",
-              onboardingResult
-            );
+            dlog("User onboarding completed successfully", onboardingResult);
           } catch (onboardingError) {
-            console.error("❌ Error in user onboarding:", onboardingError);
+            dlog("Error in user onboarding", { error: onboardingError });
             // לא נעצור את התהליך אם יש שגיאה באונבורדינג - המשתמש יכול להמשיך
           }
         }
       } catch (serverErr) {
-        console.error(
-          "❌ Failed to persist questionnaire to server:",
-          serverErr
-        );
+        dlog("Failed to persist questionnaire to server", { error: serverErr });
         setServerSaved(false);
-        Alert.alert(
-          "שגיאת שרת",
-          "לא ניתן לשמור את השאלון לשרת כרגע. נסה שוב כשתהיה רשת זמינה."
-        );
+        showModal({
+          title: "שגיאת שרת",
+          message:
+            "לא ניתן לשמור את השאלון לשרת כרגע. נסה שוב כשתהיה רשת זמינה.",
+          confirmText: "אישור",
+          singleButton: true,
+          variant: "error",
+          onConfirm: () => {},
+        });
       }
 
       // ניקוי טיוטה כדי למנוע הצעת שחזור אחרי השלמה
       try {
         await AsyncStorage.removeItem("questionnaire_draft");
       } catch (e) {
-        if (__DEV__) console.warn("draft cleanup failed", e);
+        dlog("draft cleanup failed", { error: e });
       }
 
       // יצירת סיכום תשובות פשוט (5 ראשונות בלבד)
@@ -682,8 +759,15 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       });
       setShowCompletionCard(true);
     } catch (error) {
-      console.error("Error completing questionnaire:", error);
-      Alert.alert("שגיאה", "בעיה בשמירת השאלון. אנא נסה שוב.");
+      dlog("Error completing questionnaire", { error });
+      showModal({
+        title: "שגיאה",
+        message: "בעיה בשמירת השאלון. אנא נסה שוב.",
+        confirmText: "אישור",
+        singleButton: true,
+        variant: "error",
+        onConfirm: () => {},
+      });
     }
   };
 
@@ -715,123 +799,102 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
               if (currentAnswers.length === 0) {
                 // 🚪 אם אין תשובות בכלל - יציאה מהירה ללא שמירה
-                Alert.alert(
-                  "יציאה מהשאלון",
-                  "האם אתה בטוח שברצונך לצאת מהשאלון?",
-                  [
-                    { text: "ביטול", style: "cancel" },
-                    {
-                      text: "יציאה",
-                      style: "destructive",
-                      onPress: async () => {
-                        console.warn(
-                          "🚪 User exited questionnaire with no progress - full logout and reset"
-                        );
-                        try {
-                          // התנתק מהמשתמש הנוכחי
-                          await logout();
-
-                          console.warn(
-                            "✅ Full logout completed - navigating to clean Welcome"
-                          );
-
-                          // חזור למסך Welcome נקי לגמרי
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Welcome" }],
-                          });
-                        } catch (error) {
-                          console.error("❌ Error during full logout:", error);
-                          // גם אם יש שגיאה, נווט למסך Welcome
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Welcome" }],
-                          });
-                        }
-                      },
-                    },
-                  ]
-                );
+                showModal({
+                  title: "יציאה מהשאלון",
+                  message: "האם אתה בטוח שברצונך לצאת מהשאלון?",
+                  confirmText: "יציאה",
+                  cancelText: "ביטול",
+                  destructive: true,
+                  onConfirm: async () => {
+                    dlog(
+                      "User exited questionnaire with no progress - full logout and reset"
+                    );
+                    try {
+                      // התנתק מהמשתמש הנוכחי
+                      await logout();
+                      dlog(
+                        "Full logout completed - navigating to clean Welcome"
+                      );
+                      // חזור למסך Welcome נקי לגמרי
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Welcome" }],
+                      });
+                    } catch (error) {
+                      dlog("Error during full logout", { error });
+                      // גם אם יש שגיאה, נווט למסך Welcome
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Welcome" }],
+                      });
+                    }
+                  },
+                });
               } else {
                 // 💾 אם יש תשובות - הצע שמירה
-                Alert.alert(
-                  "יציאה מהשאלון",
-                  `יש לך ${currentAnswers.length} תשובות שנשמרו.\nההתקדמות תישמר ותוכל להמשיך בפעם הבאה.`,
-                  [
-                    { text: "ביטול", style: "cancel" },
-                    {
-                      text: "יציאה עם שמירה",
-                      style: "default",
-                      onPress: () => {
-                        // 💾 שמור את ההתקדמות הנוכחית
-                        console.warn(
-                          "💾 Saving questionnaire progress before exit"
+                showModal({
+                  title: "יציאה מהשאלון",
+                  message: `יש לך ${currentAnswers.length} תשובות שנשמרו.\nהאם לשמור את ההתקדמות?`,
+                  confirmText: "שמור וצא",
+                  cancelText: "צא בלי שמירה",
+                  destructive: false,
+                  onConfirm: () => {
+                    // 💾 שמור את ההתקדמות הנוכחית
+                    dlog("Saving questionnaire progress before exit");
+                    const progress = manager.getProgress();
+                    AsyncStorage.setItem(
+                      "questionnaire_draft",
+                      JSON.stringify({
+                        answers: currentAnswers,
+                        progress: progress,
+                        totalAnswered: currentAnswers.length,
+                        savedAt: new Date().toISOString(),
+                      })
+                    )
+                      .then(() => {
+                        dlog(
+                          "Questionnaire progress saved successfully on exit"
                         );
-
-                        const progress = manager.getProgress();
-                        AsyncStorage.setItem(
-                          "questionnaire_draft",
-                          JSON.stringify({
-                            answers: currentAnswers,
-                            progress: progress,
-                            totalAnswered: currentAnswers.length,
-                            savedAt: new Date().toISOString(),
-                          })
-                        )
-                          .then(() => {
-                            console.warn(
-                              "✅ Questionnaire progress saved successfully on exit"
-                            );
-                          })
-                          .catch((error) => {
-                            console.error(
-                              "❌ Failed to save questionnaire progress:",
-                              error
-                            );
-                          });
-
-                        // חזור למסך Welcome עם ההתקדמות השמורה
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Welcome" }],
+                      })
+                      .catch((error) => {
+                        dlog("Failed to save questionnaire progress", {
+                          error,
                         });
-                      },
-                    },
-                    {
-                      text: "יציאה ללא שמירה",
-                      style: "destructive",
-                      onPress: async () => {
-                        console.warn(
-                          "🗑️ User chose to exit without saving progress - full logout and reset"
-                        );
-                        try {
-                          // מחק התקדמות קודמת אם יש
-                          await AsyncStorage.removeItem("questionnaire_draft");
+                      });
 
-                          // התנתק מהמשתמש הנוכחי
-                          await logout();
-
-                          console.warn(
-                            "✅ Full logout completed - navigating to clean Welcome"
-                          );
-
-                          // חזור למסך Welcome נקי לגמרי
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Welcome" }],
-                          });
-                        } catch (error) {
-                          console.error("❌ Error during full logout:", error);
-                          // גם אם יש שגיאה, נווט למסך Welcome
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: "Welcome" }],
-                          });
-                        }
-                      },
-                    },
-                  ]
-                );
+                    // חזור למסך Welcome עם ההתקדמות השמורה
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Welcome" }],
+                    });
+                  },
+                  onCancel: async () => {
+                    dlog(
+                      "User chose to exit without saving progress - full logout and reset"
+                    );
+                    try {
+                      // מחק התקדמות קודמת אם יש
+                      await AsyncStorage.removeItem("questionnaire_draft");
+                      // התנתק מהמשתמש הנוכחי
+                      await logout();
+                      dlog(
+                        "Full logout completed - navigating to clean Welcome"
+                      );
+                      // חזור למסך Welcome נקי לגמרי
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Welcome" }],
+                      });
+                    } catch (error) {
+                      dlog("Error during full logout", { error });
+                      // גם אם יש שגיאה, נווט למסך Welcome
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Welcome" }],
+                      });
+                    }
+                  },
+                });
               }
             }}
             style={styles.backButton}
@@ -1038,7 +1101,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                     try {
                       manager.goToLastAnswered();
                     } catch (e) {
-                      if (__DEV__) console.warn("goToLastAnswered failed", e);
+                      dlog("goToLastAnswered failed", { error: e });
                     }
                     loadCurrentQuestion();
                     setShowCompletionCard(false);
@@ -1058,17 +1121,25 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                   disabled={!manager.isCompleted() || !serverSaved}
                   onPress={() => {
                     if (!manager.isCompleted()) {
-                      Alert.alert(
-                        "שאלון לא הושלם",
-                        "יש להשלים את כל השאלות לפני מעבר למסך הבית."
-                      );
+                      showModal({
+                        title: "שאלון לא הושלם",
+                        message: "יש להשלים את כל השאלות לפני מעבר למסך הבית.",
+                        confirmText: "אישור",
+                        singleButton: true,
+                        variant: "warning",
+                        onConfirm: () => {},
+                      });
                       return;
                     }
                     if (!serverSaved) {
-                      Alert.alert(
-                        "שמירה לשרת נדרשת",
-                        "לא ניתן להתקדם לפני שהנתונים נשמרו לשרת."
-                      );
+                      showModal({
+                        title: "שמירה לשרת נדרשת",
+                        message: "לא ניתן להתקדם לפני שהנתונים נשמרו לשרת.",
+                        confirmText: "אישור",
+                        singleButton: true,
+                        variant: "warning",
+                        onConfirm: () => {},
+                      });
                       return;
                     }
                     setShowCompletionCard(false);
@@ -1084,9 +1155,26 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
           </View>
         )}
       </LinearGradient>
+
+      {/* ConfirmationModal */}
+      <ConfirmationModal
+        visible={confirmationModal.visible}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={confirmationModal.onCancel}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+        destructive={confirmationModal.destructive}
+        variant={confirmationModal.variant}
+        singleButton={confirmationModal.singleButton}
+        onClose={() => hideModal()}
+      />
     </SafeAreaView>
   );
-};
+});
+
+UnifiedQuestionnaireScreen.displayName = "UnifiedQuestionnaireScreen";
 
 // =====================================
 // 🎨 Styles - פשוט וברור
@@ -1108,14 +1196,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: CONSTANTS.BORDERS.THIN,
     borderBottomColor: theme.colors.border,
   },
   headerTitle: {
     ...theme.typography.title2,
     color: theme.colors.text,
     fontWeight: "700",
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
     flex: 1,
   },
   headerSpacer: {
@@ -1180,7 +1268,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
-    borderWidth: 1,
+    borderWidth: CONSTANTS.BORDERS.THIN,
     borderColor: theme.colors.border,
     marginBottom: theme.spacing.lg,
   },
@@ -1188,7 +1276,7 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     color: theme.colors.textSecondary,
     marginLeft: theme.spacing.xs,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Question
@@ -1197,21 +1285,21 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   questionIcon: {
-    fontSize: 48,
+    fontSize: CONSTANTS.SIZES.ICON_LARGE,
     marginBottom: theme.spacing.md,
   },
   questionTitle: {
     ...theme.typography.title1,
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
     marginBottom: theme.spacing.sm,
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   questionSubtitle: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
-    textAlign: "center",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   questionContainer: {
@@ -1220,16 +1308,16 @@ const styles = StyleSheet.create({
   questionText: {
     ...theme.typography.title3,
     color: theme.colors.text,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   helpText: {
     ...theme.typography.bodySmall,
     color: theme.colors.textTertiary,
-    textAlign: "right",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
     marginTop: theme.spacing.sm,
     fontStyle: "italic",
-    writingDirection: "rtl",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Options
@@ -1239,7 +1327,7 @@ const styles = StyleSheet.create({
   optionButton: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
-    borderWidth: 2,
+    borderWidth: CONSTANTS.BORDERS.THICK,
     borderColor: theme.colors.border,
     marginBottom: theme.spacing.md,
     overflow: "hidden",
@@ -1260,8 +1348,8 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyLarge,
     color: theme.colors.text,
     fontWeight: "600",
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   optionLabelSelected: {
     color: theme.colors.primary,
@@ -1270,17 +1358,17 @@ const styles = StyleSheet.create({
     ...theme.typography.bodySmall,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
   optionDescriptionSelected: {
     color: theme.colors.primary,
   },
   selectionIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
+    width: CONSTANTS.SIZES.INDICATOR_SIZE,
+    height: CONSTANTS.SIZES.INDICATOR_SIZE,
+    borderRadius: CONSTANTS.SIZES.INDICATOR_RADIUS,
+    borderWidth: CONSTANTS.BORDERS.THICK,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.card,
     alignItems: "center",

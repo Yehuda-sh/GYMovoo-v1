@@ -1,10 +1,13 @@
 /**
  * @file ExerciseListScreen.tsx (Simplified Version)
  * @description מסך רשימת תרגילים מפושט שמשתמש במערכת החדשה
- * @dependencies React Native, Exercise data from /data/exercises
+ * @dependencies React Native, Exercise data from /data/exercises, BackButton, ExerciseDetailsModal
+ * @notes כולל חיפוש וסינון, pull-to-refresh, RTL מלא, נגישות מלאה
+ * @recurring_errors וודא accessibility labels, RTL בכפתורים, theme colors
+ * @updated 2025-08-17 הסרת navigation לא בשימוש, החלפת console.error בלוגים מותנים, מניעת כפילויות
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,14 +20,17 @@ import {
   TextInput,
   RefreshControl,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { Exercise, fetchRandomExercises } from "../../data/exercises";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import BackButton from "../../components/common/BackButton";
 
+const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISES === "1";
+const dlog = (m: string, data?: unknown) => {
+  if (DEBUG) console.warn(`🏋️ ExerciseListScreen: ${m}`, data || "");
+};
+
 const ExerciseListScreen: React.FC = () => {
-  const navigation = useNavigation();
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]); // filtered
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
@@ -46,8 +52,9 @@ const ExerciseListScreen: React.FC = () => {
       setLoading(true);
       const data = fetchRandomExercises(15);
       setAllExercises(data);
+      dlog("Exercises loaded successfully", { count: data.length });
     } catch (error) {
-      console.error("Error loading exercises:", error);
+      dlog("Error loading exercises", error);
     } finally {
       setLoading(false);
     }
@@ -59,8 +66,9 @@ const ExerciseListScreen: React.FC = () => {
     try {
       const data = fetchRandomExercises(15);
       setAllExercises(data);
+      dlog("Exercises refreshed successfully", { count: data.length });
     } catch (e) {
-      console.error(e);
+      dlog("Error refreshing exercises", e);
     } finally {
       setRefreshing(false);
     }
@@ -84,6 +92,10 @@ const ExerciseListScreen: React.FC = () => {
     setExercises(filtered);
   }, [allExercises, search, difficultyFilter]);
 
+  const handleReloadPress = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
+
   const difficultyLabel = useCallback((d: Exercise["difficulty"]) => {
     switch (d) {
       case "beginner":
@@ -99,19 +111,26 @@ const ExerciseListScreen: React.FC = () => {
 
   const DifficultyBadge: React.FC<{ value: Exercise["difficulty"] }> = ({
     value,
-  }) => (
-    <View
-      style={[
+  }) => {
+    const badgeStyles = useMemo(
+      () => [
         styles.difficultyBadge,
         value === "beginner" && styles.beginnerBg,
         value === "intermediate" && styles.intermediateBg,
         value === "advanced" && styles.advancedBg,
-      ]}
-      accessibilityLabel={`רמת קושי: ${difficultyLabel(value)}`}
-    >
-      <Text style={styles.difficultyBadgeText}>{difficultyLabel(value)}</Text>
-    </View>
-  );
+      ],
+      [value]
+    );
+
+    return (
+      <View
+        style={badgeStyles}
+        accessibilityLabel={`רמת קושי: ${difficultyLabel(value)}`}
+      >
+        <Text style={styles.difficultyBadgeText}>{difficultyLabel(value)}</Text>
+      </View>
+    );
+  };
 
   const ExerciseCard: React.FC<{ item: Exercise; onPress: () => void }> =
     React.memo(({ item, onPress }) => (
@@ -161,36 +180,43 @@ const ExerciseListScreen: React.FC = () => {
     <ExerciseCard item={item} onPress={() => setSelectedExercise(item)} />
   );
 
-  const DifficultyFilterBar = () => (
-    <View style={styles.filterBar}>
-      {[
+  const DifficultyFilterBar = () => {
+    const filterOptions = useMemo(
+      () => [
         { v: "all", label: "הכל" },
         { v: "beginner", label: "מתחיל" },
         { v: "intermediate", label: "בינוני" },
         { v: "advanced", label: "מתקדם" },
-      ].map((d) => (
-        <TouchableOpacity
-          key={d.v}
-          accessibilityRole="button"
-          accessibilityLabel={`סינון ${d.label}`}
-          style={[
-            styles.filterChip,
-            difficultyFilter === d.v && styles.filterChipActive,
-          ]}
-          onPress={() => setDifficultyFilter(d.v as typeof difficultyFilter)}
-        >
-          <Text
+      ],
+      []
+    );
+
+    return (
+      <View style={styles.filterBar}>
+        {filterOptions.map((d) => (
+          <TouchableOpacity
+            key={d.v}
+            accessibilityRole="button"
+            accessibilityLabel={`סינון ${d.label}`}
             style={[
-              styles.filterChipText,
-              difficultyFilter === d.v && styles.filterChipTextActive,
+              styles.filterChip,
+              difficultyFilter === d.v && styles.filterChipActive,
             ]}
+            onPress={() => setDifficultyFilter(d.v as typeof difficultyFilter)}
           >
-            {d.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+            <Text
+              style={[
+                styles.filterChipText,
+                difficultyFilter === d.v && styles.filterChipTextActive,
+              ]}
+            >
+              {d.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -248,7 +274,7 @@ const ExerciseListScreen: React.FC = () => {
               <Text style={styles.emptyStateText}>לא נמצאו תרגילים תואמים</Text>
               <TouchableOpacity
                 style={styles.reloadButton}
-                onPress={onRefresh}
+                onPress={handleReloadPress}
                 accessibilityRole="button"
                 accessibilityLabel="רענון רשימת תרגילים"
               >
@@ -453,4 +479,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ExerciseListScreen;
+/**
+ * ExerciseListScreen optimized with React.memo for better performance
+ * ExerciseListScreen מאופטם עם React.memo לביצועים טובים יותר
+ */
+const ExerciseListScreenMemo = React.memo(ExerciseListScreen);
+ExerciseListScreenMemo.displayName = "ExerciseListScreen";
+
+export default ExerciseListScreenMemo;

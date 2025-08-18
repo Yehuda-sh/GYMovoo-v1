@@ -1,8 +1,182 @@
 <!-- COPILOT_GUIDELINES.md -->
 
-# GitHub Copilot - הנחיות עבודה לפרויקט GYMovoo
+# הנחיות מאוחדות לפרויקט GYMovoo (Master Guidelines)
 
-_Last updated: 2025-08-17_
+Last updated: 2025-08-17
+
+מסמך זה הוא מקור אמת יחיד לכללי עבודה, שימוש ב-AI, ארכיטקטורה, RTL, נגישות, Supabase, דמו, וניהול תיעוד. שני קובצי ההנחיות הישנים (`copilot-instructions.md`, `copilot-instructions-updated.md`) הוחלפו ומכילים הפניה בלבד. אין לשכפל תוכן חדש אליהם.
+
+## תוכן עניינים (TOC)
+
+1. עקרונות יסוד וקונבנציות
+2. עבודה עם טרמינל ו-Expo
+3. Supabase – מקור אמת ונתוני דמו
+4. RTL + נגישות (Accessibility)
+5. ארכיטקטורה ותצורת פרויקט
+6. מניעת כפילויות ודפוסי Refactor
+7. BackButton ו-ConfirmationModal – שימוש מחייב
+8. TypeScript & Data Contracts
+9. בדיקות (TS / יחידה / אינטגרציה)
+10. ניהול תיעוד ומיזוג מסמכים
+11. יצירת / עדכון נתוני דמו נכונים
+12. Impact & Quality Checklists
+13. הנחיות לעוזר AI (GitHub Copilot)
+14. דיבוג מהיר (Navigation / UI / Cache)
+15. בטיחות שינויים והסרת Legacy
+16. דפוסי שאלון וציוד
+17. נספח: טעויות נפוצות / DO / DON'T
+
+---
+
+## 1. עקרונות יסוד וקונבנציות
+
+- המשך מקוד קיים – אין שכתוב גורף.
+- Supabase = מקור אמת יחיד; AsyncStorage = cache זמני בלבד.
+- שינויים קטנים, דיפ מינימלי, ללא Reformat נרחב.
+- אין נתונים דינמיים בתיעוד (מספרי אימונים, דקות, דירוגים).
+- דו-לשוניות: הוסף מפתחות חדשים – אל תשנה קיימים.
+- עדכון פרופיל → סנכרון מידי ל-Supabase + userStore.
+- קובץ > ~500 שורות → שקול פיצול.
+  "קודם קרא – אחר כך כתוב" – חפש רכיב/דפוס קיים לפני יצירה.
+
+## 2. עבודה עם טרמינל ו-Expo
+
+אסור: timeout, sleep, הפעלת `npx expo start` כפול.
+רענון אפליקציה: לחץ `r` בטרמינל הקיים (לא לפתוח חדש).
+ניקוי Cache רק בעת בעיה: `npx expo start --clear`.
+פקודות מבוקשות בלבד – לא להריץ ללא בקשת המשתמש.
+
+## 3. Supabase – מקור אמת ונתוני דמו
+
+- טבלת `public.users` מחזיקה JSONB מרובים (smartquestionnairedata, workoutplans, activityhistory...).
+- שמות עמודות ב-DB תמיד lowercase (camelCase→lowercase).
+- משתני סביבה חובה (Expo): `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- אין fetch/axios ל-localhost – רק supabase client.
+- AsyncStorage: לאחסון זמני בלבד (`user_cache`), לא מקור אמת.
+- שינוי סכימה → לציין בתקציר PR (מיגרציה).
+
+### 3.1 אימות נתוני דמו
+
+השתמש רק בערכים המופיעים ב-`src/data/unifiedQuestionnaire.ts` ובקבועים תחת `src/constants/`.
+סמן השלמת שאלון: `hasQuestionnaire: true` או `questionnaire.completed = true`.
+אין להמציא שדות חדשים (ללא שינוי סכימה מתועד).
+בדוק התאמה למבנה שהמסכים צורכים (`ProfileScreen`, `HistoryScreen`).
+
+## 4. RTL + נגישות
+
+- טקסט עברי: `writingDirection:"rtl"` + לרוב `textAlign:"right"`.
+- חיצים: BackButton מציג chevron-forward ב-RTL (לא chevron-back).
+- Row עם אייקון+טקסט בעברית: שקול `flexDirection: 'row-reverse'`.
+- כל TouchableOpacity: `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`.
+- אין שימוש ב-`Alert.alert` – רק `ConfirmationModal` (תמיכה ב-RTL ונגישות).
+
+## 5. ארכיטקטורה ותצורת פרויקט
+
+- React Native + Expo + TypeScript (strict).
+- Zustand stores: `userStore`, `workoutStore`, `historyStore` (סנכרון Supabase דו-כיווני).
+- ניווט: Stack ראשי + Tabs (react-navigation v6). BackButton מותאם בכל Header.
+- WGER Integration: `wgerApiService.ts` v2.0.0 (מטמון + ממשק מאוחד `WgerExerciseInfo`).
+- Demo Service: שירות דמו מציאותי (שדה `isDemo: true`).
+- Unified Questionnaire: גרסה חדשה + תמיכה לאחור (legacy `questionnaire`).
+
+## 6. מניעת כפילויות ודפוס Refactor
+
+Pattern: Detect → Extract (util/component) → Replace Usages → Remove Legacy.
+אין להשאיר ישן+חדש ללא TODO או מחיקה מידית (מועדפת).
+סבבי מחיקה: UI → Logic → Styles → Docs.
+
+## 7. BackButton & ConfirmationModal
+
+BackButton ממוקם ב-`src/components/common/BackButton.tsx` – השימוש מחייב. אין כפתורי חזרה ידניים.
+ConfirmationModal מחליף `Alert.alert` לכל הודעת אישור/אזהרה.
+
+## 8. TypeScript & Data Contracts
+
+- אין `any` (0 tolerance). שימוש ב-union / generics / interfaces.
+- שדות JSONB: ודא טיפוס מוגדר (interface תואם lower-case columns בעת שמירה).
+- `as const` לקבועים, לא קסמי מחרוזת.
+- בדוק מבנים מורכבים: equipment תמיד `string[]` (לא מקונן).
+- מסונכרן בין legacy `questionnaire` ל-`smartquestionnairedata` עד הסרה מלאה.
+
+## 9. בדיקות
+
+מינימום לפני commit: `npx tsc --noEmit --skipLibCheck`.
+פונקציה/לוגיקה חדשה: add happy path + edge.
+בדיקות סמוכות לקוד או בתיקיית `tests`.
+שינויים בנתוני דמו → לעדכן בדיקות שמסתמכות עליהם.
+
+## 10. ניהול תיעוד
+
+- מסמך זה = יחיד. שני מסמכי העבר = הפניה בלבד.
+- אין מספרים דינמיים, אין סטטיסטיקות מתיישנות.
+- הוסף "Last updated" בראש כל מסמך חדש מהותי.
+- מיזוג/מחיקת מסמכים: לציין ב-PR (Removed / Merged).
+- שמור 5–10 מסמכים חיוניים קצרים.
+
+## 11. יצירת / עדכון משתמש דמו
+
+צעדים: קרא questionnaire values → בחר ערכים חוקיים → מלא מבנים מלאים (questionnaire + smartquestionnairedata + activityhistory + workoutplans) → סמן `hasQuestionnaire` → בדוק מסכים (`Profile`, `History`).
+Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם לוגיקה יודעת להתמודד.
+עדכון שדה חדש למשתמש ⇒ לעדכן גם יוצר הדמו + התאמת Legacy.
+
+## 12. Checklists
+
+### 12.1 Impact Checklist
+
+[] Types מעודכנים
+[] Stores מסונכרנים (user/workout/history)
+[] Migration מתועדת (אם schema השתנה)
+[] אין שימוש בנתוני דמו כקבועים
+[] בדיקות רצות נקי
+
+### 12.2 Quality Gate
+
+1. TypeScript clean
+2. Tests (אם השתנה לוגיקה)
+3. No unused imports
+4. No console.log production (devLog בלבד ב-**DEV**)
+5. RTL + Accessibility בבדיקת UI בסיסית
+
+## 13. הנחיות לעוזר AI
+
+- לענות בעברית בלבד (קוד / פקודות באנגלית מותר).
+- תמציתי, בולטים, ללא סופרלטיבים.
+- לבצע פעולות ישירות (כלי) כשאפשר; לשאול רק כשחסר מידע חיוני.
+- להסביר דלתא (מה השתנה) במקום לחזור על כל התכנית.
+- לא להריץ פקודות שלא נתבקשו במפורש.
+
+## 14. דיבוג מהיר
+
+- כפתור לא מגיב: בדוק onPress, שכבה חוסמת (zIndex), hitSlop.
+- BackButton לא עובד: `navigation.canGoBack()`; אם false → נווט למסך root.
+- שגיאת עמודה: בדוק lowercase מול DB.
+- בעיות RTL: הוסף writingDirection + בדוק flexDirection.
+- מטמון לא מתעדכן: ניקוי `expo start --clear` רק אם הכרחי.
+
+## 15. בטיחות והסרת Legacy
+
+- אין מחיקת פונקציונליות ליבה ללא אישור.
+- קבצי JSON מקומיים = Legacy אם Supabase מחליף – להסיר אחרי וידוא שימושים.
+- אין axios/fetch לשרת מקומי.
+- לפני מחיקה: grep לשימושים + קומפילציה נקייה.
+
+## 16. שאלון וציוד
+
+- equipment לפי מיקום (home_equipment / gym_equipment / bodyweight_equipment...).
+- ערכים חוקיים בלבד מהקבועים.
+- התאמת מגדר מתחילה בשאלה הראשונה.
+- Session duration, availability, goals – תמיד בפורמט המוגדר (underscores).
+
+## 17. טעויות נפוצות / DO & DON'T
+
+DO: BackButton, ConfirmationModal, theme.colors, accessibility props, lower-case DB columns, unified questionnaire.
+DON'T: Alert.alert, chevron-back ב-RTL, any, hard-coded colors, נתונים דינמיים בתיעוד, כפילות רכיבים.
+
+---
+
+להוספת כלל חדש: ודא שאינו קיים; הוסף לסעיף הרלוונטי בלבד. שינוי מהותי → עדכן תאריך בראש.
+
+---
 
 ## 🚫 פקודות טרמינל אסורות
 
@@ -88,10 +262,6 @@ _Last updated: 2025-08-17_
   - **נגישות מובנית:** accessibilityLabel="חזור", accessibilityRole="button"
   - **RTL נכון:** אייקון chevron-forward (לא chevron-back)
 - **איסור כפתורי חזרה ידניים:** אל תיצור TouchableOpacity עם navigation.goBack() ישירות
-
-## 📊 סטטיסטיקות (Generalized)
-
-לא נרשמות כאן ספירות מדויקות (מסכים, שירותים, קבצי תיעוד) כדי למנוע התיישנות. במקרה הצורך בדוק את העץ (`src/`) או קבצי הסיכום ב-`docs/`.
 
 ## 🧹 ניקוי Cache - מתי זה חשוב?
 
@@ -245,18 +415,7 @@ const handleAction = () => {
 />
 ```
 
-## 🏗️ ארכיטקטורה מרכזית (תמצית)
-
-- **ניווט:** Stack ראשי + Tabs
-- **AI / תוכניות:** שירות ייעודי להרכבת אימון (אלגוריתם בסיסי מתרחב)
-- **שאלון:** מנהל שאלון מאוחד + התאמות מגדר
-- **תרגילים:** שירות WGER מאוחד + מאגר מקומי
-- **מצב גלובלי:** userStore / workoutStore / historyStore (Zustand)
-- **היסטוריה:** HistoryScreen צורך נתוני משתמש + דמו באותה תשתית
-
-## 🔄 שירותים ורכיבים מחודשים (High-Level)
-
-### דוגמאות שעודכנו לסטנדרט החדש
+<!-- סעיפים ישנים תחתית המסמך עברו לאיחוד למעלה. -->
 
 questionnaireService.ts, WorkoutPlansScreen.tsx – משמשים כמודל לקונבנציות (TypeScript מחמיר, RTL, נגישות, JSDoc).
 

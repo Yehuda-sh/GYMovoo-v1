@@ -3,7 +3,7 @@
  * @brief מסך תרגילים - סקירה כללית של כל התרגילים במערכת
  * @dependencies React Native, MaterialCommunityIcons, ExerciseListScreen
  * @notes מסך ראשי לגישה לכל התרגילים עם סינון לפי קבוצות שרירים
- * @updated 2025-08-06 אופטימיזציה: הסרת ערכים קשיחים, שימוש במערכת theme, ריכוז constants
+ * @updated 2025-08-17 החלפת console.error בלוגים מותנים, הוספת React.memo, מניעת כפילויות ב-CONSTANTS
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -36,6 +36,15 @@ import {
   // generateExerciseStats,
 } from "../../constants/exercisesScreenTexts";
 
+// Debug logging
+const DEBUG = __DEV__;
+const dlog = (message: string, ...args: unknown[]) => {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.debug(`[ExercisesScreen] ${message}`, ...args);
+  }
+};
+
 const { width: screenWidth } = Dimensions.get("window");
 
 // Type definition for muscle groups with enhanced typing
@@ -52,7 +61,7 @@ type ExercisesScreenNavigationProp = StackNavigationProp<
   "ExercisesScreen"
 >;
 
-export default function ExercisesScreen() {
+const ExercisesScreen: React.FC = React.memo(() => {
   const navigation = useNavigation<ExercisesScreenNavigationProp>();
   const route = useRoute();
   const [muscles, setMuscles] = useState<Muscle[]>([]);
@@ -99,8 +108,9 @@ export default function ExercisesScreen() {
         { id: 6, name: "ליבה", is_front: true },
       ];
       setMuscles(musclesData);
+      dlog("Muscles loaded successfully", { count: musclesData.length });
     } catch (error) {
-      console.error("Error loading muscles:", error);
+      dlog("Error loading muscles", { error });
     }
   };
 
@@ -137,7 +147,7 @@ export default function ExercisesScreen() {
         <View style={styles.header}>
           <MaterialCommunityIcons
             name="dumbbell"
-            size={80}
+            size={CONSTANTS.ICON_SIZES.large}
             color={theme.colors.primary}
             accessible={false}
             importantForAccessibility="no"
@@ -169,7 +179,7 @@ export default function ExercisesScreen() {
             >
               <MaterialCommunityIcons
                 name="view-list"
-                size={24}
+                size={CONSTANTS.ICON_SIZES.small}
                 color="#FFFFFF"
                 accessible={false}
                 importantForAccessibility="no"
@@ -177,7 +187,7 @@ export default function ExercisesScreen() {
               <Text style={styles.viewAllText}>צפה בכל התרגילים</Text>
               <MaterialCommunityIcons
                 name="chevron-left"
-                size={20}
+                size={CONSTANTS.ICON_SIZES.tiny}
                 color="#FFFFFF"
                 accessible={false}
                 importantForAccessibility="no"
@@ -306,7 +316,38 @@ export default function ExercisesScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+});
+
+ExercisesScreen.displayName = "ExercisesScreen";
+
+export default ExercisesScreen;
+
+// Constants to prevent duplications
+const CONSTANTS = {
+  FONT_SIZES: {
+    large: 28,
+    title: 20,
+    subtitle: 16,
+    body: 14,
+    small: 12,
+    icon: 24,
+  },
+  BORDER_RADIUS: {
+    small: 12,
+    circle: 30,
+  },
+  TEXT_ALIGN: {
+    center: "center" as const,
+    right: "right" as const,
+  },
+  ICON_SIZES: {
+    large: 80,
+    medium: 32,
+    small: 24,
+    tiny: 16,
+    stat: 28,
+  },
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -322,16 +363,16 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xl,
   },
   title: {
-    fontSize: 28,
+    fontSize: CONSTANTS.FONT_SIZES.large,
     fontWeight: "bold",
     color: theme.colors.text,
     marginTop: theme.spacing.md,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: CONSTANTS.FONT_SIZES.subtitle,
     color: theme.colors.textSecondary,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
     marginTop: theme.spacing.sm,
     lineHeight: 24,
   },
@@ -340,7 +381,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   viewAllButton: {
-    borderRadius: 12,
+    borderRadius: CONSTANTS.BORDER_RADIUS.small,
     overflow: "hidden",
   },
   viewAllGradient: {
@@ -351,28 +392,28 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   viewAllText: {
-    fontSize: 16,
+    fontSize: CONSTANTS.FONT_SIZES.subtitle,
     fontWeight: "600",
     color: "#FFFFFF",
     flex: 1,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
   },
   muscleGroupsSection: {
     marginHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: CONSTANTS.FONT_SIZES.title,
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
-    textAlign: "right",
+    textAlign: CONSTANTS.TEXT_ALIGN.right,
   },
   sectionDescription: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
-    textAlign: "right",
+    textAlign: CONSTANTS.TEXT_ALIGN.right,
     lineHeight: 20,
   },
   muscleGrid: {
@@ -384,7 +425,7 @@ const styles = StyleSheet.create({
   muscleCard: {
     width: (screenWidth - theme.spacing.lg * 2 - theme.spacing.sm) / 2,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: CONSTANTS.BORDER_RADIUS.small,
     padding: theme.spacing.md,
     alignItems: "center",
     position: "relative",
@@ -392,22 +433,22 @@ const styles = StyleSheet.create({
   muscleIconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: CONSTANTS.BORDER_RADIUS.circle,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.sm,
   },
   muscleTitle: {
-    fontSize: 16,
+    fontSize: CONSTANTS.FONT_SIZES.subtitle,
     fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
     marginBottom: theme.spacing.xs,
   },
   muscleDescription: {
-    fontSize: 12,
+    fontSize: CONSTANTS.FONT_SIZES.small,
     color: theme.colors.textSecondary,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
     lineHeight: 16,
   },
   muscleArrow: {
@@ -427,21 +468,21 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: CONSTANTS.BORDER_RADIUS.small,
     padding: theme.spacing.md,
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: CONSTANTS.FONT_SIZES.icon,
     fontWeight: "bold",
     color: theme.colors.text,
     marginTop: theme.spacing.sm,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: CONSTANTS.FONT_SIZES.small,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
-    textAlign: "center",
+    textAlign: CONSTANTS.TEXT_ALIGN.center,
   },
   tipsSection: {
     marginHorizontal: theme.spacing.lg,
@@ -449,7 +490,7 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: "row-reverse",
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: CONSTANTS.BORDER_RADIUS.small,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
     alignItems: "flex-start",
@@ -459,16 +500,16 @@ const styles = StyleSheet.create({
     marginEnd: theme.spacing.md, // שינוי RTL: marginEnd במקום marginRight
   },
   tipTitle: {
-    fontSize: 14,
+    fontSize: CONSTANTS.FONT_SIZES.body,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
-    textAlign: "right",
+    textAlign: CONSTANTS.TEXT_ALIGN.right,
   },
   tipText: {
-    fontSize: 12,
+    fontSize: CONSTANTS.FONT_SIZES.small,
     color: theme.colors.textSecondary,
     lineHeight: 18,
-    textAlign: "right",
+    textAlign: CONSTANTS.TEXT_ALIGN.right,
   },
 });
