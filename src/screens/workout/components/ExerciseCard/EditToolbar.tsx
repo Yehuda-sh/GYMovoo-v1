@@ -4,19 +4,36 @@
  * @features React.memo, אנימציות, RTL support
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Alert,
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
+import ConfirmationModal from "../../../../components/common/ConfirmationModal";
+
+// 🎨 CONSTANTS - ריכוז קבועים למניעת מספרי קסם ושיפור תחזוקתיות
+const CONSTANTS = {
+  ICON_SIZE: 20,
+  ANIMATION_OUTPUT_RANGE: [-50, 0],
+  VIBRATION: {
+    MEDIUM: "medium" as const,
+    DOUBLE: "double" as const,
+    SHORT: "short" as const,
+  },
+  MODAL_STRINGS: {
+    TITLE: "מחיקת תרגיל",
+    MESSAGE: "האם אתה בטוח שברצונך למחוק את התרגיל?",
+    CONFIRM_TEXT: "מחק",
+    CANCEL_TEXT: "ביטול",
+  },
+};
 
 interface EditToolbarProps {
   isVisible: boolean;
@@ -36,37 +53,34 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
     onRemoveExercise,
     onExitEditMode,
   }) => {
-    const handleDelete = useCallback(() => {
-      if (Platform.OS === "ios") {
-        triggerVibration("medium");
-      }
+    const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
-      Alert.alert("מחיקת תרגיל", "האם אתה בטוח שברצונך למחוק את התרגיל?", [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            if (Platform.OS === "ios") {
-              triggerVibration("double");
-            }
-            onRemoveExercise();
-            onExitEditMode();
-          },
-        },
-      ]);
+    const handleDeletePress = useCallback(() => {
+      if (Platform.OS === "ios") {
+        triggerVibration(CONSTANTS.VIBRATION.MEDIUM);
+      }
+      setDeleteModalVisible(true);
+    }, []);
+
+    const handleConfirmDelete = useCallback(() => {
+      if (Platform.OS === "ios") {
+        triggerVibration(CONSTANTS.VIBRATION.DOUBLE);
+      }
+      onRemoveExercise();
+      onExitEditMode();
+      setDeleteModalVisible(false); // נסגר אוטומטית, אבל טוב להיות בטוחים
     }, [onRemoveExercise, onExitEditMode]);
 
     const handleDuplicate = useCallback(() => {
       if (Platform.OS === "ios") {
-        triggerVibration("short");
+        triggerVibration(CONSTANTS.VIBRATION.SHORT);
       }
       onDuplicate?.();
     }, [onDuplicate]);
 
     const handleReplace = useCallback(() => {
       if (Platform.OS === "ios") {
-        triggerVibration("short");
+        triggerVibration(CONSTANTS.VIBRATION.SHORT);
       }
       onReplace?.();
     }, [onReplace]);
@@ -74,74 +88,89 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
     if (!isVisible) return null;
 
     return (
-      <Animated.View
-        style={[
-          styles.editToolbar,
-          {
-            opacity: editModeAnimation,
-            transform: [
-              {
-                translateY: editModeAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-50, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <View style={styles.editToolbarContent}>
-          <Text style={styles.editToolbarTitle}>מצב עריכה פעיל</Text>
-          <View style={styles.editToolbarActions}>
-            <TouchableOpacity
-              style={styles.editActionButton}
-              onPress={handleDuplicate}
-              disabled={!onDuplicate}
-              accessibilityLabel="שכפל תרגיל"
-              accessibilityRole="button"
-            >
-              <MaterialCommunityIcons
-                name="content-copy"
-                size={20}
-                color={
-                  onDuplicate
-                    ? theme.colors.primary
-                    : theme.colors.textSecondary
-                }
-              />
-            </TouchableOpacity>
+      <>
+        <Animated.View
+          style={[
+            styles.editToolbar,
+            {
+              opacity: editModeAnimation,
+              transform: [
+                {
+                  translateY: editModeAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: CONSTANTS.ANIMATION_OUTPUT_RANGE,
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.editToolbarContent}>
+            <Text style={styles.editToolbarTitle}>מצב עריכה פעיל</Text>
+            <View style={styles.editToolbarActions}>
+              <TouchableOpacity
+                style={styles.editActionButton}
+                onPress={handleDuplicate}
+                disabled={!onDuplicate}
+                accessibilityLabel="שכפל תרגיל"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={CONSTANTS.ICON_SIZE}
+                  color={
+                    onDuplicate
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.editActionButton}
-              onPress={handleReplace}
-              disabled={!onReplace}
-              accessibilityLabel="החלף תרגיל"
-              accessibilityRole="button"
-            >
-              <MaterialCommunityIcons
-                name="swap-horizontal"
-                size={20}
-                color={
-                  onReplace ? theme.colors.primary : theme.colors.textSecondary
-                }
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editActionButton}
+                onPress={handleReplace}
+                disabled={!onReplace}
+                accessibilityLabel="החלף תרגיל"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={CONSTANTS.ICON_SIZE}
+                  color={
+                    onReplace
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.editActionButton, styles.editActionButtonDanger]}
-              onPress={handleDelete}
-              accessibilityLabel="מחק תרגיל"
-              accessibilityRole="button"
-            >
-              <MaterialCommunityIcons
-                name="delete"
-                size={20}
-                color={theme.colors.error}
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editActionButton, styles.editActionButtonDanger]}
+                onPress={handleDeletePress}
+                accessibilityLabel="מחק תרגיל"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="delete"
+                  size={CONSTANTS.ICON_SIZE}
+                  color={theme.colors.error}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+
+        <ConfirmationModal
+          visible={isDeleteModalVisible}
+          onClose={() => setDeleteModalVisible(false)}
+          onConfirm={handleConfirmDelete}
+          title={CONSTANTS.MODAL_STRINGS.TITLE}
+          message={CONSTANTS.MODAL_STRINGS.MESSAGE}
+          confirmText={CONSTANTS.MODAL_STRINGS.CONFIRM_TEXT}
+          cancelText={CONSTANTS.MODAL_STRINGS.CANCEL_TEXT}
+          variant="error"
+        />
+      </>
     );
   }
 );
