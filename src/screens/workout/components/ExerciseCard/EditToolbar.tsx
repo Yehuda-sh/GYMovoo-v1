@@ -17,21 +17,26 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 import ConfirmationModal from "../../../../components/common/ConfirmationModal";
+import {
+  SHARED_ICON_SIZES,
+  SHARED_VIBRATION_TYPES,
+  SHARED_MODAL_STRINGS,
+} from "../../../../constants/sharedConstants";
 
 // 🎨 CONSTANTS - ריכוז קבועים למניעת מספרי קסם ושיפור תחזוקתיות
 const CONSTANTS = {
-  ICON_SIZE: 20,
+  ICON_SIZE: SHARED_ICON_SIZES.MEDIUM,
   ANIMATION_OUTPUT_RANGE: [-50, 0],
   VIBRATION: {
-    MEDIUM: "medium" as const,
-    DOUBLE: "double" as const,
-    SHORT: "short" as const,
+    MEDIUM: SHARED_VIBRATION_TYPES.MEDIUM,
+    DOUBLE: SHARED_VIBRATION_TYPES.DOUBLE,
+    SHORT: SHARED_VIBRATION_TYPES.SHORT,
   },
   MODAL_STRINGS: {
     TITLE: "מחיקת תרגיל",
     MESSAGE: "האם אתה בטוח שברצונך למחוק את התרגיל?",
-    CONFIRM_TEXT: "מחק",
-    CANCEL_TEXT: "ביטול",
+    CONFIRM_TEXT: SHARED_MODAL_STRINGS.DELETE.CONFIRM_TEXT,
+    CANCEL_TEXT: SHARED_MODAL_STRINGS.DELETE.CANCEL_TEXT,
   },
 };
 

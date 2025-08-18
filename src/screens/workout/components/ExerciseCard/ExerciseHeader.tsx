@@ -24,19 +24,25 @@ import {
   getEquipmentHebrewName,
 } from "../../../../utils/equipmentIconMapping";
 import { WorkoutExercise, Set as WorkoutSet } from "../../types/workout.types";
+import {
+  SHARED_ICON_SIZES,
+  SHARED_VIBRATION_TYPES,
+  SHARED_ANIMATION,
+  SHARED_ACCESSIBILITY,
+} from "../../../../constants/sharedConstants";
 
 // 🎨 CONSTANTS - ריכוז קבועים לשיפור קריאות, תחזוקתיות ועקביות
 const CONSTANTS = {
   ICON_SIZES: {
-    EQUIPMENT: 20,
-    FOCUS: 16,
-    COMPLETED: 20,
-    STATS: 14,
-    MENU: 24,
-    CHEVRON: 24,
+    EQUIPMENT: SHARED_ICON_SIZES.EQUIPMENT,
+    FOCUS: SHARED_ICON_SIZES.FOCUS,
+    COMPLETED: SHARED_ICON_SIZES.COMPLETED,
+    STATS: SHARED_ICON_SIZES.STATS,
+    MENU: SHARED_ICON_SIZES.MENU,
+    CHEVRON: SHARED_ICON_SIZES.CHEVRON,
   },
   ANIMATION: {
-    INPUT_RANGE: [0, 1],
+    INPUT_RANGE: SHARED_ANIMATION.INPUT_RANGE,
     OUTPUT_RANGE_ROTATE: ["0deg", "90deg"], // Improved animation
   },
   ACCESSIBILITY: {
@@ -50,7 +56,7 @@ const CONSTANTS = {
     PROGRESS_BAR_TEXT: (completed: number, total: number) =>
       `${completed} מתוך ${total} סטים הושלמו`,
   },
-  VIBRATION_TYPE: "short" as const,
+  VIBRATION_TYPE: SHARED_VIBRATION_TYPES.SHORT,
 };
 
 interface ExerciseHeaderProps {

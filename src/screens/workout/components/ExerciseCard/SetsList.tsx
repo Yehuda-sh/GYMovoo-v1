@@ -22,6 +22,15 @@ interface SetsListProps {
   onDuplicateSet: (setIndex: number) => void;
 }
 
+// Centralize table headers into a constant object
+const TABLE_HEADERS = {
+  setNumber: "סט",
+  previous: "קודם",
+  weight: "משקל",
+  reps: "חזרות",
+  actions: "פעולות",
+};
+
 const SetsList: React.FC<SetsListProps> = React.memo(
   ({
     sets,
@@ -39,19 +48,19 @@ const SetsList: React.FC<SetsListProps> = React.memo(
         {/* Table headers */}
         <View style={styles.setsTableHeader}>
           <View style={styles.setNumberHeader}>
-            <Text style={styles.headerText}>סט</Text>
+            <Text style={styles.headerText}>{TABLE_HEADERS.setNumber}</Text>
           </View>
           <View style={styles.previousHeader}>
-            <Text style={styles.headerText}>קודם</Text>
+            <Text style={styles.headerText}>{TABLE_HEADERS.previous}</Text>
           </View>
           <View style={styles.weightHeader}>
-            <Text style={styles.headerText}>משקל</Text>
+            <Text style={styles.headerText}>{TABLE_HEADERS.weight}</Text>
           </View>
           <View style={styles.repsHeader}>
-            <Text style={styles.headerText}>חזרות</Text>
+            <Text style={styles.headerText}>{TABLE_HEADERS.reps}</Text>
           </View>
           <View style={styles.actionsHeader}>
-            <Text style={styles.headerText}>פעולות</Text>
+            <Text style={styles.headerText}>{TABLE_HEADERS.actions}</Text>
           </View>
         </View>
 
