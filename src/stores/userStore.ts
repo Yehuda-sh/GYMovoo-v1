@@ -29,6 +29,7 @@ import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
 import { extractSmartAnswers } from "../utils/questionnaireUtils";
+import { logger } from "../utils/logger";
 /* eslint-disable no-console */
 
 // ==============================
@@ -181,7 +182,7 @@ export const useUserStore = create<UserStore>()(
       // Simplified logout with efficient cleanup
       logout: async () => {
         try {
-          console.log("🚪 userStore.logout - מתחיל התנתקות");
+          logger.debug("Auth", "userStore.logout - מתחיל התנתקות");
 
           // רשימת מפתחות עיקריים לניקוי
           const keysToRemove = [
@@ -199,9 +200,9 @@ export const useUserStore = create<UserStore>()(
           // איפוס ה-store
           set({ user: null });
 
-          console.log("✅ userStore.logout - התנתקות הושלמה בהצלחה");
+          logger.debug("Auth", "userStore.logout - התנתקות הושלמה בהצלחה");
         } catch (error) {
-          console.error("❌ userStore.logout - שגיאה בהתנתקות:", error);
+          logger.error("Auth", "userStore.logout - שגיאה בהתנתקות", error);
           // גם אם יש שגיאה, איפוס ה-store
           set({ user: null });
           throw error;
@@ -214,7 +215,9 @@ export const useUserStore = create<UserStore>()(
       // הגדרת נתוני השאלון החכם
       // Set smart questionnaire data
       setSmartQuestionnaireData: (data) => {
-        console.log("💾 userStore.setSmartQuestionnaireData נקרא עם:", data);
+        logger.debug("Store", "userStore.setSmartQuestionnaireData נקרא", {
+          hasData: !!data,
+        });
 
         set((state) => ({
           user: {
@@ -266,8 +269,10 @@ export const useUserStore = create<UserStore>()(
           StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
           JSON.stringify(data)
         )
-          .then(() => console.log("✅ smart_questionnaire_results נשמר"))
-          .catch((err) => console.error("❌ שגיאה בשמירת השאלון החכם:", err));
+          .then(() => logger.debug("Store", "smart_questionnaire_results נשמר"))
+          .catch((err) =>
+            logger.error("Store", "שגיאה בשמירת השאלון החכם", err)
+          );
 
         // שמירת העדפת מגדר בנפרד
         if (data.answers.gender) {
@@ -410,7 +415,9 @@ export const useUserStore = create<UserStore>()(
       // הגדרת תשובות שאלון (פורמט ישן)
       // Set questionnaire answers (old format)
       setQuestionnaire: (answers) => {
-        console.log("💾 userStore.setQuestionnaire נקרא עם:", answers);
+        logger.debug("Store", "userStore.setQuestionnaire נקרא", {
+          answerCount: Object.keys(answers).length,
+        });
 
         // יצירת נתוני שאלון מורחבים
         const questionnaireData: LegacyQuestionnaireData = {
@@ -423,7 +430,9 @@ export const useUserStore = create<UserStore>()(
           version: "smart-questionnaire-v1",
         };
 
-        console.log("💾 Creating questionnaireData:", questionnaireData);
+        logger.debug("Store", "Creating questionnaireData", {
+          hasMetadata: !!questionnaireData.metadata,
+        });
 
         set((state) => ({
           user: state.user
@@ -1026,21 +1035,26 @@ export const useUserStore = create<UserStore>()(
       // טעינה אוטומטית בהפעלה
       // Auto-load on startup
       onRehydrateStorage: () => (state) => {
-        console.log("User store rehydrated:", state?.user?.email);
+        logger.debug("Store", "User store rehydrated", {
+          hasUser: !!state?.user?.email,
+        });
 
         // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
         // Development mode: Auto-clear on every fresh start (temporarily disabled)
         // eslint-disable-next-line no-constant-condition, no-constant-binary-expression
         if (false && __DEV__) {
-          console.log("🧹 DEV MODE: Auto-clearing user data for fresh start");
+          logger.debug(
+            "Store",
+            "DEV MODE: Auto-clearing user data for fresh start"
+          );
           // ניקוי אסינכרוני כדי לא לחסום את הטעינה
           setTimeout(async () => {
             try {
               const allKeys = await AsyncStorage.getAllKeys();
               await AsyncStorage.multiRemove(allKeys);
-              console.log("✅ DEV MODE: All data cleared");
+              logger.debug("Store", "DEV MODE: All data cleared");
             } catch (error) {
-              console.error("❌ DEV MODE: Error clearing data:", error);
+              logger.error("Store", "DEV MODE: Error clearing data", error);
             }
           }, 100);
         }

@@ -25,6 +25,7 @@ import Toast from "react-native-toast-message";
 import { StorageCleanup } from "./src/utils/storageCleanup";
 import { dataManager } from "./src/services/core";
 import { useUserStore } from "./src/stores/userStore";
+import { ErrorBoundary } from "./src/components/common/ErrorBoundary";
 import "./src/utils/rtlHelpers"; // 🌍 אתחול RTL אוטומטי / Automatic RTL initialization
 
 // ===============================================
@@ -120,15 +121,17 @@ export default function App(): React.JSX.Element {
   }, [user, refreshFromServer]);
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        {/* ניווט ראשי של האפליקציה / Main application navigation */}
-        <AppNavigator />
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider>
+          {/* ניווט ראשי של האפליקציה / Main application navigation */}
+          <AppNavigator />
 
-        {/* הודעות Toast גלובליות / Global Toast messages */}
-        <Toast />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+          {/* הודעות Toast גלובליות / Global Toast messages */}
+          <Toast />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

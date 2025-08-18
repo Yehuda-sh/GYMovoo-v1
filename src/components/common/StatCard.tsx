@@ -368,7 +368,7 @@ export const StatCardGrid: React.FC<{
   columns?: 2 | 3 | 4;
   style?: ViewStyle;
   testID?: string;
-}> = React.memo(({ children, columns = 2, style, testID }) => {
+}> = React.memo(({ children, columns: _columns = 2, style, testID }) => {
   const gridStyle: ViewStyle = StyleSheet.flatten([
     {
       flexDirection: "row" as const,

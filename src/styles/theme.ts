@@ -549,6 +549,38 @@ export const components = {
     zIndex: zIndex.floatingButton,
   },
 
+  // גדלים שונים לכפתור צף - Floating button sizes
+  floatingButtonSizes: {
+    small: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      button: 40,
+      icon: 18,
+    },
+    medium: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      button: 56,
+      icon: 24,
+    },
+    large: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      button: 72,
+      icon: 32,
+    },
+    workout: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      button: 64,
+      icon: 28,
+    },
+  },
+
   backButton: {
     position: "absolute" as const,
     top: Platform.OS === "ios" ? 50 : 40,

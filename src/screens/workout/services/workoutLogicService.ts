@@ -10,6 +10,7 @@
 
 import { allExercises as ALL_EXERCISES } from "../../../data/exercises";
 import { ExerciseTemplate } from "../types/workout.types";
+import { logger } from "../../../utils/logger";
 import {
   EXPERIENCE_MAP,
   DURATION_MAP,
@@ -150,18 +151,21 @@ export const selectExercisesForDay = (
   duration: number,
   metadata: Record<string | number, string | string[]>
 ): ExerciseTemplate[] => {
-  console.log("🏗️ WorkoutLogicService: === SELECTING EXERCISES FOR DAY ===");
-  console.log("🏗️ WorkoutLogicService: Day name:", dayName);
-  console.log("🏗️ WorkoutLogicService: Available equipment:", equipment);
-  console.log("🏗️ WorkoutLogicService: Experience level:", experience);
-  console.log("🏗️ WorkoutLogicService: Duration:", duration);
+  logger.debug("Workout", "SELECTING EXERCISES FOR DAY", {
+    dayName,
+    equipmentCount: equipment.length,
+    experience,
+    duration,
+  });
 
   // Get target muscle groups based on day name
   const muscleGroups = getMuscleGroupsForDay(dayName);
   const exerciseCount = Math.max(4, Math.min(8, Math.floor(duration / 10)));
 
-  console.log("🎯 WorkoutLogicService: Target muscle groups:", muscleGroups);
-  console.log("🎯 WorkoutLogicService: Target exercise count:", exerciseCount);
+  logger.debug("Workout", "Target selection", {
+    muscleGroups: muscleGroups.slice(0, 3),
+    exerciseCount,
+  });
 
   // Filter exercises by muscle groups and equipment
   const availableExercises = ALL_EXERCISES.filter((exercise: any) => {

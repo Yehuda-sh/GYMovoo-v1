@@ -26,6 +26,8 @@ import {
 import { workoutFacadeService } from "../workout/workoutFacadeService";
 import { LOGGING } from "../../constants/logging";
 import { userApi } from "../api/userApi";
+import { logger } from "../../utils/logger";
+import { errorHandler } from "../../utils/errorHandler";
 
 // =====================================
 // 🪵 Dev Logger (only in __DEV__)
@@ -116,7 +118,8 @@ class DataManagerService {
       this.isInitialized = true;
       devLog("✅ Initialization completed");
     } catch (error) {
-      console.error("❌ DataManager: Initialization failed", error);
+      logger.error("DataManager", "Initialization failed", error);
+      errorHandler.reportError(error, { source: "DataManager.initialize" });
       // במקרה של כשל, ננסה לטעון נתונים מקומיים
       await this._loadFromLocalSources(user);
       this.isInitialized = true;
@@ -153,10 +156,14 @@ class DataManagerService {
         this.cache.isDemo = false;
       }
     } catch (error) {
-      console.error(
-        "🌐❌ DataManager: Server loading failed, falling back to local",
+      logger.error(
+        "DataManager",
+        "Server loading failed, falling back to local",
         error
       );
+      errorHandler.reportError(error, {
+        source: "DataManager._loadFromServer",
+      });
       await this._loadFromLocalSources(user);
     }
   }
@@ -279,7 +286,8 @@ class DataManagerService {
 
       devLog("✅ Sync completed");
     } catch (error) {
-      console.error("❌ DataManager: Sync failed", error);
+      logger.error("DataManager", "Sync failed", error);
+      errorHandler.reportError(error, { source: "DataManager.sync" });
     }
   }
 

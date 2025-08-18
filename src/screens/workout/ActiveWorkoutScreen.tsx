@@ -77,6 +77,8 @@ import {
 import { Exercise, Set } from "./types/workout.types";
 import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService";
 import { useUserStore } from "../../stores/userStore";
+import { logger } from "../../utils/logger";
+import { errorHandler } from "../../utils/errorHandler";
 
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -626,7 +628,10 @@ const ActiveWorkoutScreen: React.FC = () => {
               workoutData?.name || "אימון"
             );
           } catch (error) {
-            console.warn("⚠️ ActiveWorkout: שגיאה בעדכון השלמת אימון:", error);
+            logger.error("ActiveWorkout", "שגיאה בעדכון השלמת אימון", error);
+            errorHandler.reportError(error, {
+              source: "ActiveWorkoutScreen.completeWorkout",
+            });
             // המשך ליציאה גם אם יש שגיאה בעדכון הרשומה
           } finally {
             navigation.goBack();
