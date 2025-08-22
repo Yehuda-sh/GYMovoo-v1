@@ -2,29 +2,30 @@
 
 # הנחיות מאוחדות לפרויקט GYMovoo (Master Guidelines)
 
-Last updated: 2025-08-17
+Last updated: 2025-08-22
 
 מסמך זה הוא מקור אמת יחיד לכללי עבודה, שימוש ב-AI, ארכיטקטורה, RTL, נגישות, Supabase, דמו, וניהול תיעוד. שני קובצי ההנחיות הישנים (`copilot-instructions.md`, `copilot-instructions-updated.md`) הוחלפו ומכילים הפניה בלבד. אין לשכפל תוכן חדש אליהם.
 
 ## תוכן עניינים (TOC)
 
 1. עקרונות יסוד וקונבנציות
-2. עבודה עם טרמינל ו-Expo
-3. Supabase – מקור אמת ונתוני דמו
-4. RTL + נגישות (Accessibility)
-5. ארכיטקטורה ותצורת פרויקט
-6. מניעת כפילויות ודפוסי Refactor
-7. BackButton ו-ConfirmationModal – שימוש מחייב
-8. TypeScript & Data Contracts
-9. בדיקות (TS / יחידה / אינטגרציה)
-10. ניהול תיעוד ומיזוג מסמכים
-11. יצירת / עדכון נתוני דמו נכונים
-12. Impact & Quality Checklists
-13. הנחיות לעוזר AI (GitHub Copilot)
-14. דיבוג מהיר (Navigation / UI / Cache)
-15. בטיחות שינויים והסרת Legacy
-16. דפוסי שאלון וציוד
-17. נספח: טעויות נפוצות / DO / DON'T
+2. ארכיטקטורת פיצ'רים (חדש!)
+3. עבודה עם טרמינל ו-Expo
+4. Supabase – מקור אמת ונתוני דמו
+5. RTL + נגישות (Accessibility)
+6. ארכיטקטורה ותצורת פרויקט
+7. מניעת כפילויות ודפוסי Refactor
+8. BackButton ו-ConfirmationModal – שימוש מחייב
+9. TypeScript & Data Contracts
+10. בדיקות (TS / יחידה / אינטגרציה)
+11. ניהול תיעוד ומיזוג מסמכים
+12. יצירת / עדכון נתוני דמו נכונים
+13. Impact & Quality Checklists
+14. הנחיות לעוזר AI (GitHub Copilot)
+15. דיבוג מהיר (Navigation / UI / Cache)
+16. בטיחות שינויים והסרת Legacy
+17. דפוסי שאלון וציוד
+18. נספח: טעויות נפוצות / DO / DON'T
 
 ---
 
@@ -37,16 +38,41 @@ Last updated: 2025-08-17
 - דו-לשוניות: הוסף מפתחות חדשים – אל תשנה קיימים.
 - עדכון פרופיל → סנכרון מידי ל-Supabase + userStore.
 - קובץ > ~500 שורות → שקול פיצול.
-  "קודם קרא – אחר כך כתוב" – חפש רכיב/דפוס קיים לפני יצירה.
+- "קודם קרא – אחר כך כתוב" – חפש רכיב/דפוס קיים לפני יצירה.
 
-## 2. עבודה עם טרמינל ו-Expo
+## 2. ארכיטקטורת פיצ'רים (חדש!)
+
+בעת פיתוח פיצ'ר חדש ומשמעותי (כמו "Equipment-Aware Plans"), יש לפעול לפי השלבים הבאים:
+
+1.  **יצירת שירות ליבה (Utility/Service):**
+    - רכז את הלוגיקה המרכזית בקובץ ייעודי (לדוגמה: `src/utils/equipmentCatalog.ts`).
+    - קובץ זה צריך להיות עצמאי ככל הניתן, עם תלות מינימלית.
+    - הגדר `types` ו-`constants` ברורים בתוך השירות.
+
+2.  **אינטגרציה עם שכבת הנתונים (Data Layer):**
+    - עדכן את ה-stores הרלוונטיים (כמו `userStore.ts`) כדי לחשוף את הנתונים הנדרשים.
+    - צור Selectors ייעודיים (`useUserEquipment`) שמטפלים בלוגיקת הגישה למקורות נתונים מרובים (למשל, `customDemoUser` או `trainingstats`).
+    - בצע נורמליזציה של הנתונים בשכבה זו.
+
+3.  **שילוב בשכבת הלוגיקה העסקית (Business Logic):**
+    - בצע Refactor לשירותים קיימים (כמו `workoutLogicService.ts`) כדי שישתמשו בשירות הליבה החדש.
+    - החלף לוגיקה ישנה ופשוטה בלוגיקה החדשה והחכמה (למשל, החלפת בדיקת ציוד פשוטה ב-`canPerform` ו-`getExerciseAvailability`).
+
+4.  **כתיבת בדיקות (Testing):**
+    - צור קובץ בדיקות ייעודי (`*.test.ts`) עבור שירות הליבה החדש.
+    - ודא כיסוי מלא ל-Happy Paths, Edge Cases, ולוגיקת ההחלפות.
+
+5.  **תיעוד:**
+    - צור מסמך סיכום (`FEATURE_SUMMARY.md`) המסביר את הארכיטקטורה, זרימת הנתונים והשימוש.
+
+## 3. עבודה עם טרמינל ו-Expo
 
 אסור: timeout, sleep, הפעלת `npx expo start` כפול.
 רענון אפליקציה: לחץ `r` בטרמינל הקיים (לא לפתוח חדש).
 ניקוי Cache רק בעת בעיה: `npx expo start --clear`.
 פקודות מבוקשות בלבד – לא להריץ ללא בקשת המשתמש.
 
-## 3. Supabase – מקור אמת ונתוני דמו
+## 4. Supabase – מקור אמת ונתוני דמו
 
 - טבלת `public.users` מחזיקה JSONB מרובים (smartquestionnairedata, workoutplans, activityhistory...).
 - שמות עמודות ב-DB תמיד lowercase (camelCase→lowercase).
@@ -55,14 +81,14 @@ Last updated: 2025-08-17
 - AsyncStorage: לאחסון זמני בלבד (`user_cache`), לא מקור אמת.
 - שינוי סכימה → לציין בתקציר PR (מיגרציה).
 
-### 3.1 אימות נתוני דמו
+### 4.1 אימות נתוני דמו
 
 השתמש רק בערכים המופיעים ב-`src/data/unifiedQuestionnaire.ts` ובקבועים תחת `src/constants/`.
 סמן השלמת שאלון: `hasQuestionnaire: true` או `questionnaire.completed = true`.
 אין להמציא שדות חדשים (ללא שינוי סכימה מתועד).
 בדוק התאמה למבנה שהמסכים צורכים (`ProfileScreen`, `HistoryScreen`).
 
-## 4. RTL + נגישות
+## 5. RTL + נגישות
 
 - טקסט עברי: `writingDirection:"rtl"` + לרוב `textAlign:"right"`.
 - חיצים: BackButton מציג chevron-forward ב-RTL (לא chevron-back).
@@ -70,7 +96,7 @@ Last updated: 2025-08-17
 - כל TouchableOpacity: `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`.
 - אין שימוש ב-`Alert.alert` – רק `ConfirmationModal` (תמיכה ב-RTL ונגישות).
 
-## 5. ארכיטקטורה ותצורת פרויקט
+## 6. ארכיטקטורה ותצורת פרויקט
 
 - React Native + Expo + TypeScript (strict).
 - Zustand stores: `userStore`, `workoutStore`, `historyStore` (סנכרון Supabase דו-כיווני).
@@ -79,33 +105,33 @@ Last updated: 2025-08-17
 - Demo Service: שירות דמו מציאותי (שדה `isDemo: true`).
 - Unified Questionnaire: גרסה חדשה + תמיכה לאחור (legacy `questionnaire`).
 
-## 6. מניעת כפילויות ודפוס Refactor
+## 7. מניעת כפילויות ודפוס Refactor
 
 Pattern: Detect → Extract (util/component) → Replace Usages → Remove Legacy.
 אין להשאיר ישן+חדש ללא TODO או מחיקה מידית (מועדפת).
 סבבי מחיקה: UI → Logic → Styles → Docs.
 
-## 7. BackButton & ConfirmationModal
+## 8. BackButton & ConfirmationModal
 
 BackButton ממוקם ב-`src/components/common/BackButton.tsx` – השימוש מחייב. אין כפתורי חזרה ידניים.
 ConfirmationModal מחליף `Alert.alert` לכל הודעת אישור/אזהרה.
 
-## 8. TypeScript & Data Contracts
+## 9. TypeScript & Data Contracts
 
 - אין `any` (0 tolerance). שימוש ב-union / generics / interfaces.
 - שדות JSONB: ודא טיפוס מוגדר (interface תואם lower-case columns בעת שמירה).
 - `as const` לקבועים, לא קסמי מחרוזת.
-- בדוק מבנים מורכבים: equipment תמיד `string[]` (לא מקונן).
+- **איתור מבנים מורכבים**: יש לאתר את הנתיב המדויק לשדה הנדרש. לדוגמה, `equipment` יכול להימצא ב-`user.customDemoUser.equipment` או `user.trainingstats.selectedEquipment`. יש לתמוך בכל האפשרויות.
 - מסונכרן בין legacy `questionnaire` ל-`smartquestionnairedata` עד הסרה מלאה.
 
-## 9. בדיקות
+## 10. בדיקות
 
-מינימום לפני commit: `npx tsc --noEmit --skipLibCheck`.
-פונקציה/לוגיקה חדשה: add happy path + edge.
-בדיקות סמוכות לקוד או בתיקיית `tests`.
-שינויים בנתוני דמו → לעדכן בדיקות שמסתמכות עליהם.
+- **חובה**: לפני commit, הרץ `npx tsc --noEmit --skipLibCheck`.
+- **לוגיקה חדשה**: חובה ליצור קובץ `*.test.ts` עם כיסוי ל-happy path ו-edge cases.
+- בדיקות סמוכות לקוד או בתיקיית `src/tests`.
+- שינויים בנתוני דמו → לעדכן בדיקות שמסתמכות עליהם.
 
-## 10. ניהול תיעוד
+## 11. ניהול תיעוד
 
 - מסמך זה = יחיד. שני מסמכי העבר = הפניה בלבד.
 - אין מספרים דינמיים, אין סטטיסטיקות מתיישנות.
@@ -113,15 +139,15 @@ ConfirmationModal מחליף `Alert.alert` לכל הודעת אישור/אזהר
 - מיזוג/מחיקת מסמכים: לציין ב-PR (Removed / Merged).
 - שמור 5–10 מסמכים חיוניים קצרים.
 
-## 11. יצירת / עדכון משתמש דמו
+## 12. יצירת / עדכון משתמש דמו
 
 צעדים: קרא questionnaire values → בחר ערכים חוקיים → מלא מבנים מלאים (questionnaire + smartquestionnairedata + activityhistory + workoutplans) → סמן `hasQuestionnaire` → בדוק מסכים (`Profile`, `History`).
 Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם לוגיקה יודעת להתמודד.
 עדכון שדה חדש למשתמש ⇒ לעדכן גם יוצר הדמו + התאמת Legacy.
 
-## 12. Checklists
+## 13. Checklists
 
-### 12.1 Impact Checklist
+### 13.1 Impact Checklist
 
 [] Types מעודכנים
 [] Stores מסונכרנים (user/workout/history)
@@ -129,7 +155,7 @@ Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם �
 [] אין שימוש בנתוני דמו כקבועים
 [] בדיקות רצות נקי
 
-### 12.2 Quality Gate
+### 13.2 Quality Gate
 
 1. TypeScript clean
 2. Tests (אם השתנה לוגיקה)
@@ -137,7 +163,7 @@ Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם �
 4. No console.log production (devLog בלבד ב-**DEV**)
 5. RTL + Accessibility בבדיקת UI בסיסית
 
-## 13. הנחיות לעוזר AI
+## 14. הנחיות לעוזר AI
 
 - לענות בעברית בלבד (קוד / פקודות באנגלית מותר).
 - תמציתי, בולטים, ללא סופרלטיבים.
@@ -145,7 +171,7 @@ Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם �
 - להסביר דלתא (מה השתנה) במקום לחזור על כל התכנית.
 - לא להריץ פקודות שלא נתבקשו במפורש.
 
-## 14. דיבוג מהיר
+## 15. דיבוג מהיר
 
 - כפתור לא מגיב: בדוק onPress, שכבה חוסמת (zIndex), hitSlop.
 - BackButton לא עובד: `navigation.canGoBack()`; אם false → נווט למסך root.
@@ -153,21 +179,21 @@ Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם �
 - בעיות RTL: הוסף writingDirection + בדוק flexDirection.
 - מטמון לא מתעדכן: ניקוי `expo start --clear` רק אם הכרחי.
 
-## 15. בטיחות והסרת Legacy
+## 16. בטיחות והסרת Legacy
 
-- אין מחיקת פונקציונליות ליבה ללא אישור.
+- אין מחיקת פונקצונליות ליבה ללא אישור.
 - קבצי JSON מקומיים = Legacy אם Supabase מחליף – להסיר אחרי וידוא שימושים.
 - אין axios/fetch לשרת מקומי.
 - לפני מחיקה: grep לשימושים + קומפילציה נקייה.
 
-## 16. שאלון וציוד
+## 17. שאלון וציוד
 
 - equipment לפי מיקום (home_equipment / gym_equipment / bodyweight_equipment...).
 - ערכים חוקיים בלבד מהקבועים.
 - התאמת מגדר מתחילה בשאלה הראשונה.
 - Session duration, availability, goals – תמיד בפורמט המוגדר (underscores).
 
-## 17. טעויות נפוצות / DO & DON'T
+## 18. טעויות נפוצות / DO & DON'T
 
 DO: BackButton, ConfirmationModal, theme.colors, accessibility props, lower-case DB columns, unified questionnaire.
 DON'T: Alert.alert, chevron-back ב-RTL, any, hard-coded colors, נתונים דינמיים בתיעוד, כפילות רכיבים.
