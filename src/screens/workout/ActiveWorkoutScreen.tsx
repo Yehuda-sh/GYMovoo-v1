@@ -3,7 +3,29 @@
  * @brief מסך אימון פעיל - מעקב אחר אימון מלא של יום נבחר
  * @version 3.2.0
  * @author GYMovoo Development Team
- * @created 2024-12-15
+   // Debug exercises state changes
+  useEffect(() => {
+    console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
+      exercisesCount: exercises.length,
+      exercises: exercises.map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        setsCount: ex.sets?.length || 0
+      }))
+    });
+  }, [exercises]);
+
+  // Debug workout stats changes
+  useEffect(() => {
+    console.warn("📈 ActiveWorkoutScreen - workoutStats changed:", {
+      totalExercises: workoutStats.totalExercises,
+      completedExercises: workoutStats.completedExercises,
+      totalSets: workoutStats.totalSets,
+      completedSets: workoutStats.completedSets,
+      progressPercentage: workoutStats.progressPercentage,
+      displayText: `${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים • ${workoutStats.progressPercentage}% הושלם`
+    });
+  }, [workoutStats]);2024-12-15
  * @modified 2025-08-02
  *
  * @description
@@ -116,6 +138,20 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   // Debug logging - מותנה בפיתוח
   useEffect(() => {
+    console.warn("🎯 ActiveWorkoutScreen - נטענו נתוני אימון", {
+      workoutName: workoutData?.name,
+      dayName: workoutData?.dayName,
+      startTime: workoutData?.startTime,
+      exerciseCount: workoutData?.exercises?.length || 0,
+      exercises:
+        workoutData?.exercises?.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          setsCount: ex.sets?.length || 0,
+        })) || [],
+      rawWorkoutData: workoutData,
+    });
+
     workoutLogger.info("נטענו נתוני אימון", {
       workoutName: workoutData?.name,
       exerciseCount: workoutData?.exercises?.length || 0,
@@ -126,6 +162,12 @@ const ActiveWorkoutScreen: React.FC = () => {
   // סטייט לכל התרגילים באימון
   const [exercises, setExercises] = useState<Exercise[]>(() => {
     const base = workoutData?.exercises || [];
+    console.warn("🔍 ActiveWorkoutScreen - הגדרת exercises state:", {
+      baseExercisesCount: base.length,
+      baseExercises: base.map((ex) => ({ id: ex.id, name: ex.name })),
+      hasPendingExercise: !!pendingExercise,
+    });
+
     if (pendingExercise) {
       // צור תרגיל עם סט התחלתי בסיסי
       const newExercise: Exercise = {
@@ -153,6 +195,18 @@ const ActiveWorkoutScreen: React.FC = () => {
     return base;
   });
 
+  // Debug exercises state changes
+  useEffect(() => {
+    console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
+      exercisesCount: exercises.length,
+      exercises: exercises.map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        setsCount: ex.sets?.length || 0,
+      })),
+    });
+  }, [exercises]);
+
   // Modal states
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
@@ -162,7 +216,22 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
-    return calculateWorkoutStats(exercises);
+    const stats = calculateWorkoutStats(exercises);
+    console.warn("📈 ActiveWorkoutScreen - workout stats:", {
+      totalExercises: stats.totalExercises,
+      completedExercises: stats.completedExercises,
+      totalSets: stats.totalSets,
+      completedSets: stats.completedSets,
+      progressPercentage: stats.progressPercentage,
+      exercisesArray: exercises.map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        setsCount: ex.sets?.length || 0,
+        completedSetsInExercise:
+          ex.sets?.filter((s) => s.completed).length || 0,
+      })),
+    });
+    return stats;
   }, [exercises]);
 
   // טיימרים - workoutId יציב לאורך חיי הקומפוננט
@@ -545,19 +614,30 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
 
       {/* All Exercises List */}
-      <ExercisesList
-        exercises={exercises}
-        onUpdateSet={handleUpdateSet}
-        onAddSet={handleAddSet}
-        onCompleteSet={handleCompleteSet}
-        onDeleteSet={handleDeleteSet}
-        onReorderSets={handleReorderSets}
-        onRemoveExercise={(exerciseId: string) => {
-          setDeleteExerciseId(exerciseId);
-          setShowDeleteModal(true);
-        }}
-        onStartRest={startRestTimer}
-      />
+      {exercises.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>
+            🏋️ תרגילי האימון ({exercises.length})
+          </Text>
+          <ExercisesList
+            exercises={exercises}
+            onUpdateSet={handleUpdateSet}
+            onAddSet={handleAddSet}
+            onCompleteSet={handleCompleteSet}
+            onDeleteSet={handleDeleteSet}
+            onReorderSets={handleReorderSets}
+            onRemoveExercise={(exerciseId: string) => {
+              setDeleteExerciseId(exerciseId);
+              setShowDeleteModal(true);
+            }}
+            onStartRest={startRestTimer}
+          />
+        </>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>אין תרגילים באימון</Text>
+        </View>
+      )}
 
       {/* Finish Workout Button */}
       <View style={styles.navigationContainer}>
@@ -804,6 +884,25 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.success,
     borderRadius: theme.radius.md,
     gap: theme.spacing.sm,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.xl,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
   },
 });
 

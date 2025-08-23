@@ -21,6 +21,7 @@ import {
   DynamicQuestion,
   WorkoutRecommendation,
   WorkoutPlan,
+  WorkoutExercise,
 } from "../types";
 import {
   getPersonalizedRestTimes,
@@ -2020,10 +2021,179 @@ class QuestionnaireService {
         );
     }
 
-    // הוסף אינדיקטור שזה נגיש למשתמשי ניסיון
-    return workouts.map((workout) => ({
+    // הוסף תרגילים מפורטים ואינדיקטור נגישות
+    return workouts.map((workout, index) => ({
       ...workout,
+      exercises: this.generateBasicExercisesForWorkout(workout.type, index + 1),
       isAccessible: true,
+    }));
+  }
+
+  /**
+   * יצירת תרגילים בסיסיים לפי סוג אימון
+   */
+  private generateBasicExercisesForWorkout(
+    workoutType: string,
+    dayNumber: number
+  ): WorkoutExercise[] {
+    const baseExercises = {
+      strength: [
+        {
+          id: `pushups-${dayNumber}`,
+          name: "שכיבות סמיכה",
+          category: "strength",
+          primaryMuscles: ["חזה", "כתפיים", "ידיים"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 8, weight: 0, completed: false },
+            { reps: 8, weight: 0, completed: false },
+            { reps: 8, weight: 0, completed: false },
+          ],
+          restTime: 60,
+          notes: "שמור על גב ישר ובצע תנועה מלאה",
+        },
+        {
+          id: `squats-${dayNumber}`,
+          name: "כפיפות ברכיים",
+          category: "strength",
+          primaryMuscles: ["רגליים", "ישבן"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 12, weight: 0, completed: false },
+            { reps: 12, weight: 0, completed: false },
+            { reps: 12, weight: 0, completed: false },
+          ],
+          restTime: 60,
+          notes: "רד עד שהרגליים במקביל לרצפה",
+        },
+        {
+          id: `plank-${dayNumber}`,
+          name: "פלאנק",
+          category: "core",
+          primaryMuscles: ["גוף מרכזי"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+          ],
+          restTime: 45,
+          notes: "שמור על קו ישר מהראש עד העקבים",
+        },
+      ],
+      cardio: [
+        {
+          id: `jumping-jacks-${dayNumber}`,
+          name: "קפיצות מחליפות",
+          category: "cardio",
+          primaryMuscles: ["גוף מלא"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+          ],
+          restTime: 30,
+          notes: "קפוץ עם הרגליים רחוק ותן ידיים למעלה",
+        },
+        {
+          id: `high-knees-${dayNumber}`,
+          name: "ברכיים גבוהות",
+          category: "cardio",
+          primaryMuscles: ["רגליים", "גוף מרכזי"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+          ],
+          restTime: 30,
+          notes: "הרם את הברכיים גבוה עד מפלס המותניים",
+        },
+        {
+          id: `mountain-climbers-${dayNumber}`,
+          name: "מטפסי הרים",
+          category: "cardio",
+          primaryMuscles: ["גוף מרכזי", "כתפיים"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 1, duration: 30, weight: 0, completed: false },
+            { reps: 1, duration: 30, weight: 0, completed: false },
+          ],
+          restTime: 45,
+          notes: "בעמדת פלאנק, החלף רגליים במהירות",
+        },
+      ],
+      hiit: [
+        {
+          id: `burpees-${dayNumber}`,
+          name: "ברפיז",
+          category: "hiit",
+          primaryMuscles: ["גוף מלא"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 5, weight: 0, completed: false },
+            { reps: 5, weight: 0, completed: false },
+            { reps: 5, weight: 0, completed: false },
+          ],
+          restTime: 60,
+          notes:
+            "תנועה מלאה: כפיפה, קפיצה אחורה, שכיבת סמיכה, קפיצה קדימה וקפיצה למעלה",
+        },
+        {
+          id: `squat-jumps-${dayNumber}`,
+          name: "קפיצות כפיפה",
+          category: "hiit",
+          primaryMuscles: ["רגליים"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 8, weight: 0, completed: false },
+            { reps: 8, weight: 0, completed: false },
+            { reps: 8, weight: 0, completed: false },
+          ],
+          restTime: 45,
+          notes: "כפיפת רגליים עם קפיצה חזקה למעלה",
+        },
+      ],
+      mixed: [
+        {
+          id: `lunges-${dayNumber}`,
+          name: "צעדי ירח",
+          category: "strength",
+          primaryMuscles: ["רגליים", "ישבן"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 10, weight: 0, completed: false },
+            { reps: 10, weight: 0, completed: false },
+          ],
+          restTime: 45,
+          notes: "צעד קדימה עם כפיפת שתי הרגליים",
+        },
+        {
+          id: `wall-pushups-${dayNumber}`,
+          name: "שכיבות סמיכה בקיר",
+          category: "strength",
+          primaryMuscles: ["חזה", "כתפיים"],
+          equipment: "bodyweight",
+          sets: [
+            { reps: 12, weight: 0, completed: false },
+            { reps: 12, weight: 0, completed: false },
+          ],
+          restTime: 30,
+          notes: "שכיבות סמיכה עדינות מול הקיר למתחילים",
+        },
+      ],
+    };
+
+    const workoutExercises =
+      baseExercises[workoutType as keyof typeof baseExercises] ||
+      baseExercises.mixed;
+
+    return workoutExercises.map((exercise, index) => ({
+      ...exercise,
+      id: `${exercise.id}-${Date.now()}-${index}`,
+      secondaryMuscles: [],
+      videoUrl: `https://example.com/videos/${exercise.id}`,
+      imageUrl: `https://example.com/images/${exercise.id}`,
     }));
   }
 
@@ -2031,19 +2201,86 @@ class QuestionnaireService {
    * יצירת אימונים חכמים לפי העדפות מלאות
    */
   private async createSmartWorkoutsByPreferences(
-    _prefs: QuestionnaireMetadata,
-    _equipment: string[],
+    prefs: QuestionnaireMetadata,
+    equipment: string[],
     _duration: number,
     _personalData?: PersonalData
   ): Promise<WorkoutRecommendation[]> {
     // השתמש בפונקציה הקיימת שכבר מתקדמת
     const smartWorkouts = await this.getWorkoutRecommendations();
 
-    // הוסף אינדיקטור שזה דורש מנוי
-    return smartWorkouts.map((workout) => ({
+    // הוסף תרגילים מפורטים לאימונים החכמים
+    const workoutsWithExercises = smartWorkouts.map((workout, index) => ({
       ...workout,
+      exercises: this.generateSmartExercisesForWorkout(
+        workout.type,
+        equipment,
+        index + 1
+      ),
       isAccessible: false, // דורש מנוי
     }));
+
+    return workoutsWithExercises;
+  }
+
+  /**
+   * יצירת תרגילים חכמים מותאמים לציוד
+   */
+  private generateSmartExercisesForWorkout(
+    workoutType: string,
+    equipment: string[],
+    dayNumber: number
+  ): WorkoutExercise[] {
+    // תרגילים בסיסיים
+    const basicExercises = this.generateBasicExercisesForWorkout(
+      workoutType,
+      dayNumber
+    );
+
+    // הוסף תרגילים מתקדמים לפי הציוד הזמין
+    const advancedExercises: WorkoutExercise[] = [];
+
+    if (equipment.includes("dumbbell") || equipment.includes("dumbbells")) {
+      advancedExercises.push({
+        id: `dumbbell-exercise-${dayNumber}-${Date.now()}`,
+        name: "הרמת משקולות",
+        category: "strength",
+        primaryMuscles: ["כתפיים", "ידיים"],
+        secondaryMuscles: ["גב"],
+        equipment: "dumbbell",
+        sets: [
+          { reps: 10, weight: 5, completed: false },
+          { reps: 10, weight: 5, completed: false },
+          { reps: 10, weight: 5, completed: false },
+        ],
+        restTime: 90,
+        notes: "השתמש במשקל מתאים לרמתך",
+        videoUrl: `https://example.com/videos/dumbbell-exercise`,
+        imageUrl: `https://example.com/images/dumbbell-exercise`,
+      });
+    }
+
+    if (equipment.includes("resistance_bands")) {
+      advancedExercises.push({
+        id: `bands-exercise-${dayNumber}-${Date.now()}`,
+        name: "משיכות עם גומיות",
+        category: "strength",
+        primaryMuscles: ["גב", "כתפיים"],
+        secondaryMuscles: ["ידיים"],
+        equipment: "resistance_bands",
+        sets: [
+          { reps: 12, weight: 0, completed: false },
+          { reps: 12, weight: 0, completed: false },
+        ],
+        restTime: 60,
+        notes: "שמור על תנועה מבוקרת ועמידה יציבה",
+        videoUrl: `https://example.com/videos/bands-exercise`,
+        imageUrl: `https://example.com/images/bands-exercise`,
+      });
+    }
+
+    // החזר תרגילים בסיסיים + מתקדמים
+    return [...basicExercises, ...advancedExercises];
   }
 
   /**

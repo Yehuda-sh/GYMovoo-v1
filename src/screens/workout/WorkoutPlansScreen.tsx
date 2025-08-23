@@ -15,11 +15,14 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NavigationProp } from "@react-navigation/native";
 
 // Core System Imports
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import type { WorkoutPlan } from "../../types/index";
+import type { WorkoutPlan, WorkoutRecommendation } from "../../types/index";
+import { RootStackParamList } from "../../navigation/types";
 
 // Component Imports
 import BackButton from "../../components/common/BackButton";
@@ -29,6 +32,7 @@ import WorkoutPlanManager from "../../components/WorkoutPlanManager";
 // New Modular Components
 import WorkoutPlanSelector from "./components/WorkoutPlanSelector";
 import WorkoutPlanLoading from "./components/WorkoutPlanLoading";
+import WorkoutPlanDisplay from "./components/WorkoutPlanDisplay";
 import QuickActions from "./components/QuickActions";
 import WorkoutErrorBoundary from "./components/WorkoutErrorBoundary";
 
@@ -58,6 +62,9 @@ interface WorkoutPlanScreenProps {
 export default function WorkoutPlansScreen({
   route: _,
 }: WorkoutPlanScreenProps) {
+  // 🧭 Navigation
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
   // 🚀 Performance Tracking
   const renderStartTime = useMemo(() => performance.now(), []);
 
@@ -227,6 +234,53 @@ export default function WorkoutPlansScreen({
       }
     },
     [user, canAccessAI, showError, showSuccess, updateUser]
+  );
+
+  // 🔄 המרת נתוני אימון לפורמט המסך הפעיל
+  const convertWorkoutToActiveFormat = useCallback(
+    (workout: WorkoutRecommendation, workoutIndex: number) => {
+      const convertedExercises =
+        workout.exercises?.map((exercise, exerciseIndex: number) => ({
+          id: exercise.id || `exercise_${exerciseIndex}_${Date.now()}`,
+          name: exercise.name,
+          category: exercise.category || "כללי",
+          primaryMuscles: exercise.primaryMuscles || ["כללי"],
+          equipment: exercise.equipment || "bodyweight",
+          restTime: exercise.restTime || 60,
+          sets: exercise.sets?.map((set, setIndex: number) => ({
+            id: `${exercise.id || exerciseIndex}_set_${setIndex}_${Date.now()}`,
+            type: "working" as const,
+            targetReps: set.reps || 10,
+            targetWeight: set.weight || 0,
+            actualReps: undefined,
+            actualWeight: undefined,
+            completed: false,
+            restTime: set.restTime || 60,
+            isPR: false,
+          })) || [
+            {
+              id: `${exercise.id || exerciseIndex}_set_0_${Date.now()}`,
+              type: "working" as const,
+              targetReps: 10,
+              targetWeight: 0,
+              completed: false,
+              restTime: 60,
+              isPR: false,
+            },
+          ],
+          notes: exercise.notes,
+          videoUrl: exercise.videoUrl,
+          imageUrl: exercise.imageUrl,
+        })) || [];
+
+      return {
+        name: workout.name || `אימון ${workoutIndex + 1}`,
+        dayName: workout.name || `יום ${workoutIndex + 1}`,
+        startTime: new Date().toISOString(),
+        exercises: convertedExercises,
+      };
+    },
+    []
   );
 
   // Get current active plan
@@ -430,6 +484,44 @@ export default function WorkoutPlansScreen({
             hasWorkoutPlan={!!currentWorkoutPlan}
             loading={loading}
           />
+
+          {/* Workout Plan Display - תצוגת התוכנית */}
+          {currentWorkoutPlan && (
+            <WorkoutPlanDisplay
+              workoutPlan={currentWorkoutPlan}
+              onStartWorkout={(workout, index) => {
+                triggerHaptic("heavy");
+                showSuccess(
+                  "מתחיל אימון!",
+                  `${workout.name} - אימון ${index + 1}`
+                );
+
+                // המרת הנתונים לפורמט של המסך הפעיל
+                const workoutData = convertWorkoutToActiveFormat(
+                  workout,
+                  index
+                );
+
+                // Debug: הדפסת הנתונים שמועברים
+                console.log(
+                  "🏋️ WorkoutPlansScreen - Navigating to ActiveWorkout with data:",
+                  {
+                    workoutName: workoutData.name,
+                    dayName: workoutData.dayName,
+                    exercisesCount: workoutData.exercises.length,
+                    exercises: workoutData.exercises.map((ex) => ({
+                      id: ex.id,
+                      name: ex.name,
+                      setsCount: ex.sets.length,
+                    })),
+                  }
+                );
+
+                // מעבר למסך האימון הפעיל
+                navigation.navigate("ActiveWorkout", { workoutData });
+              }}
+            />
+          )}
 
           {/* No Plan State */}
           {!currentWorkoutPlan && (
