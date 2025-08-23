@@ -94,6 +94,57 @@ class WorkoutValidationService {
       } else if (workout.exercises.length === 0) {
         warnings.push("האימון לא כולל תרגילים");
       }
+      // --- ציוד חכם ---
+      // נבדוק התאמת ציוד לכל תרגיל
+      if (
+        Array.isArray(workout.exercises) &&
+        workout.exercises.length > 0 &&
+        (workout as BaseWorkoutData & { userEquipment?: string[] })
+          .userEquipment
+      ) {
+        const {
+          normalizeEquipment,
+          canPerform,
+          getExerciseAvailability,
+        } = require("../../../utils/equipmentCatalog");
+        const userEquipment = normalizeEquipment(
+          (workout as BaseWorkoutData & { userEquipment?: string[] })
+            .userEquipment
+        );
+        const equipmentWarnings: string[] = [];
+        const substitutionSuggestions: string[] = [];
+        workout.exercises.forEach((ex: unknown) => {
+          const exercise = ex as {
+            exerciseId?: string;
+            id?: string;
+            equipment?: string;
+          };
+          if (!canPerform([exercise.equipment], userEquipment)) {
+            equipmentWarnings.push(
+              `התרגיל '${exercise.exerciseId || exercise.id}' לא תואם לציוד שלך`
+            );
+            const availability = getExerciseAvailability(
+              [exercise.equipment],
+              userEquipment
+            );
+            if (availability.substitutions) {
+              Object.entries(availability.substitutions).forEach(
+                ([orig, sub]) => {
+                  substitutionSuggestions.push(`תחליף ל-${orig}: ${sub}`);
+                }
+              );
+            } else {
+              substitutionSuggestions.push(
+                `נסה תרגיל משקל גוף במקום '${exercise.exerciseId || exercise.id}'`
+              );
+            }
+            isValid = false;
+          }
+        });
+        if (equipmentWarnings.length) warnings.push(...equipmentWarnings);
+        if (substitutionSuggestions.length)
+          warnings.push(...substitutionSuggestions);
+      }
 
       // וידוא זמנים
       const startTime = workout.startTime;

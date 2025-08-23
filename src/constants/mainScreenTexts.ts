@@ -19,7 +19,7 @@ export const MAIN_SCREEN_TEXTS = {
     GOOD_AFTERNOON: "צהריים טובים,",
     GOOD_EVENING: "ערב טוב,",
     READY_TO_WORKOUT: "מוכן לאימון?",
-  // DEMO_USER הוסר – אין דמו מצד לקוח
+    // DEMO_USER הוסר – אין דמו מצד לקוח
   },
 
   // Statistics labels // תוויות סטטיסטיקות
@@ -83,8 +83,8 @@ export const MAIN_SCREEN_TEXTS = {
     NO_USER_FOUND: "לא נמצא משתמש פעיל",
     DATA_LOAD_ERROR: "שגיאה בטעינת נתונים",
     NOT_SPECIFIED: "לא צוין",
-  NO_RECENT_WORKOUTS: "אין לך עדיין אימונים אחרונים",
-  START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
+    NO_RECENT_WORKOUTS: "אין לך עדיין אימונים אחרונים",
+    START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
   },
 
   // Questionnaire answers // תשובות שאלון
@@ -136,7 +136,7 @@ export const MAIN_SCREEN_TEXTS = {
     SOME_ISSUES: "יש כמה בעיות",
     SERIOUS_ISSUES: "בעיות רציניות",
 
-  // DEMO_NOTE הוסר – אין דמו מצד לקוח
+    // DEMO_NOTE הוסר – אין דמו מצד לקוח
   },
 
   // DEMO_WORKOUTS הוסר – אין דמו מצד לקוח
@@ -207,7 +207,10 @@ export const getDayWorkoutType = (dayNum: number): string => {
  * Format questionnaire answer value
  * פורמט ערך תשובת שאלון
  */
-export const formatQuestionnaireValue = (key: string, value: unknown): string => {
+export const formatQuestionnaireValue = (
+  key: string,
+  value: unknown
+): string => {
   const { QUESTIONNAIRE } = MAIN_SCREEN_TEXTS;
 
   // Gender mapping
@@ -285,8 +288,7 @@ export const formatQuestionnaireValue = (key: string, value: unknown): string =>
       bodyweight: QUESTIONNAIRE.BODYWEIGHT,
       resistance_bands: QUESTIONNAIRE.RESISTANCE_BANDS,
     };
-    const arr = value as unknown[];
-    const labels = arr
+    const labels = value
       .filter((v): v is string => typeof v === "string")
       .map((eq) => equipMap[eq] || eq);
     return labels.length > 0
@@ -309,7 +311,9 @@ export const formatQuestionnaireValue = (key: string, value: unknown): string =>
     return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
-  return typeof value === "string" ? value : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+  return typeof value === "string"
+    ? value
+    : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
 };
 
 export default MAIN_SCREEN_TEXTS;

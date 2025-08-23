@@ -511,7 +511,9 @@ const checkRequirement = (
       const hasLegacy =
         !!user.questionnaire && Object.keys(user.questionnaire).length > 5;
       const hasSmart = !!(
-        user as User & { smartQuestionnaireData?: { answers?: unknown } }
+        user as User & {
+          smartQuestionnaireData?: { answers?: Record<string, unknown> };
+        }
       )?.smartQuestionnaireData?.answers;
       const hasQuestionnaire = hasLegacy || hasSmart;
       return { met: hasQuestionnaire, progress: hasQuestionnaire ? 100 : 0 };
@@ -607,7 +609,9 @@ export const calculateAchievements = (user: User | null): Achievement[] => {
         const hasLegacy =
           !!u.questionnaire && Object.keys(u.questionnaire).length > 0;
         const hasSmart = !!(
-          u as User & { smartQuestionnaireData?: { answers?: unknown } }
+          u as User & {
+            smartQuestionnaireData?: { answers?: Record<string, unknown> };
+          }
         )?.smartQuestionnaireData?.answers;
         return hasLegacy || hasSmart;
       }

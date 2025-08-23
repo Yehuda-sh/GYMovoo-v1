@@ -5,8 +5,6 @@
  * @updated August 2025 - Unified architecture with consolidated services
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
@@ -16,14 +14,11 @@ import {
   RefreshControl,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-// import { useNavigation } from "@react-navigation/native"; // TODO: Will be used for ActiveWorkout navigation
-// import type { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Core System Imports
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-// import { RootStackParamList } from "../../navigation/types"; // TODO: Will be used for navigation types
 import type { WorkoutPlan } from "../../types/index";
 
 // Component Imports
@@ -91,12 +86,11 @@ export default function WorkoutPlansScreen({
   }, []);
 
   // Core hooks and state
-  // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>(); // TODO: Will be used for navigation to ActiveWorkout
   const { user, updateUser } = useUserStore();
 
   // Subscription state
   const hasActiveSubscription = user?.subscription?.isActive === true;
-  const trialEnded = (user as any)?.trialEnded === true;
+  const trialEnded = user?.subscription?.hasCompletedTrial === true;
   const canAccessAI = hasActiveSubscription || !trialEnded;
 
   // Component state - ניהול מצב מרכזי מבלי לכפול שירותים

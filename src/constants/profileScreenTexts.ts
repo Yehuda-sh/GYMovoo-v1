@@ -280,8 +280,10 @@ export const PROFILE_SCREEN_TEXTS = {
  * Format questionnaire value with Hebrew translations
  * עיצוב ערך שאלון עם תרגומים לעברית
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const formatQuestionnaireValue = (key: string, value: any): string => {
+export const formatQuestionnaireValue = (
+  key: string,
+  value: unknown
+): string => {
   if (!value) return PROFILE_SCREEN_TEXTS.MISC.NO_DATA;
 
   const { VALUES } = PROFILE_SCREEN_TEXTS;
@@ -313,13 +315,14 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
 
   // Gender / מגדר
   if (key === "gender") {
+    const valueStr = String(value);
     const genderMap: { [key: string]: string } = {
       male: VALUES.MALE,
       female: VALUES.FEMALE,
       other: VALUES.OTHER,
       prefer_not_to_say: VALUES.PREFER_NOT_TO_SAY,
     };
-    return genderMap[value] || value;
+    return genderMap[valueStr] || valueStr;
   }
 
   // Weight / משקל
@@ -365,6 +368,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     key === "experience_level" ||
     key === "experience"
   ) {
+    const valueStr = String(value);
     const levelMap: { [key: string]: string } = {
       beginner: VALUES.BEGINNER,
       intermediate: VALUES.INTERMEDIATE,
@@ -372,11 +376,12 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       expert: VALUES.EXPERT,
       competitive: VALUES.COMPETITIVE,
     };
-    return levelMap[value] || String(value);
+    return levelMap[valueStr] || valueStr;
   }
 
   // Goals (single) / מטרה
   if (key === "goal" || key === "fitness_goal") {
+    const valueStr = String(value);
     const goalMap: { [key: string]: string } = {
       // Unified IDs
       build_muscle: VALUES.MUSCLE_GAIN,
@@ -390,7 +395,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       general_health: VALUES.GENERAL_HEALTH,
       fitness_maintenance: VALUES.FITNESS_MAINTENANCE,
     };
-    return goalMap[value] || String(value);
+    return goalMap[valueStr] || valueStr;
   }
 
   // Goals (multiple) / מטרות
@@ -414,6 +419,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
 
   // Primary goals / מטרות עיקריות
   if (key === "primary_goal" || key === "fitness_goal") {
+    const valueStr = String(value);
     const goalMap: { [key: string]: string } = {
       weight_loss: VALUES.WEIGHT_LOSS,
       lose_weight: VALUES.WEIGHT_LOSS,
@@ -426,11 +432,12 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       fitness_maintenance: VALUES.FITNESS_MAINTENANCE,
       athletic_performance: VALUES.ATHLETIC_PERFORMANCE,
     };
-    return goalMap[value] || value;
+    return goalMap[valueStr] || valueStr;
   }
 
   // Workout locations / מיקומי אימון
   if (key === "workout_location" || key === "location") {
+    const valueStr = String(value);
     const locationMap: { [key: string]: string } = {
       home_bodyweight: VALUES.HOME,
       home_equipment: VALUES.HOME,
@@ -439,7 +446,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       outdoor: VALUES.OUTDOOR,
       mixed: VALUES.MIXED,
     };
-    return locationMap[value] || value;
+    return locationMap[valueStr] || valueStr;
   }
 
   // Session durations / משכי מפגש
@@ -476,6 +483,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
     key === "workout_frequency" ||
     key === "availability"
   ) {
+    const valueStr = String(value);
     const frequencyMap: { [key: string]: string } = {
       "2-times": VALUES.FREQUENCY_2_TIMES,
       "3-times": VALUES.FREQUENCY_3_TIMES,
@@ -488,7 +496,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       "5_days": VALUES.FREQUENCY_5_TIMES, // 5+ ימים בשבוע בשאלון
       "6_plus_days": VALUES.FREQUENCY_6_PLUS,
     };
-    return frequencyMap[value] || value;
+    return frequencyMap[valueStr] || valueStr;
   }
 
   // Frequency numeric -> add days suffix / תדירות מספרית -> הוסף "ימים"
@@ -514,6 +522,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
 
   // Health statuses / מצבים בריאותיים
   if (key === "health_status") {
+    const valueStr = String(value);
     const healthMap: { [key: string]: string } = {
       excellent: VALUES.EXCELLENT_HEALTH,
       good: VALUES.GOOD_HEALTH,
@@ -521,7 +530,7 @@ export const formatQuestionnaireValue = (key: string, value: any): string => {
       concerns: VALUES.HEALTH_CONCERNS,
       limitations: VALUES.MEDICAL_LIMITATIONS,
     };
-    return healthMap[value] || value;
+    return healthMap[valueStr] || valueStr;
   }
 
   // Health conditions / מצבים רפואיים

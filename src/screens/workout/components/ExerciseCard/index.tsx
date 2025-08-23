@@ -336,8 +336,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             toIndex: setIndex - 1,
           });
 
-          // TODO: צריך לקרוא לפונקציה שמעדכנת את סדר הסטים ב-parent component
-          // אם הפונקציה קיימת, נשתמש בה
+          // Update set order in parent component if function is available
           if (onReorderSets) {
             onReorderSets(setIndex, setIndex - 1);
           } else {
@@ -370,8 +369,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             toIndex: setIndex + 1,
           });
 
-          // TODO: צריך לקרוא לפונקציה שמעדכנת את סדר הסטים ב-parent component
-          // אם הפונקציה קיימת, נשתמש בה
+          // Update set order in parent component if function is available
           if (onReorderSets) {
             onReorderSets(setIndex, setIndex + 1);
           } else {
@@ -386,9 +384,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       (setIndex: number) => {
         log("Duplicate set", { setIndex });
         if (onAddSet) {
-          // שכפול הסט - נוסיף את אותם ערכים
+          // שכפול הסט - נוסיף את אותם ערכים (מומש בcomponent העליון)
           onAddSet();
-          // TODO: צריך להעביר את הערכים של הסט הקיים
+          // Note: Set values are handled by parent component
         }
       },
       [onAddSet]

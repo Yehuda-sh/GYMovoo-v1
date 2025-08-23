@@ -28,7 +28,7 @@
  *   exerciseId: string,
  *   exerciseName: string,
  *   muscleGroup: string,
- *   exerciseData?: any
+ *   exerciseData?: ExerciseData
  * }
  */
 
@@ -109,7 +109,7 @@ const ExerciseDetailsScreen: React.FC = React.memo(() => {
     const equipmentRaw = exerciseData?.equipment || "bodyweight";
     // אם מגיע id אחוד של ציוד, נמיר לשם עברי אחיד
     const equipmentDisplay = Array.isArray(equipmentRaw)
-      ? formatEquipmentList(equipmentRaw as unknown as string[])
+      ? formatEquipmentList(equipmentRaw as string[])
       : formatEquipmentList([String(equipmentRaw)]);
 
     return {

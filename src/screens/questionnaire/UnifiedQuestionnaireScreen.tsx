@@ -607,15 +607,24 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         dlog("setSmartQuestionnaireData failed on completion", { error: e });
       }
 
+      // Helper function to safely convert goal to string array
+      const goalToStringArray = (goal: unknown): string[] | undefined => {
+        if (Array.isArray(goal)) {
+          return goal.filter(
+            (item): item is string => typeof item === "string"
+          );
+        }
+        if (typeof goal === "string") {
+          return [goal];
+        }
+        return undefined;
+      };
+
       updateUser({
         // נעדכן נתוני אימון/העדפות בסיסיות לפי התשובות
         trainingstats: {
           selectedEquipment: finalEquipment,
-          fitnessGoals: Array.isArray(questionnairePayload.goal)
-            ? (questionnairePayload.goal as unknown as string[])
-            : questionnairePayload.goal
-              ? [questionnairePayload.goal as unknown as string]
-              : undefined,
+          fitnessGoals: goalToStringArray(questionnairePayload.goal),
         },
         // שימור נתוני שאלון בפורמט תואם (metadata)
         questionnairedata: {

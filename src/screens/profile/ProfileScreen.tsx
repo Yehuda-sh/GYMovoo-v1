@@ -82,8 +82,7 @@ import {
 // =======================================
 // 🪵 devLog - לוג מרוכז לסביבת פיתוח בלבד
 // מפחית רעש לוגים בפרודקשן ושומר Prefixed אחיד
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const devLog = (...args: any[]) => {
+const devLog = (...args: unknown[]) => {
   if (__DEV__) console.warn("[ProfileScreen]", ...args);
 };
 
@@ -539,32 +538,53 @@ function ProfileScreen() {
       unknown
     >;
     const smartData = user?.smartquestionnairedata?.answers || {};
-    // Helper to get nested values (e.g., goals[0], nutrition[0])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getNested = (obj: any, key: string) => {
+    // Helper to get nested values with proper typing
+    const getNested = (
+      obj: Record<string, unknown> | User | null | undefined,
+      key: string
+    ): unknown => {
       if (!obj) return undefined;
+      const typedObj = obj as Record<string, unknown>;
+
       if (key === "goal") {
         // אם יש goal יחיד - החזר אותו
-        if (obj.goal) return obj.goal;
+        if (typedObj.goal) return typedObj.goal;
         // אם יש goals רבים - החזר רשימה או הודעה מתאימה
-        if (obj.goals && Array.isArray(obj.goals)) {
-          if (obj.goals.length === 1) return obj.goals[0];
-          if (obj.goals.length > 1) return obj.goals.join(", ");
+        if (typedObj.goals && Array.isArray(typedObj.goals)) {
+          if (typedObj.goals.length === 1) return typedObj.goals[0];
+          if (typedObj.goals.length > 1) return typedObj.goals.join(", ");
         }
         return undefined;
       }
-      if (key === "diet_type" || key === "diet")
-        return obj.diet_type || obj.diet || obj.nutrition?.[0];
+      if (key === "diet_type" || key === "diet") {
+        const nested = typedObj.nutrition as
+          | Record<string, unknown>
+          | undefined;
+        return (
+          typedObj.diet_type ||
+          typedObj.diet ||
+          (nested && Array.isArray(nested) ? nested[0] : undefined)
+        );
+      }
       if (key === "experience")
-        return obj.experience || obj.fitness_level || obj.fitnessLevel;
-      if (key === "gender")
-        return obj.gender || obj.gender || obj.preferences?.gender;
-      if (key === "availability") return obj.availability || obj.availability;
-      return obj[key];
+        return (
+          typedObj.experience || typedObj.fitness_level || typedObj.fitnessLevel
+        );
+      if (key === "gender") {
+        const preferences = typedObj.preferences as
+          | Record<string, unknown>
+          | undefined;
+        return typedObj.gender || preferences?.gender;
+      }
+      if (key === "availability") return typedObj.availability;
+      return typedObj[key];
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fallback = (key: string, ...sources: any[]) => {
+    const fallback = (
+      key: string,
+      ...sources: (Record<string, unknown> | User | null | undefined)[]
+    ) => {
       for (const src of sources) {
+        if (!src) continue;
         const val = getNested(src, key);
         if (val !== undefined && val !== null && val !== "") {
           return val;
@@ -572,8 +592,10 @@ function ProfileScreen() {
       }
       return undefined;
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getOrDefault = (key: string, ...sources: any[]) => {
+    const getOrDefault = (
+      key: string,
+      ...sources: (Record<string, unknown> | User | null | undefined)[]
+    ) => {
       const val = fallback(key, ...sources);
       return val !== undefined ? val : "לא צוין";
     };
@@ -824,7 +846,7 @@ function ProfileScreen() {
   // פונקציה למניעת כפילויות בתצוגת המידע - כל השדות דינמיים
   type DisplayField = {
     key: string;
-    icon: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
     label: string;
     value: string;
   };
@@ -833,7 +855,7 @@ function ProfileScreen() {
       const fields: DisplayField[] = [];
 
       // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
-      const basicFields = [
+      const basicFields: DisplayField[] = [
         { key: "goal", icon: "target", label: "מטרה", value: userInfo.goal },
         { key: "age", icon: "calendar", label: "גיל", value: userInfo.age },
         {
@@ -892,7 +914,7 @@ function ProfileScreen() {
       }
 
       // שדות פיזיים אופציונליים
-      const physicalFields = [
+      const physicalFields: DisplayField[] = [
         {
           key: "height",
           icon: "human-male-height",
@@ -915,7 +937,7 @@ function ProfileScreen() {
       });
 
       // שדות תזונה ואורח חיים
-      const lifestyleFields = [
+      const lifestyleFields: DisplayField[] = [
         {
           key: "diet",
           icon: "food-apple",
@@ -1129,11 +1151,16 @@ function ProfileScreen() {
   }, [achievements, stats]);
 
   const scrollToAchievements = useCallback(() => {
-    const sv = scrollRef.current as unknown as {
+    const scrollView = scrollRef.current;
+    if (!scrollView) return;
+
+    // Use proper typing for ScrollView methods
+    type ScrollViewMethods = {
       scrollTo: (opts: { y: number; animated: boolean }) => void;
       scrollToEnd?: (opts: { animated: boolean }) => void;
-    } | null;
-    if (!sv) return;
+    };
+
+    const sv = scrollView as ScrollViewMethods;
     const y = Math.max(achievementsSectionY - 20, 0);
     if (y > 0) {
       sv.scrollTo({ y, animated: true });
@@ -1562,8 +1589,7 @@ function ProfileScreen() {
                   {displayFields.map((field) => (
                     <View key={field.key} style={styles.infoItem}>
                       <MaterialCommunityIcons
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        name={field.icon as any}
+                        name={field.icon}
                         size={20}
                         color={theme.colors.primary}
                       />

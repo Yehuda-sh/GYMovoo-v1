@@ -131,8 +131,11 @@ const ActiveWorkoutScreen: React.FC = () => {
       const newExercise: Exercise = {
         id: `${pendingExercise.id}_${Date.now()}`,
         name: pendingExercise.name,
+        category: "כללי", // Default category since not provided in pendingExercise
+        primaryMuscles: pendingExercise.muscleGroup
+          ? [pendingExercise.muscleGroup]
+          : ["כללי"],
         equipment: pendingExercise.equipment || "bodyweight",
-        muscleGroup: pendingExercise.muscleGroup || "כללי",
         restTime: 60,
         sets: [
           {
@@ -144,7 +147,7 @@ const ActiveWorkoutScreen: React.FC = () => {
             isPR: false,
           },
         ],
-      } as unknown as Exercise; // הנחה: מבנה Exercise כולל שדות אלו
+      };
       return [...base, newExercise];
     }
     return base;
