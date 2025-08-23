@@ -542,6 +542,7 @@ export interface User {
   // נתוני השאלון החכם החדש (עיקרי)
   // New smart questionnaire data (primary)
   smartquestionnairedata?: SmartQuestionnaireData;
+  hasQuestionnaire?: boolean; // האם השאלון הושלם
 
   // נתוני השאלון הישן (לתאימות לאחור)
   // Old questionnaire data (for backward compatibility)

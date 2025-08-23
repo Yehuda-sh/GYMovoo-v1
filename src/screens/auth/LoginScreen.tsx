@@ -513,6 +513,8 @@ const LoginScreen = React.memo(() => {
   const handleSuccessfulLogin = (user: MinimalUser) => {
     // Cast to User (minimal required fields for store); legacy optional questionnaire fields tolerated
     useUserStore.getState().setUser(user as unknown as User);
+
+    // בדיקה פשוטה של השלמת השאלון מהנתונים שהתקבלו
     const hasQuestionnaire = !!(
       user?.questionnaire ||
       user?.questionnaireData ||

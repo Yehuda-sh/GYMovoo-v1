@@ -56,6 +56,7 @@ import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { useUserStore } from "../../stores/userStore";
+import { useQuestionnaireStatus } from "../../hooks/useQuestionnaireStatus";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
@@ -104,17 +105,6 @@ interface WorkoutWithRating {
   feedback?: {
     rating?: number;
   };
-}
-
-/**
- * Basic questionnaire data interface
- * ממשק נתוני שאלון בסיסי
- */
-interface QuestionnaireBasicData {
-  age?: string | number;
-  goal?: string;
-  gender?: string;
-  [key: string]: unknown;
 }
 
 // ===============================================
@@ -238,37 +228,7 @@ function ProfileScreen() {
   // ===============================================
 
   /** @description בדיקת השלמת השאלון / Questionnaire completion check */
-  const questionnaireStatus = useMemo(() => {
-    const hasQuestionnaire = !!(
-      user?.questionnaire ||
-      user?.questionnairedata ||
-      user?.smartquestionnairedata
-    );
-
-    const hasTrainingStage =
-      (hasQuestionnaire &&
-        (user.questionnaire as QuestionnaireBasicData)?.age &&
-        (user.questionnaire as QuestionnaireBasicData)?.goal) ||
-      !!user?.smartquestionnairedata ||
-      !!user?.questionnairedata;
-
-    const hasProfileStage =
-      hasQuestionnaire &&
-      ((user.questionnaire as QuestionnaireBasicData)?.gender ||
-        !!user?.smartquestionnairedata ||
-        !!user?.questionnairedata);
-
-    const isComplete = Boolean(hasTrainingStage && hasProfileStage);
-    return {
-      isComplete,
-      hasTrainingStage,
-      hasProfileStage,
-    };
-  }, [
-    user?.questionnaire,
-    user?.questionnairedata,
-    user?.smartquestionnairedata,
-  ]);
+  const questionnaireStatus = useQuestionnaireStatus();
 
   /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
   const achievements = useMemo(() => calculateAchievements(user), [user]);
