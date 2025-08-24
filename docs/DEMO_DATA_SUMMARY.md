@@ -190,6 +190,10 @@ Each workout contains:
 3. **Performance Testing:** Ensure app handles the demo data efficiently
 4. **Analytics Testing:** Verify reporting and insights generation
 
+## 📋 Important Guidelines
+
+**For Future Demo Data Work:** See `docs/DEMO_DATA_GUIDELINES.md` for critical rules about data integrity and source authenticity. Never add fields or values not present in original data sources.
+
 ---
 
 **Generated with:** Realistic workout algorithms using existing service architecture  
