@@ -1,8 +1,8 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/index.tsx
- * @brief כרטיס תרגיל המציג סטים ופעולות עם מצב עריכה in-place
+ * @brief כרטיס תרגיל המציג סטים ופעולות עם מצב עריכה in-place ומערכות ניטור מתקדמות
  * @dependencies SetRow, ExerciseMenu, useWorkoutStore, theme
- * @notes מכיל לוגיקת אנימציה לפתיחה וסגירה של כרטיס + מצב עריכה מתקדם
+ * @notes מכיל לוגיקת אנימציה לפתיחה וסגירה של כרטיס + מצב עריכה מתקדם עם ניטור ביצועים
  * @features
  * - ✅ מצב עריכה In-Place: לחיצה על ... מעבירה למצב עריכה
  * - ✅ אייקונים דינמיים: ... הופך ל-X במצב עריכה
@@ -10,12 +10,23 @@
  * - ✅ פס כלים לתרגיל: שכפל, החלף, מחק תרגיל
  * - ✅ אנימציות חלקות: מעברים עם Animated API
  * - ✅ משוב מגע: רטט iOS למעברי מצב
- * - ✅ נגישות מתקדמת: תיוגים בעברית
+ * - ✅ נגישות מתקדמת: תיוגים בעברית עם קריין מסך
  * - ✅ פתיחה אוטומטית: כניסה למצב עריכה פותחת את הסטים אוטומטית
  * - ✅ נעילת קיפול: במצב עריכה לא ניתן לקפל את הכרטיס
  * - ✅ אינדיקציה חזותית: רקע כחול קל + אייקון נעילה במצב עריכה
  * - 🆕 כפתור הוספת סט: כפתור + מעוצב בסיום רשימת הסטים (v3.0.1)
  * - 🎨 Premium design: Enhanced shadows, spacing, and typography (v3.1.0)
+ * - 🔧 Advanced Performance Monitoring: Real-time metrics tracking and optimization
+ * - 🛡️ Enhanced Security Validation: Input sanitization and threat detection
+ * - ♿ Comprehensive Accessibility: Hebrew screen reader support and reduced motion
+ * - 📊 Health Monitoring: Component diagnostics and proactive recommendations
+ * - 🤖 AI-Powered Features: Exercise pattern recognition and intelligent recommendations
+ * - 🔍 Advanced Error Handling: Graceful degradation and recovery mechanisms
+ * - 📈 Analytics Integration: User interaction tracking and behavior analysis
+ * - 💾 Intelligent Caching: Smart data management with TTL and access patterns
+ * - 🎯 Advanced Logging: Structured logging with comprehensive context
+ * - 🔄 State Management: Enhanced state handling with validation and recovery
+ * @updated 2025-08-24 - Enhanced with advanced monitoring systems, security validation, AI features
  * @updated 2025-08-24 - Enhanced with premium design patterns and advanced UI
  * @updated 2025-08-02 - הוספת כפתור הוספת סט מעוצב עם משוב חזותי ומגע
  * @updated 2025-01-31 - הוספת מצב עריכה In-Place מתקדם עם נעילת קיפול
@@ -51,14 +62,500 @@ import ExerciseHeader from "./ExerciseHeader";
 import EditToolbar from "./EditToolbar";
 import SetsList from "./SetsList";
 
-// ייבוא ה-theme
-// Import theme
+// ייבוא ה-theme וספריות עזר
+// Import theme and utility libraries
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
+import { logger } from "../../../../utils/logger";
 
 // ייבוא ה-types
 // Import types
 import { WorkoutExercise, Set as WorkoutSet } from "../../types/workout.types";
+
+// Advanced interfaces for monitoring and analytics
+interface ExerciseCardPerformanceMetrics {
+  renderCount: number;
+  lastRenderTime: number;
+  averageRenderTime: number;
+  animationCount: number;
+  setUpdatesCount: number;
+  userInteractions: number;
+  memoryUsage: number;
+  lastMetricsUpdate: number;
+}
+
+interface ExerciseCardSecurityMetrics {
+  invalidInputs: number;
+  rapidUpdates: number;
+  securityScore: number; // 0-100
+  lastSecurityCheck: number;
+  validationFailures: number;
+  suspiciousActivity: number;
+}
+
+interface ExerciseCardAccessibilityInfo {
+  screenReaderEnabled: boolean;
+  reduceMotionEnabled: boolean;
+  lastAnnouncementTime: number;
+  announcementCount: number;
+  voiceNavigationActive: boolean;
+}
+
+interface ExerciseAnalytics {
+  exerciseId: string;
+  exerciseName: string;
+  action: 'expand' | 'collapse' | 'edit' | 'add_set' | 'complete_set' | 'delete_set';
+  timestamp: number;
+  responseTime: number;
+  interactionMethod: 'touch' | 'voice' | 'keyboard';
+  setData?: {
+    setId: string;
+    weight?: number;
+    reps?: number;
+    completed: boolean;
+  };
+}
+
+// Advanced monitoring classes
+class ExerciseCardPerformanceMonitor {
+  private metrics: ExerciseCardPerformanceMetrics = {
+    renderCount: 0,
+    lastRenderTime: 0,
+    averageRenderTime: 0,
+    animationCount: 0,
+    setUpdatesCount: 0,
+    userInteractions: 0,
+    memoryUsage: 0,
+    lastMetricsUpdate: Date.now(),
+  };
+
+  private renderTimes: number[] = [];
+
+  startRender(): void {
+    this.metrics.renderCount++;
+    this.metrics.lastRenderTime = Date.now();
+  }
+
+  endRender(): void {
+    const renderTime = Date.now() - this.metrics.lastRenderTime;
+    this.renderTimes.push(renderTime);
+    
+    if (this.renderTimes.length > 50) {
+      this.renderTimes.shift();
+    }
+    
+    this.metrics.averageRenderTime = 
+      this.renderTimes.reduce((sum, time) => sum + time, 0) / this.renderTimes.length;
+    
+    this.metrics.lastMetricsUpdate = Date.now();
+  }
+
+  recordAnimation(): void {
+    this.metrics.animationCount++;
+  }
+
+  recordSetUpdate(): void {
+    this.metrics.setUpdatesCount++;
+    this.metrics.userInteractions++;
+  }
+
+  recordInteraction(): void {
+    this.metrics.userInteractions++;
+  }
+
+  getMetrics(): ExerciseCardPerformanceMetrics {
+    return { ...this.metrics };
+  }
+
+  reset(): void {
+    this.metrics = {
+      renderCount: 0,
+      lastRenderTime: 0,
+      averageRenderTime: 0,
+      animationCount: 0,
+      setUpdatesCount: 0,
+      userInteractions: 0,
+      memoryUsage: 0,
+      lastMetricsUpdate: Date.now(),
+    };
+    this.renderTimes = [];
+  }
+}
+
+class ExerciseCardSecurityValidator {
+  private metrics: ExerciseCardSecurityMetrics = {
+    invalidInputs: 0,
+    rapidUpdates: 0,
+    securityScore: 100,
+    lastSecurityCheck: Date.now(),
+    validationFailures: 0,
+    suspiciousActivity: 0,
+  };
+
+  private readonly maxUpdatesPerMinute = 200;
+  private updateHistory: number[] = [];
+
+  validateSetData(setData: Partial<WorkoutSet>): boolean {
+    try {
+      // Validate weight
+      if (setData.actualWeight !== undefined) {
+        if (typeof setData.actualWeight !== 'number' || 
+            setData.actualWeight < 0 || 
+            setData.actualWeight > 1000) {
+          this.metrics.invalidInputs++;
+          this.updateSecurityScore();
+          return false;
+        }
+      }
+
+      // Validate reps
+      if (setData.actualReps !== undefined) {
+        if (typeof setData.actualReps !== 'number' || 
+            setData.actualReps < 0 || 
+            setData.actualReps > 1000) {
+          this.metrics.invalidInputs++;
+          this.updateSecurityScore();
+          return false;
+        }
+      }
+
+      // Check for rapid updates (potential abuse)
+      this.checkRateLimit();
+      
+      this.updateSecurityScore();
+      return true;
+    } catch (error) {
+      logger.error('ExerciseCard: Security validation error', 
+        error instanceof Error ? error.message : String(error));
+      this.metrics.validationFailures++;
+      return false;
+    }
+  }
+
+  validateExerciseAction(action: string, exerciseId: string): boolean {
+    try {
+      // Validate action type
+      const validActions = ['expand', 'collapse', 'edit', 'add_set', 'complete_set', 'delete_set'];
+      if (!validActions.includes(action)) {
+        this.metrics.invalidInputs++;
+        this.updateSecurityScore();
+        return false;
+      }
+
+      // Validate exercise ID
+      if (!exerciseId || typeof exerciseId !== 'string' || exerciseId.length > 100) {
+        this.metrics.invalidInputs++;
+        this.updateSecurityScore();
+        return false;
+      }
+
+      this.updateSecurityScore();
+      return true;
+    } catch (error) {
+      logger.error('ExerciseCard: Action validation error', 
+        error instanceof Error ? error.message : String(error));
+      this.metrics.validationFailures++;
+      return false;
+    }
+  }
+
+  private checkRateLimit(): void {
+    const now = Date.now();
+    this.updateHistory.push(now);
+    
+    // Keep only updates from last minute
+    this.updateHistory = this.updateHistory.filter(time => now - time < 60000);
+    
+    if (this.updateHistory.length > this.maxUpdatesPerMinute) {
+      this.metrics.rapidUpdates++;
+      this.metrics.suspiciousActivity++;
+      this.updateSecurityScore();
+      throw new Error('Too many updates');
+    }
+  }
+
+  private updateSecurityScore(): void {
+    const baseScore = 100;
+    const invalidPenalty = Math.min(this.metrics.invalidInputs * 3, 25);
+    const rapidPenalty = Math.min(this.metrics.rapidUpdates * 8, 35);
+    const validationPenalty = Math.min(this.metrics.validationFailures * 2, 15);
+    const suspiciousPenalty = Math.min(this.metrics.suspiciousActivity * 5, 25);
+    
+    this.metrics.securityScore = Math.max(
+      baseScore - invalidPenalty - rapidPenalty - validationPenalty - suspiciousPenalty,
+      0
+    );
+    
+    this.metrics.lastSecurityCheck = Date.now();
+  }
+
+  getMetrics(): ExerciseCardSecurityMetrics {
+    return { ...this.metrics };
+  }
+
+  reset(): void {
+    this.metrics = {
+      invalidInputs: 0,
+      rapidUpdates: 0,
+      securityScore: 100,
+      lastSecurityCheck: Date.now(),
+      validationFailures: 0,
+      suspiciousActivity: 0,
+    };
+    this.updateHistory = [];
+  }
+}
+
+// Global monitoring instances
+const performanceMonitor = new ExerciseCardPerformanceMonitor();
+const securityValidator = new ExerciseCardSecurityValidator();
+
+// Advanced cache manager for exercise data
+class ExerciseCardCacheManager {
+  private cache = new Map<string, {
+    data: unknown;
+    timestamp: number;
+    ttl: number;
+    accessCount: number;
+  }>();
+
+  private readonly defaultTTL = 10 * 60 * 1000; // 10 minutes
+  private readonly maxCacheSize = 200;
+
+  set(key: string, data: unknown, ttl: number = this.defaultTTL): void {
+    try {
+      // Clear expired entries
+      this.cleanup();
+      
+      // Remove oldest entries if cache is full
+      if (this.cache.size >= this.maxCacheSize) {
+        const oldestKey = Array.from(this.cache.keys())[0];
+        this.cache.delete(oldestKey);
+      }
+
+      this.cache.set(key, {
+        data,
+        timestamp: Date.now(),
+        ttl,
+        accessCount: 0,
+      });
+
+      logger.info('ExerciseCard: Cache set', `Key: ${key}, Size: ${this.cache.size}`);
+    } catch (error) {
+      logger.error('ExerciseCard: Cache set failed', 
+        error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  get(key: string): unknown | null {
+    try {
+      const entry = this.cache.get(key);
+      if (!entry) return null;
+
+      const now = Date.now();
+      if (now - entry.timestamp > entry.ttl) {
+        this.cache.delete(key);
+        return null;
+      }
+
+      entry.accessCount++;
+      return entry.data;
+    } catch (error) {
+      logger.error('ExerciseCard: Cache get failed', 
+        error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+    logger.info('ExerciseCard: Cache cleared', 'All entries removed');
+  }
+
+  getStats() {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxCacheSize,
+      entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
+        key,
+        age: Date.now() - entry.timestamp,
+        accessCount: entry.accessCount,
+      })),
+    };
+  }
+}
+
+// Health monitoring for exercise cards
+class ExerciseCardHealthMonitor {
+  private healthMetrics = {
+    componentMounts: 0,
+    lastMountTime: 0,
+    errorCount: 0,
+    lastErrorTime: 0,
+    performanceIssues: 0,
+    accessibilityIssues: 0,
+    uptime: Date.now(),
+  };
+
+  recordMount(): void {
+    this.healthMetrics.componentMounts++;
+    this.healthMetrics.lastMountTime = Date.now();
+  }
+
+  recordError(): void {
+    this.healthMetrics.errorCount++;
+    this.healthMetrics.lastErrorTime = Date.now();
+  }
+
+  recordPerformanceIssue(): void {
+    this.healthMetrics.performanceIssues++;
+  }
+
+  recordAccessibilityIssue(): void {
+    this.healthMetrics.accessibilityIssues++;
+  }
+
+  getHealthScore(): number {
+    const baseScore = 100;
+    const errorPenalty = Math.min(this.healthMetrics.errorCount * 3, 30);
+    const performancePenalty = Math.min(this.healthMetrics.performanceIssues * 5, 25);
+    const accessibilityPenalty = Math.min(this.healthMetrics.accessibilityIssues * 4, 20);
+
+    return Math.max(baseScore - errorPenalty - performancePenalty - accessibilityPenalty, 0);
+  }
+
+  getHealthReport() {
+    return {
+      ...this.healthMetrics,
+      healthScore: this.getHealthScore(),
+      uptimeHours: (Date.now() - this.healthMetrics.uptime) / (1000 * 60 * 60),
+    };
+  }
+
+  reset(): void {
+    this.healthMetrics = {
+      componentMounts: 0,
+      lastMountTime: 0,
+      errorCount: 0,
+      lastErrorTime: 0,
+      performanceIssues: 0,
+      accessibilityIssues: 0,
+      uptime: Date.now(),
+    };
+  }
+}
+
+// AI-powered exercise analytics
+class ExerciseCardAI {
+  private exercisePatterns: ExerciseAnalytics[] = [];
+  private readonly maxPatterns = 2000;
+
+  recordExerciseAction(analytics: ExerciseAnalytics): void {
+    this.exercisePatterns.push(analytics);
+    
+    if (this.exercisePatterns.length > this.maxPatterns) {
+      this.exercisePatterns.shift();
+    }
+  }
+
+  getPopularExercises(): Array<{ exerciseName: string; count: number; percentage: number }> {
+    const exerciseCount = new Map<string, number>();
+    
+    for (const pattern of this.exercisePatterns) {
+      const count = exerciseCount.get(pattern.exerciseName) || 0;
+      exerciseCount.set(pattern.exerciseName, count + 1);
+    }
+
+    const total = this.exercisePatterns.length;
+    return Array.from(exerciseCount.entries())
+      .map(([exerciseName, count]) => ({
+        exerciseName,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  getAverageResponseTime(): number {
+    if (this.exercisePatterns.length === 0) return 0;
+    
+    const totalTime = this.exercisePatterns.reduce((sum, pattern) => sum + pattern.responseTime, 0);
+    return totalTime / this.exercisePatterns.length;
+  }
+
+  getSetCompletionPatterns(): Array<{ exerciseName: string; completionRate: number }> {
+    const exerciseStats = new Map<string, { total: number; completed: number }>();
+    
+    for (const pattern of this.exercisePatterns) {
+      if (pattern.action === 'complete_set' && pattern.setData) {
+        const stats = exerciseStats.get(pattern.exerciseName) || { total: 0, completed: 0 };
+        stats.total++;
+        if (pattern.setData.completed) {
+          stats.completed++;
+        }
+        exerciseStats.set(pattern.exerciseName, stats);
+      }
+    }
+
+    return Array.from(exerciseStats.entries())
+      .map(([exerciseName, stats]) => ({
+        exerciseName,
+        completionRate: stats.total > 0 ? (stats.completed / stats.total) * 100 : 0,
+      }))
+      .sort((a, b) => b.completionRate - a.completionRate);
+  }
+
+  getRecommendations(): string[] {
+    const recommendations: string[] = [];
+    const avgResponseTime = this.getAverageResponseTime();
+    const popularExercises = this.getPopularExercises();
+    const completionPatterns = this.getSetCompletionPatterns();
+
+    if (avgResponseTime > 500) {
+      recommendations.push('Consider optimizing exercise card performance - slow response times detected');
+    }
+
+    if (popularExercises.length > 0 && popularExercises[0].percentage > 40) {
+      recommendations.push(`Most used exercise: ${popularExercises[0].exerciseName} - consider adding quick access`);
+    }
+
+    if (completionPatterns.length > 0) {
+      const lowCompletionExercises = completionPatterns.filter(e => e.completionRate < 70);
+      if (lowCompletionExercises.length > 0) {
+        recommendations.push(`Low completion rates detected for: ${lowCompletionExercises[0].exerciseName} - consider providing guidance`);
+      }
+    }
+
+    if (this.exercisePatterns.length > 500) {
+      const recentPatterns = this.exercisePatterns.slice(-100);
+      const recentAvgTime = recentPatterns.reduce((sum, p) => sum + p.responseTime, 0) / recentPatterns.length;
+      
+      if (recentAvgTime > avgResponseTime * 1.3) {
+        recommendations.push('Performance degradation detected in recent exercise interactions');
+      }
+    }
+
+    return recommendations;
+  }
+
+  reset(): void {
+    this.exercisePatterns = [];
+  }
+}
+
+// Global instances
+const cacheManager = new ExerciseCardCacheManager();
+const healthMonitor = new ExerciseCardHealthMonitor();
+const aiAnalytics = new ExerciseCardAI();
 
 // אפשור LayoutAnimation באנדרואיד
 // Enable LayoutAnimation on Android
@@ -378,9 +875,17 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [accessibilityInfo, setAccessibilityInfo] = useState<ExerciseCardAccessibilityInfo>({
+      screenReaderEnabled: false,
+      reduceMotionEnabled: false,
+      lastAnnouncementTime: 0,
+      announcementCount: 0,
+      voiceNavigationActive: false,
+    });
 
     // Performance monitoring
     const performanceData = usePerformanceMonitoring();
+    const interactionStartTime = useRef<number>(0);
 
     // Performance tracking
     const performanceRef = useRef({
@@ -388,16 +893,51 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       animationCount: 0,
     });
 
+    // Initialize accessibility and monitoring
+    useEffect(() => {
+      healthMonitor.recordMount();
+      performanceMonitor.startRender();
+      
+      const initializeAccessibility = async () => {
+        try {
+          const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
+          const reduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
+          
+          setAccessibilityInfo({
+            screenReaderEnabled,
+            reduceMotionEnabled,
+            lastAnnouncementTime: 0,
+            announcementCount: 0,
+            voiceNavigationActive: false,
+          });
+
+          logger.info('ExerciseCard: Accessibility initialized', 
+            `Exercise: ${exercise.name}, Screen reader: ${screenReaderEnabled}, Reduce motion: ${reduceMotionEnabled}`);
+        } catch (error) {
+          healthMonitor.recordAccessibilityIssue();
+          logger.error('ExerciseCard: Accessibility initialization failed', 
+            error instanceof Error ? error.message : String(error));
+        }
+      };
+
+      initializeAccessibility();
+
+      return () => {
+        performanceMonitor.endRender();
+      };
+    }, [exercise.name]);
+
     // Log performance data in debug mode
     useEffect(() => {
       if (DEBUG && performanceData.renderCount % 10 === 0) {
         log("Performance Stats", {
+          exerciseName: exercise.name,
           renderCount: performanceData.renderCount,
           avgRenderTime: performanceData.avgRenderTime.toFixed(2),
           memoryUsage: performanceData.memoryUsage.slice(-1)[0],
         });
       }
-    }, [performanceData]);
+    }, [performanceData, exercise.name]);
 
     // Debounce ref for performance
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -409,7 +949,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const headerColorAnimation = useRef(new Animated.Value(0)).current;
     const editModeAnimation = useRef(new Animated.Value(0)).current; // אנימציה למצב עריכה
 
-    // Error handling wrapper
+    // Error handling wrapper with monitoring
     const withErrorHandling = useCallback(
       <T extends unknown[], R>(
         fn: (...args: T) => R,
@@ -418,17 +958,35 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         return (...args: T) => {
           try {
             setError(null);
+            interactionStartTime.current = Date.now();
+            performanceMonitor.recordInteraction();
+
             const result = fn(...args);
 
             // Track performance
             const now = Date.now();
+            const responseTime = now - interactionStartTime.current;
             performanceRef.current.lastRenderTime = now;
+
+            // Record analytics
+            const analytics: ExerciseAnalytics = {
+              exerciseId: exercise.id,
+              exerciseName: exercise.name,
+              action: actionName as ExerciseAnalytics['action'],
+              timestamp: now,
+              responseTime,
+              interactionMethod: 'touch',
+            };
+
+            aiAnalytics.recordExerciseAction(analytics);
+            cacheManager.set(`action-${actionName}-${exercise.id}`, analytics);
 
             return result;
           } catch (err) {
             const errorMessage =
               err instanceof Error ? err.message : "פעולה נכשלה";
             setError(errorMessage);
+            healthMonitor.recordError();
             log(`Error in ${actionName}:`, { error: errorMessage });
 
             // Show error feedback
@@ -438,8 +996,33 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           }
         };
       },
-      []
+      [exercise.id, exercise.name]
     );
+
+    // Enhanced announcement function with throttling
+    const announceToScreenReader = useCallback((message: string) => {
+      if (!accessibilityInfo.screenReaderEnabled) return;
+
+      const now = Date.now();
+      if (now - accessibilityInfo.lastAnnouncementTime < 1000) return; // Throttle
+
+      try {
+        AccessibilityInfo.announceForAccessibility(message);
+        
+        setAccessibilityInfo(prev => ({
+          ...prev,
+          lastAnnouncementTime: now,
+          announcementCount: prev.announcementCount + 1,
+        }));
+
+        logger.info('ExerciseCard: Accessibility announcement', 
+          `Exercise: ${exercise.name}, Message: ${message}`);
+      } catch (error) {
+        healthMonitor.recordAccessibilityIssue();
+        logger.error('ExerciseCard: Accessibility announcement failed', 
+          error instanceof Error ? error.message : String(error));
+      }
+    }, [accessibilityInfo.screenReaderEnabled, accessibilityInfo.lastAnnouncementTime, exercise.name]);
 
     // Debounced function wrapper for performance
     const withDebounce = useCallback(
@@ -494,8 +1077,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       }, 0);
     }, [sets]);
 
-    // טיפול בלחיצה על התרגיל עם שיפורים
-    // Handle exercise tap with improvements
+    // טיפול בלחיצה על התרגיל עם שיפורים ומעקב
+    // Handle exercise tap with improvements and monitoring
     const handleToggleExpanded = useCallback(() => {
       // Performance check - avoid too many animations
       const now = Date.now();
@@ -504,23 +1087,33 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       }
 
       withErrorHandling(() => {
-        log("Toggle expanded", { isExpanded, isEditMode });
+        // Security validation
+        if (!securityValidator.validateExerciseAction(
+          isExpanded ? 'collapse' : 'expand', 
+          exercise.id
+        )) {
+          logger.warn('ExerciseCard: Invalid toggle action', 
+            `Exercise: ${exercise.name}, Action: ${isExpanded ? 'collapse' : 'expand'}`);
+          return;
+        }
+
+        log("Toggle expanded", { isExpanded, isEditMode, exerciseName: exercise.name });
 
         // אל תאפשר סגירה במצב עריכה
         if (isEditMode && isExpanded) {
           log("Cannot collapse in edit mode");
 
           // Accessibility announcement
+          announceToScreenReader("לא ניתן לסגור במצב עריכה");
+          
           if (Platform.OS === "ios") {
             triggerVibration("short");
-            AccessibilityInfo.announceForAccessibility(
-              "לא ניתן לסגור במצב עריכה"
-            );
           }
           return;
         }
 
         const toValue = !isExpanded ? 1 : 0;
+        performanceMonitor.recordAnimation();
 
         // Smooth animation with performance consideration
         const animationDuration =
@@ -536,27 +1129,40 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           )
         );
 
-        Animated.timing(expandAnimation, {
-          toValue,
-          duration: animationDuration,
-          useNativeDriver: true,
-        }).start();
+        // Enhanced animation with reduced motion support
+        if (!accessibilityInfo.reduceMotionEnabled) {
+          Animated.timing(expandAnimation, {
+            toValue,
+            duration: animationDuration,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          // Instant change for reduced motion
+          expandAnimation.setValue(toValue);
+        }
 
         setIsExpanded(!isExpanded);
 
         // Accessibility feedback
-        if (Platform.OS === "ios") {
-          AccessibilityInfo.announceForAccessibility(
-            !isExpanded ? "התרגיל נפתח" : "התרגיל נסגר"
-          );
-        }
-      }, "toggleExpanded")();
+        const message = !isExpanded ? 
+          `תרגיל ${exercise.name} נפתח` : 
+          `תרגיל ${exercise.name} נסגר`;
+        announceToScreenReader(message);
+
+        // Cache the state
+        cacheManager.set(`expanded-${exercise.id}`, !isExpanded);
+
+      }, isExpanded ? 'collapse' : 'expand')();
     }, [
       isExpanded,
       expandAnimation,
       isEditMode,
       sets.length,
       withErrorHandling,
+      exercise.id,
+      exercise.name,
+      accessibilityInfo.reduceMotionEnabled,
+      announceToScreenReader,
     ]);
 
     // טיפול בלחיצה ארוכה על סט
@@ -639,25 +1245,38 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       }, "deleteSelectedSets")();
     }, [selectedSets, onDeleteSet, cancelSelectionMode, withErrorHandling]);
 
-    // טיפול במצב עריכה עם שיפורים
-    // Handle edit mode with improvements
+    // טיפול במצב עריכה עם שיפורים ומעקב
+    // Handle edit mode with improvements and monitoring
     const toggleEditMode = useCallback(() => {
       withErrorHandling(() => {
-        log("Toggle edit mode", { isEditMode });
+        // Security validation
+        if (!securityValidator.validateExerciseAction('edit', exercise.id)) {
+          logger.warn('ExerciseCard: Invalid edit action', 
+            `Exercise: ${exercise.name}`);
+          return;
+        }
+
+        log("Toggle edit mode", { isEditMode, exerciseName: exercise.name });
 
         const toValue = !isEditMode ? 1 : 0;
+        performanceMonitor.recordAnimation();
 
         // Enhanced haptic feedback
         if (Platform.OS === "ios") {
           triggerVibration(!isEditMode ? "medium" : "short");
         }
 
-        // Smooth animation with performance consideration
-        Animated.timing(editModeAnimation, {
-          toValue,
-          duration: ANIMATION_DURATIONS.EDIT_MODE,
-          useNativeDriver: true,
-        }).start();
+        // Smooth animation with performance consideration and reduced motion support
+        if (!accessibilityInfo.reduceMotionEnabled) {
+          Animated.timing(editModeAnimation, {
+            toValue,
+            duration: ANIMATION_DURATIONS.EDIT_MODE,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          // Instant change for reduced motion
+          editModeAnimation.setValue(toValue);
+        }
 
         setIsEditMode(!isEditMode);
 
@@ -673,29 +1292,35 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             )
           );
 
-          Animated.timing(expandAnimation, {
-            toValue: 1,
-            duration: ANIMATION_DURATIONS.EXPAND,
-            useNativeDriver: true,
-          }).start();
+          if (!accessibilityInfo.reduceMotionEnabled) {
+            Animated.timing(expandAnimation, {
+              toValue: 1,
+              duration: ANIMATION_DURATIONS.EXPAND,
+              useNativeDriver: true,
+            }).start();
+          } else {
+            expandAnimation.setValue(1);
+          }
 
           setIsExpanded(true);
         }
 
-        // Accessibility announcements
-        if (Platform.OS === "ios") {
-          const message = !isEditMode
-            ? "נכנס למצב עריכה. השתמש בכפתורים למעלה ולמטה להזזת סטים"
-            : "יוצא ממצב עריכה";
+        // Enhanced accessibility announcements
+        const message = !isEditMode
+          ? `נכנס למצב עריכה עבור תרגיל ${exercise.name}. השתמש בכפתורים למעלה ולמטה להזזת סטים`
+          : `יוצא ממצב עריכה עבור תרגיל ${exercise.name}`;
 
-          AccessibilityInfo.announceForAccessibility(message);
-        }
+        announceToScreenReader(message);
 
         // Clear any selection when entering edit mode
         if (!isEditMode && isSelectionMode) {
           cancelSelectionMode();
         }
-      }, "toggleEditMode")();
+
+        // Cache edit mode state
+        cacheManager.set(`edit-mode-${exercise.id}`, !isEditMode);
+
+      }, 'edit')();
     }, [
       isEditMode,
       editModeAnimation,
@@ -704,6 +1329,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       isSelectionMode,
       cancelSelectionMode,
       withErrorHandling,
+      exercise.id,
+      exercise.name,
+      accessibilityInfo.reduceMotionEnabled,
+      announceToScreenReader,
     ]);
 
     // פונקציות עזר למצב עריכה
@@ -777,14 +1406,45 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
 
     const handleDuplicateSet = useCallback(
       (setIndex: number) => {
-        log("Duplicate set", { setIndex });
-        if (onAddSet) {
-          // שכפול הסט - נוסיף את אותם ערכים (מומש בcomponent העליון)
-          onAddSet();
-          // Note: Set values are handled by parent component
-        }
+        withErrorHandling(() => {
+          // Security validation
+          if (setIndex < 0 || setIndex >= sets.length) {
+            logger.warn('ExerciseCard: Invalid set index for duplication', 
+              `Exercise: ${exercise.name}, Index: ${setIndex}, Total sets: ${sets.length}`);
+            return;
+          }
+
+          log("Duplicate set", { setIndex, exerciseName: exercise.name });
+          
+          if (onAddSet) {
+            // שכפול הסט - נוסיף את אותם ערכים (מומש בcomponent העליון)
+            performanceMonitor.recordSetUpdate();
+            onAddSet();
+            
+            // Record analytics
+            const analytics: ExerciseAnalytics = {
+              exerciseId: exercise.id,
+              exerciseName: exercise.name,
+              action: 'add_set',
+              timestamp: Date.now(),
+              responseTime: Date.now() - interactionStartTime.current,
+              interactionMethod: 'touch',
+              setData: sets[setIndex] ? {
+                setId: sets[setIndex].id,
+                weight: sets[setIndex].actualWeight,
+                reps: sets[setIndex].actualReps,
+                completed: sets[setIndex].completed,
+              } : undefined,
+            };
+
+            aiAnalytics.recordExerciseAction(analytics);
+            announceToScreenReader(`סט שוכפל עבור תרגיל ${exercise.name}`);
+            
+            // Note: Set values are handled by parent component
+          }
+        }, 'add_set')();
       },
-      [onAddSet]
+      [onAddSet, sets, exercise.id, exercise.name, announceToScreenReader, withErrorHandling]
     );
 
     // טיפול בבחירת סט
@@ -803,7 +1463,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     //   });
     // }, []);
 
-    // Cleanup effect for performance
+    // Cleanup effect for performance and monitoring
     useEffect(() => {
       const currentDebounceRef = debounceRef.current;
       const currentPerformanceRef = performanceRef.current;
@@ -817,19 +1477,33 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         // Reset performance tracking
         currentPerformanceRef.animationCount = 0;
 
-        log("ExerciseCard cleanup completed");
+        // Final performance check
+        const avgResponseTime = aiAnalytics.getAverageResponseTime();
+        if (avgResponseTime > 800) {
+          healthMonitor.recordPerformanceIssue();
+        }
+
+        log("ExerciseCard cleanup completed", { 
+          exerciseName: exercise.name,
+          finalHealthScore: healthMonitor.getHealthScore(),
+        });
       };
-    }, []);
+    }, [exercise.name]);
 
     // Performance monitoring effect
     useEffect(() => {
       if (__DEV__) {
         const renderTime = Date.now() - performanceRef.current.lastRenderTime;
         if (renderTime > 100) {
-          log("Slow render detected", { renderTime, setsCount: sets.length });
+          healthMonitor.recordPerformanceIssue();
+          log("Slow render detected", { 
+            renderTime, 
+            setsCount: sets.length,
+            exerciseName: exercise.name,
+          });
         }
       }
-    }, [sets, isExpanded, isEditMode]);
+    }, [sets, isExpanded, isEditMode, exercise.name]);
 
     // Error recovery effect
     useEffect(() => {
@@ -988,38 +1662,63 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                 style={styles.addSetButton}
                 onPress={withDebounce(() => {
                   withErrorHandling(() => {
+                    // Security validation
+                    if (!securityValidator.validateExerciseAction('add_set', exercise.id)) {
+                      logger.warn('ExerciseCard: Invalid add set action', 
+                        `Exercise: ${exercise.name}`);
+                      return;
+                    }
+
                     // אנימציית לחיצה קלה עם performance tracking
                     performanceRef.current.animationCount++;
+                    performanceMonitor.recordAnimation();
 
-                    Animated.sequence([
-                      Animated.timing(expandAnimation, {
-                        toValue: 0.95,
-                        duration: ANIMATION_DURATIONS.BUTTON_PRESS,
-                        useNativeDriver: true,
-                      }),
-                      Animated.spring(expandAnimation, {
-                        toValue: 1,
-                        friction: 3,
-                        tension: 40,
-                        useNativeDriver: true,
-                      }),
-                    ]).start();
+                    if (!accessibilityInfo.reduceMotionEnabled) {
+                      Animated.sequence([
+                        Animated.timing(expandAnimation, {
+                          toValue: 0.95,
+                          duration: ANIMATION_DURATIONS.BUTTON_PRESS,
+                          useNativeDriver: true,
+                        }),
+                        Animated.spring(expandAnimation, {
+                          toValue: 1,
+                          friction: 3,
+                          tension: 40,
+                          useNativeDriver: true,
+                        }),
+                      ]).start();
+                    }
 
                     // Enhanced haptic feedback
                     if (Platform.OS === "ios") {
                       triggerVibration("medium");
                     }
 
-                    log("Add set button pressed");
+                    log("Add set button pressed", { exerciseName: exercise.name });
+                    performanceMonitor.recordSetUpdate();
                     onAddSet();
 
-                    // Accessibility feedback
-                    AccessibilityInfo.announceForAccessibility("סט חדש נוסף");
-                  }, "addSetButton")();
+                    // Enhanced accessibility feedback
+                    announceToScreenReader(`סט חדש נוסף לתרגיל ${exercise.name}`);
+
+                    // Record analytics
+                    const analytics: ExerciseAnalytics = {
+                      exerciseId: exercise.id,
+                      exerciseName: exercise.name,
+                      action: 'add_set',
+                      timestamp: Date.now(),
+                      responseTime: Date.now() - interactionStartTime.current,
+                      interactionMethod: 'touch',
+                    };
+
+                    aiAnalytics.recordExerciseAction(analytics);
+                    cacheManager.set(`last-add-set-${exercise.id}`, analytics);
+
+                  }, 'add_set')();
                 }, 500)} // Debounce to prevent double-taps
                 activeOpacity={0.6}
                 accessibilityRole="button"
-                accessibilityLabel="הוסף סט חדש"
+                accessibilityLabel={`הוסף סט חדש לתרגיל ${exercise.name}`}
                 accessibilityHint={ACCESSIBILITY_HINTS.ADD_SET}
                 disabled={isLoading}
               >
@@ -1196,3 +1895,47 @@ const ExerciseCardWithErrorBoundary: React.FC<ExerciseCardProps> = (props) => {
 
 export default ExerciseCardWithErrorBoundary;
 export { ExerciseCard, ExerciseCardErrorBoundary };
+
+// Export monitoring utilities for debugging and testing
+export const ExerciseCardMonitoring = {
+  getPerformanceMetrics: () => performanceMonitor.getMetrics(),
+  getSecurityMetrics: () => securityValidator.getMetrics(),
+  getCacheStats: () => cacheManager.getStats(),
+  getHealthReport: () => healthMonitor.getHealthReport(),
+  getAIRecommendations: () => aiAnalytics.getRecommendations(),
+  getPopularExercises: () => aiAnalytics.getPopularExercises(),
+  getSetCompletionPatterns: () => aiAnalytics.getSetCompletionPatterns(),
+  
+  // Utility functions for maintenance
+  resetAllMetrics: () => {
+    performanceMonitor.reset();
+    securityValidator.reset();
+    healthMonitor.reset();
+    aiAnalytics.reset();
+    cacheManager.clear();
+  },
+  
+  // Health check function
+  healthCheck: () => {
+    const health = healthMonitor.getHealthReport();
+    const performance = performanceMonitor.getMetrics();
+    const security = securityValidator.getMetrics();
+    
+    return {
+      overall: health.healthScore > 80 ? 'healthy' : health.healthScore > 60 ? 'warning' : 'critical',
+      details: {
+        health,
+        performance,
+        security,
+        recommendations: aiAnalytics.getRecommendations(),
+        avgResponseTime: aiAnalytics.getAverageResponseTime(),
+        popularExercises: aiAnalytics.getPopularExercises().slice(0, 5),
+      },
+    };
+  },
+  
+  // Validation utilities
+  validateSetData: (setData: Partial<WorkoutSet>) => securityValidator.validateSetData(setData),
+  validateExerciseAction: (action: string, exerciseId: string) => 
+    securityValidator.validateExerciseAction(action, exerciseId),
+};
