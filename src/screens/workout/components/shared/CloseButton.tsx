@@ -21,7 +21,13 @@
  */
 
 import React from "react";
-import { Pressable, StyleSheet, ViewStyle, StyleProp } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+  StyleProp,
+  Platform,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 
@@ -58,9 +64,9 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 }) => {
   const config = React.useMemo(() => {
     const map = {
-      small: { width: 28, height: 28, borderRadius: 14, iconSize: 14 },
-      medium: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
-      large: { width: 36, height: 36, borderRadius: 18, iconSize: 18 },
+      small: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
+      medium: { width: 40, height: 40, borderRadius: 20, iconSize: 20 },
+      large: { width: 48, height: 48, borderRadius: 24, iconSize: 24 },
     } as const;
     return map[size];
   }, [size]);
@@ -78,16 +84,21 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
     switch (variant) {
       case "outline":
         return {
-          backgroundColor: theme.colors.transparent,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
+          backgroundColor: `${theme.colors.surface}90`,
+          borderWidth: 2,
+          borderColor: `${theme.colors.primary}40`,
+          shadowColor: theme.colors.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 3,
         } as ViewStyle;
       case "ghost":
         return {
-          backgroundColor: theme.colors.transparent,
+          backgroundColor: `${theme.colors.surface}60`,
           borderWidth: 0,
-          shadowOpacity: 0,
-          elevation: 0,
+          shadowOpacity: 0.08,
+          elevation: 2,
         } as ViewStyle;
       default:
         return {} as ViewStyle; // solid (default styles apply)
@@ -95,7 +106,12 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
   })();
 
   const disabledStyle: ViewStyle | undefined = disabled
-    ? { opacity: 0.45 }
+    ? {
+        opacity: 0.4,
+        shadowOpacity: 0.05,
+        elevation: 1,
+        borderColor: `${theme.colors.cardBorder}30`,
+      }
     : undefined;
 
   return (
@@ -108,7 +124,7 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
-      hitSlop={10}
+      hitSlop={size === "small" ? 12 : size === "medium" ? 10 : 8}
       style={({ pressed }) => [
         styles.closeButton,
         variantStyle,
@@ -118,13 +134,14 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
           borderRadius: config.borderRadius,
           marginTop,
           alignSelf: alignment,
-          transform: pressed ? [{ scale: 0.92 }] : undefined,
+          transform: pressed ? [{ scale: 0.88 }] : [{ scale: 1 }],
           backgroundColor:
             variant === "solid"
               ? pressed
-                ? theme.colors.surfaceVariant
-                : theme.colors.background
+                ? `${theme.colors.surface}80`
+                : theme.colors.surface
               : variantStyle.backgroundColor,
+          opacity: pressed ? 0.85 : 1,
         },
         disabledStyle,
         style,
@@ -134,7 +151,11 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
         name={iconName}
         size={config.iconSize}
         color={
-          disabled ? theme.colors.textTertiary : theme.colors.textSecondary
+          disabled
+            ? theme.colors.textTertiary
+            : variant === "outline" || variant === "ghost"
+              ? theme.colors.primary
+              : theme.colors.textSecondary
         }
       />
     </Pressable>
@@ -143,15 +164,20 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 
 const styles = StyleSheet.create({
   closeButton: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    // שיפורי צללים מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: `${theme.colors.cardBorder}50`,
+    // שיפורי אינטראקציה
+    ...(Platform.OS === "ios" && {
+      shadowPath: undefined, // יאפשר צל טבעי יותר
+    }),
   },
 });

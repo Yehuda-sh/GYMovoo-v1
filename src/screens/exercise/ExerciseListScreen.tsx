@@ -16,7 +16,6 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
-  ActivityIndicator,
   TextInput,
   RefreshControl,
 } from "react-native";
@@ -24,6 +23,7 @@ import { theme } from "../../styles/theme";
 import { Exercise, fetchRandomExercises } from "../../data/exercises";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISES === "1";
 const dlog = (m: string, data?: unknown) => {
@@ -226,7 +226,7 @@ const ExerciseListScreen: React.FC = () => {
           <Text style={styles.headerTitle}>רשימת תרגילים</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <LoadingSpinner size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>טוען תרגילים...</Text>
         </View>
       </SafeAreaView>

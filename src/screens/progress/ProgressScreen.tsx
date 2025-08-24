@@ -6,10 +6,11 @@
  */
 
 import React from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { workoutFacadeService } from "../../services";
@@ -85,7 +86,7 @@ export default function ProgressScreen(): JSX.Element {
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <LoadingSpinner size="small" color={theme.colors.primary} />
             </View>
           ) : (
             <>
@@ -138,47 +139,78 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 32,
+    fontWeight: "800",
     color: theme.colors.text,
     textAlign: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     writingDirection: "rtl",
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 28,
     marginBottom: theme.spacing.xl,
     writingDirection: "rtl",
+    letterSpacing: 0.3,
+    paddingHorizontal: theme.spacing.sm,
   },
   infoBox: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
     marginBottom: theme.spacing.xl,
     borderWidth: 1,
-    borderColor: theme.colors.border + "30",
+    borderColor: theme.colors.border + "40",
     width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     textAlign: "center",
     writingDirection: "rtl",
+    letterSpacing: 0.4,
+    textShadowColor: "rgba(0, 0, 0, 0.08)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 16,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
     textAlign: "right",
     writingDirection: "rtl",
+    lineHeight: 24,
+    letterSpacing: 0.2,
   },
   loadingContainer: {
     alignItems: "center",
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    marginHorizontal: theme.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

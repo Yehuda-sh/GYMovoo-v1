@@ -16,6 +16,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StorageKeys } from "../constants/StorageKeys";
+import { logger } from "./logger";
 
 interface StorageSize {
   totalKeys: number;
@@ -94,7 +95,7 @@ export class StorageCleanup {
         userPreferencesSize: Math.round(userPreferencesSize * 100) / 100,
       };
     } catch (error) {
-      console.error("Error getting storage info:", error);
+      logger.error("StorageCleanup", "Error getting storage info", { error });
       return {
         totalKeys: 0,
         estimatedSize: 0,
@@ -168,19 +169,29 @@ export class StorageCleanup {
         try {
           await AsyncStorage.multiRemove(batch);
         } catch (error) {
-          console.warn(`Failed to remove batch ${i / 10 + 1}:`, error);
+          logger.warn(
+            "StorageCleanup",
+            `Failed to remove batch ${i / 10 + 1}`,
+            {
+              error,
+              batchSize: batch.length,
+            }
+          );
           // נסה למחוק פריט אחד בכל פעם
           for (const key of batch) {
             try {
               await AsyncStorage.removeItem(key);
             } catch (singleError) {
-              console.warn(`Failed to remove ${key}:`, singleError);
+              logger.warn("StorageCleanup", `Failed to remove ${key}`, {
+                error: singleError,
+                key,
+              });
             }
           }
         }
       }
     } catch (error) {
-      console.error("Error cleaning storage:", error);
+      logger.error("StorageCleanup", "Error cleaning storage", { error });
     }
   }
 
@@ -217,22 +228,33 @@ export class StorageCleanup {
         try {
           await AsyncStorage.multiRemove(nonEssentialKeys);
         } catch (error) {
-          console.warn(
-            "Failed batch emergency cleanup, trying individually:",
-            error
+          logger.warn(
+            "StorageCleanup",
+            "Failed batch emergency cleanup, trying individually",
+            {
+              error,
+              keysCount: nonEssentialKeys.length,
+            }
           );
           // נסה למחוק פריט אחד בכל פעם
           for (const key of nonEssentialKeys) {
             try {
               await AsyncStorage.removeItem(key);
             } catch (singleError) {
-              console.warn(`Failed to remove ${key}:`, singleError);
+              logger.warn(
+                "StorageCleanup",
+                `Failed to remove emergency key ${key}`,
+                {
+                  error: singleError,
+                  key,
+                }
+              );
             }
           }
         }
       }
     } catch (error) {
-      console.error("Error in emergency cleanup:", error);
+      logger.error("StorageCleanup", "Error in emergency cleanup", { error });
     }
   }
 
@@ -260,26 +282,22 @@ export class StorageCleanup {
   static async logStorageStatus(): Promise<void> {
     try {
       const info = await this.getStorageInfo();
-      console.warn("📊 Storage Status:");
-      console.warn(`  Total keys: ${info.totalKeys}`);
-      console.warn(`  Estimated size: ${info.estimatedSize.toFixed(2)} KB`);
-      console.warn(`  Is full: ${await this.isStorageFull()}`);
-      console.warn(`  🧠 Smart Questionnaire keys: ${info.questionnaireKeys}`);
-      console.warn(`  👥 Gender adaptation keys: ${info.genderAdaptationKeys}`);
-      console.warn(
-        `  ⚙️ User preferences size: ${info.userPreferencesSize.toFixed(2)} KB`
-      );
 
-      if (info.largestItems.length > 0) {
-        console.warn("  Largest items:");
-        info.largestItems.slice(0, 5).forEach((item, index) => {
-          console.warn(
-            `    ${index + 1}. ${item.key}: ${item.size.toFixed(2)} KB`
-          );
-        });
-      }
+      logger.info("StorageCleanup", "Storage Status", {
+        totalKeys: info.totalKeys,
+        estimatedSizeKB: Number(info.estimatedSize.toFixed(2)),
+        isFull: await this.isStorageFull(),
+        questionnaireKeys: info.questionnaireKeys,
+        genderAdaptationKeys: info.genderAdaptationKeys,
+        userPreferencesSizeKB: Number(info.userPreferencesSize.toFixed(2)),
+        largestItems: info.largestItems.slice(0, 5).map((item, index) => ({
+          rank: index + 1,
+          key: item.key,
+          sizeKB: Number(item.size.toFixed(2)),
+        })),
+      });
     } catch (error) {
-      console.error("Failed to get storage status:", error);
+      logger.error("StorageCleanup", "Failed to get storage status", { error });
     }
   }
 
@@ -310,7 +328,9 @@ export class StorageCleanup {
         await AsyncStorage.multiRemove(questionnaireKeys);
       }
     } catch (error) {
-      console.error("Error cleaning questionnaire data:", error);
+      logger.error("StorageCleanup", "Error cleaning questionnaire data", {
+        error,
+      });
     }
   }
 
@@ -342,7 +362,9 @@ export class StorageCleanup {
 
       return backupData;
     } catch (error) {
-      console.error("Error backing up questionnaire data:", error);
+      logger.error("StorageCleanup", "Error backing up questionnaire data", {
+        error,
+      });
       return null;
     }
   }
@@ -363,7 +385,9 @@ export class StorageCleanup {
         }
       }
     } catch (error) {
-      console.error("Error restoring questionnaire data:", error);
+      logger.error("StorageCleanup", "Error restoring questionnaire data", {
+        error,
+      });
     }
   }
 
@@ -396,7 +420,9 @@ export class StorageCleanup {
 
       return true;
     } catch (error) {
-      console.error("Error validating questionnaire data:", error);
+      logger.error("StorageCleanup", "Error validating questionnaire data", {
+        error,
+      });
       return false;
     }
   }

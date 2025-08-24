@@ -90,8 +90,8 @@ export const SkipButton: React.FC<SkipButtonProps> = React.memo(
           style={mergedContainerStyle}
           onPress={handlePress}
           onLongPress={handleLongPress}
-          activeOpacity={0.7}
-          hitSlop={10}
+          activeOpacity={0.6}
+          hitSlop={12}
           testID={testID ? `${testID}-touchable` : "SkipButtonTouchable"}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
@@ -123,20 +123,28 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xl,
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: theme.colors.primary + "30",
-    ...(theme.shadows.medium as object),
+    borderColor: `${theme.colors.primary}40`,
+    // שיפורי צללים מתקדמים
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   gradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 50,
+    minWidth: 56,
+    minHeight: 48,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
+    shadowOpacity: 0.08,
+    elevation: 2,
   },
   loading: {
-    opacity: 0.85,
+    opacity: 0.75,
   },
 });

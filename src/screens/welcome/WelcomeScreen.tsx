@@ -77,6 +77,7 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { StorageKeys } from "../../constants/StorageKeys";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import UniversalButton from "../../components/ui/UniversalButton";
 import {
   isQuickLoginAvailable,
   tryQuickLogin,
@@ -207,7 +208,7 @@ const WelcomeScreen = React.memo(() => {
   }, [renderStartTime]);
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { setUser, user, getCompletionStatus } = useUserStore();
+  const { user, getCompletionStatus } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isQuickLoginVisible, setIsQuickLoginVisible] = useState(false);
@@ -499,31 +500,17 @@ const WelcomeScreen = React.memo(() => {
           {/* Main action buttons with enhanced accessibility and animations */}
           <View style={styles.buttonsContainer}>
             {/* Primary call-to-action button with gradient design */}
-            <TouchableButton
-              style={styles.primaryButton}
+            <UniversalButton
+              title={WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
               onPress={handleRegister}
+              variant="gradient"
+              size="large"
+              icon="arrow-forward"
+              iconPosition="right"
+              fullWidth
               accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY}
               accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY_HINT}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.primaryGradientStart,
-                  theme.colors.primaryGradientEnd,
-                ]}
-                style={styles.gradientButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={22}
-                  color={theme.colors.white}
-                />
-              </LinearGradient>
-            </TouchableButton>
+            />
 
             {/* הוסר: כפתור דמו */}
 
@@ -650,21 +637,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: theme.spacing.sm,
     backgroundColor: theme.colors.card,
-    ...theme.shadows.medium,
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
   },
   appName: {
-    fontSize: theme.typography.h1.fontSize,
-    fontWeight: theme.typography.h1.fontWeight,
+    fontSize: 34,
+    fontWeight: "800",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
     textAlign: "center",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    letterSpacing: 0.8,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   tagline: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 18,
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    letterSpacing: 0.3,
+    lineHeight: 24,
   },
 
   // Live activity indicator section // מדור מחוון פעילות חי
@@ -675,12 +675,19 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
+    borderColor: theme.colors.cardBorder + "40",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
   },
   activeUsersText: {
     fontSize: theme.typography.bodySmall.fontSize,
@@ -715,28 +722,6 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: "100%",
     alignItems: "center",
-  },
-  primaryButton: {
-    width: "100%",
-    marginBottom: theme.spacing.sm,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-    ...theme.shadows.medium,
-  },
-  gradientButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-  },
-  primaryButtonText: {
-    fontSize: theme.typography.buttonLarge.fontSize,
-    fontWeight: theme.typography.buttonLarge.fontWeight,
-    color: theme.colors.white,
-    marginStart: theme.spacing.xs,
-    textAlign: "center",
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
 
   // Promotional elements // אלמנטים קידומיים
@@ -791,11 +776,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    ...theme.shadows.small,
+    borderColor: theme.colors.primary + "60",
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
     gap: theme.spacing.xs,
   },
   quickLoginButtonText: {
@@ -811,18 +803,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.error,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.sm,
+    borderColor: theme.colors.error + "40",
+    borderRadius: theme.radius.xl,
+    paddingVertical: 16,
     paddingHorizontal: theme.spacing.lg,
-    ...theme.shadows.small,
+    shadowColor: theme.colors.error,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    minHeight: 54,
   },
   googleButtonText: {
-    fontSize: theme.typography.button.fontSize,
+    fontSize: 17,
     color: theme.colors.error,
-    fontWeight: "500",
+    fontWeight: "600",
     marginEnd: theme.spacing.xs,
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    letterSpacing: 0.3,
   },
 
   // Development tools styles // סטיילים לכלי פיתוח

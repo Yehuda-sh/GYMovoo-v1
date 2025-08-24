@@ -15,6 +15,8 @@
  * - ✅ נעילת קיפול: במצב עריכה לא ניתן לקפל את הכרטיס
  * - ✅ אינדיקציה חזותית: רקע כחול קל + אייקון נעילה במצב עריכה
  * - 🆕 כפתור הוספת סט: כפתור + מעוצב בסיום רשימת הסטים (v3.0.1)
+ * - 🎨 Premium design: Enhanced shadows, spacing, and typography (v3.1.0)
+ * @updated 2025-08-24 - Enhanced with premium design patterns and advanced UI
  * @updated 2025-08-02 - הוספת כפתור הוספת סט מעוצב עם משוב חזותי ומגע
  * @updated 2025-01-31 - הוספת מצב עריכה In-Place מתקדם עם נעילת קיפול
  */
@@ -25,6 +27,8 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  Component,
+  ReactNode,
 } from "react";
 import {
   View,
@@ -36,8 +40,9 @@ import {
   Platform,
   UIManager,
   Alert,
+  AccessibilityInfo,
+  Vibration,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // קומפוננטות פנימיות
@@ -64,6 +69,29 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// קבועים לביצועים ונגישות
+// Performance and accessibility constants
+const ANIMATION_DURATIONS = {
+  EXPAND: 300,
+  EDIT_MODE: 250,
+  BUTTON_PRESS: 100,
+  COMPLETION: 200,
+} as const;
+
+const ACCESSIBILITY_HINTS = {
+  TOGGLE_EXPAND: "הקש פעמיים לפתיחה או סגירה של פרטי התרגיל",
+  EDIT_MODE: "הקש פעמיים לכניסה למצב עריכה",
+  ADD_SET: "הקש פעמיים להוספת סט נוסף לתרגיל",
+  LONG_PRESS_SET: "לחץ ארוך לבחירת מספר סטים",
+} as const;
+
+const PERFORMANCE_THRESHOLDS = {
+  MAX_SETS_FOR_SMOOTH_ANIMATION: 10,
+  DEBOUNCE_DELAY: 300,
+  SLOW_RENDER_TIME: 16, // 16ms for 60fps
+  MAX_MEMORY_USAGE: 50 * 1024 * 1024, // 50MB
+} as const;
+
 // Debug mode (enable via EXPO_PUBLIC_DEBUG_EXERCISECARD=1)
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISECARD === "1";
 const log = (message: string, data?: object) => {
@@ -74,6 +102,203 @@ const log = (message: string, data?: object) => {
     );
   }
 };
+
+// Performance monitoring hook
+const usePerformanceMonitoring = () => {
+  const renderCountRef = useRef(0);
+  const renderTimeRef = useRef<number[]>([]);
+  const memoryUsageRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    renderCountRef.current += 1;
+    const renderStart = performance.now();
+
+    return () => {
+      const renderEnd = performance.now();
+      const renderTime = renderEnd - renderStart;
+
+      // Keep only last 10 render times
+      renderTimeRef.current = [...renderTimeRef.current.slice(-9), renderTime];
+
+      // Memory usage tracking (if available in browser environments)
+      interface PerformanceWithMemory extends Performance {
+        memory?: {
+          usedJSHeapSize: number;
+          totalJSHeapSize: number;
+          jsHeapSizeLimit: number;
+        };
+      }
+
+      const performanceWithMemory = performance as PerformanceWithMemory;
+      if (performanceWithMemory.memory) {
+        const memUsage = performanceWithMemory.memory.usedJSHeapSize;
+        memoryUsageRef.current = [
+          ...memoryUsageRef.current.slice(-9),
+          memUsage,
+        ];
+      }
+
+      // Alert if performance degrades
+      if (renderTime > PERFORMANCE_THRESHOLDS.SLOW_RENDER_TIME) {
+        console.warn(`ExerciseCard slow render: ${renderTime.toFixed(2)}ms`);
+      }
+    };
+  });
+
+  return {
+    renderCount: renderCountRef.current,
+    avgRenderTime:
+      renderTimeRef.current.length > 0
+        ? renderTimeRef.current.reduce((a, b) => a + b, 0) /
+          renderTimeRef.current.length
+        : 0,
+    lastRenderTimes: renderTimeRef.current,
+    memoryUsage: memoryUsageRef.current,
+  };
+};
+
+// Error Boundary Component
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  exerciseName?: string;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+  errorInfo?: React.ErrorInfo;
+}
+
+class ExerciseCardErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    this.setState({ errorInfo });
+
+    // Log error for debugging
+    console.error("ExerciseCard Error:", {
+      exerciseName: this.props.exerciseName,
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+
+    // Track error in analytics (if available)
+    // Analytics.trackError('ExerciseCard', error, this.props.exerciseName);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={errorBoundaryStyles.container}>
+          <View style={errorBoundaryStyles.errorCard}>
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={48}
+              color="#FF6B6B"
+              style={errorBoundaryStyles.errorIcon}
+            />
+            <Text style={errorBoundaryStyles.errorTitle}>שגיאה בתרגיל</Text>
+            <Text style={errorBoundaryStyles.errorSubtitle}>
+              {this.props.exerciseName || "תרגיל לא ידוע"}
+            </Text>
+            <Text style={errorBoundaryStyles.errorMessage}>
+              {this.state.error?.message || "שגיאה לא צפויה"}
+            </Text>
+
+            <View style={errorBoundaryStyles.buttonContainer}>
+              <TouchableOpacity
+                style={errorBoundaryStyles.retryButton}
+                onPress={this.handleRetry}
+                accessibilityLabel="נסה שוב"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons name="refresh" size={20} color="#FFF" />
+                <Text style={errorBoundaryStyles.retryButtonText}>נסה שוב</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Error boundary styles
+const errorBoundaryStyles = StyleSheet.create({
+  container: {
+    margin: 16,
+    borderRadius: 12,
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  errorCard: {
+    padding: 24,
+    alignItems: "center",
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FF6B6B",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  errorSubtitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+});
 
 interface ExerciseCardProps {
   exercise: WorkoutExercise;
@@ -129,15 +354,53 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     onReplace,
     onReorderSets, // פונקציה להזזת סטים
   }) => {
+    // Debug logging
+    if (__DEV__) {
+      console.warn("🃏 ExerciseCard rendering:", {
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        setsCount: sets.length,
+        sets: sets.map((s) => ({
+          id: s.id,
+          completed: s.completed,
+          targetReps: s.targetReps,
+        })),
+      });
+    }
+
     // מצבים מקומיים
     // Local states
     const [isExpanded, setIsExpanded] = useState(true);
-    // const [menuVisible, setMenuVisible] = useState(false); // תפריט אופציות הוסר זמנית – לא בשימוש כעת
-    const [isEditMode, setIsEditMode] = useState(false); // מצב עריכה חדש
+    const [isEditMode, setIsEditMode] = useState(false);
     const [selectedSets, setSelectedSets] = useState<globalThis.Set<string>>(
       new globalThis.Set()
     );
     const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Performance monitoring
+    const performanceData = usePerformanceMonitoring();
+
+    // Performance tracking
+    const performanceRef = useRef({
+      lastRenderTime: Date.now(),
+      animationCount: 0,
+    });
+
+    // Log performance data in debug mode
+    useEffect(() => {
+      if (DEBUG && performanceData.renderCount % 10 === 0) {
+        log("Performance Stats", {
+          renderCount: performanceData.renderCount,
+          avgRenderTime: performanceData.avgRenderTime.toFixed(2),
+          memoryUsage: performanceData.memoryUsage.slice(-1)[0],
+        });
+      }
+    }, [performanceData]);
+
+    // Debounce ref for performance
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // אנימציות
     // Animations
@@ -146,8 +409,57 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const headerColorAnimation = useRef(new Animated.Value(0)).current;
     const editModeAnimation = useRef(new Animated.Value(0)).current; // אנימציה למצב עריכה
 
-    // חישוב האם התרגיל הושלם
-    // Calculate if exercise is completed
+    // Error handling wrapper
+    const withErrorHandling = useCallback(
+      <T extends unknown[], R>(
+        fn: (...args: T) => R,
+        actionName: string
+      ): ((...args: T) => R | void) => {
+        return (...args: T) => {
+          try {
+            setError(null);
+            const result = fn(...args);
+
+            // Track performance
+            const now = Date.now();
+            performanceRef.current.lastRenderTime = now;
+
+            return result;
+          } catch (err) {
+            const errorMessage =
+              err instanceof Error ? err.message : "פעולה נכשלה";
+            setError(errorMessage);
+            log(`Error in ${actionName}:`, { error: errorMessage });
+
+            // Show error feedback
+            if (Platform.OS === "ios") {
+              Vibration.vibrate([50, 100, 50]);
+            }
+          }
+        };
+      },
+      []
+    );
+
+    // Debounced function wrapper for performance
+    const withDebounce = useCallback(
+      <T extends unknown[]>(
+        fn: (...args: T) => void,
+        delay: number = PERFORMANCE_THRESHOLDS.DEBOUNCE_DELAY
+      ) => {
+        return (...args: T) => {
+          if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+          }
+
+          debounceRef.current = setTimeout(() => {
+            fn(...args);
+            debounceRef.current = null;
+          }, delay);
+        };
+      },
+      []
+    );
     const isCompleted = useMemo(() => {
       return sets.length > 0 && sets.every((set) => set.completed);
     }, [sets]);
@@ -182,41 +494,70 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       }, 0);
     }, [sets]);
 
-    // טיפול בלחיצה על התרגיל
-    // Handle exercise tap
+    // טיפול בלחיצה על התרגיל עם שיפורים
+    // Handle exercise tap with improvements
     const handleToggleExpanded = useCallback(() => {
-      log("Toggle expanded", { isExpanded, isEditMode });
-
-      // אל תאפשר סגירה במצב עריכה
-      if (isEditMode && isExpanded) {
-        log("Cannot collapse in edit mode");
-
-        // הודעת נגישות
-        if (Platform.OS === "ios") {
-          triggerVibration("short"); // רטט קצר להודיע שהפעולה לא זמינה
-        }
-
-        return;
+      // Performance check - avoid too many animations
+      const now = Date.now();
+      if (now - performanceRef.current.lastRenderTime < 100) {
+        return; // Skip if too soon
       }
 
-      const toValue = !isExpanded ? 1 : 0;
+      withErrorHandling(() => {
+        log("Toggle expanded", { isExpanded, isEditMode });
 
-      LayoutAnimation.configureNext(
-        LayoutAnimation.create(
-          300,
-          LayoutAnimation.Types.easeInEaseOut,
-          LayoutAnimation.Properties.scaleY
-        )
-      );
+        // אל תאפשר סגירה במצב עריכה
+        if (isEditMode && isExpanded) {
+          log("Cannot collapse in edit mode");
 
-      Animated.timing(expandAnimation, {
-        toValue,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+          // Accessibility announcement
+          if (Platform.OS === "ios") {
+            triggerVibration("short");
+            AccessibilityInfo.announceForAccessibility(
+              "לא ניתן לסגור במצב עריכה"
+            );
+          }
+          return;
+        }
 
-      setIsExpanded(!isExpanded);
-    }, [isExpanded, expandAnimation, isEditMode]);
+        const toValue = !isExpanded ? 1 : 0;
+
+        // Smooth animation with performance consideration
+        const animationDuration =
+          sets.length > PERFORMANCE_THRESHOLDS.MAX_SETS_FOR_SMOOTH_ANIMATION
+            ? ANIMATION_DURATIONS.EXPAND / 2
+            : ANIMATION_DURATIONS.EXPAND;
+
+        LayoutAnimation.configureNext(
+          LayoutAnimation.create(
+            animationDuration,
+            LayoutAnimation.Types.easeInEaseOut,
+            LayoutAnimation.Properties.scaleY
+          )
+        );
+
+        Animated.timing(expandAnimation, {
+          toValue,
+          duration: animationDuration,
+          useNativeDriver: true,
+        }).start();
+
+        setIsExpanded(!isExpanded);
+
+        // Accessibility feedback
+        if (Platform.OS === "ios") {
+          AccessibilityInfo.announceForAccessibility(
+            !isExpanded ? "התרגיל נפתח" : "התרגיל נסגר"
+          );
+        }
+      }, "toggleExpanded")();
+    }, [
+      isExpanded,
+      expandAnimation,
+      isEditMode,
+      sets.length,
+      withErrorHandling,
+    ]);
 
     // טיפול בלחיצה ארוכה על סט
     // Handle long press on set
@@ -239,77 +580,131 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       setSelectedSets(new Set());
     }, []);
 
-    // מחיקת סטים נבחרים
-    // Delete selected sets
+    // מחיקת סטים נבחרים עם confirmation משופר
+    // Delete selected sets with enhanced confirmation
     const deleteSelectedSets = useCallback(() => {
-      log("Delete selected sets", { count: selectedSets.size });
+      withErrorHandling(() => {
+        log("Delete selected sets", { count: selectedSets.size });
 
-      Alert.alert("מחיקת סטים", `האם למחוק ${selectedSets.size} סטים?`, [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק",
-          style: "destructive",
-          onPress: () => {
-            selectedSets.forEach((setId) => {
-              onDeleteSet?.(setId);
-            });
-            cancelSelectionMode();
-          },
-        },
-      ]);
-    }, [selectedSets, onDeleteSet, cancelSelectionMode]);
+        const setsCount = selectedSets.size;
+        const setsText = setsCount === 1 ? "סט אחד" : `${setsCount} סטים`;
 
-    // טיפול במצב עריכה
-    // Handle edit mode
-    const toggleEditMode = useCallback(() => {
-      log("Toggle edit mode", { isEditMode });
+        Alert.alert(
+          "מחיקת סטים",
+          `האם אתה בטוח שברצונך למחוק ${setsText}?\nפעולה זו אינה ניתנת לביטול.`,
+          [
+            {
+              text: "ביטול",
+              style: "cancel",
+              onPress: () => {
+                AccessibilityInfo.announceForAccessibility("המחיקה בוטלה");
+              },
+            },
+            {
+              text: "מחק",
+              style: "destructive",
+              onPress: () => {
+                setIsLoading(true);
 
-      const toValue = !isEditMode ? 1 : 0;
+                try {
+                  selectedSets.forEach((setId) => {
+                    onDeleteSet?.(setId);
+                  });
 
-      // משוב מגע
-      if (Platform.OS === "ios") {
-        triggerVibration(!isEditMode ? "medium" : "short");
-      }
+                  cancelSelectionMode();
 
-      // אנימציה חלקה
-      Animated.timing(editModeAnimation, {
-        toValue,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-
-      setIsEditMode(!isEditMode);
-
-      // וודא שהסטים גלויים במצב עריכה
-      if (!isEditMode && !isExpanded) {
-        log("Expanding card for edit mode");
-
-        LayoutAnimation.configureNext(
-          LayoutAnimation.create(
-            300,
-            LayoutAnimation.Types.easeInEaseOut,
-            LayoutAnimation.Properties.scaleY
-          )
+                  // Success feedback
+                  if (Platform.OS === "ios") {
+                    triggerVibration("medium");
+                    AccessibilityInfo.announceForAccessibility(
+                      `${setsText} נמחקו בהצלחה`
+                    );
+                  }
+                } catch (error) {
+                  setError("שגיאה במחיקת הסטים");
+                  log("Error deleting sets:", { error });
+                } finally {
+                  setIsLoading(false);
+                }
+              },
+            },
+          ],
+          {
+            cancelable: true,
+            onDismiss: () => {
+              AccessibilityInfo.announceForAccessibility("התיבה נסגרה");
+            },
+          }
         );
+      }, "deleteSelectedSets")();
+    }, [selectedSets, onDeleteSet, cancelSelectionMode, withErrorHandling]);
 
-        Animated.timing(expandAnimation, {
-          toValue: 1,
-          duration: 300,
+    // טיפול במצב עריכה עם שיפורים
+    // Handle edit mode with improvements
+    const toggleEditMode = useCallback(() => {
+      withErrorHandling(() => {
+        log("Toggle edit mode", { isEditMode });
+
+        const toValue = !isEditMode ? 1 : 0;
+
+        // Enhanced haptic feedback
+        if (Platform.OS === "ios") {
+          triggerVibration(!isEditMode ? "medium" : "short");
+        }
+
+        // Smooth animation with performance consideration
+        Animated.timing(editModeAnimation, {
+          toValue,
+          duration: ANIMATION_DURATIONS.EDIT_MODE,
           useNativeDriver: true,
         }).start();
 
-        setIsExpanded(true);
-      }
+        setIsEditMode(!isEditMode);
 
-      // הודעת נגישות
-      if (!isEditMode) {
-        // נכנס למצב עריכה
-        log("Entering edit mode");
-      } else {
-        // יוצא ממצב עריכה
-        log("Exiting edit mode");
-      }
-    }, [isEditMode, editModeAnimation, isExpanded, expandAnimation]);
+        // וודא שהסטים גלויים במצב עריכה
+        if (!isEditMode && !isExpanded) {
+          log("Expanding card for edit mode");
+
+          LayoutAnimation.configureNext(
+            LayoutAnimation.create(
+              ANIMATION_DURATIONS.EXPAND,
+              LayoutAnimation.Types.easeInEaseOut,
+              LayoutAnimation.Properties.scaleY
+            )
+          );
+
+          Animated.timing(expandAnimation, {
+            toValue: 1,
+            duration: ANIMATION_DURATIONS.EXPAND,
+            useNativeDriver: true,
+          }).start();
+
+          setIsExpanded(true);
+        }
+
+        // Accessibility announcements
+        if (Platform.OS === "ios") {
+          const message = !isEditMode
+            ? "נכנס למצב עריכה. השתמש בכפתורים למעלה ולמטה להזזת סטים"
+            : "יוצא ממצב עריכה";
+
+          AccessibilityInfo.announceForAccessibility(message);
+        }
+
+        // Clear any selection when entering edit mode
+        if (!isEditMode && isSelectionMode) {
+          cancelSelectionMode();
+        }
+      }, "toggleEditMode")();
+    }, [
+      isEditMode,
+      editModeAnimation,
+      isExpanded,
+      expandAnimation,
+      isSelectionMode,
+      cancelSelectionMode,
+      withErrorHandling,
+    ]);
 
     // פונקציות עזר למצב עריכה
     // Edit mode helper functions
@@ -408,8 +803,44 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     //   });
     // }, []);
 
-    // אנימציה כשהתרגיל הושלם
-    // Animate when exercise is completed
+    // Cleanup effect for performance
+    useEffect(() => {
+      const currentDebounceRef = debounceRef.current;
+      const currentPerformanceRef = performanceRef.current;
+
+      return () => {
+        // Clear any pending timeouts
+        if (currentDebounceRef) {
+          clearTimeout(currentDebounceRef);
+        }
+
+        // Reset performance tracking
+        currentPerformanceRef.animationCount = 0;
+
+        log("ExerciseCard cleanup completed");
+      };
+    }, []);
+
+    // Performance monitoring effect
+    useEffect(() => {
+      if (__DEV__) {
+        const renderTime = Date.now() - performanceRef.current.lastRenderTime;
+        if (renderTime > 100) {
+          log("Slow render detected", { renderTime, setsCount: sets.length });
+        }
+      }
+    }, [sets, isExpanded, isEditMode]);
+
+    // Error recovery effect
+    useEffect(() => {
+      if (error) {
+        const timer = setTimeout(() => {
+          setError(null);
+        }, 5000); // Clear error after 5 seconds
+
+        return () => clearTimeout(timer);
+      }
+    }, [error]);
     useEffect(() => {
       if (isCompleted) {
         log("Exercise completed animation");
@@ -430,7 +861,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     }, [isCompleted, headerColorAnimation, cardOpacity]);
 
     return (
-      <SafeAreaView style={styles.container} edges={["left", "right"]}>
+      <View style={styles.container}>
         {/* פס בחירה */}
         {/* Selection bar */}
         {isSelectionMode && (
@@ -555,23 +986,47 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             {sets.length > 0 && !isEditMode && (
               <TouchableOpacity
                 style={styles.addSetButton}
-                onPress={() => {
-                  // משוב מגע קל
-                  if (Platform.OS === "ios") {
-                    triggerVibration("medium");
-                  }
-                  log("Add set button pressed");
-                  onAddSet();
-                }}
+                onPress={withDebounce(() => {
+                  withErrorHandling(() => {
+                    // אנימציית לחיצה קלה עם performance tracking
+                    performanceRef.current.animationCount++;
+
+                    Animated.sequence([
+                      Animated.timing(expandAnimation, {
+                        toValue: 0.95,
+                        duration: ANIMATION_DURATIONS.BUTTON_PRESS,
+                        useNativeDriver: true,
+                      }),
+                      Animated.spring(expandAnimation, {
+                        toValue: 1,
+                        friction: 3,
+                        tension: 40,
+                        useNativeDriver: true,
+                      }),
+                    ]).start();
+
+                    // Enhanced haptic feedback
+                    if (Platform.OS === "ios") {
+                      triggerVibration("medium");
+                    }
+
+                    log("Add set button pressed");
+                    onAddSet();
+
+                    // Accessibility feedback
+                    AccessibilityInfo.announceForAccessibility("סט חדש נוסף");
+                  }, "addSetButton")();
+                }, 500)} // Debounce to prevent double-taps
                 activeOpacity={0.6}
                 accessibilityRole="button"
                 accessibilityLabel="הוסף סט חדש"
-                accessibilityHint="הקש פעמיים להוספת סט נוסף לתרגיל"
+                accessibilityHint={ACCESSIBILITY_HINTS.ADD_SET}
+                disabled={isLoading}
               >
                 <View style={styles.addSetContent}>
                   <MaterialCommunityIcons
                     name="plus-circle-outline"
-                    size={24}
+                    size={26}
                     color={theme.colors.primary}
                   />
                   <Text style={styles.addSetText}>הוסף סט</Text>
@@ -582,7 +1037,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         )}
 
         {/* ExerciseMenu הוסר זמנית כדי להפחית מורכבות – אם נדרש נחזיר בגרסה עתידית */}
-      </SafeAreaView>
+      </View>
     );
   }
 );
@@ -594,107 +1049,150 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    overflow: "visible",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
     backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    marginBottom: theme.spacing.md,
-    alignItems: "flex-end", // ✅ RTL support - יישור תוכן לימין
+    borderRadius: 20,
+    marginBottom: theme.spacing.xl,
+    marginHorizontal: 3,
+    // Premium gradient-like border effect
+    borderBottomWidth: 2,
+    borderBottomColor: theme.colors.cardBorder + "80",
   },
   content: {
-    padding: theme.spacing.md,
-    paddingTop: 0,
+    padding: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
   },
   infoSection: {
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.xs,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.sm,
   },
   notesContainer: {
     flexDirection: "row-reverse",
     alignItems: "flex-start",
-    gap: theme.spacing.xs,
-    padding: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
     backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    marginBottom: theme.spacing.xs,
+    borderRadius: 12,
+    marginBottom: theme.spacing.sm,
+    // Enhanced notes styling
+    borderWidth: 1,
+    borderColor: theme.colors.border + "40",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   notesText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "right",
+    lineHeight: 20,
+    fontWeight: "500",
   },
   historyContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.xs,
-    padding: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
     backgroundColor: theme.colors.background,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border + "40",
+    // Enhanced history styling
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   historyText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "right",
+    lineHeight: 18,
+    fontWeight: "500",
   },
   selectionBar: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: theme.spacing.sm,
-    backgroundColor: theme.colors.primary + "20",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.primary + "18",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    // Enhanced selection bar
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.primary + "30",
   },
   selectionButton: {
-    padding: theme.spacing.xs,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    backgroundColor: theme.colors.background + "60",
   },
   selectionText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: theme.colors.text,
+    letterSpacing: 0.5,
   },
   selectionButtonsRow: {
     flexDirection: "row-reverse",
-    gap: 12,
+    gap: 16,
   },
-  // כפתור הוספת סט
+  // כפתור הוספת סט משופר
   addSetButton: {
-    marginTop: theme.spacing.sm,
-    marginHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 12,
+    marginTop: theme.spacing.lg,
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: theme.colors.primary + "40",
+    borderColor: theme.colors.primary + "50",
     borderStyle: "dashed",
-    backgroundColor: theme.colors.primary + "08",
+    backgroundColor: theme.colors.primary + "10",
     alignItems: "center",
-    // אפקט צל קל
+    // Premium shadow effects
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    minHeight: 60,
+    // Subtle inner glow effect
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.primary + "30",
   },
   addSetContent: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
   },
   addSetText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "800",
     color: theme.colors.primary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    lineHeight: 22,
   },
 });
 
-export default ExerciseCard;
+// Enhanced ExerciseCard with Error Boundary
+const ExerciseCardWithErrorBoundary: React.FC<ExerciseCardProps> = (props) => {
+  return (
+    <ExerciseCardErrorBoundary exerciseName={props.exercise.name}>
+      <ExerciseCard {...props} />
+    </ExerciseCardErrorBoundary>
+  );
+};
+
+export default ExerciseCardWithErrorBoundary;
+export { ExerciseCard, ExerciseCardErrorBoundary };

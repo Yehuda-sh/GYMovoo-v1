@@ -61,29 +61,39 @@ export default memo(function AppNavigator() {
   // קביעת מסך התחלתי לפי מצב המשתמש
   const getInitialRouteName = () => {
     // 🚨 DEBUG MODE: דילוג ישירות לאפליקציה לבדיקת הניווט
-    console.warn("🔍 Debug Check:", {
-      debugVar: process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH,
-      hasUser: !!user,
-      userEmail: user?.email,
-    });
+    if (__DEV__) {
+      console.warn("🔍 Debug Check:", {
+        debugVar: process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH,
+        hasUser: !!user,
+        userEmail: user?.email,
+      });
+    }
 
     if (process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH === "1") {
-      console.warn("🚀 DEBUG MODE: Going directly to MainApp");
+      if (__DEV__) {
+        console.warn("🚀 DEBUG MODE: Going directly to MainApp");
+      }
       return "MainApp"; // ישירות לאפליקציה לבדיקה
     }
 
     if (!user) {
-      console.warn("❌ No user found, going to Welcome");
+      if (__DEV__) {
+        console.warn("❌ No user found, going to Welcome");
+      }
       return "Welcome"; // אין משתמש - מסך ברוכים הבאים
     }
 
     const completion = getCompletionStatus();
     if (completion.isFullySetup) {
-      console.warn("✅ User fully setup, going to MainApp");
+      if (__DEV__) {
+        console.warn("✅ User fully setup, going to MainApp");
+      }
       return "MainApp"; // משתמש עם שאלון מושלם - ישר לאפליקציה
     }
 
-    console.warn("⚠️ User not fully setup, going to Questionnaire");
+    if (__DEV__) {
+      console.warn("⚠️ User not fully setup, going to Questionnaire");
+    }
     return "Questionnaire"; // משתמש ללא שאלון - למסך השאלון
   };
   return (

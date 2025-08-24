@@ -1,6 +1,65 @@
 // =============================
 // Unified Workout & Questionnaire Types (אוגוסט 2025)
+// Enhanced with Performance & Accessibility Types
 // =============================
+
+// ============================================================================
+// PERFORMANCE AND MONITORING TYPES
+// ============================================================================
+
+export interface PerformanceMetrics {
+  renderCount: number;
+  avgRenderTime: number;
+  lastRenderTimes: number[];
+  memoryUsage: number[];
+  slowRenders: number;
+  errorCount: number;
+}
+
+export interface ErrorInfo {
+  message: string;
+  stack?: string;
+  componentStack?: string;
+  timestamp: number;
+  context?: Record<string, unknown>;
+}
+
+export interface AccessibilityState {
+  screenReaderEnabled: boolean;
+  announcements: string[];
+  lastAnnouncement?: string;
+  queueLength: number;
+}
+
+// ============================================================================
+// ENHANCED UI COMPONENT TYPES
+// ============================================================================
+
+export interface ExerciseCardErrorBoundaryProps {
+  children: React.ReactNode;
+  exerciseName?: string;
+}
+
+export interface AnnouncementOptions {
+  priority?: "low" | "medium" | "high" | "urgent";
+  delay?: number;
+  replace?: boolean;
+  persist?: boolean;
+}
+
+export interface ValidationState {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface QuickActionButtonProps {
+  onPress: () => void;
+  icon: string;
+  label: string;
+  disabled?: boolean;
+  size?: "small" | "medium" | "large";
+}
 
 /** Workout type - אימון מלא */
 export interface Workout {

@@ -445,22 +445,27 @@ const styles = StyleSheet.create({
     position: "relative",
   },
 
-  // סגנון מקורי - משופר
-  // Original style - improved
+  // סגנון מקורי - משופר מתקדם
+  // Original style - advanced improvements
   container: {
     flexDirection: "row-reverse",
     justifyContent: "space-around",
-    backgroundColor: theme.colors.card,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.xl,
+    backgroundColor: `${theme.colors.card}F8`,
+    paddingVertical: theme.spacing.lg,
+    borderRadius: theme.radius.xxl,
     marginHorizontal: theme.spacing.md,
-    ...theme.shadows.medium,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.cardBorder}60`,
+    // שיפורי צללים מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 12,
   },
 
-  // סגנון בר
-  // Bar style
+  // סגנון בר משופר
+  // Enhanced bar style
   barContainer: {
     position: "absolute",
     top: BAR_TOP_OFFSET,
@@ -469,83 +474,108 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   barGradient: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderBottomWidth: 1.5,
+    borderBottomColor: `${theme.colors.border}80`,
+    // שיפור בר
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
   },
   barContent: {
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
   },
   barTimer: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
   },
   barTimerText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.text,
+    letterSpacing: 0.3,
   },
   barStats: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
   },
   barStatText: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: "600",
     color: theme.colors.textSecondary,
+    letterSpacing: 0.2,
   },
   barSeparator: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
+    color: `${theme.colors.textSecondary}80`,
+    fontSize: 14,
+    opacity: 0.8,
   },
   barProgress: {
-    height: 3,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
-    marginTop: theme.spacing.xs,
+    height: 4,
+    backgroundColor: `${theme.colors.border}60`,
+    borderRadius: 3,
+    marginTop: theme.spacing.sm,
     overflow: "hidden",
+    marginHorizontal: theme.spacing.sm,
   },
   barProgressFill: {
     height: "100%",
     backgroundColor: theme.colors.primary,
-    borderRadius: 2,
+    borderRadius: 3,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
   },
 
-  // סגנון קומפקטי
-  // Compact style
+  // סגנון קומפקטי משופר
+  // Enhanced compact style
   compactContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: theme.colors.card,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.md,
+    backgroundColor: `${theme.colors.card}F5`,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
     marginHorizontal: theme.spacing.md,
-    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}50`,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
   },
   compactStat: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
   },
   compactValue: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.text,
+    letterSpacing: 0.3,
   },
   compactDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: theme.colors.border,
+    width: 1.5,
+    height: 20,
+    backgroundColor: `${theme.colors.border}80`,
+    borderRadius: 1,
   },
 
-  // סגנון צף
-  // Floating style
+  // סגנון צף משופר
+  // Enhanced floating style
   floatingContainer: {
     position: "absolute",
     top: FLOATING_TOP_OFFSET,
@@ -554,26 +584,40 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   floatingGradient: {
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.large,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.cardBorder}40`,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 14,
   },
   floatingContent: {
     flexDirection: "row-reverse",
     justifyContent: "space-around",
+    gap: theme.spacing.sm,
   },
   floatingStat: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
   },
   floatingValue: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.text,
+    letterSpacing: 0.3,
+    textShadowColor: `${theme.colors.text}15`,
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1,
   },
   floatingLabel: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: "500",
     color: theme.colors.textSecondary,
+    letterSpacing: 0.2,
   },
 });

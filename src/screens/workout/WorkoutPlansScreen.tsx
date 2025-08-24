@@ -502,20 +502,22 @@ export default function WorkoutPlansScreen({
                   index
                 );
 
-                // Debug: הדפסת הנתונים שמועברים
-                console.log(
-                  "🏋️ WorkoutPlansScreen - Navigating to ActiveWorkout with data:",
-                  {
-                    workoutName: workoutData.name,
-                    dayName: workoutData.dayName,
-                    exercisesCount: workoutData.exercises.length,
-                    exercises: workoutData.exercises.map((ex) => ({
-                      id: ex.id,
-                      name: ex.name,
-                      setsCount: ex.sets.length,
-                    })),
-                  }
-                );
+                // Debug: הדפסת הנתונים שמועברים (פיתוח בלבד)
+                if (__DEV__) {
+                  console.warn(
+                    "🏋️ WorkoutPlansScreen - Navigating to ActiveWorkout with data:",
+                    {
+                      workoutName: workoutData.name,
+                      dayName: workoutData.dayName,
+                      exercisesCount: workoutData.exercises.length,
+                      exercises: workoutData.exercises.map((ex) => ({
+                        id: ex.id,
+                        name: ex.name,
+                        setsCount: (ex.sets || []).length,
+                      })),
+                    }
+                  );
+                }
 
                 // מעבר למסך האימון הפעיל
                 navigation.navigate("ActiveWorkout", { workoutData });

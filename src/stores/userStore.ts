@@ -450,10 +450,15 @@ export const useUserStore = create<UserStore>()(
           JSON.stringify(answers)
         )
           .then(() =>
-            console.log("✅ questionnaire_answers נשמר ב-AsyncStorage")
+            logger.info(
+              "UserStore",
+              "questionnaire_answers saved to AsyncStorage"
+            )
           )
           .catch((err) =>
-            console.error("❌ שגיאה בשמירת questionnaire_answers:", err)
+            logger.error("UserStore", "Error saving questionnaire_answers", {
+              error: err,
+            })
           );
 
         // שמירת המטאדאטה המורחבת
@@ -462,10 +467,15 @@ export const useUserStore = create<UserStore>()(
           JSON.stringify(answers)
         )
           .then(() =>
-            console.log("✅ questionnaire_metadata נשמר ב-AsyncStorage")
+            logger.info(
+              "UserStore",
+              "questionnaire_metadata saved to AsyncStorage"
+            )
           )
           .catch((err) =>
-            console.error("❌ שגיאה בשמירת questionnaire_metadata:", err)
+            logger.error("UserStore", "Error saving questionnaire_metadata", {
+              error: err,
+            })
           );
 
         get().scheduleServerSync("setQuestionnaire");

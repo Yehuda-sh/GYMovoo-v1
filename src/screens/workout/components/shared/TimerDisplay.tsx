@@ -54,20 +54,20 @@ export interface TimerDisplayProps {
 
 const SIZE_CONFIG = {
   compact: {
-    textStyle: { fontSize: 28, fontWeight: "700" as const },
-    labelStyle: { fontSize: 12, marginTop: 2 },
+    textStyle: { fontSize: 32, fontWeight: "800" as const, letterSpacing: 0.5 },
+    labelStyle: { fontSize: 13, marginTop: 4, fontWeight: "600" as const },
     containerStyle: { alignItems: "center" as const, flex: 1 },
   },
   full: {
     textStyle: {
-      fontSize: 64,
-      fontWeight: "700" as const,
-      letterSpacing: -3,
-      textShadowColor: "rgba(0,0,0,0.3)",
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 6,
+      fontSize: 72,
+      fontWeight: "900" as const,
+      letterSpacing: -4,
+      textShadowColor: "rgba(0,0,0,0.4)",
+      textShadowOffset: { width: 0, height: 3 },
+      textShadowRadius: 8,
     },
-    labelStyle: { fontSize: 16, marginTop: 8 },
+    labelStyle: { fontSize: 18, marginTop: 12, fontWeight: "600" as const },
     containerStyle: { alignItems: "center" as const },
   },
 } as const;
@@ -160,8 +160,8 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     >
       <TouchableOpacity
         onPress={onPress}
-        activeOpacity={0.8}
-        hitSlop={10}
+        activeOpacity={0.6}
+        hitSlop={14}
         disabled={!onPress}
         testID={testID ? `${testID}-touch` : "TimerDisplayTouch"}
       >
@@ -211,14 +211,22 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 8,
+    marginVertical: 12,
   },
   timerCircle: {
     position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     overflow: "hidden",
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: `${theme.colors.primary}20`,
   },
   pauseOverlay: {
     position: "absolute",
@@ -228,9 +236,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: `${theme.colors.background}E6`,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    backgroundColor: `${theme.colors.background}F0`,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    // שיפורי עיצוב למעבר
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

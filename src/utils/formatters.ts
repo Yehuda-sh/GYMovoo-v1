@@ -10,6 +10,7 @@
 
 import { MAIN_SCREEN_TEXTS } from "../constants/mainScreenTexts";
 import { getEquipmentHebrewName } from "./equipmentIconMapping";
+import { logger } from "./logger";
 
 // ===============================================
 // 📊 Number Formatters - פורמטי מספרים
@@ -313,7 +314,10 @@ export const safeFormat = <T>(
     }
     return formatter(value);
   } catch (error) {
-    console.warn("Formatting error:", error);
+    logger.warn("Formatters", "Formatting error", {
+      error,
+      formatter: formatter.name,
+    });
     return fallback;
   }
 };

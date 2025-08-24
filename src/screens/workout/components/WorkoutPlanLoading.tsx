@@ -26,7 +26,7 @@ const WorkoutPlanLoading = memo(
           {isAI && (
             <MaterialCommunityIcons
               name="brain"
-              size={48}
+              size={56}
               color={theme.colors.primary}
               style={styles.brainIcon}
             />
@@ -53,27 +53,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: theme.colors.background,
+    paddingHorizontal: 24,
   },
   content: {
     alignItems: "center",
-    padding: 24,
+    padding: 32,
+    backgroundColor: `${theme.colors.surface}F8`,
+    borderRadius: 24,
+    maxWidth: 320,
+    width: "100%",
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
   },
   brainIcon: {
-    marginBottom: 16,
+    marginBottom: 20,
+    opacity: 0.9,
   },
   message: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     color: theme.colors.text,
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 12,
+    letterSpacing: 0.3,
+    lineHeight: 26,
+    // שיפור טיפוגרפי
+    textShadowColor: `${theme.colors.text}10`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subMessage: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: "500",
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
 });
 

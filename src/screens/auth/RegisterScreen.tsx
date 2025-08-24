@@ -27,7 +27,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Switch,
   Animated,
   ScrollView,
@@ -38,6 +37,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 import { validateEmail as sharedValidateEmail } from "../../utils/authValidation";
@@ -159,7 +159,7 @@ const ValidationIndicator = ({
     }
   }, [isValid, isChecking, scaleAnim]);
   if (isChecking) {
-    return <ActivityIndicator size="small" color={theme.colors.primary} />;
+    return <LoadingSpinner size="small" color={theme.colors.primary} />;
   }
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -229,7 +229,9 @@ export default function RegisterScreen() {
   // --- DEBUG: STATE CHANGE LOGGING ---
   // Removed redundant empty effects
   useEffect(() => {
-    if (error) console.warn("[REGISTER] error:", error);
+    if (error && __DEV__) {
+      console.warn("[REGISTER] error:", error);
+    }
   }, [error]);
   useEffect(() => {
     debug("Loading state changed", { loading });
@@ -363,17 +365,23 @@ export default function RegisterScreen() {
       acceptTerms,
     });
     if (!validateForm()) {
-      console.warn("[REGISTER] Form validation failed.");
+      if (__DEV__) {
+        console.warn("[REGISTER] Form validation failed.");
+      }
       return;
     }
     if (!is16Plus) {
       setError(STRINGS.errors.age);
-      console.warn("[REGISTER] User is under 16.");
+      if (__DEV__) {
+        console.warn("[REGISTER] User is under 16.");
+      }
       return;
     }
     if (!acceptTerms) {
       setError(STRINGS.errors.terms);
-      console.warn("[REGISTER] Terms not accepted.");
+      if (__DEV__) {
+        console.warn("[REGISTER] Terms not accepted.");
+      }
       return;
     }
     if (loading) {
@@ -893,7 +901,7 @@ export default function RegisterScreen() {
               >
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color="#fff" size="small" />
+                    <LoadingSpinner color="#fff" size="small" />
                     <Text style={styles.registerLoadingText}>
                       {STRINGS.buttons.creating}
                     </Text>
@@ -930,7 +938,7 @@ export default function RegisterScreen() {
             >
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#ea4335" />
+                  <LoadingSpinner size="small" color="#ea4335" />
                   <Text style={styles.googleLoadingText}>
                     {STRINGS.buttons.googleLoading}
                   </Text>
@@ -985,28 +993,50 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    ...theme.shadows.medium,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xxl,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderColor: theme.colors.cardBorder + "40",
   },
   titleGradient: {
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   title: {
     color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "800",
     textAlign: "center",
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 17,
     textAlign: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    lineHeight: 24,
+    letterSpacing: 0.2,
+    paddingHorizontal: theme.spacing.sm,
   },
   inputContainer: {
     marginBottom: theme.spacing.md,
@@ -1015,12 +1045,20 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", // קבוע לעברית, בלי תנאי
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.radius.md,
-    paddingStart: theme.spacing.md,
-    paddingEnd: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    paddingStart: theme.spacing.lg,
+    paddingEnd: theme.spacing.lg,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
-    height: 48,
+    borderColor: theme.colors.divider + "40",
+    height: 54,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -1094,22 +1132,34 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   registerButton: {
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
     overflow: "hidden",
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
   },
   registerButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 18,
     alignItems: "center",
+    minHeight: 56,
   },
   registerButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.5,
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   registerLoadingText: {
     color: "#fff",
@@ -1135,22 +1185,31 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    paddingVertical: 16,
     justifyContent: "center",
     marginBottom: theme.spacing.lg,
-    gap: 8,
+    gap: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: "#ea4335",
+    borderColor: "#ea4335" + "40",
+    shadowColor: "#ea4335",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    minHeight: 54,
   },
   googleButtonDisabled: {
     opacity: 0.7,
   },
   googleButtonText: {
     color: "#ea4335",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   loadingContainer: {
     flexDirection: "row-reverse",

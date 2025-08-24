@@ -135,7 +135,9 @@ TabIcon.displayName = "TabIcon";
  */
 export default function BottomNavigation(): React.JSX.Element {
   // � DEBUG: רכיב ניווט תחתון נטען
-  console.warn("🔄 BottomNavigation component is rendering");
+  if (__DEV__) {
+    console.warn("🔄 BottomNavigation component is rendering");
+  }
 
   // �🚀 Performance optimization - מחושב מראש לביצועים
   const tabBarStyle = useMemo(

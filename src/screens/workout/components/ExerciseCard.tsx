@@ -48,8 +48,8 @@ const ExerciseCard = memo(
       <TouchableOpacity
         style={[styles.exerciseCard, isExpanded && styles.expandedCard]}
         onPress={handlePress}
-        activeOpacity={0.7}
-        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        activeOpacity={0.6}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <View style={styles.exerciseHeader}>
           <View style={styles.exerciseInfo}>
@@ -61,8 +61,8 @@ const ExerciseCard = memo(
                 name={
                   equipmentIcon as keyof typeof MaterialCommunityIcons.glyphMap
                 }
-                size={16}
-                color={theme.colors.textSecondary}
+                size={18}
+                color={theme.colors.primary}
               />
               <Text style={styles.equipmentText}>{equipmentName}</Text>
             </View>
@@ -84,8 +84,10 @@ const ExerciseCard = memo(
 
           <MaterialCommunityIcons
             name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={24}
-            color={theme.colors.textSecondary}
+            size={28}
+            color={
+              isExpanded ? theme.colors.primary : theme.colors.textSecondary
+            }
           />
         </View>
 
@@ -114,20 +116,30 @@ ExerciseCard.displayName = "ExerciseCard";
 const styles = StyleSheet.create({
   exerciseCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 18,
+    padding: 20,
     marginHorizontal: 16,
-    marginVertical: 6,
+    marginVertical: 8,
+    // שיפורי צללים מתקדמים
     shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
   },
   expandedCard: {
     backgroundColor: theme.colors.background,
     borderWidth: 2,
     borderColor: theme.colors.primary,
+    // שיפורי עיצוב למצב מורחב
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    transform: [{ scale: 1.02 }],
   },
   exerciseHeader: {
     flexDirection: "row",
@@ -139,63 +151,94 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   exerciseName: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.3,
+    lineHeight: 24,
   },
   equipmentRow: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: `${theme.colors.primary}08`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
   },
   equipmentText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
     marginLeft: 6,
+    fontWeight: "600",
   },
   exerciseDetails: {
     alignItems: "flex-end",
     marginRight: 8,
+    backgroundColor: `${theme.colors.background}80`,
+    padding: 8,
+    borderRadius: 12,
+    minWidth: 60,
   },
   detailText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginBottom: 2,
+    fontSize: 13,
+    color: theme.colors.text,
+    marginBottom: 3,
+    fontWeight: "600",
+    textAlign: "center",
   },
   expandedContent: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: 20,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: `${theme.colors.border}60`,
+    backgroundColor: `${theme.colors.surface}40`,
+    padding: 16,
+    borderRadius: 12,
+    marginHorizontal: -4,
   },
   muscleGroupsLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: theme.colors.text,
-    marginBottom: 8,
+    marginBottom: 12,
+    letterSpacing: 0.2,
   },
   muscleGroupsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 8,
+    marginBottom: 12,
+    gap: 8,
   },
   muscleTag: {
-    backgroundColor: theme.colors.primaryLight,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginRight: 8,
-    marginBottom: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    // שיפורי עיצוב
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   muscleText: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    fontWeight: "500",
+    fontSize: 13,
+    color: theme.colors.white,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   restText: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.textSecondary,
+    fontWeight: "600",
     fontStyle: "italic",
+    textAlign: "center",
+    backgroundColor: `${theme.colors.background}60`,
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
   },
 });
 

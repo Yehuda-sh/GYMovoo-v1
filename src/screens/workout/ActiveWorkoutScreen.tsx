@@ -5,26 +5,30 @@
  * @author GYMovoo Development Team
    // Debug exercises state changes
   useEffect(() => {
-    console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
-      exercisesCount: exercises.length,
-      exercises: exercises.map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        setsCount: ex.sets?.length || 0
-      }))
-    });
+    if (__DEV__) {
+      console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
+        exercisesCount: exercises.length,
+        exercises: exercises.map(ex => ({
+          id: ex.id,
+          name: ex.name,
+          setsCount: ex.sets?.length || 0
+        }))
+      });
+    }
   }, [exercises]);
 
   // Debug workout stats changes
   useEffect(() => {
-    console.warn("📈 ActiveWorkoutScreen - workoutStats changed:", {
-      totalExercises: workoutStats.totalExercises,
-      completedExercises: workoutStats.completedExercises,
-      totalSets: workoutStats.totalSets,
-      completedSets: workoutStats.completedSets,
-      progressPercentage: workoutStats.progressPercentage,
-      displayText: `${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים • ${workoutStats.progressPercentage}% הושלם`
-    });
+    if (__DEV__) {
+      console.warn("📈 ActiveWorkoutScreen - workoutStats changed:", {
+        totalExercises: workoutStats.totalExercises,
+        completedExercises: workoutStats.completedExercises,
+        totalSets: workoutStats.totalSets,
+        completedSets: workoutStats.completedSets,
+        progressPercentage: workoutStats.progressPercentage,
+        displayText: `${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים • ${workoutStats.progressPercentage}% הושלם`
+      });
+    }
   }, [workoutStats]);2024-12-15
  * @modified 2025-08-02
  *
@@ -71,11 +75,12 @@ import React, {
   useMemo,
   Suspense,
 } from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import { triggerVibration } from "../../utils/workoutHelpers";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 
@@ -105,19 +110,20 @@ import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService"
 import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
 import { errorHandler } from "../../utils/errorHandler";
+import { useAccessibilityAnnouncements } from "../../hooks/useAccessibilityAnnouncements";
+import { UniversalButton } from "../../components/ui/UniversalButton";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  // Accessibility announcements
+  const { announceSuccess, announceInfo, announceError } =
+    useAccessibilityAnnouncements();
+
   // סלקטור ממוקד ל-userStore - אופטימיזציה לביצועים
   const user = useUserStore(useCallback((state) => state.user, []));
-
-  // קבועי אינטראקציה - אופטימיזציה
-  const HIT_SLOP = useMemo(
-    () => ({ top: 8, bottom: 8, left: 8, right: 8 }),
-    []
-  );
 
   // קבלת פרמטרים מהניווט - עכשיו מקבלים אימון מלא
   const { workoutData, pendingExercise } =
@@ -138,19 +144,21 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   // Debug logging - מותנה בפיתוח
   useEffect(() => {
-    console.warn("🎯 ActiveWorkoutScreen - נטענו נתוני אימון", {
-      workoutName: workoutData?.name,
-      dayName: workoutData?.dayName,
-      startTime: workoutData?.startTime,
-      exerciseCount: workoutData?.exercises?.length || 0,
-      exercises:
-        workoutData?.exercises?.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          setsCount: ex.sets?.length || 0,
-        })) || [],
-      rawWorkoutData: workoutData,
-    });
+    if (__DEV__) {
+      logger.debug("ActiveWorkoutScreen", "נטענו נתוני אימון", {
+        workoutName: workoutData?.name,
+        dayName: workoutData?.dayName,
+        startTime: workoutData?.startTime,
+        exerciseCount: workoutData?.exercises?.length || 0,
+        exercises:
+          workoutData?.exercises?.map((ex) => ({
+            id: ex.id,
+            name: ex.name,
+            setsCount: ex.sets?.length || 0,
+          })) || [],
+        rawWorkoutData: workoutData,
+      });
+    }
 
     workoutLogger.info("נטענו נתוני אימון", {
       workoutName: workoutData?.name,
@@ -162,10 +170,45 @@ const ActiveWorkoutScreen: React.FC = () => {
   // סטייט לכל התרגילים באימון
   const [exercises, setExercises] = useState<Exercise[]>(() => {
     const base = workoutData?.exercises || [];
-    console.warn("🔍 ActiveWorkoutScreen - הגדרת exercises state:", {
-      baseExercisesCount: base.length,
-      baseExercises: base.map((ex) => ({ id: ex.id, name: ex.name })),
-      hasPendingExercise: !!pendingExercise,
+    if (__DEV__) {
+      logger.debug("ActiveWorkoutScreen", "הגדרת exercises state", {
+        baseExercisesCount: base.length,
+        baseExercises: base.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          hasSets: !!(ex.sets && ex.sets.length > 0),
+          setsCount: ex.sets?.length || 0,
+        })),
+        hasPendingExercise: !!pendingExercise,
+      });
+    }
+
+    // המרת תרגילי הבסיס לתרגילים עם סטים
+    const baseExercisesWithSets: Exercise[] = base.map((ex) => {
+      // בדיקה אם התרגיל כבר יש לו sets תקינים
+      if (ex.sets && ex.sets.length > 0) {
+        return ex as Exercise;
+      }
+
+      // אחרת, צור סטים בסיסיים (ברירת מחדל 2 סטים)
+      const defaultSets = Array.from({ length: 2 }, (_, index) => ({
+        id: `${ex.id}_set_${index + 1}_${Date.now()}`,
+        type: "working" as const,
+        targetReps: 10,
+        targetWeight: 0,
+        completed: false,
+        isPR: false,
+      }));
+
+      return {
+        id: ex.id,
+        name: ex.name,
+        category: ex.category || "כללי",
+        primaryMuscles: ex.primaryMuscles || ["כללי"],
+        equipment: ex.equipment || "bodyweight",
+        restTime: ex.restTime || 60,
+        sets: defaultSets,
+      } as Exercise;
     });
 
     if (pendingExercise) {
@@ -190,21 +233,24 @@ const ActiveWorkoutScreen: React.FC = () => {
           },
         ],
       };
-      return [...base, newExercise];
+      return [...baseExercisesWithSets, newExercise];
     }
-    return base;
+    return baseExercisesWithSets;
   });
 
   // Debug exercises state changes
   useEffect(() => {
-    console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
-      exercisesCount: exercises.length,
-      exercises: exercises.map((ex) => ({
-        id: ex.id,
-        name: ex.name,
-        setsCount: ex.sets?.length || 0,
-      })),
-    });
+    if (__DEV__) {
+      logger.debug("ActiveWorkoutScreen", "exercises state changed", {
+        exercisesCount: exercises.length,
+        exercises: exercises.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          setsCount: ex.sets?.length || 0,
+          firstSetId: ex.sets?.[0]?.id || "no sets",
+        })),
+      });
+    }
   }, [exercises]);
 
   // Modal states
@@ -217,20 +263,22 @@ const ActiveWorkoutScreen: React.FC = () => {
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
     const stats = calculateWorkoutStats(exercises);
-    console.warn("📈 ActiveWorkoutScreen - workout stats:", {
-      totalExercises: stats.totalExercises,
-      completedExercises: stats.completedExercises,
-      totalSets: stats.totalSets,
-      completedSets: stats.completedSets,
-      progressPercentage: stats.progressPercentage,
-      exercisesArray: exercises.map((ex) => ({
-        id: ex.id,
-        name: ex.name,
-        setsCount: ex.sets?.length || 0,
-        completedSetsInExercise:
-          ex.sets?.filter((s) => s.completed).length || 0,
-      })),
-    });
+    if (__DEV__) {
+      logger.debug("ActiveWorkoutScreen", "workout stats calculated", {
+        totalExercises: stats.totalExercises,
+        completedExercises: stats.completedExercises,
+        totalSets: stats.totalSets,
+        completedSets: stats.completedSets,
+        progressPercentage: stats.progressPercentage,
+        exercisesArray: exercises.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          setsCount: ex.sets?.length || 0,
+          completedSetsInExercise:
+            ex.sets?.filter((s) => s.completed).length || 0,
+        })),
+      });
+    }
     return stats;
   }, [exercises]);
 
@@ -320,7 +368,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           if (exercise.id === exerciseId) {
             return {
               ...exercise,
-              sets: exercise.sets.map((set: Set) => {
+              sets: (exercise.sets || []).map((set: Set) => {
                 if (set.id === setId) {
                   return { ...set, ...updates };
                 }
@@ -343,7 +391,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           if (exercise.id === exerciseId) {
             const newExercise = {
               ...exercise,
-              sets: exercise.sets.map((set: Set) => {
+              sets: (exercise.sets || []).map((set: Set) => {
                 if (set.id === setId) {
                   const isCompleting = !set.completed;
 
@@ -363,13 +411,16 @@ const ActiveWorkoutScreen: React.FC = () => {
               }),
             };
 
-            // התחל טיימר מנוחה אוטומטית
+            // הודעת נגישות
             const completedSet = newExercise.sets.find(
               (s: Set) => s.id === setId
             );
             if (completedSet?.completed) {
+              announceSuccess(`סט הושלם בתרגיל ${exercise.name}`);
               const restDuration = exercise.restTime || 60;
               startRestTimer(restDuration, exercise.name);
+            } else {
+              announceInfo(`סט בוטל בתרגיל ${exercise.name}`);
             }
 
             return newExercise;
@@ -378,39 +429,48 @@ const ActiveWorkoutScreen: React.FC = () => {
         })
       );
     },
-    [startRestTimer]
+    [startRestTimer, announceSuccess, announceInfo]
   );
 
   // הוספת סט לתרגיל
-  const handleAddSet = useCallback((exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) => {
-        if (exercise.id === exerciseId) {
-          const lastSet = exercise.sets[exercise.sets.length - 1];
-          const newSet: Set = {
-            id: `${exercise.id}_set_${Date.now()}`,
-            type: "working",
-            targetReps: lastSet?.targetReps || 10,
-            targetWeight: lastSet?.targetWeight || 0,
-            completed: false,
-            isPR: false,
-          };
+  const handleAddSet = useCallback(
+    (exerciseId: string) => {
+      const exercise = exercises.find((ex) => ex.id === exerciseId);
+      const exerciseName = exercise?.name || "תרגיל";
 
-          return {
-            ...exercise,
-            sets: [...exercise.sets, newSet],
-          };
-        }
-        return exercise;
-      })
-    );
-  }, []);
+      setExercises((prev) =>
+        prev.map((exercise) => {
+          if (exercise.id === exerciseId) {
+            const sets = exercise.sets || [];
+            const lastSet = sets.length > 0 ? sets[sets.length - 1] : null;
+            const newSet: Set = {
+              id: `${exercise.id}_set_${Date.now()}`,
+              type: "working",
+              targetReps: lastSet?.targetReps || 10,
+              targetWeight: lastSet?.targetWeight || 0,
+              completed: false,
+              isPR: false,
+            };
+
+            return {
+              ...exercise,
+              sets: [...(exercise.sets || []), newSet],
+            };
+          }
+          return exercise;
+        })
+      );
+
+      announceInfo(`סט חדש נוסף לתרגיל ${exerciseName}`);
+    },
+    [exercises, announceInfo]
+  );
 
   // מחיקת סט מתרגיל - בדיקת שגיאות מיועלת
   const handleDeleteSet = useCallback(
     (exerciseId: string, setId: string) => {
       const exercise = exercises.find((ex) => ex.id === exerciseId);
-      if (exercise && exercise.sets.length <= 1) {
+      if (exercise && (exercise.sets || []).length <= 1) {
         setErrorMessage("חייב להיות לפחות סט אחד בתרגיל");
         setShowErrorModal(true);
         return;
@@ -421,7 +481,9 @@ const ActiveWorkoutScreen: React.FC = () => {
           if (exercise.id === exerciseId) {
             return {
               ...exercise,
-              sets: exercise.sets.filter((set: Set) => set.id !== setId),
+              sets: (exercise.sets || []).filter(
+                (set: Set) => set.id !== setId
+              ),
             };
           }
           return exercise;
@@ -439,7 +501,7 @@ const ActiveWorkoutScreen: React.FC = () => {
       setExercises((prev) =>
         prev.map((exercise) => {
           if (exercise.id === exerciseId) {
-            const newSets = [...exercise.sets];
+            const newSets = [...(exercise.sets || [])];
             const [movedSet] = newSets.splice(fromIndex, 1);
             newSets.splice(toIndex, 0, movedSet);
 
@@ -463,16 +525,20 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   const handleFinishWorkout = useCallback(() => {
     if (!hasCompletedExercises) {
-      setErrorMessage("יש להשלים לפחות תרגיל אחד לפני סיום האימון");
+      const errorMsg = "יש להשלים לפחות תרגיל אחד לפני סיום האימון";
+      setErrorMessage(errorMsg);
       setShowErrorModal(true);
+      announceError(errorMsg);
       return;
     }
 
+    announceInfo("פותח חלון סיום אימון");
     setShowExitModal(true);
-  }, [hasCompletedExercises]);
+  }, [hasCompletedExercises, announceError, announceInfo]);
 
   // הוספת תרגיל חדש לאימון הפעיל
   const handleAddExercise = useCallback(() => {
+    announceInfo("עובר לבחירת תרגיל חדש");
     navigation.navigate("ExerciseList", {
       fromScreen: "ActiveWorkout",
       mode: "selection",
@@ -494,12 +560,13 @@ const ActiveWorkoutScreen: React.FC = () => {
         };
 
         setExercises((prev) => [...prev, newExercise]);
+        announceSuccess(`תרגיל ${selectedExercise.name} נוסף לאימון`);
 
         // חזור למסך האימון הפעיל
         navigation.goBack();
       },
     });
-  }, [navigation]);
+  }, [navigation, announceInfo, announceSuccess]);
 
   if (exercises.length === 0) {
     return (
@@ -516,227 +583,234 @@ const ActiveWorkoutScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <BackButton absolute={false} variant="minimal" />
+    <ErrorBoundary>
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <BackButton absolute={false} variant="minimal" />
 
-        <View style={styles.headerInfo}>
-          <Text style={styles.exerciseTitle} accessibilityRole="header">
-            {workoutData?.name || "אימון פעיל"}
-          </Text>
-          <Text style={styles.progressText}>
-            {workoutStats.completedExercises}/{workoutStats.totalExercises}{" "}
-            תרגילים • {workoutStats.progressPercentage}% הושלם
-          </Text>
-          <Text
-            style={styles.timeText}
-            accessibilityLabel={`זמן אימון ${formattedTime}`}
-          >
-            {formattedTime}
-          </Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.exerciseTitle} accessibilityRole="header">
+              {workoutData?.name || "אימון פעיל"}
+            </Text>
+            <Text style={styles.progressText}>
+              {workoutStats.completedExercises}/{workoutStats.totalExercises}{" "}
+              תרגילים • {workoutStats.progressPercentage}% הושלם
+            </Text>
+            <Text
+              style={styles.timeText}
+              accessibilityLabel={`זמן אימון ${formattedTime}`}
+            >
+              {formattedTime}
+            </Text>
+          </View>
+
+          <View style={styles.headerActions}>
+            {/* כפתור הפסקה/המשכה עם טקסט */}
+            <UniversalButton
+              style={[styles.headerButton, styles.timerButton]}
+              onPress={() => (isRunning ? pauseTimer() : startTimer())}
+              variant="outline"
+              size="small"
+              title={isRunning ? "השהה" : "המשך"}
+              icon={isRunning ? "pause" : "play"}
+              accessibilityLabel={isRunning ? "עצור טיימר" : "התחל טיימר"}
+              accessibilityHint={
+                isRunning ? "עוצר את טיימר האימון" : "מתחיל את טיימר האימון"
+              }
+              testID="btn-toggle-timer"
+            />
+
+            {/* כפתור סיים אימון עם טקסט */}
+            <UniversalButton
+              style={[styles.headerButton, styles.finishButtonSmall]}
+              onPress={handleFinishWorkout}
+              variant="primary"
+              size="small"
+              title="סיים"
+              icon="checkmark"
+              accessibilityLabel="סיים אימון"
+              accessibilityHint="פתח חלון אישור לסיום האימון"
+              testID="btn-finish-header"
+            />
+          </View>
         </View>
 
-        <View style={styles.headerActions}>
-          {/* כפתור הפסקה/המשכה עם טקסט */}
-          <TouchableOpacity
-            style={[styles.headerButton, styles.timerButton]}
-            onPress={() => (isRunning ? pauseTimer() : startTimer())}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={isRunning ? "עצור טיימר" : "התחל טיימר"}
-            accessibilityHint={
-              isRunning ? "עוצר את טיימר האימון" : "מתחיל את טיימר האימון"
-            }
-            testID="btn-toggle-timer"
-            hitSlop={HIT_SLOP}
-          >
-            <MaterialCommunityIcons
-              name={isRunning ? "pause" : "play"}
-              size={20}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.headerButtonText}>
-              {isRunning ? "השהה" : "המשך"}
-            </Text>
-          </TouchableOpacity>
+        {/* Status Bar - Rest Timer */}
+        <Suspense fallback={null}>
+          <WorkoutStatusBar
+            isRestActive={isRestTimerActive}
+            restTimeLeft={restTimeRemaining}
+            onAddRestTime={addRestTime}
+            onSubtractRestTime={subtractRestTime}
+            onSkipRest={skipRestTimer}
+            nextExercise={null}
+            onSkipToNext={() => {}}
+          />
+        </Suspense>
 
-          {/* כפתור סיים אימון עם טקסט */}
-          <TouchableOpacity
-            style={[styles.headerButton, styles.finishButtonSmall]}
-            onPress={handleFinishWorkout}
-            accessible={true}
-            accessibilityRole="button"
+        {/* Workout Stats - פורמט משופר עם אייקונים */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItemWithBorder}>
+            <MaterialCommunityIcons
+              name="checkbox-marked-circle"
+              size={24}
+              color={theme.colors.primary}
+              style={styles.statIcon}
+            />
+            <Text style={styles.statValue}>{workoutStats.completedSets}</Text>
+            <Text style={styles.statLabel}>סטים הושלמו</Text>
+          </View>
+          <View style={styles.statItemWithBorder}>
+            <MaterialCommunityIcons
+              name="weight-kilogram"
+              size={24}
+              color={theme.colors.warning}
+              style={styles.statIcon}
+            />
+            <Text style={[styles.statValue, styles.statValueWarning]}>
+              {formatVolume(workoutStats.totalVolume)}
+            </Text>
+            <Text style={styles.statLabel}>נפח (ק"ג)</Text>
+          </View>
+          <View style={styles.statItem}>
+            <MaterialCommunityIcons
+              name="repeat"
+              size={24}
+              color={theme.colors.success}
+              style={styles.statIcon}
+            />
+            <Text style={[styles.statValue, styles.statValueSuccess]}>
+              {workoutStats.totalReps}
+            </Text>
+            <Text style={styles.statLabel}>חזרות</Text>
+          </View>
+        </View>
+
+        {/* All Exercises List */}
+        {exercises.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>
+              🏋️ תרגילי האימון ({exercises.length})
+            </Text>
+            <ExercisesList
+              exercises={exercises}
+              onUpdateSet={handleUpdateSet}
+              onAddSet={handleAddSet}
+              onCompleteSet={handleCompleteSet}
+              onDeleteSet={handleDeleteSet}
+              onReorderSets={handleReorderSets}
+              onRemoveExercise={(exerciseId: string) => {
+                setDeleteExerciseId(exerciseId);
+                setShowDeleteModal(true);
+              }}
+              onStartRest={startRestTimer}
+            />
+          </>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>אין תרגילים באימון</Text>
+          </View>
+        )}
+
+        {/* Finish Workout Button */}
+        <View style={styles.navigationContainer}>
+          <UniversalButton
+            title="סיים אימון ✓"
+            onPress={() => {
+              // אנימציית לחיצה
+              if (Platform.OS === "ios") {
+                triggerVibration("medium");
+              }
+              handleFinishWorkout();
+            }}
+            variant="primary"
+            size="large"
             accessibilityLabel="סיים אימון"
             accessibilityHint="פתח חלון אישור לסיום האימון"
-            testID="btn-finish-header"
-            hitSlop={HIT_SLOP}
-          >
-            <MaterialCommunityIcons
-              name="flag-checkered"
-              size={18}
-              color={theme.colors.success}
-            />
-            <Text style={styles.finishButtonSmallText}>סיים</Text>
-          </TouchableOpacity>
+            testID="btn-finish-workout"
+            style={styles.finishWorkoutButton}
+          />
         </View>
-      </View>
 
-      {/* Status Bar - Rest Timer */}
-      <Suspense fallback={null}>
-        <WorkoutStatusBar
-          isRestActive={isRestTimerActive}
-          restTimeLeft={restTimeRemaining}
-          onAddRestTime={addRestTime}
-          onSubtractRestTime={subtractRestTime}
-          onSkipRest={skipRestTimer}
-          nextExercise={null}
-          onSkipToNext={() => {}}
+        {/* FloatingActionButton להוספת תרגילים */}
+        <FloatingActionButton
+          onPress={handleAddExercise}
+          icon="add"
+          label="הוסף תרגיל"
+          visible={true}
+          bottom={120} // מעל הכפתור סיים אימון
+          size="medium"
+          accessibilityLabel="הוסף תרגיל חדש לאימון"
+          accessibilityHint="לחץ כדי לבחור תרגיל חדש להוספה לאימון הנוכחי"
         />
-      </Suspense>
 
-      {/* Workout Stats - פורמט משופר */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{workoutStats.completedSets}</Text>
-          <Text style={styles.statLabel}>סטים הושלמו</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>
-            {formatVolume(workoutStats.totalVolume)}
-          </Text>
-          <Text style={styles.statLabel}>נפח (ק"ג)</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{workoutStats.totalReps}</Text>
-          <Text style={styles.statLabel}>חזרות</Text>
-        </View>
-      </View>
+        {/* Error Modal */}
+        <ConfirmationModal
+          visible={showErrorModal}
+          onClose={() => setShowErrorModal(false)}
+          onConfirm={() => setShowErrorModal(false)}
+          title="שגיאה"
+          message={errorMessage}
+          variant="error"
+          singleButton={true}
+          confirmText="הבנתי"
+        />
 
-      {/* All Exercises List */}
-      {exercises.length > 0 ? (
-        <>
-          <Text style={styles.sectionTitle}>
-            🏋️ תרגילי האימון ({exercises.length})
-          </Text>
-          <ExercisesList
-            exercises={exercises}
-            onUpdateSet={handleUpdateSet}
-            onAddSet={handleAddSet}
-            onCompleteSet={handleCompleteSet}
-            onDeleteSet={handleDeleteSet}
-            onReorderSets={handleReorderSets}
-            onRemoveExercise={(exerciseId: string) => {
-              setDeleteExerciseId(exerciseId);
-              setShowDeleteModal(true);
-            }}
-            onStartRest={startRestTimer}
-          />
-        </>
-      ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>אין תרגילים באימון</Text>
-        </View>
-      )}
+        {/* Exit Confirmation Modal */}
+        <ConfirmationModal
+          visible={showExitModal}
+          onClose={() => setShowExitModal(false)}
+          onConfirm={async () => {
+            try {
+              setShowExitModal(false);
+              // עדכון מחזור האימונים בשירות
+              await nextWorkoutLogicService.updateWorkoutCompleted(
+                workoutIndexInPlan,
+                workoutData?.name || "אימון"
+              );
+            } catch (error) {
+              logger.error("ActiveWorkout", "שגיאה בעדכון השלמת אימון", error);
+              errorHandler.reportError(error, {
+                source: "ActiveWorkoutScreen.completeWorkout",
+              });
+              // המשך ליציאה גם אם יש שגיאה בעדכון הרשומה
+            } finally {
+              navigation.goBack();
+            }
+          }}
+          onCancel={() => setShowExitModal(false)}
+          title="סיום אימון"
+          message={`האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`}
+          confirmText="סיים אימון"
+          cancelText="המשך באימון"
+          destructive={true}
+          icon="fitness"
+        />
 
-      {/* Finish Workout Button */}
-      <View style={styles.navigationContainer}>
-        <TouchableOpacity
-          style={styles.finishWorkoutButton}
-          onPress={handleFinishWorkout}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="סיים אימון"
-          accessibilityHint="פתח חלון אישור לסיום האימון"
-          testID="btn-finish-workout"
-          hitSlop={HIT_SLOP}
-        >
-          <Text style={styles.finishButtonText}>סיים אימון</Text>
-          <MaterialCommunityIcons
-            name="check"
-            size={24}
-            color={theme.colors.card}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* FloatingActionButton להוספת תרגילים */}
-      <FloatingActionButton
-        onPress={handleAddExercise}
-        icon="add"
-        label="הוסף תרגיל"
-        visible={true}
-        bottom={120} // מעל הכפתור סיים אימון
-        size="medium"
-        accessibilityLabel="הוסף תרגיל חדש לאימון"
-        accessibilityHint="לחץ כדי לבחור תרגיל חדש להוספה לאימון הנוכחי"
-      />
-
-      {/* Error Modal */}
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        title="שגיאה"
-        message={errorMessage}
-        variant="error"
-        singleButton={true}
-        confirmText="הבנתי"
-      />
-
-      {/* Exit Confirmation Modal */}
-      <ConfirmationModal
-        visible={showExitModal}
-        onClose={() => setShowExitModal(false)}
-        onConfirm={async () => {
-          try {
-            setShowExitModal(false);
-            // עדכון מחזור האימונים בשירות
-            await nextWorkoutLogicService.updateWorkoutCompleted(
-              workoutIndexInPlan,
-              workoutData?.name || "אימון"
-            );
-          } catch (error) {
-            logger.error("ActiveWorkout", "שגיאה בעדכון השלמת אימון", error);
-            errorHandler.reportError(error, {
-              source: "ActiveWorkoutScreen.completeWorkout",
-            });
-            // המשך ליציאה גם אם יש שגיאה בעדכון הרשומה
-          } finally {
-            navigation.goBack();
-          }
-        }}
-        onCancel={() => setShowExitModal(false)}
-        title="סיום אימון"
-        message={`האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`}
-        confirmText="סיים אימון"
-        cancelText="המשך באימון"
-        destructive={true}
-        icon="fitness"
-      />
-
-      {/* Delete Exercise Modal */}
-      <ConfirmationModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          if (deleteExerciseId) {
-            setExercises((prev) =>
-              prev.filter((ex) => ex.id !== deleteExerciseId)
-            );
-            setDeleteExerciseId(null);
-          }
-          setShowDeleteModal(false);
-        }}
-        onCancel={() => setShowDeleteModal(false)}
-        title="מחיקת תרגיל"
-        message="האם אתה בטוח שברצונך למחוק את התרגיל?"
-        confirmText="מחק"
-        cancelText="ביטול"
-        destructive={true}
-        icon="trash"
-      />
-    </SafeAreaView>
+        {/* Delete Exercise Modal */}
+        <ConfirmationModal
+          visible={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={() => {
+            if (deleteExerciseId) {
+              setExercises((prev) =>
+                prev.filter((ex) => ex.id !== deleteExerciseId)
+              );
+              setDeleteExerciseId(null);
+            }
+            setShowDeleteModal(false);
+          }}
+          onCancel={() => setShowDeleteModal(false)}
+          title="מחיקת תרגיל"
+          message="האם אתה בטוח שברצונך למחוק את התרגיל?"
+          confirmText="מחק"
+          cancelText="ביטול"
+          destructive={true}
+          icon="trash"
+        />
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 };
 
@@ -823,57 +897,70 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.success + "30",
   },
 
-  headerButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-
-  finishButtonSmallText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.success,
-  },
   statsContainer: {
     flexDirection: "row-reverse",
     backgroundColor: theme.colors.card,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.lg,
     marginHorizontal: theme.spacing.md,
     marginVertical: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-    ...theme.shadows.small,
+    borderRadius: theme.radius.lg,
+    ...theme.shadows.medium,
+    // שיפור עיצוב נוסף
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder + "20",
   },
   statItem: {
     flex: 1,
     alignItems: "center",
+    paddingHorizontal: theme.spacing.sm,
+  },
+  statItemWithBorder: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.sm,
+    borderRightWidth: 1,
+    borderRightColor: theme.colors.border + "30",
+  },
+  statIcon: {
+    marginBottom: 4,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: theme.colors.primary,
     textAlign: "center",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  statValueWarning: {
+    color: theme.colors.warning,
+  },
+  statValueSuccess: {
+    color: theme.colors.success,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     textAlign: "center",
     marginTop: theme.spacing.xs,
     writingDirection: "rtl",
+    fontWeight: "500",
   },
   navigationContainer: {
     flexDirection: "row-reverse",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
-    gap: theme.spacing.md,
-  },
-  finishButtonText: {
-    color: theme.colors.card,
-    fontSize: theme.typography.button.fontSize,
-    fontWeight: theme.typography.button.fontWeight,
+    gap: theme.spacing.lg,
+    // שיפור עיצוב נוסף
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   finishWorkoutButton: {
     flex: 1,
@@ -882,8 +969,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.success,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     gap: theme.spacing.sm,
+    // שיפור עיצוב נוסף
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    minHeight: 56,
   },
   emptyState: {
     flex: 1,

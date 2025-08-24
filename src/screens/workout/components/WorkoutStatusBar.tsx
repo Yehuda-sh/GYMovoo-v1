@@ -101,20 +101,20 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
     const getGradientColors = useCallback(
       (isRest: boolean): [string, string, ...string[]] => {
         if (variant === "minimal") {
-          return [theme.colors.card, theme.colors.card];
+          return [theme.colors.surface, theme.colors.card];
         }
 
         if (isRest) {
           return [
-            theme.colors.success + "25",
-            theme.colors.success + "15",
-            theme.colors.card + "F0",
+            theme.colors.success + "30",
+            theme.colors.success + "20",
+            theme.colors.surface + "F5",
           ];
         } else {
           return [
-            theme.colors.primary + "25",
-            theme.colors.primaryGradientEnd + "25",
-            theme.colors.card + "F0",
+            theme.colors.primary + "30",
+            theme.colors.primaryGradientEnd + "30",
+            theme.colors.surface + "F5",
           ];
         }
       },
@@ -237,7 +237,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
               <View style={styles.timerWrapper}>
                 <MaterialCommunityIcons
                   name="timer-sand"
-                  size={20}
+                  size={24}
                   color={theme.colors.success}
                   style={styles.timerIcon}
                 />
@@ -268,6 +268,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
                     icon="skip-forward"
                     colors={[theme.colors.success, theme.colors.success + "DD"]}
                     accessibilityLabel="דלג על זמן המנוחה"
+                    size={22}
                   />
                 </Animated.View>
               )}
@@ -297,7 +298,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
               <View style={styles.exerciseInfo}>
                 <MaterialCommunityIcons
                   name="flash"
-                  size={20}
+                  size={22}
                   color={theme.colors.warning}
                 />
                 <Text style={styles.exerciseLabel}>הבא בתור</Text>
@@ -316,7 +317,7 @@ export const WorkoutStatusBar: React.FC<WorkoutStatusBarProps> = React.memo(
                     icon="play-circle"
                     colors={[theme.colors.primary, theme.colors.primary + "DD"]}
                     accessibilityLabel={`מעבר לתרגיל הבא: ${nextExercise.name}`}
-                    size={24}
+                    size={26}
                   />
                 </Animated.View>
               )}
@@ -338,65 +339,132 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 20,
+    paddingBottom: 28,
     zIndex: 100,
+    // שיפור זיהוי visual
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 8,
   },
   containerMinimal: {
-    paddingBottom: 10,
-    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+    backgroundColor: `${theme.colors.surface}95`,
+    // שיפור מעט עבור minimal
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 4,
   },
   containerFloating: {
-    bottom: 20,
-    left: 16,
-    right: 16,
-    borderRadius: theme.radius.xl,
+    bottom: 28,
+    left: 24,
+    right: 24,
+    borderRadius: 28,
     paddingBottom: 0,
+    // שיפורי עיצוב floating מתקדמים
+    backgroundColor: `${theme.colors.surface}F8`,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}30`,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 16,
   },
   gradientBackground: {
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderWidth: 2,
-    borderColor: theme.colors.primary + "30",
+    borderColor: `${theme.colors.primary}45`,
     borderBottomWidth: 0,
-    ...theme.shadows.large,
-    elevation: 8,
+    // שיפורי צללים מתקדמים מעודכן
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 15,
+    overflow: "hidden",
   },
   content: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingVertical: 22,
+    paddingHorizontal: 28,
+    gap: 18,
+    minHeight: 78,
+    // שיפור נוסף לאזור התוכן
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
   },
 
   // Removed legacy inline timer styles after unifying with TimerDisplay
   timerWrapper: {
     alignItems: "center",
     flex: 1,
+    backgroundColor: `${theme.colors.surface}70`,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    // שיפורי עיצוב לטיימר מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 5,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.cardBorder}50`,
+    minWidth: 120,
   },
   timerIcon: {
-    marginBottom: 4,
+    marginBottom: 8,
+    opacity: 0.9,
   },
 
   // תרגיל הבא | Next exercise styles
   exerciseInfo: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+    backgroundColor: `${theme.colors.primary}15`,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    // שיפור נוסף לאיזור מידע התרגיל
+    borderWidth: 1,
+    borderColor: `${theme.colors.primary}25`,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   exerciseLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: theme.colors.primary,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textShadowColor: `${theme.colors.primary}20`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   exerciseName: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "800",
     color: theme.colors.text,
     textAlign: "center",
-    marginHorizontal: 12,
+    marginHorizontal: 18,
+    letterSpacing: 0.4,
+    lineHeight: 24,
+    // שיפור טיפוגרפי נוסף
+    textShadowColor: `${theme.colors.text}15`,
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1,
   },
 });
 

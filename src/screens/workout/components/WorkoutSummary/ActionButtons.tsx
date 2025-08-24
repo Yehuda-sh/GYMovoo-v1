@@ -11,6 +11,7 @@ import { theme } from "../../../../styles/theme";
 import { workoutLogger } from "../../../../utils";
 import { useModalManager } from "../../hooks/useModalManager";
 import { UniversalModal } from "../../../../components/common/UniversalModal";
+import UniversalButton from "../../../../components/ui/UniversalButton";
 
 interface ActionButtonsProps {
   onShareWorkout: () => void;

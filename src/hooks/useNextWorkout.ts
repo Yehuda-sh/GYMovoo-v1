@@ -16,6 +16,8 @@ import { useUserStore } from "../stores/userStore";
 import { getPersonalDataFromUser } from "../utils/questionnaireUtils";
 import { fieldMapper } from "../utils/fieldMapper";
 import { WorkoutPlan } from "../screens/workout/types/workout.types";
+import { logger } from "../utils/logger";
+import { errorHandler } from "../utils/errorHandler";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;
@@ -40,6 +42,8 @@ export interface UseNextWorkoutReturn {
   } | null;
   weeklyPlanCache: string[];
   resetCache: () => void;
+  // ✅ מעקב ביצועים וסטטיסטיקות
+  cacheStats: Record<string, number>;
 }
 
 // ===============================================
@@ -55,10 +59,17 @@ const WorkoutHookCache = {
   personalData: new Map<string, Record<string, unknown>>(),
   recommendations: new Map<string, NextWorkoutRecommendation>(),
 
-  clear() {
+  clear(): void {
     this.weeklyPlans.clear();
     this.personalData.clear();
     this.recommendations.clear();
+    logger.debug("useNextWorkout", "Cache cleared", {
+      cacheSize: {
+        weeklyPlans: this.weeklyPlans.size,
+        personalData: this.personalData.size,
+        recommendations: this.recommendations.size,
+      },
+    });
   },
 
   getWeeklyPlanKey(
@@ -72,16 +83,24 @@ const WorkoutHookCache = {
   getPersonalDataKey(userId: string, version: string): string {
     return `${userId}_${version}`;
   },
+
+  getCacheStats(): Record<string, number> {
+    return {
+      weeklyPlans: this.weeklyPlans.size,
+      personalData: this.personalData.size,
+      recommendations: this.recommendations.size,
+    };
+  },
 };
 
 /**
  * Hook לניהול האימון הבא במחזור
  * Hook for managing next workout in cycle
  */
-const DEBUG_NEXT_WORKOUT = false; // Toggle verbose logging
+const DEBUG_NEXT_WORKOUT = __DEV__; // Use development mode flag
 const debug = (...args: unknown[]) => {
   if (DEBUG_NEXT_WORKOUT) {
-    console.warn("[useNextWorkout]", ...args);
+    logger.debug("useNextWorkout", "Debug info", ...args);
   }
 };
 
@@ -112,10 +131,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
    * פונקציית איפוס cache
    */
   const resetCache = useCallback(() => {
+    const beforeStats = WorkoutHookCache.getCacheStats();
     WorkoutHookCache.clear();
     setWeeklyPlanCache([]);
     setPersonalizedInsights(null);
-    debug("🧹 Cache cleared");
+
+    logger.info("useNextWorkout", "Cache reset completed", {
+      beforeReset: beforeStats,
+      afterReset: WorkoutHookCache.getCacheStats(),
+    });
+    debug("🧹 Cache cleared", { beforeStats });
   }, []);
 
   /**
@@ -194,6 +219,12 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     // שמירה בcache
     WorkoutHookCache.personalData.set(cacheKey, data);
     debug("💾 Personal data cached", { userId, cacheKey, data });
+    logger.debug("useNextWorkout", "Personal data cached", {
+      userId,
+      cacheKey,
+      dataKeys: Object.keys(data || {}),
+      cacheStats: WorkoutHookCache.getCacheStats(),
+    });
 
     return data;
   }, [user]);
@@ -341,6 +372,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       days,
       selectedPlan,
     });
+
+    logger.debug("useNextWorkout", "Weekly plan generated and cached", {
+      userId,
+      rawFrequency,
+      days,
+      selectedPlan,
+      cacheKey,
+      cacheStats: WorkoutHookCache.getCacheStats(),
+    });
+
     return selectedPlan;
   }, [workoutPlan, user, extractFrequencyFromUser, parseFrequencyToDays]);
 
@@ -449,7 +490,10 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           personalData
         ),
         nextWorkoutLogicService.getCycleStatistics().catch((err) => {
-          console.warn("⚠️ Could not get cycle stats:", err.message);
+          logger.warn("useNextWorkout", "Could not get cycle stats", {
+            error: err.message,
+            stack: err.stack,
+          });
           return null; // החזר null במקום לכשל
         }),
       ]);
@@ -477,8 +521,26 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
+      // שימוש במערכת דיווח שגיאות מרכזית
+      errorHandler.reportError(
+        err instanceof Error ? err : new Error(errorMessage),
+        {
+          source: "useNextWorkout.refreshRecommendation",
+          context: {
+            weeklyPlan,
+            userPresent: !!user,
+            hasPersonalData: !!enhancedPersonalData,
+          },
+        }
+      );
+
       setError(errorMessage);
-      console.error("❌ Error getting next workout:", err);
+      logger.error("useNextWorkout", "Error getting next workout", {
+        error: errorMessage,
+        weeklyPlan,
+        userPresent: !!user,
+      });
 
       // במקרה של שגיאה, צור המלצה בסיסית חכמה
       const fallbackPlan = weeklyPlan;
@@ -518,7 +580,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           typeof nextWorkoutLogicService.updateWorkoutCompleted !== "function"
         ) {
           const error = "nextWorkoutLogicService is not properly initialized";
-          console.error("❌ useNextWorkout:", error);
+          logger.error("useNextWorkout", "Service initialization error", {
+            error,
+          });
           setError(error);
           return;
         }
@@ -539,7 +603,21 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
-        console.error("❌ useNextWorkout: Error marking workout completed:", {
+
+        // שימוש במערכת דיווח שגיאות מרכזית
+        errorHandler.reportError(
+          err instanceof Error ? err : new Error(errorMessage),
+          {
+            source: "useNextWorkout.markWorkoutCompleted",
+            context: {
+              workoutName,
+              workoutIndex,
+              timestamp: new Date().toISOString(),
+            },
+          }
+        );
+
+        logger.error("useNextWorkout", "Error marking workout completed", {
           error: errorMessage,
           workoutName,
           workoutIndex,
@@ -570,5 +648,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     personalizedInsights,
     weeklyPlanCache,
     resetCache,
+    // ✅ מעקב ביצועים
+    cacheStats: WorkoutHookCache.getCacheStats(),
   };
 };

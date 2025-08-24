@@ -14,6 +14,7 @@
  */
 
 import type { Exercise, Set } from "../screens/workout/types/workout.types";
+import { logger } from "./logger";
 
 export interface WorkoutStats {
   totalExercises: number;
@@ -192,7 +193,7 @@ export function calculateTotalVolume(
   sets: number
 ): number {
   if (weight < 0 || reps < 0 || sets < 0) {
-    console.warn("Invalid input for volume calculation:", {
+    logger.warn("workoutStats", "Invalid input for volume calculation", {
       weight,
       reps,
       sets,
@@ -216,7 +217,7 @@ export function calculateWorkoutEfficiency(
   plannedDuration: number
 ): number {
   if (plannedSets <= 0 || duration <= 0 || plannedDuration <= 0) {
-    console.warn("Invalid input for efficiency calculation:", {
+    logger.warn("workoutStats", "Invalid input for efficiency calculation", {
       completedSets,
       plannedSets,
       duration,

@@ -416,7 +416,7 @@ class WorkoutAnalyticsService {
    */
   calculateTotalVolume(workout: WorkoutData): number {
     return workout.exercises.reduce((total, exercise) => {
-      const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+      const exerciseVolume = (exercise.sets || []).reduce((setTotal, set) => {
         if (set.completed) {
           return setTotal + (set.actualReps || 0) * (set.actualWeight || 0);
         }
@@ -431,17 +431,17 @@ class WorkoutAnalyticsService {
    */
   generateWorkoutSummary(workout: WorkoutData): WorkoutSummary {
     const completedExercises = workout.exercises.filter((ex) =>
-      ex.sets.some((s) => s.completed)
+      (ex.sets || []).some((s) => s.completed)
     );
     const totalVolume = this.calculateTotalVolume(workout);
     const totalSets = workout.exercises.reduce(
-      (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+      (sum, ex) => sum + (ex.sets || []).filter((s) => s.completed).length,
       0
     );
     const totalReps = workout.exercises.reduce(
       (sum, ex) =>
         sum +
-        ex.sets.reduce(
+        (ex.sets || []).reduce(
           (exSum, s) => exSum + (s.completed ? s.actualReps || 0 : 0),
           0
         ),

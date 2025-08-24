@@ -29,10 +29,16 @@ import { User } from "../../types";
 import { fieldMapper } from "../../utils/fieldMapper";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import UniversalButton from "../../components/ui/UniversalButton";
+import { useAccessibilityAnnouncements } from "../../hooks/useAccessibilityAnnouncements";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 
 const DeveloperScreen = () => {
   const navigation = useNavigation();
   const { user, setUser } = useUserStore();
+  const { announceSuccess, announceError, announceInfo } =
+    useAccessibilityAnnouncements();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -223,12 +229,14 @@ const DeveloperScreen = () => {
 
       const newUser = await userApi.create(testUser);
       logger.info("developer", `נוצר משתמש דמו: ${newUser.id}`);
+      announceSuccess("משתמש דמו נוצר בהצלחה");
       showConfirmationModal("הצלחה", "משתמש דמו נוצר בהצלחה", () => {}, {
         singleButton: true,
       });
       await loadUsers();
     } catch (error) {
       logger.error("developer", "שגיאה ביצירת משתמש דמו", error);
+      announceError("שגיאה ביצירת משתמש דמו");
       showConfirmationModal("שגיאה", "לא ניתן ליצור משתמש דמו", () => {}, {
         singleButton: true,
       });
@@ -318,6 +326,9 @@ const DeveloperScreen = () => {
       logger.info("developer", "בודק חיבור Supabase");
 
       const result = await userApi.health();
+      announceInfo(
+        result === "ok" ? "חיבור Supabase תקין" : "בעיה בחיבור Supabase"
+      );
       showConfirmationModal(
         "חיבור Supabase",
         result === "ok" ? "חיבור תקין" : "בעיה בחיבור",
@@ -326,6 +337,7 @@ const DeveloperScreen = () => {
       );
     } catch (error) {
       logger.error("developer", "שגיאה בבדיקת Supabase", error);
+      announceError("בעיה בחיבור ל-Supabase");
       showConfirmationModal("שגיאה", "בעיה בחיבור ל-Supabase", () => {}, {
         singleButton: true,
       });
@@ -334,7 +346,7 @@ const DeveloperScreen = () => {
     }
   };
 
-  // רכיב כפתור debug
+  // רכיב כפתור debug עם טיפוס חזק
   const DebugToggle = ({
     label,
     value,
@@ -351,224 +363,233 @@ const DeveloperScreen = () => {
         onValueChange={onToggle}
         trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
         thumbColor={theme.colors.background}
+        accessibilityLabel={`${label} - ${value ? "מופעל" : "מכובה"}`}
+        accessibilityRole="switch"
       />
     </View>
   );
 
-  // כפתור פעולה
+  // כפתור פעולה משופר עם UniversalButton
   const ActionButton = ({
     title,
     onPress,
     icon,
-    color = theme.colors.primary,
+    variant = "primary",
   }: {
     title: string;
     onPress: () => void;
     icon: string;
-    color?: string;
+    variant?: "primary" | "secondary" | "danger" | "outline";
   }) => (
-    <TouchableOpacity
-      style={[styles.actionButton, { backgroundColor: color }]}
+    <UniversalButton
+      title={title}
       onPress={onPress}
-    >
-      <Ionicons
-        name={icon as keyof typeof Ionicons.glyphMap}
-        size={20}
-        color={theme.colors.white}
-      />
-      <Text style={styles.actionButtonText}>{title}</Text>
-    </TouchableOpacity>
+      icon={icon as keyof typeof Ionicons.glyphMap}
+      variant={variant}
+      size="medium"
+      fullWidth={false}
+      style={styles.actionsGrid}
+    />
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <BackButton variant="minimal" />
-        <Text style={styles.headerTitle}>מסך פיתוח</Text>
-        <TouchableOpacity onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
+    <ErrorBoundary fallbackMessage="שגיאה במסך הפיתוח">
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <BackButton variant="minimal" />
+          <Text style={styles.headerTitle}>מסך פיתוח</Text>
+          <TouchableOpacity onPress={onRefresh}>
+            <Ionicons name="refresh" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* מידע מערכת */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>מידע מערכת</Text>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>משתמש נוכחי</Text>
-              <Text style={styles.infoValue}>{systemInfo.currentUser}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>כמות משתמשים</Text>
-              <Text style={styles.infoValue}>{systemInfo.userCount}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>מפתחות באחסון</Text>
-              <Text style={styles.infoValue}>{systemInfo.storageKeys}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Supabase</Text>
-              <Text
-                style={[
-                  styles.infoValue,
-                  {
-                    color: systemInfo.supabaseConnected
-                      ? theme.colors.success
-                      : theme.colors.error,
-                  },
-                ]}
-              >
-                {systemInfo.supabaseConnected ? "מחובר" : "לא מחובר"}
-              </Text>
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* מידע מערכת */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>מידע מערכת</Text>
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>משתמש נוכחי</Text>
+                <Text style={styles.infoValue}>{systemInfo.currentUser}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>כמות משתמשים</Text>
+                <Text style={styles.infoValue}>{systemInfo.userCount}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>מפתחות באחסון</Text>
+                <Text style={styles.infoValue}>{systemInfo.storageKeys}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Supabase</Text>
+                <Text
+                  style={[
+                    styles.infoValue,
+                    {
+                      color: systemInfo.supabaseConnected
+                        ? theme.colors.success
+                        : theme.colors.error,
+                    },
+                  ]}
+                >
+                  {systemInfo.supabaseConnected ? "מחובר" : "לא מחובר"}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* פעולות מהירות */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>פעולות מהירות</Text>
-          <View style={styles.actionsGrid}>
-            <ActionButton
-              title="בדיקת Supabase"
-              icon="cloud-outline"
-              onPress={testSupabaseConnection}
+          {/* פעולות מהירות */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>פעולות מהירות</Text>
+            <View style={styles.actionsGrid}>
+              <ActionButton
+                title="בדיקת Supabase"
+                icon="cloud-outline"
+                onPress={testSupabaseConnection}
+              />
+              <ActionButton
+                title="יצירת משתמש דמו"
+                icon="person-add-outline"
+                onPress={createDemoUser}
+              />
+              <ActionButton
+                title="משתמש ללא שאלון"
+                icon="person-outline"
+                onPress={createUserWithoutQuestionnaire}
+                variant="outline"
+              />
+              <ActionButton
+                title="איפוס נתונים"
+                icon="trash-outline"
+                onPress={resetAllData}
+                variant="danger"
+              />
+            </View>
+          </View>
+
+          {/* הגדרות debug */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>הגדרות Debug</Text>
+            <DebugToggle
+              label="רישום מפורט"
+              value={debugSettings.verboseLogging}
+              onToggle={(value) => updateDebugSetting("verboseLogging", value)}
             />
-            <ActionButton
-              title="יצירת משתמש דמו"
-              icon="person-add-outline"
-              onPress={createDemoUser}
+            <DebugToggle
+              label="מדדי ביצועים"
+              value={debugSettings.showPerformanceMetrics}
+              onToggle={(value) =>
+                updateDebugSetting("showPerformanceMetrics", value)
+              }
             />
-            <ActionButton
-              title="משתמש ללא שאלון"
-              icon="person-outline"
-              onPress={createUserWithoutQuestionnaire}
-              color={theme.colors.warning || theme.colors.primary}
+            <DebugToggle
+              label="סימולציית איחור רשת"
+              value={debugSettings.mockNetworkDelay}
+              onToggle={(value) =>
+                updateDebugSetting("mockNetworkDelay", value)
+              }
             />
-            <ActionButton
-              title="איפוס נתונים"
-              icon="trash-outline"
-              onPress={resetAllData}
-              color={theme.colors.error}
+            <DebugToggle
+              label="עקיפת אימות"
+              value={debugSettings.bypassAuth}
+              onToggle={(value) => updateDebugSetting("bypassAuth", value)}
             />
           </View>
-        </View>
 
-        {/* הגדרות debug */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>הגדרות Debug</Text>
-          <DebugToggle
-            label="רישום מפורט"
-            value={debugSettings.verboseLogging}
-            onToggle={(value) => updateDebugSetting("verboseLogging", value)}
-          />
-          <DebugToggle
-            label="מדדי ביצועים"
-            value={debugSettings.showPerformanceMetrics}
-            onToggle={(value) =>
-              updateDebugSetting("showPerformanceMetrics", value)
-            }
-          />
-          <DebugToggle
-            label="סימולציית איחור רשת"
-            value={debugSettings.mockNetworkDelay}
-            onToggle={(value) => updateDebugSetting("mockNetworkDelay", value)}
-          />
-          <DebugToggle
-            label="עקיפת אימות"
-            value={debugSettings.bypassAuth}
-            onToggle={(value) => updateDebugSetting("bypassAuth", value)}
-          />
-        </View>
+          {/* רשימת משתמשים */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              רשימת משתמשים ({users.length})
+            </Text>
+            {users.map((userItem) => {
+              // בדיקת מצב השאלון לכל משתמש
+              const answers = fieldMapper.getSmartAnswers(userItem);
+              const hasSmartQuestionnaire = Array.isArray(answers)
+                ? answers.length >= 10
+                : !!(answers && Object.keys(answers).length >= 10);
 
-        {/* רשימת משתמשים */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            רשימת משתמשים ({users.length})
-          </Text>
-          {users.map((userItem) => {
-            // בדיקת מצב השאלון לכל משתמש
-            const answers = fieldMapper.getSmartAnswers(userItem);
-            const hasSmartQuestionnaire = Array.isArray(answers)
-              ? answers.length >= 10
-              : !!(answers && Object.keys(answers).length >= 10);
-
-            return (
-              <TouchableOpacity
-                key={userItem.id}
-                style={styles.userItem}
-                onPress={() => loginAsUser(userItem)}
-              >
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{userItem.name}</Text>
-                  <Text style={styles.userEmail}>{userItem.email}</Text>
-                  <View style={styles.userTags}>
-                    {userItem.name?.includes("דמו") && (
-                      <Text style={styles.demoTag}>דמו</Text>
-                    )}
-                    <Text
-                      style={[
-                        styles.questionnaireTag,
-                        {
-                          backgroundColor: hasSmartQuestionnaire
-                            ? theme.colors.success + "20"
-                            : theme.colors.error + "20",
-                          color: hasSmartQuestionnaire
-                            ? theme.colors.success
-                            : theme.colors.error,
-                        },
-                      ]}
-                    >
-                      {hasSmartQuestionnaire ? "שאלון מלא" : "דרוש שאלון"}
-                    </Text>
+              return (
+                <TouchableOpacity
+                  key={userItem.id}
+                  style={styles.userItem}
+                  onPress={() => loginAsUser(userItem)}
+                >
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{userItem.name}</Text>
+                    <Text style={styles.userEmail}>{userItem.email}</Text>
+                    <View style={styles.userTags}>
+                      {userItem.name?.includes("דמו") && (
+                        <Text style={styles.demoTag}>דמו</Text>
+                      )}
+                      <Text
+                        style={[
+                          styles.questionnaireTag,
+                          {
+                            backgroundColor: hasSmartQuestionnaire
+                              ? theme.colors.success + "20"
+                              : theme.colors.error + "20",
+                            color: hasSmartQuestionnaire
+                              ? theme.colors.success
+                              : theme.colors.error,
+                          },
+                        ]}
+                      >
+                        {hasSmartQuestionnaire ? "שאלון מלא" : "דרוש שאלון"}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            );
-          })}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              );
+            })}
 
-          {users.length === 0 && !loading && (
-            <Text style={styles.emptyText}>אין משתמשים</Text>
-          )}
-        </View>
-      </ScrollView>
-
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>טוען...</Text>
+            {users.length === 0 && !loading && (
+              <Text style={styles.emptyText}>אין משתמשים</Text>
+            )}
           </View>
-        </View>
-      )}
+        </ScrollView>
 
-      {/* ConfirmationModal */}
-      <ConfirmationModal
-        visible={showModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        onClose={() => setShowModal(false)}
-        onConfirm={() => {
-          setShowModal(false);
-          modalConfig.onConfirm();
-        }}
-        onCancel={() => setShowModal(false)}
-        confirmText={modalConfig.confirmText}
-        cancelText={modalConfig.cancelText}
-        destructive={modalConfig.destructive}
-        singleButton={modalConfig.singleButton}
-      />
-    </SafeAreaView>
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner
+                size="large"
+                color={theme.colors.primary}
+                variant="pulse"
+              />
+              <Text style={styles.loadingText}>טוען...</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ConfirmationModal */}
+        <ConfirmationModal
+          visible={showModal}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onClose={() => setShowModal(false)}
+          onConfirm={() => {
+            setShowModal(false);
+            modalConfig.onConfirm();
+          }}
+          onCancel={() => setShowModal(false)}
+          confirmText={modalConfig.confirmText}
+          cancelText={modalConfig.cancelText}
+          destructive={modalConfig.destructive}
+          singleButton={modalConfig.singleButton}
+        />
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 };
 
@@ -638,21 +659,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    minWidth: "45%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  actionButtonText: {
-    color: theme.colors.white,
-    fontSize: 14,
-    fontWeight: "600",
   },
   debugRow: {
     flexDirection: "row",

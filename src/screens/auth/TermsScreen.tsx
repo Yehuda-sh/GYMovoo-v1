@@ -77,7 +77,9 @@ const TermsScreen = React.memo(() => {
         navigation.goBack();
       }, 1000); // המתנה של שנייה כדי שהמשתמש יראה את הסימון
     } catch (error) {
-      console.warn("Failed to save agreement:", error);
+      if (__DEV__) {
+        console.warn("Failed to save agreement:", error);
+      }
     }
   }, [navigation]);
 
@@ -259,7 +261,9 @@ const TermsScreen = React.memo(() => {
               <TouchableOpacity
                 onPress={() => {
                   triggerHaptic();
-                  console.warn("Opening email app...");
+                  if (__DEV__) {
+                    console.warn("Opening email app...");
+                  }
                 }}
                 accessible={true}
                 accessibilityRole="button"

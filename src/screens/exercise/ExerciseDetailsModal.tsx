@@ -16,13 +16,13 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  ActivityIndicator,
   Pressable,
 } from "react-native";
 import { Exercise } from "../../data/exercises";
 import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 type Props = {
   exercise: Exercise;
@@ -177,10 +177,7 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               <View style={styles.imageContainer}>
                 {imageLoading && (
                   <View style={styles.imageLoadingContainer}>
-                    <ActivityIndicator
-                      size="large"
-                      color={theme.colors.primary}
-                    />
+                    <LoadingSpinner size="large" color={theme.colors.primary} />
                     <Text style={styles.loadingText}>טוען תמונה...</Text>
                   </View>
                 )}

@@ -133,65 +133,103 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
 );
 
 const styles = StyleSheet.create({
-  // 🎨 Container variants - וariants של קונטיינר
+  // 🎨 Container variants משופר - וariants של קונטיינר מעודכן
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: theme.spacing.xl,
+    padding: theme.spacing.xxl,
+    backgroundColor: `${theme.colors.background}FB`,
+    borderRadius: theme.radius.lg,
+    marginHorizontal: theme.spacing.md,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}30`,
   },
   containerCompact: {
-    padding: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    padding: theme.spacing.xl,
+    paddingVertical: theme.spacing.lg,
+    borderRadius: theme.radius.md,
+    elevation: 4,
+    shadowOpacity: 0.06,
   },
   containerMinimal: {
-    padding: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    padding: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: "transparent",
+    shadowOpacity: 0,
+    elevation: 0,
+    borderWidth: 0,
   },
 
-  // 🎯 Icon variants - variants של אייקון
+  // 🎯 Icon variants משופר - variants של אייקון מעודכן
   icon: {
-    marginBottom: theme.spacing.lg,
-    opacity: 0.6,
+    marginBottom: theme.spacing.xl,
+    opacity: 0.8,
+    // שיפור אייקון
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   iconMinimal: {
-    marginBottom: theme.spacing.sm,
-    opacity: 0.5,
+    marginBottom: theme.spacing.md,
+    opacity: 0.6,
+    shadowOpacity: 0,
   },
 
-  // 📝 Title variants - variants של כותרת
+  // 📝 Title variants משופר - variants של כותרת מעודכן
   title: {
-    ...theme.typography.title3,
+    fontSize: 24,
+    fontWeight: "800",
     color: theme.colors.text,
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    letterSpacing: 0.4,
+    // שיפור טיפוגרפי
+    textShadowColor: `${theme.colors.text}12`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   titleCompact: {
-    fontSize: 16,
-    marginBottom: theme.spacing.xs,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: theme.spacing.sm,
+    letterSpacing: 0.3,
   },
   titleMinimal: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: theme.spacing.xs,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: theme.spacing.sm,
+    letterSpacing: 0.2,
   },
 
-  // 📄 Description variants - variants של תיאור
+  // 📄 Description variants משופר - variants של תיאור מעודכן
   description: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "500",
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: theme.spacing.lg,
+    lineHeight: 24,
+    marginBottom: theme.spacing.xl,
+    letterSpacing: 0.2,
+    paddingHorizontal: theme.spacing.md,
   },
   descriptionCompact: {
-    fontSize: 13,
-    marginBottom: theme.spacing.md,
+    fontSize: 15,
+    marginBottom: theme.spacing.lg,
+    lineHeight: 22,
   },
   descriptionMinimal: {
-    fontSize: 12,
-    marginBottom: theme.spacing.sm,
-    opacity: 0.8,
+    fontSize: 14,
+    marginBottom: theme.spacing.md,
+    opacity: 0.85,
+    lineHeight: 20,
   },
 
   // 🎬 Actions variants - variants של פעולות

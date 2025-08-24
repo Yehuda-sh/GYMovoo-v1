@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useMemo } from "react";
-import { FlatList, StyleSheet, ListRenderItem } from "react-native";
+import { FlatList, StyleSheet, ListRenderItem, View } from "react-native";
 import ExerciseRow from "./ExerciseRow";
 import { WorkoutExercise, Set } from "../types/workout.types";
 import { theme } from "../../../styles/theme";
@@ -49,10 +49,19 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
     // Performance tracking במצב פיתוח
     const renderStart = useMemo(() => {
       if (__DEV__) {
+        console.warn("🚀 ExercisesList STARTING RENDER:", {
+          exercisesCount: exercises.length,
+          exercisesData: exercises.map((ex) => ({
+            id: ex.id,
+            name: ex.name,
+            setsCount: ex.sets?.length || 0,
+            hasValidSets: !!(ex.sets && ex.sets.length > 0),
+          })),
+        });
         return performance.now();
       }
       return 0;
-    }, []);
+    }, [exercises]);
 
     React.useEffect(() => {
       if (__DEV__ && renderStart > 0) {
@@ -71,20 +80,31 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
 
     // פונקציית רינדור מוממושת
     const renderItem: ListRenderItem<WorkoutExercise> = useCallback(
-      ({ item, index }) => (
-        <ExerciseRow
-          exercise={item}
-          index={index}
-          totalCount={exercises.length}
-          onUpdateSet={onUpdateSet}
-          onAddSet={onAddSet}
-          onCompleteSet={onCompleteSet}
-          onDeleteSet={onDeleteSet}
-          onReorderSets={onReorderSets}
-          onRemoveExercise={onRemoveExercise}
-          onStartRest={onStartRest}
-        />
-      ),
+      ({ item, index }) => {
+        if (__DEV__) {
+          console.warn("🔥 ExercisesList rendering item:", {
+            index,
+            exerciseId: item.id,
+            exerciseName: item.name,
+            setsCount: item.sets?.length || 0,
+          });
+        }
+
+        return (
+          <ExerciseRow
+            exercise={item}
+            index={index}
+            totalCount={exercises.length}
+            onUpdateSet={onUpdateSet}
+            onAddSet={onAddSet}
+            onCompleteSet={onCompleteSet}
+            onDeleteSet={onDeleteSet}
+            onReorderSets={onReorderSets}
+            onRemoveExercise={onRemoveExercise}
+            onStartRest={onStartRest}
+          />
+        );
+      },
       [
         exercises.length,
         onUpdateSet,
@@ -97,20 +117,6 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
       ]
     );
 
-    // הערכת גובה פריט בסיסית (אופציונלית - לשיפור ביצועים)
-    const getItemLayout = useCallback(
-      (_data: ArrayLike<WorkoutExercise> | null | undefined, index: number) => {
-        // הערכה בסיסית - כרטיס תרגיל ממוצע
-        const ESTIMATED_ITEM_HEIGHT = 200; // גובה בסיסי בפיקסלים
-        return {
-          length: ESTIMATED_ITEM_HEIGHT,
-          offset: ESTIMATED_ITEM_HEIGHT * index,
-          index,
-        };
-      },
-      []
-    );
-
     // Callback לסיום רינדור רשימה
     const onEndReached = useCallback(() => {
       if (__DEV__) {
@@ -119,29 +125,30 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
     }, []);
 
     return (
-      <FlatList
-        data={exercises}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        // אופטימיזציות ביצועים מתקדמות
-        removeClippedSubviews={true}
-        initialNumToRender={6}
-        windowSize={7}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={16}
-        // UI והתנהגות
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-        style={styles.container}
-        testID="exercises-list"
-        // Callbacks לביצועים
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.1}
-        // אופטימיזציות נוספות
-        disableVirtualization={false}
-        legacyImplementation={false}
-      />
+      <View style={styles.container}>
+        <FlatList
+          data={exercises}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          // אופטימיזציות ביצועים מתקדמות
+          removeClippedSubviews={true}
+          initialNumToRender={6}
+          windowSize={7}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={16}
+          // UI והתנהגות
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+          style={styles.container}
+          testID="exercises-list"
+          // Callbacks לביצועים
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.1}
+          // אופטימיזציות נוספות
+          disableVirtualization={false}
+          legacyImplementation={false}
+        />
+      </View>
     );
   }
 );
@@ -155,8 +162,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
   },
 });
 

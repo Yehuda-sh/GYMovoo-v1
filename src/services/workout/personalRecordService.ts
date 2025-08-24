@@ -8,6 +8,7 @@ import {
   PersonalRecord,
   PreviousPerformance,
 } from "../../screens/workout/types/workout.types";
+import { logger } from "../../utils/logger";
 import {
   adaptExerciseNameToGender,
   UserGender,
@@ -25,7 +26,9 @@ class PersonalRecordService {
       const newRecords: PersonalRecord[] = [];
 
       for (const exercise of workout.exercises) {
-        const completedSets = exercise.sets.filter((set) => set.completed);
+        const completedSets = (exercise.sets || []).filter(
+          (set) => set.completed
+        );
         if (completedSets.length === 0) continue;
 
         const existingPerf = existingPerformances.find(
@@ -70,7 +73,11 @@ class PersonalRecordService {
 
       return newRecords;
     } catch (error) {
-      console.error("Error detecting personal records:", error);
+      logger.error(
+        "PersonalRecordService",
+        "Error detecting personal records",
+        { error }
+      );
       return [];
     }
   }
@@ -86,7 +93,9 @@ class PersonalRecordService {
       const existingPerformances = await this.getPreviousPerformances();
       const performances: PreviousPerformance[] = workout.exercises.map(
         (exercise) => {
-          const completedSets = exercise.sets.filter((set) => set.completed);
+          const completedSets = (exercise.sets || []).filter(
+            (set) => set.completed
+          );
           const setsData = completedSets.map((set) => ({
             weight: set.actualWeight || set.targetWeight || 0,
             reps: set.actualReps || set.targetReps || 0,
@@ -131,7 +140,11 @@ class PersonalRecordService {
         JSON.stringify(updatedPerformances)
       );
     } catch (error) {
-      console.error("Error saving previous performances:", error);
+      logger.error(
+        "PersonalRecordService",
+        "Error saving previous performances",
+        { error }
+      );
     }
   }
 
@@ -147,7 +160,14 @@ class PersonalRecordService {
         performances.find((perf) => perf.exerciseName === exerciseName) || null
       );
     } catch (error) {
-      console.error("Error getting previous performance:", error);
+      logger.error(
+        "PersonalRecordService",
+        "Error getting previous performance",
+        {
+          error,
+          exerciseName,
+        }
+      );
       return null;
     }
   }
@@ -162,7 +182,11 @@ class PersonalRecordService {
       );
       return performancesJson ? JSON.parse(performancesJson) : [];
     } catch (error) {
-      console.error("Error loading previous performances:", error);
+      logger.error(
+        "PersonalRecordService",
+        "Error loading previous performances",
+        { error }
+      );
       return [];
     }
   }
@@ -174,7 +198,11 @@ class PersonalRecordService {
     try {
       await AsyncStorage.removeItem(PREVIOUS_PERFORMANCES_KEY);
     } catch (error) {
-      console.error("Error clearing previous performances:", error);
+      logger.error(
+        "PersonalRecordService",
+        "Error clearing previous performances",
+        { error }
+      );
     }
   }
 }

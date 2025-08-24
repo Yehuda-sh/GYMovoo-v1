@@ -59,25 +59,25 @@ const SIZE_CONFIG = {
   compact: {
     containerStyle: { marginHorizontal: 8 },
     buttonStyle: {
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      minWidth: 40,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      minWidth: 48,
     },
-    textStyle: { fontSize: 14, fontWeight: "600" as const },
+    textStyle: { fontSize: 15, fontWeight: "700" as const },
     iconSize: 0, // אין אייקון במצב compact
     useGradient: false,
   },
   full: {
     containerStyle: {},
     buttonStyle: {
-      borderRadius: 24,
+      borderRadius: 28,
       overflow: "hidden" as const,
-      minWidth: 80,
-      minHeight: 80,
+      minWidth: 88,
+      minHeight: 88,
     },
-    textStyle: { fontSize: 16, fontWeight: "700" as const, marginTop: 4 },
-    iconSize: 32,
+    textStyle: { fontSize: 17, fontWeight: "800" as const, marginTop: 6 },
+    iconSize: 36,
     useGradient: true,
   },
 } as const;
@@ -138,8 +138,8 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
           onPress={handlePress}
           onLongPress={handleLongPress}
           style={[sizeConfig.containerStyle]}
-          activeOpacity={0.7}
-          hitSlop={10}
+          activeOpacity={0.6}
+          hitSlop={12}
           disabled={disabled}
           accessible
           accessibilityRole="button"
@@ -174,8 +174,8 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
           { ...theme.shadows.medium },
           disabled && styles.disabled,
         ]}
-        activeOpacity={0.7}
-        hitSlop={10}
+        activeOpacity={0.6}
+        hitSlop={12}
         disabled={disabled}
         accessible
         accessibilityRole="button"
@@ -212,9 +212,15 @@ const styles = StyleSheet.create({
   fullGradientInner: {
     alignItems: "center",
     justifyContent: "center",
-    width: 80,
-    height: 80,
-    padding: 16,
+    width: 88,
+    height: 88,
+    padding: 18,
+    // שיפורי עיצוב
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   noTransition: {
     // future: place holder for disabling animations (if applied)
@@ -222,9 +228,19 @@ const styles = StyleSheet.create({
   compactInner: {
     alignItems: "center",
     justifyContent: "center",
+    // שיפורי עיצוב compact
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
+    shadowOpacity: 0.05,
+    elevation: 1,
   },
 });
 

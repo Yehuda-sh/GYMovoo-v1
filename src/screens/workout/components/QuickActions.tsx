@@ -1,6 +1,10 @@
 /**
- * @file src/screens/workout/components/QuickActions.tsx
- * @brief Quick Action Buttons Component for Workout Plans
+ * @file src/screens/workout/components/QuickActions.            <MaterialCommunityIcons
+              name="refresh"
+              size={28}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.actionText}>תוכנית בסיסית</Text>* @brief Quick Action Buttons Component for Workout Plans
  * @updated August 2025 - Optimized with haptic feedback and accessibility
  */
 
@@ -80,7 +84,7 @@ const QuickActions = memo(
           >
             <MaterialCommunityIcons
               name="brain"
-              size={24}
+              size={28}
               color={
                 canAccessAI ? theme.colors.primary : theme.colors.textSecondary
               }
@@ -93,7 +97,7 @@ const QuickActions = memo(
             {!canAccessAI && (
               <MaterialCommunityIcons
                 name="lock"
-                size={16}
+                size={18}
                 color={theme.colors.textSecondary}
                 style={styles.lockIcon}
               />
@@ -116,7 +120,7 @@ const QuickActions = memo(
           >
             <MaterialCommunityIcons
               name="play-circle"
-              size={24}
+              size={32}
               color={
                 hasWorkoutPlan
                   ? theme.colors.success
@@ -140,63 +144,102 @@ const QuickActions = memo(
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 20,
+    marginVertical: 24,
+    paddingHorizontal: 4,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "800",
     color: theme.colors.text,
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: "center",
+    letterSpacing: 0.5,
+    // שיפור טיפוגרפי
+    textShadowColor: `${theme.colors.text}10`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   actionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 16,
     justifyContent: "space-between",
   },
   actionButton: {
     flex: 1,
     minWidth: "30%",
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 80,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    minHeight: 96,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.border}80`,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   basicButton: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: `${theme.colors.surface}F5`,
+    borderColor: `${theme.colors.primary}30`,
+    // גרדיאנט עדין
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.08,
   },
   aiButton: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: `${theme.colors.primaryLight}20`,
+    borderColor: `${theme.colors.primary}50`,
+    // הדגשת AI
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
   },
   startButton: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: `${theme.colors.success}15`,
+    borderColor: `${theme.colors.success}40`,
+    // הדגשת כפתור התחלה
+    shadowColor: theme.colors.success,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 10,
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.5,
     backgroundColor: theme.colors.surfaceVariant,
+    borderColor: `${theme.colors.border}40`,
+    shadowOpacity: 0.05,
+    elevation: 2,
   },
   actionText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: theme.colors.text,
-    marginTop: 8,
+    marginTop: 10,
     textAlign: "center",
+    letterSpacing: 0.3,
+    lineHeight: 18,
   },
   startText: {
     color: theme.colors.success,
+    fontWeight: "800",
+    textShadowColor: `${theme.colors.success}20`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   disabledText: {
     color: theme.colors.textSecondary,
+    fontWeight: "600",
   },
   lockIcon: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 10,
+    opacity: 0.7,
   },
 });
 

@@ -2,14 +2,73 @@
  * @file src/screens/workout/utils/workoutConstants.ts
  * @description קבועים ואפשרויות למערכת האימון (מאוחד)
  * English: Unified constants and options for workout system
- * @updated 2025-08-17 איחוד מ-constants/workoutConstants.ts + הסרת קוד לא בשימוש
+ * @updated 2025-08-24 איחוד מ-constants/workoutConstants.ts + הסרת קוד לא בשימוש + הוספת קבועי עיצוב
+ * @enhancements הוספת DESIGN_CONSTANTS לתמיכה בשיפורי עיצוב מתקדמים
  */
 
 // ✅ Import PersonalData from central utils
 import { PersonalData } from "../../../utils/personalDataUtils";
 
 // ===============================================
-// 🏋️ Workout Plan Constants - קבועי תוכניות אימון
+// � Design Constants - קבועי עיצוב מתקדמים
+// ===============================================
+
+/**
+ * Advanced design constants for enhanced UI components
+ * קבועי עיצוב מתקדמים לרכיבי ממשק משופרים
+ * @added 2025-08-24 Support for 30+ enhanced components
+ */
+export const DESIGN_CONSTANTS = {
+  // Enhanced shadows
+  ADVANCED_SHADOW: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  // Colored shadows for primary elements
+  PRIMARY_SHADOW: {
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  // Enhanced typography
+  ENHANCED_TYPOGRAPHY: {
+    LARGE_TITLE: { fontSize: 32, fontWeight: "800", letterSpacing: 0.5 },
+    MEDIUM_TITLE: { fontSize: 26, fontWeight: "700", letterSpacing: 0.4 },
+    ENHANCED_BUTTON: { fontSize: 18, fontWeight: "700", letterSpacing: 0.6 },
+    ENHANCED_SUBTITLE: { fontSize: 18, letterSpacing: 0.3 },
+  },
+
+  // Text shadow for premium look
+  TEXT_SHADOW: {
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+
+  // Enhanced button styling
+  BUTTON_ENHANCEMENT: {
+    minHeight: 56,
+    borderRadiusMultiplier: "xl", // Use theme.radius.xl
+    paddingVertical: 18,
+  },
+
+  // Enhanced card styling
+  CARD_ENHANCEMENT: {
+    borderRadiusMultiplier: "xl", // Use theme.radius.xl
+    paddingMultiplier: "xxl", // Use theme.spacing.xxl
+    elevationHigh: 12,
+    elevationMedium: 8,
+    elevationLow: 4,
+  },
+} as const;
+
+// ===============================================
+// �🏋️ Workout Plan Constants - קבועי תוכניות אימון
 // ===============================================
 
 // Workout day templates (מאוחד מ-constants/)
@@ -84,6 +143,38 @@ export const PERFORMANCE_THRESHOLDS = {
   SLOW_RENDER_MS: 100,
   AUTO_START_DELAY: 1500,
   PRE_SELECTED_DELAY: 1000,
+  // Enhanced UI performance thresholds
+  ANIMATION_DURATION: 300, // ms for smooth animations
+  DEBOUNCE_DELAY: 250, // ms for user input debouncing
+  SHADOW_RENDER_OPTIMIZATION: true, // Enable shadow optimizations
+} as const;
+
+// Enhanced UI animation constants
+export const ANIMATION_CONSTANTS = {
+  SPRING_CONFIG: {
+    tension: 100,
+    friction: 8,
+  },
+  FADE_DURATION: 200,
+  SLIDE_DURATION: 300,
+  SCALE_DURATION: 150,
+} as const;
+
+// Accessibility and UX enhancement constants
+export const ACCESSIBILITY_CONSTANTS = {
+  MIN_TOUCH_TARGET_SIZE: 44, // iOS/Android minimum
+  ENHANCED_TOUCH_TARGET_SIZE: 56, // Our enhanced minimum
+  ENHANCED_PADDING: {
+    SMALL: 8,
+    MEDIUM: 16,
+    LARGE: 24,
+    EXTRA_LARGE: 32,
+  },
+  RTL_SUPPORT: {
+    WRITING_DIRECTION: "rtl" as const,
+    TEXT_ALIGN_RIGHT: "right" as const,
+    TEXT_ALIGN_CENTER: "center" as const,
+  },
 } as const;
 
 // Haptic feedback types (מאוחד מ-constants/)
@@ -355,4 +446,15 @@ export const AUTO_SAVE = {
   interval: 30000, // כל 30 שניות
   maxDrafts: 5, // מקסימום טיוטות
   draftExpiry: 7 * 24 * 60 * 60 * 1000, // 7 ימים
+  // Enhanced save settings
+  designPreferencesKey: "user_design_preferences", // Save enhanced UI preferences
+  performanceMetricsKey: "ui_performance_metrics", // Track UI performance
+} as const;
+
+// Export all design-related constants for easy access
+export const UI_ENHANCEMENT_SUITE = {
+  DESIGN_CONSTANTS,
+  ANIMATION_CONSTANTS,
+  ACCESSIBILITY_CONSTANTS,
+  PERFORMANCE_THRESHOLDS,
 } as const;

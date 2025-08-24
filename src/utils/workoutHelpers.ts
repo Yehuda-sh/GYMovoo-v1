@@ -32,6 +32,7 @@
  */
 
 import { Platform, Vibration } from "react-native";
+import { logger } from "./logger";
 
 /**
  * פורמט זמן מתוך שניות לפורמט MM:SS (לאימונים)
@@ -125,7 +126,7 @@ export const triggerVibration = (
       Vibration.vibrate(pattern);
     }
   } catch (error) {
-    console.warn("Vibration not supported or failed:", error);
+    logger.warn("workoutHelpers", "Vibration not supported or failed", error);
   }
 };
 

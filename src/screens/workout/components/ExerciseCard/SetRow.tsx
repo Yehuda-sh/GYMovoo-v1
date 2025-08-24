@@ -1,10 +1,17 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/SetRow.tsx
  * @description שורת סט בודדת עם ממשק עריכה מתקדם והתאמה מלאה ל-RTL
- * @version 3.1.0
+ * @version 3.2.0 - Enhanced with premium design patterns
+ * @updated 2025-08-24 Premium UI enhancements with advanced design patterns
  */
 
-import React, { useRef, useEffect, useState } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -13,6 +20,9 @@ import {
   TextInput,
   Animated,
   Platform,
+  Vibration,
+  AccessibilityInfo,
+  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
@@ -25,6 +35,10 @@ const ANIMATION_DURATIONS = {
   CHECK: 300,
   PR_BOUNCE: 300,
   SCALE_TRANSITION: 250,
+  DEBOUNCE_DELAY: 500,
+  GLOW_PULSE: 2000,
+  MICRO_BOUNCE: 150,
+  SHIMMER: 1500,
 } as const;
 
 const PERFORMANCE_THRESHOLDS = {
@@ -36,6 +50,25 @@ const INPUT_CONFIG = {
   MAX_LENGTH: 10,
   KEYBOARD_TYPE: "numeric" as const,
   RETURN_KEY_TYPE: "done" as const,
+} as const;
+
+// Validation rules for inputs
+const VALIDATION_RULES = {
+  WEIGHT: {
+    MIN: 0.1,
+    MAX: 1000,
+    DECIMAL_PLACES: 2,
+  },
+  REPS: {
+    MIN: 1,
+    MAX: 999,
+  },
+} as const;
+
+// Quick action increments
+const QUICK_INCREMENTS = {
+  WEIGHT: [1.25, 2.5, 5, 10],
+  REPS: [1, 2, 5],
 } as const;
 
 const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
@@ -113,6 +146,8 @@ const SetRow: React.FC<SetRowProps> = ({
   const checkAnim = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const prBounceAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   // רפרנסים לשדות הקלט
   const weightInputRef = useRef<TextInput>(null);
@@ -122,7 +157,17 @@ const SetRow: React.FC<SetRowProps> = ({
   const [showTargetHint, setShowTargetHint] = useState(false);
   const [weightFocused, setWeightFocused] = useState(false);
   const [repsFocused, setRepsFocused] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [lastValidWeight, setLastValidWeight] = useState<number | undefined>(
+    set.actualWeight
+  );
+  const [lastValidReps, setLastValidReps] = useState<number | undefined>(
+    set.actualReps
+  );
+
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate if this is a personal record
   const isPR = React.useMemo(() => {
@@ -163,6 +208,43 @@ const SetRow: React.FC<SetRowProps> = ({
     }
   }, [isPR, set.actualWeight, set.actualReps, prBounceAnim]);
 
+  // Glow animation for active state
+  useEffect(() => {
+    if (isActive) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: ANIMATION_DURATIONS.GLOW_PULSE,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: ANIMATION_DURATIONS.GLOW_PULSE,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      glowAnim.setValue(0);
+    }
+  }, [isActive, glowAnim]);
+
+  // Shimmer effect for completed sets
+  useEffect(() => {
+    if (set.completed) {
+      Animated.loop(
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: ANIMATION_DURATIONS.SHIMMER,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      shimmerAnim.setValue(0);
+    }
+  }, [set.completed, shimmerAnim]);
+
   useEffect(() => {
     Animated.timing(checkAnim, {
       toValue: set.completed ? 1 : 0,
@@ -170,6 +252,143 @@ const SetRow: React.FC<SetRowProps> = ({
       useNativeDriver: true,
     }).start();
   }, [set.completed, setNumber, set.actualWeight, set.actualReps, checkAnim]);
+
+  // Enhanced input validation
+  const validateInput = useCallback(
+    (value: string, type: "weight" | "reps"): boolean => {
+      if (value === "") return true; // Allow empty values
+
+      const numValue =
+        type === "weight" ? parseFloat(value) : parseInt(value, 10);
+
+      if (isNaN(numValue)) {
+        setInputError(
+          `${type === "weight" ? "משקל" : "חזרות"} חייב להיות מספר`
+        );
+        return false;
+      }
+
+      if (type === "weight") {
+        const { MIN, MAX } = VALIDATION_RULES.WEIGHT;
+        if (numValue < MIN || numValue > MAX) {
+          setInputError(`משקל חייב להיות בין ${MIN} ל-${MAX} ק״ג`);
+          return false;
+        }
+      } else {
+        const { MIN, MAX } = VALIDATION_RULES.REPS;
+        if (numValue < MIN || numValue > MAX) {
+          setInputError(`חזרות חייבות להיות בין ${MIN} ל-${MAX}`);
+          return false;
+        }
+      }
+
+      setInputError(null);
+      return true;
+    },
+    []
+  );
+
+  // Debounced update function
+  const debouncedUpdate = useCallback(
+    (updates: Partial<ExtendedSet>) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        wrappedOnUpdate(updates);
+        debounceTimerRef.current = null;
+      }, ANIMATION_DURATIONS.DEBOUNCE_DELAY);
+    },
+    [wrappedOnUpdate]
+  );
+
+  // Quick increment/decrement functions
+  const adjustWeight = useCallback(
+    (increment: number) => {
+      const currentWeight = set.actualWeight || set.targetWeight || 0;
+      const newWeight = Math.max(0, currentWeight + increment);
+
+      if (validateInput(newWeight.toString(), "weight")) {
+        setLastValidWeight(newWeight);
+        debouncedUpdate({ actualWeight: newWeight });
+
+        // Micro animation for feedback
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.02,
+            duration: ANIMATION_DURATIONS.MICRO_BOUNCE,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: isActive ? 1.05 : 1,
+            friction: 4,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        // Haptic feedback
+        if (Platform.OS === "ios") {
+          triggerVibration("short");
+        }
+
+        // Accessibility announcement
+        AccessibilityInfo.announceForAccessibility(
+          `משקל עודכן ל-${newWeight} קילוגרם`
+        );
+      }
+    },
+    [
+      set.actualWeight,
+      set.targetWeight,
+      validateInput,
+      debouncedUpdate,
+      scaleAnim,
+      isActive,
+    ]
+  );
+
+  const adjustReps = useCallback(
+    (increment: number) => {
+      const currentReps = set.actualReps || set.targetReps || 0;
+      const newReps = Math.max(0, currentReps + increment);
+
+      if (validateInput(newReps.toString(), "reps")) {
+        setLastValidReps(newReps);
+        debouncedUpdate({ actualReps: newReps });
+
+        // Micro animation for feedback
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.02,
+            duration: ANIMATION_DURATIONS.MICRO_BOUNCE,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: isActive ? 1.05 : 1,
+            friction: 4,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        // Haptic feedback
+        if (Platform.OS === "ios") {
+          triggerVibration("short");
+        }
+
+        // Accessibility announcement
+        AccessibilityInfo.announceForAccessibility(`חזרות עודכנו ל-${newReps}`);
+      }
+    },
+    [
+      set.actualReps,
+      set.targetReps,
+      validateInput,
+      debouncedUpdate,
+      scaleAnim,
+      isActive,
+    ]
+  );
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -185,22 +404,33 @@ const SetRow: React.FC<SetRowProps> = ({
     return Number.isNaN(n) ? undefined : n;
   };
 
-  const handleWeightChange = React.useCallback(
+  // Enhanced input change handlers with validation
+  const handleWeightChange = useCallback(
     (value: string) => {
-      const parsed = parseNumeric(value, false);
-      wrappedOnUpdate({ actualWeight: parsed });
-      dlog("weightChange", { value, parsed });
+      if (validateInput(value, "weight")) {
+        const parsed = parseNumeric(value, false);
+        if (parsed !== undefined) {
+          setLastValidWeight(parsed);
+        }
+        debouncedUpdate({ actualWeight: parsed });
+      }
+      dlog("weightChange", { value, valid: validateInput(value, "weight") });
     },
-    [wrappedOnUpdate]
+    [validateInput, debouncedUpdate]
   );
 
-  const handleRepsChange = React.useCallback(
+  const handleRepsChange = useCallback(
     (value: string) => {
-      const parsed = parseNumeric(value, true);
-      wrappedOnUpdate({ actualReps: parsed });
-      dlog("repsChange", { value, parsed });
+      if (validateInput(value, "reps")) {
+        const parsed = parseNumeric(value, true);
+        if (parsed !== undefined) {
+          setLastValidReps(parsed);
+        }
+        debouncedUpdate({ actualReps: parsed });
+      }
+      dlog("repsChange", { value, valid: validateInput(value, "reps") });
     },
-    [wrappedOnUpdate]
+    [validateInput, debouncedUpdate]
   );
 
   // Memoize input values to prevent unnecessary re-renders
@@ -238,7 +468,27 @@ const SetRow: React.FC<SetRowProps> = ({
     setRepsFocused(false);
   }, []);
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
+    // אנימציית לחיצה עם משוב מגע
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // ויברציה קלה למשוב
+    if (Platform.OS !== "web") {
+      Vibration.vibrate(10);
+    }
+
     // תכונה: ביטול השלמת סט בלחיצה נוספת
     if (set.completed) {
       wrappedOnUpdate({ completed: false });
@@ -256,7 +506,17 @@ const SetRow: React.FC<SetRowProps> = ({
 
     dlog("completeSet", { setNumber });
     onComplete();
-  };
+  }, [
+    set.completed,
+    set.actualWeight,
+    set.targetWeight,
+    set.actualReps,
+    set.targetReps,
+    setNumber,
+    wrappedOnUpdate,
+    onComplete,
+    scaleAnim,
+  ]);
 
   const handleDelete = () => {
     if (Platform.OS !== "web") {
@@ -275,8 +535,20 @@ const SetRow: React.FC<SetRowProps> = ({
   useEffect(() => {
     return () => {
       if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
     };
   }, []);
+
+  // Clear error messages after a delay
+  useEffect(() => {
+    if (inputError) {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => {
+        setInputError(null);
+      }, 3000);
+    }
+  }, [inputError]);
 
   // רכיב עזר לשדות קלט כדי לחסוך בכפילויות
   const renderInputField = React.useCallback(
@@ -291,49 +563,64 @@ const SetRow: React.FC<SetRowProps> = ({
       inputRef: React.RefObject<TextInput>,
       targetValue?: number
     ) => (
-      <TouchableOpacity
-        style={[styles.inputContainer, focused && styles.focusedContainer]}
-        activeOpacity={1}
-        onPress={() => {
-          const input = inputRef.current;
-          if (input) {
-            input.focus();
-          }
-        }}
-      >
-        <TextInput
-          ref={inputRef}
-          style={[
-            styles.input,
-            set.completed && styles.completedInput,
-            focused && styles.focusedInput,
-          ]}
-          value={value}
-          onChangeText={onChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          placeholderTextColor={
-            type === "weight"
-              ? theme.colors.textSecondary + "60"
-              : theme.colors.textSecondary + "40"
-          }
-          accessible={true}
-          accessibilityLabel={type === "weight" ? "שדה משקל" : "שדה חזרות"}
-          accessibilityHint={
-            typeof targetValue === "number"
-              ? `יעד מומלץ: ${targetValue}`
-              : type === "weight"
-                ? "הזן משקל בקילוגרמים"
-                : "הזן מספר חזרות"
-          }
-          {...SHARED_TEXT_INPUT_PROPS}
+      <View style={[styles.inputContainer, focused && styles.focusedContainer]}>
+        {/* אייקון לשדה */}
+        <MaterialCommunityIcons
+          name={type === "weight" ? "weight-kilogram" : "repeat"}
+          size={16}
+          color={theme.colors.textSecondary}
+          style={styles.inputIcon}
         />
+
+        <TouchableOpacity
+          style={styles.inputTouchable}
+          activeOpacity={1}
+          onPress={() => {
+            const input = inputRef.current;
+            if (input) {
+              input.focus();
+            }
+          }}
+        >
+          <TextInput
+            ref={inputRef}
+            style={[
+              styles.input,
+              set.completed && styles.completedInput,
+              focused && styles.focusedInput,
+            ]}
+            value={value}
+            onChangeText={onChange}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            placeholder={placeholder}
+            placeholderTextColor={
+              type === "weight"
+                ? theme.colors.textSecondary + "60"
+                : theme.colors.textSecondary + "40"
+            }
+            accessible={true}
+            accessibilityLabel={type === "weight" ? "שדה משקל" : "שדה חזרות"}
+            accessibilityHint={
+              typeof targetValue === "number"
+                ? `יעד מומלץ: ${targetValue}`
+                : type === "weight"
+                  ? "הזן משקל בקילוגרמים"
+                  : "הזן מספר חזרות"
+            }
+            {...SHARED_TEXT_INPUT_PROPS}
+          />
+        </TouchableOpacity>
+
+        {/* יחידת מידה */}
+        <Text style={styles.inputUnit}>
+          {type === "weight" ? "ק״ג" : "חזרות"}
+        </Text>
 
         {showTargetHint && typeof targetValue === "number" && (
           <Text style={styles.targetHint}>יעד: {targetValue}</Text>
         )}
-      </TouchableOpacity>
+      </View>
     ),
     [set.completed, showTargetHint]
   );
@@ -363,9 +650,44 @@ const SetRow: React.FC<SetRowProps> = ({
           set.completed && styles.completedContainer,
           set.completed && styles.greenBorderContainer,
           isActive && styles.activeContainer,
-          { transform: [{ scale: scaleAnim }] },
+          {
+            transform: [{ scale: scaleAnim }],
+          },
+          // Dynamic glow effect for active state
+          isActive && {
+            shadowOpacity: glowAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.1, 0.3],
+            }),
+          },
         ]}
       >
+        {/* Shimmer overlay for completed sets */}
+        {set.completed && (
+          <Animated.View
+            style={[
+              styles.shimmerOverlay,
+              {
+                opacity: shimmerAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0, 0.1, 0],
+                }),
+                transform: [
+                  {
+                    translateX: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-200, 200],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        )}
+
+        {/* Glass effect overlay for premium look */}
+        <View style={styles.glassOverlay} />
+
         {/* PR Badge */}
         {isPR && (
           <Animated.View
@@ -379,6 +701,12 @@ const SetRow: React.FC<SetRowProps> = ({
                       outputRange: [1, 1.3],
                     }),
                   },
+                  {
+                    rotate: prBounceAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0deg", "10deg"],
+                    }),
+                  },
                 ],
               },
             ]}
@@ -388,12 +716,28 @@ const SetRow: React.FC<SetRowProps> = ({
               size={16}
               color={theme.colors.warning}
             />
+            <Text style={styles.prText}>PR!</Text>
           </Animated.View>
         )}
 
-        {/* שינוי RTL: מספר הסט בצד ימין */}
+        {/* שינוי RTL: מספר הסט בצד ימין עם עיצוב מעגלי */}
         <View style={styles.setNumber}>
-          <Text style={styles.setNumberText}>{setNumber}</Text>
+          <View
+            style={[
+              styles.setNumberBadge,
+              set.type === "warmup" && styles.warmupBadge,
+              set.completed && styles.completedBadge,
+            ]}
+          >
+            <Text
+              style={[
+                styles.setNumberText,
+                set.completed && styles.completedNumberText,
+              ]}
+            >
+              {setNumber}
+            </Text>
+          </View>
           {set.type !== "working" && (
             <Text style={styles.setTypeText}>
               {set.type === "warmup" ? "חימום" : set.type}
@@ -426,30 +770,102 @@ const SetRow: React.FC<SetRowProps> = ({
           )}
         </TouchableOpacity>
 
-        {/* שדות קלט מאוחדים עם רכיב עזר */}
-        {renderInputField(
-          "weight",
-          weightValue,
-          weightPlaceholder,
-          handleWeightChange,
-          handleWeightFocus,
-          handleWeightBlur,
-          weightFocused,
-          weightInputRef,
-          set.targetWeight
-        )}
+        {/* שדות קלט עם כפתורי +/- */}
+        <View style={styles.inputSection}>
+          {/* Weight input with quick adjustments */}
+          <View style={styles.inputWithControls}>
+            <View style={styles.quickButtons}>
+              {QUICK_INCREMENTS.WEIGHT.map((increment) => (
+                <TouchableOpacity
+                  key={`weight-minus-${increment}`}
+                  onPress={() => adjustWeight(-increment)}
+                  style={[styles.quickButton, styles.quickButtonMinus]}
+                  accessibilityLabel={`הפחת ${increment} ק״ג`}
+                >
+                  <Text style={styles.quickButtonText}>-{increment}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {renderInputField(
-          "reps",
-          repsValue,
-          repsPlaceholder,
-          handleRepsChange,
-          handleRepsFocus,
-          handleRepsBlur,
-          repsFocused,
-          repsInputRef,
-          set.targetReps
-        )}
+            {renderInputField(
+              "weight",
+              weightValue,
+              weightPlaceholder,
+              handleWeightChange,
+              handleWeightFocus,
+              handleWeightBlur,
+              weightFocused,
+              weightInputRef,
+              set.targetWeight
+            )}
+
+            <View style={styles.quickButtons}>
+              {QUICK_INCREMENTS.WEIGHT.map((increment) => (
+                <TouchableOpacity
+                  key={`weight-plus-${increment}`}
+                  onPress={() => adjustWeight(increment)}
+                  style={[styles.quickButton, styles.quickButtonPlus]}
+                  accessibilityLabel={`הוסף ${increment} ק״ג`}
+                >
+                  <Text style={styles.quickButtonText}>+{increment}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Reps input with quick adjustments */}
+          <View style={styles.inputWithControls}>
+            <View style={styles.quickButtons}>
+              {QUICK_INCREMENTS.REPS.map((increment) => (
+                <TouchableOpacity
+                  key={`reps-minus-${increment}`}
+                  onPress={() => adjustReps(-increment)}
+                  style={[styles.quickButton, styles.quickButtonMinus]}
+                  accessibilityLabel={`הפחת ${increment} חזרות`}
+                >
+                  <Text style={styles.quickButtonText}>-{increment}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {renderInputField(
+              "reps",
+              repsValue,
+              repsPlaceholder,
+              handleRepsChange,
+              handleRepsFocus,
+              handleRepsBlur,
+              repsFocused,
+              repsInputRef,
+              set.targetReps
+            )}
+
+            <View style={styles.quickButtons}>
+              {QUICK_INCREMENTS.REPS.map((increment) => (
+                <TouchableOpacity
+                  key={`reps-plus-${increment}`}
+                  onPress={() => adjustReps(increment)}
+                  style={[styles.quickButton, styles.quickButtonPlus]}
+                  accessibilityLabel={`הוסף ${increment} חזרות`}
+                >
+                  <Text style={styles.quickButtonText}>+{increment}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Error display */}
+          {inputError && (
+            <View style={styles.errorContainer}>
+              <MaterialCommunityIcons
+                name="alert-circle"
+                size={16}
+                color={theme.colors.error}
+              />
+              <Text style={styles.errorText}>{inputError}</Text>
+            </View>
+          )}
+        </View>
 
         {/* שינוי RTL: כפתורי הפעולה עברו לסוף (צד שמאל) */}
         <View style={styles.actionsContainer}>
@@ -465,20 +881,32 @@ const SetRow: React.FC<SetRowProps> = ({
                 set.completed ? "בטל השלמת סט" : "סמן סט כהושלם"
               }
             >
-              <View
+              <Animated.View
                 style={[
                   styles.checkCircle,
                   set.completed && styles.checkCircleCompleted,
+                  {
+                    transform: [
+                      {
+                        scale: checkAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        }),
+                      },
+                    ],
+                  },
                 ]}
               >
                 <Animated.View style={{ opacity: checkAnim }}>
-                  <Ionicons
-                    name="checkmark"
-                    size={16}
-                    color={theme.colors.white}
+                  <MaterialCommunityIcons
+                    name={set.completed ? "check-circle" : "circle-outline"}
+                    size={24}
+                    color={
+                      set.completed ? theme.colors.white : theme.colors.success
+                    }
                   />
                 </Animated.View>
-              </View>
+              </Animated.View>
             </TouchableOpacity>
           )}
 
@@ -573,123 +1001,322 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
+    // Premium shadows with multiple layers
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    marginVertical: 4,
+    // Subtle gradient-like border effect
+    borderBottomWidth: 2,
+    borderBottomColor: theme.colors.cardBorder + "60",
+    // Overflow for shimmer effect
+    overflow: "hidden",
+    position: "relative",
   },
   completedContainer: {
-    backgroundColor: theme.colors.success + "10",
-    borderColor: theme.colors.success + "30",
+    backgroundColor: theme.colors.success + "12",
+    borderColor: theme.colors.success + "40",
+    // Enhanced completed state with subtle gradient
+    shadowColor: theme.colors.success,
+    shadowOpacity: 0.15,
+    // Subtle inner glow effect
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.success + "80",
   },
   activeContainer: {
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "05",
+    backgroundColor: theme.colors.primary + "08",
+    // Premium active state with enhanced glow
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.2,
+    elevation: 6,
+    // Glass-like border effect
+    borderWidth: 1.5,
+    borderRightWidth: 3,
+    borderRightColor: theme.colors.primary + "60",
+  },
+  // New glass effect overlay
+  glassOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "50%",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  // Shimmer effect for completed sets
+  shimmerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: -100,
+    right: -100,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    transform: [{ rotate: "15deg" }],
+    width: 50,
   },
   setNumber: {
-    width: 50,
     alignItems: "center",
-    marginStart: 8,
+    marginStart: 10,
+  },
+  setNumberBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary + "15",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: theme.colors.primary + "50",
+    // Enhanced badge shadows with gradient effect
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    // Subtle inner shadow effect
+    position: "relative",
+  },
+  warmupBadge: {
+    backgroundColor: theme.colors.warning + "15",
+    borderColor: theme.colors.warning + "50",
+    shadowColor: theme.colors.warning,
+  },
+  completedBadge: {
+    backgroundColor: theme.colors.success + "25",
+    borderColor: theme.colors.success + "70",
+    shadowColor: theme.colors.success,
+    // Enhanced completed badge with glow
+    borderWidth: 2.5,
+    shadowOpacity: 0.3,
   },
   setNumberText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.text,
+    fontSize: 17,
+    fontWeight: "800",
+    color: theme.colors.primary,
+    lineHeight: 20,
+  },
+  completedNumberText: {
+    color: theme.colors.success,
   },
   setTypeText: {
     fontSize: 10,
     color: theme.colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
   previousContainer: {
     flex: 1.2,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
+    // Enhanced with subtle background
+    backgroundColor: theme.colors.background + "30",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder + "40",
   },
   previousText: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.textSecondary,
+    fontWeight: "500",
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
   trendIcon: {
-    marginTop: 2,
+    marginTop: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   inputContainer: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 5,
     position: "relative",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
+    gap: 6,
+  },
+  inputIcon: {
+    marginLeft: 6,
+  },
+  inputTouchable: {
+    flex: 1,
+  },
+  inputUnit: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: "600",
+    marginRight: 6,
+    lineHeight: 16,
   },
   focusedContainer: {
-    transform: [{ scale: 1.02 }],
+    transform: [{ scale: 1.03 }],
   },
   focusedInput: {
     color: theme.colors.text,
-    fontWeight: "600",
-    borderColor: theme.colors.primary + "40",
+    fontWeight: "700",
+    borderColor: theme.colors.primary + "60",
+    backgroundColor: theme.colors.background,
+    // Enhanced focus state
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   input: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    paddingVertical: 10,
-    fontSize: 16,
-    fontWeight: "400",
-    color: theme.colors.textSecondary + "80",
+    backgroundColor: theme.colors.background + "90",
+    borderRadius: 12,
+    paddingVertical: 14,
+    fontSize: 17,
+    fontWeight: "600",
+    color: theme.colors.textSecondary + "90",
     textAlign: "center",
     borderWidth: 1,
     borderColor: "transparent",
     flex: 1,
+    minHeight: 48,
+    lineHeight: 20,
+    // Enhanced input styling with glass effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    // Subtle inner border effect
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   completedInput: {
-    backgroundColor: theme.colors.background + "80",
-    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.background + "70",
+    color: theme.colors.textSecondary + "80",
   },
   targetHint: {
     position: "absolute",
-    bottom: -16,
+    bottom: -18,
     alignSelf: "center",
-    fontSize: 10,
+    fontSize: 11,
     color: theme.colors.primary,
     backgroundColor: theme.colors.card,
-    paddingHorizontal: 4,
-    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    fontWeight: "600",
+    // Enhanced hint styling
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   actionsContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-end",
-    width: 80,
+    width: 88,
+    gap: 4,
   },
   actionButton: {
-    padding: 8,
+    padding: 10,
+    borderRadius: 8,
+    // Enhanced button styling with glass effect
+    backgroundColor: theme.colors.background + "40",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder + "30",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  wrapper: { marginBottom: 8 },
+  wrapper: {
+    marginBottom: 14,
+    paddingHorizontal: 3,
+    // Enhanced wrapper with subtle shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 1,
+  },
   actionButtonDanger: {
-    backgroundColor: theme.colors.error + "10",
-    borderRadius: 6,
+    backgroundColor: theme.colors.error + "12",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.error + "30",
+    // Enhanced danger button
+    shadowColor: theme.colors.error,
+    shadowOpacity: 0.1,
   },
   checkCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
     borderColor: theme.colors.success,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
+    // Enhanced check circle
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   checkCircleCompleted: {
     backgroundColor: theme.colors.success,
     borderColor: theme.colors.success,
+    // Enhanced completed state
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
   },
   prBadge: {
     position: "absolute",
-    top: 4,
-    left: 4,
+    top: 6,
+    left: 6,
+    // Enhanced PR badge with premium styling
+    backgroundColor: theme.colors.warning + "20",
+    borderRadius: 12,
+    padding: 6,
+    paddingHorizontal: 8,
+    shadowColor: theme.colors.warning,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.warning + "40",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  prText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: theme.colors.warning,
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   greenBorderContainer: {
     borderColor: theme.colors.success,
@@ -700,20 +1327,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.cardBorder,
-    padding: 2,
+    padding: 3,
     marginHorizontal: 4,
+    // Enhanced elevator container with glass effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    // Subtle gradient background
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   elevatorButton: {
-    width: 20,
-    height: 16,
+    width: 22,
+    height: 18,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: theme.colors.background,
-    borderRadius: 3,
+    borderRadius: 4,
     marginVertical: 1,
+    // Enhanced elevator buttons
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 0.5,
   },
   elevatorButtonUp: {
     borderBottomWidth: 1,
@@ -722,6 +1364,70 @@ const styles = StyleSheet.create({
   elevatorButtonDown: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.cardBorder,
+  },
+  // New styles for enhanced functionality
+  inputSection: {
+    flex: 2,
+    gap: theme.spacing.sm,
+  },
+  inputWithControls: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+  },
+  quickButtons: {
+    flexDirection: "column",
+    gap: 2,
+  },
+  quickButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    minWidth: 24,
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    // Enhanced quick buttons with micro shadows
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  quickButtonPlus: {
+    borderColor: theme.colors.success + "40",
+    backgroundColor: theme.colors.success + "10",
+    // Enhanced plus button
+    shadowColor: theme.colors.success,
+    shadowOpacity: 0.1,
+  },
+  quickButtonMinus: {
+    borderColor: theme.colors.error + "40",
+    backgroundColor: theme.colors.error + "10",
+    // Enhanced minus button
+    shadowColor: theme.colors.error,
+    shadowOpacity: 0.1,
+  },
+  quickButtonText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.2,
+  },
+  errorContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: theme.colors.error + "10",
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  errorText: {
+    fontSize: 11,
+    color: theme.colors.error,
+    fontWeight: "500",
   },
 });
 

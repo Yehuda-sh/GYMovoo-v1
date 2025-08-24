@@ -166,7 +166,14 @@ describe("ExerciseRow Memoization", () => {
       ...exercise,
       sets: [
         {
-          ...exercise.sets[0],
+          ...(exercise.sets?.[0] || {
+            id: "test-set-1",
+            type: "working" as const,
+            targetReps: 10,
+            targetWeight: 0,
+            completed: false,
+            restTime: 60,
+          }),
           completed: true, // שינוי מצב השלמה
         },
       ],

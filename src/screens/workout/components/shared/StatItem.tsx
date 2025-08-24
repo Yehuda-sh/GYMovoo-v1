@@ -31,9 +31,9 @@ import { theme } from "../../../../styles/theme";
 
 // קונפיגורציית גדלים מחוץ לרכיב למניעת יצירה חוזרת
 const SIZE_CONFIG = {
-  small: { iconSize: 16, valueSize: 14, labelSize: 10, gap: theme.spacing.xs },
-  medium: { iconSize: 24, valueSize: 18, labelSize: 12, gap: theme.spacing.sm },
-  large: { iconSize: 28, valueSize: 22, labelSize: 14, gap: theme.spacing.md },
+  small: { iconSize: 18, valueSize: 16, labelSize: 11, gap: theme.spacing.xs },
+  medium: { iconSize: 26, valueSize: 20, labelSize: 13, gap: theme.spacing.sm },
+  large: { iconSize: 32, valueSize: 24, labelSize: 15, gap: theme.spacing.md },
 } as const;
 
 export interface StatItemProps {
@@ -205,17 +205,30 @@ StatItem.displayName = "StatItem";
 const styles = StyleSheet.create({
   statItem: {
     alignItems: "center",
+    padding: theme.spacing.xs,
+    borderRadius: theme.radius.md,
+    backgroundColor: `${theme.colors.surface}30`,
+    // שיפורי עיצוב עדינים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   horizontal: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: theme.spacing.sm,
   },
   statValue: {
-    fontWeight: "bold",
+    fontWeight: "800",
     color: theme.colors.text,
+    letterSpacing: 0.3,
   },
   statLabel: {
     color: theme.colors.textSecondary,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
 });

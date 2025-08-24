@@ -83,8 +83,9 @@ import {
 // =======================================
 // 🪵 devLog - לוג מרוכז לסביבת פיתוח בלבד
 // מפחית רעש לוגים בפרודקשן ושומר Prefixed אחיד
-const devLog = (...args: unknown[]) => {
-  if (__DEV__) console.warn("[ProfileScreen]", ...args);
+// כבוי זמנית לצורך שקט בפיתוח
+const devLog = (..._args: unknown[]) => {
+  // if (__DEV__) console.warn("[ProfileScreen]", ...args);
 };
 
 // =======================================
@@ -445,7 +446,12 @@ function ProfileScreen() {
                 updated = await userApi.update(byEmail.id, { name: trimmed });
               }
             } catch (e) {
-              console.warn("ProfileScreen: לא נמצא משתמש לפי אימייל לעדכון", e);
+              if (__DEV__) {
+                console.warn(
+                  "ProfileScreen: לא נמצא משתמש לפי אימייל לעדכון",
+                  e
+                );
+              }
             }
           }
           if (updated) {
@@ -454,10 +460,12 @@ function ProfileScreen() {
             updateUser({ name: trimmed });
           }
         } catch (e) {
-          console.warn(
-            "ProfileScreen: שגיאה בסנכרון שם לשרת, מבצע עדכון מקומי",
-            e
-          );
+          if (__DEV__) {
+            console.warn(
+              "ProfileScreen: שגיאה בסנכרון שם לשרת, מבצע עדכון מקומי",
+              e
+            );
+          }
           updateUser({ name: trimmed });
         }
       } else {
@@ -560,21 +568,23 @@ function ProfileScreen() {
       return val !== undefined ? val : "לא צוין";
     };
     // Log for debug
-    console.warn("ProfileScreen: נתוני משתמש לתרגום:", {
-      age: getOrDefault("age", questionnaire, smartData, user),
-      goal: getOrDefault("goal", questionnaire, smartData, user),
-      experience: getOrDefault("experience", questionnaire, smartData, user),
-      frequency: getOrDefault("frequency", questionnaire, smartData, user),
-      duration: getOrDefault("duration", questionnaire, smartData, user),
-      location: getOrDefault("location", questionnaire, smartData, user),
-      gender: getOrDefault(
-        "gender",
-        questionnaire,
-        smartData,
-        user?.preferences
-      ),
-      diet: getOrDefault("diet_type", questionnaire, smartData, user),
-    });
+    if (__DEV__) {
+      console.warn("ProfileScreen: נתוני משתמש לתרגום:", {
+        age: getOrDefault("age", questionnaire, smartData, user),
+        goal: getOrDefault("goal", questionnaire, smartData, user),
+        experience: getOrDefault("experience", questionnaire, smartData, user),
+        frequency: getOrDefault("frequency", questionnaire, smartData, user),
+        duration: getOrDefault("duration", questionnaire, smartData, user),
+        location: getOrDefault("location", questionnaire, smartData, user),
+        gender: getOrDefault(
+          "gender",
+          questionnaire,
+          smartData,
+          user?.preferences
+        ),
+        diet: getOrDefault("diet_type", questionnaire, smartData, user),
+      });
+    }
     return {
       age: formatQuestionnaireValue(
         "age",
@@ -954,18 +964,21 @@ function ProfileScreen() {
         }
       });
 
-      console.warn(
-        'ProfileScreen: כל השדות דינמיים - סה"כ:',
-        fields.length,
-        "שדות:",
-        fields.map((f) => f.key)
-      );
-      console.warn("ProfileScreen: ערכי משך אימון:", {
-        duration: userInfo.duration,
-        session_duration: userInfo.session_duration,
-        frequency: userInfo.frequency,
-        availability: userInfo.availability,
-      });
+      // Debug logs - מכובים זמנית
+      // if (__DEV__) {
+      //   console.warn(
+      //     'ProfileScreen: כל השדות דינמיים - סה"כ:',
+      //     fields.length,
+      //     "שדות:",
+      //     fields.map((f) => f.key)
+      //   );
+      //   console.warn("ProfileScreen: ערכי משך אימון:", {
+      //     duration: userInfo.duration,
+      //     session_duration: userInfo.session_duration,
+      //     frequency: userInfo.frequency,
+      //     availability: userInfo.availability,
+      //   });
+      // }
       return fields;
     },
     []
@@ -1135,12 +1148,16 @@ function ProfileScreen() {
   // =======================================
 
   const handleLogout = useCallback(() => {
-    console.warn("ProfileScreen: Logout initiated");
+    // if (__DEV__) {
+    //   console.warn("ProfileScreen: Logout initiated");
+    // }
     setShowLogoutModal(true);
   }, []);
 
   const confirmLogout = useCallback(async () => {
-    console.warn("ProfileScreen: Logout confirmed - מתחיל התנתקות מלאה");
+    // if (__DEV__) {
+    //   console.warn("ProfileScreen: Logout confirmed - מתחיל התנתקות מלאה");
+    // }
 
     try {
       // הצגת הודעת טעינה
@@ -1150,7 +1167,9 @@ function ProfileScreen() {
       // התנתקות מלאה עם ניקוי כל הנתונים
       await userLogout();
 
-      console.warn("✅ ProfileScreen: התנתקות הושלמה בהצלחה");
+      // if (__DEV__) {
+      //   console.warn("✅ ProfileScreen: התנתקות הושלמה בהצלחה");
+      // }
 
       // ניווט למסך הפתיחה עם איפוס מלא של המחסנית
       navigation.reset({
@@ -1175,14 +1194,18 @@ function ProfileScreen() {
   const validateAvatarImage = (uri: string) => {
     // בדיקות בסיסיות לתמונות (אופציונלי)
     // Basic image validation (optional)
-    console.warn("ProfileScreen: Avatar selected locally:", uri);
+    if (__DEV__) {
+      console.warn("ProfileScreen: Avatar selected locally:", uri);
+    }
     return true; // תמיד מקבל כי זה מקומי
   };
 
   // בחר מהגלריה // Pick from gallery
   const pickImageFromGallery = useCallback(async () => {
     try {
-      console.warn("ProfileScreen: Gallery picker opened");
+      if (__DEV__) {
+        console.warn("ProfileScreen: Gallery picker opened");
+      }
       setError(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -1201,9 +1224,11 @@ function ProfileScreen() {
           // 💾 אחסון מקומי בלבד - לא נשלח לשרת
           updateUser({ avatar: newAvatar });
           setShowAvatarModal(false);
-          console.warn(
-            "ProfileScreen: Avatar updated locally (not uploaded to server)"
-          );
+          if (__DEV__) {
+            console.warn(
+              "ProfileScreen: Avatar updated locally (not uploaded to server)"
+            );
+          }
         }
       }
     } catch (error) {
@@ -1215,7 +1240,9 @@ function ProfileScreen() {
   // בחר מהמצלמה // Take photo
   const takePhoto = useCallback(async () => {
     try {
-      console.warn("ProfileScreen: Camera opened");
+      if (__DEV__) {
+        console.warn("ProfileScreen: Camera opened");
+      }
       setError(null);
 
       const result = await ImagePicker.launchCameraAsync({
@@ -1233,9 +1260,11 @@ function ProfileScreen() {
           // 💾 אחסון מקומי בלבד - לא נשלח לשרת
           updateUser({ avatar: newAvatar });
           setShowAvatarModal(false);
-          console.warn(
-            "ProfileScreen: Avatar updated locally from camera (not uploaded to server)"
-          );
+          if (__DEV__) {
+            console.warn(
+              "ProfileScreen: Avatar updated locally from camera (not uploaded to server)"
+            );
+          }
         }
       }
     } catch (error) {
@@ -1247,7 +1276,9 @@ function ProfileScreen() {
   // בחר אימוג'י // Select emoji
   const selectPresetAvatar = useCallback(
     (avatar: string) => {
-      console.warn("ProfileScreen: Preset avatar selected:", avatar);
+      if (__DEV__) {
+        console.warn("ProfileScreen: Preset avatar selected:", avatar);
+      }
       setSelectedAvatar(avatar);
       updateUser({ avatar });
       setShowAvatarModal(false);
@@ -1778,9 +1809,11 @@ function ProfileScreen() {
                     : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
                 </Text>
                 <TouchableOpacity
-                  onPress={() =>
-                    console.warn("ProfileScreen: Show all achievements")
-                  }
+                  onPress={() => {
+                    if (__DEV__) {
+                      console.warn("ProfileScreen: Show all achievements");
+                    }
+                  }}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel="הצג את כל ההישגים"
@@ -1885,7 +1918,9 @@ function ProfileScreen() {
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={() => {
-                  console.warn("ProfileScreen: Edit questionnaire");
+                  if (__DEV__) {
+                    console.warn("ProfileScreen: Edit questionnaire");
+                  }
                   navigation.navigate("Questionnaire", { stage: "training" });
                 }}
                 activeOpacity={0.7}
@@ -1914,7 +1949,9 @@ function ProfileScreen() {
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={() => {
-                  console.warn("ProfileScreen: Notifications settings");
+                  if (__DEV__) {
+                    console.warn("ProfileScreen: Notifications settings");
+                  }
                   showComingSoon("הגדרות התראות");
                 }}
                 activeOpacity={0.7}

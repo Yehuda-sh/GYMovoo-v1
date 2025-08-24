@@ -29,7 +29,6 @@ import {
   Animated,
   RefreshControl,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
@@ -40,6 +39,7 @@ import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // New imports for optimized components and constants
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
@@ -165,7 +165,9 @@ function MainScreen() {
         currentStreak: genderGroupedStats.total.workoutStreak,
       });
     } catch (error) {
-      console.warn("⚠️ שגיאה בטעינת נתונים מתקדמים:", error);
+      if (__DEV__) {
+        console.warn("⚠️ שגיאה בטעינת נתונים מתקדמים:", error);
+      }
       // המשך עם נתונים קיימים מה-store
     }
   }, [user]);
@@ -177,7 +179,9 @@ function MainScreen() {
   useEffect(() => {
     const renderTime = performance.now() - renderStartTime;
     if (renderTime > 100) {
-      console.warn(`⚠️ MainScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
+      if (__DEV__) {
+        console.warn(`⚠️ MainScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
+      }
     }
   }, [renderStartTime]);
 
@@ -421,7 +425,9 @@ function MainScreen() {
 
   const handleStartWorkout = useCallback(() => {
     triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
-    console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!");
+    if (__DEV__) {
+      console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!");
+    }
     navigation.navigate("WorkoutPlans", {
       autoStart: true,
     });
@@ -430,7 +436,9 @@ function MainScreen() {
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
       triggerHapticFeedback("medium"); // משוב בינוני לבחירת יום אימון
-      console.warn(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
+      if (__DEV__) {
+        console.warn(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
+      }
       navigation.navigate("WorkoutPlans", {
         preSelectedDay: dayNumber,
         autoStart: true,
@@ -478,7 +486,7 @@ function MainScreen() {
         {/* מציג אינדיקטור טעינה */}
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <LoadingSpinner size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>
               {MAIN_SCREEN_TEXTS.STATUS.LOADING_DATA}
             </Text>
@@ -1058,137 +1066,214 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  // Container and layout styles // סטיילים לקונטיינר ופריסה
+  // Container and layout styles // סטיילים לקונטיינר ופריסה משופרים
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
+    paddingHorizontal: 4,
   },
 
-  // Welcome section styles // סטיילים לקטע הברוכים הבאים
+  // Welcome section styles משופר // סטיילים לקטע הברוכים הבאים מעודכן
   welcomeSection: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: Platform.OS === "ios" ? 70 : 50,
+    paddingBottom: theme.spacing.xl,
+    backgroundColor: `${theme.colors.background}FB`,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   welcomeHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
   },
   welcomeText: {
     alignItems: "flex-end",
+    flex: 1,
   },
   greetingText: {
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר במכשיר אמיתי
+    fontSize: 20, // הוגדל עוד יותר לבולטות
+    fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
     textAlign: "right",
     writingDirection: "rtl",
+    letterSpacing: 0.3,
   },
   userName: {
-    fontSize: 28, // הוגדל מ-24 לבולטות במסך הנייד
-    fontWeight: theme.typography.h2.fontWeight,
+    fontSize: 32, // הוגדל מ-28 לבולטות גדולה יותר
+    fontWeight: "800", // הוגדל מ-theme.typography
     color: theme.colors.text,
     textAlign: "right",
     writingDirection: "rtl",
+    letterSpacing: 0.5,
+    // שיפור טיפוגרפי
+    textShadowColor: `${theme.colors.text}12`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   motivationText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
+    fontSize: 17, // הוגדל מ-16
+    fontWeight: "500",
     color: theme.colors.textSecondary,
     textAlign: "right",
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.md,
     writingDirection: "rtl",
+    letterSpacing: 0.2,
+    lineHeight: 22,
   },
   profileContainer: {
     alignItems: "center",
+    marginRight: theme.spacing.sm,
   },
   profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.accent,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: `${theme.colors.accent}F0`,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: theme.colors.surface,
-    ...theme.shadows.small,
-    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
-    minWidth: 44,
-    minHeight: 44,
+    borderWidth: 2.5,
+    borderColor: `${theme.colors.surface}E0`,
+    // שיפור כפתור פרופיל
+    shadowColor: theme.colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+    // 📱 Touch Target מוגדל
+    minWidth: 50,
+    minHeight: 50,
   },
   profileInitials: {
-    fontSize: 18, // הוגדל מ-16 לבולטות במסך הנייד
-    fontWeight: "600",
+    fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
+    fontWeight: "700",
     color: theme.colors.surface,
+    letterSpacing: 0.5,
+    textShadowColor: `${theme.colors.surface}30`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 
-  // Section styles // סטיילים לקטעים
+  // Section styles משופר // סטיילים לקטעים מעודכן
   sectionTitle: {
-    fontSize: 22, // הוגדל מ-20 לבולטות במסך הנייד
-    fontWeight: theme.typography.h3.fontWeight,
+    fontSize: 24, // הוגדל מ-22 לבולטות מקסימלית
+    fontWeight: "800",
     color: theme.colors.text,
     textAlign: "right",
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     writingDirection: "rtl",
+    letterSpacing: 0.4,
+    // שיפור טיפוגרפי נוסף
+    textShadowColor: `${theme.colors.text}12`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 
-  // Stats section // קטע הסטטיסטיקות
+  // Stats section משופר // קטע הסטטיסטיקות מעודכן
   statsSection: {
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.xxl,
+    backgroundColor: `${theme.colors.surface}30`,
+    paddingVertical: theme.spacing.lg,
+    marginHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    // שיפורי עיצוב לקטע סטטיסטיקות
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
   },
   statsGrid: {
-    gap: theme.spacing.md,
+    gap: theme.spacing.lg,
   },
 
-  // Recent workouts section // קטע האימונים האחרונים
+  // Recent workouts section משופר // קטע האימונים האחרונים מעודכן
   recentWorkoutsSection: {
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.xxl,
+    backgroundColor: `${theme.colors.surface}25`,
+    paddingVertical: theme.spacing.lg,
+    marginHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    // שיפורי עיצוב לקטע אימונים אחרונים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}35`,
   },
   recentWorkoutsList: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
   },
   recentWorkoutItem: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
+    backgroundColor: `${theme.colors.card}F8`,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.cardBorder}60`,
+    // שיפור פריט אימון אחרון
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    marginVertical: theme.spacing.xs,
   },
   workoutIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.backgroundElevated,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: `${theme.colors.backgroundElevated}F0`,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: theme.spacing.md,
+    marginLeft: theme.spacing.lg,
+    borderWidth: 2,
+    borderColor: `${theme.colors.primary}20`,
+    // שיפור אייקון אימון
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
   workoutInfo: {
     flex: 1,
     alignItems: "flex-end",
+    paddingRight: theme.spacing.sm,
   },
   workoutTitle: {
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
-    fontWeight: "600",
+    fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
+    fontWeight: "700",
     color: theme.colors.text,
     textAlign: "right",
-    marginBottom: 4,
+    marginBottom: 6,
     writingDirection: "rtl",
+    letterSpacing: 0.3,
   },
   workoutDate: {
-    fontSize: 14, // הוגדל מ-12 לקריאות טובה יותר
+    fontSize: 15, // הוגדל מ-14 לקריאות מעולה
+    fontWeight: "500",
     color: theme.colors.textSecondary,
     textAlign: "right",
     writingDirection: "rtl",
+    letterSpacing: 0.2,
   },
   workoutRating: {
     flexDirection: "row-reverse",

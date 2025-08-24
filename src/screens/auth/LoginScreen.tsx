@@ -19,7 +19,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Animated,
   Switch,
   Alert,
@@ -35,6 +34,7 @@ import { StorageKeys } from "../../constants/StorageKeys";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { fakeGoogleSignIn } from "../../services/authService";
 import type { User } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
@@ -1027,7 +1027,7 @@ const LoginScreen = React.memo(() => {
                 >
                   {loginLoading ? (
                     <View style={styles.loadingContainer}>
-                      <ActivityIndicator color="#fff" size="small" />
+                      <LoadingSpinner size="small" color="#fff" />
                       <Text style={styles.loadingText}>
                         {STRINGS.buttons.loggingIn}
                       </Text>
@@ -1060,7 +1060,7 @@ const LoginScreen = React.memo(() => {
                 accessibilityLabel={STRINGS.accessibility.googleButton}
               >
                 {googleLoading ? (
-                  <ActivityIndicator size="small" color="#DB4437" />
+                  <LoadingSpinner size="small" color="#DB4437" />
                 ) : (
                   <Ionicons name="logo-google" size={20} color="#DB4437" />
                 )}
@@ -1117,37 +1117,57 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    ...theme.shadows.medium,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xxl,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderColor: theme.colors.cardBorder + "40",
   },
   logoContainer: {
     alignItems: "center",
     marginBottom: theme.spacing.lg,
   },
   logoBackground: {
-    backgroundColor: theme.colors.primaryGradientStart + "15",
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.lg,
-    ...theme.shadows.small,
+    backgroundColor: theme.colors.primaryGradientStart + "20",
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xl,
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   title: {
     color: theme.colors.text,
-    fontSize: 28,
-    fontWeight: "600",
+    fontSize: 32,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
     writingDirection: "rtl",
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
+    fontSize: 18,
     textAlign: "center",
     marginBottom: theme.spacing.xl,
-    lineHeight: 22,
+    lineHeight: 26,
     writingDirection: "rtl",
+    letterSpacing: 0.3,
+    paddingHorizontal: theme.spacing.sm,
   },
   inputContainer: {
     marginBottom: theme.spacing.lg,
@@ -1156,12 +1176,19 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.lg,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    height: 56,
-    ...theme.shadows.small,
+    borderColor: theme.colors.cardBorder + "40",
+    height: 58,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   inputError: {
     borderColor: theme.colors.error,
@@ -1212,10 +1239,18 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.error + "15",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8, // מתקדם - gap מתוך theme
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.sm,
+    shadowColor: theme.colors.error,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   errorText: {
     color: theme.colors.error,
@@ -1225,18 +1260,26 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   loginButton: {
-    marginBottom: 20,
-    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.radius.xl,
     overflow: "hidden",
-    ...theme.shadows.medium,
+    shadowColor: theme.colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   gradientButton: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 56,
   },
   loadingContainer: {
     flexDirection: "row-reverse",
@@ -1250,9 +1293,12 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: 0.5,
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   dividerContainer: {
     flexDirection: "row-reverse",
@@ -1273,22 +1319,31 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    paddingVertical: 16,
+    borderRadius: theme.radius.xl,
+    paddingVertical: 18,
     justifyContent: "center",
     marginBottom: theme.spacing.lg,
-    gap: 10,
+    gap: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    ...theme.shadows.small,
+    borderColor: theme.colors.cardBorder + "40",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+    minHeight: 56,
   },
   googleButtonDisabled: {
     opacity: 0.7,
   },
   googleButtonText: {
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
+    letterSpacing: 0.3,
   },
   linkRow: {
     flexDirection: "row-reverse",

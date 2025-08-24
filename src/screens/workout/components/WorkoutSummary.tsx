@@ -273,22 +273,25 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
               <TouchableOpacity
                 style={styles.topActionButton}
                 onPress={onClose}
+                activeOpacity={0.6}
                 accessibilityRole="button"
                 accessibilityLabel="סגור מסך סיכום"
               >
                 <MaterialCommunityIcons
                   name="close"
-                  size={24}
+                  size={26}
                   color={theme.colors.text}
                 />
               </TouchableOpacity>
 
               <View style={styles.headerCenter}>
-                <MaterialCommunityIcons
-                  name="trophy"
-                  size={32}
-                  color={theme.colors.text}
-                />
+                <View style={styles.trophyContainer}>
+                  <MaterialCommunityIcons
+                    name="trophy"
+                    size={36}
+                    color={theme.colors.warning}
+                  />
+                </View>
                 <Text style={styles.congratsText}>כל הכבוד! 🎉</Text>
                 <Text style={styles.workoutName}>
                   {workout.name || "אימון מהיר"}
@@ -299,12 +302,13 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
                 <TouchableOpacity
                   style={styles.topActionButton}
                   onPress={handleShareWorkout}
+                  activeOpacity={0.6}
                   accessibilityRole="button"
                   accessibilityLabel="שתף אימון"
                 >
                   <MaterialCommunityIcons
                     name="share-variant"
-                    size={20}
+                    size={22}
                     color={theme.colors.text}
                   />
                 </TouchableOpacity>
@@ -312,12 +316,13 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
                 <TouchableOpacity
                   style={styles.topActionButton}
                   onPress={onSave}
+                  activeOpacity={0.6}
                   accessibilityRole="button"
                   accessibilityLabel="שמור אימון מהיר"
                 >
                   <MaterialCommunityIcons
                     name="content-save"
-                    size={20}
+                    size={22}
                     color={theme.colors.text}
                   />
                 </TouchableOpacity>
@@ -412,23 +417,36 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "flex-end",
     zIndex: 1000,
   },
   container: {
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    maxHeight: "90%",
-    ...theme.shadows.large,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "92%",
+    // שיפורי צללים מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 16,
+    borderTopWidth: 2,
+    borderTopColor: `${theme.colors.primary}30`,
   },
   header: {
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   topActions: {
     flexDirection: theme.isRTL ? "row-reverse" : "row",
@@ -436,31 +454,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   topActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
+    // שיפורי עיצוב
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   headerCenter: {
     alignItems: "center",
     flex: 1,
   },
+  trophyContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+    // שיפורי עיצוב לגביע
+    shadowColor: theme.colors.warning,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.4)",
+  },
   congratsText: {
-    fontSize: theme.typography.title2.fontSize,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "900",
     color: theme.colors.text,
-    marginTop: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
     textAlign: "center",
     writingDirection: theme.isRTL ? "rtl" : "ltr",
+    letterSpacing: 0.5,
+    // שיפורי טיפוגרפיה
+    textShadowColor: `${theme.colors.text}30`,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   workoutName: {
-    fontSize: theme.typography.body.fontSize,
-    color: theme.colors.text + "CC",
-    marginTop: theme.spacing.xs,
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text + "E6",
+    marginTop: theme.spacing.sm,
     textAlign: "center",
     writingDirection: theme.isRTL ? "rtl" : "ltr",
+    letterSpacing: 0.3,
   },
   topActionsRight: {
     flexDirection: theme.isRTL ? "row-reverse" : "row",
@@ -468,8 +518,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
   },
 });
 

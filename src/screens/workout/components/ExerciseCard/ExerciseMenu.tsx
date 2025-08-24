@@ -111,7 +111,7 @@ const MenuItem: React.FC<MenuItemProps> = React.memo(
         ]}
         onPress={onPress}
         disabled={disabled}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityHint={accessibilityHint}
@@ -687,7 +687,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={onClose}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
               accessibilityRole="button"
               accessibilityLabel="ביטול"
             >
@@ -718,94 +718,156 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingBottom: 20,
     maxHeight: screenHeight * 0.75 - 80, // נגרע את מקום הכפתור
-    ...theme.shadows.large,
+    // שיפורי צללים מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: -8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+    // בורדר עדין עליון
+    borderTopWidth: 1,
+    borderTopColor: `${theme.colors.primary}10`,
   },
   handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: theme.colors.textSecondary + "40",
-    borderRadius: 2,
+    width: 48,
+    height: 5,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 3,
     alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 14,
+    marginBottom: 12,
+    // שיפורי עיצוב
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   header: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.cardBorder,
+    borderBottomColor: `${theme.colors.cardBorder}80`,
+    backgroundColor: `${theme.colors.surface}40`,
+    marginHorizontal: 8,
+    marginTop: 8,
+    borderRadius: 16,
+    // שיפורי עיצוב
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "800",
+    color: theme.colors.primary,
     textAlign: "center",
     writingDirection: "rtl",
+    letterSpacing: 0.5,
+    // שיפורי טיפוגרפיה
+    textShadowColor: `${theme.colors.primary}15`,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   menuContent: {
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
   menuContentProcessing: {
     opacity: 0.6,
   },
   section: {
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   separator: {
     height: 1,
-    backgroundColor: theme.colors.cardBorder,
-    marginVertical: 8,
-    marginHorizontal: 24,
+    backgroundColor: `${theme.colors.cardBorder}60`,
+    marginVertical: 12,
+    marginHorizontal: 32,
+    borderRadius: 0.5,
   },
   menuItem: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
+    marginHorizontal: 12,
+    marginVertical: 4,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
   },
   menuItemContent: {
     flexDirection: "row-reverse",
     alignItems: "center",
     flex: 1,
-    gap: 16,
+    gap: 18,
   },
   menuItemDisabled: {
-    opacity: 0.4,
+    opacity: 0.5,
+    backgroundColor: `${theme.colors.surface}60`,
+    borderColor: `${theme.colors.cardBorder}20`,
   },
   menuItemDanger: {
-    // לא צריך רקע - נשאיר נקי
+    backgroundColor: `${theme.colors.error}08`,
+    borderColor: `${theme.colors.error}25`,
+    // צל אדום עדין
+    shadowColor: theme.colors.error,
+    shadowOpacity: 0.12,
   },
   menuItemText: {
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: "600",
     color: theme.colors.text,
     textAlign: "right",
     flex: 1,
     writingDirection: "rtl",
+    letterSpacing: 0.3,
   },
   menuItemTextDisabled: {
     color: theme.colors.textSecondary,
+    fontWeight: "500",
   },
   menuItemTextDanger: {
     color: theme.colors.error,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   chevron: {
-    opacity: 0.5,
+    opacity: 0.7,
+    marginLeft: 4,
   },
   cancelButton: {
-    marginTop: 12,
-    marginHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
+    marginTop: 16,
+    marginHorizontal: 20,
+    paddingVertical: 18,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderWidth: 2,
+    borderColor: `${theme.colors.primary}30`,
+    // שיפורי עיצוב מתקדמים
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   cancelButtonContainer: {
     position: "absolute",
@@ -816,9 +878,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   cancelText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.primary,
+    letterSpacing: 0.4,
   },
 });
 
