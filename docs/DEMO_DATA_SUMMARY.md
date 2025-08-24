@@ -29,29 +29,37 @@
 - **Email:** noa.shapira.updated@walla.com
 - **ID:** realistic_1755276001521_ifig7z
 - **Subscription:** Trial (Active until 2025-09-08)
+- **Profile Status:** ✅ Complete questionnaire & profile data
 - **Data Generated:**
   - 📋 **Workouts:** 7 varied workouts over 14 days
   - 🏋️ **Total Volume:** 6,044 kg
   - ⏱️ **Total Duration:** 4:58 hours
-  - 🏆 **Fitness Level:** Beginner
+  - 🏆 **Fitness Level:** Intermediate
   - 🔥 **Current Streak:** 7 days
   - 🎖️ **Achievements:** 4 achievements including consistency
   - 📈 **XP Level:** Level 1
+  - 👤 **Profile Data:** Age 32, 163cm, 62kg → 60kg goal, mixed workouts with varied equipment
+  - 🎯 **Goals:** Endurance improvement, muscle building, stress relief
+  - ✅ **Fixed:** Complete questionnaire with vegetarian nutrition preferences
 
 ### 💎 Demo User C: Amit Cohen (PREMIUM)
 
 - **Email:** amit.cohen@example.com
 - **ID:** u_init_3
 - **Subscription:** Premium (Active until 2025-09-08)
+- **Profile Status:** ✅ Complete questionnaire & profile data
 - **Data Generated:**
   - 📋 **Workouts:** 15 comprehensive workouts over 30 days
   - 🏋️ **Total Volume:** 11,800 kg
   - ⏱️ **Total Duration:** 11:13 hours
-  - 🏆 **Fitness Level:** Intermediate
+  - 🏆 **Fitness Level:** Advanced
   - 🔥 **Current Streak:** 7 days
   - 🎖️ **Achievements:** 5 achievements including performance milestones
   - 📈 **XP Level:** Level 2
   - 💪 **Strength Gains:** Progressive overload data with specific exercise improvements
+  - 👤 **Profile Data:** Age 35, 180cm, 82kg → 85kg goal, gym workouts with full equipment
+  - 🎯 **Goals:** Muscle building, strength increase, performance improvement
+  - ✅ **Fixed:** Complete questionnaire with advanced training preferences
 
 ## 🏗️ Data Structure Generated
 
@@ -136,21 +144,37 @@ Each workout contains:
 
 ## ⚠️ Issues Fixed
 
-### Ron Shoval Questionnaire Fix
-**Date:** 2025-08-24  
-**Script:** `scripts/fixRonShovalQuestionnaire.js`
+### Questionnaire Completion Issues for All Demo Users
+**Date:** 2025-08-24-25  
+**Scripts:** `scripts/fixRonShovalQuestionnaire.js` & `scripts/fixAllDemoUsersQuestionnaires.js`
 
-**Problem:** Ron Shoval's profile appeared empty despite having workout data because his questionnaire was only 7.69% complete (1/13 questions answered).
+**Problem:** All three demo users had incomplete or missing questionnaire data:
+- Ron Shoval: 7.69% completion (1/13 questions)
+- נועה שפירא: Partial questionnaire data 
+- Amit Cohen: Missing questionnaire completely
 
 **Solution:**
-- Added complete questionnaire data with all 13 questions answered
-- Updated smartquestionnairedata with 100% completion rate
-- Enhanced preferences with detailed profile information
-- Added personal data: age 28, height 175cm, weight 75kg, goal weight 70kg
-- Set fitness goals: weight loss, muscle building, endurance improvement
-- Configured equipment preferences: yoga mat, dumbbells, resistance bands
+✅ Created complete questionnaire data for all users with distinct profiles:
 
-**Result:** Ron Shoval's profile now displays complete information suitable for Free user demo.
+**Ron Shoval (Free):**
+- Age 28, 175cm, 75kg → 70kg goal
+- Beginner level, home workouts, basic equipment
+- Goals: weight loss, muscle building, endurance
+- Preferences: 3x/week, 45min, evening sessions
+
+**נועה שפירא (Trial):**  
+- Age 32, 163cm, 62kg → 60kg goal
+- Intermediate level, mixed location, varied equipment
+- Goals: endurance, muscle building, stress relief
+- Preferences: 4x/week, 50min, morning sessions, vegetarian diet
+
+**Amit Cohen (Premium):**
+- Age 35, 180cm, 82kg → 85kg goal  
+- Advanced level, gym workouts, full equipment
+- Goals: muscle building, strength, performance
+- Preferences: 6x/week, 75min, evening sessions, bulk nutrition
+
+**Verification:** `scripts/checkAllDemoUsers.js` confirms all users now have 100% complete questionnaires with 13/13 questions answered.
 
 ## 📈 Next Steps
 

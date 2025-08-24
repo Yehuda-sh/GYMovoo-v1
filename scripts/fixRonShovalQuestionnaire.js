@@ -23,143 +23,139 @@ async function fixRonShovalQuestionnaire() {
       gender: "male",
       height: 175,
       weight: 75,
-      
+
       // Fitness Goals
       primary_goal: "general_fitness",
       specific_goals: ["lose_weight", "build_muscle", "improve_endurance"],
       target_weight: 70,
-      
+
       // Experience
       experience_level: "beginner",
       previous_experience: ["home_workouts"],
       workout_frequency_current: 2,
       workout_frequency_target: 3,
-      
+
       // Preferences
       workout_duration_preference: 45,
       workout_time_preference: "evening",
       workout_location: "home",
-      
+
       // Equipment
       available_equipment: ["yoga_mat", "dumbbells", "resistance_bands"],
       equipment_budget: "low",
-      
+
       // Health & Lifestyle
       health_conditions: [],
       injuries: [],
       activity_level: "sedentary",
       stress_level: "medium",
       sleep_hours: 7,
-      
+
       // Nutrition
       diet_type: "none",
       nutrition_goal: "balanced",
       cooking_frequency: "sometimes",
-      
+
       // Motivation
       motivation_factors: ["health", "appearance", "energy"],
       preferred_workout_style: "structured",
       social_preference: "solo",
-      
+
       // Completed questionnaire metadata
       completed: true,
       completed_at: new Date().toISOString(),
-      version: "2.2"
+      version: "2.2",
     };
 
     // Smart questionnaire data מעודכן
     const updatedSmartQuestionnaireData = {
-      "answers": {
-        "age": 28,
-        "name": "Ron Shoval",
-        "goals": ["lose_weight", "build_muscle", "improve_endurance"],
-        "gender": "male",
-        "height": 175,
-        "weight": 75,
-        "equipment": ["yoga_mat", "dumbbells", "resistance_bands"],
-        "nutrition": ["balanced"],
-        "diet_type": "none",
-        "experience": "beginner",
-        "frequency": 3,
-        "duration": 45,
-        "location": "home",
-        "time_preference": "evening",
-        "health_conditions": [],
-        "availability": ["monday", "wednesday", "friday"],
-        "motivation": ["health", "appearance", "energy"],
-        "bodyweight_equipment": ["yoga_mat", "resistance_bands"]
+      answers: {
+        age: 28,
+        name: "Ron Shoval",
+        goals: ["lose_weight", "build_muscle", "improve_endurance"],
+        gender: "male",
+        height: 175,
+        weight: 75,
+        equipment: ["yoga_mat", "dumbbells", "resistance_bands"],
+        nutrition: ["balanced"],
+        diet_type: "none",
+        experience: "beginner",
+        frequency: 3,
+        duration: 45,
+        location: "home",
+        time_preference: "evening",
+        health_conditions: [],
+        availability: ["monday", "wednesday", "friday"],
+        motivation: ["health", "appearance", "energy"],
+        bodyweight_equipment: ["yoga_mat", "resistance_bands"],
       },
-      "metadata": {
-        "version": "2.2",
-        "analytics": {
-          "timeSpent": 180,
-          "strengthAreas": ["general_fitness", "weight_loss"],
-          "completionRate": 100,
-          "equipmentCount": 3,
-          "recommendedProfile": "beginner_general_fitness_home_equipment"
+      metadata: {
+        version: "2.2",
+        analytics: {
+          timeSpent: 180,
+          strengthAreas: ["general_fitness", "weight_loss"],
+          completionRate: 100,
+          equipmentCount: 3,
+          recommendedProfile: "beginner_general_fitness_home_equipment",
         },
-        "sessionId": "unified_1755264440615_complete",
-        "deviceInfo": {
-          "platform": "mobile",
-          "screenWidth": 390,
-          "screenHeight": 844
+        sessionId: "unified_1755264440615_complete",
+        deviceInfo: {
+          platform: "mobile",
+          screenWidth: 390,
+          screenHeight: 844,
         },
-        "validation": {
-          "errors": [],
-          "isValid": true,
-          "warnings": []
+        validation: {
+          errors: [],
+          isValid: true,
+          warnings: [],
         },
-        "completedAt": new Date().toISOString(),
-        "completionTime": 180,
-        "totalQuestions": 13,
-        "recommendations": {
-          "primaryFocus": [
+        completedAt: new Date().toISOString(),
+        completionTime: 180,
+        totalQuestions: 13,
+        recommendations: {
+          primaryFocus: [
             "ירידה במשקל",
             "בניית שריר",
             "שיפור כושר",
-            "אימונים מובנים"
+            "אימונים מובנים",
           ],
-          "nutritionTips": [
-            "תזונה מאוזנת",
-            "הפחתת קלוריות",
-            "חלבון איכותי"
-          ],
-          "sessionDuration": "45 דקות מומלץ",
-          "workoutFrequency": "3 ימים בשבוע",
-          "equipmentSuggestions": [
+          nutritionTips: ["תזונה מאוזנת", "הפחתת קלוריות", "חלבון איכותי"],
+          sessionDuration: "45 דקות מומלץ",
+          workoutFrequency: "3 ימים בשבוע",
+          equipmentSuggestions: [
             "משקולות קטנות",
             "רצועות התנגדות",
-            "מזרן יוגה"
-          ]
+            "מזרן יוגה",
+          ],
         },
-        "questionsAnswered": 13
+        questionsAnswered: 13,
       },
-      "equipment": ["yoga_mat", "dumbbells", "resistance_bands"],
-      "fitness_goal": "general_fitness",
-      "gym_equipment": [],
-      "home_equipment": ["dumbbells", "resistance_bands"],
-      "experience_level": "beginner",
-      "workout_location": "home",
-      "bodyweight_equipment": ["yoga_mat", "resistance_bands"]
+      equipment: ["yoga_mat", "dumbbells", "resistance_bands"],
+      fitness_goal: "general_fitness",
+      gym_equipment: [],
+      home_equipment: ["dumbbells", "resistance_bands"],
+      experience_level: "beginner",
+      workout_location: "home",
+      bodyweight_equipment: ["yoga_mat", "resistance_bands"],
     };
 
     // עדכון העדפות
     const updatedPreferences = {
-      "gender": "male",
-      "language": "he",
-      "rtlPreference": true,
-      "age": 28,
-      "height": 175,
-      "weight": 75,
-      "fitness_goals": ["lose_weight", "build_muscle", "improve_endurance"],
-      "experience_level": "beginner",
-      "workout_frequency": 3,
-      "workout_duration": 45,
-      "workout_time": "evening",
-      "preferred_equipment": ["yoga_mat", "dumbbells", "resistance_bands"],
-      "diet_type": "none",
-      "activity_level": "sedentary",
-      "motivation_factors": ["health", "appearance", "energy"]
+      gender: "male",
+      language: "he",
+      rtlPreference: true,
+      age: 28,
+      height: 175,
+      weight: 75,
+      fitness_goals: ["lose_weight", "build_muscle", "improve_endurance"],
+      experience_level: "beginner",
+      workout_frequency: 3,
+      workout_duration: 45,
+      workout_time: "evening",
+      preferred_equipment: ["yoga_mat", "dumbbells", "resistance_bands"],
+      diet_type: "none",
+      activity_level: "sedentary",
+      motivation_factors: ["health", "appearance", "energy"],
     };
 
     // עדכון במסד הנתונים
@@ -169,7 +165,7 @@ async function fixRonShovalQuestionnaire() {
         questionnaire: completeQuestionnaire,
         smartquestionnairedata: updatedSmartQuestionnaireData,
         preferences: updatedPreferences,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", "u_init_1");
 
@@ -191,7 +187,6 @@ async function fixRonShovalQuestionnaire() {
     console.log("• מידע תזונתי והרגלי חיים");
 
     return true;
-
   } catch (error) {
     console.error("❌ שגיאה כללית:", error);
     return false;

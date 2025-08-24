@@ -49,7 +49,10 @@ async function checkRonShovalData() {
 
     if (ronData.smartquestionnairedata) {
       console.log("✅ יש smartquestionnairedata");
-      console.log("📊 תוכן:", JSON.stringify(ronData.smartquestionnairedata, null, 2));
+      console.log(
+        "📊 תוכן:",
+        JSON.stringify(ronData.smartquestionnairedata, null, 2)
+      );
     } else {
       console.log("❌ אין smartquestionnairedata");
     }
@@ -59,14 +62,21 @@ async function checkRonShovalData() {
     if (ronData.activityhistory && Array.isArray(ronData.activityhistory)) {
       console.log(`✅ יש ${ronData.activityhistory.length} אימונים`);
       ronData.activityhistory.forEach((workout, index) => {
-        console.log(`   ${index + 1}. ${workout.workout?.name || 'ללא שם'} - ${workout.workout?.startTime || 'ללא תאריך'}`);
-        console.log(`      תרגילים: ${workout.workout?.exercises?.length || 0}`);
+        console.log(
+          `   ${index + 1}. ${workout.workout?.name || "ללא שם"} - ${workout.workout?.startTime || "ללא תאריך"}`
+        );
+        console.log(
+          `      תרגילים: ${workout.workout?.exercises?.length || 0}`
+        );
         console.log(`      נפח: ${workout.stats?.totalVolume || 0}ק"ג`);
       });
     } else {
       console.log("❌ אין היסטוריית אימונים או שהיא לא במבנה נכון");
       if (ronData.activityhistory) {
-        console.log("📊 תוכן activityhistory:", JSON.stringify(ronData.activityhistory, null, 2));
+        console.log(
+          "📊 תוכן activityhistory:",
+          JSON.stringify(ronData.activityhistory, null, 2)
+        );
       }
     }
 
@@ -83,11 +93,17 @@ async function checkRonShovalData() {
     console.log("\n🎮 נתוני גיימיפיקציה:");
     if (ronData.currentstats?.gamification) {
       console.log("✅ יש נתוני גיימיפיקציה");
-      console.log("📊 תוכן:", JSON.stringify(ronData.currentstats.gamification, null, 2));
+      console.log(
+        "📊 תוכן:",
+        JSON.stringify(ronData.currentstats.gamification, null, 2)
+      );
     } else {
       console.log("❌ אין נתוני גיימיפיקציה");
       if (ronData.currentstats) {
-        console.log("📊 תוכן currentstats:", JSON.stringify(ronData.currentstats, null, 2));
+        console.log(
+          "📊 תוכן currentstats:",
+          JSON.stringify(ronData.currentstats, null, 2)
+        );
       }
     }
 
@@ -96,7 +112,9 @@ async function checkRonShovalData() {
     if (ronData.currentstats?.achievements) {
       console.log(`✅ יש ${ronData.currentstats.achievements.length} הישגים`);
       ronData.currentstats.achievements.forEach((achievement, index) => {
-        console.log(`   ${index + 1}. ${achievement.title} - ${achievement.description}`);
+        console.log(
+          `   ${index + 1}. ${achievement.title} - ${achievement.description}`
+        );
       });
     } else {
       console.log("❌ אין הישגים");
@@ -122,7 +140,6 @@ async function checkRonShovalData() {
 
     console.log("\n" + "=".repeat(60));
     console.log("✅ בדיקה הושלמה!");
-
   } catch (error) {
     console.error("❌ שגיאה כללית:", error);
   }
