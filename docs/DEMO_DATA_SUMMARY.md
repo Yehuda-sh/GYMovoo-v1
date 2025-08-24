@@ -7,9 +7,11 @@
 ## 📊 Demo Users Created
 
 ### 🆓 Demo User A: Ron Shoval (FREE)
+
 - **Email:** ron.shoval@example.com
 - **ID:** u_init_1
 - **Subscription:** Free
+- **Profile Status:** ✅ Complete questionnaire & profile data
 - **Data Generated:**
   - 📋 **Workouts:** 3 realistic workouts over 7 days
   - 🏋️ **Total Volume:** 2,508 kg
@@ -18,8 +20,12 @@
   - 🔥 **Current Streak:** 3 days
   - 🎖️ **Achievements:** 3 basic achievements
   - 📈 **XP Level:** Level 1
+  - 👤 **Profile Data:** Age 28, 175cm, 75kg → 70kg goal, home workouts with basic equipment
+  - 🎯 **Goals:** Weight loss, muscle building, endurance improvement
+  - ⚠️ **Fixed:** Questionnaire completion issue resolved (was 7.69% → now 100%)
 
 ### 🔄 Demo User B: נועה שפירא (TRIAL)
+
 - **Email:** noa.shapira.updated@walla.com
 - **ID:** realistic_1755276001521_ifig7z
 - **Subscription:** Trial (Active until 2025-09-08)
@@ -33,6 +39,7 @@
   - 📈 **XP Level:** Level 1
 
 ### 💎 Demo User C: Amit Cohen (PREMIUM)
+
 - **Email:** amit.cohen@example.com
 - **ID:** u_init_3
 - **Subscription:** Premium (Active until 2025-09-08)
@@ -49,13 +56,16 @@
 ## 🏗️ Data Structure Generated
 
 ### 🔍 Activity History (`activityhistory`)
+
 Each workout contains:
+
 - Complete workout data with exercises and sets
 - Realistic performance metrics (weight, reps, duration)
 - User feedback and ratings
 - Comprehensive statistics
 
 ### 📊 Training Stats (`trainingstats`)
+
 - Fitness level progression
 - Workout preferences
 - Performance analytics
@@ -63,6 +73,7 @@ Each workout contains:
 - Total volume and progression rates
 
 ### 🎮 Gamification (`currentstats.gamification`)
+
 - Experience points (XP) calculation
 - Level progression
 - Workout streaks
@@ -70,6 +81,7 @@ Each workout contains:
 - Volume and duration tracking
 
 ### 🏆 Achievements (`currentstats.achievements`)
+
 - Basic achievements (questionnaire completion)
 - Quantity milestones (3, 7, 15 workouts)
 - Performance achievements (volume, consistency)
@@ -77,6 +89,7 @@ Each workout contains:
 - Category organization
 
 ### 💳 Subscription Status
+
 - Trial and Premium users with active subscriptions
 - Realistic date ranges
 - Proper subscription type assignment
@@ -84,18 +97,21 @@ Each workout contains:
 ## 🛠️ Technical Implementation
 
 ### ✅ Service Integration
+
 - Generated data through existing system services
 - Maintained proper data format compatibility
 - Used realistic calculation algorithms
 - Ensured data consistency across all fields
 
 ### 📋 Data Validation
+
 - All workouts follow the `WorkoutWithFeedback` interface
 - Achievements comply with `achievementsConfig.ts` structure
 - Training stats match `trainingstats` schema
 - Gamification follows existing XP/level calculation logic
 
 ### 🔧 Quality Assurance
+
 - ✅ TypeScript compilation: No errors
 - ✅ Data format validation: All fields properly structured
 - ✅ Database update: All users successfully updated
@@ -104,17 +120,37 @@ Each workout contains:
 ## 🎯 Usage for Testing
 
 ### Demo Scenarios
+
 1. **Free User Testing:** Use Ron Shoval for basic feature testing
 2. **Trial User Testing:** Use נועה שפירא for intermediate features
 3. **Premium User Testing:** Use Amit Cohen for full feature set
 
 ### Feature Validation
+
 - ✅ Workout history display
 - ✅ Achievement system
 - ✅ Gamification mechanics
 - ✅ Progress tracking
 - ✅ Subscription-based feature access
 - ✅ Progressive overload calculations
+
+## ⚠️ Issues Fixed
+
+### Ron Shoval Questionnaire Fix
+**Date:** 2025-08-24  
+**Script:** `scripts/fixRonShovalQuestionnaire.js`
+
+**Problem:** Ron Shoval's profile appeared empty despite having workout data because his questionnaire was only 7.69% complete (1/13 questions answered).
+
+**Solution:**
+- Added complete questionnaire data with all 13 questions answered
+- Updated smartquestionnairedata with 100% completion rate
+- Enhanced preferences with detailed profile information
+- Added personal data: age 28, height 175cm, weight 75kg, goal weight 70kg
+- Set fitness goals: weight loss, muscle building, endurance improvement
+- Configured equipment preferences: yoga mat, dumbbells, resistance bands
+
+**Result:** Ron Shoval's profile now displays complete information suitable for Free user demo.
 
 ## 📈 Next Steps
 
