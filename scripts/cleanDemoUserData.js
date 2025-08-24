@@ -18,17 +18,17 @@ function createCleanRonQuestionnaire() {
   return {
     name: "Ron Shoval",
     age: 28,
-    gender: "male", 
+    gender: "male",
     height: 175,
     weight: 75,
-    
+
     // רק מטרות שהיו ב-smart data המקורי
     specific_goals: ["lose_weight", "build_muscle", "improve_endurance"],
     primary_goal: "general_fitness",
-    
+
     // רק ציוד שהיה במקור
     available_equipment: ["yoga_mat", "dumbbells", "resistance_bands"],
-    
+
     // נתוני אימון בסיסיים
     experience_level: "beginner",
     workout_frequency_target: 3,
@@ -36,10 +36,10 @@ function createCleanRonQuestionnaire() {
     workout_location: "home",
     workout_time_preference: "evening",
     diet_type: "none",
-    
+
     completed: true,
     completed_at: new Date().toISOString(),
-    version: "2.2"
+    version: "2.2",
   };
 }
 
@@ -53,14 +53,19 @@ function createCleanNoaQuestionnaire() {
     gender: "female",
     height: 163,
     weight: 62,
-    
+
     // רק מטרות שהיו ב-smart data המקורי
     specific_goals: ["improve_endurance", "build_muscle", "stress_relief"],
     primary_goal: "improve_endurance",
-    
+
     // רק ציוד שהיה במקור
-    available_equipment: ["dumbbells", "resistance_bands", "yoga_mat", "kettlebell"],
-    
+    available_equipment: [
+      "dumbbells",
+      "resistance_bands",
+      "yoga_mat",
+      "kettlebell",
+    ],
+
     // נתוני אימון בסיסיים
     experience_level: "intermediate",
     workout_frequency_target: 4,
@@ -68,10 +73,10 @@ function createCleanNoaQuestionnaire() {
     workout_location: "both",
     workout_time_preference: "morning",
     diet_type: "vegetarian",
-    
+
     completed: true,
     completed_at: new Date().toISOString(),
-    version: "2.2"
+    version: "2.2",
   };
 }
 
@@ -85,14 +90,24 @@ function createCleanAmitQuestionnaire() {
     gender: "male",
     height: 180,
     weight: 82,
-    
+
     // רק מטרות שהיו ב-smart data המקורי
-    specific_goals: ["build_muscle", "increase_strength", "improve_performance"],
+    specific_goals: [
+      "build_muscle",
+      "increase_strength",
+      "improve_performance",
+    ],
     primary_goal: "build_muscle",
-    
+
     // רק ציוד שהיה במקור
-    available_equipment: ["barbell", "dumbbells", "cable_machine", "squat_rack", "bench"],
-    
+    available_equipment: [
+      "barbell",
+      "dumbbells",
+      "cable_machine",
+      "squat_rack",
+      "bench",
+    ],
+
     // נתוני אימון בסיסיים
     experience_level: "advanced",
     workout_frequency_target: 6,
@@ -100,10 +115,10 @@ function createCleanAmitQuestionnaire() {
     workout_location: "gym",
     workout_time_preference: "evening",
     diet_type: "flexible",
-    
+
     completed: true,
     completed_at: new Date().toISOString(),
-    version: "2.2"
+    version: "2.2",
   };
 }
 
@@ -124,7 +139,7 @@ function createCleanPreferences(questionnaire) {
     workout_duration: questionnaire.workout_duration_preference,
     workout_time: questionnaire.workout_time_preference,
     preferred_equipment: questionnaire.available_equipment,
-    diet_type: questionnaire.diet_type
+    diet_type: questionnaire.diet_type,
   };
 }
 
@@ -133,22 +148,22 @@ function createCleanPreferences(questionnaire) {
  */
 function updateSmartQuestionnaireData(originalSmartData, cleanQuestionnaire) {
   const updatedSmartData = { ...originalSmartData };
-  
+
   // עדכון ה-metadata עם נתונים נכונים
   if (updatedSmartData.metadata) {
     updatedSmartData.metadata.completionRate = 100;
     updatedSmartData.metadata.questionsAnswered = 13;
     updatedSmartData.metadata.completedAt = cleanQuestionnaire.completed_at;
-    
+
     // עדכון recommendations להיות רלוונטיות יותר
     updatedSmartData.metadata.recommendations = {
       primaryFocus: cleanQuestionnaire.specific_goals,
       sessionDuration: `${cleanQuestionnaire.workout_duration_preference} דקות מומלץ`,
       workoutFrequency: `${cleanQuestionnaire.workout_frequency_target} ימים בשבוע`,
-      equipmentSuggestions: cleanQuestionnaire.available_equipment
+      equipmentSuggestions: cleanQuestionnaire.available_equipment,
     };
   }
-  
+
   return updatedSmartData;
 }
 
@@ -170,7 +185,10 @@ async function cleanUserData(userId, cleanQuestionnaire) {
     }
 
     const cleanPreferences = createCleanPreferences(cleanQuestionnaire);
-    const updatedSmartData = updateSmartQuestionnaireData(userData.smartquestionnairedata, cleanQuestionnaire);
+    const updatedSmartData = updateSmartQuestionnaireData(
+      userData.smartquestionnairedata,
+      cleanQuestionnaire
+    );
 
     // עדכון במסד הנתונים
     const { error } = await supabase
@@ -179,7 +197,7 @@ async function cleanUserData(userId, cleanQuestionnaire) {
         questionnaire: cleanQuestionnaire,
         smartquestionnairedata: updatedSmartData,
         preferences: cleanPreferences,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
 
@@ -207,32 +225,38 @@ async function cleanAllDemoUserData() {
     {
       id: "u_init_1",
       name: "Ron Shoval",
-      questionnaire: createCleanRonQuestionnaire()
+      questionnaire: createCleanRonQuestionnaire(),
     },
     {
-      id: "realistic_1755276001521_ifig7z", 
+      id: "realistic_1755276001521_ifig7z",
       name: "נועה שפירא",
-      questionnaire: createCleanNoaQuestionnaire()
+      questionnaire: createCleanNoaQuestionnaire(),
     },
     {
       id: "u_init_3",
       name: "Amit Cohen",
-      questionnaire: createCleanAmitQuestionnaire()
-    }
+      questionnaire: createCleanAmitQuestionnaire(),
+    },
   ];
 
   const results = [];
 
   for (const cleanup of cleanups) {
     console.log(`🔄 מנקה נתונים עבור ${cleanup.name}...`);
-    
+
     const success = await cleanUserData(cleanup.id, cleanup.questionnaire);
-    
+
     if (success) {
       console.log(`✅ ${cleanup.name} נוקה בהצלחה`);
-      console.log(`   📊 נתונים שנשארו: ${Object.keys(cleanup.questionnaire).length} שדות`);
-      console.log(`   🎯 מטרות: ${cleanup.questionnaire.specific_goals.join(", ")}`);
-      console.log(`   🏋️ ציוד: ${cleanup.questionnaire.available_equipment.length} פריטים`);
+      console.log(
+        `   📊 נתונים שנשארו: ${Object.keys(cleanup.questionnaire).length} שדות`
+      );
+      console.log(
+        `   🎯 מטרות: ${cleanup.questionnaire.specific_goals.join(", ")}`
+      );
+      console.log(
+        `   🏋️ ציוד: ${cleanup.questionnaire.available_equipment.length} פריטים`
+      );
     } else {
       console.log(`❌ ${cleanup.name} נכשל`);
     }
@@ -242,21 +266,25 @@ async function cleanAllDemoUserData() {
   }
 
   // סיכום
-  const successCount = results.filter(r => r.success).length;
-  
+  const successCount = results.filter((r) => r.success).length;
+
   console.log("📋 סיכום ניקוי:");
   console.log("=" * 20);
-  results.forEach(result => {
+  results.forEach((result) => {
     const status = result.success ? "✅ נוקה" : "❌ נכשל";
     console.log(`${result.name}: ${status}`);
   });
 
-  console.log(`\n📊 סה"כ: ${successCount}/${results.length} משתמשים נוקו בהצלחה`);
+  console.log(
+    `\n📊 סה"כ: ${successCount}/${results.length} משתמשים נוקו בהצלחה`
+  );
 
   if (successCount === results.length) {
     console.log("\n🎉 כל הנתונים נוקו בהצלחה!");
     console.log("📱 עכשיו הפרופילים מציגים רק נתונים אמיתיים");
-    console.log("💡 הנתונים מבוססים על מה שבאמת היה ב-smart questionnaire המקורי");
+    console.log(
+      "💡 הנתונים מבוססים על מה שבאמת היה ב-smart questionnaire המקורי"
+    );
   }
 
   return successCount === results.length;

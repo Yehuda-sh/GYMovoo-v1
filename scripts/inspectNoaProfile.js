@@ -44,15 +44,27 @@ async function inspectNoaProfile() {
     if (noaData.questionnaire) {
       console.log("📊 תוכן מלא:");
       console.log(JSON.stringify(noaData.questionnaire, null, 2));
-      
+
       console.log("\n🎯 נתונים ספציפיים:");
-      console.log(`👶 גיל: ${noaData.questionnaire.age || 'לא מוגדר'}`);
-      console.log(`⚡ רמת פעילות: ${noaData.questionnaire.activity_level || 'לא מוגדר'}`);
-      console.log(`💭 מוטיבציה: ${JSON.stringify(noaData.questionnaire.motivation_factors || [])}`);
-      console.log(`📍 מיקום אימונים: ${noaData.questionnaire.workout_location || 'לא מוגדר'}`);
-      console.log(`😴 שעות שינה: ${noaData.questionnaire.sleep_hours || 'לא מוגדר'}`);
-      console.log(`⏰ זמן מועדף: ${noaData.questionnaire.workout_time_preference || 'לא מוגדר'}`);
-      console.log(`🥗 סוג תזונה: ${noaData.questionnaire.diet_type || 'לא מוגדר'}`);
+      console.log(`👶 גיל: ${noaData.questionnaire.age || "לא מוגדר"}`);
+      console.log(
+        `⚡ רמת פעילות: ${noaData.questionnaire.activity_level || "לא מוגדר"}`
+      );
+      console.log(
+        `💭 מוטיבציה: ${JSON.stringify(noaData.questionnaire.motivation_factors || [])}`
+      );
+      console.log(
+        `📍 מיקום אימונים: ${noaData.questionnaire.workout_location || "לא מוגדר"}`
+      );
+      console.log(
+        `😴 שעות שינה: ${noaData.questionnaire.sleep_hours || "לא מוגדר"}`
+      );
+      console.log(
+        `⏰ זמן מועדף: ${noaData.questionnaire.workout_time_preference || "לא מוגדר"}`
+      );
+      console.log(
+        `🥗 סוג תזונה: ${noaData.questionnaire.diet_type || "לא מוגדר"}`
+      );
     } else {
       console.log("❌ אין נתוני questionnaire");
     }
@@ -62,14 +74,20 @@ async function inspectNoaProfile() {
     console.log("=".repeat(50));
     if (noaData.smartquestionnairedata) {
       console.log("📊 metadata:");
-      console.log(JSON.stringify(noaData.smartquestionnairedata.metadata, null, 2));
-      
+      console.log(
+        JSON.stringify(noaData.smartquestionnairedata.metadata, null, 2)
+      );
+
       console.log("\n🎯 answers:");
-      console.log(JSON.stringify(noaData.smartquestionnairedata.answers, null, 2));
-      
+      console.log(
+        JSON.stringify(noaData.smartquestionnairedata.answers, null, 2)
+      );
+
       console.log("\n📈 נתוני השלמה:");
-      const completion = noaData.smartquestionnairedata.metadata?.completionRate || 0;
-      const questions = noaData.smartquestionnairedata.metadata?.questionsAnswered || 0;
+      const completion =
+        noaData.smartquestionnairedata.metadata?.completionRate || 0;
+      const questions =
+        noaData.smartquestionnairedata.metadata?.questionsAnswered || 0;
       console.log(`✅ השלמה: ${completion}%`);
       console.log(`📝 שאלות: ${questions}/13`);
     } else {
@@ -89,50 +107,62 @@ async function inspectNoaProfile() {
     // ניתוח מקור הנתונים
     console.log("\n🔍 ניתוח מקור הנתונים:");
     console.log("=".repeat(50));
-    
+
     const createdDate = new Date(noaData.created_at);
     const updatedDate = new Date(noaData.updated_at);
-    
-    console.log(`📅 נוצר: ${createdDate.toLocaleString('he-IL')}`);
-    console.log(`🔄 עודכן: ${updatedDate.toLocaleString('he-IL')}`);
-    
+
+    console.log(`📅 נוצר: ${createdDate.toLocaleString("he-IL")}`);
+    console.log(`🔄 עודכן: ${updatedDate.toLocaleString("he-IL")}`);
+
     // בדיקה אם הנתונים נוצרו על ידי הסקריפטים שלנו
-    const isFromScript = noaData.questionnaire?.completed_at && 
-                        new Date(noaData.questionnaire.completed_at) > new Date('2025-08-24');
-    
-    console.log(`🤖 נוצר על ידי סקריפט דמו: ${isFromScript ? 'כן' : 'לא'}`);
-    
+    const isFromScript =
+      noaData.questionnaire?.completed_at &&
+      new Date(noaData.questionnaire.completed_at) > new Date("2025-08-24");
+
+    console.log(`🤖 נוצר על ידי סקריפט דמו: ${isFromScript ? "כן" : "לא"}`);
+
     if (isFromScript) {
-      console.log("⚠️ הנתונים נוצרו על ידי סקריפט תיקון הדמו ולא על ידי המשתמש!");
+      console.log(
+        "⚠️ הנתונים נוצרו על ידי סקריפט תיקון הדמו ולא על ידי המשתמש!"
+      );
       console.log("💡 זה מסביר מאיפה הגיעו הנתונים המפורטים.");
     }
 
     // השוואה לנתונים מקוריים
     console.log("\n📋 השוואה לנתונים מקוריים (אם קיימים):");
     console.log("=".repeat(50));
-    
+
     // בדיקה אם יש נתונים מקוריים ב-smartquestionnairedata שלא שונו
     const originalAnswers = noaData.smartquestionnairedata?.answers;
     if (originalAnswers) {
       console.log("🔍 תשובות מקוריות שנמצאו:");
-      
+
       // בדיקת הגיל
       if (originalAnswers.age !== noaData.questionnaire?.age) {
-        console.log(`⚠️ גיל שונה: questionnaire=${noaData.questionnaire?.age}, smart=${originalAnswers.age}`);
+        console.log(
+          `⚠️ גיל שונה: questionnaire=${noaData.questionnaire?.age}, smart=${originalAnswers.age}`
+        );
       }
-      
+
       // בדיקת מטרות
-      console.log(`🎯 מטרות מקוריות: ${JSON.stringify(originalAnswers.goals || [])}`);
-      console.log(`🎯 מטרות בשאלון: ${JSON.stringify(noaData.questionnaire?.specific_goals || [])}`);
-      
+      console.log(
+        `🎯 מטרות מקוריות: ${JSON.stringify(originalAnswers.goals || [])}`
+      );
+      console.log(
+        `🎯 מטרות בשאלון: ${JSON.stringify(noaData.questionnaire?.specific_goals || [])}`
+      );
+
       // בדיקת ציוד
-      console.log(`🏋️ ציוד מקורי: ${JSON.stringify(originalAnswers.equipment || [])}`);
-      console.log(`🏋️ ציוד בשאלון: ${JSON.stringify(noaData.questionnaire?.available_equipment || [])}`);
+      console.log(
+        `🏋️ ציוד מקורי: ${JSON.stringify(originalAnswers.equipment || [])}`
+      );
+      console.log(
+        `🏋️ ציוד בשאלון: ${JSON.stringify(noaData.questionnaire?.available_equipment || [])}`
+      );
     }
 
     console.log("\n" + "=".repeat(80));
     console.log("✅ בדיקה הושלמה!");
-
   } catch (error) {
     console.error("❌ שגיאה כללית:", error);
   }
