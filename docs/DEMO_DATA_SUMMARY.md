@@ -145,36 +145,43 @@ Each workout contains:
 ## ⚠️ Issues Fixed
 
 ### Questionnaire Completion Issues for All Demo Users
+
 **Date:** 2025-08-24-25  
 **Scripts:** `scripts/fixRonShovalQuestionnaire.js` & `scripts/fixAllDemoUsersQuestionnaires.js`
 
 **Problem:** All three demo users had incomplete or missing questionnaire data:
+
 - Ron Shoval: 7.69% completion (1/13 questions)
-- נועה שפירא: Partial questionnaire data 
+- נועה שפירא: Partial questionnaire data
 - Amit Cohen: Missing questionnaire completely
 
 **Solution:**
 ✅ Created complete questionnaire data for all users with distinct profiles:
 
 **Ron Shoval (Free):**
+
 - Age 28, 175cm, 75kg → 70kg goal
 - Beginner level, home workouts, basic equipment
 - Goals: weight loss, muscle building, endurance
 - Preferences: 3x/week, 45min, evening sessions
 
-**נועה שפירא (Trial):**  
+**נועה שפירא (Trial):**
+
 - Age 32, 163cm, 62kg → 60kg goal
 - Intermediate level, mixed location, varied equipment
 - Goals: endurance, muscle building, stress relief
 - Preferences: 4x/week, 50min, morning sessions, vegetarian diet
 
 **Amit Cohen (Premium):**
-- Age 35, 180cm, 82kg → 85kg goal  
+
+- Age 35, 180cm, 82kg → 85kg goal
 - Advanced level, gym workouts, full equipment
 - Goals: muscle building, strength, performance
 - Preferences: 6x/week, 75min, evening sessions, bulk nutrition
 
 **Verification:** `scripts/checkAllDemoUsers.js` confirms all users now have 100% complete questionnaires with 13/13 questions answered.
+
+**Data Source Clarification:** All questionnaire data is based on the original `smartquestionnairedata` that existed before demo script modifications. Extraneous fields like activity level, sleep hours, stress level, and detailed motivation factors that were not in the original data have been removed to maintain authenticity.
 
 ## 📈 Next Steps
 

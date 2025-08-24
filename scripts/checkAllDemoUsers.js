@@ -17,20 +17,20 @@ const DEMO_USERS = [
     id: "u_init_1",
     name: "Ron Shoval",
     type: "FREE",
-    email: "ron.shoval@example.com"
+    email: "ron.shoval@example.com",
   },
   {
-    id: "realistic_1755276001521_ifig7z", 
+    id: "realistic_1755276001521_ifig7z",
     name: "נועה שפירא",
     type: "TRIAL",
-    email: "noa.shapira.updated@walla.com"
+    email: "noa.shapira.updated@walla.com",
   },
   {
     id: "u_init_3",
-    name: "Amit Cohen", 
+    name: "Amit Cohen",
     type: "PREMIUM",
-    email: "amit.cohen@example.com"
-  }
+    email: "amit.cohen@example.com",
+  },
 ];
 
 /**
@@ -53,12 +53,20 @@ async function checkDemoUser(userConfig) {
 
     if (error) {
       console.error(`❌ שגיאה בשליפת ${userConfig.name}:`, error.message);
-      return { user: userConfig.name, status: "ERROR", issues: ["Database error"] };
+      return {
+        user: userConfig.name,
+        status: "ERROR",
+        issues: ["Database error"],
+      };
     }
 
     if (!userData) {
       console.log(`❌ ${userConfig.name} לא נמצא במסד הנתונים`);
-      return { user: userConfig.name, status: "MISSING", issues: ["User not found"] };
+      return {
+        user: userConfig.name,
+        status: "MISSING",
+        issues: ["User not found"],
+      };
     }
 
     const issues = [];
@@ -70,26 +78,28 @@ async function checkDemoUser(userConfig) {
       console.log("❌ אין נתוני questionnaire");
       issues.push("Missing questionnaire data");
     } else {
-      const completionRate = userData.smartquestionnairedata?.metadata?.completionRate || 0;
-      const questionsAnswered = userData.smartquestionnairedata?.metadata?.questionsAnswered || 0;
+      const completionRate =
+        userData.smartquestionnairedata?.metadata?.completionRate || 0;
+      const questionsAnswered =
+        userData.smartquestionnairedata?.metadata?.questionsAnswered || 0;
       const hasCompleteFlag = userData.questionnaire?.completed === true;
-      
+
       // אם יש 13 שאלות ו-completed flag, זה שאלון מושלם
       const isComplete = hasCompleteFlag && questionsAnswered === 13;
       const actualCompletionRate = isComplete ? 100 : completionRate;
-      
+
       console.log(`✅ יש questionnaire (השלמה: ${actualCompletionRate}%)`);
       console.log(`📊 שאלות שנענו: ${questionsAnswered}/13`);
       console.log(`🔄 completed flag: ${hasCompleteFlag}`);
-      
+
       if (!isComplete) {
         issues.push(`Incomplete questionnaire: ${actualCompletionRate}%`);
       }
-      
+
       details.questionnaire = {
         completed: isComplete,
         completionRate: actualCompletionRate,
-        questionsAnswered
+        questionsAnswered,
       };
     }
 
@@ -102,20 +112,22 @@ async function checkDemoUser(userConfig) {
     } else {
       const workoutCount = userData.activityhistory.length;
       console.log(`✅ יש ${workoutCount} אימונים`);
-      
+
       // בדיקת תקינות האימונים
-      const validWorkouts = userData.activityhistory.filter(w => 
-        w.workout && w.workout.exercises && w.stats
+      const validWorkouts = userData.activityhistory.filter(
+        (w) => w.workout && w.workout.exercises && w.stats
       );
-      
+
       if (validWorkouts.length !== workoutCount) {
-        issues.push(`Invalid workout data: ${validWorkouts.length}/${workoutCount} valid`);
+        issues.push(
+          `Invalid workout data: ${validWorkouts.length}/${workoutCount} valid`
+        );
       }
-      
+
       details.workouts = {
         count: workoutCount,
         valid: validWorkouts.length === workoutCount,
-        totalVolume: userData.trainingstats?.totalVolume || 0
+        totalVolume: userData.trainingstats?.totalVolume || 0,
       };
     }
 
@@ -127,32 +139,37 @@ async function checkDemoUser(userConfig) {
       details.gamification = { exists: false };
     } else {
       const gamification = userData.currentstats.gamification;
-      console.log(`✅ רמה ${gamification.level}, ${gamification.experience_points} XP`);
+      console.log(
+        `✅ רמה ${gamification.level}, ${gamification.experience_points} XP`
+      );
       console.log(`🏃 אימונים: ${gamification.workouts_completed}`);
       console.log(`🔥 רצף: ${gamification.current_streak} ימים`);
-      
+
       details.gamification = {
         exists: true,
         level: gamification.level,
         xp: gamification.experience_points,
         workouts: gamification.workouts_completed,
-        streak: gamification.current_streak
+        streak: gamification.current_streak,
       };
     }
 
     // בדיקת achievements
     console.log("\n🏆 בדיקת הישגים:");
-    if (!userData.currentstats?.achievements || !Array.isArray(userData.currentstats.achievements)) {
+    if (
+      !userData.currentstats?.achievements ||
+      !Array.isArray(userData.currentstats.achievements)
+    ) {
       console.log("❌ אין הישגים");
       issues.push("Missing achievements");
       details.achievements = { count: 0, valid: false };
     } else {
       const achievementCount = userData.currentstats.achievements.length;
       console.log(`✅ יש ${achievementCount} הישגים`);
-      
+
       details.achievements = {
         count: achievementCount,
-        valid: true
+        valid: true,
       };
     }
 
@@ -166,7 +183,10 @@ async function checkDemoUser(userConfig) {
       } else {
         console.log("⚠️ Free user אבל יש נתוני מנוי");
         issues.push("Free user has subscription data");
-        details.subscription = { correct: false, unexpected: userData.subscription };
+        details.subscription = {
+          correct: false,
+          unexpected: userData.subscription,
+        };
       }
     } else {
       if (!userData.subscription) {
@@ -176,15 +196,17 @@ async function checkDemoUser(userConfig) {
       } else {
         const subType = userData.subscription.type;
         console.log(`✅ מנוי: ${subType} (${userData.subscription.status})`);
-        
+
         if (subType !== expectedSubscription) {
-          issues.push(`Wrong subscription type: ${subType} (expected: ${expectedSubscription})`);
+          issues.push(
+            `Wrong subscription type: ${subType} (expected: ${expectedSubscription})`
+          );
         }
-        
+
         details.subscription = {
           correct: subType === expectedSubscription,
           type: subType,
-          status: userData.subscription.status
+          status: userData.subscription.status,
         };
       }
     }
@@ -206,7 +228,7 @@ async function checkDemoUser(userConfig) {
     console.log(`✅ סטטוס: ${status}`);
     if (issues.length > 0) {
       console.log("⚠️ בעיות שנמצאו:");
-      issues.forEach(issue => console.log(`   - ${issue}`));
+      issues.forEach((issue) => console.log(`   - ${issue}`));
     }
 
     return {
@@ -214,12 +236,15 @@ async function checkDemoUser(userConfig) {
       type: userConfig.type,
       status,
       issues,
-      details
+      details,
     };
-
   } catch (error) {
     console.error(`❌ שגיאה כללית בבדיקת ${userConfig.name}:`, error);
-    return { user: userConfig.name, status: "ERROR", issues: ["General error"] };
+    return {
+      user: userConfig.name,
+      status: "ERROR",
+      issues: ["General error"],
+    };
   }
 }
 
@@ -228,7 +253,7 @@ async function checkDemoUser(userConfig) {
  */
 async function checkAllDemoUsers() {
   console.log("🎯 בדיקת כל משתמשי הדמו");
-  console.log("⏰ תאריך:", new Date().toLocaleString('he-IL'));
+  console.log("⏰ תאריך:", new Date().toLocaleString("he-IL"));
 
   const results = [];
 
@@ -242,9 +267,11 @@ async function checkAllDemoUsers() {
   console.log("📋 סיכום כללי:");
   console.log(`${"=".repeat(60)}`);
 
-  const okUsers = results.filter(r => r.status === "OK");
-  const issueUsers = results.filter(r => r.status === "ISSUES");
-  const errorUsers = results.filter(r => r.status === "ERROR" || r.status === "MISSING");
+  const okUsers = results.filter((r) => r.status === "OK");
+  const issueUsers = results.filter((r) => r.status === "ISSUES");
+  const errorUsers = results.filter(
+    (r) => r.status === "ERROR" || r.status === "MISSING"
+  );
 
   console.log(`✅ משתמשים תקינים: ${okUsers.length}/${results.length}`);
   console.log(`⚠️ משתמשים עם בעיות: ${issueUsers.length}/${results.length}`);
@@ -252,15 +279,15 @@ async function checkAllDemoUsers() {
 
   if (issueUsers.length > 0) {
     console.log("\n⚠️ פירוט בעיות:");
-    issueUsers.forEach(user => {
+    issueUsers.forEach((user) => {
       console.log(`\n${user.user} (${user.type}):`);
-      user.issues.forEach(issue => console.log(`   - ${issue}`));
+      user.issues.forEach((issue) => console.log(`   - ${issue}`));
     });
   }
 
   if (errorUsers.length > 0) {
     console.log("\n❌ פירוט שגיאות:");
-    errorUsers.forEach(user => {
+    errorUsers.forEach((user) => {
       console.log(`\n${user.user} (${user.type}): ${user.status}`);
     });
   }
@@ -274,7 +301,7 @@ async function checkAllDemoUsers() {
 // הרצה
 checkAllDemoUsers()
   .then((results) => {
-    const hasIssues = results.some(r => r.status !== "OK");
+    const hasIssues = results.some((r) => r.status !== "OK");
     process.exit(hasIssues ? 1 : 0);
   })
   .catch((error) => {
