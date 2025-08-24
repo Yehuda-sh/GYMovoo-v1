@@ -52,7 +52,8 @@ class WorkoutFacadeService {
   // --- Personal Record Methods ---
 
   async detectPersonalRecords(workout: WorkoutData): Promise<PersonalRecord[]> {
-    return personalRecordService.detectPersonalRecords(workout);
+    const result = await personalRecordService.detectPersonalRecords(workout);
+    return result.records || [];
   }
 
   async savePreviousPerformances(

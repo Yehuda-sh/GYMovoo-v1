@@ -484,9 +484,9 @@ const LoginScreen = React.memo(() => {
    * Validates email format
    */
   const validateForm = (): boolean => {
-    const errors = validateLoginForm(email, password);
-    setFieldErrors(errors);
-    if (Object.keys(errors).length) {
+    const validation = validateLoginForm(email, password);
+    setFieldErrors(validation.errors as LoginFieldErrors);
+    if (!validation.isValid) {
       createShakeAnimation(shakeAnim).start();
       return false;
     }

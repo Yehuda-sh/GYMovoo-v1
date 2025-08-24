@@ -19,11 +19,16 @@ import {
   TextInput,
   RefreshControl,
 } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import { Exercise, fetchRandomExercises } from "../../data/exercises";
 import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { useSubscription } from "../../stores/userStore";
+import type { RootStackParamList } from "../../navigation/types";
 
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISES === "1";
 const dlog = (m: string, data?: unknown) => {
@@ -31,6 +36,13 @@ const dlog = (m: string, data?: unknown) => {
 };
 
 const ExerciseListScreen: React.FC = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "ExerciseList">>();
+  const { subscription } = useSubscription();
+
+  // Route parameters
+  const { mode, onSelectExercise, fromScreen } = route.params || {};
+
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]); // filtered
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
@@ -42,6 +54,12 @@ const ExerciseListScreen: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<
     "all" | "beginner" | "intermediate" | "advanced"
   >("all");
+
+  // Free user limitations tracking
+  const [dailyReplacements, setDailyReplacements] = useState(0);
+  const [currentMuscleGroup, setCurrentMuscleGroup] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     loadExercises();
@@ -74,12 +92,16 @@ const ExerciseListScreen: React.FC = () => {
     }
   }, []);
 
-  // סינון + חיפוש
+  // סינון + חיפוש עם הגבלות Free users
   useEffect(() => {
     let filtered = allExercises;
+
+    // סינון לפי רמת קושי
     if (difficultyFilter !== "all") {
       filtered = filtered.filter((e) => e.difficulty === difficultyFilter);
     }
+
+    // סינון לפי חיפוש
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       filtered = filtered.filter(
@@ -89,12 +111,90 @@ const ExerciseListScreen: React.FC = () => {
           e.primaryMuscles.some((m) => m.toLowerCase().includes(q))
       );
     }
+
+    // הגבלות Free users - רק תרגילים באותה קבוצת שריר
+    if (
+      mode === "selection" &&
+      subscription?.type === "free" &&
+      currentMuscleGroup
+    ) {
+      filtered = filtered.filter(
+        (e) => e.primaryMuscles[0] === currentMuscleGroup
+      );
+    }
+
     setExercises(filtered);
-  }, [allExercises, search, difficultyFilter]);
+  }, [
+    allExercises,
+    search,
+    difficultyFilter,
+    mode,
+    subscription?.type,
+    currentMuscleGroup,
+  ]);
 
   const handleReloadPress = useCallback(() => {
     onRefresh();
   }, [onRefresh]);
+
+  // טיפול בבחירת תרגיל עם הגבלות Free users
+  const handleExerciseSelect = useCallback(
+    (exercise: Exercise) => {
+      // אם זה מצב בחירה (מתוך אימון)
+      if (mode === "selection" && onSelectExercise) {
+        // בדיקת הגבלות Free users
+        if (subscription?.type === "free") {
+          // בדיקה אם זו קבוצת שריר שונה (רק Free users מוגבלים לאותה קבוצת שריר)
+          if (
+            currentMuscleGroup &&
+            exercise.primaryMuscles[0] !== currentMuscleGroup
+          ) {
+            alert("משתמש Free יכול להחליף תרגילים רק באותה קבוצת שריר");
+            return;
+          }
+
+          // בדיקה אם חריגה מ-3 החלפות ביום
+          if (dailyReplacements >= 3) {
+            alert("משתמש Free יכול להחליף עד 3 תרגילים ביום בלבד");
+            return;
+          }
+
+          // עדכון הגבלות Free user
+          if (!currentMuscleGroup) {
+            setCurrentMuscleGroup(exercise.primaryMuscles[0]);
+          }
+          setDailyReplacements((prev) => prev + 1);
+        }
+
+        // החזרת התרגיל הנבחר (המרה מ-Exercise ל-WorkoutExercise)
+        const workoutExercise = {
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category,
+          primaryMuscles: exercise.primaryMuscles,
+          secondaryMuscles: exercise.secondaryMuscles,
+          equipment: exercise.equipment,
+          instructions: exercise.instructions?.he || [],
+          tips: exercise.tips?.he || [],
+          videoUrl: exercise.media?.video,
+          imageUrl: exercise.media?.image,
+        };
+        onSelectExercise(workoutExercise);
+        navigation.goBack();
+      } else {
+        // מצב רגיל - הצגת פרטי התרגיל
+        setSelectedExercise(exercise);
+      }
+    },
+    [
+      mode,
+      onSelectExercise,
+      subscription?.type,
+      currentMuscleGroup,
+      dailyReplacements,
+      navigation,
+    ]
+  );
 
   const difficultyLabel = useCallback((d: Exercise["difficulty"]) => {
     switch (d) {
@@ -177,7 +277,7 @@ const ExerciseListScreen: React.FC = () => {
   ExerciseCard.displayName = "ExerciseCard";
 
   const renderExerciseItem = ({ item }: { item: Exercise }) => (
-    <ExerciseCard item={item} onPress={() => setSelectedExercise(item)} />
+    <ExerciseCard item={item} onPress={() => handleExerciseSelect(item)} />
   );
 
   const DifficultyFilterBar = () => {
@@ -254,6 +354,17 @@ const ExerciseListScreen: React.FC = () => {
       </View>
 
       <DifficultyFilterBar />
+
+      {/* הודעת הגבלות Free users */}
+      {mode === "selection" && subscription?.type === "free" && (
+        <View style={styles.freeUserNotice}>
+          <Text style={styles.freeUserNoticeText}>
+            {currentMuscleGroup
+              ? `משתמש Free: תרגילים באותה קבוצת שריר בלבד (${currentMuscleGroup}). נותרו ${3 - dailyReplacements} החלפות ביום`
+              : "משתמש Free: יכול להחליף עד 3 תרגילים ביום באותה קבוצת שריר בלבד"}
+          </Text>
+        </View>
+      )}
 
       <FlatList
         data={exercises}
@@ -476,6 +587,22 @@ const styles = StyleSheet.create({
     ...theme.typography.bodySmall,
     color: theme.colors.white,
     fontWeight: "600",
+  },
+  freeUserNotice: {
+    backgroundColor: theme.colors.warning + "20", // warning עם 20% שקיפות
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.warning,
+  },
+  freeUserNoticeText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.text,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
 });
 

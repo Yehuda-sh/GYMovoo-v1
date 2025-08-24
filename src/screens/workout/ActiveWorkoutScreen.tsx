@@ -113,6 +113,7 @@ import { errorHandler } from "../../utils/errorHandler";
 import { useAccessibilityAnnouncements } from "../../hooks/useAccessibilityAnnouncements";
 import { UniversalButton } from "../../components/ui/UniversalButton";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
+import AdManager from "../../components/AdManager";
 
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -260,6 +261,11 @@ const ActiveWorkoutScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
 
+  // Ad states
+  const [showStartAd, setShowStartAd] = useState(true); // פרסומת התחלה
+  const [showEndAd, setShowEndAd] = useState(false); // פרסומת סיום
+  const [workoutStarted, setWorkoutStarted] = useState(false); // האם האימון התחיל
+
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
     const stats = calculateWorkoutStats(exercises);
@@ -307,6 +313,13 @@ const ActiveWorkoutScreen: React.FC = () => {
       skipRestTimer();
     };
   }, [startTimer, pauseTimer, skipRestTimer]);
+
+  // טיפול בפרסומת התחלה
+  useEffect(() => {
+    if (!workoutStarted) {
+      setWorkoutStarted(true);
+    }
+  }, [workoutStarted]);
 
   // הפקת תוכנית שבועית לזיהוי אינדקס האימון - אופטימיזציה בסיסית
   const weeklyPlan = useMemo(() => {
@@ -531,6 +544,9 @@ const ActiveWorkoutScreen: React.FC = () => {
       announceError(errorMsg);
       return;
     }
+
+    // הצגת פרסומת סיום למשתמשי Free
+    setShowEndAd(true);
 
     announceInfo("פותח חלון סיום אימון");
     setShowExitModal(true);
@@ -808,6 +824,19 @@ const ActiveWorkoutScreen: React.FC = () => {
           cancelText="ביטול"
           destructive={true}
           icon="trash"
+        />
+
+        {/* Ad Manager - פרסומות למשתמשי Free */}
+        <AdManager
+          placement="workout-start"
+          visible={showStartAd && workoutStarted}
+          onAdClosed={() => setShowStartAd(false)}
+        />
+
+        <AdManager
+          placement="workout-end"
+          visible={showEndAd}
+          onAdClosed={() => setShowEndAd(false)}
         />
       </SafeAreaView>
     </ErrorBoundary>

@@ -270,7 +270,7 @@ export default function RegisterScreen() {
     if (email.length > 0) {
       setFieldValidation((prev) => ({
         ...prev,
-        email: sharedValidateEmail(email),
+        email: sharedValidateEmail(email).isValid,
       }));
     }
   }, [email]);
