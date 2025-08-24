@@ -489,6 +489,7 @@ export default function WorkoutPlansScreen({
           {currentWorkoutPlan && (
             <WorkoutPlanDisplay
               workoutPlan={currentWorkoutPlan}
+              isLoading={loading}
               onStartWorkout={(workout, index) => {
                 triggerHaptic("heavy");
                 showSuccess(
