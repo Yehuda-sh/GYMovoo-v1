@@ -104,10 +104,16 @@ interface ExerciseCardAccessibilityInfo {
 interface ExerciseAnalytics {
   exerciseId: string;
   exerciseName: string;
-  action: 'expand' | 'collapse' | 'edit' | 'add_set' | 'complete_set' | 'delete_set';
+  action:
+    | "expand"
+    | "collapse"
+    | "edit"
+    | "add_set"
+    | "complete_set"
+    | "delete_set";
   timestamp: number;
   responseTime: number;
-  interactionMethod: 'touch' | 'voice' | 'keyboard';
+  interactionMethod: "touch" | "voice" | "keyboard";
   setData?: {
     setId: string;
     weight?: number;
@@ -139,14 +145,15 @@ class ExerciseCardPerformanceMonitor {
   endRender(): void {
     const renderTime = Date.now() - this.metrics.lastRenderTime;
     this.renderTimes.push(renderTime);
-    
+
     if (this.renderTimes.length > 50) {
       this.renderTimes.shift();
     }
-    
-    this.metrics.averageRenderTime = 
-      this.renderTimes.reduce((sum, time) => sum + time, 0) / this.renderTimes.length;
-    
+
+    this.metrics.averageRenderTime =
+      this.renderTimes.reduce((sum, time) => sum + time, 0) /
+      this.renderTimes.length;
+
     this.metrics.lastMetricsUpdate = Date.now();
   }
 
@@ -199,9 +206,11 @@ class ExerciseCardSecurityValidator {
     try {
       // Validate weight
       if (setData.actualWeight !== undefined) {
-        if (typeof setData.actualWeight !== 'number' || 
-            setData.actualWeight < 0 || 
-            setData.actualWeight > 1000) {
+        if (
+          typeof setData.actualWeight !== "number" ||
+          setData.actualWeight < 0 ||
+          setData.actualWeight > 1000
+        ) {
           this.metrics.invalidInputs++;
           this.updateSecurityScore();
           return false;
@@ -210,9 +219,11 @@ class ExerciseCardSecurityValidator {
 
       // Validate reps
       if (setData.actualReps !== undefined) {
-        if (typeof setData.actualReps !== 'number' || 
-            setData.actualReps < 0 || 
-            setData.actualReps > 1000) {
+        if (
+          typeof setData.actualReps !== "number" ||
+          setData.actualReps < 0 ||
+          setData.actualReps > 1000
+        ) {
           this.metrics.invalidInputs++;
           this.updateSecurityScore();
           return false;
@@ -221,12 +232,14 @@ class ExerciseCardSecurityValidator {
 
       // Check for rapid updates (potential abuse)
       this.checkRateLimit();
-      
+
       this.updateSecurityScore();
       return true;
     } catch (error) {
-      logger.error('ExerciseCard: Security validation error', 
-        error instanceof Error ? error.message : String(error));
+      logger.error(
+        "ExerciseCard: Security validation error",
+        error instanceof Error ? error.message : String(error)
+      );
       this.metrics.validationFailures++;
       return false;
     }
@@ -235,7 +248,14 @@ class ExerciseCardSecurityValidator {
   validateExerciseAction(action: string, exerciseId: string): boolean {
     try {
       // Validate action type
-      const validActions = ['expand', 'collapse', 'edit', 'add_set', 'complete_set', 'delete_set'];
+      const validActions = [
+        "expand",
+        "collapse",
+        "edit",
+        "add_set",
+        "complete_set",
+        "delete_set",
+      ];
       if (!validActions.includes(action)) {
         this.metrics.invalidInputs++;
         this.updateSecurityScore();
@@ -243,7 +263,11 @@ class ExerciseCardSecurityValidator {
       }
 
       // Validate exercise ID
-      if (!exerciseId || typeof exerciseId !== 'string' || exerciseId.length > 100) {
+      if (
+        !exerciseId ||
+        typeof exerciseId !== "string" ||
+        exerciseId.length > 100
+      ) {
         this.metrics.invalidInputs++;
         this.updateSecurityScore();
         return false;
@@ -252,8 +276,10 @@ class ExerciseCardSecurityValidator {
       this.updateSecurityScore();
       return true;
     } catch (error) {
-      logger.error('ExerciseCard: Action validation error', 
-        error instanceof Error ? error.message : String(error));
+      logger.error(
+        "ExerciseCard: Action validation error",
+        error instanceof Error ? error.message : String(error)
+      );
       this.metrics.validationFailures++;
       return false;
     }
@@ -262,15 +288,17 @@ class ExerciseCardSecurityValidator {
   private checkRateLimit(): void {
     const now = Date.now();
     this.updateHistory.push(now);
-    
+
     // Keep only updates from last minute
-    this.updateHistory = this.updateHistory.filter(time => now - time < 60000);
-    
+    this.updateHistory = this.updateHistory.filter(
+      (time) => now - time < 60000
+    );
+
     if (this.updateHistory.length > this.maxUpdatesPerMinute) {
       this.metrics.rapidUpdates++;
       this.metrics.suspiciousActivity++;
       this.updateSecurityScore();
-      throw new Error('Too many updates');
+      throw new Error("Too many updates");
     }
   }
 
@@ -280,12 +308,16 @@ class ExerciseCardSecurityValidator {
     const rapidPenalty = Math.min(this.metrics.rapidUpdates * 8, 35);
     const validationPenalty = Math.min(this.metrics.validationFailures * 2, 15);
     const suspiciousPenalty = Math.min(this.metrics.suspiciousActivity * 5, 25);
-    
+
     this.metrics.securityScore = Math.max(
-      baseScore - invalidPenalty - rapidPenalty - validationPenalty - suspiciousPenalty,
+      baseScore -
+        invalidPenalty -
+        rapidPenalty -
+        validationPenalty -
+        suspiciousPenalty,
       0
     );
-    
+
     this.metrics.lastSecurityCheck = Date.now();
   }
 
@@ -312,12 +344,15 @@ const securityValidator = new ExerciseCardSecurityValidator();
 
 // Advanced cache manager for exercise data
 class ExerciseCardCacheManager {
-  private cache = new Map<string, {
-    data: unknown;
-    timestamp: number;
-    ttl: number;
-    accessCount: number;
-  }>();
+  private cache = new Map<
+    string,
+    {
+      data: unknown;
+      timestamp: number;
+      ttl: number;
+      accessCount: number;
+    }
+  >();
 
   private readonly defaultTTL = 10 * 60 * 1000; // 10 minutes
   private readonly maxCacheSize = 200;
@@ -326,7 +361,7 @@ class ExerciseCardCacheManager {
     try {
       // Clear expired entries
       this.cleanup();
-      
+
       // Remove oldest entries if cache is full
       if (this.cache.size >= this.maxCacheSize) {
         const oldestKey = Array.from(this.cache.keys())[0];
@@ -340,10 +375,15 @@ class ExerciseCardCacheManager {
         accessCount: 0,
       });
 
-      logger.info('ExerciseCard: Cache set', `Key: ${key}, Size: ${this.cache.size}`);
+      logger.info(
+        "ExerciseCard: Cache set",
+        `Key: ${key}, Size: ${this.cache.size}`
+      );
     } catch (error) {
-      logger.error('ExerciseCard: Cache set failed', 
-        error instanceof Error ? error.message : String(error));
+      logger.error(
+        "ExerciseCard: Cache set failed",
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 
@@ -361,8 +401,10 @@ class ExerciseCardCacheManager {
       entry.accessCount++;
       return entry.data;
     } catch (error) {
-      logger.error('ExerciseCard: Cache get failed', 
-        error instanceof Error ? error.message : String(error));
+      logger.error(
+        "ExerciseCard: Cache get failed",
+        error instanceof Error ? error.message : String(error)
+      );
       return null;
     }
   }
@@ -378,7 +420,7 @@ class ExerciseCardCacheManager {
 
   clear(): void {
     this.cache.clear();
-    logger.info('ExerciseCard: Cache cleared', 'All entries removed');
+    logger.info("ExerciseCard: Cache cleared", "All entries removed");
   }
 
   getStats() {
@@ -427,10 +469,19 @@ class ExerciseCardHealthMonitor {
   getHealthScore(): number {
     const baseScore = 100;
     const errorPenalty = Math.min(this.healthMetrics.errorCount * 3, 30);
-    const performancePenalty = Math.min(this.healthMetrics.performanceIssues * 5, 25);
-    const accessibilityPenalty = Math.min(this.healthMetrics.accessibilityIssues * 4, 20);
+    const performancePenalty = Math.min(
+      this.healthMetrics.performanceIssues * 5,
+      25
+    );
+    const accessibilityPenalty = Math.min(
+      this.healthMetrics.accessibilityIssues * 4,
+      20
+    );
 
-    return Math.max(baseScore - errorPenalty - performancePenalty - accessibilityPenalty, 0);
+    return Math.max(
+      baseScore - errorPenalty - performancePenalty - accessibilityPenalty,
+      0
+    );
   }
 
   getHealthReport() {
@@ -461,15 +512,19 @@ class ExerciseCardAI {
 
   recordExerciseAction(analytics: ExerciseAnalytics): void {
     this.exercisePatterns.push(analytics);
-    
+
     if (this.exercisePatterns.length > this.maxPatterns) {
       this.exercisePatterns.shift();
     }
   }
 
-  getPopularExercises(): Array<{ exerciseName: string; count: number; percentage: number }> {
+  getPopularExercises(): Array<{
+    exerciseName: string;
+    count: number;
+    percentage: number;
+  }> {
     const exerciseCount = new Map<string, number>();
-    
+
     for (const pattern of this.exercisePatterns) {
       const count = exerciseCount.get(pattern.exerciseName) || 0;
       exerciseCount.set(pattern.exerciseName, count + 1);
@@ -487,17 +542,29 @@ class ExerciseCardAI {
 
   getAverageResponseTime(): number {
     if (this.exercisePatterns.length === 0) return 0;
-    
-    const totalTime = this.exercisePatterns.reduce((sum, pattern) => sum + pattern.responseTime, 0);
+
+    const totalTime = this.exercisePatterns.reduce(
+      (sum, pattern) => sum + pattern.responseTime,
+      0
+    );
     return totalTime / this.exercisePatterns.length;
   }
 
-  getSetCompletionPatterns(): Array<{ exerciseName: string; completionRate: number }> {
-    const exerciseStats = new Map<string, { total: number; completed: number }>();
-    
+  getSetCompletionPatterns(): Array<{
+    exerciseName: string;
+    completionRate: number;
+  }> {
+    const exerciseStats = new Map<
+      string,
+      { total: number; completed: number }
+    >();
+
     for (const pattern of this.exercisePatterns) {
-      if (pattern.action === 'complete_set' && pattern.setData) {
-        const stats = exerciseStats.get(pattern.exerciseName) || { total: 0, completed: 0 };
+      if (pattern.action === "complete_set" && pattern.setData) {
+        const stats = exerciseStats.get(pattern.exerciseName) || {
+          total: 0,
+          completed: 0,
+        };
         stats.total++;
         if (pattern.setData.completed) {
           stats.completed++;
@@ -509,7 +576,8 @@ class ExerciseCardAI {
     return Array.from(exerciseStats.entries())
       .map(([exerciseName, stats]) => ({
         exerciseName,
-        completionRate: stats.total > 0 ? (stats.completed / stats.total) * 100 : 0,
+        completionRate:
+          stats.total > 0 ? (stats.completed / stats.total) * 100 : 0,
       }))
       .sort((a, b) => b.completionRate - a.completionRate);
   }
@@ -521,26 +589,38 @@ class ExerciseCardAI {
     const completionPatterns = this.getSetCompletionPatterns();
 
     if (avgResponseTime > 500) {
-      recommendations.push('Consider optimizing exercise card performance - slow response times detected');
+      recommendations.push(
+        "Consider optimizing exercise card performance - slow response times detected"
+      );
     }
 
     if (popularExercises.length > 0 && popularExercises[0].percentage > 40) {
-      recommendations.push(`Most used exercise: ${popularExercises[0].exerciseName} - consider adding quick access`);
+      recommendations.push(
+        `Most used exercise: ${popularExercises[0].exerciseName} - consider adding quick access`
+      );
     }
 
     if (completionPatterns.length > 0) {
-      const lowCompletionExercises = completionPatterns.filter(e => e.completionRate < 70);
+      const lowCompletionExercises = completionPatterns.filter(
+        (e) => e.completionRate < 70
+      );
       if (lowCompletionExercises.length > 0) {
-        recommendations.push(`Low completion rates detected for: ${lowCompletionExercises[0].exerciseName} - consider providing guidance`);
+        recommendations.push(
+          `Low completion rates detected for: ${lowCompletionExercises[0].exerciseName} - consider providing guidance`
+        );
       }
     }
 
     if (this.exercisePatterns.length > 500) {
       const recentPatterns = this.exercisePatterns.slice(-100);
-      const recentAvgTime = recentPatterns.reduce((sum, p) => sum + p.responseTime, 0) / recentPatterns.length;
-      
+      const recentAvgTime =
+        recentPatterns.reduce((sum, p) => sum + p.responseTime, 0) /
+        recentPatterns.length;
+
       if (recentAvgTime > avgResponseTime * 1.3) {
-        recommendations.push('Performance degradation detected in recent exercise interactions');
+        recommendations.push(
+          "Performance degradation detected in recent exercise interactions"
+        );
       }
     }
 
@@ -875,13 +955,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [accessibilityInfo, setAccessibilityInfo] = useState<ExerciseCardAccessibilityInfo>({
-      screenReaderEnabled: false,
-      reduceMotionEnabled: false,
-      lastAnnouncementTime: 0,
-      announcementCount: 0,
-      voiceNavigationActive: false,
-    });
+    const [accessibilityInfo, setAccessibilityInfo] =
+      useState<ExerciseCardAccessibilityInfo>({
+        screenReaderEnabled: false,
+        reduceMotionEnabled: false,
+        lastAnnouncementTime: 0,
+        announcementCount: 0,
+        voiceNavigationActive: false,
+      });
 
     // Performance monitoring
     const performanceData = usePerformanceMonitoring();
@@ -897,12 +978,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     useEffect(() => {
       healthMonitor.recordMount();
       performanceMonitor.startRender();
-      
+
       const initializeAccessibility = async () => {
         try {
-          const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
-          const reduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
-          
+          const screenReaderEnabled =
+            await AccessibilityInfo.isScreenReaderEnabled();
+          const reduceMotionEnabled =
+            await AccessibilityInfo.isReduceMotionEnabled();
+
           setAccessibilityInfo({
             screenReaderEnabled,
             reduceMotionEnabled,
@@ -911,12 +994,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             voiceNavigationActive: false,
           });
 
-          logger.info('ExerciseCard: Accessibility initialized', 
-            `Exercise: ${exercise.name}, Screen reader: ${screenReaderEnabled}, Reduce motion: ${reduceMotionEnabled}`);
+          logger.info(
+            "ExerciseCard: Accessibility initialized",
+            `Exercise: ${exercise.name}, Screen reader: ${screenReaderEnabled}, Reduce motion: ${reduceMotionEnabled}`
+          );
         } catch (error) {
           healthMonitor.recordAccessibilityIssue();
-          logger.error('ExerciseCard: Accessibility initialization failed', 
-            error instanceof Error ? error.message : String(error));
+          logger.error(
+            "ExerciseCard: Accessibility initialization failed",
+            error instanceof Error ? error.message : String(error)
+          );
         }
       };
 
@@ -972,10 +1059,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             const analytics: ExerciseAnalytics = {
               exerciseId: exercise.id,
               exerciseName: exercise.name,
-              action: actionName as ExerciseAnalytics['action'],
+              action: actionName as ExerciseAnalytics["action"],
               timestamp: now,
               responseTime,
-              interactionMethod: 'touch',
+              interactionMethod: "touch",
             };
 
             aiAnalytics.recordExerciseAction(analytics);
@@ -1000,29 +1087,40 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     );
 
     // Enhanced announcement function with throttling
-    const announceToScreenReader = useCallback((message: string) => {
-      if (!accessibilityInfo.screenReaderEnabled) return;
+    const announceToScreenReader = useCallback(
+      (message: string) => {
+        if (!accessibilityInfo.screenReaderEnabled) return;
 
-      const now = Date.now();
-      if (now - accessibilityInfo.lastAnnouncementTime < 1000) return; // Throttle
+        const now = Date.now();
+        if (now - accessibilityInfo.lastAnnouncementTime < 1000) return; // Throttle
 
-      try {
-        AccessibilityInfo.announceForAccessibility(message);
-        
-        setAccessibilityInfo(prev => ({
-          ...prev,
-          lastAnnouncementTime: now,
-          announcementCount: prev.announcementCount + 1,
-        }));
+        try {
+          AccessibilityInfo.announceForAccessibility(message);
 
-        logger.info('ExerciseCard: Accessibility announcement', 
-          `Exercise: ${exercise.name}, Message: ${message}`);
-      } catch (error) {
-        healthMonitor.recordAccessibilityIssue();
-        logger.error('ExerciseCard: Accessibility announcement failed', 
-          error instanceof Error ? error.message : String(error));
-      }
-    }, [accessibilityInfo.screenReaderEnabled, accessibilityInfo.lastAnnouncementTime, exercise.name]);
+          setAccessibilityInfo((prev) => ({
+            ...prev,
+            lastAnnouncementTime: now,
+            announcementCount: prev.announcementCount + 1,
+          }));
+
+          logger.info(
+            "ExerciseCard: Accessibility announcement",
+            `Exercise: ${exercise.name}, Message: ${message}`
+          );
+        } catch (error) {
+          healthMonitor.recordAccessibilityIssue();
+          logger.error(
+            "ExerciseCard: Accessibility announcement failed",
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+      },
+      [
+        accessibilityInfo.screenReaderEnabled,
+        accessibilityInfo.lastAnnouncementTime,
+        exercise.name,
+      ]
+    );
 
     // Debounced function wrapper for performance
     const withDebounce = useCallback(
@@ -1086,73 +1184,83 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         return; // Skip if too soon
       }
 
-      withErrorHandling(() => {
-        // Security validation
-        if (!securityValidator.validateExerciseAction(
-          isExpanded ? 'collapse' : 'expand', 
-          exercise.id
-        )) {
-          logger.warn('ExerciseCard: Invalid toggle action', 
-            `Exercise: ${exercise.name}, Action: ${isExpanded ? 'collapse' : 'expand'}`);
-          return;
-        }
-
-        log("Toggle expanded", { isExpanded, isEditMode, exerciseName: exercise.name });
-
-        // אל תאפשר סגירה במצב עריכה
-        if (isEditMode && isExpanded) {
-          log("Cannot collapse in edit mode");
-
-          // Accessibility announcement
-          announceToScreenReader("לא ניתן לסגור במצב עריכה");
-          
-          if (Platform.OS === "ios") {
-            triggerVibration("short");
+      withErrorHandling(
+        () => {
+          // Security validation
+          if (
+            !securityValidator.validateExerciseAction(
+              isExpanded ? "collapse" : "expand",
+              exercise.id
+            )
+          ) {
+            logger.warn(
+              "ExerciseCard: Invalid toggle action",
+              `Exercise: ${exercise.name}, Action: ${isExpanded ? "collapse" : "expand"}`
+            );
+            return;
           }
-          return;
-        }
 
-        const toValue = !isExpanded ? 1 : 0;
-        performanceMonitor.recordAnimation();
+          log("Toggle expanded", {
+            isExpanded,
+            isEditMode,
+            exerciseName: exercise.name,
+          });
 
-        // Smooth animation with performance consideration
-        const animationDuration =
-          sets.length > PERFORMANCE_THRESHOLDS.MAX_SETS_FOR_SMOOTH_ANIMATION
-            ? ANIMATION_DURATIONS.EXPAND / 2
-            : ANIMATION_DURATIONS.EXPAND;
+          // אל תאפשר סגירה במצב עריכה
+          if (isEditMode && isExpanded) {
+            log("Cannot collapse in edit mode");
 
-        LayoutAnimation.configureNext(
-          LayoutAnimation.create(
-            animationDuration,
-            LayoutAnimation.Types.easeInEaseOut,
-            LayoutAnimation.Properties.scaleY
-          )
-        );
+            // Accessibility announcement
+            announceToScreenReader("לא ניתן לסגור במצב עריכה");
 
-        // Enhanced animation with reduced motion support
-        if (!accessibilityInfo.reduceMotionEnabled) {
-          Animated.timing(expandAnimation, {
-            toValue,
-            duration: animationDuration,
-            useNativeDriver: true,
-          }).start();
-        } else {
-          // Instant change for reduced motion
-          expandAnimation.setValue(toValue);
-        }
+            if (Platform.OS === "ios") {
+              triggerVibration("short");
+            }
+            return;
+          }
 
-        setIsExpanded(!isExpanded);
+          const toValue = !isExpanded ? 1 : 0;
+          performanceMonitor.recordAnimation();
 
-        // Accessibility feedback
-        const message = !isExpanded ? 
-          `תרגיל ${exercise.name} נפתח` : 
-          `תרגיל ${exercise.name} נסגר`;
-        announceToScreenReader(message);
+          // Smooth animation with performance consideration
+          const animationDuration =
+            sets.length > PERFORMANCE_THRESHOLDS.MAX_SETS_FOR_SMOOTH_ANIMATION
+              ? ANIMATION_DURATIONS.EXPAND / 2
+              : ANIMATION_DURATIONS.EXPAND;
 
-        // Cache the state
-        cacheManager.set(`expanded-${exercise.id}`, !isExpanded);
+          LayoutAnimation.configureNext(
+            LayoutAnimation.create(
+              animationDuration,
+              LayoutAnimation.Types.easeInEaseOut,
+              LayoutAnimation.Properties.scaleY
+            )
+          );
 
-      }, isExpanded ? 'collapse' : 'expand')();
+          // Enhanced animation with reduced motion support
+          if (!accessibilityInfo.reduceMotionEnabled) {
+            Animated.timing(expandAnimation, {
+              toValue,
+              duration: animationDuration,
+              useNativeDriver: true,
+            }).start();
+          } else {
+            // Instant change for reduced motion
+            expandAnimation.setValue(toValue);
+          }
+
+          setIsExpanded(!isExpanded);
+
+          // Accessibility feedback
+          const message = !isExpanded
+            ? `תרגיל ${exercise.name} נפתח`
+            : `תרגיל ${exercise.name} נסגר`;
+          announceToScreenReader(message);
+
+          // Cache the state
+          cacheManager.set(`expanded-${exercise.id}`, !isExpanded);
+        },
+        isExpanded ? "collapse" : "expand"
+      )();
     }, [
       isExpanded,
       expandAnimation,
@@ -1250,9 +1358,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const toggleEditMode = useCallback(() => {
       withErrorHandling(() => {
         // Security validation
-        if (!securityValidator.validateExerciseAction('edit', exercise.id)) {
-          logger.warn('ExerciseCard: Invalid edit action', 
-            `Exercise: ${exercise.name}`);
+        if (!securityValidator.validateExerciseAction("edit", exercise.id)) {
+          logger.warn(
+            "ExerciseCard: Invalid edit action",
+            `Exercise: ${exercise.name}`
+          );
           return;
         }
 
@@ -1319,8 +1429,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
 
         // Cache edit mode state
         cacheManager.set(`edit-mode-${exercise.id}`, !isEditMode);
-
-      }, 'edit')();
+      }, "edit")();
     }, [
       isEditMode,
       editModeAnimation,
@@ -1409,42 +1518,53 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         withErrorHandling(() => {
           // Security validation
           if (setIndex < 0 || setIndex >= sets.length) {
-            logger.warn('ExerciseCard: Invalid set index for duplication', 
-              `Exercise: ${exercise.name}, Index: ${setIndex}, Total sets: ${sets.length}`);
+            logger.warn(
+              "ExerciseCard: Invalid set index for duplication",
+              `Exercise: ${exercise.name}, Index: ${setIndex}, Total sets: ${sets.length}`
+            );
             return;
           }
 
           log("Duplicate set", { setIndex, exerciseName: exercise.name });
-          
+
           if (onAddSet) {
             // שכפול הסט - נוסיף את אותם ערכים (מומש בcomponent העליון)
             performanceMonitor.recordSetUpdate();
             onAddSet();
-            
+
             // Record analytics
             const analytics: ExerciseAnalytics = {
               exerciseId: exercise.id,
               exerciseName: exercise.name,
-              action: 'add_set',
+              action: "add_set",
               timestamp: Date.now(),
               responseTime: Date.now() - interactionStartTime.current,
-              interactionMethod: 'touch',
-              setData: sets[setIndex] ? {
-                setId: sets[setIndex].id,
-                weight: sets[setIndex].actualWeight,
-                reps: sets[setIndex].actualReps,
-                completed: sets[setIndex].completed,
-              } : undefined,
+              interactionMethod: "touch",
+              setData: sets[setIndex]
+                ? {
+                    setId: sets[setIndex].id,
+                    weight: sets[setIndex].actualWeight,
+                    reps: sets[setIndex].actualReps,
+                    completed: sets[setIndex].completed,
+                  }
+                : undefined,
             };
 
             aiAnalytics.recordExerciseAction(analytics);
             announceToScreenReader(`סט שוכפל עבור תרגיל ${exercise.name}`);
-            
+
             // Note: Set values are handled by parent component
           }
-        }, 'add_set')();
+        }, "add_set")();
       },
-      [onAddSet, sets, exercise.id, exercise.name, announceToScreenReader, withErrorHandling]
+      [
+        onAddSet,
+        sets,
+        exercise.id,
+        exercise.name,
+        announceToScreenReader,
+        withErrorHandling,
+      ]
     );
 
     // טיפול בבחירת סט
@@ -1483,7 +1603,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           healthMonitor.recordPerformanceIssue();
         }
 
-        log("ExerciseCard cleanup completed", { 
+        log("ExerciseCard cleanup completed", {
           exerciseName: exercise.name,
           finalHealthScore: healthMonitor.getHealthScore(),
         });
@@ -1496,8 +1616,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         const renderTime = Date.now() - performanceRef.current.lastRenderTime;
         if (renderTime > 100) {
           healthMonitor.recordPerformanceIssue();
-          log("Slow render detected", { 
-            renderTime, 
+          log("Slow render detected", {
+            renderTime,
             setsCount: sets.length,
             exerciseName: exercise.name,
           });
@@ -1663,9 +1783,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                 onPress={withDebounce(() => {
                   withErrorHandling(() => {
                     // Security validation
-                    if (!securityValidator.validateExerciseAction('add_set', exercise.id)) {
-                      logger.warn('ExerciseCard: Invalid add set action', 
-                        `Exercise: ${exercise.name}`);
+                    if (
+                      !securityValidator.validateExerciseAction(
+                        "add_set",
+                        exercise.id
+                      )
+                    ) {
+                      logger.warn(
+                        "ExerciseCard: Invalid add set action",
+                        `Exercise: ${exercise.name}`
+                      );
                       return;
                     }
 
@@ -1694,27 +1821,30 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                       triggerVibration("medium");
                     }
 
-                    log("Add set button pressed", { exerciseName: exercise.name });
+                    log("Add set button pressed", {
+                      exerciseName: exercise.name,
+                    });
                     performanceMonitor.recordSetUpdate();
                     onAddSet();
 
                     // Enhanced accessibility feedback
-                    announceToScreenReader(`סט חדש נוסף לתרגיל ${exercise.name}`);
+                    announceToScreenReader(
+                      `סט חדש נוסף לתרגיל ${exercise.name}`
+                    );
 
                     // Record analytics
                     const analytics: ExerciseAnalytics = {
                       exerciseId: exercise.id,
                       exerciseName: exercise.name,
-                      action: 'add_set',
+                      action: "add_set",
                       timestamp: Date.now(),
                       responseTime: Date.now() - interactionStartTime.current,
-                      interactionMethod: 'touch',
+                      interactionMethod: "touch",
                     };
 
                     aiAnalytics.recordExerciseAction(analytics);
                     cacheManager.set(`last-add-set-${exercise.id}`, analytics);
-
-                  }, 'add_set')();
+                  }, "add_set")();
                 }, 500)} // Debounce to prevent double-taps
                 activeOpacity={0.6}
                 accessibilityRole="button"
@@ -1905,7 +2035,7 @@ export const ExerciseCardMonitoring = {
   getAIRecommendations: () => aiAnalytics.getRecommendations(),
   getPopularExercises: () => aiAnalytics.getPopularExercises(),
   getSetCompletionPatterns: () => aiAnalytics.getSetCompletionPatterns(),
-  
+
   // Utility functions for maintenance
   resetAllMetrics: () => {
     performanceMonitor.reset();
@@ -1914,15 +2044,20 @@ export const ExerciseCardMonitoring = {
     aiAnalytics.reset();
     cacheManager.clear();
   },
-  
+
   // Health check function
   healthCheck: () => {
     const health = healthMonitor.getHealthReport();
     const performance = performanceMonitor.getMetrics();
     const security = securityValidator.getMetrics();
-    
+
     return {
-      overall: health.healthScore > 80 ? 'healthy' : health.healthScore > 60 ? 'warning' : 'critical',
+      overall:
+        health.healthScore > 80
+          ? "healthy"
+          : health.healthScore > 60
+            ? "warning"
+            : "critical",
       details: {
         health,
         performance,
@@ -1933,9 +2068,10 @@ export const ExerciseCardMonitoring = {
       },
     };
   },
-  
+
   // Validation utilities
-  validateSetData: (setData: Partial<WorkoutSet>) => securityValidator.validateSetData(setData),
-  validateExerciseAction: (action: string, exerciseId: string) => 
+  validateSetData: (setData: Partial<WorkoutSet>) =>
+    securityValidator.validateSetData(setData),
+  validateExerciseAction: (action: string, exerciseId: string) =>
     securityValidator.validateExerciseAction(action, exerciseId),
 };
