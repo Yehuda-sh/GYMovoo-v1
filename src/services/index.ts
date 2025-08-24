@@ -1,9 +1,11 @@
 /**
  * @file src/services/index.ts
  * @brief ייצוא מרכזי לכל השירותים - Services Export Hub
- * @description Central export point for all GYMovoo services and utilities
+ * @description Central export point for all GYMovoo services and utilities.
+ *              Provides unified access to authentication, workout, data management,
+ *              and specialized services throughout the application.
  * @status ACTIVE - Critical export hub maintaining all service imports
- * @updated 2025-08-15 - Cleaned up deprecated and missing services after demo user validation
+ * @updated 2025-08-25 - Complete services modernization with enhanced documentation
  */
 
 // =======================================
@@ -11,6 +13,7 @@
 // שירותי אימות ואבטחה
 // =======================================
 export * from "./authService";
+export { isQuickLoginAvailable, tryQuickLogin } from "./auth/quickLoginService";
 
 // =======================================
 // 🏋️ Core Workout Services
@@ -36,12 +39,27 @@ export { workoutApi } from "./api/workoutApi";
 // שירותי אימון מתמחים
 // =======================================
 export { workoutFacadeService } from "./workout/workoutFacadeService";
+export { personalRecordService } from "./workout/personalRecordService";
+export { progressiveOverloadService } from "./workout/ProgressiveOverloadService";
 
 // =======================================
 // 💾 Data Services
 // שירותי נתונים
 // =======================================
 export { localDataService } from "./localDataService";
+
+// =======================================
+// 🔌 Database & Storage Services
+// שירותי בסיס נתונים ואחסון
+// =======================================
+export {
+  supabase,
+  hasSupabaseConfig,
+  getSupabaseProjectUrl,
+  getPublicStorageBaseUrl,
+  buildPublicUrl,
+} from "./supabase";
+export type { SupabaseClient } from "./supabase";
 
 // =======================================
 // 🧠 Core Data Manager & Types
@@ -62,9 +80,11 @@ export {
 } from "../screens/workout/services";
 
 // =======================================
-// � Service Summary
+// 🌟 Service Summary
 // סיכום שירותים
 // =======================================
 // Demo services are now integrated in UnifiedQuestionnaireManager
 // and userStore customDemoUser functions - no separate service needed
-// Total Active Services: 11 | All deprecated/missing services removed
+// Total Active Services: 17 | All deprecated/missing services removed
+// Last validated: 2025-08-25 | Core services fully modernized
+// Added: QuickLogin authentication + Supabase storage + PersonalRecord analytics + ProgressiveOverloadService

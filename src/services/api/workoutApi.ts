@@ -1,12 +1,15 @@
 /**
- * @file workoutApi.ts
+ * @file src/services/api/workoutApi.ts
  * @brief CRUD helpers for workout history stored inside users.activityhistory (JSONB) in Supabase.
- * @notes All workout history is embedded in the single user row (no separate table). We therefore perform
- *        read-modify-write operations. This is NOT fully concurrent safe; if race conditions become an issue,
- *        consider moving workouts to a dedicated table or using PostgREST RPC with row-level locking.
+ * @description All workout history is embedded in the single user row (no separate table).
+ *              Read-modify-write operations are performed (not fully concurrent safe).
+ *              If race conditions become an issue, consider moving workouts to a dedicated table or using PostgREST RPC with row-level locking.
+ * @status ACTIVE - Core workout API
+ * @updated 2025-08-25 - Modernized logging and documentation
  */
 import type { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
 import { supabase } from "../supabase/client";
+import { logger } from "../../utils/logger";
 
 if (!supabase) {
   throw new Error(
@@ -14,15 +17,19 @@ if (!supabase) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const devLog = (...args: any[]) => {
-  if (__DEV__) console.warn("[workoutApi]", ...args);
+const devLog = (...args: unknown[]) => {
+  if (__DEV__) logger.warn("workoutApi", args.map(String).join(" "));
 };
 
 type ActivityHistoryRow = {
   activityhistory: WorkoutWithFeedback[] | null;
 };
 
+/**
+ * Fetch workout history for a user
+ * @param userId - User ID
+ * @returns Array of WorkoutWithFeedback
+ */
 async function fetchHistory(userId: string): Promise<WorkoutWithFeedback[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -40,6 +47,11 @@ async function fetchHistory(userId: string): Promise<WorkoutWithFeedback[]> {
   return Array.isArray(data.activityhistory) ? data.activityhistory : [];
 }
 
+/**
+ * Save workout history for a user
+ * @param userId - User ID
+ * @param history - Array of WorkoutWithFeedback
+ */
 async function saveHistory(
   userId: string,
   history: WorkoutWithFeedback[]
@@ -55,12 +67,20 @@ async function saveHistory(
   }
 }
 
+/**
+ * API for managing workout history in Supabase
+ */
 export const workoutApi = {
-  // בSupabase - workout data מאוחסן בתוך user record (activityhistory)
+  /**
+   * List all workouts for a user
+   */
   listByUser: async (userId: string): Promise<WorkoutWithFeedback[]> => {
     return fetchHistory(userId);
   },
 
+  /**
+   * Create a new workout for a user
+   */
   createForUser: async (
     userId: string,
     workout: Omit<WorkoutWithFeedback, "id">
@@ -72,6 +92,9 @@ export const workoutApi = {
     return newWorkout;
   },
 
+  /**
+   * Delete a workout for a user
+   */
   deleteForUser: async (
     userId: string,
     workoutId: string

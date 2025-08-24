@@ -137,6 +137,18 @@ class WorkoutStorageService {
     const user = useUserStore.getState().user;
     const subscription = user?.subscription;
 
+    // בדיקה תחילה אם יש נתונים ב-activityhistory של המשתמש
+    if (
+      user?.activityhistory?.workouts &&
+      Array.isArray(user.activityhistory.workouts)
+    ) {
+      logger.info(
+        "Loading workout history from user.activityhistory",
+        "storage"
+      );
+      return user.activityhistory.workouts;
+    }
+
     // Premium users: ניסיון remote תחילה, אם לא אז local
     if (user?.id && subscription?.type !== "free") {
       try {

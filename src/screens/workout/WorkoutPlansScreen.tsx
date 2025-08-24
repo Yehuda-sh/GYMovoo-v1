@@ -1,11 +1,18 @@
 /**
  * @file src/screens/workout/WorkoutPlansScreen.tsx
  * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר (גרסה מאוחדת)
+ * @description Unified architecture for workout plans management, including:
+ *              - Modular components
+ *              - Centralized services
+ *              - Performance tracking
+ *              - AI and basic plan support
  * @dependencies React Native, Custom Hooks, UI Components
- * @updated August 2025 - Unified architecture with consolidated services
+ * @status ACTIVE - Unified workout plans screen
+ * @updated 2025-08-25 - Modernized logging and documentation
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { logger } from "../../utils/logger";
 import {
   View,
   Text,
@@ -59,20 +66,26 @@ interface WorkoutPlanScreenProps {
   };
 }
 
+/**
+ * Main screen component for managing and displaying workout plans
+ * @param route - Optional route params
+ * @returns React.ReactElement
+ */
 export default function WorkoutPlansScreen({
   route: _,
-}: WorkoutPlanScreenProps) {
+}: WorkoutPlanScreenProps): React.ReactElement {
   // 🧭 Navigation
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   // 🚀 Performance Tracking
-  const renderStartTime = useMemo(() => performance.now(), []);
+  const renderStartTime: number = useMemo(() => performance.now(), []);
 
-  useEffect(() => {
+  useEffect((): void => {
     const renderTime = performance.now() - renderStartTime;
     if (renderTime > PERFORMANCE_THRESHOLDS.SLOW_RENDER_WARNING) {
-      console.warn(
-        `⚠️ WorkoutPlansScreenNew slow render: ${renderTime.toFixed(2)}ms`
+      logger.warn(
+        "WorkoutPlansScreen",
+        `⚠️ Slow render: ${renderTime.toFixed(2)}ms`
       );
     }
   }, [renderStartTime]);
@@ -125,6 +138,11 @@ export default function WorkoutPlansScreen({
   } = useModalManager();
 
   // 🔄 יצירת תוכניות מאוחדת - מניעת כפילויות שירותים
+  /**
+   * Generate a basic workout plan for the user
+   * @param showNotification - Whether to show success notification
+   * @returns Promise<WorkoutPlan | null>
+   */
   const generateBasicPlan = useCallback(
     async (showNotification: boolean = true): Promise<WorkoutPlan | null> => {
       try {
@@ -168,7 +186,11 @@ export default function WorkoutPlansScreen({
 
         return plan;
       } catch (error) {
-        console.error("Error generating basic plan:", error);
+        logger.error(
+          "WorkoutPlansScreen",
+          "Error generating basic plan",
+          error
+        );
         showError("שגיאה", "לא הצלחנו ליצור תוכנית בסיסית");
         return null;
       } finally {
@@ -178,6 +200,11 @@ export default function WorkoutPlansScreen({
     [user, showError, showSuccess, updateUser]
   );
 
+  /**
+   * Generate an AI-powered workout plan for the user
+   * @param showNotification - Whether to show success notification
+   * @returns Promise<WorkoutPlan | null>
+   */
   const generateAIPlan = useCallback(
     async (showNotification: boolean = true): Promise<WorkoutPlan | null> => {
       try {
@@ -226,7 +253,7 @@ export default function WorkoutPlansScreen({
 
         return plan;
       } catch (error) {
-        console.error("Error generating AI plan:", error);
+        logger.error("WorkoutPlansScreen", "Error generating AI plan", error);
         showError("שגיאה", "לא הצלחנו ליצור תוכנית AI");
         return null;
       } finally {
@@ -237,9 +264,23 @@ export default function WorkoutPlansScreen({
   );
 
   // 🔄 המרת נתוני אימון לפורמט המסך הפעיל
+  /**
+   * Convert a workout recommendation to the active workout format
+   * @param workout - WorkoutRecommendation
+   * @param workoutIndex - number
+   * @returns Converted workout object
+   */
   const convertWorkoutToActiveFormat = useCallback(
-    (workout: WorkoutRecommendation, workoutIndex: number) => {
-      const convertedExercises =
+    (
+      workout: WorkoutRecommendation,
+      workoutIndex: number
+    ): {
+      name: string;
+      dayName: string;
+      startTime: string;
+      exercises: WorkoutRecommendation["exercises"];
+    } => {
+      const convertedExercises: WorkoutRecommendation["exercises"] =
         workout.exercises?.map((exercise, exerciseIndex: number) => ({
           id: exercise.id || `exercise_${exerciseIndex}_${Date.now()}`,
           name: exercise.name,
@@ -288,8 +329,12 @@ export default function WorkoutPlansScreen({
     selectedPlanType === "smart" ? smartPlan : basicPlan;
 
   // Handle plan type selection
+  /**
+   * Handle selection of workout plan type
+   * @param type - "basic" | "smart"
+   */
   const handleSelectPlanType = useCallback(
-    async (type: "basic" | "smart") => {
+    async (type: "basic" | "smart"): Promise<void> => {
       triggerHaptic("light");
       setSelectedPlanType(type);
 
@@ -305,7 +350,10 @@ export default function WorkoutPlansScreen({
   );
 
   // Handle plan generation
-  const handleGenerateBasic = useCallback(async () => {
+  /**
+   * Handle generation of basic workout plan
+   */
+  const handleGenerateBasic = useCallback(async (): Promise<void> => {
     triggerHaptic("medium");
     const plan = await generateBasicPlan(true);
     if (plan) {
@@ -314,7 +362,10 @@ export default function WorkoutPlansScreen({
     }
   }, [generateBasicPlan, triggerHaptic]);
 
-  const handleGenerateAI = useCallback(async () => {
+  /**
+   * Handle generation of AI workout plan
+   */
+  const handleGenerateAI = useCallback(async (): Promise<void> => {
     if (!canAccessAI) {
       showError(
         "גישה מוגבלת 🔒",
@@ -332,7 +383,10 @@ export default function WorkoutPlansScreen({
   }, [generateAIPlan, canAccessAI, triggerHaptic, showError]);
 
   // Handle workout start
-  const handleStartWorkout = useCallback(() => {
+  /**
+   * Handle starting a workout from the current plan
+   */
+  const handleStartWorkout = useCallback((): void => {
     if (!currentWorkoutPlan) {
       showError("אין תוכנית", "יש ליצור תוכנית אימון תחילה");
       return;
@@ -348,7 +402,10 @@ export default function WorkoutPlansScreen({
   }, [currentWorkoutPlan, triggerHaptic, showSuccess, showError]);
 
   // Handle refresh
-  const handleRefresh = useCallback(async () => {
+  /**
+   * Handle refresh of workout plans
+   */
+  const handleRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
 
     try {
@@ -505,8 +562,9 @@ export default function WorkoutPlansScreen({
 
                 // Debug: הדפסת הנתונים שמועברים (פיתוח בלבד)
                 if (__DEV__) {
-                  console.warn(
-                    "🏋️ WorkoutPlansScreen - Navigating to ActiveWorkout with data:",
+                  logger.debug(
+                    "WorkoutPlansScreen",
+                    "Navigating to ActiveWorkout with data:",
                     {
                       workoutName: workoutData.name,
                       dayName: workoutData.dayName,
@@ -544,7 +602,15 @@ export default function WorkoutPlansScreen({
             planType={pendingPlan.type}
             visible={showPlanManager}
             onClose={() => setShowPlanManager(false)}
-            onSave={(shouldSave, replaceType) => {
+            /**
+             * Handle saving a new plan in the modal
+             * @param shouldSave - boolean
+             * @param replaceType - "basic" | "smart" | "additional"
+             */
+            onSave={(
+              shouldSave: boolean,
+              replaceType: "basic" | "smart" | "additional"
+            ): void => {
               if (shouldSave) {
                 if (pendingPlan.type === "smart" || replaceType === "smart") {
                   setSmartPlan(pendingPlan.plan);
@@ -576,7 +642,11 @@ export default function WorkoutPlansScreen({
   );
 }
 
-const styles = StyleSheet.create({
+/**
+ * Styles for WorkoutPlansScreen
+ * @remarks All style keys are typed for consistency with React Native StyleSheet
+ */
+const styles: { [key: string]: any } = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

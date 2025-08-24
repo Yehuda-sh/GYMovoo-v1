@@ -2,10 +2,10 @@
  * @file src/screens/history/HistoryScreen.tsx
  * @brief מסך היסטוריית אימונים פשוט - שליפת נתונים מוכנים ממנהל מרכזי
  * @description מציג היסטוריית אימונים עם סטטיסטיקות, תמיכה ב-RTL ואנימציות
- * @dependencies theme, dataManager, MaterialCommunityIcons, workoutHelpers
- * @notes תמיכה מלאה RTL, נתונים מוכנים מראש, ללא לוגיקה מורכבת
+ * @dependencies theme, dataManager, MaterialCommunityIcons, workoutHelpers, logger
+ * @notes תמיכה מלאה RTL, נתונים מוכנים מראש, logging מרכזי, ללא לוגיקה מורכבת
  * @created 2025-01-XX
- * @updated 2025-08-17 החלפת console calls בלוגינג מותני, הוספת React.memo, הוספת CONSTANTS למניעת כפילויות
+ * @updated 2025-08-25 החלפת console calls בלוגינג מרכזי, פישוט constants, שיפור error handling
  */
 
 import React, {
@@ -30,6 +30,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { dataManager } from "../../services/core";
+import { logger } from "../../utils/logger";
 import {
   WorkoutStatistics,
   WorkoutWithFeedback,
@@ -50,36 +51,16 @@ import {
 } from "./utils/historyHelpers";
 
 // Debug logging system
-const DEBUG = __DEV__;
 const dlog = (message: string, ...args: unknown[]) => {
-  if (DEBUG) {
-    // eslint-disable-next-line no-console
-    console.debug(`[HistoryScreen] ${message}`, ...args);
+  if (__DEV__) {
+    logger.debug("HistoryScreen", message, ...args);
   }
 };
 
 // Constants to prevent duplications
-const CONSTANTS = {
-  RTL_PROPERTIES: {
-    WRITING_DIRECTION: "rtl" as const,
-    TEXT_ALIGN_RIGHT: "right" as const,
-    TEXT_ALIGN_CENTER: "center" as const,
-  },
-  ANIMATIONS: {
-    FADE_INITIAL: 0,
-    FADE_FINAL: 1,
-    SLIDE_INITIAL: 50,
-    SLIDE_FINAL: 0,
-  },
-  TIMING: {
-    MINUTES_CONVERTER: 60,
-  },
-  BORDERS: {
-    CONGRATULATION_WIDTH: 4,
-    CARD_WIDTH: 0.5,
-    STATS_WIDTH: 0,
-  },
-};
+const TIMING_CONSTANTS = {
+  MINUTES_CONVERTER: 60,
+} as const;
 
 const HistoryScreen: React.FC = React.memo(() => {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
@@ -97,12 +78,8 @@ const HistoryScreen: React.FC = React.memo(() => {
   const ITEMS_PER_PAGE = HISTORY_SCREEN_CONFIG.ITEMS_PER_PAGE;
 
   // אנימציות
-  const fadeAnim = useRef(
-    new Animated.Value(CONSTANTS.ANIMATIONS.FADE_INITIAL)
-  ).current;
-  const slideAnim = useRef(
-    new Animated.Value(CONSTANTS.ANIMATIONS.SLIDE_INITIAL)
-  ).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   /**
    * טעינת נתונים מהמנהל המרכזי
@@ -142,6 +119,7 @@ const HistoryScreen: React.FC = React.memo(() => {
 
         dlog(`Loaded ${initialData.length}/${allWorkouts.length} workouts`);
       } catch (error) {
+        logger.error("HistoryScreen", "Failed to load data", error);
         dlog("Failed to load data", { error });
       } finally {
         if (!options?.silent) {
@@ -172,6 +150,7 @@ const HistoryScreen: React.FC = React.memo(() => {
         setHasMoreData(false);
       }
     } catch (error) {
+      logger.error("HistoryScreen", "Failed to load more data", error);
       dlog("Failed to load more data", { error });
     }
   }, [currentPage, ITEMS_PER_PAGE, hasMoreData, loading, refreshing]);
@@ -188,6 +167,7 @@ const HistoryScreen: React.FC = React.memo(() => {
       await dataManager.refresh(user);
       await loadData({ silent: true });
     } catch (error) {
+      logger.error("HistoryScreen", "Refresh failed", error);
       dlog("Refresh failed", { error });
     } finally {
       setRefreshing(false);
@@ -204,12 +184,12 @@ const HistoryScreen: React.FC = React.memo(() => {
       // אנימציית כניסה
       Animated.parallel([
         Animated.timing(fadeAnim, {
-          toValue: CONSTANTS.ANIMATIONS.FADE_FINAL,
+          toValue: 1,
           duration: HISTORY_SCREEN_CONFIG.ANIMATION_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: CONSTANTS.ANIMATIONS.SLIDE_FINAL,
+          toValue: 0,
           duration: HISTORY_SCREEN_CONFIG.ANIMATION_DURATION,
           useNativeDriver: true,
         }),
@@ -233,6 +213,10 @@ const HistoryScreen: React.FC = React.memo(() => {
     return getGenderIcon(userGender);
   }, [user]);
 
+  /**
+   * רינדור סטטיסטיקות משתמש
+   * מציג סה"כ אימונים, קושי ממוצע ונתוני מגדר
+   */
   const renderStatistics = useCallback(() => {
     if (!statistics || !statistics.total) return null;
 
@@ -325,7 +309,10 @@ const HistoryScreen: React.FC = React.memo(() => {
     slideAnim,
   ]);
 
-  const renderCongratulationMessage = useCallback(() => {
+  /**
+   * רינדור הודעת ברכה למשתמש
+   */
+  const renderCongratulationMessage = () => {
     if (!congratulationMessage) return null;
 
     return (
@@ -346,7 +333,7 @@ const HistoryScreen: React.FC = React.memo(() => {
         <Text style={styles.congratulationText}>{congratulationMessage}</Text>
       </Animated.View>
     );
-  }, [congratulationMessage, fadeAnim, slideAnim]);
+  };
 
   const renderWorkoutItem = useCallback(
     ({ item }: { item: WorkoutWithFeedback; index: number }) => {
@@ -412,7 +399,7 @@ const HistoryScreen: React.FC = React.memo(() => {
               <Text style={styles.statText}>
                 {Math.round(
                   (item.stats.duration || 0) /
-                    CONSTANTS.TIMING.MINUTES_CONVERTER
+                    TIMING_CONSTANTS.MINUTES_CONVERTER
                 )}{" "}
                 דקות
               </Text>
@@ -494,7 +481,7 @@ const HistoryScreen: React.FC = React.memo(() => {
     [fadeAnim, slideAnim]
   );
 
-  const renderLoadingFooter = useCallback(() => {
+  const renderLoadingFooter = () => {
     const allWorkouts = dataManager.getWorkoutHistory();
 
     if (!hasMoreData) {
@@ -508,7 +495,7 @@ const HistoryScreen: React.FC = React.memo(() => {
     }
 
     return null;
-  }, [hasMoreData, workouts.length]);
+  };
 
   if (loading) {
     return (
@@ -693,7 +680,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "600",
     marginEnd: theme.spacing.sm,
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    writingDirection: "rtl",
   },
   congratulationCard: {
     backgroundColor: theme.colors.primary + "10",
@@ -703,7 +690,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     flexDirection: "row-reverse",
     alignItems: "center",
-    borderLeftWidth: CONSTANTS.BORDERS.CONGRATULATION_WIDTH,
+    borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
   },
   congratulationText: {
@@ -712,7 +699,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginEnd: theme.spacing.sm,
     flex: 1,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    textAlign: "right",
   },
   statisticsCard: {
     backgroundColor: theme.colors.card,
@@ -736,8 +723,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    textAlign: "center",
+    writingDirection: "rtl",
     letterSpacing: 0.4,
     textShadowColor: "rgba(0, 0, 0, 0.08)",
     textShadowOffset: { width: 0, height: 1 },
@@ -774,14 +761,14 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    textAlign: "center",
+    writingDirection: "rtl",
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: "700",
     color: theme.colors.text,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    textAlign: "right",
     letterSpacing: 0.4,
   },
   sectionTitleContainer: {
@@ -812,7 +799,7 @@ const styles = StyleSheet.create({
   loadMoreHint: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    textAlign: "center",
     fontStyle: "italic",
     marginBottom: theme.spacing.md,
   },
@@ -847,13 +834,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.text,
     flex: 1,
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    writingDirection: "rtl",
     letterSpacing: 0.3,
   },
   workoutDate: {
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
-    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    writingDirection: "rtl",
   },
   dateTimeRow: {
     flexDirection: "row-reverse",
@@ -874,7 +861,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background + "40",
     borderRadius: theme.radius.sm,
     flexWrap: "wrap",
-    borderWidth: CONSTANTS.BORDERS.STATS_WIDTH,
+    borderWidth: 0,
   },
   statItem: {
     flexDirection: "row-reverse",
@@ -885,7 +872,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginEnd: theme.spacing.xs,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_RIGHT,
+    textAlign: "right",
     fontWeight: "500",
   },
   workoutFeedback: {
@@ -902,18 +889,18 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body.fontSize,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    textAlign: "center",
   },
   feedbackValue: {
     fontSize: theme.typography.h4.fontSize,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    textAlign: "center",
   },
   congratulationInCard: {
     backgroundColor: theme.colors.primary + "08",
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
-    borderLeftWidth: CONSTANTS.BORDERS.CONGRATULATION_WIDTH,
+    borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
     marginHorizontal: theme.spacing.xs,
   },
@@ -936,6 +923,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.colors.textSecondary,
-    textAlign: CONSTANTS.RTL_PROPERTIES.TEXT_ALIGN_CENTER,
+    textAlign: "center",
   },
 });

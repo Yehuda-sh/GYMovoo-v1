@@ -293,6 +293,98 @@ async function checkAllDemoUsers() {
   }
 
   console.log(`\n${"=".repeat(60)}`);
+  console.log("📊 בדיקת נתוני סטטיסטיקות נוספת:");
+  console.log(`${"=".repeat(60)}`);
+
+  for (const result of results) {
+    if (result.status === "OK") {
+      console.log(`\n👤 ${result.user} (${result.type}):`);
+
+      try {
+        // בדיקת trainingstats ישירות מהנתונים הגולמיים
+        const rawData = result.rawData || result.userData;
+
+        if (rawData.trainingstats) {
+          const stats = rawData.trainingstats;
+          console.log("  📈 Training Stats קיימים:");
+          console.log(
+            `    • totalWorkouts: ${stats.totalWorkouts ?? "לא קיים"}`
+          );
+          console.log(`    • streak: ${stats.streak ?? "לא קיים"}`);
+          console.log(`    • totalMinutes: ${stats.totalMinutes ?? "לא קיים"}`);
+          console.log(`    • xp: ${stats.xp ?? "לא קיים"}`);
+          console.log(`    • level: ${stats.level ?? "לא קיים"}`);
+        } else {
+          console.log("  ❌ אין נתוני trainingstats");
+        }
+
+        // בדיקת activityhistory
+        if (rawData.activityhistory?.workouts) {
+          const workouts = Array.isArray(rawData.activityhistory.workouts)
+            ? rawData.activityhistory.workouts.length
+            : "לא מערך";
+          console.log(`  📅 Activity History: ${workouts} אימונים`);
+        } else {
+          console.log("  ❌ אין היסטוריית אימונים");
+        }
+
+        // בדיקת currentstats (מה שבאמת קיים)
+        if (rawData.currentstats?.gamification) {
+          const gam = rawData.currentstats.gamification;
+          console.log("  🎮 Current Stats (Gamification):");
+          console.log(`    • workouts_completed: ${gam.workouts_completed}`);
+          console.log(`    • current_streak: ${gam.current_streak}`);
+          console.log(`    • level: ${gam.level}`);
+          console.log(`    • experience_points: ${gam.experience_points}`);
+        }
+      } catch (error) {
+        console.log(`  ❌ שגיאה בבדיקת נתונים: ${error.message}`);
+      }
+    }
+  }
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log("🎯 סיכום נתוני סטטיסטיקות:");
+  console.log(`${"=".repeat(60)}`);
+
+  const okResults = results.filter((r) => r.status === "OK");
+  let withTrainingStats = 0;
+  let withActivityHistory = 0;
+  let withCurrentStats = 0;
+
+  for (const result of okResults) {
+    try {
+      const rawData = result.rawData || result.userData;
+      if (rawData.trainingstats) withTrainingStats++;
+      if (rawData.activityhistory?.workouts) withActivityHistory++;
+      if (rawData.currentstats?.gamification) withCurrentStats++;
+    } catch (error) {
+      // שגיאה בבדיקה
+    }
+  }
+
+  console.log(
+    `📈 משתמשים עם trainingstats: ${withTrainingStats}/${okResults.length}`
+  );
+  console.log(
+    `📅 משתמשים עם activityhistory: ${withActivityHistory}/${okResults.length}`
+  );
+  console.log(
+    `🎮 משתמשים עם currentstats: ${withCurrentStats}/${okResults.length}`
+  );
+
+  if (withTrainingStats === 0 && withActivityHistory === 0) {
+    console.log(
+      "\n❌ אף משתמש דמו אין לו נתוני trainingstats או activityhistory!"
+    );
+    console.log("🎮 אבל יש להם currentstats.gamification");
+    console.log(
+      "💡 ProfileScreen לא יודע לקרוא מ-currentstats - הוא מחפש trainingstats"
+    );
+    console.log("🔧 צריך להעביר נתונים מ-currentstats ל-trainingstats");
+  }
+
+  console.log(`\n${"=".repeat(60)}`);
   console.log("✅ בדיקה הושלמה!");
 
   return results;

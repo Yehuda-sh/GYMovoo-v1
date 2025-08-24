@@ -1,8 +1,12 @@
 /**
  * @file src/services/workout/personalRecordService.ts
- * @description Enhanced service for detecting and managing personal records with performance monitoring.
+ * @brief Enhanced service for detecting and managing personal records with performance monitoring
+ * @description Advanced personal records detection service with comprehensive analytics,
+ *              performance monitoring, caching, accessibility support, and data validation.
+ *              Provides Hebrew language support and progressive enhancement patterns.
  * @version 2.0.0
- * @lastUpdated 2025-08-24
+ * @status ACTIVE - Core workout analytics service with enhanced features
+ * @updated 2025-08-25 - Modernized with improved type safety and error handling
  *
  * 🏆 Enhanced Features:
  * - Performance monitoring and caching
@@ -30,6 +34,19 @@ import {
 // 🏷️ Enhanced Types & Interfaces
 // ממשקים וטיפוסים משופרים
 // ===============================================
+
+interface WorkoutSet {
+  completed: boolean;
+  actualWeight?: number;
+  targetWeight?: number;
+  actualReps?: number;
+  targetReps?: number;
+}
+
+interface ExerciseData {
+  name: string;
+  sets?: WorkoutSet[];
+}
 
 interface EnhancedPersonalRecord extends PersonalRecord {
   id: string;
@@ -255,8 +272,6 @@ class PerformanceMonitor {
 }
 
 const PREVIOUS_PERFORMANCES_KEY = "previous_performances";
-const CACHE_KEY_PREFIX = "personal_record_cache_";
-const VALIDATION_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
 class PersonalRecordService {
   // Enhanced service properties
@@ -408,13 +423,13 @@ class PersonalRecordService {
    * גילוי שיאים לתרגיל ספציפי עם אימות משופר
    */
   private async detectExerciseRecords(
-    exercise: any,
+    exercise: ExerciseData,
     existingPerformances: EnhancedPreviousPerformance[],
     workoutId?: string
   ): Promise<EnhancedPersonalRecord[]> {
     try {
       const completedSets = (exercise.sets || []).filter(
-        (set: any) => set.completed
+        (set: WorkoutSet) => set.completed
       );
       if (completedSets.length === 0) return [];
 
@@ -430,7 +445,7 @@ class PersonalRecordService {
 
       // Check weight records
       const currentMaxWeight = Math.max(
-        ...completedSets.map((s: any) => s.actualWeight || 0)
+        ...completedSets.map((s: WorkoutSet) => s.actualWeight || 0)
       );
       if (currentMaxWeight > existingPerf.personalRecords.maxWeight) {
         const improvement =
@@ -468,7 +483,7 @@ class PersonalRecordService {
 
       // Check reps records
       const currentMaxReps = Math.max(
-        ...completedSets.map((s: any) => s.actualReps || 0)
+        ...completedSets.map((s: WorkoutSet) => s.actualReps || 0)
       );
       if (currentMaxReps > existingPerf.personalRecords.maxReps) {
         const improvement =
@@ -507,7 +522,7 @@ class PersonalRecordService {
       // Check volume records
       const currentMaxVolume = Math.max(
         ...completedSets.map(
-          (s: any) => (s.actualWeight || 0) * (s.actualReps || 0)
+          (s: WorkoutSet) => (s.actualWeight || 0) * (s.actualReps || 0)
         )
       );
       if (currentMaxVolume > existingPerf.personalRecords.maxVolume) {
@@ -563,22 +578,22 @@ class PersonalRecordService {
    * יצירת שיאים לתרגילים לראשונה
    */
   private createFirstTimeRecords(
-    exercise: any,
-    completedSets: any[],
+    exercise: ExerciseData,
+    completedSets: WorkoutSet[],
     workoutId?: string
   ): EnhancedPersonalRecord[] {
     const records: EnhancedPersonalRecord[] = [];
 
     try {
       const maxWeight = Math.max(
-        ...completedSets.map((s: any) => s.actualWeight || 0)
+        ...completedSets.map((s: WorkoutSet) => s.actualWeight || 0)
       );
       const maxReps = Math.max(
-        ...completedSets.map((s: any) => s.actualReps || 0)
+        ...completedSets.map((s: WorkoutSet) => s.actualReps || 0)
       );
       const maxVolume = Math.max(
         ...completedSets.map(
-          (s: any) => (s.actualWeight || 0) * (s.actualReps || 0)
+          (s: WorkoutSet) => (s.actualWeight || 0) * (s.actualReps || 0)
         )
       );
 
@@ -807,15 +822,17 @@ class PersonalRecordService {
 
             // Enhance old records if needed
             if (!perf.id) {
-              (perf as any).id = this.generateRecordId();
+              (perf as EnhancedPreviousPerformance).id =
+                this.generateRecordId();
               hasChanges = true;
             }
             if (!perf.version) {
-              (perf as any).version = 1;
+              (perf as EnhancedPreviousPerformance).version = 1;
               hasChanges = true;
             }
             if (!perf.lastUpdated) {
-              (perf as any).lastUpdated = new Date().toISOString();
+              (perf as EnhancedPreviousPerformance).lastUpdated =
+                new Date().toISOString();
               hasChanges = true;
             }
 

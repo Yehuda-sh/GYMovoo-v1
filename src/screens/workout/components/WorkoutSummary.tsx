@@ -67,9 +67,11 @@ import {
   workoutLogger,
 } from "../../../utils";
 import { formatDuration } from "../../../utils/formatters";
-import { WorkoutData } from "../types/workout.types";
+import { WorkoutData, WorkoutWithFeedback } from "../types/workout.types";
 import { useModalManager } from "../hooks/useModalManager";
 import { UniversalModal } from "../../../components/common/UniversalModal";
+import { workoutFacadeService } from "../../../services";
+import { useUserStore } from "../../../stores/userStore";
 
 // Import modular components
 import { WorkoutStatsGrid } from "./WorkoutSummary/WorkoutStatsGrid";
@@ -96,7 +98,6 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
     // State management
     const [difficulty, setDifficulty] = useState<number>(0);
     const [feeling, setFeeling] = useState<string>("");
-    const [readyForMore] = useState<boolean>(false); // UI feedback placeholder
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>(
       []
     );
@@ -199,22 +200,51 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
       workoutLogger.info("WorkoutSummary", "שמירה סופית של סיכום האימון");
 
       try {
-        // In real implementation, save to database
-        const summaryData = {
-          workoutId: workout.id,
-          stats,
+        // יצירת אובייקט האימון המלא עם פידבק
+        const workoutWithFeedback: WorkoutWithFeedback = {
+          id: workout.id || `workout-${Date.now()}`,
+          workout: workout,
           feedback: {
             difficulty,
             feeling,
-            readyForMore,
+            readyForMore: false,
+            completedAt: new Date().toISOString(),
           },
-          personalRecords,
-          timestamp: new Date().toISOString(),
+          stats: {
+            duration: stats.duration * 1000, // המרה לms
+            totalSets: stats.totalSets,
+            totalPlannedSets: stats.totalPlannedSets,
+            totalVolume: stats.totalVolume,
+            personalRecords: personalRecords.length,
+          },
         };
+
+        // שמירה של האימון (activityhistory)
+        await workoutFacadeService.saveWorkout(workoutWithFeedback);
+
+        // עדכון trainingstats
+        const userStore = useUserStore.getState();
+        if (userStore.user) {
+          const currentWorkouts =
+            userStore.user.trainingstats?.totalWorkouts || 0;
+          const currentStreak = Math.min(currentWorkouts + 1, 7); // מקסימום שבוע
+
+          await userStore.updateTrainingStats({
+            totalWorkouts: currentWorkouts + 1,
+            streak: currentStreak,
+            totalVolume:
+              (userStore.user.trainingstats?.totalVolume || 0) +
+              stats.totalVolume,
+            totalMinutes:
+              (userStore.user.trainingstats?.totalMinutes || 0) +
+              stats.duration,
+            lastWorkoutDate: new Date().toISOString(),
+          });
+        }
 
         workoutLogger.info(
           "WorkoutSummary",
-          `נתוני סיכום נשמרו: ${JSON.stringify(summaryData)}`
+          `אימון נשמר בהצלחה עם עדכון כל מקורות הנתונים`
         );
 
         // Close the summary screen
@@ -223,15 +253,7 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
         workoutLogger.error("WorkoutSummary", `שגיאה בשמירת סיכום: ${error}`);
         Alert.alert("שגיאה", "שגיאה בשמירת האימון - נסה שוב");
       }
-    }, [
-      workout.id,
-      stats,
-      difficulty,
-      feeling,
-      readyForMore,
-      personalRecords,
-      onSave,
-    ]);
+    }, [workout, stats, difficulty, feeling, personalRecords.length, onSave]);
 
     // Mock achievements data
     const achievements = useMemo(

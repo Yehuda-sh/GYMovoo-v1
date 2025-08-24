@@ -2,8 +2,8 @@
  * @file src/services/core/DataManager.ts
  * @brief מנהל נתונים מרכזי – מכין ומטמון נתונים בעת עליית האפליקציה ותומך בהתרחבות עתידית לשרת
  * @brief Central Data Manager – initializes & caches core data at app startup (server-ready architecture)
- * @dependencies userStore, workoutFacadeService, userApi
- * @updated 2025-01-17 מערכת חדשה למרכוז ניהול נתונים
+ * @dependencies userStore, workoutFacadeService, userApi, logger
+ * @updated 2025-08-25 החלפת console logs במערכת logger מרכזית, פישוט logging מורכב
  *
  * ✅ ACTIVE & CRITICAL / בשימוש פעיל
  * - מספק היסטוריית אימונים, סטטיסטיקות והודעות ברכה למסכים שונים
@@ -32,10 +32,10 @@ import { errorHandler } from "../../utils/errorHandler";
 // =====================================
 // 🪵 Dev Logger (only in __DEV__)
 // =====================================
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const devLog = (...args: any[]) => {
-  if (__DEV__ && LOGGING.DATA_MANAGER_SUMMARY)
-    console.warn("[DataManager]", ...args);
+const devLog = (message: string, ...args: unknown[]) => {
+  if (__DEV__ && LOGGING.DATA_MANAGER_SUMMARY) {
+    logger.debug("DataManager", message, ...args);
+  }
 };
 
 export interface AppDataCache {
@@ -47,17 +47,17 @@ export interface AppDataCache {
 }
 
 export interface ServerConfig {
-  baseUrl?: string;
-  apiKey?: string;
-  enabled: boolean;
-  syncInterval: number; // minutes
+  readonly baseUrl?: string;
+  readonly apiKey?: string;
+  readonly enabled: boolean;
+  readonly syncInterval: number; // minutes
 }
 
 export interface DataStatus {
-  isDemo: boolean;
-  lastUpdated: Date | null;
-  ready: boolean;
-  serverReachable: boolean;
+  readonly isDemo: boolean;
+  readonly lastUpdated: Date | null;
+  readonly ready: boolean;
+  readonly serverReachable: boolean;
 }
 
 class DataManagerService {
@@ -93,7 +93,7 @@ class DataManagerService {
       devLog("🌐 Server reachable:", this.serverReachable);
       devLog("🚀 Starting initialization...");
       if (LOGGING.DATA_MANAGER_SUMMARY) {
-        console.warn("[DataManager] 👤 User data preview:", {
+        logger.debug("DataManager", "👤 User data preview:", {
           id: user.id,
           name: user.name,
           email: user.email,
@@ -268,8 +268,7 @@ class DataManagerService {
   }
 
   /**
-   * סנכרון עם שרת - פונקציונליות עתידית מתקדמת
-   * @param {User} _user - נתוני המשתמש לסנכרון
+   * סנכרון עם שרת - פונקציונליות עתידית (לא מיושמת)
    */
   async syncWithServer(_user: User): Promise<void> {
     if (!this.serverConfig.enabled) {
@@ -277,18 +276,8 @@ class DataManagerService {
       return;
     }
 
-    try {
-      devLog("🔄 Syncing with server...");
-
-      // כאן יהיה הקוד לסנכרון עם שרת בעתיד
-      // await this._uploadToServer(_user, this.cache);
-      // await this._downloadFromServer(_user);
-
-      devLog("✅ Sync completed");
-    } catch (error) {
-      logger.error("DataManager", "Sync failed", error);
-      errorHandler.reportError(error, { source: "DataManager.sync" });
-    }
+    logger.info("DataManager", "Sync with server not yet implemented");
+    // TODO: Implement server sync functionality
   }
 
   /**
@@ -302,7 +291,8 @@ class DataManagerService {
   }
 
   /**
-   * Helper: unify cache-not-ready warning & return cache (DEV only logs)
+   * Helper: בדיקה אם המטמון מאותחל ומחזיר אותו עם אזהרה אם לא
+   * @returns AppDataCache | null
    */
   private _getCacheOrWarn(): AppDataCache | null {
     if (!this.cache) {
@@ -313,169 +303,41 @@ class DataManagerService {
   }
 
   /**
-   * לוג מפורט של כל נתוני המשתמש והמערכת
+   * לוג מפורט של כל נתוני המשתמש והמערכת (רק במצב VERBOSE)
    */
   private _logCompleteUserData(user: User) {
-    console.warn("📊 ========== DATA MANAGER - COMPLETE USER DATA ==========");
+    if (!LOGGING.VERBOSE) return;
 
-    // 👤 נתוני משתמש בסיסיים
-    console.warn("👤 === USER BASIC DATA ===");
-    console.warn("• User ID:", user.id);
-    console.warn("• User Name:", user.name);
-    console.warn("• User Email:", user.email);
-    console.warn("• User Avatar:", user.avatar);
-    console.warn("• User Provider:", user.provider);
-
-    // 🧠 נתוני שאלון חכם
-    if (user.smartquestionnairedata) {
-      console.warn("🧠 === SMART QUESTIONNAIRE DATA ===");
-      console.warn(
-        "• Smart Questionnaire Complete Object:",
-        user.smartquestionnairedata
-      );
-    }
-
-    // 📜 נתוני שאלון ישן (לתאימות)
-    if (user.questionnaire) {
-      console.warn("📜 === LEGACY QUESTIONNAIRE ===");
-      console.warn("• Legacy Answers:", user.questionnaire);
-    }
-
-    if (user.questionnairedata) {
-      console.warn("📜 === LEGACY QUESTIONNAIRE DATA ===");
-      console.warn("• Legacy Data Complete Object:", user.questionnairedata);
-    }
-
-    // 🔬 פרופיל מדעי
-    if (user.scientificprofile) {
-      console.warn("🔬 === SCIENTIFIC PROFILE ===");
-      console.warn(
-        "• Scientific Profile Complete Object:",
-        user.scientificprofile
-      );
-    }
-
-    // 🤖 המלצות AI
-    if (user.airecommendations) {
-      console.warn("🤖 === AI RECOMMENDATIONS ===");
-      console.warn(
-        "• AI Recommendations Complete Object:",
-        user.airecommendations
-      );
-    }
-
-    // 📈 היסטוריית פעילות
-    if (user.activityhistory) {
-      console.warn("📈 === ACTIVITY HISTORY ===");
-      console.warn(
-        "• Total Workouts:",
-        user.activityhistory.workouts?.length || 0
-      );
-      console.warn(
-        "• Weekly Progress:",
-        user.activityhistory.weeklyProgress || 0
-      );
-      console.warn("• Activity History Complete Object:", user.activityhistory);
-
-      if (
-        user.activityhistory.workouts &&
-        user.activityhistory.workouts.length > 0
-      ) {
-        console.warn("🏋️ === WORKOUTS PREVIEW (First 3) ===");
-        type PreviewWorkout = {
-          name?: string;
-          date?: string;
-          completedAt?: string;
-          duration?: number;
-          exercises?: unknown[];
-          feedback?: { overallRating?: number | string };
-          plannedVsActual?: unknown;
-        };
-        (user.activityhistory.workouts as PreviewWorkout[])
-          .slice(0, 3)
-          .forEach((workout, index: number) => {
-            console.warn(`• Workout ${index + 1}:`, {
-              name: workout.name,
-              date: workout.date || workout.completedAt,
-              duration: `${Math.round((workout.duration || 0) / 60)} minutes`,
-              exercises: workout.exercises?.length || 0,
-              difficulty: workout.feedback?.overallRating || "N/A",
-              hasPlannedVsActual: !!workout.plannedVsActual,
-            });
-          });
-        if (user.activityhistory.workouts.length > 3) {
-          console.warn(
-            `• ... and ${user.activityhistory.workouts.length - 3} more workouts`
-          );
-        }
-      }
-    }
-
-    // 📊 נתוני Cache המערכת
-    if (this.cache) {
-      console.warn("💾 === SYSTEM CACHE DATA ===");
-      console.warn(
-        "• Cache Status:",
-        this.isReady() ? "✅ Ready" : "❌ Not Ready"
-      );
-      console.warn(
-        "• Cache Type:",
-        this.cache.isDemo ? "🎭 Demo Data" : "👤 Real Data"
-      );
-      console.warn(
-        "• Last Updated:",
-        this.cache.lastUpdated.toLocaleString("he-IL")
-      );
-      console.warn(
-        "• Cached Workouts Count:",
-        this.cache.workoutHistory.length
-      );
-      console.warn("• Has Statistics:", !!this.cache.statistics);
-      console.warn("• Has Congratulation:", !!this.cache.congratulationMessage);
-
-      if (this.cache.statistics) {
-        console.warn("• Statistics Summary:", {
-          totalWorkouts: this.cache.statistics.total?.totalWorkouts || 0,
-          avgDifficulty:
-            this.cache.statistics.total?.averageDifficulty?.toFixed(1) || "N/A",
-          totalDuration: `${Math.round((this.cache.statistics.total?.totalDuration || 0) / 60)} minutes`,
-        });
-      }
-
-      if (this.cache.congratulationMessage) {
-        console.warn(
-          "• Congratulation Message:",
-          this.cache.congratulationMessage
-        );
-      }
-
-      // דוגמת אימונים מה-Cache
-      if (this.cache.workoutHistory.length > 0) {
-        console.warn("📋 === CACHE WORKOUTS PREVIEW (First 2) ===");
-        this.cache.workoutHistory.slice(0, 2).forEach((workout, index) => {
-          console.warn(`• Cache Workout ${index + 1}:`, {
-            id: workout.id,
-            name: workout.workout.name,
-            duration: `${Math.round((workout.stats.duration || 0) / 60)} minutes`,
-            totalSets: workout.stats.totalSets,
-            personalRecords: workout.stats.personalRecords,
-            difficulty: workout.feedback.difficulty,
-            feeling: workout.feedback.feeling,
-          });
-        });
-      }
-    }
-
-    console.warn("🎯 === DATAMANAGER STATUS ===");
-    console.warn("• Is Initialized:", this.isInitialized);
-    console.warn("• Has Cache:", !!this.cache);
-    console.warn("• Server Enabled:", this.serverConfig.enabled);
-    console.warn(
-      "• Data Source:",
-      this.cache?.isDemo ? "Demo Service" : "Real User Data"
-    );
-
-    console.warn("📊 ========== END COMPLETE USER DATA ==========");
+    logger.debug("DataManager", "📊 COMPLETE USER DATA SUMMARY", {
+      userData: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        hasQuestionnaire: !!user.questionnaire,
+        hasSmartQuestionnaire: !!user.smartquestionnairedata,
+        hasActivityHistory: !!user.activityhistory,
+        hasScientificProfile: !!user.scientificprofile,
+        hasAIRecommendations: !!user.airecommendations,
+      },
+      activityHistory: {
+        totalWorkouts: user.activityhistory?.workouts?.length || 0,
+        weeklyProgress: user.activityhistory?.weeklyProgress || 0,
+      },
+      cache: {
+        status: this.isReady() ? "Ready" : "Not Ready",
+        type: this.cache?.isDemo ? "Demo Data" : "Real Data",
+        lastUpdated: this.cache?.lastUpdated?.toISOString(),
+        workoutsCount: this.cache?.workoutHistory?.length || 0,
+        hasStatistics: !!this.cache?.statistics,
+        hasCongratulation: !!this.cache?.congratulationMessage,
+      },
+      system: {
+        isInitialized: this.isInitialized,
+        hasCache: !!this.cache,
+        serverEnabled: this.serverConfig.enabled,
+        serverReachable: this.serverReachable,
+      },
+    });
   }
 }
 

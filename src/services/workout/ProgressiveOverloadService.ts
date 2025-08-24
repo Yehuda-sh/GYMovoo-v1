@@ -1,22 +1,29 @@
 /**
  * @file src/services/workout/ProgressiveOverloadService.ts
- * @description שירות מתקדם לעומס מדורג (Progressive Overload) עם אינטגרציה היסטוריה
- *
+ * @brief Advanced Progressive Overload service with history integration
+ * @description Comprehensive service for progressive overload management, including:
+ *              - AI-driven progression analysis (Premium)
+ *              - Performance-based adaptations
+ *              - Periodization strategies
+ *              - Volume and intensity management
+ *              - Deload week detection
+ *              - Manual and automatic progression
+ *              - Integration with workout history, analytics, notifications
  * @features
- * Free users:
- * - Basic progression rules
- * - Simple weight/reps adjustments
- * - Manual progression only
- *
- * Premium users:
- * - AI-driven progression analysis
- * - Performance-based adaptations
- * - Periodization strategies
- * - Volume and intensity management
- * - Deload week detection
- *
+ *   Free users:
+ *     - Basic progression rules
+ *     - Simple weight/reps adjustments
+ *     - Manual progression only
+ *   Premium users:
+ *     - AI-driven progression analysis
+ *     - Performance-based adaptations
+ *     - Periodization strategies
+ *     - Volume and intensity management
+ *     - Deload week detection
  * @dependencies workoutStorageService, userStore, dumbbells utilities
  * @integration WorkoutPlanManager, Analytics, Notifications
+ * @status ACTIVE - Core overload analytics service
+ * @updated 2025-08-25 - Modernized documentation and export
  */
 
 import { workoutStorageService } from "./workoutStorageService";

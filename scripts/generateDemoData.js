@@ -370,6 +370,23 @@ function generateTrainingStats(workouts, userType) {
   }
 
   return {
+    // שדות בסיסיים לתאימות עם ProfileScreen
+    totalWorkouts: workouts.length,
+    streak: Math.min(workouts.length, 7), // מקסימום שבוע
+    totalMinutes: Math.floor(
+      workouts.reduce((sum, w) => sum + w.stats.duration, 0) / 60
+    ),
+    totalHours: Math.floor(
+      workouts.reduce((sum, w) => sum + w.stats.duration, 0) / 3600
+    ),
+    xp:
+      workouts.length * 50 +
+      Math.floor(
+        workouts.reduce((sum, w) => sum + w.stats.totalVolume, 0) / 100
+      ),
+    level: Math.floor((workouts.length * 50) / 500) + 1,
+
+    // שדות קיימים
     workoutsCompleted: workouts.length,
     currentFitnessLevel: fitnessLevel,
     preferredWorkoutDuration: Math.round(avgDuration),
@@ -451,12 +468,21 @@ async function updateUserWithDemoData(userConfig) {
 
     // עדכון בסיס הנתונים
     const updateData = {
-      activityhistory: workouts, // היסטוריית אימונים מלאה
+      activityhistory: {
+        workouts: workouts, // היסטוריית אימונים מלאה בפורמט הנכון
+        weeklyProgress: Math.min(workouts.length, 7),
+      },
       trainingstats: trainingStats, // נתוני אימון מעודכנים
       subscription: subscription, // מצב מנוי
       currentstats: {
         gamification: gamificationState,
         achievements: achievements,
+        // שמירת הנתונים הקיימים מתיקונים קודמים מתוך trainingStats
+        totalWorkouts: trainingStats.totalWorkouts,
+        currentStreak: trainingStats.streak,
+        workoutStreak: trainingStats.streak,
+        totalVolume: trainingStats.totalVolume,
+        averageRating: trainingStats.averageRating,
         lastUpdated: new Date().toISOString(),
       },
       updated_at: new Date().toISOString(),
