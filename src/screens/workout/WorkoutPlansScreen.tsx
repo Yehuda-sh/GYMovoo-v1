@@ -29,6 +29,7 @@ import type { NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import type { WorkoutPlan, WorkoutRecommendation } from "../../types/index";
+import type { WorkoutExercise } from "./types/workout.types";
 import { RootStackParamList } from "../../navigation/types";
 
 // Component Imports
@@ -278,41 +279,44 @@ export default function WorkoutPlansScreen({
       name: string;
       dayName: string;
       startTime: string;
-      exercises: WorkoutRecommendation["exercises"];
+      exercises: WorkoutExercise[];
     } => {
-      const convertedExercises: WorkoutRecommendation["exercises"] =
-        workout.exercises?.map((exercise, exerciseIndex: number) => ({
-          id: exercise.id || `exercise_${exerciseIndex}_${Date.now()}`,
-          name: exercise.name,
-          category: exercise.category || "כללי",
-          primaryMuscles: exercise.primaryMuscles || ["כללי"],
-          equipment: exercise.equipment || "bodyweight",
-          restTime: exercise.restTime || 60,
-          sets: exercise.sets?.map((set, setIndex: number) => ({
-            id: `${exercise.id || exerciseIndex}_set_${setIndex}_${Date.now()}`,
+      const convertedExercises: WorkoutExercise[] = (
+        workout.exercises ?? []
+      ).map((exercise, exerciseIndex: number) => ({
+        id: exercise.id || `exercise_${exerciseIndex}_${Date.now()}`,
+        name: exercise.name,
+        category: exercise.category || "כללי",
+        primaryMuscles: exercise.primaryMuscles || ["כללי"],
+        equipment: exercise.equipment || "bodyweight",
+        restTime: exercise.restTime || 60,
+        sets: exercise.sets?.map((set, setIndex: number) => ({
+          id: `${exercise.id || exerciseIndex}_set_${setIndex}_${Date.now()}`,
+          type: "working" as const,
+          reps: set.reps || 10,
+          targetReps: set.reps || 10,
+          targetWeight: set.weight || 0,
+          actualReps: undefined,
+          actualWeight: undefined,
+          completed: false,
+          restTime: set.restTime || 60,
+          isPR: false,
+        })) || [
+          {
+            id: `${exercise.id || exerciseIndex}_set_0_${Date.now()}`,
             type: "working" as const,
-            targetReps: set.reps || 10,
-            targetWeight: set.weight || 0,
-            actualReps: undefined,
-            actualWeight: undefined,
+            reps: 10,
+            targetReps: 10,
+            targetWeight: 0,
             completed: false,
-            restTime: set.restTime || 60,
+            restTime: 60,
             isPR: false,
-          })) || [
-            {
-              id: `${exercise.id || exerciseIndex}_set_0_${Date.now()}`,
-              type: "working" as const,
-              targetReps: 10,
-              targetWeight: 0,
-              completed: false,
-              restTime: 60,
-              isPR: false,
-            },
-          ],
-          notes: exercise.notes,
-          videoUrl: exercise.videoUrl,
-          imageUrl: exercise.imageUrl,
-        })) || [];
+          },
+        ],
+        notes: exercise.notes,
+        videoUrl: exercise.videoUrl,
+        imageUrl: exercise.imageUrl,
+      }));
 
       return {
         name: workout.name || `אימון ${workoutIndex + 1}`,
@@ -605,12 +609,12 @@ export default function WorkoutPlansScreen({
             /**
              * Handle saving a new plan in the modal
              * @param shouldSave - boolean
-             * @param replaceType - "basic" | "smart" | "additional"
+             * @param replaceType - "basic" | "smart" | "additional" | undefined
              */
             onSave={(
               shouldSave: boolean,
-              replaceType: "basic" | "smart" | "additional"
-            ): void => {
+              replaceType?: "basic" | "smart" | "additional"
+            ) => {
               if (shouldSave) {
                 if (pendingPlan.type === "smart" || replaceType === "smart") {
                   setSmartPlan(pendingPlan.plan);
@@ -646,7 +650,11 @@ export default function WorkoutPlansScreen({
  * Styles for WorkoutPlansScreen
  * @remarks All style keys are typed for consistency with React Native StyleSheet
  */
-const styles: { [key: string]: any } = StyleSheet.create({
+import type { StyleProp, ViewStyle, TextStyle, ImageStyle } from "react-native";
+const styles: Record<
+  string,
+  StyleProp<ViewStyle | TextStyle | ImageStyle>
+> = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

@@ -7,52 +7,55 @@
  */
 
 import React, { useMemo } from "react";
-import { TouchableOpacity, ViewStyle } from "react-native";
+import { TouchableOpacity, StyleProp, ViewStyle } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
 type BackButtonVariant = "default" | "minimal" | "large";
 
 interface BackButtonProps {
-  /** האם הכפתור צריך להיות במיקום מוחלט */
   absolute?: boolean;
-  /** פונקציה מותאמת אישית לטיפול בלחיצה */
   onPress?: () => void;
-  /** מסך חלופי לניווט אם אין היסטוריה */
+  onLongPress?: () => void;
   fallbackScreen?: string;
-  /** פרמטרים למסך החלופי */
-  fallbackParams?: Record<string, any>;
-  /** גודל האייקון המותאם אישית */
+  fallbackParams?: Record<string, unknown>;
   size?: number;
-  /** וריאנט עיצובי של הכפתור */
   variant?: BackButtonVariant;
-  /** עיצוב נוסף לכפתור */
-  style?: ViewStyle;
-  /** האם הכפתור מושבת */
+  style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
+  iconName?: keyof typeof MaterialCommunityIcons.glyphMap;
+  hitSlop?: number;
 }
 
 const BackButton: React.FC<BackButtonProps> = React.memo(
   ({
     absolute = true,
     onPress,
+    onLongPress,
     fallbackScreen,
     fallbackParams,
     size,
     variant = "default",
     style,
     disabled = false,
+    accessibilityLabel = "חזור",
+    accessibilityHint = "לחץ כדי לחזור למסך הקודם",
+    testID,
+    iconName = "chevron-right",
+    hitSlop = 10,
   }) => {
     const navigation = useNavigation();
 
-    // Memoized styles עבור ביצועים טובים יותר
     const buttonStyle = useMemo(
       () =>
         theme.components.getBackButtonStyle({
           absolute,
           variant,
-          customStyle: style,
+          customStyle: style as ViewStyle,
         }),
       [absolute, variant, style]
     );
@@ -64,38 +67,44 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
 
     const handlePress = () => {
       if (disabled) return;
-
-      if (onPress) {
-        onPress();
-      } else {
-        // בדיקה אם יש היסטוריה לחזרה לפני ביצוע goBack
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else if (fallbackScreen) {
-          // ניווט למסך חלופי אם הוגדר
-          (navigation as any).navigate(fallbackScreen, fallbackParams || {});
-        } else {
-          // אין מקום לחזור אליו ואין fallback
-          console.warn(
-            "⚠️ BackButton: No history to go back to and no fallback screen provided"
-          );
-        }
-      }
+      if (onPress) onPress();
+      else if (navigation.canGoBack()) navigation.goBack();
+      else if (fallbackScreen)
+        (
+          navigation as unknown as {
+            navigate: (
+              screen: string,
+              params?: Record<string, unknown>
+            ) => void;
+          }
+        ).navigate(fallbackScreen, fallbackParams || {});
+      else
+        console.warn(
+          "⚠️ BackButton: No history to go back to and no fallback screen provided"
+        );
     };
 
     return (
       <TouchableOpacity
         onPress={handlePress}
-        style={[buttonStyle, disabled && { opacity: 0.5 }]}
+        onLongPress={onLongPress}
+        style={buttonStyle}
         activeOpacity={disabled ? 1 : 0.7}
         disabled={disabled}
-        accessibilityLabel="חזור"
+        accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
-        accessibilityHint="לחץ כדי לחזור למסך הקודם"
+        accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled }}
+        testID={testID}
+        hitSlop={{
+          top: hitSlop,
+          bottom: hitSlop,
+          left: hitSlop,
+          right: hitSlop,
+        }}
       >
-        <Ionicons
-          name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
+        <MaterialCommunityIcons
+          name={iconName}
           size={iconSize}
           color={disabled ? theme.colors.textTertiary : theme.colors.text}
         />
