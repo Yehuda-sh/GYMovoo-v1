@@ -12,13 +12,9 @@
 
 import { ImageSourcePropType } from "react-native";
 import type { SmartQuestionnaireData } from "../types";
-import {
-  ALL_EQUIPMENT,
-  HOME_EQUIPMENT,
-  GYM_EQUIPMENT,
-  CARDIO_EQUIPMENT,
-  getEquipmentById,
-} from "./equipmentData";
+import { getEquipmentById } from "./equipmentData";
+
+const QUESTIONNAIRE_VERSION = "2.2";
 
 // ================== מערכת Cache ואופטימיזציות ==================
 
@@ -28,12 +24,10 @@ import {
  */
 const QuestionnaireCache = {
   questionsById: new Map<string, Question>(),
-  relevantQuestions: new Map<string, Question[]>(),
   equipmentValidation: new Map<string, boolean>(),
 
   clear() {
     this.questionsById.clear();
-    this.relevantQuestions.clear();
     this.equipmentValidation.clear();
   },
 
