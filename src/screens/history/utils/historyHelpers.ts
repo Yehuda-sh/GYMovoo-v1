@@ -13,14 +13,140 @@ import {
   HISTORY_SCREEN_FORMATS,
 } from "../../../constants/historyScreenConfig";
 import { HISTORY_SCREEN_ICONS } from "../../../constants/historyScreenTexts";
+import { logger } from "../../../utils/logger";
 
-// Debug logging system
-const DEBUG = __DEV__;
+// ===============================================
+// 🔧 Type Definitions - הגדרות טיפוסים
+// ===============================================
+
+/** @description טיפוס לבדיקת תקינות ערך */
+type ValidationResult<T> = {
+  isValid: boolean;
+  value: T;
+  error?: string;
+};
+
+/** @description טיפוס לנתוני feedback גולמיים */
+interface RawWorkoutFeedback {
+  completedAt?: string | number | Date;
+  difficulty?: number;
+  feeling?: string;
+  congratulationMessage?: string;
+}
+
+/** @description טיפוס לנתוני stats גולמיים */
+interface RawWorkoutStats {
+  duration?: number;
+  personalRecords?: number;
+  totalSets?: number;
+  totalPlannedSets?: number;
+  totalVolume?: number;
+}
+
+/** @description טיפוס לנתוני workout גולמיים */
+interface RawWorkoutInner {
+  name?: string;
+  exercises?: unknown[];
+}
+
+/** @description טיפוס לאימון גולמי לבדיקה */
+interface RawWorkoutRecord {
+  id?: string;
+  feedback?: RawWorkoutFeedback;
+  stats?: RawWorkoutStats;
+  workout?: RawWorkoutInner;
+  metadata?: {
+    userGender?: string;
+  };
+}
+
+/** @description טיפוס לתוצאת חישוב התקדמות */
+interface ProgressCalculation {
+  percentage: number;
+  loaded: number;
+  total: number;
+  isValid: boolean;
+}
+
+// Debug logging system - שימוש בלוגר מרכזי
 const dlog = (message: string, ...args: unknown[]) => {
-  if (DEBUG) {
-    // eslint-disable-next-line no-console
-    console.debug(`[HistoryHelpers] ${message}`, ...args);
+  if (__DEV__) {
+    logger.debug("HistoryHelpers", message, ...args);
   }
+};
+
+// ===============================================
+// 🔧 Type Guards and Validation Helpers
+// ===============================================
+
+/** @description בודק אם ערך הוא תאריך תקין */
+const isValidDate = (value: unknown): value is Date => {
+  return value instanceof Date && !isNaN(value.getTime());
+};
+
+/** @description בודק אם ערך הוא מספר תקין */
+const isValidNumber = (
+  value: unknown,
+  min: number = 0,
+  max?: number
+): boolean => {
+  if (typeof value !== "number" || isNaN(value)) return false;
+  if (value < min) return false;
+  if (max !== undefined && value > max) return false;
+  return true;
+};
+
+/** @description בודק אם מחרוזת תקינה */
+const isValidString = (value: unknown): value is string => {
+  return typeof value === "string" && value.trim().length > 0;
+};
+
+/** @description ממיר ערך לתאריך תקין עם fallback */
+const safeDateConversion = (dateInput: unknown): Date => {
+  try {
+    if (isValidDate(dateInput as Date)) {
+      return dateInput as Date;
+    }
+
+    if (typeof dateInput === "number") {
+      const date = new Date(dateInput);
+      if (isValidDate(date)) return date;
+    }
+
+    if (typeof dateInput === "string") {
+      const date = new Date(dateInput);
+      if (isValidDate(date)) return date;
+    }
+
+    dlog("Invalid date input, using current date", { dateInput });
+    return new Date();
+  } catch (error) {
+    dlog("Error converting date", { error, dateInput });
+    return new Date();
+  }
+};
+
+/** @description מקבל ערך מספרי תקין עם fallback */
+const safeNumberValue = (
+  value: unknown,
+  fallback: number,
+  min: number = 0,
+  max?: number
+): number => {
+  if (isValidNumber(value, min, max)) {
+    return value as number;
+  }
+  dlog("Invalid number value, using fallback", { value, fallback });
+  return fallback;
+};
+
+/** @description מקבל ערך מחרוזת תקין עם fallback */
+const safeStringValue = (value: unknown, fallback: string): string => {
+  if (isValidString(value)) {
+    return (value as string).trim();
+  }
+  dlog("Invalid string value, using fallback", { value, fallback });
+  return fallback;
 };
 
 // Constants to prevent duplications
@@ -138,7 +264,7 @@ export const formatDateHebrew = (
       dateInput === undefined ||
       dateInput === null ||
       dateInput === "" ||
-      dateInput === ("Invalid Date" as unknown)
+      !isValidDate(dateInput)
     ) {
       return "תאריך לא זמין";
     }
@@ -153,7 +279,7 @@ export const formatDateHebrew = (
       date = new Date(dateInput);
     } else if (typeof dateInput === "string") {
       // טיפול בפורמטים שונים של תאריך
-      const cleanDateString = dateInput.trim();
+      const cleanDateString = safeStringValue(dateInput, "").trim();
 
       // בדיקה לפורמט ISO
       if (cleanDateString.includes("T") || cleanDateString.includes("Z")) {
@@ -169,7 +295,9 @@ export const formatDateHebrew = (
         date = new Date(cleanDateString);
       }
     } else {
-      date = new Date(dateInput as unknown as string);
+      // במקרה של סוג לא צפוי, נשתמש בערך ברירת מחדל
+      dlog("Unexpected date input type", { dateInput, type: typeof dateInput });
+      return "תאריך לא זמין";
     }
 
     // בדיקה שהתאריך תקין
@@ -317,100 +445,78 @@ export const sortWorkoutsByDate = <
 ): T[] => {
   return [...workouts].sort(
     (a, b) =>
-      new Date(b.feedback.completedAt).getTime() -
-      new Date(a.feedback.completedAt).getTime()
+      safeDateConversion(b.feedback.completedAt).getTime() -
+      safeDateConversion(a.feedback.completedAt).getTime()
   );
 };
 
 /**
  * מוודא שנתוני האימון תקינים ומעדכן ערכים לא תקינים
  */
-interface RawWorkoutFeedback {
-  completedAt?: string;
-  difficulty?: number;
-  feeling?: string;
-}
-interface RawWorkoutStats {
-  duration?: number;
-  personalRecords?: number;
-  totalSets?: number;
-  totalPlannedSets?: number;
-  totalVolume?: number;
-}
-interface RawWorkoutInner {
-  name?: string;
-  exercises?: unknown[];
-}
-interface RawWorkoutRecord {
-  id?: string;
-  feedback?: RawWorkoutFeedback;
-  stats?: RawWorkoutStats;
-  workout?: RawWorkoutInner;
-  [key: string]: unknown;
-}
-
 export const validateWorkoutData = <T = unknown>(workout: T): T => {
   try {
-    const w = workout as unknown as RawWorkoutRecord;
+    const w = workout as Partial<RawWorkoutRecord>;
+
+    // Safe validation of the workout data
+    const validatedFeedback = w.feedback
+      ? {
+          ...w.feedback,
+          completedAt: safeDateConversion(w.feedback.completedAt).toISOString(),
+          difficulty: safeNumberValue(
+            w.feedback.difficulty,
+            HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
+            1,
+            5
+          ),
+          feeling: safeStringValue(
+            w.feedback.feeling,
+            HISTORY_SCREEN_CONFIG.DEFAULT_MOOD
+          ),
+        }
+      : {
+          completedAt: new Date().toISOString(),
+          difficulty: HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
+          feeling: HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
+        };
+
+    const validatedStats = w.stats
+      ? {
+          ...w.stats,
+          duration: safeNumberValue(w.stats.duration, 0),
+          personalRecords: safeNumberValue(w.stats.personalRecords, 0),
+          totalSets: safeNumberValue(w.stats.totalSets, 0),
+          totalPlannedSets: safeNumberValue(w.stats.totalPlannedSets, 0),
+          totalVolume: safeNumberValue(w.stats.totalVolume, 0),
+        }
+      : {
+          duration: 0,
+          personalRecords: 0,
+          totalSets: 0,
+          totalPlannedSets: 0,
+          totalVolume: 0,
+        };
+
+    const validatedWorkout = w.workout
+      ? {
+          ...w.workout,
+          name: safeStringValue(w.workout.name, "אימון"),
+          exercises: Array.isArray(w.workout.exercises)
+            ? w.workout.exercises
+            : [],
+        }
+      : {
+          name: "אימון",
+          exercises: [],
+        };
+
     return {
       ...workout,
-      feedback: {
-        ...w.feedback,
-        completedAt: (() => {
-          const currentDate = w.feedback?.completedAt;
-          if (!currentDate || currentDate === "Invalid Date") {
-            return new Date().toISOString();
-          }
-          const testDate = new Date(currentDate);
-          if (
-            isNaN(testDate.getTime()) ||
-            testDate.getTime() <= CONSTANTS.VALIDATION.INVALID_TIMESTAMP
-          ) {
-            return new Date().toISOString();
-          }
-          return currentDate;
-        })(),
-        difficulty: (() => {
-          const diff = w.feedback?.difficulty;
-          if (typeof diff !== "number" || isNaN(diff) || diff < 1 || diff > 5) {
-            return HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING;
-          }
-          return diff;
-        })(),
-        feeling: w.feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
-      },
-      stats: {
-        duration: Math.max(
-          CONSTANTS.VALIDATION.MIN_VALUE,
-          w.stats?.duration || 0
-        ),
-        personalRecords: Math.max(
-          CONSTANTS.VALIDATION.MIN_VALUE,
-          w.stats?.personalRecords || 0
-        ),
-        totalSets: Math.max(
-          CONSTANTS.VALIDATION.MIN_VALUE,
-          w.stats?.totalSets || 0
-        ),
-        totalPlannedSets: Math.max(
-          CONSTANTS.VALIDATION.MIN_VALUE,
-          w.stats?.totalPlannedSets || 0
-        ),
-        totalVolume: Math.max(
-          CONSTANTS.VALIDATION.MIN_VALUE,
-          w.stats?.totalVolume || 0
-        ),
-      },
-      workout: {
-        ...w.workout,
-        name: w.workout?.name || "אימון",
-        exercises: Array.isArray(w.workout?.exercises)
-          ? w.workout.exercises
-          : [],
-      },
+      feedback: validatedFeedback,
+      stats: validatedStats,
+      workout: validatedWorkout,
     } as T;
   } catch (error) {
-    dlog("Error validating workout data", { error });
+    dlog("Error validating workout data", { error, workout });
     return workout;
   }
 };

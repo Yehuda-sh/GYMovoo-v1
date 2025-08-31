@@ -59,16 +59,295 @@ import {
   formatProgressRatio,
 } from "../../utils/formatters";
 
-import type { ComponentProps } from "react";
+// Import User type for type safety
+import type { User } from "../../types";
 
 // ===============================================
-// 🔧 Type Definitions - הגדרות טיפוסים
+// 🔧 Type Guards and Helper Functions
 // ===============================================
 
-/** @description טיפוס לאייקון MaterialCommunityIcons / Type for MaterialCommunityIcons icon */
-type MaterialCommunityIconName = ComponentProps<
-  typeof MaterialCommunityIcons
->["name"];
+/** @description Safe casting function */
+function safeCast<T>(obj: unknown, guard: (o: unknown) => o is T): T | null {
+  return guard(obj) ? obj : null;
+}
+
+/** @description Workout item type for history processing */
+interface WorkoutHistoryItem {
+  id?: string;
+  workout?: {
+    name?: string;
+    duration?: number;
+    startTime?: string;
+  };
+  workoutName?: string;
+  type?: string;
+  feedback?: {
+    completedAt?: string | Date;
+    difficulty?: number;
+  };
+  date?: string | Date;
+  completedAt?: string | Date;
+  stats?: {
+    duration?: number;
+  };
+  duration?: number;
+  startTime?: string;
+  rating?: number;
+}
+
+/** @description Calculate available training days from user data */
+const calculateAvailableTrainingDays = (user: User | null): number => {
+  if (!user) return 3;
+
+  // Try to extract from new smart questionnaire
+  const smartAnswers = user.smartquestionnairedata?.answers as
+    | { availability?: string }
+    | undefined;
+  if (smartAnswers?.availability) {
+    switch (smartAnswers.availability) {
+      case "2_days":
+        return 2;
+      case "3_days":
+        return 3;
+      case "4_days":
+        return 4;
+      case "5_days":
+        return 5;
+      default:
+        return 3;
+    }
+  }
+
+  // Try to extract from training stats
+  if (user.trainingstats?.preferredWorkoutDays) {
+    const days =
+      typeof user.trainingstats.preferredWorkoutDays === "number"
+        ? user.trainingstats.preferredWorkoutDays
+        : parseInt(String(user.trainingstats.preferredWorkoutDays), 10);
+    if (days >= 2 && days <= 5) return days;
+  }
+
+  // Try to extract from legacy questionnaire data
+  if (user.questionnairedata?.answers) {
+    const answers = user.questionnairedata.answers as Record<string, unknown>;
+    const frequency = answers.frequency;
+    if (typeof frequency === "string") {
+      switch (frequency) {
+        case "2_days":
+          return 2;
+        case "3_days":
+          return 3;
+        case "4_days":
+          return 4;
+        case "5_days":
+          return 5;
+        default:
+          return 3;
+      }
+    }
+  }
+
+  // Try to extract from old questionnaire
+  if (user.questionnaire) {
+    const questionnaireValues = Object.values(user.questionnaire);
+    for (const value of questionnaireValues) {
+      if (typeof value === "string") {
+        if (
+          value.includes("2") &&
+          (value.includes("times") || value.includes("פעמים"))
+        )
+          return 2;
+        if (
+          value.includes("3") &&
+          (value.includes("times") || value.includes("פעמים"))
+        )
+          return 3;
+        if (
+          value.includes("4") &&
+          (value.includes("times") || value.includes("פעמים"))
+        )
+          return 4;
+        if (
+          value.includes("5") &&
+          (value.includes("times") || value.includes("פעמים"))
+        )
+          return 5;
+      }
+    }
+  }
+
+  // Fallback - try to extract from scientific profile
+  const availableDays = user.scientificprofile?.available_days;
+  if (
+    typeof availableDays === "number" &&
+    availableDays >= 2 &&
+    availableDays <= 5
+  ) {
+    return availableDays;
+  }
+
+  return 3; // Default
+};
+
+/** @description Calculate next recommended workout day */
+const getNextRecommendedDay = (
+  workouts: WorkoutHistoryItem[],
+  availableDays: number
+): number => {
+  if (workouts.length === 0) return 1;
+
+  const lastWorkout = workouts[workouts.length - 1];
+  const lastWorkoutType = lastWorkout?.type || lastWorkout?.workoutName || "";
+
+  if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
+    return 2;
+  } else if (
+    lastWorkoutType.includes("2") ||
+    lastWorkoutType.includes("יום 2")
+  ) {
+    return availableDays >= 3 ? 3 : 1;
+  } else if (
+    lastWorkoutType.includes("3") ||
+    lastWorkoutType.includes("יום 3")
+  ) {
+    return availableDays >= 4 ? 4 : 1;
+  } else if (
+    lastWorkoutType.includes("4") ||
+    lastWorkoutType.includes("יום 4")
+  ) {
+    return availableDays >= 5 ? 5 : 1;
+  } else if (
+    lastWorkoutType.includes("5") ||
+    lastWorkoutType.includes("יום 5")
+  ) {
+    return 1;
+  }
+
+  return 1;
+};
+
+/** @description Process workout history for display */
+const processWorkoutHistory = (workouts: WorkoutHistoryItem[]) => {
+  return workouts
+    .slice(0, 3)
+    .map((workout, index) => {
+      const item = safeCast(
+        workout,
+        (o): o is WorkoutHistoryItem =>
+          typeof o === "object" && o !== null && "id" in o
+      );
+      if (!item) return null;
+
+      const title: string =
+        item.workout?.name ||
+        item.workoutName ||
+        (item.type === "strength"
+          ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
+          : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
+
+      const dateValue: string | Date =
+        item.feedback?.completedAt ||
+        item.date ||
+        item.completedAt ||
+        new Date();
+
+      const durationMinutes: number | undefined = (() => {
+        const seconds: number | undefined =
+          typeof item.workout?.duration === "number"
+            ? item.workout.duration
+            : typeof item.stats?.duration === "number"
+              ? item.stats.duration
+              : typeof item.duration === "number"
+                ? item.duration
+                : undefined;
+        return typeof seconds === "number"
+          ? Math.max(1, Math.round(seconds / 60))
+          : undefined;
+      })();
+
+      const startTime: string | undefined =
+        item.startTime || item.workout?.startTime;
+
+      const iconName = getWorkoutIcon(
+        item.type,
+        title
+      ) as keyof typeof MaterialCommunityIcons.glyphMap;
+
+      const ratingValue: number =
+        (typeof item.feedback?.difficulty === "number"
+          ? item.feedback.difficulty
+          : undefined) ||
+        item.rating ||
+        4.0;
+
+      return {
+        key: item.id || `workout-${index}`,
+        title,
+        dateValue,
+        durationMinutes,
+        startTime,
+        iconName,
+        ratingValue,
+      };
+    })
+    .filter(Boolean);
+};
+
+/** @description Extract personal data from user for analytics */
+const extractPersonalDataFromUser = (user: User | null) => {
+  if (!user) {
+    return {
+      age: "unknown" as const,
+      gender: "male" as const,
+      availability: "3_days" as const,
+      goals: [] as string[],
+      fitnessLevel: "beginner" as const,
+      weight: "70",
+      height: "170",
+    };
+  }
+
+  // Extract gender
+  const gender = (
+    user.smartquestionnairedata?.answers?.gender === "female"
+      ? "female"
+      : "male"
+  ) as "male" | "female";
+
+  // Extract age
+  const age =
+    user.smartquestionnairedata?.answers?.age?.toString() || "unknown";
+
+  // Extract availability
+  const availability = (
+    Array.isArray(user.smartquestionnairedata?.answers?.availability)
+      ? user.smartquestionnairedata.answers.availability[0] || "3_days"
+      : "3_days"
+  ) as "2_days" | "3_days" | "4_days" | "5_days";
+
+  // Extract goals
+  const goals = Array.isArray(user.smartquestionnairedata?.answers?.goals)
+    ? user.smartquestionnairedata.answers.goals
+    : [];
+
+  // Extract fitness level
+  const fitnessLevel = (user.smartquestionnairedata?.answers?.fitnessLevel ||
+    "beginner") as "beginner" | "intermediate" | "advanced";
+
+  // Use default values for weight and height since they're not in ScientificProfile
+  const weight = "70";
+  const height = "170";
+
+  return {
+    age,
+    gender,
+    availability,
+    goals,
+    fitnessLevel,
+    weight,
+    height,
+  };
+};
 
 // (הוסר טיפוס נגישות פנימי לא בשימוש)
 
@@ -135,15 +414,7 @@ function MainScreen() {
         workoutFacadeService.getGenderGroupedStatistics(),
       ]);
 
-      const personalData = {
-        age: "unknown" as const,
-        gender: "male" as const, // מתאים לטיפוס PersonalData
-        availability: "3_days" as const,
-        goals: [] as string[],
-        fitnessLevel: "beginner" as const,
-        weight: "70",
-        height: "170",
-      }; // מבנה נתונים פשוט לצורך הדמו
+      const personalData = extractPersonalDataFromUser(user);
 
       const insights =
         await workoutFacadeService.getPersonalizedWorkoutAnalytics(
@@ -224,67 +495,8 @@ function MainScreen() {
 
   /** @description מספר ימי האימון על בסיס השאלון / Number of training days based on questionnaire */
   const availableTrainingDays = useMemo(() => {
-    // נסה לחלץ מהשאלון החדש
-    type SmartAnswers = QuestionnaireAnswers & { availability?: string[] };
-    const answers = (user?.questionnairedata?.answers || {}) as SmartAnswers;
-    const availability = Array.isArray(answers.availability)
-      ? answers.availability[0]
-      : undefined;
-
-    if (availability) {
-      switch (availability) {
-        case "2_days":
-          return 2;
-        case "3_days":
-          return 3;
-        case "4_days":
-          return 4;
-        case "5_days":
-          return 5;
-        default:
-          return 3;
-      }
-    }
-
-    // fallback - נסה לחלץ מהשאלון הישן (questionnaire.frequency)
-    const oldQuestionnaire = (user?.questionnaire || {}) as {
-      frequency?: string;
-    };
-    const frequency = oldQuestionnaire?.frequency;
-
-    if (frequency) {
-      switch (frequency) {
-        case "2_days":
-          return 2;
-        case "3_days":
-          return 3;
-        case "4_days":
-          return 4;
-        case "5_days":
-          return 5;
-        default:
-          return 3;
-      }
-    }
-
-    // fallback - נסה לחלץ מפרופיל מדעי
-    const availableDays = user?.scientificprofile?.available_days;
-
-    if (
-      typeof availableDays === "number" &&
-      availableDays >= 2 &&
-      availableDays <= 5
-    ) {
-      return availableDays;
-    }
-
-    // ברירת מחדל
-    return 3;
-  }, [
-    user?.questionnairedata?.answers,
-    user?.questionnaire,
-    user?.scientificprofile?.available_days,
-  ]);
+    return calculateAvailableTrainingDays(user);
+  }, [user]);
 
   /** @description מערך הימים להצגה / Array of days to display */
   const daysToShow = useMemo(() => {
@@ -331,44 +543,9 @@ function MainScreen() {
   );
 
   /** @description חישוב היום הבא המומלץ לאימון / Calculate next recommended workout day */
-  const getNextRecommendedDay = useMemo(() => {
+  const nextRecommendedDay = useMemo(() => {
     const workouts = profileData.activityHistory?.workouts || [];
-
-    if (workouts.length === 0) {
-      return 1; // אם אין היסטוריה, מתחילים מיום 1
-    }
-
-    // מוצא את האימון האחרון
-    const lastWorkout = workouts[workouts.length - 1];
-    const lastWorkoutType = lastWorkout?.type || lastWorkout?.workoutName || "";
-
-    // לוגיקה דינמית לפי מספר הימים הזמינים
-    if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
-      return 2;
-    } else if (
-      lastWorkoutType.includes("2") ||
-      lastWorkoutType.includes("יום 2")
-    ) {
-      return availableTrainingDays >= 3 ? 3 : 1; // אם יש רק 2 ימים, חוזרים ליום 1
-    } else if (
-      lastWorkoutType.includes("3") ||
-      lastWorkoutType.includes("יום 3")
-    ) {
-      return availableTrainingDays >= 4 ? 4 : 1; // אם יש פחות מ-4 ימים, חוזרים ליום 1
-    } else if (
-      lastWorkoutType.includes("4") ||
-      lastWorkoutType.includes("יום 4")
-    ) {
-      return availableTrainingDays >= 5 ? 5 : 1; // אם יש פחות מ-5 ימים, חוזרים ליום 1
-    } else if (
-      lastWorkoutType.includes("5") ||
-      lastWorkoutType.includes("יום 5")
-    ) {
-      return 1; // אחרי יום 5 תמיד חוזרים ליום 1
-    }
-
-    // ברירת מחדל - יום 1
-    return 1;
+    return getNextRecommendedDay(workouts, availableTrainingDays);
   }, [profileData.activityHistory?.workouts, availableTrainingDays]);
 
   /** @description נתוני התקדמות שבועית מעובדים / Processed weekly progress data */
@@ -796,7 +973,7 @@ function MainScreen() {
           >
             <Text style={styles.sectionTitle}>
               {MAIN_SCREEN_TEXTS.SECTIONS.SELECT_DAY_RECOMMENDED(
-                getNextRecommendedDay
+                nextRecommendedDay
               )}
             </Text>
 
@@ -809,7 +986,7 @@ function MainScreen() {
               />
               <Text style={styles.recommendationText}>
                 בהתבסס על האימון האחרון שלך, אנו ממליצים להמשיך ליום{" "}
-                {getNextRecommendedDay}
+                {nextRecommendedDay}
               </Text>
             </View>
 
@@ -974,7 +1151,7 @@ function MainScreen() {
                     const iconName = getWorkoutIcon(
                       item?.type,
                       title
-                    ) as MaterialCommunityIconName;
+                    ) as keyof typeof MaterialCommunityIcons.glyphMap;
 
                     const ratingValue: number =
                       (typeof item?.feedback?.difficulty === "number"

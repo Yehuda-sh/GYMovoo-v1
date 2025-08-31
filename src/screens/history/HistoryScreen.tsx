@@ -50,17 +50,146 @@ import {
   formatDifficultyScore,
 } from "./utils/historyHelpers";
 
+// Import User type for type safety
+import type { User } from "../../types";
+
+// ===============================================
+// 🔧 Type Guards and Helper Functions
+// ===============================================
+
+/** @description Type guard for valid workout item */
+const isValidWorkoutItem = (item: unknown): item is WorkoutWithFeedback => {
+  const workoutItem = item as Partial<WorkoutWithFeedback>;
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    typeof workoutItem.workout === "object" &&
+    typeof workoutItem.feedback === "object" &&
+    typeof workoutItem.stats === "object" &&
+    workoutItem.workout !== null &&
+    workoutItem.feedback !== null &&
+    workoutItem.stats !== null
+  );
+};
+
+/** @description Safe workout data extractor */
+const extractWorkoutData = (item: WorkoutWithFeedback) => {
+  if (!isValidWorkoutItem(item)) {
+    return null;
+  }
+
+  const workout = item.workout;
+  const feedback = item.feedback;
+  const stats = item.stats;
+
+  return {
+    name: workout?.name || HISTORY_SCREEN_TEXTS.WORKOUT_DEFAULT_NAME,
+    exercisesCount: workout?.exercises?.length || 0,
+    durationMinutes: stats?.duration ? Math.round(stats.duration / 60) : 0,
+    totalSets: stats?.totalSets || 0,
+    personalRecords: stats?.personalRecords || 0,
+    completedAt: feedback?.completedAt,
+    difficulty:
+      feedback?.difficulty || HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
+    feeling: feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD,
+    congratulationMessage: feedback?.congratulationMessage,
+    userGender: item.metadata?.userGender,
+  };
+};
+
+/** @description Calculate workout statistics safely */
+const calculateWorkoutStats = (statistics: WorkoutStatistics | null) => {
+  if (!statistics?.total) {
+    return {
+      totalWorkouts: 0,
+      averageDifficulty: HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING,
+      hasData: false,
+    };
+  }
+
+  const totalWorkouts = statistics.total.totalWorkouts || 0;
+  const averageDifficulty = isNaN(statistics.total.averageDifficulty)
+    ? HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING
+    : statistics.total.averageDifficulty;
+
+  return {
+    totalWorkouts,
+    averageDifficulty,
+    hasData: totalWorkouts > 0,
+  };
+};
+
+/** @description Safe data manager operations */
+const safeDataManager = {
+  getWorkoutHistory: (): WorkoutWithFeedback[] => {
+    try {
+      return dataManager.getWorkoutHistory() || [];
+    } catch (error) {
+      logger.error("HistoryScreen", "Failed to get workout history", error);
+      return [];
+    }
+  },
+
+  getStatistics: (): WorkoutStatistics | null => {
+    try {
+      return dataManager.getStatistics();
+    } catch (error) {
+      logger.error("HistoryScreen", "Failed to get statistics", error);
+      return null;
+    }
+  },
+
+  getCongratulationMessage: (): string | null => {
+    try {
+      return dataManager.getCongratulationMessage();
+    } catch (error) {
+      logger.error(
+        "HistoryScreen",
+        "Failed to get congratulation message",
+        error
+      );
+      return null;
+    }
+  },
+
+  isReady: (): boolean => {
+    try {
+      return dataManager.isReady();
+    } catch (error) {
+      logger.error(
+        "HistoryScreen",
+        "Failed to check data manager readiness",
+        error
+      );
+      return false;
+    }
+  },
+
+  initialize: async (user: User): Promise<void> => {
+    try {
+      await dataManager.initialize(user);
+    } catch (error) {
+      logger.error("HistoryScreen", "Failed to initialize data manager", error);
+      throw error;
+    }
+  },
+
+  refresh: async (user: User): Promise<void> => {
+    try {
+      await dataManager.refresh(user);
+    } catch (error) {
+      logger.error("HistoryScreen", "Failed to refresh data manager", error);
+      throw error;
+    }
+  },
+};
+
 // Debug logging system
 const dlog = (message: string, ...args: unknown[]) => {
   if (__DEV__) {
     logger.debug("HistoryScreen", message, ...args);
   }
 };
-
-// Constants to prevent duplications
-const TIMING_CONSTANTS = {
-  MINUTES_CONVERTER: 60,
-} as const;
 
 const HistoryScreen: React.FC = React.memo(() => {
   const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
@@ -92,20 +221,20 @@ const HistoryScreen: React.FC = React.memo(() => {
         }
 
         // וודא שהמנהל מאותחל
-        if (!dataManager.isReady()) {
+        if (!safeDataManager.isReady()) {
           if (user) {
             dlog("Initializing data manager...");
-            await dataManager.initialize(user);
+            await safeDataManager.initialize(user);
           } else {
             dlog("No user available for initialization");
             return;
           }
         }
 
-        // שלוף נתונים מוכנים מהמנהל
-        const allWorkouts = dataManager.getWorkoutHistory();
-        const stats = dataManager.getStatistics();
-        const congratulation = dataManager.getCongratulationMessage();
+        // שלוף נתונים מוכנים מהמנהל בבטחה
+        const allWorkouts = safeDataManager.getWorkoutHistory();
+        const stats = safeDataManager.getStatistics();
+        const congratulation = safeDataManager.getCongratulationMessage();
 
         // עדכן State
         setStatistics(stats);
@@ -137,7 +266,7 @@ const HistoryScreen: React.FC = React.memo(() => {
     if (!hasMoreData || loading || refreshing) return;
 
     try {
-      const allWorkouts = dataManager.getWorkoutHistory();
+      const allWorkouts = safeDataManager.getWorkoutHistory();
       const startIndex = currentPage * ITEMS_PER_PAGE;
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const newData = allWorkouts.slice(startIndex, endIndex);
@@ -164,7 +293,7 @@ const HistoryScreen: React.FC = React.memo(() => {
     setRefreshing(true);
     try {
       dlog("Refreshing data...");
-      await dataManager.refresh(user);
+      await safeDataManager.refresh(user);
       await loadData({ silent: true });
     } catch (error) {
       logger.error("HistoryScreen", "Refresh failed", error);
@@ -213,19 +342,17 @@ const HistoryScreen: React.FC = React.memo(() => {
     return getGenderIcon(userGender);
   }, [user]);
 
+  // מאממוריזציה של סטטיסטיקות מעובדות
+  const processedStats = useMemo(() => {
+    return calculateWorkoutStats(statistics);
+  }, [statistics]);
+
   /**
    * רינדור סטטיסטיקות משתמש
    * מציג סה"כ אימונים, קושי ממוצע ונתוני מגדר
    */
   const renderStatistics = useCallback(() => {
-    if (!statistics || !statistics.total) return null;
-
-    const totalWorkouts = statistics.total.totalWorkouts || 0;
-    const averageDifficulty = isNaN(statistics.total.averageDifficulty)
-      ? HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING
-      : statistics.total.averageDifficulty;
-
-    if (totalWorkouts === 0) return null;
+    if (!processedStats.hasData) return null;
 
     return (
       <Animated.View
@@ -250,7 +377,9 @@ const HistoryScreen: React.FC = React.memo(() => {
               },
             ]}
           >
-            <Text style={styles.statNumber}>{totalWorkouts}</Text>
+            <Text style={styles.statNumber}>
+              {processedStats.totalWorkouts}
+            </Text>
             <Text style={styles.statLabel}>
               {HISTORY_SCREEN_TEXTS.STAT_TOTAL_WORKOUTS}
             </Text>
@@ -266,7 +395,7 @@ const HistoryScreen: React.FC = React.memo(() => {
             ]}
           >
             <Text style={styles.statNumber}>
-              {formatDifficultyScore(averageDifficulty)}
+              {formatDifficultyScore(processedStats.averageDifficulty)}
             </Text>
             <Text style={styles.statLabel}>
               {HISTORY_SCREEN_TEXTS.STAT_AVERAGE_DIFFICULTY}
@@ -302,7 +431,7 @@ const HistoryScreen: React.FC = React.memo(() => {
       </Animated.View>
     );
   }, [
-    statistics,
+    processedStats,
     currentGenderStats,
     currentUserGenderIcon,
     fadeAnim,
@@ -337,9 +466,8 @@ const HistoryScreen: React.FC = React.memo(() => {
 
   const renderWorkoutItem = useCallback(
     ({ item }: { item: WorkoutWithFeedback; index: number }) => {
-      const userGender = item.metadata?.userGender;
-
-      if (!item || !item.workout) return null;
+      const workoutData = extractWorkoutData(item);
+      if (!workoutData) return null;
 
       return (
         <Animated.View
@@ -362,12 +490,10 @@ const HistoryScreen: React.FC = React.memo(() => {
         >
           <View style={styles.workoutHeader}>
             <View style={styles.workoutTitleRow}>
-              <Text style={styles.workoutName}>
-                {item.workout.name || HISTORY_SCREEN_TEXTS.WORKOUT_DEFAULT_NAME}
-              </Text>
-              {userGender && (
+              <Text style={styles.workoutName}>{workoutData.name}</Text>
+              {workoutData.userGender && (
                 <MaterialCommunityIcons
-                  name={getGenderIcon(userGender)}
+                  name={getGenderIcon(workoutData.userGender)}
                   size={16}
                   color={theme.colors.textSecondary}
                 />
@@ -375,16 +501,20 @@ const HistoryScreen: React.FC = React.memo(() => {
             </View>
             <View style={styles.dateTimeRow}>
               <Text style={styles.workoutDate}>
-                {formatDateHebrew(item.feedback.completedAt)}
+                {workoutData.completedAt
+                  ? formatDateHebrew(workoutData.completedAt)
+                  : ""}
               </Text>
               <Text style={styles.workoutTime}>
-                {new Date(item.feedback.completedAt).toLocaleTimeString(
-                  "he-IL",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
+                {workoutData.completedAt
+                  ? new Date(workoutData.completedAt).toLocaleTimeString(
+                      "he-IL",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )
+                  : ""}
               </Text>
             </View>
           </View>
@@ -397,11 +527,7 @@ const HistoryScreen: React.FC = React.memo(() => {
                 color={theme.colors.textSecondary}
               />
               <Text style={styles.statText}>
-                {Math.round(
-                  (item.stats.duration || 0) /
-                    TIMING_CONSTANTS.MINUTES_CONVERTER
-                )}{" "}
-                דקות
+                {workoutData.durationMinutes} דקות
               </Text>
             </View>
 
@@ -412,7 +538,7 @@ const HistoryScreen: React.FC = React.memo(() => {
                 color={theme.colors.textSecondary}
               />
               <Text style={styles.statText}>
-                {item.workout?.exercises?.length || 0} תרגילים
+                {workoutData.exercisesCount} תרגילים
               </Text>
             </View>
 
@@ -422,12 +548,10 @@ const HistoryScreen: React.FC = React.memo(() => {
                 size={18}
                 color={theme.colors.textSecondary}
               />
-              <Text style={styles.statText}>
-                {item.stats.totalSets || 0} סטים
-              </Text>
+              <Text style={styles.statText}>{workoutData.totalSets} סטים</Text>
             </View>
 
-            {(item.stats?.personalRecords || 0) > 0 && (
+            {workoutData.personalRecords > 0 && (
               <View style={styles.statItem}>
                 <MaterialCommunityIcons
                   name={HISTORY_SCREEN_ICONS.TROPHY}
@@ -437,7 +561,7 @@ const HistoryScreen: React.FC = React.memo(() => {
                 <Text
                   style={[styles.statText, { color: theme.colors.primary }]}
                 >
-                  {item.stats.personalRecords || 0} שיאים
+                  {workoutData.personalRecords} שיאים
                 </Text>
               </View>
             )}
@@ -449,10 +573,7 @@ const HistoryScreen: React.FC = React.memo(() => {
                 {HISTORY_SCREEN_TEXTS.FEEDBACK_DIFFICULTY_LABEL}
               </Text>
               <Text style={styles.feedbackValue}>
-                {getDifficultyStars(
-                  item.feedback?.difficulty ||
-                    HISTORY_SCREEN_CONFIG.DEFAULT_DIFFICULTY_RATING
-                )}
+                {getDifficultyStars(workoutData.difficulty)}
               </Text>
             </View>
 
@@ -461,17 +582,15 @@ const HistoryScreen: React.FC = React.memo(() => {
                 {HISTORY_SCREEN_TEXTS.FEEDBACK_FEELING_LABEL}
               </Text>
               <Text style={styles.feedbackValue}>
-                {getFeelingEmoji(
-                  item.feedback?.feeling || HISTORY_SCREEN_CONFIG.DEFAULT_MOOD
-                )}
+                {getFeelingEmoji(workoutData.feeling)}
               </Text>
             </View>
           </View>
 
-          {item.feedback.congratulationMessage && (
+          {workoutData.congratulationMessage && (
             <View style={styles.congratulationInCard}>
               <Text style={styles.congratulationInCardText}>
-                {item.feedback.congratulationMessage}
+                {workoutData.congratulationMessage}
               </Text>
             </View>
           )}
@@ -482,7 +601,7 @@ const HistoryScreen: React.FC = React.memo(() => {
   );
 
   const renderLoadingFooter = () => {
-    const allWorkouts = dataManager.getWorkoutHistory();
+    const allWorkouts = safeDataManager.getWorkoutHistory();
 
     if (!hasMoreData) {
       return (
@@ -616,7 +735,8 @@ const HistoryScreen: React.FC = React.memo(() => {
                   </Text>
                   <View style={styles.countBadge}>
                     <Text style={styles.countBadgeText}>
-                      {workouts.length}/{dataManager.getWorkoutHistory().length}
+                      {workouts.length}/
+                      {safeDataManager.getWorkoutHistory().length}
                     </Text>
                   </View>
                 </View>

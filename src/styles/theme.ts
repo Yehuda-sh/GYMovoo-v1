@@ -645,7 +645,7 @@ export const components = {
     return [baseStyle, variantStyles[variant], absoluteStyle, customStyle];
   },
 
-  getBackButtonIconSize: (
+    getBackButtonIconSize: (
     variant: "default" | "minimal" | "large" = "default",
     customSize?: number
   ) => {
@@ -657,6 +657,25 @@ export const components = {
         return defaultSize - 2;
       default:
         return defaultSize;
+    }
+  },
+
+  getBackButtonIconColor: (disabled: boolean) => {
+    return disabled ? colors.textTertiary : colors.text;
+  },
+
+  getBackButtonHitSlop: (
+    variant: "default" | "minimal" | "large" = "default",
+    override?: number
+  ) => {
+    if (override !== undefined) return override;
+    switch (variant) {
+      case "large":
+        return 15;
+      case "minimal":
+        return 5;
+      default:
+        return 10;
     }
   },
 
