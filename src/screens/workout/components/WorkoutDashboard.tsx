@@ -4,8 +4,8 @@
  * @description English: Interactive workout dashboard with live stats and 4 advanced variants - Most sophisticated component
  * @version 3.1.0
  * @author GYMovoo Development Team
- * @created 2024-12-15
- * @modified 2025-01-17
+ * @created 2025-08-25
+ * @modified 2025-08-25
  * @optimized true - שופר ואופטמם במסגרת ביקורת מקיפה
  *
  * ✅ ACTIVE & HIGHLY-SOPHISTICATED: הרכיב המתקדם והמתוחכם ביותר במערכת

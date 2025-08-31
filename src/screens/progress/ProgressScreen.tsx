@@ -13,7 +13,8 @@ import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { workoutFacadeService } from "../../services";
+import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
+import { logger } from "../../utils/logger";
 
 export default function ProgressScreen(): JSX.Element {
   const [loading, setLoading] = React.useState(true);
@@ -42,7 +43,7 @@ export default function ProgressScreen(): JSX.Element {
         setStats(s.total);
         setPersonalRecords(personalRecordsCount);
       } catch (e) {
-        console.error("ProgressScreen: failed to load stats", e);
+        logger.error("ProgressScreen: failed to load stats", String(e));
       } finally {
         if (mounted) setLoading(false);
       }

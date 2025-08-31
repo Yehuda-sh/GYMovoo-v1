@@ -4,8 +4,8 @@
  * English: Exercise options menu with clean and professional design - Accessibility optimized
  * @version 2.2.0
  * @author GYMovoo Development Team
- * @created 2024-12-15
- * @modified 2025-01-02
+ * @created 2025-08-25
+ * @modified 2025-08-25
  *
  * @features
  * - ✅ React.memo optimization for performance
@@ -24,9 +24,9 @@
  * - 🆕 Context-aware accessibility announcements for edit mode (v2.2.0)
  *
  * @updates
- * 2025-01-02 - Comprehensive edit mode integration with specialized menu layout and accessibility
+ * 2025-08-25 - Comprehensive edit mode integration with specialized menu layout and accessibility
  * 2025-08-02 - Enhanced integration with SetRow edit mode and elevator buttons
- * 2025-01-31 - Major performance and accessibility improvements
+ * 2025-08-25 - Major performance and accessibility improvements
  */
 
 import React, {

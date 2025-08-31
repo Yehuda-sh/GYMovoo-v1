@@ -4,7 +4,7 @@
  * @description מציג היסטוריית אימונים עם סטטיסטיקות, תמיכה ב-RTL ואנימציות
  * @dependencies theme, dataManager, MaterialCommunityIcons, workoutHelpers, logger
  * @notes תמיכה מלאה RTL, נתונים מוכנים מראש, logging מרכזי, ללא לוגיקה מורכבת
- * @created 2025-01-XX
+ * @created 2025-01-15
  * @updated 2025-08-25 החלפת console calls בלוגינג מרכזי, פישוט constants, שיפור error handling
  */
 

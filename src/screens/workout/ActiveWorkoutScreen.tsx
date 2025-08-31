@@ -29,7 +29,7 @@
         displayText: `${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים • ${workoutStats.progressPercentage}% הושלם`
       });
     }
-  }, [workoutStats]);2024-12-15
+  }, [workoutStats]);
  * @modified 2025-08-02
  *
  * @description

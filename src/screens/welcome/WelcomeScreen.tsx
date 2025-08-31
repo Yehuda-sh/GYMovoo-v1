@@ -56,7 +56,7 @@
  * @updated 2025-08-18 הוספת React.memo, CONSTANTS למניעת כפילויות, עדכון JSDoc
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -71,11 +71,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import { StorageKeys } from "../../constants/StorageKeys";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import UniversalButton from "../../components/ui/UniversalButton";
 import {
@@ -111,10 +109,7 @@ const CONSTANTS = {
     RIGHT: 20,
   },
   MIN_TOUCH_TARGET: 44,
-  PERFORMANCE_THRESHOLD: 100,
 };
-
-// Helper function was removed - inline logic used instead for better performance optimization
 
 // Enhanced TouchableButton props interface with comprehensive accessibility support
 // ממשק מורחב לכפתור מגע עם תמיכה מקיפה בנגישות
@@ -195,18 +190,6 @@ const TouchableButton = ({
 };
 
 const WelcomeScreen = React.memo(() => {
-  // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
-  const renderStartTime = useMemo(() => performance.now(), []);
-
-  useEffect(() => {
-    const renderTime = performance.now() - renderStartTime;
-    if (renderTime > CONSTANTS.PERFORMANCE_THRESHOLD) {
-      logger.warn("WelcomeScreen רינדור איטי", "performance", {
-        renderTime: renderTime.toFixed(2) + "ms",
-      });
-    }
-  }, [renderStartTime]);
-
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, getCompletionStatus } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -249,7 +232,7 @@ const WelcomeScreen = React.memo(() => {
     }
   }, [user, getCompletionStatus, navigation]);
 
-  // � בדיקת זמינות Quick Login מבוסס Supabase session
+  // 🔍 בדיקת זמינות Quick Login מבוסס Supabase session
   useEffect(() => {
     const checkQuickLoginAvailability = async () => {
       try {
@@ -275,24 +258,6 @@ const WelcomeScreen = React.memo(() => {
     };
 
     checkQuickLoginAvailability();
-  }, []);
-
-  // �🔄 טעינת המשתמש שהתנתק לאחרונה מ-AsyncStorage
-  useEffect(() => {
-    const loadLastLoggedOutUser = async () => {
-      try {
-        const storedUserId = await AsyncStorage.getItem(
-          StorageKeys.LAST_LOGGED_OUT_USER_ID
-        );
-        if (storedUserId) {
-          // מידע זה כבר לא נדרש - הוסר עם מעבר לquick login מבוסס session
-        }
-      } catch (error) {
-        if (__DEV__)
-          logger.error("Failed to load lastLoggedOutUserId", "storage", error);
-      }
-    };
-    loadLastLoggedOutUser();
   }, []);
 
   // Generate realistic active users count based on time of day
@@ -848,6 +813,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Utility styles added during logger refactor / loading extraction
+  // Utility styles
   flexFull: { flex: 1 },
 });

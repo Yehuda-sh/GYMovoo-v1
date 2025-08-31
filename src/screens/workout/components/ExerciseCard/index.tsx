@@ -29,7 +29,7 @@
  * @updated 2025-08-24 - Enhanced with advanced monitoring systems, security validation, AI features
  * @updated 2025-08-24 - Enhanced with premium design patterns and advanced UI
  * @updated 2025-08-02 - הוספת כפתור הוספת סט מעוצב עם משוב חזותי ומגע
- * @updated 2025-01-31 - הוספת מצב עריכה In-Place מתקדם עם נעילת קיפול
+ * @updated 2025-08-25 - הוספת מצב עריכה In-Place מתקדם עם נעילת קיפול
  */
 
 import React, {

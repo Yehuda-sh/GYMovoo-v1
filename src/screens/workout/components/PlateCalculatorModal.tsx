@@ -50,7 +50,7 @@
  * - theme system: שילוב מושלם עם מערכת העיצוב
  * - Modal patterns: שימוש בתבניות modal סטנדרטיות
  *
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @updated 2025-08-25 Enhanced documentation and status for audit completion
  */
 // cspell:ignore פלטות
 

@@ -44,13 +44,13 @@ import { validateEmail as sharedValidateEmail } from "../../utils/authValidation
 import type { RootStackParamList } from "../../navigation/types";
 import { localDataService } from "../../services/localDataService";
 import { userApi } from "../../services/api/userApi";
+import { logger } from "../../utils/logger";
 
 // Debug toggle
 const DEBUG_REGISTER = false;
 const debug = (...args: unknown[]) => {
   if (DEBUG_REGISTER) {
-    // eslint-disable-next-line no-console
-    console.log("[REGISTER]", ...args);
+    logger.debug("[REGISTER]", args.length > 0 ? JSON.stringify(args) : "");
   }
 };
 

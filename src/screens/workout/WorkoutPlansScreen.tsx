@@ -401,9 +401,41 @@ export default function WorkoutPlansScreen({
     // מעבר למסך אימון פעיל
     showSuccess("אימון מתחיל!", "מעבר למסך האימון");
 
-    // TODO: Navigate to ActiveWorkout when ready
-    // navigation.navigate('ActiveWorkout', { workoutPlan: currentWorkoutPlan });
-  }, [currentWorkoutPlan, triggerHaptic, showSuccess, showError]);
+    // Navigate to ActiveWorkout with proper parameters
+    const workoutTemplate = currentWorkoutPlan.workouts?.[0]; // Get first workout template
+    if (!workoutTemplate) {
+      showError("שגיאה", "לא ניתן למצוא תבנית אימון");
+      return;
+    }
+
+    // Use exercises directly from workout template
+    const exercises = workoutTemplate.exercises || [];
+
+    navigation.navigate("ActiveWorkout", {
+      workoutData: {
+        name: currentWorkoutPlan.name || "אימון יומי",
+        dayName: workoutTemplate.name || "יום אימון",
+        startTime: new Date().toISOString(),
+        exercises: exercises as WorkoutExercise[],
+      },
+      aiCoaching: selectedPlanType === "smart" && canAccessAI,
+      performanceTracking: {
+        screenTime: 0,
+        interactions: 0,
+        lastVisited: new Date().toISOString(),
+        frequency: 1,
+        userPreference: 8,
+      },
+    });
+  }, [
+    currentWorkoutPlan,
+    triggerHaptic,
+    showSuccess,
+    showError,
+    canAccessAI,
+    navigation,
+    selectedPlanType,
+  ]);
 
   // Handle refresh
   /**

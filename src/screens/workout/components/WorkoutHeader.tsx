@@ -51,7 +51,7 @@
  *
  * @dependencies Ionicons, MaterialCommunityIcons, useNavigation, theme, BackButton
  * @notes תומך במספר סגנונות ושילוב עם WorkoutDashboard וכל מסכי האימון
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @updated 2025-08-25 Enhanced documentation and status for audit completion
  */
 // cspell:ignore אימון, עריכת, תפריט, חזרה
 

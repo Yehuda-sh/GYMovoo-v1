@@ -13,13 +13,13 @@ This PR implements intelligent equipment-aware workout plan generation that:
 
 ### Core Implementation
 
-- **`src/utils/equipmentCatalog.ts`** - NEW: Equipment taxonomy and substitution logic
+- **`src/utils/equipmentCatalog.ts`** - ✅ ACTIVE: Equipment taxonomy and substitution logic
 - **`src/stores/userStore.ts`** - UPDATED: Equipment data access selectors
-- **`src/screens/workout/services/workoutLogicService.ts`** - UPDATED: Equipment-aware exercise filtering
+- **`src/screens/workout/services/workoutLogicService.ts`** - ✅ ACTIVE: Equipment-aware exercise filtering
 
 ### Testing
 
-- **`src/tests/equipmentCatalog.test.ts`** - NEW: Comprehensive test suite
+- **`src/utils/__tests__/equipmentCatalog.test.ts`** - ✅ NEW: Comprehensive test suite (24 tests covering all functionality)
 
 ## 🔧 Key Features
 
@@ -35,17 +35,19 @@ normalizeEquipment(["dumbbells", "free weights"]);
 
 ```typescript
 // Machine exercises can substitute with dumbbells
-canPerform(["machine"], ["dumbbell"]); // → true
+canPerform(["machine"], ["dumbbell"]); // → false (direct check only)
+getExerciseAvailability(["machine"], ["dumbbell"]); // → { canPerform: true, substitutions: { machine: 'dumbbell' } }
 
-// Hierarchical fallbacks: machine → dumbbell → bodyweight
+// Hierarchical fallbacks: machine → cable → free_weights → dumbbell → band → bodyweight
 ```
 
 ### 3. Exercise Availability Scoring
 
 ```typescript
-// Perfect match = 1.0, substitutions = 0.8-0.6, bodyweight = 0.3
+// Perfect match = isFullySupported: true, substitutions = undefined
+// Substitutions = isFullySupported: false, substitutions: { required: substitute }
 getExerciseAvailability(["machine"], ["dumbbell"]);
-// → { canPerform: true, score: 0.8, substitution: 'dumbbell' }
+// → { canPerform: true, isFullySupported: false, substitutions: { machine: 'dumbbell' } }
 ```
 
 ## 🏗️ Architecture
@@ -54,7 +56,7 @@ getExerciseAvailability(["machine"], ["dumbbell"]);
 
 - **23+ Equipment Types**: Complete taxonomy from machines to bodyweight
 - **Synonym Mapping**: Handles variations like "dumbbells" → "dumbbell"
-- **Substitution Hierarchy**: Smart fallbacks with scoring
+- **Substitution Hierarchy**: Smart fallbacks with priority ordering
 - **Type Safety**: Full TypeScript support with EquipmentTag union
 
 ### Integration Points
@@ -67,16 +69,18 @@ getExerciseAvailability(["machine"], ["dumbbell"]);
 
 Comprehensive test coverage includes:
 
-- ✅ Equipment normalization and synonym handling
-- ✅ Substitution logic validation
-- ✅ Edge cases (no equipment, invalid equipment)
-- ✅ Integration workflow testing
+- ✅ Equipment normalization and synonym handling (5 tests)
+- ✅ Direct availability checking (5 tests)
+- ✅ Substitution logic validation (4 tests)
+- ✅ Edge cases (undefined, duplicates, special chars) (4 tests)
+- ✅ Integration workflow testing (3 tests)
+- ✅ Synonym and substitution mappings (3 tests)
 
 ## 🚀 Usage Example
 
 ```typescript
 // User has dumbbells and resistance bands
-const userEquipment = useUserEquipment(); // ['dumbbell', 'resistance_bands']
+const userEquipment = useUserEquipment(); // ['bodyweight', 'dumbbell', 'resistance_bands']
 
 // Generate workout for chest day
 const exercises = selectExercisesForDay(
@@ -104,9 +108,9 @@ Equipment substitution rules are easily configurable in `equipmentCatalog.ts`:
 
 ```typescript
 export const SUBSTITUTIONS: Record<EquipmentTag, EquipmentTag[]> = {
-  machine: ["dumbbell", "barbell", "cable", "resistance_bands", "bodyweight"],
-  cable: ["resistance_bands", "dumbbell", "bodyweight"],
-  // ... fully customizable
+  machine: ["cable", "free_weights", "dumbbell", "band", "bodyweight"],
+  cable: ["band", "dumbbell", "bodyweight"],
+  // ... fully customizable with priority ordering
 };
 ```
 
@@ -126,6 +130,6 @@ export const SUBSTITUTIONS: Record<EquipmentTag, EquipmentTag[]> = {
 
 ---
 
-**Ready for Review & Testing** 🚀
+**✅ IMPLEMENTATION COMPLETE - READY FOR PRODUCTION** 🚀
 
 This implementation provides a solid foundation for equipment-aware workout personalization while maintaining full compatibility with the existing GYMovoo system.

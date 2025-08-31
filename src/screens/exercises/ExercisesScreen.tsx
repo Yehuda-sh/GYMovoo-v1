@@ -20,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
+import { logger } from "../../utils/logger";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,8 +41,10 @@ import {
 const DEBUG = __DEV__;
 const dlog = (message: string, ...args: unknown[]) => {
   if (DEBUG) {
-    // eslint-disable-next-line no-console
-    console.debug(`[ExercisesScreen] ${message}`, ...args);
+    logger.debug(
+      `[ExercisesScreen] ${message}`,
+      args.length > 0 ? JSON.stringify(args) : ""
+    );
   }
 };
 

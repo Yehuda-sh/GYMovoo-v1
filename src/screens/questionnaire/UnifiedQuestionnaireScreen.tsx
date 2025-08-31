@@ -1,17 +1,18 @@
 /**
  * @file src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx
- * @brief מסך שאלון אחוד חדש - פשוט, יעיל ועובד
+ * @brief מסך שאלון אחוד - מסך שאלון מתקדם עם תמיכה מלאה ב-RTL
  * @description מסך שאלון מאוחד עם תמיכה מלאה ב-RTL, גלילה מושלמת ואנימציות
  *
  * Features:
- * - החלפת SmartQuestionnaireScreen הישן
- * - גלילה מושלמת עם ScrollView
+ * - ממשק שאלון אינטראקטיבי עם התקדמות בזמן אמת
+ * - גלילה מושלמת עם ScrollView מותאם
  * - רשימת אפשרויות מלאה וזמינה
- * - ממשק פשוט וברור
+ * - ממשק פשוט וברור עם עיצוב מודרני
  * - תמיכה מלאה ב-RTL ועברית
- * - שמירה אוטומטית של התקדמות
+ * - שמירה אוטומטית של התקדמות עם דיבאונס
+ * - מערכת לוגינג מתקדמת לניפוי שגיאות
  *
- * @created 2025-01-XX
+ * @created 2025-01-15
  * @updated 2025-08-17 החלפת Alert ב-ConfirmationModal, החלפת console בלוגינג מותני, הוספת React.memo, הוספת CONSTANTS
  */
 
@@ -44,14 +45,17 @@ import {
 import { useUserStore } from "../../stores/userStore";
 import { userApi } from "../../services/api/userApi";
 import { theme } from "../../styles/theme";
+import { logger } from "../../utils/logger";
 import type { SmartQuestionnaireData } from "../../types";
 
 // Debug logging system
 const DEBUG = __DEV__;
 const dlog = (message: string, ...args: unknown[]) => {
   if (DEBUG) {
-    // eslint-disable-next-line no-console
-    console.debug(`[UnifiedQuestionnaireScreen] ${message}`, ...args);
+    logger.debug(
+      `[UnifiedQuestionnaireScreen] ${message}`,
+      args.length > 0 ? JSON.stringify(args) : ""
+    );
   }
 };
 
@@ -66,31 +70,18 @@ const CONSTANTS = {
     THIN: 1,
     THICK: 2,
   },
-  SHADOWS: {
-    OPACITY_LOW: 0.1,
-    OPACITY_MEDIUM: 0.15,
-    OPACITY_HIGH: 0.3,
-    RADIUS_SMALL: 4,
-    RADIUS_MEDIUM: 8,
-  },
   TIMINGS: {
     DEBOUNCE_SAVE: 1200,
     QUESTION_TRANSITION: 300,
-  },
-  ELEVATIONS: {
-    LOW: 8,
-    HIGH: 10,
   },
   SIZES: {
     ICON_SMALL: 16,
     ICON_MEDIUM: 24,
     ICON_LARGE: 48,
-    BUTTON_HEIGHT: 56,
     INDICATOR_SIZE: 24,
     INDICATOR_RADIUS: 12,
   },
 };
-// בוטל שימוש ב-demo; עובדים רק עם משתמש אמיתי מה-store
 
 // =====================================
 // 🎯 המסך החדש - פשוט ויעיל
@@ -133,7 +124,7 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
     onConfirm: () => {},
   });
 
-  // Debug עבור אמולטור
+  // ScrollView reference for programmatic scrolling
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Helper function for modal operations
@@ -939,15 +930,6 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
           removeClippedSubviews={false} // חשוב לאמולטור
           directionalLockEnabled={true} // נעל לגלילה אנכית בלבד
           scrollsToTop={false} // מנע גלילה אוטומטית לראש
-          onContentSizeChange={() => {
-            // Removed emulator logging
-          }}
-          onScroll={() => {
-            // Removed emulator logging
-          }}
-          onScrollEndDrag={() => {
-            // Removed emulator logging
-          }}
         >
           {/* Back Button (in question) */}
           {manager.canGoBack() && (
@@ -1387,8 +1369,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-
-  // Next Button styles הוסרו (לא בשימוש)
 
   // Floating Button Styles - עיצוב משופר
   floatingButtonContainer: {

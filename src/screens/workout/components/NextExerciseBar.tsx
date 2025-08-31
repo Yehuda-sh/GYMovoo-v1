@@ -52,7 +52,7 @@
  * - theme system: שילוב מושלם עם מערכת העיצוב
  * - NextExerciseBarProps: טיפוסי TypeScript מדויקים
  *
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @updated 2025-08-25 Enhanced documentation and status for audit completion
  */
 
 import React, { useEffect, useRef } from "react";

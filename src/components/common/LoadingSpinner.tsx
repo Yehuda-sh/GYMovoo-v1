@@ -126,8 +126,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
     // 🎨 חישוב סגנונות דינמיים // Dynamic styles calculation
     const { containerStyle, spinnerTransform, textStyle } =
       React.useMemo(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const baseContainerStyle = [styles.container] as any[];
+        const baseContainerStyle: ViewStyle[] = [styles.container];
 
         if (fullScreen) baseContainerStyle.push(styles.fullScreen);
         if (style) baseContainerStyle.push(style);
@@ -151,11 +150,10 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         return {
           containerStyle: baseContainerStyle,
           spinnerTransform: transforms.length > 0 ? transforms : undefined,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           textStyle: [
             styles.loadingText,
             variant === "fade" && { opacity: fadeAnim },
-          ] as any[],
+          ] as ViewStyle[],
         };
       }, [fullScreen, style, variant, fadeAnim, pulseAnim, rotateAnim]);
 

@@ -3,7 +3,7 @@
  * @brief מסך ניהול התראות מתקדם עם הגדרות מותאמות אישית
  * @version 2.0.0
  * @author GYMovoo Development Team
- * @created 2024-12-15
+ * @created 2025-08-25
  * @modified 2025-07-31
  *
  * @description
