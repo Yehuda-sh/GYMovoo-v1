@@ -3,9 +3,42 @@
  * @description תרגילי משקל גוף - מאגר מלא לאימונים ביתיים עם מערכות ניטור ואבטחה מתקדמות
  * @description Bodyweight exercises - complete home workout database with advanced monitoring and security
  * @category Exercise Database
- * @features 16 exercises, beginner to advanced, full-body coverage
- * @updated 2025-08-24 Enhanced with advanced monitoring, security, accessibility, and AI-powered recommendations
- * @version 2.0.0
+ * @features 16 exercises, beginner to advanced, full-body coverage, centralized constants integration
+ * @updated 2025-09-01 Enhanced with centralized constants integration and utility functions
+ * @version 2.1.0
+ *
+ * @features
+ * - 🏋️ 16 comprehensive bodyweight exercises with detailed instructions
+ * - 📊 Progressive difficulty levels with intelligent categorization
+ * - 🎯 Full-body coverage with targeted muscle group filtering
+ * - 🏠 Home-friendly with space and noise level considerations
+ * - 📱 Mobile-optimized with accessibility support
+ * - 🆕 Advanced performance monitoring and caching
+ * - 🆕 Security validation and data integrity checks
+ * - 🆕 Enhanced accessibility with Hebrew language support
+ * - 🆕 AI-powered exercise recommendations
+ * - 🆕 Health and safety validation systems
+ * - 🆕 Advanced search and filtering capabilities
+ * - 🆕 Comprehensive error handling and validation
+ * - 🆕 Analytics and usage tracking
+ * - 🆕 Intelligent workout generation
+ * - 🆕 Centralized constants integration for consistency
+ * - 🆕 Utility functions for validation and filtering
+ *
+ * @dependencies
+ * - Exercise types from ./types
+ * - Logger from ../../utils/logger
+ * - Centralized constants from ../../constants/exercise
+ *
+ * @exports
+ * - bodyweightExercises: Main exercise database
+ * - PROGRESSION_LEVELS: Difficulty-based exercise groupings
+ * - EXERCISE_CATEGORIES: Body-region-based exercise groupings
+ * - Utility functions: validateExerciseDifficulty, validateMuscleGroup, etc.
+ * - getExerciseDatabaseMetrics(): Comprehensive analytics function
+ * - generateSmartWorkout(): AI-powered workout generation
+ * - getFilteredExercises(): Advanced filtering with caching
+ * - validateExerciseSafety(): Safety validation system
  *
  * @features
  * - 🏋️ 16 comprehensive bodyweight exercises with detailed instructions
@@ -50,6 +83,14 @@
 
 import { Exercise } from "./types";
 import { logger } from "../../utils/logger";
+import {
+  DIFFICULTY_LEVELS,
+  MUSCLE_GROUPS,
+  EXERCISE_CATEGORIES as CENTRAL_EXERCISE_CATEGORIES,
+  type ExerciseDifficulty,
+  type MuscleGroup,
+  type ExerciseCategory,
+} from "../../constants/exercise";
 
 // Advanced interfaces for monitoring and analytics
 interface ExercisePerformanceMetrics {
@@ -351,9 +392,10 @@ const performanceMonitor = new ExercisePerformanceMonitor();
 const securityValidator = new ExerciseSecurityValidator();
 const cacheManager = new ExerciseCacheManager();
 
-// Exercise difficulty progression constants
+// Exercise difficulty progression constants - using centralized difficulty levels
 const PROGRESSION_LEVELS = {
-  BEGINNER: [
+  [DIFFICULTY_LEVELS[0]]: [
+    // "beginner"
     "push_up_1",
     "squat_bodyweight_1",
     "plank_1",
@@ -361,7 +403,8 @@ const PROGRESSION_LEVELS = {
     "glute_bridge_1",
     "superman_hold_1",
   ],
-  INTERMEDIATE: [
+  [DIFFICULTY_LEVELS[1]]: [
+    // "intermediate"
     "mountain_climbers_bodyweight_1",
     "decline_push_up_1",
     "side_plank_1",
@@ -369,8 +412,42 @@ const PROGRESSION_LEVELS = {
     "bear_crawl_1",
     "chair_tricep_dip_1",
   ],
-  ADVANCED: ["single_leg_hip_thrust_1", "jump_squat_bodyweight_1"],
+  [DIFFICULTY_LEVELS[2]]: [
+    "single_leg_hip_thrust_1",
+    "jump_squat_bodyweight_1",
+  ], // "advanced"
 } as const;
+
+// Utility functions for validation and consistency
+const validateExerciseDifficulty = (
+  difficulty: string
+): difficulty is ExerciseDifficulty => {
+  return DIFFICULTY_LEVELS.includes(difficulty as ExerciseDifficulty);
+};
+
+const validateMuscleGroup = (muscle: string): muscle is MuscleGroup => {
+  return MUSCLE_GROUPS.includes(muscle as MuscleGroup);
+};
+
+const validateExerciseCategory = (
+  category: string
+): category is ExerciseCategory => {
+  return CENTRAL_EXERCISE_CATEGORIES.includes(category as ExerciseCategory);
+};
+
+const getExercisesByDifficulty = (
+  difficulty: ExerciseDifficulty
+): readonly string[] => {
+  return PROGRESSION_LEVELS[difficulty] || [];
+};
+
+const getExercisesByMuscleGroup = (muscleGroup: MuscleGroup): Exercise[] => {
+  return bodyweightExercises.filter(
+    (exercise) =>
+      exercise.primaryMuscles.includes(muscleGroup) ||
+      exercise.secondaryMuscles?.includes(muscleGroup)
+  );
+};
 
 // Exercise categories for better organization
 const EXERCISE_CATEGORIES = {
@@ -1660,6 +1737,15 @@ export function generateQuickBodyweightWorkout(
 
 // Export utility constants for external use
 export { PROGRESSION_LEVELS, EXERCISE_CATEGORIES };
+
+// Export utility functions for external use
+export {
+  validateExerciseDifficulty,
+  validateMuscleGroup,
+  validateExerciseCategory,
+  getExercisesByDifficulty,
+  getExercisesByMuscleGroup,
+};
 
 // ===============================================
 // 🔧 Advanced Utility Functions - פונקציות עזר מתקדמות
