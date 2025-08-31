@@ -5,7 +5,7 @@
  *              Provides unified access to authentication, workout, data management,
  *              and specialized services throughout the application.
  * @status ACTIVE - Critical export hub maintaining all service imports
- * @updated 2025-08-25 - Complete services modernization with enhanced documentation
+ * @updated 2025-09-01 - Added userOnboardingService export, updated documentation
  */
 
 // =======================================
@@ -80,11 +80,18 @@ export {
 } from "../screens/workout/services";
 
 // =======================================
+// 🚀 User Onboarding Services
+// שירותי הקמת משתמשים
+// =======================================
+export { completeUserOnboarding } from "./userOnboardingService";
+export type { UserOnboardingResult } from "./userOnboardingService";
+
+// =======================================
 // 🌟 Service Summary
 // סיכום שירותים
 // =======================================
 // Demo services are now integrated in UnifiedQuestionnaireManager
 // and userStore customDemoUser functions - no separate service needed
-// Total Active Services: 17 | All deprecated/missing services removed
-// Last validated: 2025-08-25 | Core services fully modernized
-// Added: QuickLogin authentication + Supabase storage + PersonalRecord analytics + ProgressiveOverloadService
+// Total Active Services: 18 | All deprecated/missing services removed
+// Last validated: 2025-09-01 | Core services fully modernized and complete
+// Added: QuickLogin authentication + Supabase storage + PersonalRecord analytics + ProgressiveOverloadService + UserOnboardingService

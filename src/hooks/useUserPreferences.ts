@@ -1017,7 +1017,10 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       setCompletionQuality(0);
       setPersonalizedInsights([]);
     } catch (err) {
-      console.error("Error clearing preferences:", err);
+      logger.error(
+        "Clear preferences failed",
+        err instanceof Error ? err.message : "Failed to clear preferences"
+      );
       setError(
         err instanceof Error ? err.message : "Failed to clear preferences"
       );
@@ -1088,7 +1091,12 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       // Update predictions
       predictFutureNeeds(30);
     } catch (error) {
-      console.error("Error optimizing recommendations:", error);
+      logger.error(
+        "Optimize recommendations failed",
+        error instanceof Error
+          ? error.message
+          : "Failed to optimize recommendations"
+      );
     }
   }, [preferences, personalData, workoutRecommendations, predictFutureNeeds]);
 
@@ -1444,17 +1452,10 @@ export function useUserPreferences(): UseUserPreferencesReturn {
     };
   }, [healthMonitor, performanceMonitor]);
 
-  // טען העדפות בטעינה ראשונית
+  // טען העדפות בטעינה ראשונית וכשמשתמש משתנה
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
-
-  // עדכן העדפות כשהמשתמש משתנה
-  useEffect(() => {
-    if (user) {
-      loadPreferences();
-    }
-  }, [user, loadPreferences]);
 
   return {
     // נתונים בסיסיים

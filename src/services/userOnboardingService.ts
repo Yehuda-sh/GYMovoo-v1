@@ -5,8 +5,9 @@
 
 import { userApi } from "./api/userApi";
 import { questionnaireService } from "./questionnaireService";
+import type { SmartQuestionnaireData } from "../types";
 
-interface UserOnboardingResult {
+export interface UserOnboardingResult {
   success: boolean;
   userId: string;
   equipmentAssigned: string[];
@@ -41,34 +42,23 @@ export const completeUserOnboarding = async (
       );
     }
 
-    const smartData = userData.smartquestionnairedata as any; // Extended with equipment fields
+    const smartData = userData.smartquestionnairedata as SmartQuestionnaireData;
     console.warn("📋 User questionnaire data retrieved:", {
-      fitness_goal: smartData.fitness_goal,
-      workout_location: smartData.workout_location,
-      experience_level: smartData.experience_level,
+      fitness_goal: smartData.answers?.fitnessLevel,
+      workout_location: smartData.answers?.workoutLocation,
+      experience_level: smartData.answers?.fitnessLevel,
     });
 
     // 2. וידוא שהציוד מוגדר כראוי לפי מיקום האימון
-    const workoutLocation = smartData.workout_location;
+    const workoutLocation = smartData.answers?.workoutLocation;
     let equipmentAssigned: string[] = [];
 
-    if (workoutLocation === "gym" && smartData.gym_equipment) {
-      equipmentAssigned = smartData.gym_equipment || [];
-    } else if (
-      workoutLocation === "home_equipment" &&
-      smartData.home_equipment
+    // Use equipment from answers if available
+    if (
+      smartData.answers?.equipment &&
+      Array.isArray(smartData.answers.equipment)
     ) {
-      equipmentAssigned = smartData.home_equipment || [];
-    } else if (
-      workoutLocation === "home_bodyweight" &&
-      smartData.bodyweight_equipment
-    ) {
-      equipmentAssigned = smartData.bodyweight_equipment || [];
-    }
-
-    // Also include generic equipment field if it exists
-    if (smartData.equipment && Array.isArray(smartData.equipment)) {
-      equipmentAssigned.push(...smartData.equipment);
+      equipmentAssigned = [...smartData.answers.equipment];
     }
 
     result.equipmentAssigned = Array.from(new Set(equipmentAssigned)); // Remove duplicates
@@ -79,8 +69,7 @@ export const completeUserOnboarding = async (
 
     // 3. יצירת תוכניות אימון אוטומטיות
     try {
-      const workoutPlans =
-        await questionnaireService.generateBothWorkoutPlans();
+      await questionnaireService.generateBothWorkoutPlans();
       result.workoutPlansGenerated = 2; // basic + smart plans
       console.warn("📅 Workout plans generated:", result.workoutPlansGenerated);
     } catch (workoutError) {
@@ -95,7 +84,7 @@ export const completeUserOnboarding = async (
     // 4. עדכון פרופיל המשתמש עם מידע נוסף - נעשה רק אם יש שדות תואמים
     try {
       // בדיקה איזה שדות זמינים לעדכון
-      const profileUpdates: Record<string, any> = {};
+      const profileUpdates: Record<string, unknown> = {};
 
       // נוסיף רק שדות שקיימים במודל User
       if ("updated_at" in userData) {
@@ -122,7 +111,7 @@ export const completeUserOnboarding = async (
     // 5. וידוא התקנה תקינה
     const validationChecks = {
       hasQuestionnaire: !!(
-        smartData.fitness_goal || smartData.answers?.fitnessLevel
+        smartData.answers?.fitnessLevel || smartData.answers?.goals?.[0]
       ),
       hasEquipment: result.equipmentAssigned.length > 0,
       hasWorkoutPlans: result.workoutPlansGenerated > 0,
@@ -166,24 +155,19 @@ export const validateUserSetup = async (userId: string): Promise<boolean> => {
     const userData = await userApi.getById(userId);
     if (!userData) return false;
 
-    const smartData = userData.smartquestionnairedata as any;
+    const smartData = userData.smartquestionnairedata as SmartQuestionnaireData;
     if (!smartData) return false;
 
     // בדיקה שיש נתוני שאלון בסיסיים
     const hasBasicData = !!(
-      (smartData.fitness_goal || smartData.answers?.fitnessLevel) &&
-      smartData.workout_location &&
-      (smartData.experience_level || smartData.answers?.fitnessLevel)
+      smartData.answers?.fitnessLevel &&
+      smartData.answers?.workoutLocation &&
+      smartData.answers?.equipment?.length
     );
 
     // בדיקה שיש ציוד מתאים למיקום
-    const location = smartData.workout_location;
     const hasEquipment = !!(
-      (location === "gym" && smartData.gym_equipment?.length) ||
-      (location === "home_equipment" && smartData.home_equipment?.length) ||
-      (location === "home_bodyweight" &&
-        smartData.bodyweight_equipment?.length) ||
-      smartData.equipment?.length
+      smartData.answers?.equipment?.length && smartData.answers?.workoutLocation
     );
 
     return hasBasicData && hasEquipment;

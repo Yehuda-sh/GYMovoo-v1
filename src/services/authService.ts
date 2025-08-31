@@ -10,6 +10,7 @@
  * @rtl Full RTL support for Hebrew names and data generation
  * @accessibility Compatible with screen readers and accessibility features
  * @development Includes dev-only functions for testing with pre-filled questionnaire
+ * @updated 2025-09-01 Enhanced documentation and code quality review
  */
 
 // =======================================

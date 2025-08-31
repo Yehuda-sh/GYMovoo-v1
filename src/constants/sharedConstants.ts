@@ -97,3 +97,29 @@ export const SHARED_MODAL_STRINGS = {
     CANCEL_TEXT: "הישאר",
   },
 } as const;
+
+// 🔄 DATA MANAGER CONSTANTS - קבועי מנהל נתונים
+export const DATA_MANAGER_CONSTANTS = {
+  // Server sync intervals (minutes)
+  SYNC_INTERVAL_DEFAULT: 30,
+  SYNC_INTERVAL_MIN: 5,
+  SYNC_INTERVAL_MAX: 1440, // 24 hours
+
+  // Cache settings
+  CACHE_TTL_MINUTES: 60,
+  MAX_RETRY_ATTEMPTS: 3,
+  RETRY_DELAY_MS: 1000,
+
+  // Health check settings
+  HEALTH_CHECK_TIMEOUT_MS: 5000,
+  HEALTH_CHECK_RETRIES: 2,
+
+  // Error messages
+  ERRORS: {
+    INVALID_USER: "Invalid user data provided",
+    INITIALIZATION_FAILED: "DataManager initialization failed",
+    SERVER_UNREACHABLE: "Server is unreachable",
+    CACHE_NOT_INITIALIZED: "Cache not initialized",
+    INVALID_CONFIG: "Invalid server configuration",
+  },
+} as const;

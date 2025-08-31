@@ -1,6 +1,7 @@
 /**
  * @file src/services/workout/WorkoutPlanManager.ts
  * @description מנהל אלגוריתמי תוכניות אימון מרכזי עם תמיכה מלאה בFree/Trial/Premium
+ * @updated 2025-09-01
  *
  * @features
  * Trial/Premium users:
@@ -299,15 +300,87 @@ class WorkoutPlanManager {
     history.slice(0, 10).forEach((workout) => {
       if (workout.workout?.exercises) {
         workout.workout.exercises.forEach((exercise) => {
-          // For WorkoutExercise, we'll use the exercise id to infer muscle groups
-          const exerciseId = exercise.id || "";
-          if (exerciseId.includes("chest") || exerciseId.includes("press")) {
+          const exerciseId = exercise.id?.toLowerCase() || "";
+
+          // Chest exercises
+          if (
+            exerciseId.includes("chest") ||
+            exerciseId.includes("press") ||
+            exerciseId.includes("push") ||
+            exerciseId.includes("bench")
+          ) {
             muscleCount["חזה"] = (muscleCount["חזה"] || 0) + 1;
           }
-          if (exerciseId.includes("back") || exerciseId.includes("row")) {
+
+          // Back exercises
+          if (
+            exerciseId.includes("back") ||
+            exerciseId.includes("row") ||
+            exerciseId.includes("pull") ||
+            exerciseId.includes("lat")
+          ) {
             muscleCount["גב"] = (muscleCount["גב"] || 0) + 1;
           }
-          // Add more mappings as needed
+
+          // Leg exercises
+          if (
+            exerciseId.includes("leg") ||
+            exerciseId.includes("squat") ||
+            exerciseId.includes("lunge") ||
+            exerciseId.includes("deadlift") ||
+            exerciseId.includes("quad") ||
+            exerciseId.includes("hamstring")
+          ) {
+            muscleCount["רגליים"] = (muscleCount["רגליים"] || 0) + 1;
+          }
+
+          // Shoulder exercises
+          if (
+            exerciseId.includes("shoulder") ||
+            exerciseId.includes("deltoid") ||
+            exerciseId.includes("overhead") ||
+            exerciseId.includes("raise")
+          ) {
+            muscleCount["כתפיים"] = (muscleCount["כתפיים"] || 0) + 1;
+          }
+
+          // Bicep exercises
+          if (
+            exerciseId.includes("bicep") ||
+            exerciseId.includes("curl") ||
+            exerciseId.includes("hammer")
+          ) {
+            muscleCount["ביצפס"] = (muscleCount["ביצפס"] || 0) + 1;
+          }
+
+          // Tricep exercises
+          if (
+            exerciseId.includes("tricep") ||
+            exerciseId.includes("extension") ||
+            exerciseId.includes("dips") ||
+            exerciseId.includes("skull")
+          ) {
+            muscleCount["טריצפס"] = (muscleCount["טריצפס"] || 0) + 1;
+          }
+
+          // Core exercises
+          if (
+            exerciseId.includes("core") ||
+            exerciseId.includes("abs") ||
+            exerciseId.includes("plank") ||
+            exerciseId.includes("crunch")
+          ) {
+            muscleCount["בטן"] = (muscleCount["בטן"] || 0) + 1;
+          }
+
+          // Glutes exercises
+          if (
+            exerciseId.includes("glute") ||
+            exerciseId.includes("butt") ||
+            exerciseId.includes("hip")
+          ) {
+            muscleCount["ישבן"] = (muscleCount["ישבן"] || 0) + 1;
+          }
         });
       }
     });
@@ -321,15 +394,35 @@ class WorkoutPlanManager {
   private getOptimalDayName(
     dayIndex: number,
     frequency: number,
-    _muscleBalance: Record<string, number>
+    muscleBalance: Record<string, number>
   ): string {
     const templates =
       this.FREE_PLAN_TEMPLATES[
         `${Math.min(frequency, 5)}_days` as keyof typeof this.FREE_PLAN_TEMPLATES
       ];
+
     if (dayIndex < templates.length) {
-      return templates[dayIndex].name;
+      const template = templates[dayIndex];
+
+      // If we have muscle balance data, try to optimize the day selection
+      if (Object.keys(muscleBalance).length > 0) {
+        // Find the least worked muscle groups from the template
+        const templateMuscles = template.muscles;
+        const leastWorkedMuscle = templateMuscles.reduce((least, muscle) => {
+          const currentCount = muscleBalance[muscle] || 0;
+          const leastCount = muscleBalance[least] || 0;
+          return currentCount < leastCount ? muscle : least;
+        });
+
+        // If the least worked muscle is in this template, prioritize it
+        if (templateMuscles.includes(leastWorkedMuscle)) {
+          return template.name;
+        }
+      }
+
+      return template.name;
     }
+
     return "אימון מלא";
   }
 
@@ -338,9 +431,20 @@ class WorkoutPlanManager {
    */
   private async applyProgressiveOverload(
     exercises: ExerciseTemplate[],
-    _history: WorkoutWithFeedback[]
+    history: WorkoutWithFeedback[]
   ): Promise<ExerciseTemplate[]> {
     try {
+      // Log history availability for debugging
+      if (history.length > 0) {
+        logger.info(
+          "WorkoutPlanManager",
+          "Applying progressive overload with history",
+          {
+            historyLength: history.length,
+          }
+        );
+      }
+
       return await progressiveOverloadService.generateWorkoutProgression(
         exercises
       );
@@ -359,25 +463,51 @@ class WorkoutPlanManager {
    */
   private async generateAISuggestions(
     exercises: ExerciseTemplate[],
-    _history: WorkoutWithFeedback[],
+    history: WorkoutWithFeedback[],
     goal: string
   ): Promise<string[]> {
     try {
+      // Validate and safely cast the goal parameter
+      const validGoals: readonly string[] = [
+        "strength",
+        "muscle_gain",
+        "weight_loss",
+        "endurance",
+        "general_fitness",
+      ];
+
+      const validatedGoal = validGoals.includes(goal)
+        ? (goal as
+            | "strength"
+            | "muscle_gain"
+            | "weight_loss"
+            | "endurance"
+            | "general_fitness")
+        : "general_fitness";
+
       const request: WorkoutPlanRequest = {
         frequency: 3,
         experience: "intermediate",
         duration: 45,
-        goal: goal as
-          | "strength"
-          | "muscle_gain"
-          | "weight_loss"
-          | "endurance"
-          | "general_fitness",
+        goal: validatedGoal,
         equipment: [],
       };
 
       const suggestions =
         await smartSuggestionsEngine.generateSuggestions(request);
+
+      // Log history usage for debugging
+      if (history.length > 0) {
+        logger.info(
+          "WorkoutPlanManager",
+          "Generating AI suggestions with history",
+          {
+            historyLength: history.length,
+            suggestionsCount:
+              suggestions.immediate.length + suggestions.nextWorkout.length,
+          }
+        );
+      }
 
       return [
         ...suggestions.immediate.map((s) => s.title),
@@ -437,9 +567,32 @@ class WorkoutPlanManager {
   private calculateWeeklyVolume(workouts: WorkoutDay[]): number {
     return workouts.reduce((total, workout) => {
       const workoutVolume = workout.exercises.reduce((sum, exercise) => {
-        return (
-          sum + exercise.sets * parseInt(exercise.reps.split("-")[0] || "10")
-        );
+        try {
+          const repsValue = exercise.reps.split("-")[0] || "10";
+          const reps = parseInt(repsValue, 10);
+
+          // Validate parsed value
+          if (isNaN(reps) || reps < 0) {
+            logger.warn(
+              "WorkoutPlanManager",
+              "Invalid reps value, using default",
+              {
+                repsValue,
+                defaultValue: 10,
+              }
+            );
+            return sum + exercise.sets * 10;
+          }
+
+          return sum + exercise.sets * reps;
+        } catch (error) {
+          logger.error(
+            "WorkoutPlanManager",
+            "Error parsing exercise reps",
+            error
+          );
+          return sum + exercise.sets * 10; // Default fallback
+        }
       }, 0);
       return total + workoutVolume;
     }, 0);

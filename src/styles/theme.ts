@@ -9,10 +9,11 @@
  * - רכיבים מוכנים עם סגנונות מרכזיים
  * - התאמת מגדר למשתמשים שונים
  * - מערכת animation ו-layout מתקדמת
+ * - ניקוי קוד מדור קודם (2025-09-01)
  *
  * @dependencies React Native Dimensions, Platform, rtlHelpers
  * @usage Used throughout the entire application for consistent design
- * @updated 2025-08-17 ניקוי כפילויות ושיפור ארגון
+ * @updated 2025-09-01 ניקוי פונקציות deprecated ושיפור תיעוד
  */
 
 import { Dimensions, Platform } from "react-native";
@@ -357,9 +358,8 @@ export const components = {
     ...shadows.medium,
   },
 
-  // Legacy Smart Questionnaire Components - REMOVED 2025-08-17
-  // רכיבי שאלון חכם ישנים - הוסרו לטובת מערכת אחודה
-  // These components moved to unified questionnaire system
+  // Core component styles - unified across the application
+  // סגנונות רכיבים בסיסיים - מאוחדים בכל האפליקציה
 
   selectionIndicator: {
     position: "absolute" as const,
@@ -645,7 +645,7 @@ export const components = {
     return [baseStyle, variantStyles[variant], absoluteStyle, customStyle];
   },
 
-    getBackButtonIconSize: (
+  getBackButtonIconSize: (
     variant: "default" | "minimal" | "large" = "default",
     customSize?: number
   ) => {
@@ -879,152 +879,6 @@ export const rtlHelpers = {
   getRTLInputStyle: () => components.rtlInput,
 };
 
-// --- Smart Questionnaire Theme Helpers (Legacy - DEPRECATED 2025-08-17) ---
-export const questionnaireHelpers = {
-  /**
-   * @deprecated Legacy - השתמש ב-components.card במקום זה
-   * Use components.card instead
-   */
-  getOptionStyle: (isSelected: boolean = false) => {
-    const baseStyle = {
-      backgroundColor: colors.backgroundElevated,
-      borderRadius: radius.md,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center" as const,
-      paddingRight: spacing.lg,
-    };
-
-    return isSelected
-      ? {
-          ...baseStyle,
-          backgroundColor: colors.primary + "20",
-          borderColor: colors.primary,
-          borderWidth: 2,
-        }
-      : baseStyle;
-  },
-
-  /**
-   * @deprecated Legacy - השתמש ב-theme.progressBar במקום זה
-   * Use theme.progressBar instead
-   */
-  getProgressStyle: (progress: number) => ({
-    container: {
-      height: 4,
-      backgroundColor: colors.backgroundElevated,
-      borderRadius: 2,
-      overflow: "hidden" as const,
-      marginBottom: spacing.md,
-    },
-    fill: {
-      height: "100%",
-      backgroundColor: colors.primary,
-      borderRadius: 2,
-      width: `${Math.min(100, Math.max(0, progress))}%`,
-    },
-  }),
-
-  /**
-   * @deprecated Legacy - השתמש ב-components.floatingButton במקום זה
-   * Use components.floatingButton instead - this method is deprecated
-   */
-  getFloatingButtonStyle: (
-    options: {
-      isVisible?: boolean;
-      size?: "small" | "medium" | "large";
-      color?: string;
-      bottom?: number;
-      withAnimation?: boolean;
-    } = {}
-  ) => {
-    const {
-      isVisible = true,
-      size = "medium",
-      color = colors.primary,
-      bottom = spacing.xl,
-      withAnimation = true,
-    } = options;
-
-    // Manual size config since we removed the components
-    const sizeConfig = {
-      small: { button: 48, icon: 20 },
-      medium: { button: 56, icon: 24 },
-      large: { button: 64, icon: 28 },
-    }[size];
-
-    return {
-      container: {
-        position: "absolute" as const,
-        left: isRTL ? spacing.lg : undefined,
-        right: isRTL ? undefined : spacing.lg,
-        flexDirection: isRTL ? "row-reverse" : "row",
-        alignItems: "center" as const,
-        zIndex: 999,
-        bottom,
-        opacity: withAnimation ? (isVisible ? 1 : 0) : 1,
-        transform: withAnimation ? [{ scale: isVisible ? 1 : 0.8 }] : [],
-      },
-      button: {
-        justifyContent: "center" as const,
-        alignItems: "center" as const,
-        elevation: 6,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4.5,
-        overflow: "hidden" as const,
-        backgroundColor: color,
-        width: sizeConfig.button,
-        height: sizeConfig.button,
-        borderRadius: sizeConfig.button / 2,
-      },
-      iconSize: sizeConfig.icon,
-      label: {
-        backgroundColor: colors.card,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        marginLeft: isRTL ? 0 : 8,
-        marginRight: isRTL ? 8 : 0,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-      },
-      labelText: {
-        fontSize: 12,
-        fontWeight: "600" as const,
-        color: colors.text,
-      },
-    };
-  },
-
-  /**
-   * ✨ קונפיגורציית אנימציות כפתור צף - Floating button animation config
-   */
-  getFloatingButtonAnimationConfig: () => ({
-    entry: {
-      scale: { tension: 50, friction: 7 },
-      rotate: { duration: 300 },
-    },
-    exit: {
-      scale: { duration: 200 },
-      rotate: { duration: 200 },
-    },
-    rotation: {
-      inputRange: [0, 1] as [number, number],
-      outputRange: ["0deg", "90deg"] as [string, string],
-    },
-  }),
-};
-
 /**
  * 🎭 Modal Helpers - עוזרי מודלים מאוחדים
  */
@@ -1071,10 +925,9 @@ export const theme = {
   layout,
   rtl,
 
-  // Enhanced helpers for gender adaptation (questionnaire helpers are legacy)
+  // Enhanced helpers for gender adaptation
   genderHelpers,
   rtlHelpers,
-  questionnaireHelpers,
 
   // Modal helpers
   getModalOverlayStyle,

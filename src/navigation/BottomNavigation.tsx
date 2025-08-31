@@ -1,22 +1,7 @@
 /**
  * @file src/navigation/BottomNavigation.tsx
- * @brief ניווט תחתון ישראלי מתקדם עם AI ואופטימיזציות - 5 מסכים עיקריים   // 🚀 Peexport default function BottomNavigation(): React.JSX.Element {
-  // 🚀 Performance optimization - מחושב מראש לביצועיםance optimization - מחושב מראש לביצועים
-  const tabBarStyle = useMemo(
-    () => ({
-      backgroundColor: theme.colors.card,
-      borderTopColor: theme.colors.cardBorder,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      paddingBottom: Platform.OS === "ios" ? 25 : 10,
-      paddingTop: 10,
-      height: Platform.OS === "ios" ? 90 : 70,
-      elevation: 8, // Android shadow
-      shadowColor: "#000", // iOS shadow
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    }),
-    []ief Advanced Israeli bottom navigation with AI and optimizations - 5 main screens in RTL order
+ * @brief ניווט תחתון ישראלי מתקדם עם AI ואופטימיזציות - 5 מסכים עיקריים
+ * @brief Advanced Israeli bottom navigation with AI and optimizations - 5 main screens in RTL order
  * @dependencies React Navigation Bottom Tabs, Ionicons, MaterialCommunityIcons, Haptics
  * @performance Optimized with useMemo, React.memo, and efficient re-renders
  * @accessibility Advanced RTL support, haptic feedback, screen reader optimization
@@ -134,12 +119,12 @@ TabIcon.displayName = "TabIcon";
  * @accessibility Advanced RTL support and screen reader optimization
  */
 export default function BottomNavigation(): React.JSX.Element {
-  // � DEBUG: רכיב ניווט תחתון נטען
+  // DEBUG: רכיב ניווט תחתון נטען
   if (__DEV__) {
     console.warn("🔄 BottomNavigation component is rendering");
   }
 
-  // �🚀 Performance optimization - מחושב מראש לביצועים
+  // 🚀 Performance optimization - מחושב מראש לביצועים
   const tabBarStyle = useMemo(
     () => ({
       backgroundColor: theme.colors.card,

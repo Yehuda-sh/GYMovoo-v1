@@ -9,9 +9,12 @@
  * @updated 2025-08-15 Added comprehensive performance optimizations
  */
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import {
+  createStackNavigator,
+  StackCardStyleInterpolator,
+} from "@react-navigation/stack";
 
 // ניווט תחתון מוטמן // Bottom navigation optimized
 import BottomNavigation from "./BottomNavigation";
@@ -47,6 +50,23 @@ import { useUserStore } from "../stores/userStore";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+// 🚀 אופטימיזציה: אנימציית RTL מותאמת מראש
+const rtlCardStyleInterpolator: StackCardStyleInterpolator = ({
+  current,
+  layouts,
+}) => ({
+  cardStyle: {
+    transform: [
+      {
+        translateX: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [layouts.screen.width, 0],
+        }),
+      },
+    ],
+  },
+});
+
 /**
  * @component AppNavigator
  * @description ניווט ראשי מותאם לביצועים עם RTL ואופטימיזציות + בדיקת משתמש מחובר
@@ -58,48 +78,45 @@ export default memo(function AppNavigator() {
   // 🔍 בדיקת מצב משתמש להחלטה על מסך התחלתי
   const { user, getCompletionStatus } = useUserStore();
 
-  // קביעת מסך התחלתי לפי מצב המשתמש
-  const getInitialRouteName = () => {
-    // 🚨 DEBUG MODE: דילוג ישירות לאפליקציה לבדיקת הניווט
+  // 🚀 פונקציית עזר ללוג דיבוג מאורגן
+  const logDebugInfo = (message: string, data?: Record<string, unknown>) => {
     if (__DEV__) {
-      console.warn("🔍 Debug Check:", {
-        debugVar: process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH,
-        hasUser: !!user,
-        userEmail: user?.email,
-      });
+      console.warn(`🔍 ${message}`, data || "");
     }
+  };
+
+  // 🚀 חישוב מסך התחלתי עם אופטימיזציה
+  const initialRouteName = useMemo(() => {
+    // 🚨 DEBUG MODE: דילוג ישירות לאפליקציה לבדיקת הניווט
+    logDebugInfo("Debug Check:", {
+      debugVar: process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH,
+      hasUser: !!user,
+      userEmail: user?.email,
+    });
 
     if (process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH === "1") {
-      if (__DEV__) {
-        console.warn("🚀 DEBUG MODE: Going directly to MainApp");
-      }
+      logDebugInfo("DEBUG MODE: Going directly to MainApp");
       return "MainApp"; // ישירות לאפליקציה לבדיקה
     }
 
     if (!user) {
-      if (__DEV__) {
-        console.warn("❌ No user found, going to Welcome");
-      }
+      logDebugInfo("No user found, going to Welcome");
       return "Welcome"; // אין משתמש - מסך ברוכים הבאים
     }
 
     const completion = getCompletionStatus();
     if (completion.isFullySetup) {
-      if (__DEV__) {
-        console.warn("✅ User fully setup, going to MainApp");
-      }
+      logDebugInfo("User fully setup, going to MainApp");
       return "MainApp"; // משתמש עם שאלון מושלם - ישר לאפליקציה
     }
 
-    if (__DEV__) {
-      console.warn("⚠️ User not fully setup, going to Questionnaire");
-    }
+    logDebugInfo("User not fully setup, going to Questionnaire");
     return "Questionnaire"; // משתמש ללא שאלון - למסך השאלון
-  };
+  }, [user, getCompletionStatus]);
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={getInitialRouteName()}
+        initialRouteName={initialRouteName}
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
@@ -109,18 +126,7 @@ export default memo(function AppNavigator() {
           // 🚀 שיפורי ביצועים מתקדמים
           freezeOnBlur: true, // חיסכון זיכרון
           // 🎨 שיפורי אנימציה עבור RTL
-          cardStyleInterpolator: ({ current, layouts }) => ({
-            cardStyle: {
-              transform: [
-                {
-                  translateX: current.progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [layouts.screen.width, 0],
-                  }),
-                },
-              ],
-            },
-          }),
+          cardStyleInterpolator: rtlCardStyleInterpolator,
         }}
       >
         {/* 🔐 מסכי התחברות ורישום עם אבטחה מתקדמת */}

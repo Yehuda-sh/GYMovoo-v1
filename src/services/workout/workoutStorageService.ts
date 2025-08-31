@@ -3,6 +3,7 @@
  * @description Service for storing and retrieving workout history data.
  * Handles both local (AsyncStorage) and remote (Supabase) storage.
  * Implements Free user limitations: local storage only with 7-day retention.
+ * @updated 2025-09-01 Enhanced documentation and code quality review
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { workoutApi } from "../api/workoutApi";
@@ -187,17 +188,14 @@ class WorkoutStorageService {
    */
   async getHistoryForList(): Promise<WorkoutHistoryItem[]> {
     const history = await this.getHistory();
-    return history.map(
-      (item) =>
-        ({
-          id: item.id,
-          workoutName: item.workout.name,
-          date: item.feedback.completedAt,
-          duration: item.stats.duration,
-          rating: item.feedback.difficulty,
-          // You can add more transformations here if needed
-        }) as WorkoutHistoryItem
-    );
+    return history.map((item) => ({
+      id: item.id,
+      workoutName: item.workout.name,
+      date: item.feedback.completedAt,
+      duration: item.stats.duration,
+      rating: item.feedback.difficulty,
+      // You can add more transformations here if needed
+    }));
   }
 
   /**

@@ -105,6 +105,22 @@ export * from "../navigation/types";
 export * from "../screens/workout/types/workout.types";
 export * as WorkoutComponentTypes from "../screens/workout/components/types";
 
+/**
+ * Workout with rating interface - for achievements and analytics
+ */
+export interface WorkoutWithRating {
+  id: string;
+  date?: string;
+  completedAt?: string;
+  duration?: number;
+  rating?: number;
+  feedback?: {
+    difficulty?: number;
+    enjoyment?: number;
+    effectiveness?: number;
+  };
+}
+
 // =======================================
 // 🏋️ Workout Plan & Subscription System
 // תוכניות אימון ומערכת מנויים
@@ -411,7 +427,7 @@ export interface HistoryExercise extends BaseExercise {
  * @deprecated Use WorkoutExercise for active workouts or HistoryExercise for history
  * @note This type is maintained for backward compatibility only
  */
-export type Exercise = WorkoutExercise;
+// export type Exercise = WorkoutExercise; // Removed - use specific types instead
 
 export interface WorkoutHistoryItem {
   id: string;
@@ -543,8 +559,9 @@ export interface ScientificProfile {
 
 /** היסטוריית פעילות / Activity history */
 export interface ActivityHistory {
-  // שימוש זמני ב-any עד יישור מלא של טיפוסי האימון בכל המערכת
-  // Temporary any until full workout type unification (History/Achievements/Main/Profile)
+  // Using flexible type to support different workout formats used across the app
+  // TODO: Unify workout types across History/Achievements/Main/Profile modules
+  // Supports: WorkoutHistoryItem, WorkoutWithRating, WorkoutWithFeedback
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   workouts: any[];
   weeklyProgress?: number;

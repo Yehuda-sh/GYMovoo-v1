@@ -375,26 +375,48 @@ export interface Achievement {
 const calculateStreak = (workouts: WorkoutWithRating[]): number => {
   if (!workouts || workouts.length === 0) return 0;
 
-  const sortedWorkouts = [...workouts].sort(
-    (a, b) =>
-      new Date(b.date || b.completedAt || "").getTime() -
-      new Date(a.date || a.completedAt || "").getTime()
-  );
+  const sortedWorkouts = [...workouts]
+    .map((workout) => ({
+      ...workout,
+      workoutDate: new Date(workout.date || workout.completedAt || ""),
+    }))
+    .filter((workout) => !isNaN(workout.workoutDate.getTime()))
+    .sort((a, b) => b.workoutDate.getTime() - a.workoutDate.getTime());
+
+  if (sortedWorkouts.length === 0) return 0;
 
   let currentStreak = 0;
-  let checkDate = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+  // Check if user worked out today or yesterday (within streak gap)
+  const mostRecentWorkout = sortedWorkouts[0];
+  const daysSinceLastWorkout = Math.floor(
+    (today.getTime() - mostRecentWorkout.workoutDate.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  // If last workout is more than MAX_STREAK_GAP_DAYS ago, no current streak
+  if (daysSinceLastWorkout > WORKOUT_CONSTANTS.MAX_STREAK_GAP_DAYS) {
+    return 0;
+  }
+
+  // Count consecutive days backwards from the most recent workout
+  let checkDate = new Date(mostRecentWorkout.workoutDate);
+  checkDate.setHours(0, 0, 0, 0); // Reset time to start of day
 
   for (const workout of sortedWorkouts) {
-    const workoutDate = new Date(workout.date || workout.completedAt || "");
-    if (isNaN(workoutDate.getTime())) continue;
+    const workoutDate = new Date(workout.workoutDate);
+    workoutDate.setHours(0, 0, 0, 0); // Reset time to start of day
+
     const diffDays = Math.floor(
       (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (diffDays <= WORKOUT_CONSTANTS.MAX_STREAK_GAP_DAYS) {
-      // Allow for reasonable gap between workouts
       currentStreak++;
-      checkDate = workoutDate;
+      checkDate = new Date(workoutDate);
+      checkDate.setDate(checkDate.getDate() - 1); // Move to previous day
     } else {
       break;
     }
@@ -509,7 +531,7 @@ const checkRequirement = (
     case "questionnaire": {
       // Consider either legacy questionnaire or the new smartQuestionnaireData presence
       const hasLegacy =
-        !!user.questionnaire && Object.keys(user.questionnaire).length > 5;
+        !!user.questionnaire && Object.keys(user.questionnaire).length > 0;
       const hasSmart = !!(
         user as User & {
           smartQuestionnaireData?: { answers?: Record<string, unknown> };

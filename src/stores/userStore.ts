@@ -16,19 +16,15 @@
  * - TypeScript strict typing ו-data validation
  * - Advanced logging ו-debug capabilities
  *
- * @enhancements_2025-08-24
- * - ✅ החלפה של כל console.log ב-logger עקבי
- * - ✅ הוספת error handling מתקדם עם fallback strategies
- * - ✅ Performance optimizations עם memoized equipment normalization
- * - ✅ Accessibility support עם screen reader text
- * - ✅ Data validation ו-consistency checks
- * - ✅ Advanced hooks לניהול מצב ושגיאות
- * - ✅ Enhanced TypeScript typing
- * - ✅ Improved subscription management
+ * @enhancements_2025-09-01
+ * - ✅ שיפור type safety עם ExtendedQuestionnaireAnswers
+ * - ✅ החלפה של eslint-disable ב-gym_equipment עם טיפוס מוגדר
+ * - ✅ שמירה על eslint-disable מוצדק ב-setCustomDemoUser
+ * - ✅ תיעוד משופר וסידור קוד
  *
  * @dependencies zustand, AsyncStorage, types/index, logger
  * @usage Used throughout application for user state management
- * @updated 2025-08-24 שיפורים מקיפים לפי תקני הפרויקט - Store מתקדם ומותאם
+ * @updated 2025-09-01 שיפורי type safety ותיעוד - Store מתקדם עם טיפוסים משופרים
  */
 
 import { create } from "zustand";
@@ -93,6 +89,13 @@ const normalizeEquipment = (arr?: string[]): string[] => {
 // Old questionnaire answers type (for backward compatibility)
 type LegacyQuestionnaireAnswers = {
   [key: number]: string | string[];
+};
+
+// טיפוס מורחב לתשובות השאלון עם שדות נוספים
+// Extended questionnaire answers type with additional fields
+type ExtendedQuestionnaireAnswers = {
+  [key: number]: string | string[];
+  gym_equipment?: (string | { id?: string; label?: string })[];
 };
 
 // =======================================
@@ -332,8 +335,9 @@ export const useUserStore = create<UserStore>()(
                 selectedEquipment: (() => {
                   if (data.answers.equipment && data.answers.equipment.length)
                     return normalizeEquipment(data.answers.equipment);
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const ge: any = (data.answers as any).gym_equipment;
+                  const extendedAnswers =
+                    data.answers as ExtendedQuestionnaireAnswers;
+                  const ge = extendedAnswers.gym_equipment;
                   if (Array.isArray(ge) && ge.length) {
                     const mapped = ge
                       .map((g) => (typeof g === "string" ? g : g.id || g.label))

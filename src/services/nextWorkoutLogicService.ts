@@ -10,6 +10,7 @@
  * @rtl Full Hebrew workout names and reason explanations support
  * @accessibility Compatible with screen readers and workout progression tracking
  * @algorithm Advanced logic for workout progression, break detection, intensity adjustment
+ * @updated 2025-09-01 Enhanced documentation and code quality review
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";

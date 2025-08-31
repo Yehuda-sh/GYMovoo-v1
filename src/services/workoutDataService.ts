@@ -15,12 +15,13 @@
  * @used_by WorkoutPlansScreen, services/index.ts
  * @performance 1641 lines - consider modular organization for better maintainability
  * @note ⚠️ Name conflict with workout/services/workoutStorageService.ts WorkoutDataService class
- * @updated 2025-08-11 Enhanced documentation and conflict warning
+ * @updated 2025-09-01 Enhanced type safety, removed unsafe type casts, improved documentation
  */
 
 import { questionnaireService } from "./questionnaireService";
 import { useUserStore } from "../stores/userStore";
 import { Exercise } from "../data/exercises/types";
+import { MuscleGroup } from "../constants/exercise";
 import { getSmartFilteredExercises } from "../data/exercises";
 
 // אליאס עבור תרגיל מהמאגר החדש
@@ -400,7 +401,8 @@ export class WorkoutDataService {
   /**
    * יצירת תוכנית אימון בסיסית (הפונקציה הישנה)
    * Create basic workout plan (legacy function)
-   * @deprecated Consider using generateAIWorkoutPlan for better results
+   * @deprecated Use generateAIWorkoutPlan for better results. This function will be removed in a future version.
+   * @migration Consider migrating to generateAIWorkoutPlan which provides personalized AI-driven workout plans
    */
   static async generateBasicWorkoutPlan(): Promise<WorkoutPlan | null> {
     const userDataResult = await this.getUserWorkoutData();
@@ -494,8 +496,9 @@ export class WorkoutDataService {
 
     // סינון נוסף לפי שרירי היעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
-      const primary = exercise.primaryMuscles as unknown[] as string[];
-      const muscleMatch = targetMuscles.some(
+      const primary = exercise.primaryMuscles;
+      const targetMusclesTyped = targetMuscles as MuscleGroup[];
+      const muscleMatch = targetMusclesTyped.some(
         (muscle) => primary?.includes(muscle) || exercise.category === muscle
       );
       const levelMatch = exercise.difficulty === "beginner";
@@ -1066,9 +1069,10 @@ export class WorkoutDataService {
     // סינון נוסף לפי שרירי יעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
       // בדיקת התאמת שרירים
-      const primary = exercise.primaryMuscles as unknown[] as string[];
-      const secondary = exercise.secondaryMuscles as unknown[] as string[];
-      const muscleMatch = targetMuscles.some(
+      const primary = exercise.primaryMuscles;
+      const secondary = exercise.secondaryMuscles;
+      const targetMusclesTyped = targetMuscles as MuscleGroup[];
+      const muscleMatch = targetMusclesTyped.some(
         (muscle) =>
           primary?.includes(muscle) ||
           secondary?.includes(muscle) ||
@@ -1258,9 +1262,11 @@ export class WorkoutDataService {
     // שלב 1: ודא כיסוי של כל שריר יעד בסדר מעורבב
     for (const muscle of shuffledMuscles) {
       const muscleExercises = suitableExercises.filter((ex) => {
-        const primary = ex.primaryMuscles as unknown[] as string[];
+        const primary = ex.primaryMuscles;
+        const targetMuscleTyped = muscle as MuscleGroup;
         return (
-          (primary?.includes(muscle) || ex.category === muscle) &&
+          (primary?.includes(targetMuscleTyped) ||
+            ex.category === targetMuscleTyped) &&
           !usedExercises.has(ex.id)
         );
       });

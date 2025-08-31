@@ -3,33 +3,6 @@
  * @brief מסך אימון פעיל - מעקב אחר אימון מלא של יום נבחר
  * @version 3.2.0
  * @author GYMovoo Development Team
-   // Debug exercises state changes
-  useEffect(() => {
-    if (__DEV__) {
-      console.warn("📊 ActiveWorkoutScreen - exercises state changed:", {
-        exercisesCount: exercises.length,
-        exercises: exercises.map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          setsCount: ex.sets?.length || 0
-        }))
-      });
-    }
-  }, [exercises]);
-
-  // Debug workout stats changes
-  useEffect(() => {
-    if (__DEV__) {
-      console.warn("📈 ActiveWorkoutScreen - workoutStats changed:", {
-        totalExercises: workoutStats.totalExercises,
-        completedExercises: workoutStats.completedExercises,
-        totalSets: workoutStats.totalSets,
-        completedSets: workoutStats.completedSets,
-        progressPercentage: workoutStats.progressPercentage,
-        displayText: `${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים • ${workoutStats.progressPercentage}% הושלם`
-      });
-    }
-  }, [workoutStats]);
  * @modified 2025-08-02
  *
  * @description
@@ -96,6 +69,9 @@ const WorkoutStatusBar = React.lazy(
 // Hooks & Services
 import { useRestTimer } from "./hooks/useRestTimer";
 import { useWorkoutTimer } from "./hooks/useWorkoutTimer";
+import { useExerciseManager } from "./hooks/useExerciseManager";
+import { useWorkoutModals } from "./hooks/useWorkoutModals";
+import { useWorkoutAds } from "./hooks/useWorkoutAds";
 
 // Utils
 import {
@@ -143,7 +119,7 @@ const ActiveWorkoutScreen: React.FC = () => {
       };
     }) || {};
 
-  // Debug logging - מותנה בפיתוח
+  // 🎯 Development Debug Hooks (only in __DEV__ mode)
   useEffect(() => {
     if (__DEV__) {
       logger.debug("ActiveWorkoutScreen", "נטענו נתוני אימון", {
@@ -168,103 +144,36 @@ const ActiveWorkoutScreen: React.FC = () => {
     });
   }, [workoutData]);
 
-  // סטייט לכל התרגילים באימון
-  const [exercises, setExercises] = useState<Exercise[]>(() => {
-    const base = workoutData?.exercises || [];
-    if (__DEV__) {
-      logger.debug("ActiveWorkoutScreen", "הגדרת exercises state", {
-        baseExercisesCount: base.length,
-        baseExercises: base.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          hasSets: !!(ex.sets && ex.sets.length > 0),
-          setsCount: ex.sets?.length || 0,
-        })),
-        hasPendingExercise: !!pendingExercise,
-      });
-    }
-
-    // המרת תרגילי הבסיס לתרגילים עם סטים
-    const baseExercisesWithSets: Exercise[] = base.map((ex) => {
-      // בדיקה אם התרגיל כבר יש לו sets תקינים
-      if (ex.sets && ex.sets.length > 0) {
-        return ex as Exercise;
-      }
-
-      // אחרת, צור סטים בסיסיים (ברירת מחדל 2 סטים)
-      const defaultSets = Array.from({ length: 2 }, (_, index) => ({
-        id: `${ex.id}_set_${index + 1}_${Date.now()}`,
-        type: "working" as const,
-        targetReps: 10,
-        targetWeight: 0,
-        completed: false,
-        isPR: false,
-      }));
-
-      return {
-        id: ex.id,
-        name: ex.name,
-        category: ex.category || "כללי",
-        primaryMuscles: ex.primaryMuscles || ["כללי"],
-        equipment: ex.equipment || "bodyweight",
-        restTime: ex.restTime || 60,
-        sets: defaultSets,
-      } as Exercise;
-    });
-
-    if (pendingExercise) {
-      // צור תרגיל עם סט התחלתי בסיסי
-      const newExercise: Exercise = {
-        id: `${pendingExercise.id}_${Date.now()}`,
-        name: pendingExercise.name,
-        category: "כללי", // Default category since not provided in pendingExercise
-        primaryMuscles: pendingExercise.muscleGroup
-          ? [pendingExercise.muscleGroup]
-          : ["כללי"],
-        equipment: pendingExercise.equipment || "bodyweight",
-        restTime: 60,
-        sets: [
-          {
-            id: `${pendingExercise.id}_set_${Date.now()}`,
-            type: "working",
-            targetReps: 10,
-            targetWeight: 0,
-            completed: false,
-            isPR: false,
-          },
-        ],
-      };
-      return [...baseExercisesWithSets, newExercise];
-    }
-    return baseExercisesWithSets;
+  // 🎯 Custom Hooks for State Management
+  const exerciseManager = useExerciseManager({
+    initialExercises: workoutData?.exercises,
+    pendingExercise,
   });
 
-  // Debug exercises state changes
-  useEffect(() => {
-    if (__DEV__) {
-      logger.debug("ActiveWorkoutScreen", "exercises state changed", {
-        exercisesCount: exercises.length,
-        exercises: exercises.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          setsCount: ex.sets?.length || 0,
-          firstSetId: ex.sets?.[0]?.id || "no sets",
-        })),
-      });
-    }
-  }, [exercises]);
+  const {
+    showErrorModal,
+    showExitModal,
+    showDeleteModal,
+    errorMessage,
+    deleteExerciseId,
+    showError,
+    showExitConfirmation,
+    showDeleteConfirmation,
+    hideAllModals,
+  } = useWorkoutModals();
 
-  // Modal states
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
+  const {
+    showStartAd,
+    showEndAd,
+    workoutStarted,
+    startWorkout,
+    showEndAdForCompletion,
+    hideStartAd,
+    hideEndAd,
+  } = useWorkoutAds();
 
-  // Ad states
-  const [showStartAd, setShowStartAd] = useState(true); // פרסומת התחלה
-  const [showEndAd, setShowEndAd] = useState(false); // פרסומת סיום
-  const [workoutStarted, setWorkoutStarted] = useState(false); // האם האימון התחיל
+  // Extract exercises from the manager
+  const { exercises, setExercises } = exerciseManager;
 
   // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
   const workoutStats = useMemo(() => {
@@ -317,9 +226,9 @@ const ActiveWorkoutScreen: React.FC = () => {
   // טיפול בפרסומת התחלה
   useEffect(() => {
     if (!workoutStarted) {
-      setWorkoutStarted(true);
+      startWorkout();
     }
-  }, [workoutStarted]);
+  }, [workoutStarted, startWorkout]);
 
   // הפקת תוכנית שבועית לזיהוי אינדקס האימון - אופטימיזציה בסיסית
   const weeklyPlan = useMemo(() => {
@@ -371,163 +280,18 @@ const ActiveWorkoutScreen: React.FC = () => {
     return idx >= 0 ? idx : 0;
   }, [weeklyPlan, workoutData?.name]);
 
-  // עדכון סט בתרגיל - אופטימיזציה עם לוגר
-  const handleUpdateSet = useCallback(
-    (exerciseId: string, setId: string, updates: Partial<Set>) => {
-      workoutLogger.setCompleted(exerciseId, setId, updates);
-
-      setExercises((prev) =>
-        prev.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            return {
-              ...exercise,
-              sets: (exercise.sets || []).map((set: Set) => {
-                if (set.id === setId) {
-                  return { ...set, ...updates };
-                }
-                return set;
-              }),
-            };
-          }
-          return exercise;
-        })
-      );
-    },
-    []
-  );
-
-  // השלמת סט
-  const handleCompleteSet = useCallback(
-    (exerciseId: string, setId: string) => {
-      setExercises((prev) =>
-        prev.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            const newExercise = {
-              ...exercise,
-              sets: (exercise.sets || []).map((set: Set) => {
-                if (set.id === setId) {
-                  const isCompleting = !set.completed;
-
-                  // אם מסמנים כמושלם ואין ערכים ממשיים, השתמש בערכי המטרה
-                  if (isCompleting && !set.actualReps && !set.actualWeight) {
-                    return {
-                      ...set,
-                      completed: isCompleting,
-                      actualReps: set.targetReps,
-                      actualWeight: set.targetWeight,
-                    };
-                  }
-
-                  return { ...set, completed: isCompleting };
-                }
-                return set;
-              }),
-            };
-
-            // הודעת נגישות
-            const completedSet = newExercise.sets.find(
-              (s: Set) => s.id === setId
-            );
-            if (completedSet?.completed) {
-              announceSuccess(`סט הושלם בתרגיל ${exercise.name}`);
-              const restDuration = exercise.restTime || 60;
-              startRestTimer(restDuration, exercise.name);
-            } else {
-              announceInfo(`סט בוטל בתרגיל ${exercise.name}`);
-            }
-
-            return newExercise;
-          }
-          return exercise;
-        })
-      );
-    },
-    [startRestTimer, announceSuccess, announceInfo]
-  );
-
-  // הוספת סט לתרגיל
-  const handleAddSet = useCallback(
-    (exerciseId: string) => {
-      const exercise = exercises.find((ex) => ex.id === exerciseId);
-      const exerciseName = exercise?.name || "תרגיל";
-
-      setExercises((prev) =>
-        prev.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            const sets = exercise.sets || [];
-            const lastSet = sets.length > 0 ? sets[sets.length - 1] : null;
-            const newSet: Set = {
-              id: `${exercise.id}_set_${Date.now()}`,
-              type: "working",
-              targetReps: lastSet?.targetReps || 10,
-              targetWeight: lastSet?.targetWeight || 0,
-              completed: false,
-              isPR: false,
-            };
-
-            return {
-              ...exercise,
-              sets: [...(exercise.sets || []), newSet],
-            };
-          }
-          return exercise;
-        })
-      );
-
-      announceInfo(`סט חדש נוסף לתרגיל ${exerciseName}`);
-    },
-    [exercises, announceInfo]
-  );
-
   // מחיקת סט מתרגיל - בדיקת שגיאות מיועלת
   const handleDeleteSet = useCallback(
     (exerciseId: string, setId: string) => {
       const exercise = exercises.find((ex) => ex.id === exerciseId);
       if (exercise && (exercise.sets || []).length <= 1) {
-        setErrorMessage("חייב להיות לפחות סט אחד בתרגיל");
-        setShowErrorModal(true);
+        showError("חייב להיות לפחות סט אחד בתרגיל");
         return;
       }
 
-      setExercises((prev) =>
-        prev.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            return {
-              ...exercise,
-              sets: (exercise.sets || []).filter(
-                (set: Set) => set.id !== setId
-              ),
-            };
-          }
-          return exercise;
-        })
-      );
+      exerciseManager.handleDeleteSet(exerciseId, setId);
     },
-    [exercises]
-  );
-
-  // הזזת סטים בתוך תרגיל - אופטימיזציה עם לוגר
-  const handleReorderSets = useCallback(
-    (exerciseId: string, fromIndex: number, toIndex: number) => {
-      workoutLogger.reorderSets(exerciseId, fromIndex, toIndex);
-
-      setExercises((prev) =>
-        prev.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            const newSets = [...(exercise.sets || [])];
-            const [movedSet] = newSets.splice(fromIndex, 1);
-            newSets.splice(toIndex, 0, movedSet);
-
-            return {
-              ...exercise,
-              sets: newSets,
-            };
-          }
-          return exercise;
-        })
-      );
-    },
-    []
+    [exercises, showError, exerciseManager]
   );
 
   // סיום האימון המלא - בדיקה מותנית ביצועים
@@ -539,18 +303,22 @@ const ActiveWorkoutScreen: React.FC = () => {
   const handleFinishWorkout = useCallback(() => {
     if (!hasCompletedExercises) {
       const errorMsg = "יש להשלים לפחות תרגיל אחד לפני סיום האימון";
-      setErrorMessage(errorMsg);
-      setShowErrorModal(true);
-      announceError(errorMsg);
+      showError(errorMsg);
       return;
     }
 
     // הצגת פרסומת סיום למשתמשי Free
-    setShowEndAd(true);
+    showEndAdForCompletion();
 
     announceInfo("פותח חלון סיום אימון");
-    setShowExitModal(true);
-  }, [hasCompletedExercises, announceError, announceInfo]);
+    showExitConfirmation();
+  }, [
+    hasCompletedExercises,
+    showError,
+    showEndAdForCompletion,
+    announceInfo,
+    showExitConfirmation,
+  ]);
 
   // הוספת תרגיל חדש לאימון הפעיל
   const handleAddExercise = useCallback(() => {
@@ -560,29 +328,14 @@ const ActiveWorkoutScreen: React.FC = () => {
       mode: "selection",
       onSelectExercise: (selectedExercise: Exercise) => {
         // הוסף את התרגיל החדש לרשימת התרגילים
-        const newExercise: Exercise = {
-          ...selectedExercise,
-          id: `${selectedExercise.id}_${Date.now()}`, // ID יחודי
-          sets: [
-            {
-              id: `${selectedExercise.id}_set_${Date.now()}`,
-              type: "working",
-              targetReps: 10,
-              targetWeight: 0,
-              completed: false,
-              isPR: false,
-            },
-          ],
-        };
-
-        setExercises((prev) => [...prev, newExercise]);
+        exerciseManager.handleAddExercise(selectedExercise);
         announceSuccess(`תרגיל ${selectedExercise.name} נוסף לאימון`);
 
         // חזור למסך האימון הפעיל
         navigation.goBack();
       },
     });
-  }, [navigation, announceInfo, announceSuccess]);
+  }, [navigation, announceInfo, announceSuccess, exerciseManager]);
 
   if (exercises.length === 0) {
     return (
@@ -711,14 +464,13 @@ const ActiveWorkoutScreen: React.FC = () => {
             </Text>
             <ExercisesList
               exercises={exercises}
-              onUpdateSet={handleUpdateSet}
-              onAddSet={handleAddSet}
-              onCompleteSet={handleCompleteSet}
+              onUpdateSet={exerciseManager.handleUpdateSet}
+              onAddSet={exerciseManager.handleAddSet}
+              onCompleteSet={exerciseManager.handleCompleteSet}
               onDeleteSet={handleDeleteSet}
-              onReorderSets={handleReorderSets}
+              onReorderSets={exerciseManager.handleReorderSets}
               onRemoveExercise={(exerciseId: string) => {
-                setDeleteExerciseId(exerciseId);
-                setShowDeleteModal(true);
+                showDeleteConfirmation(exerciseId);
               }}
               onStartRest={startRestTimer}
             />
@@ -764,8 +516,8 @@ const ActiveWorkoutScreen: React.FC = () => {
         {/* Error Modal */}
         <ConfirmationModal
           visible={showErrorModal}
-          onClose={() => setShowErrorModal(false)}
-          onConfirm={() => setShowErrorModal(false)}
+          onClose={hideAllModals}
+          onConfirm={hideAllModals}
           title="שגיאה"
           message={errorMessage}
           variant="error"
@@ -776,26 +528,16 @@ const ActiveWorkoutScreen: React.FC = () => {
         {/* Exit Confirmation Modal */}
         <ConfirmationModal
           visible={showExitModal}
-          onClose={() => setShowExitModal(false)}
+          onClose={hideAllModals}
           onConfirm={async () => {
-            try {
-              setShowExitModal(false);
-              // עדכון מחזור האימונים בשירות
-              await nextWorkoutLogicService.updateWorkoutCompleted(
-                workoutIndexInPlan,
-                workoutData?.name || "אימון"
-              );
-            } catch (error) {
-              logger.error("ActiveWorkout", "שגיאה בעדכון השלמת אימון", error);
-              errorHandler.reportError(error, {
-                source: "ActiveWorkoutScreen.completeWorkout",
-              });
-              // המשך ליציאה גם אם יש שגיאה בעדכון הרשומה
-            } finally {
-              navigation.goBack();
-            }
+            hideAllModals();
+            // עדכון מחזור האימונים בשירות
+            await nextWorkoutLogicService.updateWorkoutCompleted(
+              workoutIndexInPlan,
+              workoutData?.name || "אימון"
+            );
           }}
-          onCancel={() => setShowExitModal(false)}
+          onCancel={hideAllModals}
           title="סיום אימון"
           message={`האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`}
           confirmText="סיים אימון"
@@ -807,17 +549,14 @@ const ActiveWorkoutScreen: React.FC = () => {
         {/* Delete Exercise Modal */}
         <ConfirmationModal
           visible={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
+          onClose={hideAllModals}
           onConfirm={() => {
             if (deleteExerciseId) {
-              setExercises((prev) =>
-                prev.filter((ex) => ex.id !== deleteExerciseId)
-              );
-              setDeleteExerciseId(null);
+              exerciseManager.handleRemoveExercise(deleteExerciseId);
             }
-            setShowDeleteModal(false);
+            hideAllModals();
           }}
-          onCancel={() => setShowDeleteModal(false)}
+          onCancel={hideAllModals}
           title="מחיקת תרגיל"
           message="האם אתה בטוח שברצונך למחוק את התרגיל?"
           confirmText="מחק"
@@ -830,13 +569,13 @@ const ActiveWorkoutScreen: React.FC = () => {
         <AdManager
           placement="workout-start"
           visible={showStartAd && workoutStarted}
-          onAdClosed={() => setShowStartAd(false)}
+          onAdClosed={hideStartAd}
         />
 
         <AdManager
           placement="workout-end"
           visible={showEndAd}
-          onAdClosed={() => setShowEndAd(false)}
+          onAdClosed={hideEndAd}
         />
       </SafeAreaView>
     </ErrorBoundary>

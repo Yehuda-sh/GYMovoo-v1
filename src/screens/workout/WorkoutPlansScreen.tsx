@@ -2,13 +2,13 @@
  * @file src/screens/workout/WorkoutPlansScreen.tsx
  * @brief Enhanced Workout Plans Screen - מסך תוכניות אימון משופר (גרסה מאוחדת)
  * @description Unified architecture for workout plans management, including:
- *              - Modular components
- *              - Centralized services
- *              - Performance tracking
- *              - AI and basic plan support
- * @dependencies React Native, Custom Hooks, UI Components
- * @status ACTIVE - Unified workout plans screen
- * @updated 2025-08-25 - Modernized logging and documentation
+ *              - Modular components with custom hooks
+ *              - Centralized services with error handling
+ *              - Performance tracking and optimization
+ *              - AI and basic plan support with subscription management
+ * @dependencies React Native, Custom Hooks, UI Components, Error Boundaries
+ * @status ACTIVE - Unified workout plans screen with enhanced performance
+ * @updated 2025-09-01 - Performance optimizations, custom hooks, error handling improvements
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -31,6 +31,7 @@ import { useUserStore } from "../../stores/userStore";
 import type { WorkoutPlan, WorkoutRecommendation } from "../../types/index";
 import type { WorkoutExercise } from "./types/workout.types";
 import { RootStackParamList } from "../../navigation/types";
+import type { User } from "../../stores/userStore";
 
 // Component Imports
 import BackButton from "../../components/common/BackButton";
@@ -53,6 +54,71 @@ import { questionnaireService } from "../../services/questionnaireService";
 // Performance tracking
 import { PERFORMANCE_THRESHOLDS } from "./utils/workoutConstants";
 
+// =======================================
+// 🎣 CUSTOM HOOKS - הוקים מותאמים אישית
+// =======================================
+
+/**
+ * Custom hook for managing workout plans state and operations
+ */
+const useWorkoutPlans = (
+  user: User | null,
+  updateUser: (updates: Partial<User>) => void,
+  showError: (title: string, message: string) => void,
+  showSuccess: (title: string, message: string) => void,
+  triggerHaptic: (type: "light" | "medium" | "heavy") => void
+) => {
+  // Subscription state
+  const hasActiveSubscription = user?.subscription?.isActive === true;
+  const trialEnded = user?.subscription?.hasCompletedTrial === true;
+  const canAccessAI = hasActiveSubscription || !trialEnded;
+
+  // Component state - consolidated state management
+  const [state, setState] = useState({
+    refreshing: false,
+    selectedPlanType: "basic" as "basic" | "smart",
+    basicPlan: null as WorkoutPlan | null,
+    smartPlan: null as WorkoutPlan | null,
+    showPlanManager: false,
+    pendingPlan: null as { plan: WorkoutPlan; type: "basic" | "smart" } | null,
+    loading: false,
+  });
+
+  // Update state helper
+  const updateState = useCallback((updates: Partial<typeof state>) => {
+    setState((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  // Get current active plan
+  const currentWorkoutPlan = useMemo(
+    () =>
+      state.selectedPlanType === "smart" ? state.smartPlan : state.basicPlan,
+    [state.selectedPlanType, state.smartPlan, state.basicPlan]
+  );
+
+  return {
+    // State
+    ...state,
+    canAccessAI,
+    currentWorkoutPlan,
+
+    // Actions
+    updateState,
+    setState,
+    setRefreshing: (refreshing: boolean) => updateState({ refreshing }),
+    setSelectedPlanType: (selectedPlanType: "basic" | "smart") =>
+      updateState({ selectedPlanType }),
+    setBasicPlan: (basicPlan: WorkoutPlan | null) => updateState({ basicPlan }),
+    setSmartPlan: (smartPlan: WorkoutPlan | null) => updateState({ smartPlan }),
+    setShowPlanManager: (showPlanManager: boolean) =>
+      updateState({ showPlanManager }),
+    setPendingPlan: (
+      pendingPlan: { plan: WorkoutPlan; type: "basic" | "smart" } | null
+    ) => updateState({ pendingPlan }),
+    setLoading: (loading: boolean) => updateState({ loading }),
+  };
+};
+
 interface WorkoutPlanScreenProps {
   route?: {
     params?: {
@@ -73,8 +139,13 @@ interface WorkoutPlanScreenProps {
  * @returns React.ReactElement
  */
 export default function WorkoutPlansScreen({
-  route: _,
+  route,
 }: WorkoutPlanScreenProps): React.ReactElement {
+  // Handle route parameters for better UX
+  const routeParams = route?.params;
+  const shouldRegenerate = routeParams?.regenerate;
+  const shouldAutoStart = routeParams?.autoStart;
+  const returnFromWorkout = routeParams?.returnFromWorkout;
   // 🧭 Navigation
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -109,25 +180,6 @@ export default function WorkoutPlansScreen({
   // Core hooks and state
   const { user, updateUser } = useUserStore();
 
-  // Subscription state
-  const hasActiveSubscription = user?.subscription?.isActive === true;
-  const trialEnded = user?.subscription?.hasCompletedTrial === true;
-  const canAccessAI = hasActiveSubscription || !trialEnded;
-
-  // Component state - ניהול מצב מרכזי מבלי לכפול שירותים
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedPlanType, setSelectedPlanType] = useState<"basic" | "smart">(
-    "basic"
-  );
-  const [basicPlan, setBasicPlan] = useState<WorkoutPlan | null>(null);
-  const [smartPlan, setSmartPlan] = useState<WorkoutPlan | null>(null);
-  const [showPlanManager, setShowPlanManager] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState<{
-    plan: WorkoutPlan;
-    type: "basic" | "smart";
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
-
   // Modal management
   const {
     activeModal,
@@ -137,6 +189,26 @@ export default function WorkoutPlansScreen({
     showSuccess,
     hideModal,
   } = useModalManager();
+
+  // 🎯 Custom hook for workout plans management
+  const {
+    refreshing,
+    selectedPlanType,
+    basicPlan,
+    smartPlan,
+    showPlanManager,
+    pendingPlan,
+    loading,
+    canAccessAI,
+    currentWorkoutPlan,
+    setRefreshing,
+    setSelectedPlanType,
+    setBasicPlan,
+    setSmartPlan,
+    setShowPlanManager,
+    setPendingPlan,
+    setLoading,
+  } = useWorkoutPlans(user, updateUser, showError, showSuccess, triggerHaptic);
 
   // 🔄 יצירת תוכניות מאוחדת - מניעת כפילויות שירותים
   /**
@@ -198,7 +270,7 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, showError, showSuccess, updateUser]
+    [user, showError, showSuccess, updateUser, setLoading]
   );
 
   /**
@@ -261,7 +333,7 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, canAccessAI, showError, showSuccess, updateUser]
+    [user, canAccessAI, showError, showSuccess, updateUser, setLoading]
   );
 
   // 🔄 המרת נתוני אימון לפורמט המסך הפעיל
@@ -328,9 +400,8 @@ export default function WorkoutPlansScreen({
     []
   );
 
-  // Get current active plan
-  const currentWorkoutPlan =
-    selectedPlanType === "smart" ? smartPlan : basicPlan;
+  // Get current active plan - REMOVED: now handled by custom hook
+  // const currentWorkoutPlan = selectedPlanType === "smart" ? smartPlan : basicPlan;
 
   // Handle plan type selection
   /**
@@ -350,7 +421,7 @@ export default function WorkoutPlansScreen({
         },
       });
     },
-    [triggerHaptic, updateUser, user?.workoutplans]
+    [triggerHaptic, updateUser, user?.workoutplans, setSelectedPlanType]
   );
 
   // Handle plan generation
@@ -364,7 +435,7 @@ export default function WorkoutPlansScreen({
       setBasicPlan(plan);
       setSelectedPlanType("basic");
     }
-  }, [generateBasicPlan, triggerHaptic]);
+  }, [generateBasicPlan, triggerHaptic, setBasicPlan, setSelectedPlanType]);
 
   /**
    * Handle generation of AI workout plan
@@ -384,7 +455,14 @@ export default function WorkoutPlansScreen({
       setSmartPlan(plan);
       setSelectedPlanType("smart");
     }
-  }, [generateAIPlan, canAccessAI, triggerHaptic, showError]);
+  }, [
+    generateAIPlan,
+    canAccessAI,
+    triggerHaptic,
+    showError,
+    setSelectedPlanType,
+    setSmartPlan,
+  ]);
 
   // Handle workout start
   /**
@@ -454,7 +532,13 @@ export default function WorkoutPlansScreen({
     } finally {
       setRefreshing(false);
     }
-  }, [selectedPlanType, canAccessAI, handleGenerateAI, handleGenerateBasic]);
+  }, [
+    selectedPlanType,
+    canAccessAI,
+    handleGenerateAI,
+    handleGenerateBasic,
+    setRefreshing,
+  ]);
 
   // Initialize with basic plan on mount
   useEffect(() => {
@@ -475,7 +559,100 @@ export default function WorkoutPlansScreen({
     if (!basicPlan && !user?.workoutplans?.basicPlan) {
       generateBasicPlan(false);
     }
-  }, [basicPlan, smartPlan, user?.workoutplans, generateBasicPlan]);
+  }, [
+    basicPlan,
+    smartPlan,
+    user?.workoutplans,
+    generateBasicPlan,
+    setBasicPlan,
+    setSelectedPlanType,
+    setSmartPlan,
+  ]);
+
+  // Handle route parameters for enhanced UX
+  useEffect(() => {
+    if (shouldRegenerate && !loading) {
+      logger.info(
+        "WorkoutPlansScreen",
+        "Auto-regenerating plan based on route params",
+        {
+          shouldRegenerate,
+          selectedPlanType,
+        }
+      );
+
+      if (selectedPlanType === "smart" && canAccessAI) {
+        handleGenerateAI();
+      } else {
+        handleGenerateBasic();
+      }
+    }
+  }, [
+    shouldRegenerate,
+    loading,
+    selectedPlanType,
+    canAccessAI,
+    handleGenerateAI,
+    handleGenerateBasic,
+  ]);
+
+  // Auto-start workout if requested
+  useEffect(() => {
+    if (shouldAutoStart && currentWorkoutPlan && !loading) {
+      logger.info(
+        "WorkoutPlansScreen",
+        "Auto-starting workout based on route params"
+      );
+      setTimeout(() => handleStartWorkout(), 1000); // Small delay for better UX
+    }
+  }, [shouldAutoStart, currentWorkoutPlan, loading, handleStartWorkout]);
+
+  // Memoized workout plan display for performance
+  const memoizedWorkoutPlanDisplay = useMemo(() => {
+    if (!currentWorkoutPlan) return null;
+
+    return (
+      <WorkoutPlanDisplay
+        workoutPlan={currentWorkoutPlan}
+        isLoading={loading}
+        onStartWorkout={(workout, index) => {
+          triggerHaptic("heavy");
+          showSuccess("מתחיל אימון!", `${workout.name} - אימון ${index + 1}`);
+
+          // המרת הנתונים לפורמט של המסך הפעיל
+          const workoutData = convertWorkoutToActiveFormat(workout, index);
+
+          // Debug: הדפסת הנתונים שמועברים (פיתוח בלבד)
+          if (__DEV__) {
+            logger.debug(
+              "WorkoutPlansScreen",
+              "Navigating to ActiveWorkout with data:",
+              {
+                workoutName: workoutData.name,
+                dayName: workoutData.dayName,
+                exercisesCount: workoutData.exercises.length,
+                exercises: workoutData.exercises.map((ex) => ({
+                  id: ex.id,
+                  name: ex.name,
+                  setsCount: (ex.sets || []).length,
+                })),
+              }
+            );
+          }
+
+          // מעבר למסך האימון הפעיל
+          navigation.navigate("ActiveWorkout", { workoutData });
+        }}
+      />
+    );
+  }, [
+    currentWorkoutPlan,
+    loading,
+    triggerHaptic,
+    showSuccess,
+    convertWorkoutToActiveFormat,
+    navigation,
+  ]);
 
   // Loading state
   if (loading) {
@@ -579,48 +756,7 @@ export default function WorkoutPlansScreen({
           />
 
           {/* Workout Plan Display - תצוגת התוכנית */}
-          {currentWorkoutPlan && (
-            <WorkoutPlanDisplay
-              workoutPlan={currentWorkoutPlan}
-              isLoading={loading}
-              onStartWorkout={(workout, index) => {
-                triggerHaptic("heavy");
-                showSuccess(
-                  "מתחיל אימון!",
-                  `${workout.name} - אימון ${index + 1}`
-                );
-
-                // המרת הנתונים לפורמט של המסך הפעיל
-                const workoutData = convertWorkoutToActiveFormat(
-                  workout,
-                  index
-                );
-
-                // Debug: הדפסת הנתונים שמועברים (פיתוח בלבד)
-                if (__DEV__) {
-                  logger.debug(
-                    "WorkoutPlansScreen",
-                    "Navigating to ActiveWorkout with data:",
-                    {
-                      workoutName: workoutData.name,
-                      dayName: workoutData.dayName,
-                      exercisesCount: workoutData.exercises.length,
-                      exercises: workoutData.exercises.map((ex) => ({
-                        id: ex.id,
-                        name: ex.name,
-                        setsCount: (ex.sets || []).length,
-                      })),
-                    }
-                  );
-                }
-
-                // מעבר למסך האימון הפעיל
-                navigation.navigate("ActiveWorkout", { workoutData });
-              }}
-            />
-          )}
-
-          {/* No Plan State */}
+          {memoizedWorkoutPlanDisplay}
           {!currentWorkoutPlan && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>אין תוכנית אימון</Text>

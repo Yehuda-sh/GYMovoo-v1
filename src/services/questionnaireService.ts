@@ -12,6 +12,7 @@
  * @accessibility Compatible with screen readers and comprehensive workout metadata
  * @algorithm Advanced workout recommendation engine with goal-based personalization
  * @overlaps May have some overlap with workoutDataService for workout generation - consider consolidation
+ * @updated 2025-09-01 Enhanced type safety, removed unsafe type casts, improved documentation
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -549,7 +550,7 @@ class QuestionnaireService {
             [91, 100, "91_100"],
             [101, null, "over_100"],
           ],
-          "70_79" as unknown as string
+          "70_79"
         );
       }
       return "71_80";

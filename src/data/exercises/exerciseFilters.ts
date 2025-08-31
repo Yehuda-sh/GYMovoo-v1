@@ -7,10 +7,7 @@
  */
 
 import { Exercise } from "./types";
-import {
-  ExerciseDifficulty,
-  DIFFICULTY_LEVELS as CORE_DIFFICULTY_LEVELS,
-} from "../../constants/exercise";
+import { DIFFICULTY_LEVELS as CORE_DIFFICULTY_LEVELS } from "../../constants/exercise";
 
 // ====================================
 // 🎯 קבועים מרכזיים לסינון
@@ -39,10 +36,11 @@ export const ENVIRONMENTS = {
   OUTDOOR: "outdoor",
 } as const;
 
+// Use centralized difficulty levels instead of local definition
 export const DIFFICULTY_LEVELS = {
-  BEGINNER: "beginner",
-  INTERMEDIATE: "intermediate",
-  ADVANCED: "advanced",
+  BEGINNER: CORE_DIFFICULTY_LEVELS[0], // "beginner"
+  INTERMEDIATE: CORE_DIFFICULTY_LEVELS[1], // "intermediate"
+  ADVANCED: CORE_DIFFICULTY_LEVELS[2], // "advanced"
 } as const;
 
 // Type for difficulty validation
