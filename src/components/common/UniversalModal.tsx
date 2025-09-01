@@ -4,7 +4,7 @@
  * @description מודל אחיד לכל סוגי ההודעות: שגיאה, הצלחה, אישור, ובקרוב
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Modal,
   View,
@@ -15,8 +15,15 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import LoadingSpinner from "./LoadingSpinner";
 
-export type ModalType = "error" | "success" | "confirm" | "comingSoon";
+export type ModalType =
+  | "error"
+  | "success"
+  | "confirm"
+  | "comingSoon"
+  | "info"
+  | "warning";
 
 interface UniversalModalProps {
   visible: boolean;
@@ -29,6 +36,11 @@ interface UniversalModalProps {
   confirmText?: string;
   cancelText?: string;
   destructive?: boolean;
+  loading?: boolean;
+  backdropClosable?: boolean;
+  autoClose?: boolean;
+  autoCloseDelay?: number;
+  animationType?: "fade" | "slide" | "none";
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
@@ -47,6 +59,11 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
   confirmText = "אישור",
   cancelText = "ביטול",
   destructive = false,
+  loading = false,
+  backdropClosable = true,
+  autoClose = false,
+  autoCloseDelay = 3000,
+  animationType = "fade",
   accessibilityLabel,
   accessibilityHint,
   testID,
@@ -77,6 +94,18 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
           iconColor: theme.colors.warning,
           titleColor: theme.colors.warning,
         };
+      case "info":
+        return {
+          iconName: "information" as const,
+          iconColor: theme.colors.info || theme.colors.primary,
+          titleColor: theme.colors.info || theme.colors.primary,
+        };
+      case "warning":
+        return {
+          iconName: "alert-outline" as const,
+          iconColor: theme.colors.warning,
+          titleColor: theme.colors.warning,
+        };
       default:
         return {
           iconName: "information" as const,
@@ -88,6 +117,24 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
 
   const config = getModalConfig();
   const showConfirmButton = type === "confirm" && onConfirm;
+
+  // Auto-close functionality
+  useEffect(() => {
+    if (visible && autoClose && !loading) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, autoCloseDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible, autoClose, autoCloseDelay, loading, onClose]);
+
+  // Backdrop press handler
+  const handleBackdropPress = () => {
+    if (backdropClosable && !loading) {
+      onClose();
+    }
+  };
 
   /**
    * יצירת תווית נגישות דינמית
@@ -128,21 +175,27 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
 
   return (
     <Modal
-      animationType="fade"
+      animationType={animationType}
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
       accessibilityViewIsModal={true}
     >
-      <View
+      <TouchableOpacity
         style={styles.modalContainer}
+        activeOpacity={1}
+        onPress={handleBackdropPress}
         accessible={true}
         accessibilityLabel={generateAccessibilityLabel()}
         accessibilityHint={generateAccessibilityHint()}
         accessibilityRole="alert"
         testID={testID || `universal-modal-${type}`}
       >
-        <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalContent}
+          activeOpacity={1}
+          accessible={false}
+        >
           {/* אייקון */}
           <MaterialCommunityIcons
             name={config.iconName}
@@ -183,6 +236,7 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                     onClose();
                   }}
                   activeOpacity={0.7}
+                  disabled={loading}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel={cancelText}
@@ -203,6 +257,7 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                     onClose();
                   }}
                   activeOpacity={0.7}
+                  disabled={loading}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel={confirmText}
@@ -213,15 +268,23 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                   }
                   testID={`${testID || "universal-modal"}-confirm-button`}
                 >
-                  <Text
-                    style={
-                      destructive
-                        ? styles.destructiveButtonText
-                        : styles.confirmButtonText
-                    }
-                  >
-                    {confirmText}
-                  </Text>
+                  {loading ? (
+                    <LoadingSpinner
+                      size="small"
+                      variant="pulse"
+                      testID={`${testID || "universal-modal"}-loading`}
+                    />
+                  ) : (
+                    <Text
+                      style={
+                        destructive
+                          ? styles.destructiveButtonText
+                          : styles.confirmButtonText
+                      }
+                    >
+                      {confirmText}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </>
             ) : (
@@ -230,18 +293,27 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
                 style={[styles.button, styles.singleButton]}
                 onPress={onClose}
                 activeOpacity={0.7}
+                disabled={loading}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="סגור"
                 accessibilityHint="לחץ כדי לסגור את ההודעה"
                 testID={`${testID || "universal-modal"}-close-button`}
               >
-                <Text style={styles.singleButtonText}>סגור</Text>
+                {loading ? (
+                  <LoadingSpinner
+                    size="small"
+                    variant="pulse"
+                    testID={`${testID || "universal-modal"}-loading`}
+                  />
+                ) : (
+                  <Text style={styles.singleButtonText}>סגור</Text>
+                )}
               </TouchableOpacity>
             )}
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };

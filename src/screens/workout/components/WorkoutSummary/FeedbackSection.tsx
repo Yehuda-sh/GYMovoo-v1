@@ -2,14 +2,18 @@
  * @file src/screens/workout/components/WorkoutSummary/FeedbackSection.tsx
  * @brief רכיב משוב אימון מפולח
  * @description מנהל את כל אלמנטי המשוב - קושי, הרגשה, לוח שנה
+ * @updated September 2025 - Refactored to use enhanced TouchableButton with haptic feedback
+ * @dependencies TouchableButton (enhanced), UniversalModal, useModalManager, MaterialCommunityIcons
+ * @features Enhanced haptic feedback, accessibility, cross-platform support, interactive feedback elements
  */
 
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { useModalManager } from "../../hooks/useModalManager";
 import { UniversalModal } from "../../../../components/common/UniversalModal";
+import TouchableButton from "../../../../components/ui/TouchableButton";
 
 interface FeedbackSectionProps {
   difficulty: number;
@@ -20,7 +24,6 @@ interface FeedbackSectionProps {
 
 export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
   ({ difficulty, feeling, onDifficultyChange, onFeelingChange }) => {
-    const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 } as const;
     const { activeModal, modalConfig, hideModal, showSuccess } =
       useModalManager();
 
@@ -55,15 +58,14 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
           <Text style={styles.compactLabel}>קושי:</Text>
           <View style={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
+              <TouchableButton
                 key={star}
                 onPress={() => onDifficultyChange(star)}
                 style={styles.starButton}
-                accessibilityRole="button"
+                enableHapticFeedback={true}
+                hapticType="light"
                 accessibilityLabel={`דרג קושי ${star} מתוך 5 כוכבים`}
                 accessibilityHint="הקש לשינוי דירוג הקושי"
-                accessibilityState={{ selected: star <= difficulty }}
-                hitSlop={HIT_SLOP}
                 testID={`feedback-star-${star}`}
               >
                 <MaterialCommunityIcons
@@ -75,7 +77,7 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                       : theme.colors.textSecondary
                   }
                 />
-              </TouchableOpacity>
+              </TouchableButton>
             ))}
           </View>
           <Text
@@ -92,23 +94,22 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
           <Text style={styles.compactLabel}>הרגשה:</Text>
           <View style={styles.emotionsContainerCompact}>
             {emotions.map((emotion) => (
-              <TouchableOpacity
+              <TouchableButton
                 key={emotion.value}
                 onPress={() => onFeelingChange(emotion.value)}
                 style={[
                   styles.emotionButtonCompact,
                   feeling === emotion.value && styles.emotionButtonSelected,
                 ]}
-                accessibilityRole="button"
+                enableHapticFeedback={true}
+                hapticType="light"
                 accessibilityLabel={`הרגשה: ${emotion.label}`}
                 accessibilityHint="בחר את ההרגשה הכללית מאימון זה"
-                accessibilityState={{ selected: feeling === emotion.value }}
-                hitSlop={HIT_SLOP}
                 testID={`feedback-emotion-${emotion.value}`}
               >
                 <Text style={styles.emotionEmojiSmall}>{emotion.emoji}</Text>
                 <Text style={styles.emotionLabelSmall}>{emotion.label}</Text>
-              </TouchableOpacity>
+              </TouchableButton>
             ))}
           </View>
         </View>
@@ -123,7 +124,7 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
               const isNextPlanned = index === 3;
 
               return (
-                <TouchableOpacity
+                <TouchableButton
                   key={index}
                   style={[
                     styles.dayCircleSmall,
@@ -139,7 +140,8 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                       );
                     }
                   }}
-                  accessibilityRole="button"
+                  enableHapticFeedback={true}
+                  hapticType={isNextPlanned ? "medium" : "light"}
                   accessibilityLabel={
                     hasWorkout
                       ? `יום ${day} - אימון הושלם`
@@ -150,7 +152,6 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                   accessibilityHint={
                     isNextPlanned ? "הוסף תזכורת לאימון הבא" : undefined
                   }
-                  hitSlop={HIT_SLOP}
                   testID={`feedback-day-${index}`}
                 >
                   {hasWorkout ? (
@@ -168,7 +169,7 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = React.memo(
                   ) : (
                     <Text style={styles.dayTextSmall}>{day}</Text>
                   )}
-                </TouchableOpacity>
+                </TouchableButton>
               );
             })}
             <View style={styles.streakContainer}>

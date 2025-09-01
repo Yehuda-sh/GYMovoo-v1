@@ -23,6 +23,7 @@ import { theme } from "../../styles/theme";
 import { logger } from "../../utils/logger";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 import { SafeAreaView } from "react-native-safe-area-context";
 // יבוא מקומי של שרירים
 interface Muscle {
@@ -316,6 +317,18 @@ const ExercisesScreen: React.FC = React.memo(() => {
             </View>
           </View>
         </View>
+
+        {/* Next Workout Recommendation */}
+        <NextWorkoutCard
+          workoutPlan={undefined}
+          onStartWorkout={(workoutName, workoutIndex) => {
+            navigation.navigate("WorkoutPlans", {
+              autoStart: true,
+              requestedWorkoutName: workoutName,
+              requestedWorkoutIndex: workoutIndex,
+            });
+          }}
+        />
       </ScrollView>
     </SafeAreaView>
   );

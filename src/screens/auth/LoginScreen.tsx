@@ -21,7 +21,6 @@ import {
   Platform,
   Animated,
   Switch,
-  Alert,
   ScrollView,
   Pressable,
   Vibration,
@@ -36,6 +35,7 @@ import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { fakeGoogleSignIn } from "../../services/authService";
 import type { User } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
@@ -417,6 +417,49 @@ const LoginScreen = React.memo(() => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
+  // ConfirmationModal state for password reset
+  const [confirmationModal, setConfirmationModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  // Helper function for modal operations
+  const hideConfirmationModal = () =>
+    setConfirmationModal({
+      visible: false,
+      title: "",
+      message: "",
+      onConfirm: () => {},
+    });
+
+  const showConfirmationModal = (config: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }) => {
+    setConfirmationModal({
+      visible: true,
+      ...config,
+    });
+  };
+
   useEffect(() => {
     // 🚀 אתחול מתקדם / Advanced initialization
     const initializeLoginScreen = async () => {
@@ -766,26 +809,32 @@ const LoginScreen = React.memo(() => {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(STRINGS.ui.pwdResetTitle, STRINGS.ui.pwdResetMsg, [
-      {
-        text: STRINGS.ui.cancel,
-        style: "cancel",
+    showConfirmationModal({
+      title: STRINGS.ui.pwdResetTitle,
+      message: STRINGS.ui.pwdResetMsg,
+      confirmText: STRINGS.ui.send,
+      cancelText: STRINGS.ui.cancel,
+      variant: "info",
+      onConfirm: () => {
+        if (!email) {
+          setFieldErrors({ email: AUTH_STRINGS.errors.emailRequired });
+          return;
+        }
+        if (!validateEmail(email)) {
+          setFieldErrors({ email: AUTH_STRINGS.errors.emailInvalid });
+          return;
+        }
+        showConfirmationModal({
+          title: STRINGS.ui.sent,
+          message: STRINGS.ui.sentMsg,
+          confirmText: "אישור",
+          variant: "success",
+          singleButton: true,
+          onConfirm: () => {},
+        });
       },
-      {
-        text: STRINGS.ui.send,
-        onPress: () => {
-          if (!email) {
-            setFieldErrors({ email: AUTH_STRINGS.errors.emailRequired });
-            return;
-          }
-          if (!validateEmail(email)) {
-            setFieldErrors({ email: AUTH_STRINGS.errors.emailInvalid });
-            return;
-          }
-          Alert.alert(STRINGS.ui.sent, STRINGS.ui.sentMsg);
-        },
-      },
-    ]);
+      onCancel: () => {},
+    });
   };
 
   return (
@@ -1145,6 +1194,22 @@ const LoginScreen = React.memo(() => {
         </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
+  );
+
+  // ConfirmationModal for password reset (outside main return for proper stacking)
+  return (
+    <ConfirmationModal
+      visible={confirmationModal.visible}
+      title={confirmationModal.title}
+      message={confirmationModal.message}
+      onClose={hideConfirmationModal}
+      onConfirm={confirmationModal.onConfirm}
+      onCancel={confirmationModal.onCancel}
+      confirmText={confirmationModal.confirmText}
+      cancelText={confirmationModal.cancelText}
+      variant={confirmationModal.variant}
+      singleButton={confirmationModal.singleButton}
+    />
   );
 });
 

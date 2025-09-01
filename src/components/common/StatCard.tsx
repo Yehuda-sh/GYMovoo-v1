@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import LoadingSpinner from "./LoadingSpinner";
 
 // ===============================================
 // 🔧 Type Definitions - הגדרות טיפוסים
@@ -74,6 +75,15 @@ interface StatCardProps {
   /** @description צבע פס ההתקדמות / Progress bar color */
   progressColor?: string;
 
+  /** @description האם להציג מצב טעינה / Whether to show loading state */
+  loading?: boolean;
+
+  /** @description האם להציג אנימציה לכרטיס / Whether to animate the card */
+  animated?: boolean;
+
+  /** @description משך האנימציה בפס ההתקדמות / Progress bar animation duration */
+  progressAnimationDuration?: number;
+
   // נגישות / Accessibility
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -100,6 +110,9 @@ const StatCard: React.FC<StatCardProps> = React.memo(
     showProgress = false,
     progressValue = 0,
     progressColor = theme.colors.primary,
+    loading = false,
+    animated: _animated = false,
+    progressAnimationDuration: _progressAnimationDuration = 1000,
     accessibilityLabel,
     accessibilityHint,
     testID,
@@ -151,11 +164,22 @@ const StatCard: React.FC<StatCardProps> = React.memo(
 
     const CardContent = () => (
       <>
+        {/* Loading Overlay */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <LoadingSpinner
+              size="small"
+              variant="pulse"
+              testID={`${testID}-loading`}
+            />
+          </View>
+        )}
+
         {/* אייקון אופציונלי / Optional icon */}
-        {icon && (
+        {icon && !loading && (
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
-              name={icon as any}
+              name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
               size={variant === "compact" ? 20 : 24}
               color={iconColor}
               accessibilityElementsHidden={true}
@@ -165,7 +189,7 @@ const StatCard: React.FC<StatCardProps> = React.memo(
 
         {/* ערך ראשי / Main value */}
         <Text style={valueTextStyle} testID={`${testID}-value`}>
-          {value}
+          {loading ? "..." : value}
         </Text>
 
         {/* תווית / Label */}
@@ -174,14 +198,14 @@ const StatCard: React.FC<StatCardProps> = React.memo(
         </Text>
 
         {/* כתובית אופציונלית / Optional subtitle */}
-        {subtitle && (
+        {subtitle && !loading && (
           <Text style={styles.subtitle} testID={`${testID}-subtitle`}>
             {subtitle}
           </Text>
         )}
 
         {/* פס התקדמות אופציונלי / Optional progress bar */}
-        {showProgress && (
+        {showProgress && !loading && (
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
               <View
@@ -289,6 +313,15 @@ const styles = StyleSheet.create({
   // Icon container // קונטיינר אייקון
   iconContainer: {
     marginBottom: theme.spacing.xs,
+  },
+
+  // Loading overlay // שכבת טעינה
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: theme.radius.md,
   },
 
   // Value text styles // סטיילי טקסט ערך

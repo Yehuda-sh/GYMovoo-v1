@@ -44,6 +44,8 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 // New imports for optimized components and constants
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
 import { DayButtonGrid } from "../../components/common/DayButton";
+import DefaultAvatar from "../../components/common/DefaultAvatar";
+import EmptyState from "../../components/common/EmptyState";
 import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
@@ -62,14 +64,15 @@ import {
 // Import User type for type safety
 import type { User } from "../../types";
 
+// Import NextWorkoutCard
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+
+// Import utility functions
+import {} from "../../utils/mainScreenUtils";
+
 // ===============================================
 // 🔧 Type Guards and Helper Functions
 // ===============================================
-
-/** @description Safe casting function */
-function safeCast<T>(obj: unknown, guard: (o: unknown) => o is T): T | null {
-  return guard(obj) ? obj : null;
-}
 
 /** @description Workout item type for history processing */
 interface WorkoutHistoryItem {
@@ -101,10 +104,13 @@ const calculateAvailableTrainingDays = (user: User | null): number => {
 
   // Try to extract from new smart questionnaire
   const smartAnswers = user.smartquestionnairedata?.answers as
-    | { availability?: string }
+    | { availability?: string | string[] }
     | undefined;
   if (smartAnswers?.availability) {
-    switch (smartAnswers.availability) {
+    const availability = Array.isArray(smartAnswers.availability)
+      ? smartAnswers.availability[0]
+      : smartAnswers.availability;
+    switch (availability) {
       case "2_days":
         return 2;
       case "3_days":
@@ -226,73 +232,6 @@ const getNextRecommendedDay = (
   return 1;
 };
 
-/** @description Process workout history for display */
-const processWorkoutHistory = (workouts: WorkoutHistoryItem[]) => {
-  return workouts
-    .slice(0, 3)
-    .map((workout, index) => {
-      const item = safeCast(
-        workout,
-        (o): o is WorkoutHistoryItem =>
-          typeof o === "object" && o !== null && "id" in o
-      );
-      if (!item) return null;
-
-      const title: string =
-        item.workout?.name ||
-        item.workoutName ||
-        (item.type === "strength"
-          ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
-          : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
-
-      const dateValue: string | Date =
-        item.feedback?.completedAt ||
-        item.date ||
-        item.completedAt ||
-        new Date();
-
-      const durationMinutes: number | undefined = (() => {
-        const seconds: number | undefined =
-          typeof item.workout?.duration === "number"
-            ? item.workout.duration
-            : typeof item.stats?.duration === "number"
-              ? item.stats.duration
-              : typeof item.duration === "number"
-                ? item.duration
-                : undefined;
-        return typeof seconds === "number"
-          ? Math.max(1, Math.round(seconds / 60))
-          : undefined;
-      })();
-
-      const startTime: string | undefined =
-        item.startTime || item.workout?.startTime;
-
-      const iconName = getWorkoutIcon(
-        item.type,
-        title
-      ) as keyof typeof MaterialCommunityIcons.glyphMap;
-
-      const ratingValue: number =
-        (typeof item.feedback?.difficulty === "number"
-          ? item.feedback.difficulty
-          : undefined) ||
-        item.rating ||
-        4.0;
-
-      return {
-        key: item.id || `workout-${index}`,
-        title,
-        dateValue,
-        durationMinutes,
-        startTime,
-        iconName,
-        ratingValue,
-      };
-    })
-    .filter(Boolean);
-};
-
 /** @description Extract personal data from user for analytics */
 const extractPersonalDataFromUser = (user: User | null) => {
   if (!user) {
@@ -402,7 +341,7 @@ function MainScreen() {
   } | null>(null);
 
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
-  const renderStartTime = useMemo(() => performance.now(), []);
+  const renderStartTime = useMemo(() => Date.now(), []);
 
   // 📊 טעינת נתונים מתקדמים מ-WorkoutFacadeService
   const loadAdvancedData = useCallback(async () => {
@@ -448,7 +387,7 @@ function MainScreen() {
   }, [loadAdvancedData]);
 
   useEffect(() => {
-    const renderTime = performance.now() - renderStartTime;
+    const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
       if (__DEV__) {
         console.warn(`⚠️ MainScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
@@ -600,15 +539,23 @@ function MainScreen() {
     }
   }, [loadAdvancedData]);
 
-  const handleStartWorkout = useCallback(() => {
-    triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
-    if (__DEV__) {
-      console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!");
-    }
-    navigation.navigate("WorkoutPlans", {
-      autoStart: true,
-    });
-  }, [navigation, triggerHapticFeedback]);
+  const handleStartWorkout = useCallback(
+    (workoutName?: string, workoutIndex?: number) => {
+      triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
+      if (__DEV__) {
+        console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!", {
+          workoutName,
+          workoutIndex,
+        });
+      }
+      navigation.navigate("WorkoutPlans", {
+        autoStart: true,
+        requestedWorkoutName: workoutName,
+        requestedWorkoutIndex: workoutIndex,
+      });
+    },
+    [navigation, triggerHapticFeedback]
+  );
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
@@ -706,9 +653,11 @@ function MainScreen() {
                   accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
                   accessibilityRole="button"
                 >
-                  <Text style={styles.profileInitials}>
-                    {displayName.charAt(0).toUpperCase()}
-                  </Text>
+                  <DefaultAvatar
+                    name={displayName}
+                    size="medium"
+                    showBorder={false}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -961,6 +910,22 @@ function MainScreen() {
             </Animated.View>
           )}
 
+          {/* המלצת אימון הבא */}
+          <Animated.View
+            style={[
+              styles.nextWorkoutSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <NextWorkoutCard
+              workoutPlan={undefined}
+              onStartWorkout={handleStartWorkout}
+            />
+          </Animated.View>
+
           {/* בחירת יום אימון עם המלצה דינמית */}
           <Animated.View
             style={[
@@ -1000,7 +965,7 @@ function MainScreen() {
             {/* כפתור אימון מהיר */}
             <TouchableOpacity
               style={styles.quickWorkoutButton}
-              onPress={handleStartWorkout}
+              onPress={() => handleStartWorkout()}
               hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
               accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
@@ -1197,19 +1162,13 @@ function MainScreen() {
                   })
               ) : (
                 // אם אין היסטוריה אמיתית - הצג הודעת ריקנות
-                <View style={styles.emptyStateContainer}>
-                  <MaterialCommunityIcons
-                    name="history"
-                    size={48}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.emptyStateText}>
-                    {MAIN_SCREEN_TEXTS.STATUS.NO_RECENT_WORKOUTS}
-                  </Text>
-                  <Text style={styles.emptyStateSubText}>
-                    {MAIN_SCREEN_TEXTS.STATUS.START_FIRST_WORKOUT}
-                  </Text>
-                </View>
+                <EmptyState
+                  icon="time-outline"
+                  title={MAIN_SCREEN_TEXTS.STATUS.NO_RECENT_WORKOUTS}
+                  description={MAIN_SCREEN_TEXTS.STATUS.START_FIRST_WORKOUT}
+                  variant="compact"
+                  testID="main-screen-empty-history"
+                />
               )}
             </View>
 
@@ -1330,15 +1289,6 @@ const styles = StyleSheet.create({
     // 📱 Touch Target מוגדל
     minWidth: 50,
     minHeight: 50,
-  },
-  profileInitials: {
-    fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
-    fontWeight: "700",
-    color: theme.colors.surface,
-    letterSpacing: 0.5,
-    textShadowColor: `${theme.colors.surface}30`,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
 
   // Section styles משופר // סטיילים לקטעים מעודכן
@@ -1562,31 +1512,6 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Empty state styles // סגנונות מצב ריק
-  emptyStateContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.xl,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    marginTop: theme.spacing.md,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-  emptyStateSubText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
-    textAlign: "center",
-    writingDirection: "rtl",
-  },
-
   // Note styles were removed as demo notes are no longer used
 
   // Error and loading styles // סגנונות שגיאות וטעינה
@@ -1710,6 +1635,10 @@ const styles = StyleSheet.create({
     marginEnd: theme.spacing.xs,
     flex: 1,
     writingDirection: "rtl",
+  },
+  nextWorkoutSection: {
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
 });
 

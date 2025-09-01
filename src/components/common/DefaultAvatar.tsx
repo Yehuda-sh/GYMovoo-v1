@@ -13,7 +13,7 @@ import { theme } from "../../styles/theme";
 
 interface DefaultAvatarProps {
   name?: string;
-  size?: number;
+  size?: number | "small" | "medium" | "large" | "xl";
   backgroundColor?: string;
   borderColor?: string;
   showBorder?: boolean; // אפשרות להסתיר מסגרת
@@ -43,9 +43,9 @@ const getInitials = (name: string): string => {
 };
 
 /**
- * יוצר צבע רקע דינמי על בסיס השם
+ * יוצר צבע רקע דינמי על בסיס השם עם ניגודיות משופרת
  * @param name - השם לחישוב הצבע
- * @returns צבע hex
+ * @returns צבע hex עם ניגודיות טובה
  */
 const getNameBasedColor = (name: string): string => {
   if (!name) return theme.colors.backgroundAlt;
@@ -56,9 +56,31 @@ const getNameBasedColor = (name: string): string => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  // המרה לצבע עם גוונים רכים
+  // המרה לצבע עם ניגודיות משופרת - שימוש ב-HSL עם בהירות נמוכה יותר
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 45%, 75%)`; // גוונים רכים ונעימים
+  // שימוש בבהירות 65% במקום 75% לניגודיות טובה יותר
+  // שימוש ברוויה 50% במקום 45% לצבעים עשירים יותר
+  return `hsl(${hue}, 50%, 65%)`;
+};
+
+/**
+ * ממיר גודל preset למספר
+ * @param size - הגודל (מספר או preset)
+ * @returns גודל מספרי
+ */
+const getSizeValue = (
+  size: number | "small" | "medium" | "large" | "xl"
+): number => {
+  if (typeof size === "number") return size;
+
+  const sizeMap = {
+    small: 40,
+    medium: 60,
+    large: 80,
+    xl: 100,
+  };
+
+  return sizeMap[size] || 74; // ברירת מחדל
 };
 
 function DefaultAvatar({
@@ -70,14 +92,17 @@ function DefaultAvatar({
 }: DefaultAvatarProps) {
   const initials = name ? getInitials(name) : "";
 
+  // המרת גודל ל-numeric value
+  const numericSize = getSizeValue(size);
+
   // צבע רקע דינמי על בסיס השם אם לא סופק צבע
   const dynamicBackgroundColor =
     backgroundColor || getNameBasedColor(name || "");
 
   // חישוב גדלים פרופורציונליים
-  const fontSize = size * 0.4;
-  const iconSize = size * 0.6;
-  const borderRadius = size / 2;
+  const fontSize = numericSize * 0.4;
+  const iconSize = numericSize * 0.6;
+  const borderRadius = numericSize / 2;
   const borderWidth = showBorder ? 2 : 0;
 
   // יצירת תווית נגישות מותאמת
@@ -90,8 +115,8 @@ function DefaultAvatar({
       style={[
         styles.avatar,
         {
-          width: size,
-          height: size,
+          width: numericSize,
+          height: numericSize,
           borderRadius,
           borderWidth,
           borderColor: borderColor || theme.colors.accent,

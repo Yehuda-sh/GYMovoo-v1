@@ -67,6 +67,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
 import BackButton from "../../../components/common/BackButton";
+import StatCard from "../../../components/common/StatCard";
 import type { WorkoutHeaderProps } from "./types";
 
 const HEADER_TOP_PADDING = 50; // קבוע מרכזי ל-padding עליון (מונע מספר קסם כפול)
@@ -308,52 +309,51 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
           accessibilityRole="button"
           accessibilityLabel={`סטטיסטיקות אימון: זמן ${elapsedTime}, ${completedSets} מתוך ${totalSets} סטים, ${Math.round(totalVolume)} קילוגרם`}
         >
-          <View style={styles.integratedStatItem}>
-            <Ionicons
-              name="time-outline"
-              size={16}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.integratedStatText}>{elapsedTime}</Text>
-          </View>
+          <StatCard
+            value={elapsedTime}
+            label=""
+            icon="time-outline"
+            variant="compact"
+            size="small"
+            testID="header-timer"
+          />
 
           <View style={styles.integratedDivider} />
 
-          <View style={styles.integratedStatItem}>
-            <MaterialCommunityIcons
-              name="checkbox-marked-circle-outline"
-              size={16}
-              color={theme.colors.success}
-            />
-            <Text style={styles.integratedStatText}>
-              {completedSets}/{totalSets}
-            </Text>
-          </View>
+          <StatCard
+            value={`${completedSets}/${totalSets}`}
+            label=""
+            icon="checkbox-marked-circle-outline"
+            iconColor={theme.colors.success}
+            variant="compact"
+            size="small"
+            testID="header-sets"
+          />
 
           <View style={styles.integratedDivider} />
 
-          <View style={styles.integratedStatItem}>
-            <MaterialCommunityIcons
-              name="weight-kilogram"
-              size={16}
-              color={theme.colors.warning}
-            />
-            <Text style={styles.integratedStatText}>{formattedVolume} ק"ג</Text>
-          </View>
+          <StatCard
+            value={`${formattedVolume} ק״ג`}
+            label=""
+            icon="weight-kilogram"
+            iconColor={theme.colors.warning}
+            variant="compact"
+            size="small"
+            testID="header-volume"
+          />
 
           {showPersonalRecords && (
             <>
               <View style={styles.integratedDivider} />
-              <View style={styles.integratedStatItem}>
-                <MaterialCommunityIcons
-                  name="trophy"
-                  size={16}
-                  color={theme.colors.accent}
-                />
-                <Text style={styles.integratedStatText}>
-                  {personalRecords} שיאים
-                </Text>
-              </View>
+              <StatCard
+                value={`${personalRecords} שיאים`}
+                label=""
+                icon="trophy"
+                iconColor={theme.colors.accent}
+                variant="compact"
+                size="small"
+                testID="header-prs"
+              />
             </>
           )}
 

@@ -43,6 +43,7 @@ import {
   TouchableNativeFeedback,
   Pressable,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 
 // Constants for touchable button
@@ -65,6 +66,14 @@ interface TouchableButtonProps {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
+
+  // Enhanced Features (2025-09-01)
+  enableHapticFeedback?: boolean; // משוב מישושי לפעולות
+  hapticType?: "light" | "medium" | "heavy"; // סוג המשוב המישושי
+  loading?: boolean; // מצב טעינה
+  longPressDelay?: number; // השהיית לחיצה ארוכה
+  onLongPress?: () => void; // פונקציית לחיצה ארוכה
+  _dismissKeyboardOnPress?: boolean; // סגירת מקלדת בלחיצה
 }
 
 /**
@@ -80,7 +89,47 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
     accessibilityLabel,
     accessibilityHint,
     testID,
+    // Enhanced Features
+    enableHapticFeedback = false,
+    hapticType = "light",
+    loading = false,
+    longPressDelay = 500,
+    onLongPress,
+    _dismissKeyboardOnPress = false,
   }) => {
+    // 🎯 פונקציית haptic feedback מותאמת
+    // Optimized haptic feedback function
+    const triggerHapticFeedback = React.useCallback(
+      (type: "light" | "medium" | "heavy" = "light") => {
+        if (enableHapticFeedback && !disabled && !loading) {
+          const feedbackTypes = {
+            light: Haptics.ImpactFeedbackStyle.Light,
+            medium: Haptics.ImpactFeedbackStyle.Medium,
+            heavy: Haptics.ImpactFeedbackStyle.Heavy,
+          };
+          Haptics.impactAsync(feedbackTypes[type]);
+        }
+      },
+      [enableHapticFeedback, disabled, loading]
+    );
+
+    // 🎯 פונקציית לחיצה עם haptic feedback
+    // Press function with haptic feedback
+    const handlePress = React.useCallback(() => {
+      if (disabled || loading) return;
+
+      triggerHapticFeedback(hapticType);
+      onPress();
+    }, [onPress, triggerHapticFeedback, hapticType, disabled, loading]);
+
+    // 🎯 פונקציית לחיצה ארוכה עם haptic feedback
+    // Long press function with haptic feedback
+    const handleLongPress = React.useCallback(() => {
+      if (disabled || loading || !onLongPress) return;
+
+      triggerHapticFeedback("medium");
+      onLongPress();
+    }, [onLongPress, triggerHapticFeedback, disabled, loading]);
     // 📱 Fitness Mobile Optimization: Enlarged hitSlop for workout scenarios
     const enhancedHitSlop = {
       top: TOUCHABLE_CONSTANTS.HIT_SLOP.TOP,
@@ -99,8 +148,10 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
     if (Platform.OS === "android") {
       return (
         <TouchableNativeFeedback
-          onPress={onPress}
-          disabled={disabled}
+          onPress={handlePress}
+          onLongPress={handleLongPress}
+          delayLongPress={longPressDelay}
+          disabled={disabled || loading}
           background={TouchableNativeFeedback.Ripple(
             theme.colors.primary,
             false
@@ -116,6 +167,7 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
               {
                 minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
                 minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
+                opacity: loading ? 0.6 : 1,
               },
             ]}
           >
@@ -127,13 +179,16 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
 
     return (
       <Pressable
-        onPress={onPress}
-        disabled={disabled}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={longPressDelay}
+        disabled={disabled || loading}
         style={[
           style,
           {
             minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
             minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
+            opacity: loading ? 0.6 : 1,
           },
         ]}
         hitSlop={enhancedHitSlop}

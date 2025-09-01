@@ -43,7 +43,6 @@ import {
   TouchableOpacity,
   Modal,
   Animated,
-  Alert,
   Dimensions,
   AccessibilityInfo,
   Platform,
@@ -58,6 +57,7 @@ import {
 import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 import { ExerciseMenuProps } from "../types";
+import { UniversalModal } from "../../../../components/common/UniversalModal";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -168,6 +168,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
     const translateY = useRef(new Animated.Value(0)).current;
     const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
@@ -296,41 +297,28 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
         triggerVibration("medium");
       }
 
-      Alert.alert(
-        title,
-        message,
-        [
-          {
-            text: "ביטול",
-            style: "cancel",
-          },
-          {
-            text: "מחק",
-            style: "destructive",
-            onPress: () => {
-              // Strong haptic feedback for destructive action
-              if (Platform.OS === "ios") {
-                triggerVibration("double");
-              }
+      setShowDeleteModal(true);
+    }, [isBatchMode, selectedExercises.length, triggerVibration]);
 
-              if (isBatchMode && onBatchDelete) {
-                onBatchDelete();
-              } else {
-                onDelete();
-              }
-              onClose();
-            },
-          },
-        ],
-        { cancelable: true }
-      );
-    }, [
-      isBatchMode,
-      selectedExercises.length,
-      onBatchDelete,
-      onDelete,
-      onClose,
-    ]);
+    // Modal handlers
+    const handleDeleteConfirm = useCallback(() => {
+      // Strong haptic feedback for destructive action
+      if (Platform.OS === "ios") {
+        triggerVibration("double");
+      }
+
+      if (isBatchMode && onBatchDelete) {
+        onBatchDelete();
+      } else {
+        onDelete();
+      }
+      onClose();
+      setShowDeleteModal(false);
+    }, [isBatchMode, onBatchDelete, onDelete, onClose, triggerVibration]);
+
+    const handleDeleteCancel = useCallback(() => {
+      setShowDeleteModal(false);
+    }, []);
 
     const handleAction = useCallback(
       (action?: () => void) => {
@@ -577,125 +565,146 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
     ]);
 
     return (
-      <Modal
-        visible={visible}
-        transparent
-        animationType="none"
-        onRequestClose={onClose}
-      >
-        <GestureHandlerRootView
-          style={styles.modalContainer}
-          accessibilityViewIsModal
+      <>
+        <Modal
+          visible={visible}
+          transparent
+          animationType="none"
+          onRequestClose={onClose}
         >
-          <Animated.View
-            style={[
-              styles.backdrop,
-              {
-                opacity: fadeAnim,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={StyleSheet.absoluteFillObject}
-              activeOpacity={1}
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="סגור תפריט"
-            />
-          </Animated.View>
-
-          <PanGestureHandler
-            onGestureEvent={handleGestureEvent}
-            onHandlerStateChange={handleStateChange}
+          <GestureHandlerRootView
+            style={styles.modalContainer}
+            accessibilityViewIsModal
           >
             <Animated.View
               style={[
-                styles.menuSheet,
+                styles.backdrop,
                 {
-                  transform: [
-                    {
-                      translateY: Animated.add(
-                        slideAnim,
-                        translateY.interpolate({
-                          inputRange: [0, 1000],
-                          outputRange: [0, 1000],
-                          extrapolate: "clamp",
-                        })
-                      ),
-                    },
-                  ],
+                  opacity: fadeAnim,
                 },
               ]}
             >
-              {/* Handle */}
-              <View style={styles.handle} />
-
-              {/* Title */}
-              <View style={styles.header}>
-                <Text style={styles.title} accessibilityRole="header">
-                  {title}
-                </Text>
-              </View>
-
-              {/* Menu Items */}
-              <View
-                style={[
-                  styles.menuContent,
-                  isProcessing && styles.menuContentProcessing,
-                ]}
-                accessibilityRole="menu"
-              >
-                {menuSections.map((section, sIdx) => (
-                  <React.Fragment key={`section_${sIdx}`}>
-                    <View style={styles.section}>
-                      {section.map(
-                        ({
-                          key,
-                          icon,
-                          label,
-                          action,
-                          disabled,
-                          danger,
-                          iconFamily,
-                        }) => (
-                          <MenuItem
-                            key={key}
-                            icon={icon}
-                            iconFamily={iconFamily}
-                            label={label}
-                            onPress={action || (() => {})}
-                            disabled={!!disabled || isProcessing}
-                            danger={danger}
-                          />
-                        )
-                      )}
-                    </View>
-                    {sIdx < menuSections.length - 1 && (
-                      <View style={styles.separator} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </View>
+              <TouchableOpacity
+                style={StyleSheet.absoluteFillObject}
+                activeOpacity={1}
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="סגור תפריט"
+              />
             </Animated.View>
-          </PanGestureHandler>
 
-          {/* Cancel Button - מחוץ ל-PanGestureHandler */}
-          <SafeAreaView
-            edges={["bottom", "left", "right"]}
-            style={styles.cancelButtonContainer}
-          >
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              activeOpacity={0.6}
-              accessibilityRole="button"
-              accessibilityLabel="ביטול"
+            <PanGestureHandler
+              onGestureEvent={handleGestureEvent}
+              onHandlerStateChange={handleStateChange}
             >
-              <Text style={styles.cancelText}>ביטול</Text>
-            </TouchableOpacity>
-          </SafeAreaView>
-        </GestureHandlerRootView>
-      </Modal>
+              <Animated.View
+                style={[
+                  styles.menuSheet,
+                  {
+                    transform: [
+                      {
+                        translateY: Animated.add(
+                          slideAnim,
+                          translateY.interpolate({
+                            inputRange: [0, 1000],
+                            outputRange: [0, 1000],
+                            extrapolate: "clamp",
+                          })
+                        ),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {/* Handle */}
+                <View style={styles.handle} />
+
+                {/* Title */}
+                <View style={styles.header}>
+                  <Text style={styles.title} accessibilityRole="header">
+                    {title}
+                  </Text>
+                </View>
+
+                {/* Menu Items */}
+                <View
+                  style={[
+                    styles.menuContent,
+                    isProcessing && styles.menuContentProcessing,
+                  ]}
+                  accessibilityRole="menu"
+                >
+                  {menuSections.map((section, sIdx) => (
+                    <React.Fragment key={`section_${sIdx}`}>
+                      <View style={styles.section}>
+                        {section.map(
+                          ({
+                            key,
+                            icon,
+                            label,
+                            action,
+                            disabled,
+                            danger,
+                            iconFamily,
+                          }) => (
+                            <MenuItem
+                              key={key}
+                              icon={icon}
+                              iconFamily={iconFamily}
+                              label={label}
+                              onPress={action || (() => {})}
+                              disabled={!!disabled || isProcessing}
+                              danger={danger}
+                            />
+                          )
+                        )}
+                      </View>
+                      {sIdx < menuSections.length - 1 && (
+                        <View style={styles.separator} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </View>
+              </Animated.View>
+            </PanGestureHandler>
+
+            {/* Cancel Button - מחוץ ל-PanGestureHandler */}
+            <SafeAreaView
+              edges={["bottom", "left", "right"]}
+              style={styles.cancelButtonContainer}
+            >
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={onClose}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel="ביטול"
+              >
+                <Text style={styles.cancelText}>ביטול</Text>
+              </TouchableOpacity>
+            </SafeAreaView>
+          </GestureHandlerRootView>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <UniversalModal
+          visible={showDeleteModal}
+          type="warning"
+          title={isBatchMode ? "מחיקת תרגילים" : "מחיקת תרגיל"}
+          message={
+            isBatchMode
+              ? `למחוק ${selectedExercises.length} תרגילים?`
+              : "למחוק את התרגיל?"
+          }
+          confirmText="מחק"
+          cancelText="ביטול"
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+          onClose={handleDeleteCancel}
+          loading={isProcessing}
+          backdropClosable={true}
+        />
+      </>
     );
   }
 );

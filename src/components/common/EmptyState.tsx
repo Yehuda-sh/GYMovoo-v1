@@ -8,9 +8,8 @@
  * @updated 2025-08-04 שיפור משמעותי עם variants, React.memo ואינטגרציה עם theme
  */
 
-// src/components/common/EmptyState.tsx
 import React from "react";
-import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import { View, Text, StyleSheet, ViewStyle, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 
@@ -22,9 +21,12 @@ interface EmptyStateProps {
   iconColor?: string;
   children?: React.ReactNode;
   // שיפורים חדשים // New enhancements
-  variant?: "default" | "compact" | "minimal";
+  variant?: "default" | "compact" | "minimal" | "error" | "loading";
   style?: ViewStyle;
   testID?: string;
+  // אנימציה ואפקטים // Animation and effects
+  animated?: boolean;
+  animationDelay?: number;
 }
 
 const EmptyState: React.FC<EmptyStateProps> = React.memo(
@@ -38,11 +40,15 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
     variant = "default",
     style,
     testID = "empty-state",
+    animated = false,
+    animationDelay = 0,
   }) => {
     // 🎨 חישוב סגנונות דינמיים לפי variant
     // Dynamic styling calculation based on variant
     const containerStyle = React.useMemo(() => {
-      const baseStyle = [styles.container] as any[];
+      const baseStyle: (ViewStyle | false | ViewStyle[] | undefined)[] = [
+        styles.container,
+      ];
 
       switch (variant) {
         case "compact":
@@ -50,6 +56,12 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
           break;
         case "minimal":
           baseStyle.push(styles.containerMinimal);
+          break;
+        case "error":
+          baseStyle.push(styles.containerError);
+          break;
+        case "loading":
+          baseStyle.push(styles.containerLoading);
           break;
         default:
           // ברירת מחדל - ללא שינוי נוסף
@@ -70,18 +82,56 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
           return 48;
         case "minimal":
           return 32;
+        case "error":
+          return 56;
+        case "loading":
+          return 52;
         default:
           return 64;
       }
     };
 
     const getIconColor = () => {
-      return iconColor || theme.colors.textSecondary;
+      if (iconColor) return iconColor;
+
+      switch (variant) {
+        case "error":
+          return theme.colors.error;
+        case "loading":
+          return theme.colors.primary;
+        default:
+          return theme.colors.textSecondary;
+      }
     };
 
+    const getDefaultIcon = () => {
+      switch (variant) {
+        case "error":
+          return "alert-circle-outline";
+        case "loading":
+          return "refresh-circle-outline";
+        default:
+          return "folder-open-outline";
+      }
+    };
+
+    // אנימציית fade-in אם מבוקש
+    const fadeAnim = React.useRef(new Animated.Value(animated ? 0 : 1)).current;
+
+    React.useEffect(() => {
+      if (animated) {
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          delay: animationDelay,
+          useNativeDriver: true,
+        }).start();
+      }
+    }, [animated, animationDelay, fadeAnim]);
+
     return (
-      <View
-        style={containerStyle}
+      <Animated.View
+        style={[containerStyle, animated && { opacity: fadeAnim }]}
         accessible={true}
         accessibilityRole="text"
         accessibilityLabel={`${title}${description ? `. ${description}` : ""}`}
@@ -89,10 +139,15 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
         testID={testID}
       >
         <Ionicons
-          name={icon}
+          name={icon || getDefaultIcon()}
           size={getIconSize()}
           color={getIconColor()}
-          style={[styles.icon, variant === "minimal" && styles.iconMinimal]}
+          style={[
+            styles.icon,
+            variant === "minimal" && styles.iconMinimal,
+            variant === "error" && styles.iconError,
+            variant === "loading" && styles.iconLoading,
+          ]}
           accessible={false} // האב כבר נגיש
         />
         <Text
@@ -100,6 +155,8 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
             styles.title,
             variant === "compact" && styles.titleCompact,
             variant === "minimal" && styles.titleMinimal,
+            variant === "error" && styles.titleError,
+            variant === "loading" && styles.titleLoading,
           ]}
           accessible={false} // האב כבר נגיש
         >
@@ -111,6 +168,8 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
               styles.description,
               variant === "compact" && styles.descriptionCompact,
               variant === "minimal" && styles.descriptionMinimal,
+              variant === "error" && styles.descriptionError,
+              variant === "loading" && styles.descriptionLoading,
             ]}
             accessible={false} // האב כבר נגיש
           >
@@ -127,7 +186,7 @@ const EmptyState: React.FC<EmptyStateProps> = React.memo(
             {children}
           </View>
         )}
-      </View>
+      </Animated.View>
     );
   }
 );
@@ -166,6 +225,16 @@ const styles = StyleSheet.create({
     elevation: 0,
     borderWidth: 0,
   },
+  containerError: {
+    backgroundColor: `${theme.colors.error}15`,
+    borderColor: `${theme.colors.error}40`,
+    borderWidth: 1,
+  },
+  containerLoading: {
+    backgroundColor: `${theme.colors.primary}10`,
+    borderColor: `${theme.colors.primary}30`,
+    borderWidth: 1,
+  },
 
   // 🎯 Icon variants משופר - variants של אייקון מעודכן
   icon: {
@@ -181,6 +250,18 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     opacity: 0.6,
     shadowOpacity: 0,
+  },
+  iconError: {
+    marginBottom: theme.spacing.xl,
+    opacity: 0.9,
+    shadowColor: theme.colors.error,
+    shadowOpacity: 0.2,
+  },
+  iconLoading: {
+    marginBottom: theme.spacing.xl,
+    opacity: 0.9,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.2,
   },
 
   // 📝 Title variants משופר - variants של כותרת מעודכן
@@ -208,6 +289,14 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
     letterSpacing: 0.2,
   },
+  titleError: {
+    color: theme.colors.error,
+    fontWeight: "700",
+  },
+  titleLoading: {
+    color: theme.colors.primary,
+    fontWeight: "700",
+  },
 
   // 📄 Description variants משופר - variants של תיאור מעודכן
   description: {
@@ -230,6 +319,14 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     opacity: 0.85,
     lineHeight: 20,
+  },
+  descriptionError: {
+    color: theme.colors.error,
+    opacity: 0.9,
+  },
+  descriptionLoading: {
+    color: theme.colors.primary,
+    opacity: 0.9,
   },
 
   // 🎬 Actions variants - variants של פעולות

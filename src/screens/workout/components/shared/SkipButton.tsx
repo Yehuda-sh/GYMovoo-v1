@@ -12,13 +12,13 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
-  ActivityIndicator,
   ViewStyle,
   StyleProp,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../styles/theme";
+import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 
 export interface SkipButtonProps {
@@ -101,7 +101,12 @@ export const SkipButton: React.FC<SkipButtonProps> = React.memo(
         >
           <LinearGradient colors={colors} style={styles.gradient}>
             {loading ? (
-              <ActivityIndicator size="small" color={iconColor} />
+              <LoadingSpinner
+                size="small"
+                color={iconColor}
+                variant="fade"
+                testID="skip-button-loading"
+              />
             ) : (
               <MaterialCommunityIcons
                 name={icon}

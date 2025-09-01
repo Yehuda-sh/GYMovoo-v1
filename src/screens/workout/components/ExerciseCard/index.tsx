@@ -50,7 +50,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Alert,
   AccessibilityInfo,
   Vibration,
 } from "react-native";
@@ -61,6 +60,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ExerciseHeader from "./ExerciseHeader";
 import EditToolbar from "./EditToolbar";
 import SetsList from "./SetsList";
+import { UniversalModal } from "../../../../components/common/UniversalModal";
 
 // ייבוא ה-theme וספריות עזר
 // Import theme and utility libraries
@@ -688,10 +688,10 @@ const usePerformanceMonitoring = () => {
 
   useEffect(() => {
     renderCountRef.current += 1;
-    const renderStart = performance.now();
+    const renderStart = Date.now();
 
     return () => {
-      const renderEnd = performance.now();
+      const renderEnd = Date.now();
       const renderTime = renderEnd - renderStart;
 
       // Keep only last 10 render times
@@ -955,6 +955,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [accessibilityInfo, setAccessibilityInfo] =
       useState<ExerciseCardAccessibilityInfo>({
         screenReaderEnabled: false,
@@ -1300,58 +1301,44 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       withErrorHandling(() => {
         log("Delete selected sets", { count: selectedSets.size });
 
-        const setsCount = selectedSets.size;
-        const setsText = setsCount === 1 ? "סט אחד" : `${setsCount} סטים`;
-
-        Alert.alert(
-          "מחיקת סטים",
-          `האם אתה בטוח שברצונך למחוק ${setsText}?\nפעולה זו אינה ניתנת לביטול.`,
-          [
-            {
-              text: "ביטול",
-              style: "cancel",
-              onPress: () => {
-                AccessibilityInfo.announceForAccessibility("המחיקה בוטלה");
-              },
-            },
-            {
-              text: "מחק",
-              style: "destructive",
-              onPress: () => {
-                setIsLoading(true);
-
-                try {
-                  selectedSets.forEach((setId) => {
-                    onDeleteSet?.(setId);
-                  });
-
-                  cancelSelectionMode();
-
-                  // Success feedback
-                  if (Platform.OS === "ios") {
-                    triggerVibration("medium");
-                    AccessibilityInfo.announceForAccessibility(
-                      `${setsText} נמחקו בהצלחה`
-                    );
-                  }
-                } catch (error) {
-                  setError("שגיאה במחיקת הסטים");
-                  log("Error deleting sets:", { error });
-                } finally {
-                  setIsLoading(false);
-                }
-              },
-            },
-          ],
-          {
-            cancelable: true,
-            onDismiss: () => {
-              AccessibilityInfo.announceForAccessibility("התיבה נסגרה");
-            },
-          }
-        );
+        setShowDeleteModal(true);
       }, "deleteSelectedSets")();
-    }, [selectedSets, onDeleteSet, cancelSelectionMode, withErrorHandling]);
+    }, [selectedSets, withErrorHandling]);
+
+    // Modal handlers for delete confirmation
+    const handleDeleteConfirm = useCallback(() => {
+      const setsCount = selectedSets.size;
+      const setsText = setsCount === 1 ? "סט אחד" : `${setsCount} סטים`;
+
+      setIsLoading(true);
+
+      try {
+        selectedSets.forEach((setId) => {
+          onDeleteSet?.(setId);
+        });
+
+        cancelSelectionMode();
+
+        // Success feedback
+        if (Platform.OS === "ios") {
+          triggerVibration("medium");
+          AccessibilityInfo.announceForAccessibility(
+            `${setsText} נמחקו בהצלחה`
+          );
+        }
+      } catch (error) {
+        setError("שגיאה במחיקת הסטים");
+        log("Error deleting sets:", { error });
+      } finally {
+        setIsLoading(false);
+        setShowDeleteModal(false);
+      }
+    }, [selectedSets, onDeleteSet, cancelSelectionMode]);
+
+    const handleDeleteCancel = useCallback(() => {
+      setShowDeleteModal(false);
+      AccessibilityInfo.announceForAccessibility("המחיקה בוטלה");
+    }, []);
 
     // טיפול במצב עריכה עם שיפורים ומעקב
     // Handle edit mode with improvements and monitoring
@@ -1655,218 +1642,238 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     }, [isCompleted, headerColorAnimation, cardOpacity]);
 
     return (
-      <View style={styles.container}>
-        {/* פס בחירה */}
-        {/* Selection bar */}
-        {isSelectionMode && (
-          <View style={styles.selectionBar}>
-            <View style={styles.selectionButtonsRow}>
-              <TouchableOpacity
-                onPress={cancelSelectionMode}
-                style={styles.selectionButton}
-                accessibilityRole="button"
-                accessibilityLabel="בטל בחירה"
-                accessibilityHint="יציאה ממצב בחירה"
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={24}
-                  color={theme.colors.text}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={deleteSelectedSets}
-                style={styles.selectionButton}
-                accessibilityRole="button"
-                accessibilityLabel="מחק סטים נבחרים"
-                accessibilityHint={`מחק ${selectedSets.size} סטים`}
-              >
-                <MaterialCommunityIcons
-                  name="delete"
-                  size={24}
-                  color={theme.colors.error}
-                />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.selectionText}>
-              {selectedSets.size} סטים נבחרו
-            </Text>
-          </View>
-        )}
-
-        {/* כותרת התרגיל */}
-        <ExerciseHeader
-          exercise={exercise}
-          sets={sets}
-          isCompleted={isCompleted}
-          isExpanded={isExpanded}
-          isEditMode={isEditMode}
-          completedSets={completedSets}
-          progressPercentage={progressPercentage}
-          totalVolume={totalVolume}
-          totalReps={totalReps}
-          onToggleExpanded={handleToggleExpanded}
-          onToggleEditMode={toggleEditMode}
-          onTitlePress={onTitlePress}
-          editModeAnimation={editModeAnimation}
-        />
-
-        {/* פס כלים למצב עריכה */}
-        <EditToolbar
-          isVisible={isEditMode}
-          editModeAnimation={editModeAnimation}
-          onDuplicate={onDuplicate}
-          onReplace={onReplace}
-          onRemoveExercise={onRemoveExercise}
-          onExitEditMode={() => setIsEditMode(false)}
-        />
-
-        {/* תוכן התרגיל */}
-        {/* Exercise content */}
-        {isExpanded && (
-          <Animated.View
-            style={[
-              styles.content,
-              {
-                opacity: expandAnimation,
-                transform: [{ scaleY: expandAnimation }],
-              },
-            ]}
-          >
-            {/* מידע נוסף */}
-            {/* Additional info */}
-            <View style={styles.infoSection}>
-              {exercise.notes && showNotes && (
-                <View style={styles.notesContainer}>
+      <>
+        <View style={styles.container}>
+          {/* פס בחירה */}
+          {/* Selection bar */}
+          {isSelectionMode && (
+            <View style={styles.selectionBar}>
+              <View style={styles.selectionButtonsRow}>
+                <TouchableOpacity
+                  onPress={cancelSelectionMode}
+                  style={styles.selectionButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="בטל בחירה"
+                  accessibilityHint="יציאה ממצב בחירה"
+                >
                   <MaterialCommunityIcons
-                    name="note-text"
-                    size={16}
-                    color={theme.colors.textSecondary}
+                    name="close"
+                    size={24}
+                    color={theme.colors.text}
                   />
-                  <Text style={styles.notesText}>{exercise.notes}</Text>
-                </View>
-              )}
-
-              {lastWorkout && showHistory && (
-                <View style={styles.historyContainer}>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={deleteSelectedSets}
+                  style={styles.selectionButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="מחק סטים נבחרים"
+                  accessibilityHint={`מחק ${selectedSets.size} סטים`}
+                >
                   <MaterialCommunityIcons
-                    name="history"
-                    size={16}
-                    color={theme.colors.textSecondary}
+                    name="delete"
+                    size={24}
+                    color={theme.colors.error}
                   />
-                  <Text style={styles.historyText}>
-                    אימון קודם: {lastWorkout.bestSet.weight} ק״ג x{" "}
-                    {lastWorkout.bestSet.reps} חזרות
-                  </Text>
-                </View>
-              )}
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.selectionText}>
+                {selectedSets.size} סטים נבחרו
+              </Text>
             </View>
+          )}
 
-            {/* רשימת סטים */}
-            <SetsList
-              sets={sets}
-              isEditMode={isEditMode}
-              onUpdateSet={onUpdateSet}
-              onDeleteSet={onDeleteSet}
-              onCompleteSet={onCompleteSet}
-              onSetLongPress={handleSetLongPress}
-              onMoveSetUp={handleMoveSetUp}
-              onMoveSetDown={handleMoveSetDown}
-              onDuplicateSet={handleDuplicateSet}
-            />
+          {/* כותרת התרגיל */}
+          <ExerciseHeader
+            exercise={exercise}
+            sets={sets}
+            isCompleted={isCompleted}
+            isExpanded={isExpanded}
+            isEditMode={isEditMode}
+            completedSets={completedSets}
+            progressPercentage={progressPercentage}
+            totalVolume={totalVolume}
+            totalReps={totalReps}
+            onToggleExpanded={handleToggleExpanded}
+            onToggleEditMode={toggleEditMode}
+            onTitlePress={onTitlePress}
+            editModeAnimation={editModeAnimation}
+          />
 
-            {/* כפתור הוספת סט - נוסף אחרי רשימת הסטים, רק אם יש סטים ולא במצב עריכה */}
-            {/* Add Set Button - Added after sets list, only if there are sets and not in edit mode */}
-            {sets.length > 0 && !isEditMode && (
-              <TouchableOpacity
-                style={styles.addSetButton}
-                onPress={withDebounce(() => {
-                  withErrorHandling(() => {
-                    // Security validation
-                    if (
-                      !securityValidator.validateExerciseAction(
-                        "add_set",
-                        exercise.id
-                      )
-                    ) {
-                      logger.warn(
-                        "ExerciseCard: Invalid add set action",
-                        `Exercise: ${exercise.name}`
+          {/* פס כלים למצב עריכה */}
+          <EditToolbar
+            isVisible={isEditMode}
+            editModeAnimation={editModeAnimation}
+            onDuplicate={onDuplicate}
+            onReplace={onReplace}
+            onRemoveExercise={onRemoveExercise}
+            onExitEditMode={() => setIsEditMode(false)}
+          />
+
+          {/* תוכן התרגיל */}
+          {/* Exercise content */}
+          {isExpanded && (
+            <Animated.View
+              style={[
+                styles.content,
+                {
+                  opacity: expandAnimation,
+                  transform: [{ scaleY: expandAnimation }],
+                },
+              ]}
+            >
+              {/* מידע נוסף */}
+              {/* Additional info */}
+              <View style={styles.infoSection}>
+                {exercise.notes && showNotes && (
+                  <View style={styles.notesContainer}>
+                    <MaterialCommunityIcons
+                      name="note-text"
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
+                    <Text style={styles.notesText}>{exercise.notes}</Text>
+                  </View>
+                )}
+
+                {lastWorkout && showHistory && (
+                  <View style={styles.historyContainer}>
+                    <MaterialCommunityIcons
+                      name="history"
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
+                    <Text style={styles.historyText}>
+                      אימון קודם: {lastWorkout.bestSet.weight} ק״ג x{" "}
+                      {lastWorkout.bestSet.reps} חזרות
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* רשימת סטים */}
+              <SetsList
+                sets={sets}
+                isEditMode={isEditMode}
+                onUpdateSet={onUpdateSet}
+                onDeleteSet={onDeleteSet}
+                onCompleteSet={onCompleteSet}
+                onSetLongPress={handleSetLongPress}
+                onMoveSetUp={handleMoveSetUp}
+                onMoveSetDown={handleMoveSetDown}
+                onDuplicateSet={handleDuplicateSet}
+              />
+
+              {/* כפתור הוספת סט - נוסף אחרי רשימת הסטים, רק אם יש סטים ולא במצב עריכה */}
+              {/* Add Set Button - Added after sets list, only if there are sets and not in edit mode */}
+              {sets.length > 0 && !isEditMode && (
+                <TouchableOpacity
+                  style={styles.addSetButton}
+                  onPress={withDebounce(() => {
+                    withErrorHandling(() => {
+                      // Security validation
+                      if (
+                        !securityValidator.validateExerciseAction(
+                          "add_set",
+                          exercise.id
+                        )
+                      ) {
+                        logger.warn(
+                          "ExerciseCard: Invalid add set action",
+                          `Exercise: ${exercise.name}`
+                        );
+                        return;
+                      }
+
+                      // אנימציית לחיצה קלה עם performance tracking
+                      performanceRef.current.animationCount++;
+                      performanceMonitor.recordAnimation();
+
+                      if (!accessibilityInfo.reduceMotionEnabled) {
+                        Animated.sequence([
+                          Animated.timing(expandAnimation, {
+                            toValue: 0.95,
+                            duration: ANIMATION_DURATIONS.BUTTON_PRESS,
+                            useNativeDriver: true,
+                          }),
+                          Animated.spring(expandAnimation, {
+                            toValue: 1,
+                            friction: 3,
+                            tension: 40,
+                            useNativeDriver: true,
+                          }),
+                        ]).start();
+                      }
+
+                      // Enhanced haptic feedback
+                      if (Platform.OS === "ios") {
+                        triggerVibration("medium");
+                      }
+
+                      log("Add set button pressed", {
+                        exerciseName: exercise.name,
+                      });
+                      performanceMonitor.recordSetUpdate();
+                      onAddSet();
+
+                      // Enhanced accessibility feedback
+                      announceToScreenReader(
+                        `סט חדש נוסף לתרגיל ${exercise.name}`
                       );
-                      return;
-                    }
 
-                    // אנימציית לחיצה קלה עם performance tracking
-                    performanceRef.current.animationCount++;
-                    performanceMonitor.recordAnimation();
+                      // Record analytics
+                      const analytics: ExerciseAnalytics = {
+                        exerciseId: exercise.id,
+                        exerciseName: exercise.name,
+                        action: "add_set",
+                        timestamp: Date.now(),
+                        responseTime: Date.now() - interactionStartTime.current,
+                        interactionMethod: "touch",
+                      };
 
-                    if (!accessibilityInfo.reduceMotionEnabled) {
-                      Animated.sequence([
-                        Animated.timing(expandAnimation, {
-                          toValue: 0.95,
-                          duration: ANIMATION_DURATIONS.BUTTON_PRESS,
-                          useNativeDriver: true,
-                        }),
-                        Animated.spring(expandAnimation, {
-                          toValue: 1,
-                          friction: 3,
-                          tension: 40,
-                          useNativeDriver: true,
-                        }),
-                      ]).start();
-                    }
+                      aiAnalytics.recordExerciseAction(analytics);
+                      cacheManager.set(
+                        `last-add-set-${exercise.id}`,
+                        analytics
+                      );
+                    }, "add_set")();
+                  }, 500)} // Debounce to prevent double-taps
+                  activeOpacity={0.6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`הוסף סט חדש לתרגיל ${exercise.name}`}
+                  accessibilityHint={ACCESSIBILITY_HINTS.ADD_SET}
+                  disabled={isLoading}
+                >
+                  <View style={styles.addSetContent}>
+                    <MaterialCommunityIcons
+                      name="plus-circle-outline"
+                      size={26}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.addSetText}>הוסף סט</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </Animated.View>
+          )}
 
-                    // Enhanced haptic feedback
-                    if (Platform.OS === "ios") {
-                      triggerVibration("medium");
-                    }
+          {/* ExerciseMenu הוסר זמנית כדי להפחית מורכבות – אם נדרש נחזיר בגרסה עתידית */}
+        </View>
 
-                    log("Add set button pressed", {
-                      exerciseName: exercise.name,
-                    });
-                    performanceMonitor.recordSetUpdate();
-                    onAddSet();
-
-                    // Enhanced accessibility feedback
-                    announceToScreenReader(
-                      `סט חדש נוסף לתרגיל ${exercise.name}`
-                    );
-
-                    // Record analytics
-                    const analytics: ExerciseAnalytics = {
-                      exerciseId: exercise.id,
-                      exerciseName: exercise.name,
-                      action: "add_set",
-                      timestamp: Date.now(),
-                      responseTime: Date.now() - interactionStartTime.current,
-                      interactionMethod: "touch",
-                    };
-
-                    aiAnalytics.recordExerciseAction(analytics);
-                    cacheManager.set(`last-add-set-${exercise.id}`, analytics);
-                  }, "add_set")();
-                }, 500)} // Debounce to prevent double-taps
-                activeOpacity={0.6}
-                accessibilityRole="button"
-                accessibilityLabel={`הוסף סט חדש לתרגיל ${exercise.name}`}
-                accessibilityHint={ACCESSIBILITY_HINTS.ADD_SET}
-                disabled={isLoading}
-              >
-                <View style={styles.addSetContent}>
-                  <MaterialCommunityIcons
-                    name="plus-circle-outline"
-                    size={26}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.addSetText}>הוסף סט</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </Animated.View>
-        )}
-
-        {/* ExerciseMenu הוסר זמנית כדי להפחית מורכבות – אם נדרש נחזיר בגרסה עתידית */}
-      </View>
+        {/* Delete Confirmation Modal */}
+        <UniversalModal
+          visible={showDeleteModal}
+          type="warning"
+          title="מחיקת סטים"
+          message={`האם אתה בטוח שברצונך למחוק ${selectedSets.size === 1 ? "סט אחד" : `${selectedSets.size} סטים`}?\nפעולה זו אינה ניתנת לביטול.`}
+          confirmText="מחק"
+          cancelText="ביטול"
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+          onClose={handleDeleteCancel}
+          loading={isLoading}
+          backdropClosable={true}
+        />
+      </>
     );
   }
 );

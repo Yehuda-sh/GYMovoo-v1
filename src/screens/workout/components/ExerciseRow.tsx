@@ -61,7 +61,7 @@ const ExerciseRow: React.FC<ExerciseRowProps> = React.memo(
     // Performance tracking במצב פיתוח עם מדדים מתקדמים
     const renderStart = React.useMemo(() => {
       if (__DEV__) {
-        return performance.now();
+        return Date.now();
       }
       return 0;
     }, []);
@@ -77,7 +77,7 @@ const ExerciseRow: React.FC<ExerciseRowProps> = React.memo(
 
     React.useEffect(() => {
       if (__DEV__ && renderStart > 0 && exercise?.id) {
-        const renderEnd = performance.now();
+        const renderEnd = Date.now();
         const renderTime = renderEnd - renderStart;
         const complexityThreshold = exerciseComplexity > 10 ? 20 : 16;
 

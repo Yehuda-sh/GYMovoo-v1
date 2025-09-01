@@ -20,13 +20,13 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Alert,
   ScrollView,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { theme } from "../styles/theme";
 import { WorkoutPlan } from "../types";
 import { useUserStore } from "../stores/userStore";
+import ConfirmationModal from "./common/ConfirmationModal";
 
 interface WorkoutPlanManagerProps {
   newPlan: WorkoutPlan;
@@ -56,8 +56,57 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
   const { user } = useUserStore();
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
 
+  // ConfirmationModal state
+  const [confirmationModal, setConfirmationModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  // Helper function for modal operations
+  const hideConfirmationModal = useCallback(
+    () =>
+      setConfirmationModal({
+        visible: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+      }),
+    []
+  );
+
+  const showConfirmationModal = useCallback(
+    (config: {
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      onCancel?: () => void;
+      confirmText?: string;
+      cancelText?: string;
+      variant?: "default" | "error" | "success" | "warning" | "info";
+      singleButton?: boolean;
+    }) => {
+      setConfirmationModal({
+        visible: true,
+        ...config,
+      });
+    },
+    []
+  );
+
   // ✨ Performance tracking לרכיבי כושר
-  const renderStartTime = useMemo(() => performance.now(), []);
+  const renderStartTime = useMemo(() => Date.now(), []);
 
   // ✨ Haptic feedback מותאם לפעולות ניהול תוכניות
   const triggerActionHaptic = useCallback(
@@ -78,7 +127,7 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
 
   // ✨ משוב ביצועים אוטומטי
   useEffect(() => {
-    const renderTime = performance.now() - renderStartTime;
+    const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
       console.warn(
         `⚠️ WorkoutPlanManager render time: ${renderTime.toFixed(2)}ms`
@@ -129,7 +178,7 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
     [existingPlans, planType]
   );
 
-  // ✨ Enhanced showConfirmDialog עם haptic feedback
+  // ✨ Enhanced showConfirmDialog עם ConfirmationModal
   const showConfirmDialog = useCallback(
     (
       title: string,
@@ -137,31 +186,23 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
       onConfirm: () => void,
       onCancel?: () => void
     ) => {
-      Alert.alert(
+      showConfirmationModal({
         title,
         message,
-        [
-          {
-            text: "ביטול",
-            style: "cancel",
-            onPress: () => {
-              triggerActionHaptic("light"); // משוב קל לביטול
-              onCancel?.();
-            },
-          },
-          {
-            text: "אישור",
-            style: "default",
-            onPress: () => {
-              triggerActionHaptic("heavy"); // משוב חזק לאישור
-              onConfirm();
-            },
-          },
-        ],
-        { cancelable: true }
-      );
+        confirmText: "אישור",
+        cancelText: "ביטול",
+        variant: "warning",
+        onConfirm: () => {
+          triggerActionHaptic("heavy"); // משוב חזק לאישור
+          onConfirm();
+        },
+        onCancel: () => {
+          triggerActionHaptic("light"); // משוב קל לביטול
+          onCancel?.();
+        },
+      });
     },
-    [triggerActionHaptic]
+    [triggerActionHaptic, showConfirmationModal]
   );
 
   // ✨ Enhanced handleSaveAttempt עם haptic feedback
@@ -406,6 +447,20 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* ConfirmationModal for confirmations */}
+      <ConfirmationModal
+        visible={confirmationModal.visible}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        onClose={hideConfirmationModal}
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={confirmationModal.onCancel}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+        variant={confirmationModal.variant}
+        singleButton={confirmationModal.singleButton}
+      />
     </Modal>
   );
 };

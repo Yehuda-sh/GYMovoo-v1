@@ -46,6 +46,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISE_DETAILS === "1";
 const dlog = (m: string, data?: unknown) => {
@@ -563,6 +564,18 @@ const ExerciseDetailsScreen: React.FC = React.memo(() => {
         variant="success"
         singleButton={true}
         confirmText="נהדר"
+      />
+
+      {/* Next Workout Recommendation */}
+      <NextWorkoutCard
+        workoutPlan={undefined}
+        onStartWorkout={(workoutName, workoutIndex) => {
+          navigation.navigate("WorkoutPlans", {
+            autoStart: true,
+            requestedWorkoutName: workoutName,
+            requestedWorkoutIndex: workoutIndex,
+          });
+        }}
       />
     </SafeAreaView>
   );

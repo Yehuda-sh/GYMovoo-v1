@@ -59,6 +59,11 @@ jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn(),
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
+  ImpactFeedbackStyle: {
+    Light: "light",
+    Medium: "medium",
+    Heavy: "heavy",
+  },
 }));
 
 // Mock של LinearGradient
@@ -94,6 +99,14 @@ jest.mock("../constants/welcomeScreenTexts", () => ({
     },
     USERS: {
       ACTIVE_USERS_TEMPLATE: "{count} משתמשים פעילים כרגע",
+    },
+    A11Y: {
+      START_JOURNEY: "התחל את המסע שלך לכושר מושלם",
+      START_JOURNEY_HINT: "לחץ כדי להתחיל בתהליך ההרשמה",
+      GOOGLE_SIGNIN: "התחבר עם חשבון Google",
+      GOOGLE_SIGNIN_HINT: "לחץ כדי להתחבר באמצעות חשבון Google שלך",
+      EXISTING_USER: "כניסה למשתמשים קיימים",
+      EXISTING_USER_HINT: "לחץ אם כבר יש לך חשבון",
     },
   },
   generateActiveUsersCount: () => 1234,

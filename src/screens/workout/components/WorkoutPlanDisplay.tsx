@@ -15,15 +15,12 @@
  */
 
 import React, { useMemo, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../../styles/theme";
+import EmptyState from "../../../components/common/EmptyState";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import UniversalCard from "../../../components/ui/UniversalCard";
 import type { WorkoutPlan, WorkoutRecommendation } from "../../../types/index";
 
 interface WorkoutPlanDisplayProps {
@@ -80,34 +77,24 @@ const WorkoutPlanDisplay = React.memo(function WorkoutPlanDisplay({
   );
   if (!workoutPlan.workouts || workoutPlan.workouts.length === 0) {
     return (
-      <View style={styles.emptyState}>
-        <Text
-          style={styles.emptyTitle}
-          accessible={true}
-          accessibilityRole="header"
-          accessibilityLabel="אין אימונים בתוכנית"
-        >
-          אין אימונים בתוכנית
-        </Text>
-        <Text
-          style={styles.emptyMessage}
-          accessible={true}
-          accessibilityLabel="התוכנית עדיין לא מכילה אימונים"
-        >
-          התוכנית עדיין לא מכילה אימונים
-        </Text>
+      <EmptyState
+        icon="clipboard-outline"
+        title="אין אימונים בתוכנית"
+        description="התוכנית עדיין לא מכילה אימונים"
+        variant="compact"
+        testID="workout-plan-empty-state"
+      >
         {isLoading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator
+            <LoadingSpinner
               size="small"
-              color={theme.colors.primary}
-              accessible={true}
-              accessibilityLabel="טוען אימונים"
+              variant="pulse"
+              text="טוען אימונים..."
+              testID="workout-plan-loading"
             />
-            <Text style={styles.loadingText}>טוען אימונים...</Text>
           </View>
         )}
-      </View>
+      </EmptyState>
     );
   }
 
@@ -139,25 +126,45 @@ const WorkoutPlanDisplay = React.memo(function WorkoutPlanDisplay({
 
       <View style={styles.listContent}>
         {workoutPlan.workouts.map((workout, index) => (
-          <View key={`${workout.id}-${index}`} style={styles.workoutCard}>
-            <View style={styles.workoutHeader}>
-              <Text
-                style={styles.workoutName}
+          <UniversalCard
+            key={`${workout.id}-${index}`}
+            title={workout.name}
+            subtitle={`${workout.duration} דקות`}
+            variant="workout"
+            enableHapticFeedback={true}
+            testID={`workout-card-${index}`}
+            accessibilityLabel={`אימון ${workout.name}`}
+            footer={
+              <TouchableOpacity
+                style={[
+                  styles.startButton,
+                  isLoading && styles.startButtonDisabled,
+                ]}
+                onPress={() => handleStartWorkout(workout, index)}
+                disabled={isLoading}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                 accessible={true}
-                accessibilityRole="header"
-                accessibilityLabel={`אימון ${workout.name}`}
+                accessibilityRole="button"
+                accessibilityLabel={`התחל אימון ${workout.name}, אימון מספר ${index + 1}`}
+                accessibilityHint="הקש כדי לעבור למסך האימון הפעיל ולהתחיל להתאמן"
+                accessibilityState={{ disabled: isLoading }}
               >
-                {workout.name}
-              </Text>
-              <Text
-                style={styles.workoutDuration}
-                accessible={true}
-                accessibilityLabel={`משך האימון ${workout.duration} דקות`}
-              >
-                {workout.duration} דקות
-              </Text>
-            </View>
-
+                {isLoading ? (
+                  <View style={styles.startButtonContent}>
+                    <LoadingSpinner
+                      size="small"
+                      color={theme.colors.background}
+                      variant="bounce"
+                      text="מכין אימון..."
+                      testID="start-workout-loading"
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.startButtonText}>התחל אימון</Text>
+                )}
+              </TouchableOpacity>
+            }
+          >
             <Text
               style={styles.workoutDescription}
               accessible={true}
@@ -222,36 +229,7 @@ const WorkoutPlanDisplay = React.memo(function WorkoutPlanDisplay({
                 )}
               </View>
             )}
-
-            {/* כפתור התחלת אימון */}
-            <TouchableOpacity
-              style={[
-                styles.startButton,
-                isLoading && styles.startButtonDisabled,
-              ]}
-              onPress={() => handleStartWorkout(workout, index)}
-              disabled={isLoading}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`התחל אימון ${workout.name}, אימון מספר ${index + 1}`}
-              accessibilityHint="הקש כדי לעבור למסך האימון הפעיל ולהתחיל להתאמן"
-              accessibilityState={{ disabled: isLoading }}
-            >
-              {isLoading ? (
-                <View style={styles.startButtonContent}>
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.background}
-                    style={styles.buttonLoader}
-                  />
-                  <Text style={styles.startButtonText}>מכין אימון...</Text>
-                </View>
-              ) : (
-                <Text style={styles.startButtonText}>התחל אימון</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          </UniversalCard>
         ))}
       </View>
     </View>
@@ -288,40 +266,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
-  },
-  workoutCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    // הוספת צל עדין
-    shadowColor: theme.colors.text,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  workoutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  workoutName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    flex: 1,
-  },
-  workoutDuration: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: "600",
   },
   workoutDescription: {
     fontSize: 14,
@@ -385,22 +329,6 @@ const styles = StyleSheet.create({
     color: theme.colors.background,
     fontSize: 16,
     fontWeight: "bold",
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 16,
   },
   loadingContainer: {
     flexDirection: "row",

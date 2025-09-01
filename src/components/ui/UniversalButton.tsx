@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
-  ActivityIndicator,
   View,
   TouchableOpacityProps,
 } from "react-native";
@@ -20,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 interface UniversalButtonProps extends TouchableOpacityProps {
   title: string;
@@ -204,7 +204,12 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
       () => (
         <View style={styles.contentContainer}>
           {loading ? (
-            <ActivityIndicator size="small" color={variantStyles.textColor} />
+            <LoadingSpinner
+              size="small"
+              color={variantStyles.textColor}
+              variant="bounce"
+              testID="button-loading"
+            />
           ) : (
             <>
               {icon && iconPosition === "left" && (

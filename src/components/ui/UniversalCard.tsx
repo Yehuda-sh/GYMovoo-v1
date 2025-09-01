@@ -1,19 +1,20 @@
 /**
  * @file src/components/ui/UniversalCard.tsx
  * @brief כרטיס אוניברסלי עם אפשרויות עיצוב מגוונות משופר + אופטימיזציה לכושר מובייל
- * @dependencies theme, LinearGradient, React.memo, expo-haptics
- * @notes תומך בכותרת, תת-כותרת, תוכן, פעולות, גרדיאנט, workout mode, haptic feedback
+ * @dependencies theme, LinearGradient, React.memo, expo-haptics, Animated
+ * @notes תומך בכותרת, תת-כותרת, תוכן, פעולות, גרדיאנט, workout mode, haptic feedback, loading, animations
  * @recurring_errors וודא שימוש נכון ב-renderContent או children, workout למסכי אימון
- * @version 3.0 - Fitness mobile optimization, workout variant, haptic feedback, RTL fix, performance tracking
+ * @version 4.0 - Enhanced with loading states, press animations, improved RTL, performance optimizations
  */
 
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ViewStyle,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,6 +51,12 @@ interface UniversalCardProps {
   enableHapticFeedback?: boolean; // משוב מושגי לכל לחיצה
   enablePerformanceTracking?: boolean; // מדידת ביצועים אוטומטית
   trackingName?: string; // שם למעקב ביצועים
+
+  // 🆕 תכונות נוספות // Additional features
+  loading?: boolean; // מצב טעינה
+  loadingText?: string; // טקסט בזמן טעינה
+  animateOnPress?: boolean; // אנימציה בלחיצה
+  pressAnimationScale?: number; // גודל אנימציה (ברירת מחדל 0.95)
 }
 
 export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
@@ -77,14 +84,22 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
     enableHapticFeedback = false,
     enablePerformanceTracking = false,
     trackingName,
+    // Additional features
+    loading = false,
+    loadingText,
+    animateOnPress = false,
+    pressAnimationScale = 0.95,
   }) => {
     // 🚀 מדידת ביצועים לאפליקציית כושר
     // Performance tracking for fitness app
-    const startTime = useMemo(() => performance.now(), []);
+    const startTime = useMemo(() => Date.now(), []);
+
+    // 🆕 אנימציה ללחיצה
+    const [scaleAnim] = useState(() => new Animated.Value(1));
 
     useEffect(() => {
       if (enablePerformanceTracking) {
-        const renderTime = performance.now() - startTime;
+        const renderTime = Date.now() - startTime;
         if (renderTime > 100) {
           console.warn(
             `⚠️ UniversalCard ${trackingName || title || "Unnamed"} איטי: ${renderTime.toFixed(1)}ms`
@@ -104,8 +119,33 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
             : Haptics.ImpactFeedbackStyle.Light;
         Haptics.impactAsync(feedbackIntensity);
       }
+
+      // 🆕 אנימציה בלחיצה
+      if (animateOnPress && !disabled) {
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: pressAnimationScale,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+
       onPress?.();
-    }, [enableHapticFeedback, disabled, onPress, variant]);
+    }, [
+      enableHapticFeedback,
+      disabled,
+      onPress,
+      variant,
+      animateOnPress,
+      pressAnimationScale,
+      scaleAnim,
+    ]);
     // סגנונות לפי וריאנט // Variant styles
     const variantStyles = useMemo((): ViewStyle => {
       switch (variant) {
@@ -152,7 +192,7 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
       return {
         accessible: true,
         accessibilityRole: "button" as const,
-        accessibilityLabel: accessibilityLabel || title || "כרטיס לחיץ",
+        accessibilityLabel: accessibilityLabel || title || "כרטיס ללחיצה",
         accessibilityHint: accessibilityHint || "הקש פעמיים להפעלה",
         accessibilityState: {
           disabled: disabled,
@@ -214,7 +254,17 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
 
           {/* תוכן // Content */}
           <View style={styles.content}>
-            {renderContent ? renderContent() : children}
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>
+                  {loadingText || "טוען..."}
+                </Text>
+              </View>
+            ) : renderContent ? (
+              renderContent()
+            ) : (
+              children
+            )}
           </View>
 
           {/* פוטר // Footer */}
@@ -238,18 +288,28 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
         renderContent,
         children,
         footer,
+        loading,
+        loadingText,
       ]
     );
 
     // כרטיס עם גרדיאנט // Gradient card
     if (variant === "gradient") {
       const GradientCard = onPress ? TouchableOpacity : View;
+      const AnimatedCard = animateOnPress
+        ? Animated.createAnimatedComponent(GradientCard)
+        : GradientCard;
+
       return (
-        <GradientCard
+        <AnimatedCard
           onPress={handlePress}
-          disabled={disabled}
+          disabled={disabled || loading}
           activeOpacity={0.8}
-          style={[variantStyles, style]}
+          style={[
+            variantStyles,
+            style,
+            animateOnPress && { transform: [{ scale: scaleAnim }] },
+          ]}
           testID={testID}
           hitSlop={onPress ? hitSlop : undefined}
           {...accessibilityProps}
@@ -262,24 +322,33 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
           >
             {CardContent}
           </LinearGradient>
-        </GradientCard>
+        </AnimatedCard>
       );
     }
 
     // כרטיס רגיל // Regular card
     const CardComponent = onPress ? TouchableOpacity : View;
+    const AnimatedCard = animateOnPress
+      ? Animated.createAnimatedComponent(CardComponent)
+      : CardComponent;
+
     return (
-      <CardComponent
+      <AnimatedCard
         onPress={handlePress}
-        disabled={disabled}
+        disabled={disabled || loading}
         activeOpacity={0.7}
-        style={[variantStyles, disabled && styles.disabled, style]}
+        style={[
+          variantStyles,
+          disabled && styles.disabled,
+          style,
+          animateOnPress && { transform: [{ scale: scaleAnim }] },
+        ]}
         testID={testID}
         hitSlop={onPress ? hitSlop : undefined}
         {...accessibilityProps}
       >
         {CardContent}
-      </CardComponent>
+      </AnimatedCard>
     );
   }
 );
@@ -360,6 +429,16 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.md,
+  },
+  loadingText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    writingDirection: "rtl",
   },
 });
 

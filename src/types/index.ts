@@ -129,6 +129,7 @@ export interface WorkoutWithRating {
 /**
  * Workout Plan interface - תוכנית אימון
  * Comprehensive workout plan with support for basic/premium tiers
+ * @note This interface is also exported from workout.types.ts - avoid duplication
  */
 export interface WorkoutPlan {
   id: string;

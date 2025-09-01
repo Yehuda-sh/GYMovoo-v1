@@ -1,13 +1,16 @@
 /**
  * @file src/screens/workout/components/WorkoutPlanSelector.tsx
  * @brief Workout Plan Type Selector Component - רכיב בחירת סוג תוכנית אימון
- * @updated August 2025 - Extracted from main screen for better component separation
+ * @updated September 2025 - Refactored to use enhanced TouchableButton with haptic feedback
+ * @dependencies TouchableButton (enhanced), MaterialCommunityIcons, theme
+ * @features Enhanced haptic feedback, accessibility, cross-platform support, selection states
  */
 
 import React, { memo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
+import TouchableButton from "../../../components/ui/TouchableButton";
 
 interface WorkoutPlanSelectorProps {
   selectedType: "basic" | "smart";
@@ -23,14 +26,17 @@ const WorkoutPlanSelector = memo(
 
         <View style={styles.optionsContainer}>
           {/* Basic Plan Option */}
-          <TouchableOpacity
+          <TouchableButton
             style={[
               styles.option,
               selectedType === "basic" && styles.selectedOption,
             ]}
             onPress={() => onSelectType("basic")}
+            enableHapticFeedback={true}
+            hapticType="light"
             accessibilityLabel="תוכנית בסיסית"
             accessibilityHint="תוכנית אימון פשוטה ומהירה"
+            testID="basic-plan-option"
           >
             <MaterialCommunityIcons
               name="dumbbell"
@@ -50,10 +56,10 @@ const WorkoutPlanSelector = memo(
               תוכנית בסיסית
             </Text>
             <Text style={styles.optionDescription}>פשוטה ומהירה</Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
           {/* Smart Plan Option */}
-          <TouchableOpacity
+          <TouchableButton
             style={[
               styles.option,
               selectedType === "smart" && styles.selectedOption,
@@ -61,10 +67,13 @@ const WorkoutPlanSelector = memo(
             ]}
             onPress={() => canAccessAI && onSelectType("smart")}
             disabled={!canAccessAI}
+            enableHapticFeedback={true}
+            hapticType="medium"
             accessibilityLabel="תוכנית חכמה"
             accessibilityHint={
               canAccessAI ? "תוכנית אימון מותאמת עם AI" : "נדרש מנוי פעיל"
             }
+            testID="smart-plan-option"
           >
             <MaterialCommunityIcons
               name="brain"
@@ -102,7 +111,7 @@ const WorkoutPlanSelector = memo(
                 style={styles.lockIcon}
               />
             )}
-          </TouchableOpacity>
+          </TouchableButton>
         </View>
       </View>
     );

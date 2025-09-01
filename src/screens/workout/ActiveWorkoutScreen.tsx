@@ -56,6 +56,7 @@ import { theme } from "../../styles/theme";
 import { triggerVibration } from "../../utils/workoutHelpers";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import EmptyState from "../../components/common/EmptyState";
 
 // Components
 import ExercisesList from "./components/ExercisesList";
@@ -79,6 +80,7 @@ import {
   formatVolume,
   workoutLogger,
 } from "../../utils";
+import { calculateAvailableTrainingDays } from "../../utils/mainScreenUtils";
 
 // Types
 import { Exercise, Set } from "./types/workout.types";
@@ -243,35 +245,10 @@ const ActiveWorkoutScreen: React.FC = () => {
     };
 
     // שליפת תדירות מהירה ופשוטה
-    let days = 3; // ברירת מחדל
-
-    // בדיקה מהירה - נתונים חכמים
-    const smart = user?.smartquestionnairedata?.answers?.availability;
-    if (smart) {
-      const raw = Array.isArray(smart) ? String(smart[0]) : String(smart);
-      const quickMap: Record<string, number> = {
-        "2_days": 2,
-        "3_days": 3,
-        "4_days": 4,
-        "5_days": 5,
-        "6_plus_days": 6,
-      };
-      if (quickMap[raw]) days = quickMap[raw];
-    }
-
-    // fallback לנתוני stats אם אין נתונים חכמים
-    else if (user?.trainingstats?.preferredWorkoutDays) {
-      days = Math.min(
-        7,
-        Math.max(1, Number(user.trainingstats.preferredWorkoutDays))
-      );
-    }
+    const days = calculateAvailableTrainingDays(user);
 
     return WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
-  }, [
-    user?.smartquestionnairedata?.answers?.availability,
-    user?.trainingstats?.preferredWorkoutDays,
-  ]);
+  }, [user]);
 
   const workoutIndexInPlan = useMemo(() => {
     const name = workoutData?.name?.trim();
@@ -476,9 +453,12 @@ const ActiveWorkoutScreen: React.FC = () => {
             />
           </>
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>אין תרגילים באימון</Text>
-          </View>
+          <EmptyState
+            icon="barbell-outline"
+            title="אין תרגילים באימון"
+            variant="compact"
+            testID="active-workout-empty-state"
+          />
         )}
 
         {/* Finish Workout Button */}
@@ -746,17 +726,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     minHeight: 56,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing.xl,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
   },
   sectionTitle: {
     fontSize: 20,

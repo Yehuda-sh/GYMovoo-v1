@@ -49,7 +49,7 @@ export default function FloatingActionButton({
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   // ✨ Performance tracking לרכיבי כושר
-  const renderStartTime = useMemo(() => performance.now(), []);
+  const renderStartTime = useMemo(() => Date.now(), []);
 
   // ✨ Haptic feedback מותאם לעוצמה
   const triggerHaptic = useCallback(() => {
@@ -69,7 +69,7 @@ export default function FloatingActionButton({
 
   // ✨ משוב ביצועים אוטומטי
   useEffect(() => {
-    const renderTime = performance.now() - renderStartTime;
+    const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
       console.warn(
         `⚠️ FloatingActionButton render time: ${renderTime.toFixed(2)}ms`

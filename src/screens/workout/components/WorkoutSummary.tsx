@@ -55,7 +55,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -70,6 +69,7 @@ import { formatDuration } from "../../../utils/formatters";
 import { WorkoutData, WorkoutWithFeedback } from "../types/workout.types";
 import { useModalManager } from "../hooks/useModalManager";
 import { UniversalModal } from "../../../components/common/UniversalModal";
+import ConfirmationModal from "../../../components/common/ConfirmationModal";
 import { workoutFacadeService } from "../../../services";
 import { useUserStore } from "../../../stores/userStore";
 
@@ -105,6 +105,49 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = React.memo(
     // Modal management - אחיד במקום Alert.alert מפוזר
     const { activeModal, modalConfig, hideModal, showComingSoon } =
       useModalManager();
+
+    // ConfirmationModal state
+    const [confirmationModal, setConfirmationModal] = useState<{
+      visible: boolean;
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      onCancel?: () => void;
+      confirmText?: string;
+      cancelText?: string;
+      variant?: "default" | "error" | "success" | "warning" | "info";
+      singleButton?: boolean;
+    }>({
+      visible: false,
+      title: "",
+      message: "",
+      onConfirm: () => {},
+    });
+
+    // Helper function for modal operations
+    const hideConfirmationModal = () =>
+      setConfirmationModal({
+        visible: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+      });
+
+    const showConfirmationModal = (config: {
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      onCancel?: () => void;
+      confirmText?: string;
+      cancelText?: string;
+      variant?: "default" | "error" | "success" | "warning" | "info";
+      singleButton?: boolean;
+    }) => {
+      setConfirmationModal({
+        visible: true,
+        ...config,
+      });
+    };
 
     // Calculate workout statistics using centralized utility
     const stats = useMemo(() => {
@@ -191,7 +234,14 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
         workoutLogger.info("WorkoutSummary", "אימון שותף בהצלחה");
       } catch (error) {
         workoutLogger.error("WorkoutSummary", `שגיאה בשיתוף אימון: ${error}`);
-        Alert.alert("שגיאה", "לא ניתן לשתף את האימון כרגע");
+        showConfirmationModal({
+          title: "שגיאה",
+          message: "לא ניתן לשתף את האימון כרגע",
+          confirmText: "אישור",
+          variant: "error",
+          singleButton: true,
+          onConfirm: () => {},
+        });
       }
     }, [stats, difficulty, feeling, personalRecords]);
 
@@ -251,7 +301,14 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
         onSave();
       } catch (error) {
         workoutLogger.error("WorkoutSummary", `שגיאה בשמירת סיכום: ${error}`);
-        Alert.alert("שגיאה", "שגיאה בשמירת האימון - נסה שוב");
+        showConfirmationModal({
+          title: "שגיאה",
+          message: "שגיאה בשמירת האימון - נסה שוב",
+          confirmText: "אישור",
+          variant: "error",
+          singleButton: true,
+          onConfirm: () => {},
+        });
       }
     }, [workout, stats, difficulty, feeling, personalRecords.length, onSave]);
 
@@ -423,6 +480,20 @@ ${feeling ? `😊 הרגשה: ${feeling}` : ""}
           onConfirm={modalConfig.onConfirm}
           confirmText={modalConfig.confirmText}
           destructive={modalConfig.destructive}
+        />
+
+        {/* ConfirmationModal for error messages */}
+        <ConfirmationModal
+          visible={confirmationModal.visible}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onClose={hideConfirmationModal}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={confirmationModal.onCancel}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+          variant={confirmationModal.variant}
+          singleButton={confirmationModal.singleButton}
         />
       </View>
     );

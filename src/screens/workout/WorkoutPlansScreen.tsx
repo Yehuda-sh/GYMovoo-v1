@@ -36,7 +36,10 @@ import type { User } from "../../stores/userStore";
 // Component Imports
 import BackButton from "../../components/common/BackButton";
 import { UniversalModal } from "../../components/common/UniversalModal";
+import EmptyState from "../../components/common/EmptyState";
 import WorkoutPlanManager from "../../components/WorkoutPlanManager";
+import UniversalCard from "../../components/ui/UniversalCard";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
 // New Modular Components
 import WorkoutPlanSelector from "./components/WorkoutPlanSelector";
@@ -197,10 +200,10 @@ export default function WorkoutPlansScreen({
   });
 
   // 🚀 Performance Tracking
-  const renderStartTime: number = useMemo(() => performance.now(), []);
+  const renderStartTime: number = useMemo(() => Date.now(), []);
 
   useEffect((): void => {
-    const renderTime = performance.now() - renderStartTime;
+    const renderTime = Date.now() - renderStartTime;
     if (renderTime > PERFORMANCE_THRESHOLDS.SLOW_RENDER_WARNING) {
       logger.warn(
         "WorkoutPlansScreen",
@@ -525,52 +528,57 @@ export default function WorkoutPlansScreen({
   /**
    * Handle starting a workout from the current plan
    */
-  const handleStartWorkout = useCallback((): void => {
-    if (!currentWorkoutPlan) {
-      showError("אין תוכנית", "יש ליצור תוכנית אימון תחילה");
-      return;
-    }
+  const handleStartWorkout = useCallback(
+    (workoutName?: string, workoutIndex?: number): void => {
+      if (!currentWorkoutPlan) {
+        showError("אין תוכנית", "יש ליצור תוכנית אימון תחילה");
+        return;
+      }
 
-    triggerHaptic("heavy");
+      triggerHaptic("heavy");
 
-    // מעבר למסך אימון פעיל
-    showSuccess("אימון מתחיל!", "מעבר למסך האימון");
+      // מעבר למסך אימון פעיל
+      showSuccess("אימון מתחיל!", "מעבר למסך האימון");
 
-    // Navigate to ActiveWorkout with proper parameters
-    const workoutTemplate = currentWorkoutPlan.workouts?.[0]; // Get first workout template
-    if (!workoutTemplate) {
-      showError("שגיאה", "לא ניתן למצוא תבנית אימון");
-      return;
-    }
+      // Navigate to ActiveWorkout with proper parameters
+      const workoutTemplateIndex = workoutIndex ?? 0;
+      const workoutTemplate =
+        currentWorkoutPlan.workouts?.[workoutTemplateIndex]; // Get specific workout template
+      if (!workoutTemplate) {
+        showError("שגיאה", "לא ניתן למצוא תבנית אימון");
+        return;
+      }
 
-    // Use exercises directly from workout template
-    const exercises = workoutTemplate.exercises || [];
+      // Use exercises directly from workout template
+      const exercises = workoutTemplate.exercises || [];
 
-    navigation.navigate("ActiveWorkout", {
-      workoutData: {
-        name: currentWorkoutPlan.name || "אימון יומי",
-        dayName: workoutTemplate.name || "יום אימון",
-        startTime: new Date().toISOString(),
-        exercises: exercises as WorkoutExercise[],
-      },
-      aiCoaching: selectedPlanType === "smart" && canAccessAI,
-      performanceTracking: {
-        screenTime: 0,
-        interactions: 0,
-        lastVisited: new Date().toISOString(),
-        frequency: 1,
-        userPreference: 8,
-      },
-    });
-  }, [
-    currentWorkoutPlan,
-    triggerHaptic,
-    showSuccess,
-    showError,
-    canAccessAI,
-    selectedPlanType,
-    navigation,
-  ]);
+      navigation.navigate("ActiveWorkout", {
+        workoutData: {
+          name: workoutName || currentWorkoutPlan.name || "אימון יומי",
+          dayName: workoutTemplate.name || "יום אימון",
+          startTime: new Date().toISOString(),
+          exercises: exercises as WorkoutExercise[],
+        },
+        aiCoaching: selectedPlanType === "smart" && canAccessAI,
+        performanceTracking: {
+          screenTime: 0,
+          interactions: 0,
+          lastVisited: new Date().toISOString(),
+          frequency: 1,
+          userPreference: 8,
+        },
+      });
+    },
+    [
+      currentWorkoutPlan,
+      triggerHaptic,
+      showSuccess,
+      showError,
+      canAccessAI,
+      selectedPlanType,
+      navigation,
+    ]
+  );
 
   // Handle refresh
   /**
@@ -751,22 +759,23 @@ export default function WorkoutPlansScreen({
 
           {/* Current Plan Display */}
           {currentWorkoutPlan && (
-            <View style={styles.planCard}>
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>{currentWorkoutPlan.name}</Text>
-                {/* אינדיקטור מקור התוכנית */}
-                {user?.workoutplans?.lastUpdated && (
-                  <Text style={styles.planSource}>
-                    {selectedPlanType === "basic" &&
+            <UniversalCard
+              title={currentWorkoutPlan.name}
+              subtitle={
+                user?.workoutplans?.lastUpdated
+                  ? selectedPlanType === "basic" &&
                     user?.workoutplans?.basicPlan
+                    ? "💾 נטען מהזיכרון"
+                    : selectedPlanType === "smart" &&
+                        user?.workoutplans?.smartPlan
                       ? "💾 נטען מהזיכרון"
-                      : selectedPlanType === "smart" &&
-                          user?.workoutplans?.smartPlan
-                        ? "💾 נטען מהזיכרון"
-                        : "✨ נוצר חדש"}
-                  </Text>
-                )}
-              </View>
+                      : "✨ נוצר חדש"
+                  : undefined
+              }
+              variant="workout"
+              enableHapticFeedback={true}
+              testID="current-plan-card"
+            >
               <Text style={styles.planDescription}>
                 {currentWorkoutPlan.description}
               </Text>
@@ -792,14 +801,20 @@ export default function WorkoutPlansScreen({
                   📅 {currentWorkoutPlan.frequency} פעמים בשבוע
                 </Text>
               </View>
-            </View>
+            </UniversalCard>
           )}
+
+          {/* Next Workout Recommendation */}
+          <NextWorkoutCard
+            workoutPlan={undefined}
+            onStartWorkout={handleStartWorkout}
+          />
 
           {/* Quick Actions */}
           <QuickActions
             onRegenerateBasic={handleGenerateBasic}
             onRegenerateAI={handleGenerateAI}
-            onStartWorkout={handleStartWorkout}
+            onStartWorkout={() => handleStartWorkout()}
             canAccessAI={canAccessAI}
             hasWorkoutPlan={!!currentWorkoutPlan}
             loading={loading}
@@ -808,12 +823,13 @@ export default function WorkoutPlansScreen({
           {/* Workout Plan Display - תצוגת התוכנית */}
           {memoizedWorkoutPlanDisplay}
           {!currentWorkoutPlan && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>אין תוכנית אימון</Text>
-              <Text style={styles.emptyMessage}>
-                יצור תוכנית חדשה כדי להתחיל להתאמן
-              </Text>
-            </View>
+            <EmptyState
+              icon="clipboard-outline"
+              title="אין תוכנית אימון"
+              description="יצור תוכנית חדשה כדי להתחיל להתאמן"
+              variant="compact"
+              testID="workout-plans-empty-state"
+            />
           )}
         </ScrollView>
 
@@ -899,31 +915,6 @@ const styles: Record<
     color: theme.colors.textSecondary,
     textAlign: "center",
   },
-  planCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  planHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  planName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    flex: 1,
-  },
-  planSource: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: "500",
-  },
   planDescription: {
     fontSize: 14,
     color: theme.colors.textSecondary,
@@ -946,20 +937,5 @@ const styles: Record<
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 48,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
   },
 });

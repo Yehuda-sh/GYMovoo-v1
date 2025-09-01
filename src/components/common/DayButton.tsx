@@ -2,13 +2,14 @@
  * @file src/components/common/DayButton.tsx
  * @brief רכיב כפתור יום משותף עם תמיכה בעיצובים שונים
  * @brief Shared day button component with support for different designs
- * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה, טקסט מותאם אישית
- * @features RTL support, accessibility, animations, selection states, custom text
- * @version 2.0.0 - Added customText support and workout-plan variant
+ * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה, טקסט מותאם אישית, haptic feedback
+ * @features RTL support, accessibility, animations, selection states, custom text, haptic feedback
+ * @version 2.1.0 - Added haptic feedback, logging, useCallback, performance optimizations
  * @created 2025-08-06
+ * @updated 2025-09-01 הוספת haptic feedback, logging ו-useCallback
  */
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -16,9 +17,12 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
+import { logger } from "../../utils/logger";
 import { getDayWorkoutType } from "../../constants/mainScreenTexts";
 
 // ===============================================
@@ -88,8 +92,52 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     testID,
   }) => {
     // ===============================================
-    // 🎯 Dynamic Styles - סטיילים דינמיים
+    // 🎯 Animation Setup - הגדרת אנימציות
     // ===============================================
+
+    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+    // ===============================================
+    // 🎯 Haptic Feedback - משוב מישושי
+    // ===============================================
+
+    const triggerHaptic = useCallback(
+      (intensity: "light" | "medium" | "heavy" = "light") => {
+        if (disabled) return;
+
+        switch (intensity) {
+          case "light":
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            break;
+          case "medium":
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            break;
+          case "heavy":
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            break;
+        }
+      },
+      [disabled]
+    );
+
+    // ===============================================
+    // 🎯 Animation Functions - פונקציות אנימציה
+    // ===============================================
+
+    const animatePress = useCallback(() => {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [scaleAnim]);
 
     const containerStyle: ViewStyle = StyleSheet.flatten([
       styles.container,
@@ -97,6 +145,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
       styles[`${size}Size`],
       selected && styles.selected,
       disabled && styles.disabled,
+      { transform: [{ scale: scaleAnim }] },
       style,
     ]);
 
@@ -119,14 +168,20 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     // 🎯 Content Generation - יצירת תוכן
     // ===============================================
 
-    const workoutType = subtitle || getDayWorkoutType(dayNumber);
-    const displayText = customText || `יום ${dayNumber}`;
+    const workoutType = useMemo(
+      () => subtitle || getDayWorkoutType(dayNumber),
+      [subtitle, dayNumber]
+    );
+    const displayText = useMemo(
+      () => customText || `יום ${dayNumber}`,
+      [customText, dayNumber]
+    );
 
     // ===============================================
     // 🎯 Accessibility Enhancement - שיפור נגישות
     // ===============================================
 
-    const generateAccessibilityLabel = (): string => {
+    const defaultAccessibilityLabel = useMemo(() => {
       if (accessibilityLabel) return accessibilityLabel;
 
       let label = displayText;
@@ -143,9 +198,9 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
       }
 
       return label;
-    };
+    }, [accessibilityLabel, displayText, workoutType, selected, disabled]);
 
-    const generateAccessibilityHint = (): string => {
+    const defaultAccessibilityHint = useMemo(() => {
       if (accessibilityHint) return accessibilityHint;
 
       if (disabled) {
@@ -157,20 +212,44 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
       }
 
       return `לחץ כדי לבחור ${displayText}${workoutType ? ` - ${workoutType}` : ""}`;
-    };
-
-    const defaultAccessibilityLabel = generateAccessibilityLabel();
-    const defaultAccessibilityHint = generateAccessibilityHint();
+    }, [accessibilityHint, disabled, selected, displayText, workoutType]);
 
     // ===============================================
     // 🎯 Event Handlers - טיפול באירועים
     // ===============================================
 
-    const handlePress = () => {
-      if (!disabled) {
-        onPress(dayNumber);
+    const handlePress = useCallback(() => {
+      if (disabled) {
+        logger.debug("DayButton", `Button ${dayNumber} pressed while disabled`);
+        return;
       }
-    };
+
+      logger.debug("DayButton", `Button ${dayNumber} pressed`, {
+        selected,
+        variant,
+        size,
+        displayText: customText || `יום ${dayNumber}`,
+      });
+
+      // Trigger haptic feedback
+      triggerHaptic(selected ? "medium" : "light");
+
+      // Animate press
+      animatePress();
+
+      // Call the onPress callback
+      onPress(dayNumber);
+    }, [
+      disabled,
+      dayNumber,
+      selected,
+      variant,
+      size,
+      customText,
+      onPress,
+      triggerHaptic,
+      animatePress,
+    ]);
 
     // ===============================================
     // 🎯 Render - רינדור
@@ -373,7 +452,6 @@ const styles = StyleSheet.create({
 // 🔧 Helper Components - רכיבי עזר
 // ===============================================
 
-/** @description רכיב גריד לכפתורי ימים / Day buttons grid component */
 export const DayButtonGrid: React.FC<{
   days: number[];
   selectedDay?: number;
@@ -396,23 +474,43 @@ export const DayButtonGrid: React.FC<{
     accessibilityLabel,
     accessibilityHint,
   }) => {
-    const gridStyle: ViewStyle = StyleSheet.flatten([
-      {
-        flexDirection: theme.isRTL ? "row-reverse" : "row",
-        justifyContent: "space-between",
-        gap: theme.spacing.sm,
-      },
-      variant === "grid" && {
-        flexWrap: "wrap",
-      },
-      style,
-    ]);
+    const gridStyle = useMemo(
+      (): ViewStyle =>
+        StyleSheet.flatten([
+          {
+            flexDirection: theme.isRTL ? "row-reverse" : "row",
+            justifyContent: "space-between",
+            gap: theme.spacing.sm,
+          },
+          variant === "grid" && {
+            flexWrap: "wrap",
+          },
+          style,
+        ]),
+      [variant, style]
+    );
 
     // Accessibility for grid container
-    const defaultAccessibilityLabel =
-      accessibilityLabel || `בחירת יום אימון, ${days.length} אפשרויות זמינות`;
-    const defaultAccessibilityHint =
-      accessibilityHint || "גלול או בחר יום לתכנון האימון";
+    const defaultAccessibilityLabel = useMemo(
+      () =>
+        accessibilityLabel || `בחירת יום אימון, ${days.length} אפשרויות זמינות`,
+      [accessibilityLabel, days.length]
+    );
+
+    const defaultAccessibilityHint = useMemo(
+      () => accessibilityHint || "גלול או בחר יום לתכנון האימון",
+      [accessibilityHint]
+    );
+
+    const handleDayPress = useCallback(
+      (day: number) => {
+        logger.debug("DayButtonGrid", `Day ${day} pressed`, {
+          totalDays: days.length,
+        });
+        onDayPress(day);
+      },
+      [onDayPress, days.length]
+    );
 
     return (
       <View
@@ -428,7 +526,7 @@ export const DayButtonGrid: React.FC<{
             key={dayNum}
             dayNumber={dayNum}
             selected={selectedDay === dayNum}
-            onPress={onDayPress}
+            onPress={handleDayPress}
             variant={variant}
             size={size}
             testID={`${testID}-day-${dayNum}`}

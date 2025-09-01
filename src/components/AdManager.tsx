@@ -11,20 +11,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../styles/theme";
+import LoadingSpinner from "./common/LoadingSpinner";
 import { useSubscription } from "../stores/userStore";
 import { logger } from "../utils/logger";
+import ConfirmationModal from "./common/ConfirmationModal";
 
 interface AdManagerProps {
   /** מיקום הפרסומת - תחילת או סוף אימון */
@@ -58,6 +52,7 @@ const AdManager: React.FC<AdManagerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(0);
   const [adContent, setAdContent] = useState<AdContent | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // קביעת תוכן הפרסומת לפי מצב המנוי ומיקום
   const determineAdContent = useCallback((): AdContent | null => {
@@ -153,16 +148,22 @@ const AdManager: React.FC<AdManagerProps> = ({
     if (onAdClicked) {
       onAdClicked();
     } else {
-      // פעולת ברירת מחדל - המשך לעמוד השדרוג
-      Alert.alert("שדרוג ל-Premium", "האם ברצונך לשדרג ל-GYMovoo Premium?", [
-        { text: "לא תודה", style: "cancel" },
-        {
-          text: "כן, שדרג",
-          onPress: () => logger.info("AdManager", "User interested in upgrade"),
-        },
-      ]);
+      // הצגת מודל שדרוג במקום Alert
+      setShowUpgradeModal(true);
     }
   }, [onAdClicked]);
+
+  // טיפול באישור שדרוג
+  const handleUpgradeConfirm = useCallback(() => {
+    logger.info("AdManager", "User interested in upgrade");
+    setShowUpgradeModal(false);
+    // כאן ניתן להוסיף ניווט לעמוד השדרוג
+  }, []);
+
+  // טיפול בביטול שדרוג
+  const handleUpgradeCancel = useCallback(() => {
+    setShowUpgradeModal(false);
+  }, []);
 
   // טיפול בסגירת הפרסומת
   const handleAdClose = useCallback(() => {
@@ -193,8 +194,12 @@ const AdManager: React.FC<AdManagerProps> = ({
         >
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.loadingText}>טוען פרסומת...</Text>
+              <LoadingSpinner
+                size="large"
+                variant="fade"
+                text="טוען פרסומת..."
+                testID="ad-loading"
+              />
             </View>
           ) : (
             <>
@@ -266,6 +271,19 @@ const AdManager: React.FC<AdManagerProps> = ({
           )}
         </LinearGradient>
       </View>
+
+      {/* ConfirmationModal לשדרוג */}
+      <ConfirmationModal
+        visible={showUpgradeModal}
+        title="שדרוג ל-Premium"
+        message="האם ברצונך לשדרג ל-GYMovoo Premium ולקבל גישה לכל התכונות המתקדמות?"
+        onClose={handleUpgradeCancel}
+        onConfirm={handleUpgradeConfirm}
+        onCancel={handleUpgradeCancel}
+        confirmText="כן, שדרג"
+        cancelText="לא תודה"
+        variant="info"
+      />
     </Modal>
   );
 };
@@ -301,7 +319,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   header: {
-    flexDirection: theme.isRTL ? "row-reverse" : "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
@@ -312,8 +330,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     flex: 1,
-    textAlign: theme.isRTL ? "right" : "left",
-    writingDirection: theme.isRTL ? "rtl" : "ltr",
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   closeButton: {
     padding: theme.spacing.xs,
@@ -353,7 +371,7 @@ const styles = StyleSheet.create({
     writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   actionButton: {
-    flexDirection: theme.isRTL ? "row-reverse" : "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.lg,

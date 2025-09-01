@@ -5,11 +5,11 @@
  */
 
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { View, StyleSheet } from "react-native";
 import { theme } from "../../../../styles/theme";
 import { formatVolume } from "../../../../utils";
 import { formatDuration } from "../../../../utils/formatters";
+import StatCard from "../../../../components/common/StatCard";
 
 interface WorkoutStatsGridProps {
   totalExercises: number;
@@ -32,7 +32,7 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
     completedSets,
     totalVolume,
     totalReps,
-    progressPercentage,
+    progressPercentage: _progressPercentage,
     personalRecords,
     duration,
     plannedSets,
@@ -50,108 +50,58 @@ export const WorkoutStatsGrid: React.FC<WorkoutStatsGridProps> = React.memo(
         )}, חזרות ${totalReps}`}
         testID="stats-grid"
       >
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="clock-outline"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text
-            style={styles.statValue}
-            accessibilityRole="text"
-            accessibilityLabel={`משך האימון ${formatDuration(duration)}`}
-            testID="stat-duration"
-          >
-            {formatDuration(duration)}
-          </Text>
-          <Text style={styles.statLabel}>משך האימון</Text>
-        </View>
+        <StatCard
+          value={formatDuration(duration)}
+          label="משך האימון"
+          icon="clock-outline"
+          variant="compact"
+          testID="stat-duration"
+        />
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="format-list-checks"
-            size={24}
-            color={theme.colors.info || theme.colors.primary}
-          />
-          <Text
-            style={styles.statValue}
-            accessibilityRole="text"
-            accessibilityLabel={`${completedExercises} מתוך ${totalExercises} תרגילים הושלמו`}
-            testID="stat-exercises"
-          >
-            {completedExercises}/{totalExercises}
-          </Text>
-          <Text style={styles.statLabel}>תרגילים הושלמו</Text>
-        </View>
+        <StatCard
+          value={`${completedExercises}/${totalExercises}`}
+          label="תרגילים הושלמו"
+          icon="format-list-checks"
+          iconColor={theme.colors.info || theme.colors.primary}
+          variant="compact"
+          testID="stat-exercises"
+        />
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="checkbox-marked-circle-outline"
-            size={24}
-            color={theme.colors.success}
-          />
-          <Text
-            style={styles.statValue}
-            accessibilityRole="text"
-            accessibilityLabel={`${totalSets} מתוך ${plannedSets} סטים`}
-            testID="stat-sets"
-          >
-            {totalSets}/{plannedSets}
-          </Text>
-          <Text style={styles.statLabel}>סטים הושלמו</Text>
-        </View>
+        <StatCard
+          value={`${totalSets}/${plannedSets}`}
+          label="סטים הושלמו"
+          icon="checkbox-marked-circle-outline"
+          iconColor={theme.colors.success}
+          variant="compact"
+          testID="stat-sets"
+        />
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="weight-kilogram"
-            size={24}
-            color={theme.colors.accent}
-          />
-          <Text
-            style={styles.statValue}
-            accessibilityRole="text"
-            accessibilityLabel={`נפח כולל ${formatVolume(totalVolume)}`}
-            testID="stat-volume"
-          >
-            {formatVolume(totalVolume)}
-          </Text>
-          <Text style={styles.statLabel}>ק"ג נפח כולל</Text>
-        </View>
+        <StatCard
+          value={formatVolume(totalVolume)}
+          label="ק״ג נפח כולל"
+          icon="weight-kilogram"
+          iconColor={theme.colors.accent}
+          variant="compact"
+          testID="stat-volume"
+        />
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="counter"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text
-            style={styles.statValue}
-            accessibilityRole="text"
-            accessibilityLabel={`סך חזרות ${totalReps}`}
-            testID="stat-reps"
-          >
-            {totalReps}
-          </Text>
-          <Text style={styles.statLabel}>סה"כ חזרות</Text>
-        </View>
+        <StatCard
+          value={totalReps}
+          label="סה״כ חזרות"
+          icon="counter"
+          variant="compact"
+          testID="stat-reps"
+        />
 
         {personalRecords > 0 && (
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="star"
-              size={24}
-              color={theme.colors.warning}
-            />
-            <Text
-              style={styles.statValue}
-              accessibilityRole="text"
-              accessibilityLabel={`${personalRecords} שיאים אישיים`}
-              testID="stat-prs"
-            >
-              {personalRecords}
-            </Text>
-            <Text style={styles.statLabel}>שיאים אישיים!</Text>
-          </View>
+          <StatCard
+            value={personalRecords}
+            label="שיאים אישיים!"
+            icon="star"
+            iconColor={theme.colors.warning}
+            variant="compact"
+            testID="stat-prs"
+          />
         )}
       </View>
     );

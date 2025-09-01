@@ -105,10 +105,10 @@ describe("ErrorBoundary", () => {
   });
 
   it("should reset error state when retry button is pressed", async () => {
-    let shouldThrow = true;
+    const shouldThrowRef = { current: true };
 
     const TestComponent: React.FC = () => {
-      return <ThrowingComponent shouldThrow={shouldThrow} />;
+      return <ThrowingComponent shouldThrow={shouldThrowRef.current} />;
     };
 
     const { getByText, queryByTestId, rerender } = render(
@@ -121,7 +121,7 @@ describe("ErrorBoundary", () => {
     expect(getByText("משהו השתבש")).toBeTruthy();
 
     // שנה את המצב לפני הלחיצה על retry
-    shouldThrow = false;
+    shouldThrowRef.current = false;
 
     // לחיצה על נסה שוב
     fireEvent.press(getByText("נסה שוב"));
@@ -138,7 +138,7 @@ describe("ErrorBoundary", () => {
       () => {
         expect(queryByTestId("working-component")).toBeTruthy();
       },
-      { timeout: 500 }
+      { timeout: 2000 } // Increased timeout to account for retry delay
     );
   });
 

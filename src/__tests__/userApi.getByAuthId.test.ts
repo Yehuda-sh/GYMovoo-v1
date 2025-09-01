@@ -3,6 +3,19 @@
  * @description טסטים עבור userApi.getByAuthId function
  */
 
+// Mock Supabase before importing userApi
+jest.mock("../services/supabase/client", () => ({
+  supabase: {
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(),
+        })),
+      })),
+    })),
+  },
+}));
+
 import { userApi } from "../services/api/userApi";
 import type { User } from "../types";
 

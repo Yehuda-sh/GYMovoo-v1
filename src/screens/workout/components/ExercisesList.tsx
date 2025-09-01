@@ -58,14 +58,14 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
             hasValidSets: !!(ex.sets && ex.sets.length > 0),
           })),
         });
-        return performance.now();
+        return Date.now();
       }
       return 0;
     }, [exercises]);
 
     React.useEffect(() => {
       if (__DEV__ && renderStart > 0) {
-        const renderEnd = performance.now();
+        const renderEnd = Date.now();
         if (renderEnd - renderStart > 50) {
           logger.debug(
             "Performance",

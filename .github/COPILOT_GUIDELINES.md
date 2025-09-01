@@ -2,7 +2,7 @@
 
 # הנחיות מאוחדות לפרויקט GYMovoo (Master Guidelines)
 
-Last updated: 2025-08-31
+Last updated: 2025-09-01
 
 מסמך זה הוא מקור אמת יחיד לכללי עבודה, שימוש ב-AI, ארכיטקטורה, RTL, נגישות, Supabase, דמו, וניהול תיעוד. שני קובצי ההנחיות הישנים (`copilot-instructions.md`, `copilot-instructions-updated.md`) הוחלפו ומכילים הפניה בלבד. אין לשכפל תוכן חדש אליהם.
 
@@ -39,6 +39,14 @@ Last updated: 2025-08-31
 - עדכון פרופיל → סנכרון מידי ל-Supabase + userStore.
 - קובץ > ~500 שורות → שקול פיצול.
 - "קודם קרא – אחר כך כתוב" – חפש רכיב/דפוס קיים לפני יצירה.
+
+### זרימת משתמש בסיסית (עדכון ספטמבר 2025):
+
+- התחלה: WelcomeScreen (אם אין session פעיל).
+- כפתור ראשי: "התחל עכשיו" → RegisterScreen.
+- לאחר הרשמה: אם אין שאלון מלא → UnifiedQuestionnaireScreen.
+- לאחר השלמה: MainApp (BottomNavigation עם MainScreen).
+- דמו: DeveloperScreen (מצב פיתוח) לבחירת משתמשי דמו מוכנים.
 
 ## 2. ארכיטקטורת פיצ'רים (חדש!)
 

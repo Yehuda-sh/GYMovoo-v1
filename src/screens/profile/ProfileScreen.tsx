@@ -67,6 +67,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import { useUserStore } from "../../stores/userStore";
 import { useQuestionnaireStatus } from "../../hooks/useQuestionnaireStatus";
 import { logger } from "../../utils/logger";
@@ -76,6 +77,7 @@ import * as ImagePicker from "expo-image-picker";
 import { User, SmartQuestionnaireData } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 import { userApi } from "../../services/api/userApi";
 
 // 🆕 קבועים וקונפיגורציות מרכזיות / New centralized constants and configurations
@@ -696,6 +698,49 @@ function ProfileScreen() {
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   const [newAchievement] = useState<Achievement | null>(null);
 
+  // ConfirmationModal state for success/error messages
+  const [confirmationModal, setConfirmationModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  // Helper function for modal operations
+  const hideConfirmationModal = () =>
+    setConfirmationModal({
+      visible: false,
+      title: "",
+      message: "",
+      onConfirm: () => {},
+    });
+
+  const showConfirmationModal = (config: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "default" | "error" | "success" | "warning" | "info";
+    singleButton?: boolean;
+  }) => {
+    setConfirmationModal({
+      visible: true,
+      ...config,
+    });
+  };
+
   // ===============================================
   // 📊 Performance & Monitoring Integration - אינטגרציה עם מעקב ביצועים
   // ===============================================
@@ -1028,7 +1073,14 @@ function ProfileScreen() {
       // סגירת המודל
       setShowNameModal(false);
 
-      Alert.alert("הצלחה", "השם עודכן בהצלחה!");
+      showConfirmationModal({
+        title: "הצלחה",
+        message: "השם עודכן בהצלחה!",
+        confirmText: "אישור",
+        variant: "success",
+        singleButton: true,
+        onConfirm: () => {},
+      });
 
       // Track successful name change
       aiAnalytics.recordProfileAction({
@@ -1845,7 +1897,14 @@ function ProfileScreen() {
       // Security validation
       const isValidAction = securityValidator.validateAction("change_avatar");
       if (!isValidAction) {
-        Alert.alert("שגיאה", "פעולות רבות מדי. אנא נסה שוב מאוחר יותר");
+        showConfirmationModal({
+          title: "שגיאה",
+          message: "פעולות רבות מדי. אנא נסה שוב מאוחר יותר",
+          onConfirm: hideConfirmationModal,
+          variant: "error",
+          singleButton: true,
+          confirmText: "הבנתי",
+        });
         return;
       }
 
@@ -1886,1007 +1945,1072 @@ function ProfileScreen() {
   );
 
   return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.backgroundAlt]}
-      style={styles.gradient}
+    <ErrorBoundary
+      fallbackMessage="שגיאה בטעינת מסך הפרופיל"
+      variant="default"
+      maxRetries={3}
+      showFeedbackButton={true}
+      onError={(error, errorInfo) => {
+        logger.error("ProfileScreen", "Error boundary triggered", {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+        });
+      }}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
-            />
-          }
-        >
-          <Animated.View
-            style={[
-              styles.container,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.backgroundAlt]}
+        style={styles.gradient}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+              />
+            }
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <BackButton absolute={false} />
-              <Text style={styles.headerTitle}>
-                {PROFILE_SCREEN_TEXTS.HEADERS.PROFILE_TITLE}
-              </Text>
-              <View style={styles.headerRight}>
-                {/* כפתור השלמת שאלון אם לא הושלם */}
-                {!questionnaireStatus.isComplete && (
+            <Animated.View
+              style={[
+                styles.container,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              {/* Header */}
+              <View style={styles.header}>
+                <BackButton absolute={false} />
+                <Text style={styles.headerTitle}>
+                  {PROFILE_SCREEN_TEXTS.HEADERS.PROFILE_TITLE}
+                </Text>
+                <View style={styles.headerRight}>
+                  {/* כפתור השלמת שאלון אם לא הושלם */}
+                  {!questionnaireStatus.isComplete && (
+                    <TouchableOpacity
+                      style={styles.headerQuestionnaireButton}
+                      onPress={() =>
+                        navigation.navigate("Questionnaire", {
+                          stage: "training",
+                        })
+                      }
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        PROFILE_SCREEN_TEXTS.A11Y.EDIT_PROFILE
+                      }
+                      accessibilityHint="מעבר למילוי שאלון האימון לקבלת המלצות מותאמות אישית"
+                    >
+                      <MaterialCommunityIcons
+                        name="clipboard-list"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              {/* הודעת שגיאה */}
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
                   <TouchableOpacity
-                    style={styles.headerQuestionnaireButton}
-                    onPress={() =>
-                      navigation.navigate("Questionnaire", {
-                        stage: "training",
-                      })
-                    }
-                    activeOpacity={0.7}
+                    style={styles.errorRetryButton}
+                    onPress={() => setError(null)}
+                    accessible={true}
                     accessibilityRole="button"
-                    accessibilityLabel={PROFILE_SCREEN_TEXTS.A11Y.EDIT_PROFILE}
-                    accessibilityHint="מעבר למילוי שאלון האימון לקבלת המלצות מותאמות אישית"
+                    accessibilityLabel="סגור הודעת שגיאה"
+                    accessibilityHint="לחץ כדי לסגור את הודעת השגיאה"
+                  >
+                    <Text style={styles.errorRetryText}>
+                      {PROFILE_SCREEN_TEXTS.ACTIONS.GOT_IT}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* כרטיס שאלון אם לא הושלם */}
+              {!questionnaireStatus.isComplete && (
+                <TouchableOpacity
+                  style={styles.questionnaireCard}
+                  onPress={() =>
+                    navigation.navigate("Questionnaire", { stage: "training" })
+                  }
+                  activeOpacity={0.8}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="השלמת שאלון אימון"
+                  accessibilityHint="לחץ כדי להשלים את השאלון ולקבל תוכנית אימונים מותאמת אישית"
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.primaryGradientStart,
+                      theme.colors.primaryGradientEnd,
+                    ]}
+                    style={styles.questionnaireGradient}
                   >
                     <MaterialCommunityIcons
                       name="clipboard-list"
-                      size={20}
-                      color={theme.colors.primary}
+                      size={24}
+                      color={theme.colors.white}
+                    />
+                    <View style={styles.questionnaireTextContainer}>
+                      <Text style={styles.questionnaireTitle}>
+                        {PROFILE_SCREEN_TEXTS.ACTIONS.COMPLETE_QUESTIONNAIRE}
+                      </Text>
+                      <Text style={styles.questionnaireSubtitle}>
+                        {!questionnaireStatus.hasTrainingStage
+                          ? "קבל תוכנית אימונים מותאמת אישית"
+                          : "השלם את הפרופיל האישי שלך"}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name="chevron-left"
+                      size={24}
+                      color={theme.colors.white}
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              {/* כרטיס פרופיל */}
+              <View style={styles.profileCard}>
+                <View style={styles.avatarSection}>
+                  <TouchableOpacity
+                    onPress={() => setShowAvatarModal(true)}
+                    style={styles.avatarContainer}
+                    accessibilityRole="button"
+                    accessibilityLabel="שינוי תמונת פרופיל"
+                    accessibilityHint="לחיצה לפתיחת גלריית אווטארים וחלופות תמונה"
+                  >
+                    {typeof selectedAvatar === "string" &&
+                    selectedAvatar.startsWith("http") ? (
+                      <Image
+                        source={{ uri: selectedAvatar }}
+                        style={styles.avatar}
+                        resizeMode="cover"
+                      />
+                    ) : selectedAvatar && selectedAvatar.length === 2 ? (
+                      <View style={styles.emojiAvatar}>
+                        <Text style={styles.emojiText}>{selectedAvatar}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.avatar}>
+                        <DefaultAvatar name={user?.name || "משתמש"} size={90} />
+                      </View>
+                    )}
+                    <Animated.View
+                      style={[
+                        styles.editAvatarButton,
+                        { transform: [{ scale: pulseAnim }] },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="camera"
+                        size={20}
+                        color={theme.colors.text}
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                  {/* רמה ו-XP */}
+                  <View style={styles.levelContainer}>
+                    <Text style={styles.levelText}>רמה {stats.level}</Text>
+                    <View style={styles.xpBar}>
+                      <View
+                        style={[
+                          styles.xpProgress,
+                          { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.xpText}>
+                      {stats.xp}/{stats.nextLevelXp} XP
+                    </Text>
+                  </View>
+                </View>
+
+                {/* שם המשתמש עם כפתור עריכה */}
+                <View style={styles.usernameContainer}>
+                  <Text style={styles.username}>
+                    {user?.name || "אלוף הכושר"}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.editNameButton}
+                    onPress={() => {
+                      if (canEditName()) {
+                        setEditedName(user?.name || "");
+                        setNameError(null);
+                        setShowNameModal(true);
+                      } else {
+                        const nextEditDate = new Date(
+                          lastNameEdit + 7 * 24 * 60 * 60 * 1000
+                        );
+                        showConfirmationModal({
+                          title: "הגבלת זמן",
+                          message: `ניתן לשנות שם פעם בשבוע.\nעריכה הבאה תהיה זמינה ב-${nextEditDate.toLocaleDateString("he-IL")}`,
+                          onConfirm: hideConfirmationModal,
+                          variant: "info",
+                          singleButton: true,
+                          confirmText: "הבנתי",
+                        });
+                      }
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      canEditName() ? "עריכת שם משתמש" : "עריכת שם - לא זמין"
+                    }
+                    accessibilityHint={
+                      canEditName()
+                        ? "לחיצה לפתיחת חלון עריכת שם המשתמש"
+                        : "עריכת שם זמינה פעם בשבוע בלבד"
+                    }
+                    accessibilityState={{ disabled: !canEditName() }}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil"
+                      size={16}
+                      color={
+                        canEditName()
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary
+                      }
                     />
                   </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                </View>
 
-            {/* הודעת שגיאה */}
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={styles.userEmail}>
+                  {user?.email || "user@gymovoo.com"}
+                </Text>
+
+                <View style={styles.badgesContainer}>
+                  {profileBadges.map((b) => {
+                    const isMore = b.key === "more";
+                    const containerStyle = [
+                      styles.badge,
+                      b.key === "streak"
+                        ? stats.streak > 0
+                          ? styles.activeBadge
+                          : styles.inactiveBadge
+                        : isMore
+                          ? styles.moreBadge
+                          : styles.achievementTag,
+                    ];
+                    const textStyle = [
+                      styles.badgeText,
+                      b.key === "streak"
+                        ? stats.streak > 0
+                          ? styles.activeBadgeText
+                          : styles.inactiveBadgeText
+                        : undefined,
+                      isMore ? styles.moreBadgeText : undefined,
+                    ];
+                    const content = (
+                      <View key={b.key} style={containerStyle}>
+                        <MaterialCommunityIcons
+                          name={b.icon as never}
+                          size={16}
+                          color={b.color}
+                        />
+                        <Text style={textStyle}>{b.text}</Text>
+                        {isMore && (
+                          <MaterialCommunityIcons
+                            name="chevron-left"
+                            size={16}
+                            color={theme.colors.textSecondary}
+                          />
+                        )}
+                      </View>
+                    );
+                    return isMore ? (
+                      <TouchableOpacity
+                        key={b.key}
+                        onPress={scrollToAchievements}
+                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityLabel="צפייה בכל ההישגים"
+                        accessibilityHint="לחיצה תגלול לרשימת ההישגים המלאה"
+                      >
+                        {content}
+                      </TouchableOpacity>
+                    ) : (
+                      content
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Next Workout Recommendation */}
+              <NextWorkoutCard
+                workoutPlan={undefined}
+                onStartWorkout={(workoutName, workoutIndex) => {
+                  navigation.navigate("WorkoutPlans", {
+                    autoStart: true,
+                    requestedWorkoutName: workoutName,
+                    requestedWorkoutIndex: workoutIndex,
+                  });
+                }}
+              />
+
+              {/* מידע אישי מהשאלון - כולו דינמי */}
+              {questionnaireStatus.isComplete && (
+                <View style={styles.infoContainer}>
+                  <Text style={styles.sectionTitle}>
+                    {PROFILE_SCREEN_TEXTS.HEADERS.MY_INFO}
+                  </Text>
+                  <View style={styles.infoGrid}>
+                    {/* כל השדות נוצרים באופן דינמי */}
+                    {displayFields.map((field) => (
+                      <View key={field.key} style={styles.infoItem}>
+                        <MaterialCommunityIcons
+                          name={field.icon}
+                          size={20}
+                          color={theme.colors.primary}
+                        />
+                        <Text style={styles.infoLabel}>{field.label}</Text>
+                        <Text style={styles.infoValue}>{field.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* סטטיסטיקות */}
+              <View style={styles.statsContainer}>
+                <Text style={styles.sectionTitle}>
+                  {PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS}
+                </Text>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={getStatsGradient("workouts")}
+                      style={styles.statGradient}
+                    >
+                      <MaterialCommunityIcons
+                        name="dumbbell"
+                        size={24}
+                        color={STATS_COLORS.WORKOUTS.ICON}
+                      />
+                      <Text style={styles.statNumber}>{stats.workouts}</Text>
+                      <Text style={styles.statLabel}>
+                        {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={getStatsGradient("streak")}
+                      style={styles.statGradient}
+                    >
+                      <MaterialCommunityIcons
+                        name="fire"
+                        size={24}
+                        color={STATS_COLORS.STREAK.ICON}
+                      />
+                      <Text style={styles.statNumber}>{stats.streak}</Text>
+                      <Text style={styles.statLabel}>
+                        {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                  <View style={styles.statCard}>
+                    <LinearGradient
+                      colors={getStatsGradient("rating")}
+                      style={styles.statGradient}
+                    >
+                      <MaterialCommunityIcons
+                        name="clock-outline"
+                        size={24}
+                        color={STATS_COLORS.RATING.ICON}
+                      />
+                      <Text style={styles.statNumber}>{stats.totalTime}</Text>
+                      <Text style={styles.statLabel}>
+                        {PROFILE_SCREEN_TEXTS.STATS.TOTAL_TIME}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                </View>
+              </View>
+
+              {/* ציוד זמין */}
+              {(() => {
+                // נרנדר אם יש מקור כלשהו לציוד: שאלון חכם, סטטיסטיקות אימון, או שאלון legacy
+                const smartEquip =
+                  user?.smartquestionnairedata?.answers?.equipment;
+                const hasSmart =
+                  Array.isArray(smartEquip) && smartEquip.length > 0;
+                const trainingEquip = user?.trainingstats?.selectedEquipment;
+                const hasTrainingStats =
+                  Array.isArray(trainingEquip) && trainingEquip.length > 0;
+                const legacyQuestionnaire = user?.questionnaire as Record<
+                  string,
+                  unknown
+                >;
+                const availableLegacy =
+                  legacyQuestionnaire?.available_equipment;
+                const hasAvailableLegacy =
+                  Array.isArray(availableLegacy) && availableLegacy.length > 0;
+                const hasLegacy = !!legacyQuestionnaire;
+                return (
+                  hasSmart ||
+                  hasTrainingStats ||
+                  hasAvailableLegacy ||
+                  hasLegacy
+                );
+              })() && (
+                <View style={styles.equipmentContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>
+                      {PROFILE_SCREEN_TEXTS.HEADERS.MY_EQUIPMENT}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("Questionnaire", {
+                          stage: "training",
+                        })
+                      }
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="עריכת ציוד אימון"
+                      accessibilityHint="לחץ כדי לערוך את רשימת הציוד הזמין לאימונים"
+                    >
+                      <Text style={styles.seeAllText}>
+                        {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.equipmentScroll}
+                    contentContainerStyle={styles.equipmentScrollContent}
+                  >
+                    {(() => {
+                      // 🔧 שימוש בפונקציה המרכזית לחילוץ ציוד - מחליפה את הלוגיקה המורכבת
+                      const allEquipment = extractUserEquipment(user);
+
+                      if (allEquipment.length === 0) {
+                        return (
+                          <View style={styles.noEquipmentContainer}>
+                            <MaterialCommunityIcons
+                              name="dumbbell"
+                              size={40}
+                              color={theme.colors.textSecondary}
+                            />
+                            <Text style={styles.noEquipmentText}>
+                              לא נבחר ציוד
+                            </Text>
+                            <Text style={styles.noEquipmentSubtext}>
+                              השלם את השאלון לקבלת המלצות
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.addEquipmentButton}
+                              onPress={() =>
+                                navigation.navigate("Questionnaire", {
+                                  stage: "training",
+                                })
+                              }
+                              accessible={true}
+                              accessibilityRole="button"
+                              accessibilityLabel="הוסף ציוד אימון"
+                              accessibilityHint="לחץ כדי להוסיף ציוד אימון זמין דרך השאלון"
+                            >
+                              <Text style={styles.addEquipmentText}>
+                                הוסף ציוד
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      }
+
+                      return allEquipment
+                        .map((equipmentId: string) => {
+                          // חיפוש ישיר לפי השם מהשאלון // Direct search by name from questionnaire
+                          const equipment = ALL_EQUIPMENT.find(
+                            (eq) => eq.id === equipmentId
+                          );
+
+                          if (!equipment) return null;
+
+                          return (
+                            <View
+                              key={equipmentId}
+                              style={styles.equipmentItem}
+                            >
+                              <View style={styles.equipmentImageContainer}>
+                                {equipment.image ? (
+                                  <Image
+                                    source={equipment.image}
+                                    style={styles.equipmentImage}
+                                    resizeMode="contain"
+                                  />
+                                ) : (
+                                  <MaterialCommunityIcons
+                                    name="dumbbell"
+                                    size={28}
+                                    color={theme.colors.primary}
+                                  />
+                                )}
+                                {equipment.isPremium && (
+                                  <View style={styles.equipmentPremiumBadge}>
+                                    <MaterialCommunityIcons
+                                      name="crown"
+                                      size={12}
+                                      color={theme.colors.warning}
+                                    />
+                                  </View>
+                                )}
+                              </View>
+                              <Text
+                                style={styles.equipmentLabel}
+                                numberOfLines={2}
+                              >
+                                {equipment.label}
+                              </Text>
+                              <View style={styles.equipmentCategoryBadge}>
+                                <Text style={styles.equipmentCategoryText}>
+                                  {equipment.category === "home"
+                                    ? PROFILE_SCREEN_TEXTS.VALUES.HOME
+                                    : equipment.category === "gym"
+                                      ? PROFILE_SCREEN_TEXTS.VALUES.GYM
+                                      : "שניהם"}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })
+                        .filter(Boolean);
+                    })()}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* הישגים - רשימה מלאה תמיד */}
+              <View
+                style={styles.achievementsContainer}
+                onLayout={(
+                  e: NativeSyntheticEvent<LayoutChangeEvent["nativeEvent"]>
+                ) => setAchievementsSectionY(e.nativeEvent.layout.y)}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    {achievements.some((a) => a.unlocked)
+                      ? PROFILE_SCREEN_TEXTS.HEADERS.ACHIEVEMENTS
+                      : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (__DEV__) {
+                        console.warn("ProfileScreen: Show all achievements");
+                      }
+                    }}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="הצג את כל ההישגים"
+                    accessibilityHint="לחץ כדי לראות רשימה מלאה של כל ההישגים והמטרות"
+                  >
+                    <Text style={styles.seeAllText}>
+                      {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.achievementsGrid}>
+                  {achievements.map((achievement: Achievement) => (
+                    <TouchableOpacity
+                      key={achievement.id}
+                      activeOpacity={0.8}
+                      onLongPress={() => {
+                        setAchievementTooltip({
+                          visible: true,
+                          achievement: achievement,
+                        });
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`הישג: ${achievement.title}`}
+                      accessibilityHint={
+                        achievement.unlocked
+                          ? "הישג פתוח - לחיצה ארוכה לפרטים נוספים"
+                          : "הישג נעול - לחיצה ארוכה לראות דרישות"
+                      }
+                      accessibilityState={{
+                        disabled: false,
+                        selected: achievement.unlocked,
+                      }}
+                      style={[
+                        styles.achievementBadge,
+                        !achievement.unlocked && styles.lockedBadge,
+                        achievement.unlocked && {
+                          transform: [{ scale: achievementPulseAnim }],
+                        },
+                      ]}
+                    >
+                      {achievement.unlocked && (
+                        <LinearGradient
+                          colors={[
+                            achievement.color + "20",
+                            achievement.color + "10",
+                          ]}
+                          style={styles.achievementGradientBg}
+                        />
+                      )}
+
+                      <View
+                        style={[
+                          styles.achievementIconContainer,
+                          !achievement.unlocked && styles.grayscaleContainer,
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={achievement.icon}
+                          size={30}
+                          color={
+                            achievement.unlocked
+                              ? achievement.color
+                              : theme.colors.textTertiary
+                          }
+                        />
+
+                        {!achievement.unlocked && (
+                          <View style={styles.lockIconContainer}>
+                            <MaterialCommunityIcons
+                              name="lock"
+                              size={16}
+                              color={theme.colors.textTertiary}
+                            />
+                          </View>
+                        )}
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.achievementTitle,
+                          !achievement.unlocked && styles.lockedText,
+                          achievement.unlocked && styles.unlockedTitle,
+                        ]}
+                      >
+                        {achievement.title}
+                      </Text>
+
+                      {achievement.unlocked && (
+                        <View style={styles.achievementShine} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* הגדרות בסיסיות */}
+              <View style={styles.settingsContainer}>
+                <Text style={styles.sectionTitle}>
+                  {PROFILE_SCREEN_TEXTS.HEADERS.SETTINGS}
+                </Text>
+
                 <TouchableOpacity
-                  style={styles.errorRetryButton}
-                  onPress={() => setError(null)}
+                  style={styles.settingItem}
+                  onPress={() => {
+                    if (__DEV__) {
+                      console.warn("ProfileScreen: Edit questionnaire");
+                    }
+                    navigation.navigate("Questionnaire", { stage: "training" });
+                  }}
+                  activeOpacity={0.7}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel="סגור הודעת שגיאה"
-                  accessibilityHint="לחץ כדי לסגור את הודעת השגיאה"
+                  accessibilityLabel="עריכת שאלון אימון"
+                  accessibilityHint="לחץ כדי לערוך את השאלון ולעדכן העדפות אימון"
                 >
-                  <Text style={styles.errorRetryText}>
-                    {PROFILE_SCREEN_TEXTS.ACTIONS.GOT_IT}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* כרטיס שאלון אם לא הושלם */}
-            {!questionnaireStatus.isComplete && (
-              <TouchableOpacity
-                style={styles.questionnaireCard}
-                onPress={() =>
-                  navigation.navigate("Questionnaire", { stage: "training" })
-                }
-                activeOpacity={0.8}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="השלמת שאלון אימון"
-                accessibilityHint="לחץ כדי להשלים את השאלון ולקבל תוכנית אימונים מותאמת אישית"
-              >
-                <LinearGradient
-                  colors={[
-                    theme.colors.primaryGradientStart,
-                    theme.colors.primaryGradientEnd,
-                  ]}
-                  style={styles.questionnaireGradient}
-                >
-                  <MaterialCommunityIcons
-                    name="clipboard-list"
-                    size={24}
-                    color={theme.colors.white}
-                  />
-                  <View style={styles.questionnaireTextContainer}>
-                    <Text style={styles.questionnaireTitle}>
-                      {PROFILE_SCREEN_TEXTS.ACTIONS.COMPLETE_QUESTIONNAIRE}
-                    </Text>
-                    <Text style={styles.questionnaireSubtitle}>
-                      {!questionnaireStatus.hasTrainingStage
-                        ? "קבל תוכנית אימונים מותאמת אישית"
-                        : "השלם את הפרופיל האישי שלך"}
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons
+                      name="clipboard-list"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.settingText}>
+                      {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT_QUESTIONNAIRE}
                     </Text>
                   </View>
                   <MaterialCommunityIcons
                     name="chevron-left"
-                    size={24}
-                    color={theme.colors.white}
+                    size={20}
+                    color={theme.colors.textSecondary}
                   />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+                </TouchableOpacity>
 
-            {/* כרטיס פרופיל */}
-            <View style={styles.profileCard}>
-              <View style={styles.avatarSection}>
                 <TouchableOpacity
-                  onPress={() => setShowAvatarModal(true)}
-                  style={styles.avatarContainer}
-                  accessibilityRole="button"
-                  accessibilityLabel="שינוי תמונת פרופיל"
-                  accessibilityHint="לחיצה לפתיחת גלריית אווטארים וחלופות תמונה"
+                  style={styles.settingItem}
+                  onPress={() => {
+                    if (__DEV__) {
+                      console.warn("ProfileScreen: Notifications settings");
+                    }
+                    showComingSoon("הגדרות התראות");
+                  }}
+                  activeOpacity={0.7}
                 >
-                  {typeof selectedAvatar === "string" &&
-                  selectedAvatar.startsWith("http") ? (
-                    <Image
-                      source={{ uri: selectedAvatar }}
-                      style={styles.avatar}
-                      resizeMode="cover"
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons
+                      name="bell-outline"
+                      size={24}
+                      color={theme.colors.primary}
                     />
-                  ) : selectedAvatar && selectedAvatar.length === 2 ? (
-                    <View style={styles.emojiAvatar}>
-                      <Text style={styles.emojiText}>{selectedAvatar}</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.avatar}>
-                      <DefaultAvatar name={user?.name || "משתמש"} size={90} />
-                    </View>
-                  )}
-                  <Animated.View
-                    style={[
-                      styles.editAvatarButton,
-                      { transform: [{ scale: pulseAnim }] },
-                    ]}
+                    <Text style={styles.settingText}>התראות</Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* כפתור התנתקות */}
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                accessibilityRole="button"
+                accessibilityLabel={PROFILE_SCREEN_TEXTS.A11Y.LOGOUT_BUTTON}
+                accessibilityHint="לחיצה להתנתקות מהמשתמש הנוכחי וחזרה למסך הכניסה"
+              >
+                <MaterialCommunityIcons
+                  name="logout"
+                  size={20}
+                  color={theme.colors.error}
+                />
+                <Text style={styles.logoutText}>
+                  {PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </ScrollView>
+
+          {/* מודל בחירת אווטאר */}
+          <Modal
+            visible={showAvatarModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowAvatarModal(false)}
+          >
+            <TouchableOpacity
+              style={theme.getModalOverlayStyle("bottom")}
+              activeOpacity={1}
+              onPress={() => setShowAvatarModal(false)}
+            >
+              <View style={theme.getModalContentStyle("bottom")}>
+                <View style={theme.getModalHeaderStyle()}>
+                  <Text style={styles.modalTitle}>בחר אווטאר</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowAvatarModal(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={theme.colors.text}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* הודעת פרטיות */}
+                <View style={styles.privacyNotice}>
+                  <MaterialCommunityIcons
+                    name="shield-check"
+                    size={20}
+                    color={theme.colors.success}
+                  />
+                  <Text style={styles.privacyText}>
+                    התמונה נשמרת במכשיר שלך בלבד ולא נשלחת לשרת
+                  </Text>
+                </View>
+                <View style={styles.uploadOptions}>
+                  <TouchableOpacity
+                    style={styles.uploadOption}
+                    onPress={pickImageFromGallery}
+                  >
+                    <MaterialCommunityIcons
+                      name="image"
+                      size={32}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.uploadOptionText}>מהגלריה</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.uploadOption}
+                    onPress={takePhoto}
                   >
                     <MaterialCommunityIcons
                       name="camera"
-                      size={20}
-                      color={theme.colors.text}
+                      size={32}
+                      color={theme.colors.primary}
                     />
-                  </Animated.View>
-                </TouchableOpacity>
-                {/* רמה ו-XP */}
-                <View style={styles.levelContainer}>
-                  <Text style={styles.levelText}>רמה {stats.level}</Text>
-                  <View style={styles.xpBar}>
-                    <View
-                      style={[
-                        styles.xpProgress,
-                        { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.xpText}>
-                    {stats.xp}/{stats.nextLevelXp} XP
-                  </Text>
+                    <Text style={styles.uploadOptionText}>צלם תמונה</Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-
-              {/* שם המשתמש עם כפתור עריכה */}
-              <View style={styles.usernameContainer}>
-                <Text style={styles.username}>
-                  {user?.name || "אלוף הכושר"}
-                </Text>
-                <TouchableOpacity
-                  style={styles.editNameButton}
-                  onPress={() => {
-                    if (canEditName()) {
-                      setEditedName(user?.name || "");
-                      setNameError(null);
-                      setShowNameModal(true);
-                    } else {
-                      const nextEditDate = new Date(
-                        lastNameEdit + 7 * 24 * 60 * 60 * 1000
-                      );
-                      Alert.alert(
-                        "הגבלת זמן",
-                        `ניתן לשנות שם פעם בשבוע.\nעריכה הבאה תהיה זמינה ב-${nextEditDate.toLocaleDateString("he-IL")}`
-                      );
-                    }
-                  }}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    canEditName() ? "עריכת שם משתמש" : "עריכת שם - לא זמין"
-                  }
-                  accessibilityHint={
-                    canEditName()
-                      ? "לחיצה לפתיחת חלון עריכת שם המשתמש"
-                      : "עריכת שם זמינה פעם בשבוע בלבד"
-                  }
-                  accessibilityState={{ disabled: !canEditName() }}
-                >
-                  <MaterialCommunityIcons
-                    name="pencil"
-                    size={16}
-                    color={
-                      canEditName()
-                        ? theme.colors.primary
-                        : theme.colors.textSecondary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.userEmail}>
-                {user?.email || "user@gymovoo.com"}
-              </Text>
-
-              <View style={styles.badgesContainer}>
-                {profileBadges.map((b) => {
-                  const isMore = b.key === "more";
-                  const containerStyle = [
-                    styles.badge,
-                    b.key === "streak"
-                      ? stats.streak > 0
-                        ? styles.activeBadge
-                        : styles.inactiveBadge
-                      : isMore
-                        ? styles.moreBadge
-                        : styles.achievementTag,
-                  ];
-                  const textStyle = [
-                    styles.badgeText,
-                    b.key === "streak"
-                      ? stats.streak > 0
-                        ? styles.activeBadgeText
-                        : styles.inactiveBadgeText
-                      : undefined,
-                    isMore ? styles.moreBadgeText : undefined,
-                  ];
-                  const content = (
-                    <View key={b.key} style={containerStyle}>
-                      <MaterialCommunityIcons
-                        name={b.icon as never}
-                        size={16}
-                        color={b.color}
-                      />
-                      <Text style={textStyle}>{b.text}</Text>
-                      {isMore && (
-                        <MaterialCommunityIcons
-                          name="chevron-left"
-                          size={16}
-                          color={theme.colors.textSecondary}
-                        />
-                      )}
-                    </View>
-                  );
-                  return isMore ? (
+                <Text style={styles.presetsTitle}>או בחר אימוג&apos;י:</Text>
+                <FlatList
+                  data={PRESET_AVATARS}
+                  numColumns={4}
+                  keyExtractor={(item) => item}
+                  contentContainerStyle={styles.avatarGrid}
+                  renderItem={({ item }) => (
                     <TouchableOpacity
-                      key={b.key}
-                      onPress={scrollToAchievements}
-                      activeOpacity={0.8}
-                      accessibilityRole="button"
-                      accessibilityLabel="צפייה בכל ההישגים"
-                      accessibilityHint="לחיצה תגלול לרשימת ההישגים המלאה"
+                      style={[
+                        styles.presetAvatar,
+                        selectedAvatar === item && styles.selectedPreset,
+                      ]}
+                      onPress={() => selectPresetAvatar(item)}
                     >
-                      {content}
+                      <Text style={styles.presetAvatarText}>{item}</Text>
                     </TouchableOpacity>
-                  ) : (
-                    content
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* מידע אישי מהשאלון - כולו דינמי */}
-            {questionnaireStatus.isComplete && (
-              <View style={styles.infoContainer}>
-                <Text style={styles.sectionTitle}>
-                  {PROFILE_SCREEN_TEXTS.HEADERS.MY_INFO}
-                </Text>
-                <View style={styles.infoGrid}>
-                  {/* כל השדות נוצרים באופן דינמי */}
-                  {displayFields.map((field) => (
-                    <View key={field.key} style={styles.infoItem}>
-                      <MaterialCommunityIcons
-                        name={field.icon}
-                        size={20}
-                        color={theme.colors.primary}
-                      />
-                      <Text style={styles.infoLabel}>{field.label}</Text>
-                      <Text style={styles.infoValue}>{field.value}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* סטטיסטיקות */}
-            <View style={styles.statsContainer}>
-              <Text style={styles.sectionTitle}>
-                {PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS}
-              </Text>
-              <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <LinearGradient
-                    colors={getStatsGradient("workouts")}
-                    style={styles.statGradient}
-                  >
-                    <MaterialCommunityIcons
-                      name="dumbbell"
-                      size={24}
-                      color={STATS_COLORS.WORKOUTS.ICON}
-                    />
-                    <Text style={styles.statNumber}>{stats.workouts}</Text>
-                    <Text style={styles.statLabel}>
-                      {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-                    </Text>
-                  </LinearGradient>
-                </View>
-                <View style={styles.statCard}>
-                  <LinearGradient
-                    colors={getStatsGradient("streak")}
-                    style={styles.statGradient}
-                  >
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={24}
-                      color={STATS_COLORS.STREAK.ICON}
-                    />
-                    <Text style={styles.statNumber}>{stats.streak}</Text>
-                    <Text style={styles.statLabel}>
-                      {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
-                    </Text>
-                  </LinearGradient>
-                </View>
-                <View style={styles.statCard}>
-                  <LinearGradient
-                    colors={getStatsGradient("rating")}
-                    style={styles.statGradient}
-                  >
-                    <MaterialCommunityIcons
-                      name="clock-outline"
-                      size={24}
-                      color={STATS_COLORS.RATING.ICON}
-                    />
-                    <Text style={styles.statNumber}>{stats.totalTime}</Text>
-                    <Text style={styles.statLabel}>
-                      {PROFILE_SCREEN_TEXTS.STATS.TOTAL_TIME}
-                    </Text>
-                  </LinearGradient>
-                </View>
-              </View>
-            </View>
-
-            {/* ציוד זמין */}
-            {(() => {
-              // נרנדר אם יש מקור כלשהו לציוד: שאלון חכם, סטטיסטיקות אימון, או שאלון legacy
-              const smartEquip =
-                user?.smartquestionnairedata?.answers?.equipment;
-              const hasSmart =
-                Array.isArray(smartEquip) && smartEquip.length > 0;
-              const trainingEquip = user?.trainingstats?.selectedEquipment;
-              const hasTrainingStats =
-                Array.isArray(trainingEquip) && trainingEquip.length > 0;
-              const legacyQuestionnaire = user?.questionnaire as Record<
-                string,
-                unknown
-              >;
-              const availableLegacy = legacyQuestionnaire?.available_equipment;
-              const hasAvailableLegacy =
-                Array.isArray(availableLegacy) && availableLegacy.length > 0;
-              const hasLegacy = !!legacyQuestionnaire;
-              return (
-                hasSmart || hasTrainingStats || hasAvailableLegacy || hasLegacy
-              );
-            })() && (
-              <View style={styles.equipmentContainer}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>
-                    {PROFILE_SCREEN_TEXTS.HEADERS.MY_EQUIPMENT}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate("Questionnaire", {
-                        stage: "training",
-                      })
-                    }
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="עריכת ציוד אימון"
-                    accessibilityHint="לחץ כדי לערוך את רשימת הציוד הזמין לאימונים"
-                  >
-                    <Text style={styles.seeAllText}>
-                      {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.equipmentScroll}
-                  contentContainerStyle={styles.equipmentScrollContent}
-                >
-                  {(() => {
-                    // 🔧 שימוש בפונקציה המרכזית לחילוץ ציוד - מחליפה את הלוגיקה המורכבת
-                    const allEquipment = extractUserEquipment(user);
-
-                    if (allEquipment.length === 0) {
-                      return (
-                        <View style={styles.noEquipmentContainer}>
-                          <MaterialCommunityIcons
-                            name="dumbbell"
-                            size={40}
-                            color={theme.colors.textSecondary}
-                          />
-                          <Text style={styles.noEquipmentText}>
-                            לא נבחר ציוד
-                          </Text>
-                          <Text style={styles.noEquipmentSubtext}>
-                            השלם את השאלון לקבלת המלצות
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.addEquipmentButton}
-                            onPress={() =>
-                              navigation.navigate("Questionnaire", {
-                                stage: "training",
-                              })
-                            }
-                            accessible={true}
-                            accessibilityRole="button"
-                            accessibilityLabel="הוסף ציוד אימון"
-                            accessibilityHint="לחץ כדי להוסיף ציוד אימון זמין דרך השאלון"
-                          >
-                            <Text style={styles.addEquipmentText}>
-                              הוסף ציוד
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    return allEquipment
-                      .map((equipmentId: string) => {
-                        // חיפוש ישיר לפי השם מהשאלון // Direct search by name from questionnaire
-                        const equipment = ALL_EQUIPMENT.find(
-                          (eq) => eq.id === equipmentId
-                        );
-
-                        if (!equipment) return null;
-
-                        return (
-                          <View key={equipmentId} style={styles.equipmentItem}>
-                            <View style={styles.equipmentImageContainer}>
-                              {equipment.image ? (
-                                <Image
-                                  source={equipment.image}
-                                  style={styles.equipmentImage}
-                                  resizeMode="contain"
-                                />
-                              ) : (
-                                <MaterialCommunityIcons
-                                  name="dumbbell"
-                                  size={28}
-                                  color={theme.colors.primary}
-                                />
-                              )}
-                              {equipment.isPremium && (
-                                <View style={styles.equipmentPremiumBadge}>
-                                  <MaterialCommunityIcons
-                                    name="crown"
-                                    size={12}
-                                    color={theme.colors.warning}
-                                  />
-                                </View>
-                              )}
-                            </View>
-                            <Text
-                              style={styles.equipmentLabel}
-                              numberOfLines={2}
-                            >
-                              {equipment.label}
-                            </Text>
-                            <View style={styles.equipmentCategoryBadge}>
-                              <Text style={styles.equipmentCategoryText}>
-                                {equipment.category === "home"
-                                  ? PROFILE_SCREEN_TEXTS.VALUES.HOME
-                                  : equipment.category === "gym"
-                                    ? PROFILE_SCREEN_TEXTS.VALUES.GYM
-                                    : "שניהם"}
-                              </Text>
-                            </View>
-                          </View>
-                        );
-                      })
-                      .filter(Boolean);
-                  })()}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* הישגים - רשימה מלאה תמיד */}
-            <View
-              style={styles.achievementsContainer}
-              onLayout={(
-                e: NativeSyntheticEvent<LayoutChangeEvent["nativeEvent"]>
-              ) => setAchievementsSectionY(e.nativeEvent.layout.y)}
-            >
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  {achievements.some((a) => a.unlocked)
-                    ? PROFILE_SCREEN_TEXTS.HEADERS.ACHIEVEMENTS
-                    : PROFILE_SCREEN_TEXTS.HEADERS.GOALS_TO_UNLOCK}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (__DEV__) {
-                      console.warn("ProfileScreen: Show all achievements");
-                    }
-                  }}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="הצג את כל ההישגים"
-                  accessibilityHint="לחץ כדי לראות רשימה מלאה של כל ההישגים והמטרות"
-                >
-                  <Text style={styles.seeAllText}>
-                    {PROFILE_SCREEN_TEXTS.ACTIONS.SHOW_ALL}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.achievementsGrid}>
-                {achievements.map((achievement: Achievement) => (
-                  <TouchableOpacity
-                    key={achievement.id}
-                    activeOpacity={0.8}
-                    onLongPress={() => {
-                      setAchievementTooltip({
-                        visible: true,
-                        achievement: achievement,
-                      });
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`הישג: ${achievement.title}`}
-                    accessibilityHint={
-                      achievement.unlocked
-                        ? "הישג פתוח - לחיצה ארוכה לפרטים נוספים"
-                        : "הישג נעול - לחיצה ארוכה לראות דרישות"
-                    }
-                    accessibilityState={{
-                      disabled: false,
-                      selected: achievement.unlocked,
-                    }}
-                    style={[
-                      styles.achievementBadge,
-                      !achievement.unlocked && styles.lockedBadge,
-                      achievement.unlocked && {
-                        transform: [{ scale: achievementPulseAnim }],
-                      },
-                    ]}
-                  >
-                    {achievement.unlocked && (
-                      <LinearGradient
-                        colors={[
-                          achievement.color + "20",
-                          achievement.color + "10",
-                        ]}
-                        style={styles.achievementGradientBg}
-                      />
-                    )}
-
-                    <View
-                      style={[
-                        styles.achievementIconContainer,
-                        !achievement.unlocked && styles.grayscaleContainer,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={achievement.icon}
-                        size={30}
-                        color={
-                          achievement.unlocked
-                            ? achievement.color
-                            : theme.colors.textTertiary
-                        }
-                      />
-
-                      {!achievement.unlocked && (
-                        <View style={styles.lockIconContainer}>
-                          <MaterialCommunityIcons
-                            name="lock"
-                            size={16}
-                            color={theme.colors.textTertiary}
-                          />
-                        </View>
-                      )}
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.achievementTitle,
-                        !achievement.unlocked && styles.lockedText,
-                        achievement.unlocked && styles.unlockedTitle,
-                      ]}
-                    >
-                      {achievement.title}
-                    </Text>
-
-                    {achievement.unlocked && (
-                      <View style={styles.achievementShine} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* הגדרות בסיסיות */}
-            <View style={styles.settingsContainer}>
-              <Text style={styles.sectionTitle}>
-                {PROFILE_SCREEN_TEXTS.HEADERS.SETTINGS}
-              </Text>
-
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={() => {
-                  if (__DEV__) {
-                    console.warn("ProfileScreen: Edit questionnaire");
-                  }
-                  navigation.navigate("Questionnaire", { stage: "training" });
-                }}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="עריכת שאלון אימון"
-                accessibilityHint="לחץ כדי לערוך את השאלון ולעדכן העדפות אימון"
-              >
-                <View style={styles.settingLeft}>
-                  <MaterialCommunityIcons
-                    name="clipboard-list"
-                    size={24}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.settingText}>
-                    {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT_QUESTIONNAIRE}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-left"
-                  size={20}
-                  color={theme.colors.textSecondary}
+                  )}
                 />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={() => {
-                  if (__DEV__) {
-                    console.warn("ProfileScreen: Notifications settings");
-                  }
-                  showComingSoon("הגדרות התראות");
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.settingLeft}>
-                  <MaterialCommunityIcons
-                    name="bell-outline"
-                    size={24}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.settingText}>התראות</Text>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-left"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* כפתור התנתקות */}
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              accessibilityRole="button"
-              accessibilityLabel={PROFILE_SCREEN_TEXTS.A11Y.LOGOUT_BUTTON}
-              accessibilityHint="לחיצה להתנתקות מהמשתמש הנוכחי וחזרה למסך הכניסה"
-            >
-              <MaterialCommunityIcons
-                name="logout"
-                size={20}
-                color={theme.colors.error}
-              />
-              <Text style={styles.logoutText}>
-                {PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </ScrollView>
-
-        {/* מודל בחירת אווטאר */}
-        <Modal
-          visible={showAvatarModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowAvatarModal(false)}
-        >
-          <TouchableOpacity
-            style={theme.getModalOverlayStyle("bottom")}
-            activeOpacity={1}
-            onPress={() => setShowAvatarModal(false)}
-          >
-            <View style={theme.getModalContentStyle("bottom")}>
-              <View style={theme.getModalHeaderStyle()}>
-                <Text style={styles.modalTitle}>בחר אווטאר</Text>
-                <TouchableOpacity
-                  onPress={() => setShowAvatarModal(false)}
-                  style={styles.closeButton}
-                >
-                  <Ionicons name="close" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              {/* הודעת פרטיות */}
-              <View style={styles.privacyNotice}>
-                <MaterialCommunityIcons
-                  name="shield-check"
-                  size={20}
-                  color={theme.colors.success}
-                />
-                <Text style={styles.privacyText}>
-                  התמונה נשמרת במכשיר שלך בלבד ולא נשלחת לשרת
-                </Text>
-              </View>
-              <View style={styles.uploadOptions}>
-                <TouchableOpacity
-                  style={styles.uploadOption}
-                  onPress={pickImageFromGallery}
-                >
-                  <MaterialCommunityIcons
-                    name="image"
-                    size={32}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.uploadOptionText}>מהגלריה</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.uploadOption}
-                  onPress={takePhoto}
-                >
-                  <MaterialCommunityIcons
-                    name="camera"
-                    size={32}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.uploadOptionText}>צלם תמונה</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.presetsTitle}>או בחר אימוג&apos;י:</Text>
-              <FlatList
-                data={PRESET_AVATARS}
-                numColumns={4}
-                keyExtractor={(item) => item}
-                contentContainerStyle={styles.avatarGrid}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.presetAvatar,
-                      selectedAvatar === item && styles.selectedPreset,
-                    ]}
-                    onPress={() => selectPresetAvatar(item)}
-                  >
-                    <Text style={styles.presetAvatarText}>{item}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
-
-        {/* 🆕 מודל עריכת שם */}
-        <Modal
-          visible={showNameModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowNameModal(false)}
-        >
-          <TouchableOpacity
-            style={theme.getModalOverlayStyle("bottom")}
-            activeOpacity={1}
-            onPress={() => setShowNameModal(false)}
-          >
-            <View style={theme.getModalContentStyle("bottom")}>
-              <View style={theme.getModalHeaderStyle()}>
-                <Text style={styles.modalTitle}>עריכת שם</Text>
-                <TouchableOpacity
-                  onPress={() => setShowNameModal(false)}
-                  style={styles.closeButton}
-                >
-                  <Ionicons name="close" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.nameEditContainer}>
-                <Text style={styles.nameEditLabel}>שם מלא:</Text>
-                <TextInput
-                  style={[styles.nameInput, nameError && styles.nameInputError]}
-                  value={editedName}
-                  onChangeText={(text) => {
-                    setEditedName(text);
-                    setNameError(null);
-                  }}
-                  placeholder="הכנס שם מלא..."
-                  placeholderTextColor={theme.colors.textSecondary}
-                  maxLength={30}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSaveName}
-                  textAlign="right"
-                  selectTextOnFocus
-                  accessibilityLabel="שדה עריכת שם משתמש"
-                  accessibilityHint="הכנס שם מלא עד 30 תווים, לחץ Enter לשמירה"
-                  accessibilityState={{ disabled: false }}
-                />
-
-                {nameError && (
-                  <Text style={styles.nameErrorText}>{nameError}</Text>
-                )}
-
-                <Text style={styles.nameHelpText}>
-                  • ניתן לשנות שם פעם בשבוع{"\n"}• 2-30 תווים בלבד{"\n"}• אותיות
-                  עברית/אנגלית, מספרים ומקפים{"\n"}• ללא מילים פוגעניות
-                </Text>
-
-                <View style={styles.nameModalButtons}>
-                  <TouchableOpacity
-                    style={[
-                      styles.nameModalButton,
-                      styles.nameModalButtonCancel,
-                    ]}
-                    onPress={() => setShowNameModal(false)}
-                  >
-                    <Text style={styles.nameModalButtonTextCancel}>ביטול</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.nameModalButton,
-                      styles.nameModalButtonSave,
-                      (loading || !editedName.trim()) &&
-                        styles.nameModalButtonDisabled,
-                    ]}
-                    onPress={handleSaveName}
-                    disabled={loading || !editedName.trim()}
-                  >
-                    <Text
-                      style={[
-                        styles.nameModalButtonTextSave,
-                        (loading || !editedName.trim()) &&
-                          styles.nameModalButtonTextDisabled,
-                      ]}
-                    >
-                      {loading ? "שומר..." : "שמור"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-
-        {/* Logout Confirmation Modal */}
-        <ConfirmationModal
-          visible={showLogoutModal}
-          onClose={() => setShowLogoutModal(false)}
-          onConfirm={confirmLogout}
-          title="התנתקות מלאה 🚪"
-          message={
-            "האם אתה בטוח שברצונך להתנתק?\n\n" +
-            "⚠️ פעולה זו תמחק:\n" +
-            "• כל נתוני המשתמש\n" +
-            "• היסטוריית אימונים\n" +
-            "• העדפות אישיות\n" +
-            "• נתוני השאלון\n\n" +
-            "תצטרך להתחבר מחדש ולמלא את השאלון שוב."
-          }
-          confirmText="כן, התנתק"
-          cancelText="ביטול"
-          destructive={true}
-          icon="log-out-outline"
-        />
-
-        {/* 🎉 מודל הישג חדש */}
-        <Modal
-          visible={showAchievementModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowAchievementModal(false)}
-        >
-          <View style={styles.achievementModalOverlay}>
-            <Animated.View
-              style={[
-                styles.achievementModalContent,
-                {
-                  opacity: fireworksOpacity,
-                  transform: [{ scale: fireworksScale }],
-                },
-              ]}
-            >
-              {/* אנימציית זיקוקים */}
-              <View style={styles.fireworksContainer}>
-                <Text style={styles.fireworksText}>🎆✨🎉✨🎆</Text>
-              </View>
-
-              {newAchievement && (
-                <>
-                  <MaterialCommunityIcons
-                    name={newAchievement.icon}
-                    size={80}
-                    color={newAchievement.color}
-                    style={styles.achievementModalIcon}
-                  />
-
-                  <Text style={styles.achievementModalTitle}>
-                    🏆 הישג חדש! 🏆
-                  </Text>
-
-                  <Text style={styles.achievementModalAchievement}>
-                    {newAchievement.title}
-                  </Text>
-
-                  <Text style={styles.achievementModalDescription}>
-                    {newAchievement.description}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.achievementModalButton}
-                    onPress={() => setShowAchievementModal(false)}
-                  >
-                    <Text style={styles.achievementModalButtonText}>
-                      מעולה! 🎯
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </Animated.View>
-          </View>
-        </Modal>
-
-        {/* 💬 Tooltip להישגים */}
-        {achievementTooltip && (
-          <Modal
-            visible={achievementTooltip.visible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setAchievementTooltip(null)}
-          >
-            <TouchableOpacity
-              style={styles.tooltipOverlay}
-              activeOpacity={1}
-              onPress={() => setAchievementTooltip(null)}
-            >
-              <View style={styles.tooltipContent}>
-                <View style={styles.tooltipHeader}>
-                  <MaterialCommunityIcons
-                    name={achievementTooltip.achievement.icon}
-                    size={24}
-                    color={achievementTooltip.achievement.color}
-                  />
-                  <Text style={styles.tooltipTitle}>
-                    {achievementTooltip.achievement.title}
-                  </Text>
-                </View>
-
-                <Text style={styles.tooltipDescription}>
-                  {achievementTooltip.achievement.description}
-                </Text>
-
-                <Text style={styles.tooltipHint}>💡 לחץ בכל מקום לסגירה</Text>
               </View>
             </TouchableOpacity>
           </Modal>
-        )}
 
-        {/* מודל אחיד למקום Alert.alert מפוזר */}
-        <UniversalModal
-          visible={activeModal !== null}
-          type={activeModal || "comingSoon"}
-          title={modalConfig.title}
-          message={modalConfig.message}
-          onClose={hideModal}
-          onConfirm={modalConfig.onConfirm}
-          confirmText={modalConfig.confirmText}
-          destructive={modalConfig.destructive}
-        />
-      </SafeAreaView>
-    </LinearGradient>
+          {/* 🆕 מודל עריכת שם */}
+          <Modal
+            visible={showNameModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowNameModal(false)}
+          >
+            <TouchableOpacity
+              style={theme.getModalOverlayStyle("bottom")}
+              activeOpacity={1}
+              onPress={() => setShowNameModal(false)}
+            >
+              <View style={theme.getModalContentStyle("bottom")}>
+                <View style={theme.getModalHeaderStyle()}>
+                  <Text style={styles.modalTitle}>עריכת שם</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowNameModal(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={theme.colors.text}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.nameEditContainer}>
+                  <Text style={styles.nameEditLabel}>שם מלא:</Text>
+                  <TextInput
+                    style={[
+                      styles.nameInput,
+                      nameError && styles.nameInputError,
+                    ]}
+                    value={editedName}
+                    onChangeText={(text) => {
+                      setEditedName(text);
+                      setNameError(null);
+                    }}
+                    placeholder="הכנס שם מלא..."
+                    placeholderTextColor={theme.colors.textSecondary}
+                    maxLength={30}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSaveName}
+                    textAlign="right"
+                    selectTextOnFocus
+                    accessibilityLabel="שדה עריכת שם משתמש"
+                    accessibilityHint="הכנס שם מלא עד 30 תווים, לחץ Enter לשמירה"
+                    accessibilityState={{ disabled: false }}
+                  />
+
+                  {nameError && (
+                    <Text style={styles.nameErrorText}>{nameError}</Text>
+                  )}
+
+                  <Text style={styles.nameHelpText}>
+                    • ניתן לשנות שם פעם בשבוع{"\n"}• 2-30 תווים בלבד{"\n"}•
+                    אותיות עברית/אנגלית, מספרים ומקפים{"\n"}• ללא מילים פוגעניות
+                  </Text>
+
+                  <View style={styles.nameModalButtons}>
+                    <TouchableOpacity
+                      style={[
+                        styles.nameModalButton,
+                        styles.nameModalButtonCancel,
+                      ]}
+                      onPress={() => setShowNameModal(false)}
+                    >
+                      <Text style={styles.nameModalButtonTextCancel}>
+                        ביטול
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.nameModalButton,
+                        styles.nameModalButtonSave,
+                        (loading || !editedName.trim()) &&
+                          styles.nameModalButtonDisabled,
+                      ]}
+                      onPress={handleSaveName}
+                      disabled={loading || !editedName.trim()}
+                    >
+                      <Text
+                        style={[
+                          styles.nameModalButtonTextSave,
+                          (loading || !editedName.trim()) &&
+                            styles.nameModalButtonTextDisabled,
+                        ]}
+                      >
+                        {loading ? "שומר..." : "שמור"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Logout Confirmation Modal */}
+          <ConfirmationModal
+            visible={showLogoutModal}
+            onClose={() => setShowLogoutModal(false)}
+            onConfirm={confirmLogout}
+            title="התנתקות מלאה 🚪"
+            message={
+              "האם אתה בטוח שברצונך להתנתק?\n\n" +
+              "⚠️ פעולה זו תמחק:\n" +
+              "• כל נתוני המשתמש\n" +
+              "• היסטוריית אימונים\n" +
+              "• העדפות אישיות\n" +
+              "• נתוני השאלון\n\n" +
+              "תצטרך להתחבר מחדש ולמלא את השאלון שוב."
+            }
+            confirmText="כן, התנתק"
+            cancelText="ביטול"
+            destructive={true}
+            icon="log-out-outline"
+          />
+
+          {/* 🎉 מודל הישג חדש */}
+          <Modal
+            visible={showAchievementModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowAchievementModal(false)}
+          >
+            <View style={styles.achievementModalOverlay}>
+              <Animated.View
+                style={[
+                  styles.achievementModalContent,
+                  {
+                    opacity: fireworksOpacity,
+                    transform: [{ scale: fireworksScale }],
+                  },
+                ]}
+              >
+                {/* אנימציית זיקוקים */}
+                <View style={styles.fireworksContainer}>
+                  <Text style={styles.fireworksText}>🎆✨🎉✨🎆</Text>
+                </View>
+
+                {newAchievement && (
+                  <>
+                    <MaterialCommunityIcons
+                      name={newAchievement.icon}
+                      size={80}
+                      color={newAchievement.color}
+                      style={styles.achievementModalIcon}
+                    />
+
+                    <Text style={styles.achievementModalTitle}>
+                      🏆 הישג חדש! 🏆
+                    </Text>
+
+                    <Text style={styles.achievementModalAchievement}>
+                      {newAchievement.title}
+                    </Text>
+
+                    <Text style={styles.achievementModalDescription}>
+                      {newAchievement.description}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.achievementModalButton}
+                      onPress={() => setShowAchievementModal(false)}
+                    >
+                      <Text style={styles.achievementModalButtonText}>
+                        מעולה! 🎯
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </Animated.View>
+            </View>
+          </Modal>
+
+          {/* 💬 Tooltip להישגים */}
+          {achievementTooltip && (
+            <Modal
+              visible={achievementTooltip.visible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setAchievementTooltip(null)}
+            >
+              <TouchableOpacity
+                style={styles.tooltipOverlay}
+                activeOpacity={1}
+                onPress={() => setAchievementTooltip(null)}
+              >
+                <View style={styles.tooltipContent}>
+                  <View style={styles.tooltipHeader}>
+                    <MaterialCommunityIcons
+                      name={achievementTooltip.achievement.icon}
+                      size={24}
+                      color={achievementTooltip.achievement.color}
+                    />
+                    <Text style={styles.tooltipTitle}>
+                      {achievementTooltip.achievement.title}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.tooltipDescription}>
+                    {achievementTooltip.achievement.description}
+                  </Text>
+
+                  <Text style={styles.tooltipHint}>💡 לחץ בכל מקום לסגירה</Text>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
+
+          {/* מודל אחיד למקום Alert.alert מפוזר */}
+          <UniversalModal
+            visible={activeModal !== null}
+            type={activeModal || "comingSoon"}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            onClose={hideModal}
+            onConfirm={modalConfig.onConfirm}
+            confirmText={modalConfig.confirmText}
+            destructive={modalConfig.destructive}
+          />
+
+          {/* ConfirmationModal for success/error messages */}
+          <ConfirmationModal
+            visible={confirmationModal.visible}
+            title={confirmationModal.title}
+            message={confirmationModal.message}
+            onClose={hideConfirmationModal}
+            onConfirm={confirmationModal.onConfirm}
+            onCancel={confirmationModal.onCancel}
+            confirmText={confirmationModal.confirmText}
+            cancelText={confirmationModal.cancelText}
+            variant={confirmationModal.variant}
+            singleButton={confirmationModal.singleButton}
+          />
+        </SafeAreaView>
+      </LinearGradient>
+    </ErrorBoundary>
   );
 }
 

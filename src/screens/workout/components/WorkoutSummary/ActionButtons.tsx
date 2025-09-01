@@ -2,16 +2,19 @@
  * @file src/screens/workout/components/WorkoutSummary/ActionButtons.tsx
  * @brief רכיב כפתורי פעולה מפולח
  * @description מנהל את כפתורי השיתוף, שמירה וניהול האימון
+ * @updated September 2025 - Refactored to use enhanced TouchableButton with haptic feedback
+ * @dependencies TouchableButton (enhanced), UniversalModal, useModalManager, workoutLogger
+ * @features Enhanced haptic feedback, accessibility, cross-platform support, modal management
  */
 
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
 import { workoutLogger } from "../../../../utils";
 import { useModalManager } from "../../hooks/useModalManager";
 import { UniversalModal } from "../../../../components/common/UniversalModal";
-import UniversalButton from "../../../../components/ui/UniversalButton";
+import TouchableButton from "../../../../components/ui/TouchableButton";
 
 interface ActionButtonsProps {
   onShareWorkout: () => void;
@@ -31,7 +34,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
     onFinishWorkout,
     isWorkoutSaved,
   }) => {
-    const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 } as const;
     // Modal management - אחיד במקום Alert.alert מפוזר
     const { activeModal, modalConfig, hideModal, showConfirm, showComingSoon } =
       useModalManager();
@@ -89,13 +91,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
 
         {/* כפתורים ראשיים */}
         <View style={styles.primaryActionsRow}>
-          <TouchableOpacity
+          <TouchableButton
             style={[styles.primaryButton, styles.shareButton]}
             onPress={handleShareWorkout}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="light"
             accessibilityLabel="שתף את האימון"
             accessibilityHint="שיתוף האימון עם אפליקציות ורשתות חברתיות"
-            hitSlop={HIT_SLOP}
             testID="action-share"
           >
             <MaterialCommunityIcons
@@ -104,15 +106,15 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
               color={theme.colors.card}
             />
             <Text style={styles.primaryButtonText}>שתף</Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
-          <TouchableOpacity
+          <TouchableButton
             style={[styles.primaryButton, styles.templateButton]}
             onPress={handleSaveAsTemplate}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="medium"
             accessibilityLabel="שמור כתבנית"
             accessibilityHint="שמירת האימון כתבנית לשימוש עתידי"
-            hitSlop={HIT_SLOP}
             testID="action-save-template"
           >
             <MaterialCommunityIcons
@@ -121,20 +123,19 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
               color={theme.colors.card}
             />
             <Text style={styles.primaryButtonText}>שמור כתבנית</Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
-          <TouchableOpacity
+          <TouchableButton
             style={[styles.primaryButton, styles.finishButton]}
             onPress={handleFinishWorkout}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="heavy"
             accessibilityLabel="סיים אימון"
             accessibilityHint={
               isWorkoutSaved
                 ? "סיים את האימון"
                 : "האימון טרם נשמר, יוצג אישור לפני הסיום"
             }
-            accessibilityState={{ busy: false }}
-            hitSlop={HIT_SLOP}
             testID="action-finish"
           >
             <MaterialCommunityIcons
@@ -143,18 +144,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
               color={theme.colors.card}
             />
             <Text style={styles.primaryButtonText}>סיים</Text>
-          </TouchableOpacity>
+          </TouchableButton>
         </View>
 
         {/* כפתורים משניים */}
         <View style={styles.secondaryActionsRow}>
-          <TouchableOpacity
+          <TouchableButton
             style={styles.secondaryButton}
             onPress={handleEditWorkout}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="light"
             accessibilityLabel="ערוך אימון"
             accessibilityHint="עריכת פרטי האימון"
-            hitSlop={HIT_SLOP}
             testID="action-edit"
           >
             <MaterialCommunityIcons
@@ -163,15 +164,15 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
               color={theme.colors.primary}
             />
             <Text style={styles.secondaryButtonText}>ערוך</Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
-          <TouchableOpacity
+          <TouchableButton
             style={[styles.secondaryButton, styles.deleteButton]}
             onPress={handleDeleteWorkout}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="heavy"
             accessibilityLabel="מחק אימון"
             accessibilityHint="פעולה הרסנית: מחיקת האימון לצמיתות"
-            hitSlop={HIT_SLOP}
             testID="action-delete"
           >
             <MaterialCommunityIcons
@@ -182,18 +183,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
             <Text style={[styles.secondaryButtonText, styles.deleteButtonText]}>
               מחק
             </Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
-          <TouchableOpacity
+          <TouchableButton
             style={styles.secondaryButton}
             onPress={() => {
               workoutLogger.info("ActionButtons", "הפתיחה של אימונים קודמים");
               showComingSoon("היסטוריית אימונים קודמים");
             }}
-            accessibilityRole="button"
+            enableHapticFeedback={true}
+            hapticType="light"
             accessibilityLabel="הצג אימונים קודמים"
             accessibilityHint="הצגת היסטוריית אימונים (בקרוב)"
-            hitSlop={HIT_SLOP}
             testID="action-history"
           >
             <MaterialCommunityIcons
@@ -202,7 +203,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = React.memo(
               color={theme.colors.textSecondary}
             />
             <Text style={styles.secondaryButtonText}>היסטוריה</Text>
-          </TouchableOpacity>
+          </TouchableButton>
         </View>
 
         {/* סטטוס שמירה */}

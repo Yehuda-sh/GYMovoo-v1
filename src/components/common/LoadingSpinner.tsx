@@ -26,10 +26,11 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
   style?: ViewStyle;
   // 🆕 מאפיינים חדשים // New properties
-  variant?: "default" | "fade" | "pulse" | "dots";
+  variant?: "default" | "fade" | "pulse" | "dots" | "bounce";
   duration?: number;
   testID?: string;
   hideAfter?: number; // מסתיר אחרי זמן מסוים (במילישניות)
+  loading?: boolean; // שליטה חיצונית על מצב הטעינה
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
@@ -43,6 +44,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
     duration = 1500,
     testID = "loading-spinner",
     hideAfter,
+    loading = true,
   }) => {
     // 🎭 אנימציות // Animations
     const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -88,13 +90,25 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
           );
           break;
 
-        case "dots":
+        case "bounce":
           animation = Animated.loop(
-            Animated.timing(rotateAnim, {
-              toValue: 1,
-              duration: duration,
-              useNativeDriver: true,
-            })
+            Animated.sequence([
+              Animated.timing(pulseAnim, {
+                toValue: 0.8,
+                duration: duration / 4,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseAnim, {
+                toValue: 1.1,
+                duration: duration / 4,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: duration / 2,
+                useNativeDriver: true,
+              }),
+            ])
           );
           break;
       }
@@ -156,6 +170,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
           ] as ViewStyle[],
         };
       }, [fullScreen, style, variant, fadeAnim, pulseAnim, rotateAnim]);
+
+    // אם לא בטעינה, לא מציג כלום
+    if (!loading) {
+      return null;
+    }
 
     return (
       <View

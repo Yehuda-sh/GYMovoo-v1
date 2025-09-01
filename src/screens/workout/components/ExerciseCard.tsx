@@ -24,12 +24,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../../styles/theme";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import {
   getEquipmentHebrewName,
   getEquipmentIcon,
@@ -182,11 +182,10 @@ const ExerciseCard = memo(
           {/* Loading Overlay */}
           {isLoading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator
+              <LoadingSpinner
                 size="small"
-                color={theme.colors.primary}
-                accessible={true}
-                accessibilityLabel="טוען תרגיל"
+                variant="dots"
+                testID="exercise-loading"
               />
             </View>
           )}

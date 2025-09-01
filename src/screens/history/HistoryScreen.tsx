@@ -24,6 +24,7 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { EmptyState } from "../../components";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
@@ -52,6 +53,7 @@ import {
 
 // Import User type for type safety
 import type { User } from "../../types";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
 // ===============================================
 // 🔧 Type Guards and Helper Functions
@@ -202,6 +204,7 @@ const HistoryScreen: React.FC = React.memo(() => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(false);
   const { user } = useUserStore();
+  const navigation = useNavigation();
 
   // Constants for pagination
   const ITEMS_PER_PAGE = HISTORY_SCREEN_CONFIG.ITEMS_PER_PAGE;
@@ -723,6 +726,20 @@ const HistoryScreen: React.FC = React.memo(() => {
             <View>
               {renderCongratulationMessage()}
               {renderStatistics()}
+
+              {/* Next Workout Recommendation */}
+              <NextWorkoutCard
+                workoutPlan={undefined}
+                onStartWorkout={(workoutName, workoutIndex) => {
+                  // Navigate to workout plans screen with specific workout
+                  navigation.navigate("WorkoutPlans", {
+                    autoStart: true,
+                    requestedWorkoutName: workoutName,
+                    requestedWorkoutIndex: workoutIndex,
+                  });
+                }}
+              />
+
               <Animated.View
                 style={{
                   opacity: fadeAnim,

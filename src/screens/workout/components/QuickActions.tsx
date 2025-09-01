@@ -1,18 +1,16 @@
 /**
- * @file src/screens/workout/components/QuickActions.            <MaterialCommunityIcons
-              name="refresh"
-              size={28}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.actionText}>תוכנית בסיסית</Text>* @brief Quick Action Buttons Component for Workout Plans
- * @updated August 2025 - Optimized with haptic feedback and accessibility
+ * @file src/screens/workout/components/QuickActions.tsx
+ * @brief Quick Action Buttons Component for Workout Plans
+ * @updated September 2025 - Refactored to use enhanced TouchableButton with haptic feedback
+ * @dependencies TouchableButton (enhanced), MaterialCommunityIcons, theme
+ * @features Enhanced haptic feedback, loading states, accessibility, cross-platform support
  */
 
-import React, { memo, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { memo } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { theme } from "../../../styles/theme";
+import TouchableButton from "../../../components/ui/TouchableButton";
 
 interface QuickActionsProps {
   onRegenerateBasic: () => void;
@@ -32,33 +30,22 @@ const QuickActions = memo(
     hasWorkoutPlan,
     loading,
   }: QuickActionsProps) => {
-    const handleRegenerateBasic = useCallback(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      onRegenerateBasic();
-    }, [onRegenerateBasic]);
-
-    const handleRegenerateAI = useCallback(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      onRegenerateAI();
-    }, [onRegenerateAI]);
-
-    const handleStartWorkout = useCallback(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      onStartWorkout();
-    }, [onStartWorkout]);
-
     return (
       <View style={styles.container}>
         <Text style={styles.title}>פעולות מהירות</Text>
 
         <View style={styles.actionsGrid}>
           {/* Regenerate Basic Plan */}
-          <TouchableOpacity
+          <TouchableButton
             style={[styles.actionButton, styles.basicButton]}
-            onPress={handleRegenerateBasic}
+            onPress={onRegenerateBasic}
             disabled={loading}
+            loading={loading}
+            enableHapticFeedback={true}
+            hapticType="medium"
             accessibilityLabel="יצירת תוכנית בסיסית חדשה"
             accessibilityHint="ליצור תוכנית אימון בסיסית מותאמת"
+            testID="regenerate-basic-button"
           >
             <MaterialCommunityIcons
               name="refresh"
@@ -66,21 +53,25 @@ const QuickActions = memo(
               color={theme.colors.text}
             />
             <Text style={styles.actionText}>תוכנית בסיסית</Text>
-          </TouchableOpacity>
+          </TouchableButton>
 
           {/* Regenerate AI Plan */}
-          <TouchableOpacity
+          <TouchableButton
             style={[
               styles.actionButton,
               styles.aiButton,
               !canAccessAI && styles.disabledButton,
             ]}
-            onPress={handleRegenerateAI}
+            onPress={onRegenerateAI}
             disabled={loading || !canAccessAI}
+            loading={loading}
+            enableHapticFeedback={true}
+            hapticType="heavy"
             accessibilityLabel="יצירת תוכנית AI חדשה"
             accessibilityHint={
               canAccessAI ? "ליצור תוכנית מותאמת עם AI" : "נדרש מנוי פעיל"
             }
+            testID="regenerate-ai-button"
           >
             <MaterialCommunityIcons
               name="brain"
@@ -102,21 +93,25 @@ const QuickActions = memo(
                 style={styles.lockIcon}
               />
             )}
-          </TouchableOpacity>
+          </TouchableButton>
 
           {/* Start Workout */}
-          <TouchableOpacity
+          <TouchableButton
             style={[
               styles.actionButton,
               styles.startButton,
               !hasWorkoutPlan && styles.disabledButton,
             ]}
-            onPress={handleStartWorkout}
+            onPress={onStartWorkout}
             disabled={loading || !hasWorkoutPlan}
+            loading={loading}
+            enableHapticFeedback={true}
+            hapticType="heavy"
             accessibilityLabel="התחלת אימון"
             accessibilityHint={
               hasWorkoutPlan ? "להתחיל אימון עכשיו" : "צריך תוכנית אימון תחילה"
             }
+            testID="start-workout-button"
           >
             <MaterialCommunityIcons
               name="play-circle"
@@ -135,7 +130,7 @@ const QuickActions = memo(
             >
               התחל אימון
             </Text>
-          </TouchableOpacity>
+          </TouchableButton>
         </View>
       </View>
     );

@@ -13,10 +13,13 @@ import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
 import { logger } from "../../utils/logger";
+import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
 export default function ProgressScreen(): JSX.Element {
+  const navigation = useNavigation();
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = React.useState<{
     totalWorkouts: number;
@@ -119,6 +122,18 @@ export default function ProgressScreen(): JSX.Element {
             </>
           )}
         </View>
+
+        {/* Next Workout Recommendation */}
+        <NextWorkoutCard
+          workoutPlan={undefined}
+          onStartWorkout={(workoutName, workoutIndex) => {
+            navigation.navigate("WorkoutPlans", {
+              autoStart: true,
+              requestedWorkoutName: workoutName,
+              requestedWorkoutIndex: workoutIndex,
+            });
+          }}
+        />
       </View>
     </SafeAreaView>
   );
