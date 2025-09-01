@@ -78,17 +78,12 @@ const TabIcon: React.FC<TabIconProps> = React.memo(
       [focused]
     );
 
-    // 🎯 Haptic feedback מותאם לפלטפורמה
-    const handleFocus = useCallback(() => {
+    // 🎯 Haptic feedback מותאם לפלטפורמה - called directly in useEffect
+    React.useEffect(() => {
       if (focused && Platform.OS === "ios") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     }, [focused]);
-
-    // Call haptic feedback when focused changes
-    React.useEffect(() => {
-      handleFocus();
-    }, [handleFocus]);
 
     return (
       <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
@@ -119,10 +114,12 @@ TabIcon.displayName = "TabIcon";
  * @accessibility Advanced RTL support and screen reader optimization
  */
 export default function BottomNavigation(): React.JSX.Element {
-  // DEBUG: רכיב ניווט תחתון נטען
-  if (__DEV__) {
-    console.warn("🔄 BottomNavigation component is rendering");
-  }
+  // DEBUG: רכיב ניווט תחתון נטען - only log once
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.warn("🔄 BottomNavigation component mounted");
+    }
+  }, []);
 
   // 🚀 Performance optimization - מחושב מראש לביצועים
   const tabBarStyle = useMemo(

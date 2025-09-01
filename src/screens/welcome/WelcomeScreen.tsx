@@ -53,19 +53,11 @@
  * - WELCOME_SCREEN_TEXTS: Localized text constants
  *
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, userApi (Supabase)
- * @updated 2025-08-18 הוספת React.memo, CONSTANTS למניעת כפילויות, עדכון JSDoc
+ * @updated 2025-09-01 - Extracted TouchableButton component, added style constants, improved testability
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  TouchableNativeFeedback,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -76,6 +68,7 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import UniversalButton from "../../components/ui/UniversalButton";
+import TouchableButton from "../../components/ui/TouchableButton";
 import {
   isQuickLoginAvailable,
   tryQuickLogin,
@@ -109,84 +102,25 @@ const CONSTANTS = {
     RIGHT: 20,
   },
   MIN_TOUCH_TARGET: 44,
-};
-
-// Enhanced TouchableButton props interface with comprehensive accessibility support
-// ממשק מורחב לכפתור מגע עם תמיכה מקיפה בנגישות
-interface TouchableButtonProps {
-  children: React.ReactNode;
-  onPress: () => void;
-  style?: object;
-  disabled?: boolean;
-  accessibilityLabel?: string;
-  accessibilityHint?: string;
-}
-
-// Cross-platform touchable wrapper with native feedback, haptic response, and fitness mobile optimizations
-// עטיפת מגע חוצת פלטפורמות עם משוב נטיבי, תגובה מישושית ואופטימיזציות כושר מובייל
-const TouchableButton = ({
-  children,
-  onPress,
-  style,
-  disabled,
-  accessibilityLabel,
-  accessibilityHint,
-}: TouchableButtonProps) => {
-  // 📱 Fitness Mobile Optimization: Enlarged hitSlop for workout scenarios
-  const enhancedHitSlop = {
-    top: CONSTANTS.HIT_SLOP.TOP,
-    bottom: CONSTANTS.HIT_SLOP.BOTTOM,
-    left: CONSTANTS.HIT_SLOP.LEFT,
-    right: CONSTANTS.HIT_SLOP.RIGHT,
-  };
-
-  // 📏 44px Minimum Touch Target Validation for Accessibility
-  const buttonStyle = Array.isArray(style) ? StyleSheet.flatten(style) : style;
-  const minTouchTarget = CONSTANTS.MIN_TOUCH_TARGET;
-
-  // Native feedback for Android, fallback for iOS
-  if (Platform.OS === "android") {
-    return (
-      <TouchableNativeFeedback
-        onPress={onPress}
-        disabled={disabled}
-        background={TouchableNativeFeedback.Ripple(theme.colors.primary, false)}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        hitSlop={enhancedHitSlop}
-      >
-        <View
-          style={[
-            style,
-            {
-              minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
-              minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
-            },
-          ]}
-        >
-          {children}
-        </View>
-      </TouchableNativeFeedback>
-    );
-  }
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={[
-        style,
-        {
-          minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
-          minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
-        },
-      ]}
-      hitSlop={enhancedHitSlop}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-    >
-      {children}
-    </Pressable>
-  );
+  // Style constants for consistent design
+  STYLE_CONSTANTS: {
+    LOGO_SIZE: 140,
+    LOGO_BORDER_RADIUS: 70,
+    APP_NAME_FONT_SIZE: 34,
+    TAGLINE_FONT_SIZE: 18,
+    APP_NAME_LETTER_SPACING: 0.8,
+    TAGLINE_LETTER_SPACING: 0.3,
+    TAGLINE_LINE_HEIGHT: 24,
+    SHADOW_OFFSET_HEIGHT: 8,
+    SHADOW_RADIUS: 16,
+    ELEVATION: 12,
+    TEXT_SHADOW_OFFSET_HEIGHT: 2,
+    TEXT_SHADOW_RADIUS: 4,
+    QUICK_LOGIN_FONT_SIZE: 12,
+    DEVELOPER_BUTTON_FONT_SIZE: 12,
+    GOOGLE_BUTTON_FONT_SIZE: 17,
+    GOOGLE_BUTTON_LETTER_SPACING: 0.3,
+  },
 };
 
 const WelcomeScreen = React.memo(() => {
@@ -509,6 +443,7 @@ const WelcomeScreen = React.memo(() => {
                   onPress={handleQuickLogin}
                   accessibilityLabel="כניסה מהירה"
                   accessibilityHint="כניסה מהירה עם חיבור קיים"
+                  testID="quick-login-button"
                 >
                   <View testID="quick-login-btn">
                     <MaterialCommunityIcons
@@ -527,6 +462,7 @@ const WelcomeScreen = React.memo(() => {
                 onPress={handleGoogleSignIn}
                 accessibilityLabel="התחברות מהירה עם גוגל"
                 accessibilityHint="התחברות באמצעות חשבון גוגל קיים"
+                testID="google-signin-button"
               >
                 <MaterialCommunityIcons
                   name="google"
@@ -546,6 +482,7 @@ const WelcomeScreen = React.memo(() => {
             onPress={() => navigation.navigate("DeveloperScreen")}
             accessibilityLabel="מסך פיתוח"
             accessibilityHint="גישה לכלי פיתוח וניפוי שגיאות"
+            testID="developer-button"
           >
             <Ionicons
               name="code-slash"
@@ -595,9 +532,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   logoWrapper: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: CONSTANTS.STYLE_CONSTANTS.LOGO_SIZE,
+    height: CONSTANTS.STYLE_CONSTANTS.LOGO_SIZE,
+    borderRadius: CONSTANTS.STYLE_CONSTANTS.LOGO_BORDER_RADIUS,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.sm,
@@ -605,31 +542,34 @@ const styles = StyleSheet.create({
     shadowColor: theme.colors.primary,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: CONSTANTS.STYLE_CONSTANTS.SHADOW_OFFSET_HEIGHT,
     },
     shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowRadius: CONSTANTS.STYLE_CONSTANTS.SHADOW_RADIUS,
+    elevation: CONSTANTS.STYLE_CONSTANTS.ELEVATION,
   },
   appName: {
-    fontSize: 34,
+    fontSize: CONSTANTS.STYLE_CONSTANTS.APP_NAME_FONT_SIZE,
     fontWeight: "800",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
     textAlign: "center",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
-    letterSpacing: 0.8,
+    letterSpacing: CONSTANTS.STYLE_CONSTANTS.APP_NAME_LETTER_SPACING,
     textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: {
+      width: 0,
+      height: CONSTANTS.STYLE_CONSTANTS.TEXT_SHADOW_OFFSET_HEIGHT,
+    },
+    textShadowRadius: CONSTANTS.STYLE_CONSTANTS.TEXT_SHADOW_RADIUS,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: CONSTANTS.STYLE_CONSTANTS.TAGLINE_FONT_SIZE,
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
-    letterSpacing: 0.3,
-    lineHeight: 24,
+    letterSpacing: CONSTANTS.STYLE_CONSTANTS.TAGLINE_LETTER_SPACING,
+    lineHeight: CONSTANTS.STYLE_CONSTANTS.TAGLINE_LINE_HEIGHT,
   },
 
   // Live activity indicator section // מדור מחוון פעילות חי
@@ -756,7 +696,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   quickLoginButtonText: {
-    fontSize: 12,
+    fontSize: CONSTANTS.STYLE_CONSTANTS.QUICK_LOGIN_FONT_SIZE,
     color: theme.colors.primary,
     fontWeight: "500",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
@@ -783,12 +723,12 @@ const styles = StyleSheet.create({
     minHeight: 54,
   },
   googleButtonText: {
-    fontSize: 17,
+    fontSize: CONSTANTS.STYLE_CONSTANTS.GOOGLE_BUTTON_FONT_SIZE,
     color: theme.colors.error,
     fontWeight: "600",
     marginEnd: theme.spacing.xs,
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
-    letterSpacing: 0.3,
+    letterSpacing: CONSTANTS.STYLE_CONSTANTS.GOOGLE_BUTTON_LETTER_SPACING,
   },
 
   // Development tools styles // סטיילים לכלי פיתוח
@@ -808,7 +748,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   developerButtonText: {
-    fontSize: 12,
+    fontSize: CONSTANTS.STYLE_CONSTANTS.DEVELOPER_BUTTON_FONT_SIZE,
     color: theme.colors.primary,
     fontWeight: "500",
   },

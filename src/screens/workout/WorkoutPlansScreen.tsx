@@ -63,15 +63,24 @@ import { PERFORMANCE_THRESHOLDS } from "./utils/workoutConstants";
  */
 const useWorkoutPlans = (
   user: User | null,
-  updateUser: (updates: Partial<User>) => void,
-  showError: (title: string, message: string) => void,
-  showSuccess: (title: string, message: string) => void,
-  triggerHaptic: (type: "light" | "medium" | "heavy") => void
+  _updateUser: (updates: Partial<User>) => void,
+  _showError: (title: string, message: string) => void,
+  _showSuccess: (title: string, message: string) => void,
+  _triggerHaptic: (type: "light" | "medium" | "heavy") => void
 ) => {
-  // Subscription state
-  const hasActiveSubscription = user?.subscription?.isActive === true;
-  const trialEnded = user?.subscription?.hasCompletedTrial === true;
-  const canAccessAI = hasActiveSubscription || !trialEnded;
+  // Subscription state - memoized to prevent unnecessary re-renders
+  const hasActiveSubscription = useMemo(
+    () => user?.subscription?.isActive === true,
+    [user?.subscription?.isActive]
+  );
+  const trialEnded = useMemo(
+    () => user?.subscription?.hasCompletedTrial === true,
+    [user?.subscription?.hasCompletedTrial]
+  );
+  const canAccessAI = useMemo(
+    () => hasActiveSubscription || !trialEnded,
+    [hasActiveSubscription, trialEnded]
+  );
 
   // Component state - consolidated state management
   const [state, setState] = useState({
@@ -96,6 +105,37 @@ const useWorkoutPlans = (
     [state.selectedPlanType, state.smartPlan, state.basicPlan]
   );
 
+  // Memoized action functions to prevent unnecessary re-renders
+  const setRefreshing = useCallback(
+    (refreshing: boolean) => updateState({ refreshing }),
+    [updateState]
+  );
+  const setSelectedPlanTypeCallback = useCallback(
+    (selectedPlanType: "basic" | "smart") => updateState({ selectedPlanType }),
+    [updateState]
+  );
+  const setBasicPlanCallback = useCallback(
+    (basicPlan: WorkoutPlan | null) => updateState({ basicPlan }),
+    [updateState]
+  );
+  const setSmartPlanCallback = useCallback(
+    (smartPlan: WorkoutPlan | null) => updateState({ smartPlan }),
+    [updateState]
+  );
+  const setShowPlanManagerCallback = useCallback(
+    (showPlanManager: boolean) => updateState({ showPlanManager }),
+    [updateState]
+  );
+  const setPendingPlanCallback = useCallback(
+    (pendingPlan: { plan: WorkoutPlan; type: "basic" | "smart" } | null) =>
+      updateState({ pendingPlan }),
+    [updateState]
+  );
+  const setLoadingCallback = useCallback(
+    (loading: boolean) => updateState({ loading }),
+    [updateState]
+  );
+
   return {
     // State
     ...state,
@@ -105,17 +145,13 @@ const useWorkoutPlans = (
     // Actions
     updateState,
     setState,
-    setRefreshing: (refreshing: boolean) => updateState({ refreshing }),
-    setSelectedPlanType: (selectedPlanType: "basic" | "smart") =>
-      updateState({ selectedPlanType }),
-    setBasicPlan: (basicPlan: WorkoutPlan | null) => updateState({ basicPlan }),
-    setSmartPlan: (smartPlan: WorkoutPlan | null) => updateState({ smartPlan }),
-    setShowPlanManager: (showPlanManager: boolean) =>
-      updateState({ showPlanManager }),
-    setPendingPlan: (
-      pendingPlan: { plan: WorkoutPlan; type: "basic" | "smart" } | null
-    ) => updateState({ pendingPlan }),
-    setLoading: (loading: boolean) => updateState({ loading }),
+    setRefreshing,
+    setSelectedPlanType: setSelectedPlanTypeCallback,
+    setBasicPlan: setBasicPlanCallback,
+    setSmartPlan: setSmartPlanCallback,
+    setShowPlanManager: setShowPlanManagerCallback,
+    setPendingPlan: setPendingPlanCallback,
+    setLoading: setLoadingCallback,
   };
 };
 
@@ -145,9 +181,20 @@ export default function WorkoutPlansScreen({
   const routeParams = route?.params;
   const shouldRegenerate = routeParams?.regenerate;
   const shouldAutoStart = routeParams?.autoStart;
-  const returnFromWorkout = routeParams?.returnFromWorkout;
+  // const returnFromWorkout = routeParams?.returnFromWorkout; // Not currently used
   // 🧭 Navigation
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  // Debug: Track re-renders
+  React.useEffect(() => {
+    // Only log if user is defined to avoid spam during initialization
+    if (user?.id) {
+      logger.warn(
+        "WorkoutPlansScreen",
+        `🔄 Re-rendered - userId: ${user.id}, basicPlan: ${!!basicPlan}, smartPlan: ${!!smartPlan}, selectedType: ${selectedPlanType}, loading: ${loading}, canAccessAI: ${canAccessAI}`
+      );
+    }
+  });
 
   // 🚀 Performance Tracking
   const renderStartTime: number = useMemo(() => performance.now(), []);
@@ -177,8 +224,9 @@ export default function WorkoutPlansScreen({
     }
   }, []);
 
-  // Core hooks and state
-  const { user, updateUser } = useUserStore();
+  // Core hooks and state - use selectors to prevent unnecessary re-renders
+  const user = useUserStore((state) => state.user);
+  const updateUser = useUserStore((state) => state.updateUser);
 
   // Modal management
   const {
@@ -270,7 +318,8 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, showError, showSuccess, updateUser, setLoading]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.workoutplans, showError, showSuccess, updateUser, setLoading]
   );
 
   /**
@@ -333,7 +382,15 @@ export default function WorkoutPlansScreen({
         setLoading(false);
       }
     },
-    [user, canAccessAI, showError, showSuccess, updateUser, setLoading]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      user?.workoutplans,
+      canAccessAI,
+      showError,
+      showSuccess,
+      updateUser,
+      setLoading,
+    ]
   );
 
   // 🔄 המרת נתוני אימון לפורמט המסך הפעיל
@@ -511,8 +568,8 @@ export default function WorkoutPlansScreen({
     showSuccess,
     showError,
     canAccessAI,
-    navigation,
     selectedPlanType,
+    navigation,
   ]);
 
   // Handle refresh
@@ -559,15 +616,8 @@ export default function WorkoutPlansScreen({
     if (!basicPlan && !user?.workoutplans?.basicPlan) {
       generateBasicPlan(false);
     }
-  }, [
-    basicPlan,
-    smartPlan,
-    user?.workoutplans,
-    generateBasicPlan,
-    setBasicPlan,
-    setSelectedPlanType,
-    setSmartPlan,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.workoutplans, generateBasicPlan]);
 
   // Handle route parameters for enhanced UX
   useEffect(() => {
@@ -587,11 +637,11 @@ export default function WorkoutPlansScreen({
         handleGenerateBasic();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     shouldRegenerate,
     loading,
     selectedPlanType,
-    canAccessAI,
     handleGenerateAI,
     handleGenerateBasic,
   ]);

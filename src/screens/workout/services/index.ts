@@ -3,10 +3,10 @@
  * @description ייצוא מרכזי של כל שירותי האימון המתקדמים - Hub מרכזי משופר
  * @description English: Central export for all advanced workout services - Enhanced central hub
  * @inspired מהארכיטקטורה המוצלחת במסך ההיסטוריה
- * @updated 2025-01-17 Enhanced documentation for audit completion
+ * @updated 2025-09-01 Fixed exports and documentation to match available services
  *
  * ✅ ACTIVE & WELL-ORGANIZED: Hub ייצוא מרכזי מתקדם ומאורגן
- * - Exports 5 advanced services: autoSave, validation, errorHandling, feedback, storage
+ * - Exports 5 advanced services: autoSave, validation, errorHandling, feedback, logic
  * - System-wide access via src/services/index.ts re-export
  * - Comprehensive usage examples with real-world integration patterns
  * - Clean architecture with proper service separation and dependencies
@@ -16,7 +16,7 @@
  * - workoutValidationService: וידוא נתונים מתקדם עם התאמה אישית
  * - workoutErrorHandlingService: טיפול בשגיאות מרכזי עם recovery
  * - workoutFeedbackService: ניהול משוב משתמש ואנליטיקה
- * - workoutStorageService: ניהול אחסון מתקדם עם backup
+ * - workoutLogicService: לוגיקה מתקדמת לתוכניות אימון
  *
  * @architecture Barrel exports pattern for clean service imports
  * @usage Central access point for all workout-related service operations
@@ -39,8 +39,8 @@ export { default as workoutErrorHandlingService } from "./workoutErrorHandlingSe
 // User feedback and analytics collection
 export { default as workoutFeedbackService } from "./workoutFeedbackService";
 
-// Advanced storage management - now centralized in services/workout
-// export { default as workoutStorageService } from "./workoutStorageService"; // REMOVED
+// Advanced workout logic and planning
+export * from "./workoutLogicService";
 
 /**
  * דוגמת שימוש:
@@ -51,7 +51,7 @@ export { default as workoutFeedbackService } from "./workoutFeedbackService";
  *   workoutValidationService,
  *   workoutErrorHandlingService,
  *   workoutFeedbackService,
- *   workoutDataService
+ *   workoutLogicService
  * } from '../services';
  *
  * // שמירה אוטומטית משופרת
@@ -82,8 +82,8 @@ export { default as workoutFeedbackService } from "./workoutFeedbackService";
  * };
  * await workoutFeedbackService.saveFeedback(workoutId, feedback);
  *
- * // אנליטיקה
- * const analytics = await workoutDataService.calculateWorkoutAnalytics();
- * console.log("Total workouts:", analytics.totalWorkouts);
+ * // שימוש בלוגיקת אימון
+ * const muscleGroups = workoutLogicService.getMuscleGroupsForDay("יום חזה");
+ * console.log("Muscle groups for chest day:", muscleGroups);
  * ```
  */

@@ -43,6 +43,24 @@ const DeveloperScreen = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // קבועים למניעת קוד קשיח
+  const QUESTIONNAIRE_MIN_ANSWERS = 10;
+  const DEMO_USER_PREFIX = "משתמש דמו";
+  const NO_QUESTIONNAIRE_PREFIX = "משתמש חסר שאלון";
+
+  // פונקציית עזר לבדיקת מצב שאלון
+  const checkQuestionnaireStatus = useCallback(
+    (userItem: User) => {
+      const answers = fieldMapper.getSmartAnswers(userItem);
+      return Array.isArray(answers)
+        ? answers.length >= QUESTIONNAIRE_MIN_ANSWERS
+        : !!(
+            answers && Object.keys(answers).length >= QUESTIONNAIRE_MIN_ANSWERS
+          );
+    },
+    [QUESTIONNAIRE_MIN_ANSWERS]
+  );
+
   // Modal state for ConfirmationModal
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({
@@ -53,6 +71,14 @@ const DeveloperScreen = () => {
     cancelText: "ביטול",
     destructive: false,
     singleButton: false,
+  });
+
+  // Debug settings
+  const [debugSettings, setDebugSettings] = useState({
+    verboseLogging: false,
+    showPerformanceMetrics: false,
+    mockNetworkDelay: false,
+    bypassAuth: false,
   });
 
   // Helper function to show modal
@@ -81,14 +107,6 @@ const DeveloperScreen = () => {
     },
     []
   );
-
-  // Debug settings
-  const [debugSettings, setDebugSettings] = useState({
-    verboseLogging: false,
-    showPerformanceMetrics: false,
-    mockNetworkDelay: false,
-    bypassAuth: false,
-  });
 
   // מידע מערכת
   const [systemInfo, setSystemInfo] = useState({
@@ -161,9 +179,7 @@ const DeveloperScreen = () => {
 
       // 2) בדיקה אם למשתמש יש שאלון מלא
       const answers = fieldMapper.getSmartAnswers(selectedUser);
-      const hasSmartQuestionnaire = Array.isArray(answers)
-        ? answers.length >= 10
-        : !!(answers && Object.keys(answers).length >= 10);
+      const hasSmartQuestionnaire = checkQuestionnaireStatus(selectedUser);
 
       logger.info("developer", `בדיקת שאלון למשתמש ${selectedUser.name}`, {
         hasAnswers: !!answers,
@@ -207,7 +223,7 @@ const DeveloperScreen = () => {
       logger.info("developer", "יוצר משתמש דמו חדש");
 
       const testUser = {
-        name: `משתמש דמו ${Date.now()}`,
+        name: `${DEMO_USER_PREFIX} ${Date.now()}`,
         email: `demo${Date.now()}@test.com`,
         smartquestionnairedata: {
           answers: {
@@ -252,7 +268,7 @@ const DeveloperScreen = () => {
       logger.info("developer", "יוצר משתמש ללא שאלון לבדיקה");
 
       const testUser = {
-        name: `משתמש חסר שאלון ${Date.now()}`,
+        name: `${NO_QUESTIONNAIRE_PREFIX} ${Date.now()}`,
         email: `no-questionnaire${Date.now()}@test.com`,
         // ללא smartquestionnairedata - כדי לבדוק את הניווט לשאלון
       };
@@ -315,8 +331,11 @@ const DeveloperScreen = () => {
     key: keyof typeof debugSettings,
     value: boolean
   ) => {
-    setDebugSettings((prev) => ({ ...prev, [key]: value }));
-    logger.info("developer", `עדכון הגדרת debug: ${key} = ${value}`);
+    setDebugSettings((prev: typeof debugSettings) => ({
+      ...prev,
+      [key]: value,
+    }));
+    logger.info("developer", `עדכון הגדרת debug: ${String(key)} = ${value}`);
   };
 
   // בדיקת חיבור Supabase
@@ -509,11 +528,7 @@ const DeveloperScreen = () => {
             </Text>
             {users.map((userItem) => {
               // בדיקת מצב השאלון לכל משתמש
-              const answers = fieldMapper.getSmartAnswers(userItem);
-              const hasSmartQuestionnaire = Array.isArray(answers)
-                ? answers.length >= 10
-                : !!(answers && Object.keys(answers).length >= 10);
-
+              const hasSmartQuestionnaire = checkQuestionnaireStatus(userItem);
               return (
                 <TouchableOpacity
                   key={userItem.id}
@@ -524,7 +539,7 @@ const DeveloperScreen = () => {
                     <Text style={styles.userName}>{userItem.name}</Text>
                     <Text style={styles.userEmail}>{userItem.email}</Text>
                     <View style={styles.userTags}>
-                      {userItem.name?.includes("דמו") && (
+                      {userItem.name?.includes(DEMO_USER_PREFIX) && (
                         <Text style={styles.demoTag}>דמו</Text>
                       )}
                       <Text

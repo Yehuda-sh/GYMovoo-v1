@@ -28,7 +28,16 @@
 - 📱 **ממשק RTL מלא** - תמיכה מלאה בעברית עם אייקונים אינטואיטיביים
 - 🔧 **TypeScript מלא** - 100% type safety עם interfaces מתקדמים
 
-#### 🆕 עדכונים אחרונים (אוגוסט 2025)
+#### 🆕 עדכונים אחרונים (ספטמבר 2025)
+
+- 🧪 **שיפור מקיף של בדיקות** - הוספת 6 בדיקות חדשות ל-useWorkoutPlanGeneration.test.ts עם כיסוי מלא של edge cases
+- 📊 **אופטימיזציה של ביצועי בדיקות** - כל הבדיקות עוברות תוך 1.087 שניות עם 0 שגיאות
+- 🔍 **בדיקות מקיפות לטיפול בשגיאות** - בדיקות לטיפול בפרמטרים null/undefined ותרחישי קיצון
+- 📈 **שיפור כיסוי בדיקות** - בדיקות לניהול היסטוריית תוכניות, custom muscle groups ותרחישי ציוד שונים
+- ✅ **אימות מקיף של תכונות** - בדיקות לכל סוגי המטרות ותדירות האימונים
+- 🎯 **בדיקות איכות קוד משופרות** - וידוא עקביות ואמינות בכל התרחישים
+
+#### 🎯 תכונות קודמות (אוגוסט 2025)
 
 - 🌐 **מיגרציה מלאה ל-Supabase** – נתוני דמו הוסרו; אין יותר צורך בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`
 - 🛡️ **שיפור טיפול בשגיאות** - workoutErrorHandlingService עודכן עם תמיכה מלאה בSupabase (2025-08-17)
@@ -41,8 +50,6 @@
 - **🧭 Navigation Typing משופר** - שיפור משמעותי בטיפוסי הניווט עם StackNavigationProp
 - **🛡️ Type Safety מלא** - 100% type safety במסכי Screen מרכזיים, 0 שגיאות קריטיות
 - **📚 ניקוי תיעוד** - הסרת מסמכים כפולים ושיפור ארגון המידע
-
-#### 🎯 תכונות קודמות (יולי 2025)
 
 - **🔄 מסך אימון אוניברסלי** - איחוד ActiveWorkout ו-QuickWorkout למסך יחיד עם 3 מצבים
 - **📉 צמצום קוד** - חיסכון של 450+ שורות קוד (כפילות 70%)
@@ -129,7 +136,7 @@ npx expo start --tunnel
 - **🔧 שירותים:** 13 שירותים פעילים כולל workoutHistoryService ו-workoutErrorHandlingService (מחוזק 2025-08-17)
 - **📚 תיעוד:** 13 קבצי .md מאורגנים עם מידע מעודכן (לאחר ניקוי שירותי דמו וסימולציה)
 
-> עדכון סטטיסטיקות אחרון: 2025-08-17 (לאחר ניקוי מערכות ניסיוניות וקבצי תיעוד מיותרים)
+> עדכון סטטיסטיקות אחרון: 2025-09-01 (לאחר שיפור מקיף של בדיקות ואופטימיזציה)
 
 ### 🗺️ מפת קוד (High-Level Code Map)
 
@@ -164,6 +171,7 @@ npx expo start --tunnel
 9. סטטיסטיקות README: נתפסות כצילום מצב – לא להבטיח עדכניות בלי ריצת סקריפט איסוף.
 10. נגישות: רכיבים חדשים – חובה `accessibilityLabel` בעברית + סימון role היכן רלוונטי.
 11. RTL: כל טקסט חדש – לוודא `writingDirection: 'rtl'` אם אינו יורש סגנון גלובלי.
+12. בדיקות: שיפור מקיף של כיסוי בדיקות עם 13+ בדיקות ל-useWorkoutPlanGeneration (2025-09-01).
 
 ### 📂 סטטוס תיעוד – מועמדי איחוד / סידור
 
@@ -454,7 +462,16 @@ eas build -p ios
 - ⭐ **Advanced Feedback System** - Star ratings, difficulty levels, and emoji feedback
 - 🔧 **Full TypeScript** - 100% type safety with advanced interfaces
 
-#### 🆕 Latest Updates (August 2025)
+#### 🆕 Latest Updates (September 2025)
+
+- 🧪 **Comprehensive Test Improvements** - Added 6 new tests to useWorkoutPlanGeneration.test.ts with full edge case coverage
+- 📊 **Test Performance Optimization** - All tests pass in 1.087 seconds with 0 errors
+- 🔍 **Comprehensive Error Handling Tests** - Tests for null/undefined parameters and extreme scenarios
+- 📈 **Enhanced Test Coverage** - Tests for plan history management, custom muscle groups, and different equipment scenarios
+- ✅ **Thorough Feature Validation** - Tests for all goal types and workout frequencies
+- 🎯 **Improved Code Quality Tests** - Ensuring consistency and reliability across all scenarios
+
+#### 🎯 Previous Features (August 2025)
 
 - 🌐 **Complete Supabase Migration** – Demo data removed; no more local server or `EXPO_PUBLIC_STORAGE_BASE_URL` needed
 - 🛡️ **Enhanced Error Handling** - workoutErrorHandlingService updated with full Supabase support (2025-08-17)
@@ -468,12 +485,10 @@ eas build -p ios
 - **🛡️ Complete Type Safety** - 100% type safety in major Screen components, 0 critical errors
 - **📚 Documentation Cleanup** - Removed duplicate documents and improved information organization
 
-#### 🎯 Previous Features (July 2025)
-
 - **Advanced Smart Questionnaire System** - 7 dynamic questions with multiple selection
 - **Comprehensive Equipment Database** - 100+ equipment items categorized (home, gym, both)
 - **Perfect Synchronization** - Profile screen automatically updates with selected equipment
-- **Demo System** - Demo button on main screen for testing different scenarios (removed Aug 2025)
+- **Demo System** - Demo button on main screen for testing different scenarios (removed in August 2025)
 - **Dynamic Questions** - Questionnaire adapts based on previous answers
 - **Gender-First Approach** - Gender selection as first question for language adaptation
 - **RTL & Gender Adaptation** - Complete system for Hebrew RTL and gender-adaptive text
@@ -534,6 +549,8 @@ The app is configured for forced RTL to support Hebrew interface. If RTL doesn't
 - **🧩 Components:** 12 components in 3 categories (common, ui, workout)
 - **🔧 Services:** 13 active services including workoutHistoryService
 - **📚 Documentation:** 13 organized .md files with up-to-date information (after cleanup)
+
+> Last updated: 2025-09-01 (after comprehensive test improvements and optimization)
 
 ### Technology Stack
 

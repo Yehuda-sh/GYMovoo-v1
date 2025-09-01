@@ -58,6 +58,7 @@ import { Alert, AccessibilityInfo } from "react-native";
 import { WorkoutData } from "../types/workout.types";
 import workoutValidationService from "./workoutValidationService";
 import { logger } from "../../../utils/logger";
+import StorageCleanup from "../../../utils/storageCleanup";
 
 // Advanced interfaces for monitoring and analytics
 interface ErrorPerformanceMetrics {
@@ -132,6 +133,9 @@ class ErrorPerformanceMonitor {
   private cacheHits = 0;
   private cacheRequests = 0;
 
+  // Constants for performance monitoring
+  private static readonly MAX_RESOLUTION_TIMES = 100;
+
   startErrorHandling(): number {
     this.metrics.totalErrorsHandled++;
     return Date.now();
@@ -141,7 +145,9 @@ class ErrorPerformanceMonitor {
     const resolutionTime = Date.now() - startTime;
     this.resolutionTimes.push(resolutionTime);
 
-    if (this.resolutionTimes.length > 100) {
+    if (
+      this.resolutionTimes.length > ErrorPerformanceMonitor.MAX_RESOLUTION_TIMES
+    ) {
       this.resolutionTimes.shift();
     }
 
@@ -215,13 +221,20 @@ class ErrorSecurityValidator {
   ];
   private errorHistory: number[] = [];
 
+  // Constants for security validation
+  private static readonly SECURITY_SCORE_THRESHOLD = 50;
+  private static readonly ERROR_RATE_WINDOW_MS = 60000; // 1 minute
+
   validateErrorContext(context: ErrorContext): boolean {
     try {
       this.checkRateLimit();
       this.scanForSuspiciousPatterns(context);
       this.updateSecurityScore();
 
-      return this.metrics.securityScore >= 50;
+      return (
+        this.metrics.securityScore >=
+        ErrorSecurityValidator.SECURITY_SCORE_THRESHOLD
+      );
     } catch (error) {
       logger.error(
         "ErrorService: Security validation failed",
@@ -237,7 +250,9 @@ class ErrorSecurityValidator {
     this.errorHistory.push(now);
 
     // Keep only errors from last minute
-    this.errorHistory = this.errorHistory.filter((time) => now - time < 60000);
+    this.errorHistory = this.errorHistory.filter(
+      (time) => now - time < ErrorSecurityValidator.ERROR_RATE_WINDOW_MS
+    );
 
     if (this.errorHistory.length > this.maxErrorsPerMinute) {
       this.metrics.rateLimitHits++;
@@ -394,6 +409,10 @@ const cacheManager = new ErrorCacheManager();
 class WorkoutErrorHandlingService {
   private static instance: WorkoutErrorHandlingService;
   private errorLog: Array<{ error: Error; context: EnhancedErrorContext }> = [];
+
+  // Constants for service configuration
+  private static readonly MAX_ERROR_LOG_SIZE = 100;
+
   private accessibilityInfo: ErrorAccessibilityInfo = {
     screenReaderEnabled: false,
     lastAnnouncementTime: 0,
@@ -890,7 +909,10 @@ class WorkoutErrorHandlingService {
    */
   private async cleanOldData(): Promise<void> {
     try {
-      console.warn("🧹 Starting cleanup of old workout data...");
+      logger.warn(
+        "🧹 Starting cleanup of old workout data...",
+        "WorkoutErrorHandlingService"
+      );
 
       // ניקוי שגיאות ישנות (מעל 7 ימים)
       const weekAgo = new Date();
@@ -900,12 +922,37 @@ class WorkoutErrorHandlingService {
         (entry) => new Date(entry.context.timestamp) > weekAgo
       );
 
-      console.warn(`🧹 Cleaned old errors. Remaining: ${this.errorLog.length}`);
+      logger.warn(
+        `🧹 Cleaned old errors. Remaining: ${this.errorLog.length}`,
+        "WorkoutErrorHandlingService"
+      );
 
-      // כאן ניתן להוסיף ניקוי של AsyncStorage או Supabase לנתונים ישנים
-      // עבור עתיד: אינטגרציה עם storageCleanup utility
+      // אינטגרציה עם storageCleanup utility - ניקוי נתונים זמניים ישנים
+      await StorageCleanup.cleanOldData();
+
+      // ניקוי מפתחות זמניים של אימונים ישנים
+      const AsyncStorage = await import(
+        "@react-native-async-storage/async-storage"
+      );
+      const allKeys = await AsyncStorage.default.getAllKeys();
+      const tempWorkoutKeys = allKeys.filter(
+        (key) =>
+          key.startsWith("temp_workout_") &&
+          key.includes("_" + Date.now().toString().slice(0, -3)) // ישנים מ-24 שעות
+      );
+
+      if (tempWorkoutKeys.length > 0) {
+        await AsyncStorage.default.multiRemove(tempWorkoutKeys);
+        logger.warn(
+          `🧹 Cleaned ${tempWorkoutKeys.length} old temporary workout keys`,
+          "WorkoutErrorHandlingService"
+        );
+      }
     } catch (error) {
-      console.error("❌ Error during cleanup:", error);
+      logger.error(
+        "ErrorService: Error during cleanup",
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 
@@ -926,11 +973,9 @@ class WorkoutErrorHandlingService {
       };
 
       await AsyncStorage.default.setItem(tempKey, JSON.stringify(tempData));
-      console.warn(
-        "💾 Saved to temporary cache:",
-        workout.name,
-        "Key:",
-        tempKey
+      logger.warn(
+        `💾 Saved to temporary cache: ${workout.name}, Key: ${tempKey}`,
+        "WorkoutErrorHandlingService"
       );
 
       // הוספת מזהה למעקב

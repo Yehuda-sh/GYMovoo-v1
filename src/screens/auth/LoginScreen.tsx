@@ -31,6 +31,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StorageKeys } from "../../constants/StorageKeys";
+import { logger } from "../../utils/logger";
 import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
@@ -58,6 +59,33 @@ import {
 // ===============================================
 // 🤖 AI & Analytics Types - טיפוסי AI ואנליטיקה
 // ===============================================
+
+/** קבועים למסך התחברות / Login screen constants */
+const LOGIN_CONSTANTS = {
+  TIMEOUTS: {
+    LOGIN_DELAY: 1200,
+    DEBOUNCE_DELAY: 350,
+    ANIMATION_FADE: 800,
+    ANIMATION_PRESS: 100,
+  },
+  COLORS: {
+    GOOGLE_BRAND: "#DB4437",
+  },
+  VIBRATION_PATTERNS: {
+    SUCCESS: [50] as number[],
+    ERROR: [100, 50, 100] as number[],
+    WARNING: [50, 25, 50] as number[],
+    LIGHT: 25,
+  },
+  TEST_CREDENTIALS: {
+    EMAIL: "test@example.com",
+    PASSWORD: "123456",
+    USER_ID: "user123",
+  },
+  ANALYTICS: {
+    MAX_ERROR_PATTERNS: 5,
+  },
+} as const;
 
 /** @description נתוני אנליטיקה להתחברות / Login analytics data */
 interface LoginAnalytics {
@@ -189,7 +217,7 @@ class LoginCacheManager {
       const updated = { ...current, ...updates };
       await AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.warn("🔐 LoginCacheManager - Failed to update cache:", error);
+      logger.warn("LoginCacheManager", "Failed to update cache", error);
     }
   }
 
@@ -217,7 +245,7 @@ class LoginCacheManager {
       const updated = { ...current, ...updates };
       await AsyncStorage.setItem(this.ANALYTICS_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.warn("🔐 LoginCacheManager - Failed to update analytics:", error);
+      logger.warn("LoginCacheManager", "Failed to update analytics", error);
     }
   }
 }
@@ -324,16 +352,16 @@ const triggerHapticFeedback = (
     // iOS Haptic Feedback
     switch (type) {
       case "success":
-        Vibration.vibrate([50]);
+        Vibration.vibrate(LOGIN_CONSTANTS.VIBRATION_PATTERNS.SUCCESS);
         break;
       case "error":
-        Vibration.vibrate([100, 50, 100]);
+        Vibration.vibrate(LOGIN_CONSTANTS.VIBRATION_PATTERNS.ERROR);
         break;
       case "warning":
-        Vibration.vibrate([50, 25, 50]);
+        Vibration.vibrate(LOGIN_CONSTANTS.VIBRATION_PATTERNS.WARNING);
         break;
       case "light":
-        Vibration.vibrate(25);
+        Vibration.vibrate(LOGIN_CONSTANTS.VIBRATION_PATTERNS.LIGHT);
         break;
     }
   } else {
@@ -399,7 +427,7 @@ const LoginScreen = React.memo(() => {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 800, // זמן ארוך יותר לחוויה חלקה
+          duration: LOGIN_CONSTANTS.TIMEOUTS.ANIMATION_FADE, // זמן ארוך יותר לחוויה חלקה
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
@@ -417,8 +445,9 @@ const LoginScreen = React.memo(() => {
 
       // הפעלת Google אוטומטי אם הגיע עם google: true
       if (route?.params?.google) {
-        console.warn(
-          "🔐 LoginScreen - Auto Google login triggered from route params"
+        logger.warn(
+          "LoginScreen",
+          "Auto Google login triggered from route params"
         );
         handleGoogleAuth();
       }
@@ -444,7 +473,7 @@ const LoginScreen = React.memo(() => {
           insights.userBehaviorPattern
         );
         // ניתן להעביר ל-navigation params בעתיד
-        console.warn("🤖 Navigation AI Insights:", JSON.stringify(navInsights));
+        logger.debug("LoginScreen", "Navigation AI Insights", navInsights);
       }
     };
 
@@ -475,7 +504,7 @@ const LoginScreen = React.memo(() => {
         // no saved email found
       }
     } catch (error) {
-      console.error("🔐 LoginScreen - Failed to load saved email:", error);
+      logger.error("LoginScreen", "Failed to load saved email", error);
     }
   };
 
@@ -541,12 +570,12 @@ const LoginScreen = React.memo(() => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.95,
-        duration: 100,
+        duration: LOGIN_CONSTANTS.TIMEOUTS.ANIMATION_PRESS,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 100,
+        duration: LOGIN_CONSTANTS.TIMEOUTS.ANIMATION_PRESS,
         useNativeDriver: true,
       }),
     ]).start();
@@ -570,12 +599,15 @@ const LoginScreen = React.memo(() => {
         const loginTime = Date.now() - (loginStartTime || Date.now());
         setLoginLoading(false);
 
-        if (email === "test@example.com" && password === "123456") {
+        if (
+          email === LOGIN_CONSTANTS.TEST_CREDENTIALS.EMAIL &&
+          password === LOGIN_CONSTANTS.TEST_CREDENTIALS.PASSWORD
+        ) {
           // ✅ התחברות מוצלחת / Successful login
           const user = {
             email: email.trim(),
             name: "משתמש לדוגמה",
-            id: "user123",
+            id: LOGIN_CONSTANTS.TEST_CREDENTIALS.USER_ID,
             avatar: undefined,
           };
 
@@ -626,7 +658,9 @@ const LoginScreen = React.memo(() => {
               "invalid_credentials",
             ];
             await LoginCacheManager.updateAnalytics({
-              errorPatterns: updatedErrorPatterns.slice(-5), // שמור רק 5 שגיאות אחרונות
+              errorPatterns: updatedErrorPatterns.slice(
+                -LOGIN_CONSTANTS.ANALYTICS.MAX_ERROR_PATTERNS
+              ), // שמור רק 5 שגיאות אחרונות
             });
           }
 
@@ -635,9 +669,9 @@ const LoginScreen = React.memo(() => {
             triggerHapticFeedback("error");
           }
         }
-      }, 1200);
+      }, LOGIN_CONSTANTS.TIMEOUTS.LOGIN_DELAY);
     } catch (e) {
-      console.error("🔐 LoginScreen - Login error:", e);
+      logger.error("LoginScreen", "Login error", e);
       setLoginLoading(false);
       setError(AUTH_STRINGS.errors.generalLoginError);
 
@@ -648,12 +682,18 @@ const LoginScreen = React.memo(() => {
     }
   };
 
-  const handleLogin = useDebouncedCallback(_handleLogin, 350);
+  const handleLogin = useDebouncedCallback(
+    _handleLogin,
+    LOGIN_CONSTANTS.TIMEOUTS.DEBOUNCE_DELAY
+  );
 
   const handleGoogleAuth = async () => {
     setGoogleLoading(true);
     setError(null);
     setLoginStartTime(Date.now()); // 📊 מדידת זמן
+
+    // לוג להתחברות דמה
+    logger.info("LoginScreen", "Fake Google authentication initiated");
 
     // 🎯 Haptic feedback להתחלה
     if (performanceConfig.hapticFeedback) {
@@ -694,8 +734,16 @@ const LoginScreen = React.memo(() => {
 
       handleSuccessfulLogin(googleUser);
     } catch (e) {
-      console.error("🔐 LoginScreen - Google auth failed:", e);
-      setError(AUTH_STRINGS.errors.googleFailed);
+      logger.error("LoginScreen", "Google auth failed", e);
+
+      // בדיקה אם זו שגיאת fake auth או שגיאה אמיתית
+      const isDevAuthDisabled =
+        e instanceof Error && e.message.includes("Dev auth disabled");
+      const errorMessage = isDevAuthDisabled
+        ? "התחברות Google זמינה רק בסביבת פיתוח"
+        : AUTH_STRINGS.errors.googleFailed;
+
+      setError(errorMessage);
 
       // 📊 עדכון analytics כשלון / Update failure analytics
       if (performanceConfig.enableAnalytics && analytics) {
@@ -1060,14 +1108,21 @@ const LoginScreen = React.memo(() => {
                 accessibilityLabel={STRINGS.accessibility.googleButton}
               >
                 {googleLoading ? (
-                  <LoadingSpinner size="small" color="#DB4437" />
+                  <LoadingSpinner
+                    size="small"
+                    color={LOGIN_CONSTANTS.COLORS.GOOGLE_BRAND}
+                  />
                 ) : (
-                  <Ionicons name="logo-google" size={20} color="#DB4437" />
+                  <Ionicons
+                    name="logo-google"
+                    size={20}
+                    color={LOGIN_CONSTANTS.COLORS.GOOGLE_BRAND}
+                  />
                 )}
                 <Text style={styles.googleButtonText}>
                   {googleLoading
                     ? STRINGS.buttons.googleLoading
-                    : STRINGS.buttons.google}
+                    : `${STRINGS.buttons.google} (דמו)`}
                 </Text>
               </Pressable>
 

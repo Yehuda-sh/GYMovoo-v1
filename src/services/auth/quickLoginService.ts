@@ -1,19 +1,31 @@
 /**
  * @file src/services/auth/quickLoginService.ts
- * @description שירות התחברות מהירה מבוסס session Supab    // אם אין session או שהוא פג, ננסה לרענן
-    if (!currentSession?.user || !currentSession.expires_at) {
-      if (__DEV__) {
-        logger.debug("quickLoginService", `${logContext} No valid session found`);
-      }
-      return { ok: false, reason: "NO_SESSION" };
-    }ם
+ * @description שירות התחברות מהירה מבוסס session Supabase
  * @description Quick login service based on existing Supabase session
- * 
+ *
  * עקרונות:
  * - Supabase = מקור אמת יחיד
  * - AsyncStorage = cache בלבד (נתונים לא-רגישים)
  * - אין אחסון סיסמאות
  * - רק session refresh ו-user hydration
+ *
+ * @features
+ * - ✅ בדיקת זמינות התחברות מהירה
+ * - ✅ רענון session אוטומטי
+ * - ✅ טעינת נתוני משתמש מ-Supabase
+ * - ✅ שמירת cache לא-רגיש
+ * - ✅ טיפול מקיף בשגיאות
+ * - ✅ לוגים מפורטים לפיתוח
+ *
+ * @architecture
+ * - Session Management: Supabase auth session handling
+ * - User Hydration: Fetch user data from Supabase
+ * - Cache Strategy: AsyncStorage for non-sensitive data
+ * - Error Handling: Comprehensive error reporting
+ * - Logging: Development-friendly debug logs
+ *
+ * @dependencies supabase client, userApi, userStore, AsyncStorage
+ * @updated 2025-09-01 - Enhanced with constants, helper functions, type safety, and improved JSDoc
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +36,69 @@ import { logger } from "../../utils/logger";
 import { errorHandler } from "../../utils/errorHandler";
 import { StorageKeys } from "../../constants/StorageKeys";
 
+// Constants for session management
+const SESSION_CONSTANTS = {
+  MIN_VALIDITY_BUFFER: 300, // 5 minutes in seconds
+  LOG_PREFIX: "quickLoginService",
+} as const;
+
+/**
+ * Helper function to validate session expiry
+ * @param expiresAt Session expiry timestamp
+ * @param bufferSeconds Buffer time in seconds (default: 5 minutes)
+ * @returns boolean indicating if session is still valid
+ */
+const isSessionValid = (
+  expiresAt: number,
+  bufferSeconds: number = SESSION_CONSTANTS.MIN_VALIDITY_BUFFER
+): boolean => {
+  const now = Math.floor(Date.now() / 1000);
+  return expiresAt > now + bufferSeconds;
+};
+
+/**
+ * Type guard to check if session is properly structured
+ * @param session Supabase session object
+ * @returns boolean indicating if session has required properties
+ */
+const isValidSession = (
+  session: unknown
+): session is {
+  user: { id: string };
+  expires_at: number;
+  refresh_token?: string;
+} => {
+  if (!session || typeof session !== "object") return false;
+
+  const s = session as Record<string, unknown>;
+  return (
+    "user" in s &&
+    "expires_at" in s &&
+    s.user !== null &&
+    typeof s.user === "object" &&
+    "id" in (s.user as Record<string, unknown>) &&
+    typeof (s.user as Record<string, unknown>).id === "string" &&
+    typeof s.expires_at === "number"
+  );
+};
+
+/**
+ * Helper function to log debug messages with consistent prefix
+ * @param message Debug message
+ * @param context Optional context string
+ * @param data Optional additional data
+ */
+const logDebug = (
+  message: string,
+  context?: string,
+  data?: string | number | boolean | object | null | undefined
+) => {
+  if (__DEV__) {
+    const fullMessage = context ? `${context} ${message}` : message;
+    logger.debug(SESSION_CONSTANTS.LOG_PREFIX, fullMessage, data);
+  }
+};
+
 export type QuickLoginResult =
   | { ok: true; userId: string }
   | {
@@ -33,14 +108,21 @@ export type QuickLoginResult =
 
 /**
  * בדיקה האם Quick Login זמין
- * @returns true אם יש session זמין או בר-רענון
+ * @description Checks if quick login is available by validating Supabase session
+ * @returns Promise<boolean> - true if session is valid or can be refreshed
+ *
+ * @example
+ * ```typescript
+ * const available = await isQuickLoginAvailable();
+ * if (available) {
+ *   // Show quick login option
+ * }
+ * ```
  */
 export const isQuickLoginAvailable = async (): Promise<boolean> => {
   try {
     if (!supabase) {
-      if (__DEV__) {
-        logger.debug("quickLoginService", "Supabase client not available");
-      }
+      logDebug("Supabase client not available");
       return false;
     }
 
@@ -50,19 +132,14 @@ export const isQuickLoginAvailable = async (): Promise<boolean> => {
     } = await supabase.auth.getSession();
 
     if (error) {
-      if (__DEV__) {
-        logger.debug("quickLoginService", "Session check error", error.message);
-      }
+      logDebug("Session check error", undefined, error.message);
       return false;
     }
 
     // אם יש session תקף
-    if (session?.user && session.expires_at) {
-      const now = Math.floor(Date.now() / 1000);
-      const expiresAt = session.expires_at;
-
+    if (session && isValidSession(session)) {
       // אם ה-session עדיין תקף לפחות ל-5 דקות
-      if (expiresAt > now + 300) {
+      if (isSessionValid(session.expires_at)) {
         return true;
       }
     }
@@ -81,21 +158,28 @@ export const isQuickLoginAvailable = async (): Promise<boolean> => {
 
     return false;
   } catch (error) {
-    if (__DEV__) {
-      logger.debug(
-        "quickLoginService",
-        "isQuickLoginAvailable error",
-        String(error)
-      );
-    }
+    logDebug("isQuickLoginAvailable error", undefined, String(error));
     return false;
   }
 };
 
 /**
  * ניסיון התחברות מהירה
- * @param opts אפשרויות נוספות
- * @returns תוצאת ההתחברות
+ * @description Attempts quick login using existing Supabase session
+ * @param opts Optional configuration with reason for logging context
+ * @returns Promise<QuickLoginResult> - Success with userId or failure with reason
+ *
+ * @example
+ * ```typescript
+ * const result = await tryQuickLogin({ reason: "WelcomeScreen" });
+ * if (result.ok) {
+ *   // Login successful, navigate to main app
+ *   navigation.reset({ routes: [{ name: "MainApp" }] });
+ * } else {
+ *   // Handle login failure
+ *   console.log("Login failed:", result.reason);
+ * }
+ * ```
  */
 export const tryQuickLogin = async (opts?: {
   reason?: string;
@@ -104,12 +188,7 @@ export const tryQuickLogin = async (opts?: {
 
   try {
     if (!supabase) {
-      if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} Supabase client not available`
-        );
-      }
+      logDebug("Supabase client not available", logContext);
       return { ok: false, reason: "NO_SESSION" };
     }
 
@@ -120,13 +199,7 @@ export const tryQuickLogin = async (opts?: {
     } = await supabase.auth.getSession();
 
     if (sessionError) {
-      if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} Session error`,
-          sessionError.message
-        );
-      }
+      logDebug("Session error", logContext, sessionError.message);
       errorHandler.reportError(sessionError, {
         source: "quickLoginService/getSession",
         context: logContext,
@@ -137,28 +210,17 @@ export const tryQuickLogin = async (opts?: {
     let currentSession = session;
 
     // שלב 2: אם אין session או שהוא פג, ננסה לרענן
-    if (!currentSession?.user || !currentSession.expires_at) {
-      if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} No valid session found`
-        );
-      }
+    if (!currentSession || !isValidSession(currentSession)) {
+      logDebug("No valid session found", logContext);
       return { ok: false, reason: "NO_SESSION" };
     }
 
-    const now = Math.floor(Date.now() / 1000);
     const expiresAt = currentSession.expires_at;
 
     // אם ה-session פג או עומד לפוג בקרוב (פחות מ-5 דקות)
-    if (expiresAt <= now + 300) {
+    if (!isSessionValid(expiresAt)) {
       if (!currentSession.refresh_token) {
-        if (__DEV__) {
-          logger.debug(
-            "quickLoginService",
-            `${logContext} Session expired and no refresh token`
-          );
-        }
+        logDebug("Session expired and no refresh token", logContext);
         return { ok: false, reason: "NO_SESSION" };
       }
 
@@ -169,13 +231,11 @@ export const tryQuickLogin = async (opts?: {
         });
 
       if (refreshError || !refreshData.session?.user) {
-        if (__DEV__) {
-          logger.debug(
-            "quickLoginService",
-            `${logContext} Session refresh failed`,
-            refreshError?.message || "Unknown error"
-          );
-        }
+        logDebug(
+          "Session refresh failed",
+          logContext,
+          refreshError?.message || "Unknown error"
+        );
         errorHandler.reportError(refreshError || new Error("Refresh failed"), {
           source: "quickLoginService/refreshSession",
           context: logContext,
@@ -184,12 +244,7 @@ export const tryQuickLogin = async (opts?: {
       }
 
       currentSession = refreshData.session;
-      if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} Session refreshed successfully`
-        );
-      }
+      logDebug("Session refreshed successfully", logContext);
     }
 
     // שלב 3: שליפת נתוני המשתמש מ-Supabase
@@ -199,12 +254,7 @@ export const tryQuickLogin = async (opts?: {
       const user = await userApi.getByAuthId(authUserId);
 
       if (!user) {
-        if (__DEV__) {
-          logger.debug(
-            "quickLoginService",
-            `${logContext} User not found for auth ID: ${authUserId}`
-          );
-        }
+        logDebug(`User not found for auth ID: ${authUserId}`, logContext);
         errorHandler.reportError(
           new Error(`User not found for auth ID: ${authUserId}`),
           {
@@ -229,30 +279,20 @@ export const tryQuickLogin = async (opts?: {
       } catch (storageError) {
         // אם שמירת cache נכשלת, זה לא קריטי
         if (__DEV__) {
-          logger.debug(
-            "quickLoginService",
-            `${logContext} Cache save failed`,
-            String(storageError)
-          );
+          logDebug("Cache save failed", logContext, String(storageError));
         }
       }
 
-      if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} Quick login successful`,
-          `userId: ${user.id}, userName: ${user.name}, userEmail: ${user.email}`
-        );
-      }
+      logDebug(
+        "Quick login successful",
+        logContext,
+        `userId: ${user.id}, userName: ${user.name}, userEmail: ${user.email}`
+      );
 
       return { ok: true, userId: user.id! };
     } catch (fetchError) {
       if (__DEV__) {
-        logger.debug(
-          "quickLoginService",
-          `${logContext} User fetch error`,
-          String(fetchError)
-        );
+        logDebug("User fetch error", logContext, String(fetchError));
       }
       errorHandler.reportError(fetchError as Error, {
         source: "quickLoginService/fetchUser",
@@ -262,11 +302,7 @@ export const tryQuickLogin = async (opts?: {
     }
   } catch (error) {
     if (__DEV__) {
-      logger.debug(
-        "quickLoginService",
-        `${logContext} Unexpected error`,
-        String(error)
-      );
+      logDebug("Unexpected error", logContext, String(error));
     }
     errorHandler.reportError(error as Error, {
       source: "quickLoginService/tryQuickLogin",

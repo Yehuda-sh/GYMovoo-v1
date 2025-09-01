@@ -28,6 +28,7 @@ export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כ�
 
 export { default as UniversalButton } from "./ui/UniversalButton"; // כפתור אוניברסלי עם workout variant ו-44px validation ⭐⚡
 export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס אוניברסלי עם workout variant ו-performance tracking ⭐⚡
+export { default as TouchableButton } from "./ui/TouchableButton"; // כפתור מגע חוצה פלטפורמות עם משוב נטיבי ו-44px validation ⭐⚡
 
 // ===============================================
 // 🏋️ Workout Components - רכיבי אימון (מותאמים לכושר מובייל)

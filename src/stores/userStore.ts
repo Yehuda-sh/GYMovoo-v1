@@ -21,10 +21,14 @@
  * - ✅ החלפה של eslint-disable ב-gym_equipment עם טיפוס מוגדר
  * - ✅ שמירה על eslint-disable מוצדק ב-setCustomDemoUser
  * - ✅ תיעוד משופר וסידור קוד
+ * - ✅ הוספת קבועים מרכזיים (CONSTANTS) למניעת קוד קשיח
+ * - ✅ פונקציית עזר לניתוח ימי אימון (parseWorkoutDaysFromFrequency)
+ * - ✅ החלפת ערכי ברירת מחדל קשיחים עם קבועים
+ * - ✅ שיפור קריאות הקוד והתחזוקה
  *
  * @dependencies zustand, AsyncStorage, types/index, logger
  * @usage Used throughout application for user state management
- * @updated 2025-09-01 שיפורי type safety ותיעוד - Store מתקדם עם טיפוסים משופרים
+ * @updated 2025-09-01 שיפורי type safety ותיעוד - Store מתקדם עם טיפוסים משופרים וקבועים מרכזיים
  */
 
 import { create } from "zustand";
@@ -43,6 +47,25 @@ import { extractSmartAnswers } from "../utils/questionnaireUtils";
 import { logger } from "../utils/logger";
 import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipmentCatalog";
 
+// Import new helper files
+import { USER_STORE_CONSTANTS } from "./userStoreConstants";
+import {
+  clearAllStorageData,
+  createDebouncedSync,
+  shouldSyncUser,
+  handleStoreError,
+  updateUserAndScheduleSync,
+} from "./userStoreHelpers";
+import {
+  updateUserWithDemoData,
+  createNewUserWithDemoData,
+} from "./userStoreDemoUtils";
+
+// ==============================
+// Constants
+// ==============================
+const CONSTANTS = USER_STORE_CONSTANTS;
+
 // ==============================
 // Performance Optimization Utils
 // ==============================
@@ -51,7 +74,6 @@ let __memoizedEquipment: {
   timestamp: number;
   input: string[];
 } | null = null;
-const MEMO_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 const memoizedNormalizeEquipment = (arr?: string[]): string[] => {
   if (!arr || arr.length === 0) return [];
@@ -62,7 +84,7 @@ const memoizedNormalizeEquipment = (arr?: string[]): string[] => {
   if (
     __memoizedEquipment &&
     __memoizedEquipment.input.join(",") === inputKey &&
-    now - __memoizedEquipment.timestamp < MEMO_CACHE_TTL
+    now - __memoizedEquipment.timestamp < CONSTANTS.CACHE.MEMO_CACHE_TTL
   ) {
     return __memoizedEquipment.data;
   }
@@ -76,6 +98,10 @@ const memoizedNormalizeEquipment = (arr?: string[]): string[] => {
 
   return result;
 };
+
+// ==============================
+// Helper Functions
+// ==============================
 
 // ==============================
 // Utilities
@@ -902,195 +928,37 @@ export const useUserStore = create<UserStore>()(
       // ניקוי מלא של כל נתוני המשתמש (כולל AsyncStorage)
       // Complete clearing of all user data (including AsyncStorage)
       clearAllUserData: async () => {
-        try {
-          logger.info(
-            "DataManagement",
-            "userStore.clearAllUserData - מתחיל ניקוי מלא"
-          );
-
-          // קבלת כל המפתחות מ-AsyncStorage
-          const allKeys = await AsyncStorage.getAllKeys();
-          logger.debug(
-            "DataManagement",
-            `נמצאו ${allKeys.length} מפתחות ב-AsyncStorage`
-          );
-
-          // מחיקת כל המפתחות
-          await AsyncStorage.multiRemove(allKeys);
-
-          // איפוס ה-store
-          set({ user: null });
-
-          logger.info(
-            "DataManagement",
-            "userStore.clearAllUserData - ניקוי הושלם בהצלחה"
-          );
-        } catch (error) {
-          logger.error(
-            "DataManagement",
-            "userStore.clearAllUserData - שגיאה בניקוי",
-            error
-          );
-          throw error;
-        }
+        await clearAllStorageData("clearAllUserData");
+        set({ user: null });
       },
 
       // 🎯 פעולות משתמש דמו מותאם
       // Custom demo user actions
       setCustomDemoUser: (demoUser) => {
         if (!demoUser) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const qd: any = (demoUser as any).questionnaireData; // עשוי להגיע מ-UnifiedQuestionnaireScreen
 
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                customDemoUser: {
-                  id: demoUser.id || `demo_${Date.now()}`,
-                  name: demoUser.name || "משתמש דמו",
-                  gender: demoUser.gender || "other",
-                  age: demoUser.age || 30,
-                  experience: demoUser.experience || "intermediate",
-                  height: demoUser.height || 170,
-                  weight: demoUser.weight || 70,
-                  fitnessGoals: demoUser.fitnessGoals || [],
-                  availableDays: demoUser.availableDays || 3,
-                  sessionDuration:
-                    typeof demoUser.sessionDuration === "string"
-                      ? demoUser.sessionDuration
-                      : String(demoUser.sessionDuration),
-                  equipment: demoUser.equipment || [],
-                  preferredTime: demoUser.preferredTime || "evening",
-                  createdFromQuestionnaire: true,
-                  questionnaireTimestamp: new Date().toISOString(),
-                },
-                questionnaire: qd || state.user.questionnaire,
-                smartquestionnairedata: (() => {
-                  const existing = state.user.smartquestionnairedata;
-                  if (qd) {
-                    const realEquip = Array.isArray(qd.equipment)
-                      ? normalizeEquipment(qd.equipment)
-                      : [];
-                    if (existing) {
-                      if (realEquip.length > 0) {
-                        return {
-                          ...existing,
-                          answers: {
-                            ...existing.answers,
-                            equipment: realEquip,
-                          },
-                        };
-                      }
-                      return existing;
-                    }
-                    return {
-                      answers: {
-                        goal: qd.goal,
-                        gender: qd.gender,
-                        experience: qd.experience,
-                        availability: [qd.frequency].filter(Boolean),
-                        duration: qd.duration,
-                        location: qd.location,
-                        diet: qd.diet,
-                        equipment:
-                          realEquip.length > 0 ? realEquip : qd.equipment,
-                      },
-                      metadata: qd.metadata || { source: "customDemo" },
-                    };
-                  }
-                  return existing;
-                })(),
-                trainingstats: (() => {
-                  if (!qd) return state.user.trainingstats;
-                  const freq = qd.frequency;
-                  let preferredDays =
-                    state.user.trainingstats?.preferredWorkoutDays || 3;
-                  if (typeof freq === "string" && /_days$/.test(freq)) {
-                    const n = parseInt(freq.split("_", 1)[0], 10);
-                    if (!isNaN(n)) preferredDays = n;
-                  }
-                  return {
-                    ...state.user.trainingstats,
-                    preferredWorkoutDays: preferredDays,
-                    selectedEquipment: (() => {
-                      if (qd.equipment && Array.isArray(qd.equipment)) {
-                        const real = normalizeEquipment(qd.equipment);
-                        if (real.length > 0) return real;
-                      }
-                      return state.user.trainingstats?.selectedEquipment || [];
-                    })(),
-                    fitnessGoals: qd.goal
-                      ? [qd.goal]
-                      : state.user.trainingstats?.fitnessGoals || [],
-                    currentFitnessLevel:
-                      demoUser.experience ||
-                      state.user.trainingstats?.currentFitnessLevel,
-                  };
-                })(),
-              }
-            : {
-                // Create baseline user object when state.user is null
-                id: `demo_${Date.now()}`,
-                email: "",
-                name: demoUser.name || "משתמש דמו",
-                customDemoUser: {
-                  id: demoUser.id || `demo_${Date.now()}`,
-                  name: demoUser.name || "משתמש דמו",
-                  gender: demoUser.gender || "other",
-                  age: demoUser.age || 30,
-                  experience: demoUser.experience || "intermediate",
-                  height: demoUser.height || 170,
-                  weight: demoUser.weight || 70,
-                  fitnessGoals: demoUser.fitnessGoals || [],
-                  availableDays: demoUser.availableDays || 3,
-                  sessionDuration:
-                    typeof demoUser.sessionDuration === "string"
-                      ? demoUser.sessionDuration
-                      : String(demoUser.sessionDuration),
-                  equipment: demoUser.equipment || [],
-                  preferredTime: demoUser.preferredTime || "evening",
-                  createdFromQuestionnaire: true,
-                  questionnaireTimestamp: new Date().toISOString(),
-                },
-                questionnaire: qd,
-                smartquestionnairedata: qd
-                  ? {
-                      answers: {
-                        goal: qd.goal,
-                        gender: qd.gender,
-                        experience: qd.experience,
-                        availability: [qd.frequency].filter(Boolean),
-                        duration: qd.duration,
-                        location: qd.location,
-                        diet: qd.diet,
-                        equipment: Array.isArray(qd.equipment)
-                          ? normalizeEquipment(qd.equipment)
-                          : qd.equipment,
-                      },
-                      metadata: qd.metadata || { source: "customDemo" },
-                    }
-                  : undefined,
-                trainingstats: (() => {
-                  if (!qd) return { totalWorkouts: 0 };
-                  const freq = qd.frequency;
-                  let preferredDays = 3;
-                  if (typeof freq === "string" && /_days$/.test(freq)) {
-                    const n = parseInt(freq.split("_", 1)[0], 10);
-                    if (!isNaN(n)) preferredDays = n;
-                  }
-                  return {
-                    totalWorkouts: 0,
-                    preferredWorkoutDays: preferredDays,
-                    selectedEquipment: Array.isArray(qd.equipment)
-                      ? normalizeEquipment(qd.equipment)
-                      : [],
-                    fitnessGoals: qd.goal ? [qd.goal] : [],
-                    currentFitnessLevel: demoUser.experience || "intermediate",
-                  };
-                })(),
-              },
-        }));
+        const qd = (demoUser as Record<string, unknown>).questionnaireData as
+          | Record<string, unknown>
+          | undefined;
+
+        set((state) => {
+          if (state.user) {
+            // Update existing user with demo data
+            return {
+              user: updateUserWithDemoData(
+                state.user as Record<string, unknown>,
+                demoUser,
+                qd
+              ) as unknown as User,
+            };
+          } else {
+            // Create new user with demo data
+            return {
+              user: createNewUserWithDemoData(demoUser, qd) as unknown as User,
+            };
+          }
+        });
+
         logger.info("DemoUser", "Custom demo user saved", {
           name: demoUser?.name,
         });
@@ -1115,37 +983,8 @@ export const useUserStore = create<UserStore>()(
       // פונקציה לניקוי מלא לפיתוח (ללא התנתקות)
       // Complete data clearing for development (without logout)
       clearDataForFreshStart: async () => {
-        try {
-          logger.info(
-            "Development",
-            "clearDataForFreshStart - מתחיל ניקוי לכניסה חדשה"
-          );
-
-          // קבלת כל המפתחות מ-AsyncStorage
-          const allKeys = await AsyncStorage.getAllKeys();
-          logger.debug(
-            "Development",
-            `נמצאו ${allKeys.length} מפתחות ב-AsyncStorage`
-          );
-
-          // מחיקת כל המפתחות
-          await AsyncStorage.multiRemove(allKeys);
-
-          // איפוס ה-store
-          set({ user: null });
-
-          logger.info(
-            "Development",
-            "clearDataForFreshStart - ניקוי הושלם, הסשן החדש התחיל"
-          );
-        } catch (error) {
-          logger.error(
-            "Development",
-            "clearDataForFreshStart - שגיאה בניקוי",
-            error
-          );
-          throw error;
-        }
+        await clearAllStorageData("clearDataForFreshStart");
+        set({ user: null });
       },
 
       // =======================================
@@ -1177,7 +1016,7 @@ export const useUserStore = create<UserStore>()(
                       startDate: now,
                       registrationDate: now,
                       isActive: true,
-                      trialDaysRemaining: 7,
+                      trialDaysRemaining: CONSTANTS.SUBSCRIPTION.TRIAL_DAYS,
                       hasCompletedTrial: false,
                       lastTrialCheck: now,
                     },
@@ -1359,8 +1198,7 @@ export const useUserStore = create<UserStore>()(
 
         // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
         // Development mode: Auto-clear on every fresh start (temporarily disabled)
-        // eslint-disable-next-line no-constant-condition, no-constant-binary-expression
-        if (false && __DEV__) {
+        if (CONSTANTS.DEV.AUTO_CLEAR && __DEV__) {
           logger.debug(
             "Store",
             "DEV MODE: Auto-clearing user data for fresh start"
@@ -1488,7 +1326,6 @@ export const useAuthState = () => {
 // Server sync implementation
 // ==============================
 let __userSyncTimer: ReturnType<typeof setTimeout> | null = null;
-const SYNC_DEBOUNCE_MS = 800;
 
 useUserStore.setState((prev) => ({
   ...prev,
@@ -1560,7 +1397,7 @@ useUserStore.setState((prev) => ({
             { error: msg }
           );
         }
-      }, SYNC_DEBOUNCE_MS);
+      }, CONSTANTS.SYNC.DEBOUNCE_MS);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       logger.warn("ServerSync", "scheduleServerSync outer catch", {
