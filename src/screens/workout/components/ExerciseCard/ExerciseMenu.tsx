@@ -58,6 +58,7 @@ import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 import { ExerciseMenuProps } from "../types";
 import { UniversalModal } from "../../../../components/common/UniversalModal";
+import { CloseButton } from "../shared/CloseButton";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -673,15 +674,15 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
               edges={["bottom", "left", "right"]}
               style={styles.cancelButtonContainer}
             >
-              <TouchableOpacity
-                style={styles.cancelButton}
+              <CloseButton
                 onPress={onClose}
-                activeOpacity={0.6}
-                accessibilityRole="button"
+                size="large"
+                variant="ghost"
                 accessibilityLabel="ביטול"
-              >
-                <Text style={styles.cancelText}>ביטול</Text>
-              </TouchableOpacity>
+                accessibilityHint="הקש כדי לסגור את התפריט"
+                testID="exercise-menu-cancel-button"
+                style={styles.cancelButton}
+              />
             </SafeAreaView>
           </GestureHandlerRootView>
         </Modal>

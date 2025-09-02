@@ -66,7 +66,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../styles/theme";
-import { formatTime } from "../../../../utils";
+import { formatWorkoutTime } from "../../../../utils";
 import { logger } from "../../../../utils/logger";
 
 // Advanced interfaces for monitoring and analytics
@@ -556,7 +556,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     }
 
     try {
-      const formatted = formatTime(validatedProps.timeLeft);
+      const formatted = formatWorkoutTime(validatedProps.timeLeft);
 
       if (enablePerformanceMonitoring) {
         cacheManager.set(cacheKey, {

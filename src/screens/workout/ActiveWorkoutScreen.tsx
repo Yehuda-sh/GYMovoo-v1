@@ -317,7 +317,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   if (exercises.length === 0) {
     return (
       <View style={[styles.container, styles.errorContainer]}>
-        <BackButton />
+        <BackButton haptic={true} hapticType="medium" />
         <MaterialCommunityIcons
           name="alert-circle-outline"
           size={80}

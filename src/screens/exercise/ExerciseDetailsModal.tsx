@@ -1,14 +1,14 @@
 /**
  * @file src/screens/exercise/ExerciseDetailsModal.tsx
- * @description מודל להצגת פרטי תרגיל מלאים - תמונה, שרירים, ותיאור
- * English: Modal for displaying full exercise details - image, muscles, and description
- * @dependencies Exercise type, theme, Animated, BackButton
- * @notes כולל ניקוי HTML מתיאורים, RTL מלא, עיצוב מותאם למסכי Workout, אנימציות מתקדמות
+ * @description מודל להצגת פרטי תרגיל מלאים - תמונה, שרירים, ותיאור משופר עם נגישות מתקדמת
+ * English: Modal for displaying full exercise details - image, muscles, and description with enhanced accessibility
+ * @dependencies Exercise type, theme, Animated, BackButton, AccessibilityInfo
+ * @notes כולל ניקוי HTML מתיאורים, RTL מלא, עיצוב מותאם למסכי Workout, אנימציות עם תמיכת reducedMotion
  * @recurring_errors וודא שכל הטקסטים מיושרים לימין, שמות שרירים באנגלית, השתמש ב-theme בלבד
- * @updated 2025-08-17 החלפת TouchableOpacity ב-BackButton, הסרת כפילות בכפתורי סגירה, התאמה להנחיות מאוחדות
+ * @updated 2025-09-02 הוספת React.memo, useCallback, תמיכת reducedMotion, שיפור נגישות
  */
 
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import {
   Modal,
   View,
@@ -17,6 +17,7 @@ import {
   ScrollView,
   Animated,
   Pressable,
+  AccessibilityInfo,
 } from "react-native";
 import { Exercise } from "../../data/exercises";
 import { theme } from "../../styles/theme";
@@ -29,37 +30,56 @@ type Props = {
   onClose: () => void;
 };
 
-export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
+const ExerciseDetailsModal = React.memo<Props>(({ exercise, onClose }) => {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current; // modal opacity
   const overlayAnim = useRef(new Animated.Value(0)).current; // backdrop opacity
   const imageOpacity = useRef(new Animated.Value(0)).current; // image fade-in
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  // בדיקת תמיכה ב-reducedMotion לנגישות
+  React.useEffect(() => {
+    const checkReducedMotion = async () => {
+      try {
+        const isReducedMotionEnabled =
+          await AccessibilityInfo.isReduceMotionEnabled();
+        setReducedMotion(isReducedMotionEnabled);
+      } catch {
+        // fallback - אם יש שגיאה, נניח שאין תמיכה
+        setReducedMotion(false);
+      }
+    };
+    checkReducedMotion();
+  }, []);
 
   React.useEffect(() => {
-    // אנימציית כניסה משופרת // Enhanced entry animation
+    // אנימציית כניסה משופרת עם תמיכת reducedMotion
+    const animationDuration = reducedMotion ? 100 : 300;
+    const overlayDuration = reducedMotion ? 80 : 280;
+
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 10,
-        tension: 90,
+        friction: reducedMotion ? 20 : 10,
+        tension: reducedMotion ? 200 : 90,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300, // זמן ארוך יותר
+        duration: animationDuration,
         useNativeDriver: true,
       }),
       Animated.timing(overlayAnim, {
         toValue: 0.6,
-        duration: 280,
+        duration: overlayDuration,
         useNativeDriver: true,
       }),
     ]).start();
-    // scaleAnim, fadeAnim, overlayAnim are stable refs
+    // reducedMotion is stable, scaleAnim, fadeAnim, overlayAnim are stable refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reducedMotion]);
 
   /**
    * מנקה תגי HTML מהתיאור
@@ -100,41 +120,45 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
     },
   } as const;
 
-  const handleClose = () => {
-    // אנימציית יציאה משופרת // Enhanced exit animation
+  const handleClose = useCallback(() => {
+    // אנימציית יציאה משופרת עם תמיכת reducedMotion
+    const animationDuration = reducedMotion ? 100 : 180;
+
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 0.9,
-        duration: 180,
+        duration: animationDuration,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 180,
+        duration: animationDuration,
         useNativeDriver: true,
       }),
       Animated.timing(overlayAnim, {
         toValue: 0,
-        duration: 180,
+        duration: animationDuration,
         useNativeDriver: true,
       }),
     ]).start(() => onClose());
-  };
+  }, [reducedMotion, scaleAnim, fadeAnim, overlayAnim, onClose]);
 
-  const handleImageLoad = () => {
+  const handleImageLoad = useCallback(() => {
     setImageLoading(false);
     setImageError(false);
+    const animationDuration = reducedMotion ? 100 : 250;
+
     Animated.timing(imageOpacity, {
       toValue: 1,
-      duration: 250,
+      duration: animationDuration,
       useNativeDriver: true,
     }).start();
-  };
+  }, [reducedMotion, imageOpacity]);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     setImageLoading(false);
     setImageError(true);
-  };
+  }, []);
 
   return (
     <Modal visible animationType="none" transparent>
@@ -145,7 +169,13 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
           { opacity: overlayAnim },
         ]}
       >
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleClose}
+          accessibilityLabel="סגור מודל פרטי תרגיל"
+          accessibilityRole="button"
+          accessibilityHint="הקש כדי לסגור את המודל"
+        />
       </Animated.View>
       <Animated.View
         style={[
@@ -155,7 +185,12 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
         accessibilityViewIsModal
         accessibilityLabel="Exercise Details Modal"
       >
-        <Pressable onPress={() => {}} style={styles.flexOne}>
+        <Pressable
+          onPress={() => {}}
+          style={styles.flexOne}
+          accessibilityLabel="תוכן מודל פרטי תרגיל"
+          accessibilityRole="none"
+        >
           {/* Header */}
           <View style={styles.header}>
             <BackButton
@@ -163,6 +198,8 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
               onPress={handleClose}
               variant="minimal"
               style={styles.backButton}
+              haptic={true}
+              hapticType="light"
             />
             <Text style={styles.headerTitle}>פרטי תרגיל</Text>
             <View style={styles.spacer40} />
@@ -347,7 +384,11 @@ export default function ExerciseDetailsModal({ exercise, onClose }: Props) {
       </Animated.View>
     </Modal>
   );
-}
+});
+
+ExerciseDetailsModal.displayName = "ExerciseDetailsModal";
+
+export default ExerciseDetailsModal;
 
 const styles = StyleSheet.create({
   modalContainer: {

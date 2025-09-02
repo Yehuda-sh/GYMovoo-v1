@@ -26,6 +26,7 @@ import { StorageCleanup } from "./src/utils/storageCleanup";
 import { dataManager } from "./src/services/core";
 import { useUserStore } from "./src/stores/userStore";
 import { ErrorBoundary } from "./src/components/common/ErrorBoundary";
+import { startPerformanceCleanup } from "./src/utils/performanceManager";
 import "./src/utils/rtlHelpers"; // 🌍 אתחול RTL אוטומטי / Automatic RTL initialization
 
 // ===============================================
@@ -45,10 +46,15 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
  */
 export default function App(): React.JSX.Element {
   const { user } = useUserStore();
-  const refreshFromServer = useUserStore((s) => s.refreshFromServer);
   const initializedUserIdRef = useRef<string | null>(null);
   const isInitializingRef = useRef(false);
   const didRefreshRef = useRef(false);
+
+  // 🚀 הפעלת מנהל ביצועים - פעם אחת בהפעלה
+  useEffect(() => {
+    const cleanupPerformance = startPerformanceCleanup();
+    return cleanupPerformance;
+  }, []);
 
   // ניקוי אחסון – פעם אחת בהפעלה
   useEffect(() => {
@@ -92,7 +98,7 @@ export default function App(): React.JSX.Element {
       try {
         // רענון מהשרת לפי מדיניות "שרת כמקור אמת" – פעם אחת לכל התחברות
         if (!didRefreshRef.current) {
-          await refreshFromServer();
+          await useUserStore.getState().refreshFromServer();
           didRefreshRef.current = true;
         }
       } catch (e) {
@@ -118,7 +124,7 @@ export default function App(): React.JSX.Element {
       }
     };
     if (user?.id) initData();
-  }, [user, refreshFromServer]);
+  }, [user]);
 
   return (
     <ErrorBoundary>

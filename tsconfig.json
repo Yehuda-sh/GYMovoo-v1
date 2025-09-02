@@ -12,7 +12,31 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "downlevelIteration": true,
-    "lib": ["es2020", "esnext.asynciterable"]
+    "lib": ["es2020", "esnext.asynciterable"],
+
+    // 🎯 שיפורי קריאות וביצועים (ללא בעיות)
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+
+    // 🔒 הגדרות מחמירות מתונות (לא יוצרות הרבה שגיאות)
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+
+    // 📁 Path mapping לקיצור imports - מומלץ מאוד
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/screens/*": ["src/screens/*"],
+      "@/services/*": ["src/services/*"],
+      "@/stores/*": ["src/stores/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/types/*": ["src/types/*"],
+      "@/constants/*": ["src/constants/*"],
+      "@/styles/*": ["src/styles/*"]
+    }
   },
   "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"]
 }

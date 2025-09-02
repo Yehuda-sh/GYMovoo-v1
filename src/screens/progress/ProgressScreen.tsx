@@ -31,29 +31,34 @@ export default function ProgressScreen(): JSX.Element {
 
   React.useEffect(() => {
     let mounted = true;
-    const load = async () => {
-      try {
-        const s = await workoutFacadeService.getGenderGroupedStatistics();
-        // The analytics part needs to be refactored to not require personalData or to get it from a store
-        // For now, we'll just get the total records for the badge.
-        const history = await workoutFacadeService.getHistory();
-        const personalRecordsCount = history.reduce(
-          (acc, curr) => acc + (curr.stats?.personalRecords || 0),
-          0
-        );
+    // ✅ הוספת delay למניעת קריאות מיותרות
+    const timeoutId = setTimeout(async () => {
+      const load = async () => {
+        try {
+          const s = await workoutFacadeService.getGenderGroupedStatistics();
+          // The analytics part needs to be refactored to not require personalData or to get it from a store
+          // For now, we'll just get the total records for the badge.
+          const history = await workoutFacadeService.getHistory();
+          const personalRecordsCount = history.reduce(
+            (acc, curr) => acc + (curr.stats?.personalRecords || 0),
+            0
+          );
 
-        if (!mounted) return;
-        setStats(s.total);
-        setPersonalRecords(personalRecordsCount);
-      } catch (e) {
-        logger.error("ProgressScreen: failed to load stats", String(e));
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
+          if (!mounted) return;
+          setStats(s.total);
+          setPersonalRecords(personalRecordsCount);
+        } catch (e) {
+          logger.error("ProgressScreen: failed to load stats", String(e));
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      };
+      await load();
+    }, 200);
+
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
     };
   }, []);
 

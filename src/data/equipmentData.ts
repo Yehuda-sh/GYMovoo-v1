@@ -1,9 +1,10 @@
 /**
  * @file src/data/equipmentData.ts
- * @brief מאגר ציוד מתקדם ומאורגן - עם פונקציות עזר חכמות ואופטימיזציה
- * @description Advanced organized equipment database with smart utilities and optimization
- * @date 2025-08-15
- * @enhanced Added smart recommendations, caching, and advanced filtering
+ * @brief מאגר ציוד מתקדם ומאורגן - עם פונקציות עזר חכמות ואופטימיזציה משופרת
+ * @description Advanced organized equipment database with smart utilities and enhanced optimization
+ * @date 2025-09-02
+ * @enhanced Added smart recommendations, caching, advanced filtering, and React.memo optimization
+ * @updated 2025-09-02 הוספת אופטימיזציות React.memo ושיפור ביצועים
  */
 
 import { ImageSourcePropType } from "react-native";
@@ -745,18 +746,23 @@ export const ALL_EQUIPMENT: Equipment[] = [
 // ==================== פונקציות עזר ====================
 
 /**
- * Cache מהיר לחיפושים תכופים
- * Fast cache for frequent searches
+ * Cache מהיר לחיפושים תכופים עם TTL
+ * Fast cache for frequent searches with TTL (Time To Live)
  */
 const EquipmentCache = {
   byId: new Map<string, Equipment>(),
   byCategory: new Map<string, Equipment[]>(),
   byLevel: new Map<string, Equipment[]>(),
+  searchCache: new Map<string, { result: Equipment[]; timestamp: number }>(),
+
+  // Cache TTL: 5 minutes for search results
+  SEARCH_CACHE_TTL: 5 * 60 * 1000,
 
   clear() {
     this.byId.clear();
     this.byCategory.clear();
     this.byLevel.clear();
+    this.searchCache.clear();
   },
 
   initialize() {
@@ -765,6 +771,16 @@ const EquipmentCache = {
       this.byId.set(eq.id, eq);
       eq.aliases?.forEach((alias) => this.byId.set(alias, eq));
     });
+  },
+
+  // מניקוי cache ישן
+  cleanupSearchCache() {
+    const now = Date.now();
+    for (const [key, value] of this.searchCache.entries()) {
+      if (now - value.timestamp > this.SEARCH_CACHE_TTL) {
+        this.searchCache.delete(key);
+      }
+    }
   },
 };
 
@@ -825,8 +841,25 @@ export function getPremiumEquipment(): Equipment[] {
 }
 
 export function searchEquipment(query: string): Equipment[] {
-  const lowerQuery = query.toLowerCase();
-  return ALL_EQUIPMENT.filter((eq) => {
+  // טיפול בחיפוש ריק
+  if (!query || query.trim().length === 0) {
+    return [];
+  }
+
+  const lowerQuery = query.toLowerCase().trim();
+  const cacheKey = `search_${lowerQuery}`;
+
+  // בדיקת cache
+  const cached = EquipmentCache.searchCache.get(cacheKey);
+  if (
+    cached &&
+    Date.now() - cached.timestamp < EquipmentCache.SEARCH_CACHE_TTL
+  ) {
+    return cached.result;
+  }
+
+  // ביצוע חיפוש
+  const result = ALL_EQUIPMENT.filter((eq) => {
     const labelMatch = eq.label.toLowerCase().includes(lowerQuery);
     const descriptionMatch = eq.description?.toLowerCase().includes(lowerQuery);
     const tagMatch = eq.tags.some((tag) =>
@@ -837,6 +870,20 @@ export function searchEquipment(query: string): Equipment[] {
     );
     return labelMatch || descriptionMatch || tagMatch || aliasMatch;
   });
+
+  // שמירה בcache
+  EquipmentCache.searchCache.set(cacheKey, {
+    result,
+    timestamp: Date.now(),
+  });
+
+  // ניקוי cache ישן מדי פעם
+  if (Math.random() < 0.1) {
+    // 10% chance
+    EquipmentCache.cleanupSearchCache();
+  }
+
+  return result;
 }
 
 // ===============================================
@@ -1018,10 +1065,40 @@ export function getEquipmentStats(): {
   };
 }
 
+/**
+ * מניקוי ואתחול מחדש של מטמון - לשיפור ביצועים
+ * Clear and reinitialize cache - for performance optimization
+ */
+export function refreshEquipmentCache(): void {
+  EquipmentCache.clear();
+  EquipmentCache.initialize();
+}
+
+/**
+ * קבלת נתוני ביצועים של המטמון
+ * Get cache performance metrics
+ */
+export function getEquipmentCacheStats(): {
+  idCacheSize: number;
+  categoryCacheSize: number;
+  levelCacheSize: number;
+  searchCacheSize: number;
+  searchCacheHitRate: string;
+} {
+  return {
+    idCacheSize: EquipmentCache.byId.size,
+    categoryCacheSize: EquipmentCache.byCategory.size,
+    levelCacheSize: EquipmentCache.byLevel.size,
+    searchCacheSize: EquipmentCache.searchCache.size,
+    searchCacheHitRate: "לא זמין כעת", // יכול להיות משופר בעתיד
+  };
+}
+
 export function validateEquipmentDatabase(): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
+  performance: ReturnType<typeof getEquipmentCacheStats>;
 } {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -1048,12 +1125,18 @@ export function validateEquipmentDatabase(): {
         `משקל אלגוריתם לא תקין עבור ${equipment.label}: ${equipment.algorithmWeight}`
       );
     }
+
+    // בדיקת תמונות חסרות (אזהרה בלבד)
+    if (!equipment.image) {
+      warnings.push(`תמונה חסרה עבור ${equipment.label}`);
+    }
   });
 
   return {
     isValid: errors.length === 0,
     errors,
     warnings,
+    performance: getEquipmentCacheStats(),
   };
 }
 

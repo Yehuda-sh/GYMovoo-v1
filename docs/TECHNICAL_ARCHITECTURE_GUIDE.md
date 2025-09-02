@@ -113,8 +113,40 @@ src/components/
 └── workout/          // רכיבי אימון ייעודיים
     ├── FloatingActionButton.tsx  // כפתור פעולה צף
     ├── NextWorkoutCard.tsx       // כרטיס אימון הבא
-    └── ProgressChart.tsx         // גרף התקדמות
+    ├── ProgressChart.tsx         // גרף התקדמות
+    └── shared/                   // רכיבים משותפים לאימון
+        ├── CloseButton.tsx       // כפתור סגירה מאוחד עם 3 variants
+        ├── StatItem.tsx          // פריט סטטיסטיקה
+        └── index.ts              // ייצוא מרוכז
 ```
+
+### 🎯 עקרון הרכיבים המשותפים (Shared Components Principle)
+
+**חשיבות קריטית**: תמיד לבדוק רכיבים קיימים לפני יצירת חדשים!
+
+**✅ דוגמה לשימוש נכון:**
+
+```tsx
+// במקום ליצור TouchableOpacity עם Ionicons בכל מקום:
+❌ <TouchableOpacity onPress={onClose}>
+     <Ionicons name="close" size={24} />
+   </TouchableOpacity>
+
+// השתמש ב-CloseButton המאוחד:
+✅ <CloseButton
+     onPress={onClose}
+     size="medium"
+     variant="solid"
+   />
+```
+
+**🔍 תהליך לפני יצירת רכיב חדש:**
+
+1. בדוק `src/components/common/` לרכיבים כלליים
+2. בדוק `src/screens/workout/components/shared/` לרכיבי אימון
+3. חפש דוגמות דומות במאגר הקוד
+4. אם אין - צור רכיב משותף חדש במיקום המתאים
+5. תעד את הרכיב החדש במסמכי הארכיטקטורה
 
 ## 🔗 מערכת ה-Hooks המתקדמת
 

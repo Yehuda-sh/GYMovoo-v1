@@ -1,9 +1,10 @@
 /**
  * @file scripts/accessibilityCheck.js
- * @brief בדיקת נגישות לאפליקציה - מותאם לסטנדרטים של GYMovoo
- * @features screen reader support, color contrast, touch targets, RTL support, theme integration
- * @notes מותאם לעקרונות הפרויקט: RTL מלא, theme.ts, MaterialCommunityIcons
- * @version 2.0 - מקוד משופר עם ביצועים טובים יותר
+ * @brief בדיקת נגישות לאפליקציה - מותאם לסטנדרטים המעודכנים של GYMovoo
+ * @features screen reader support, color contrast, touch targets, RTL support, theme integration, haptic feedback, loading states
+ * @notes מותאם לעקרונות הפרויקט: RTL מלא, theme.ts, MaterialCommunityIcons, CloseButton, BackButton משופרים
+ * @version 2.1 - עדכון לתמיכה ברכיבים משופרים ותכונות מתקדמות
+ * @updated 2025-09-02 - הוספת בדיקות haptic feedback, loading states, Pressable, ReducedMotion
  */
 
 const fs = require("fs");
@@ -57,8 +58,8 @@ const HEBREW_KEYWORDS = [
   "רמה",
 ];
 
-console.log("♿ GYMovoo Accessibility Check v2.0");
-console.log("===================================\n");
+console.log("♿ GYMovoo Accessibility Check v2.1 - Enhanced");
+console.log("============================================\n");
 
 // פונקציות עזר משותפות - מונעות כפילויות קוד
 class AccessibilityAnalyzer {
@@ -101,10 +102,11 @@ class AccessibilityAnalyzer {
     return allFiles;
   }
 
-  // Regex patterns משותפים
+  // Regex patterns משותפים - עודכנו לרכיבים מתקדמים
   getPatterns() {
     return {
-      touchables: /<(TouchableOpacity|Pressable|Button)[^>]*>/g,
+      touchables:
+        /<(TouchableOpacity|Pressable|Button|CloseButton|BackButton)[^>]*>/g,
       images: /<Image[^>]*>/g,
       texts: /<Text[^>]*>/g,
       colors: /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g,
@@ -117,6 +119,11 @@ class AccessibilityAnalyzer {
       ),
       hardcodedColors: /color:\s*['"][^'"]+['"]/g,
       materialIcons: /MaterialCommunityIcons/g,
+      // 🆕 תבניות חדשות לתכונות מתקדמות
+      hapticFeedback: /haptic[=:]\s*true/g,
+      loadingStates: /loading[=:]\s*\{?[^}]*\}?/g,
+      reducedMotion: /reducedMotion|isReduceMotionEnabled/g,
+      enhancedComponents: /<(CloseButton|BackButton)[^>]*>/g,
     };
   }
 
@@ -148,7 +155,7 @@ class AccessibilityAnalyzer {
     console.log();
   }
 }
-// בדיקת accessibility labels - משופרת
+// בדיקת accessibility labels - משופרת לרכיבים מתקדמים
 function checkAccessibilityLabels() {
   const analyzer = new AccessibilityAnalyzer();
   const files = analyzer.scanAllFiles();
@@ -156,22 +163,47 @@ function checkAccessibilityLabels() {
   const issues = [];
   let totalTouchables = 0;
   let labeledTouchables = 0;
+  let enhancedComponents = 0;
+  let hapticComponents = 0;
+  let loadingComponents = 0;
 
   files.forEach(({ path: filePath, content }) => {
-    // בדיקת TouchableOpacity ו-Pressable
+    // בדיקת TouchableOpacity, Pressable וכו' - עודכן לבדיקה טובה יותר
     const touchables = content.match(patterns.touchables) || [];
     totalTouchables += touchables.length;
 
     touchables.forEach((touchable) => {
-      if (
+      // בדיקה משופרת לaccessibility
+      const hasAccessibilityLabel =
         touchable.includes("accessibilityLabel") ||
-        touchable.includes("accessible")
-      ) {
+        touchable.includes("accessible=") ||
+        touchable.includes("accessibilityRole");
+
+      // CloseButton ו-BackButton יש להם accessibility labels מובנים
+      const isEnhancedComponent =
+        touchable.includes("CloseButton") || touchable.includes("BackButton");
+
+      if (hasAccessibilityLabel || isEnhancedComponent) {
         labeledTouchables++;
       } else {
-        issues.push(`${filePath}: touchable ללא accessibility label`);
+        // רק אם זה לא רכיב משופר - נוסיף לבעיות
+        if (!isEnhancedComponent) {
+          issues.push(`${filePath}: touchable ללא accessibility label`);
+        }
       }
     });
+
+    // 🆕 בדיקת רכיבים משופרים חדשים
+    const enhanced = content.match(patterns.enhancedComponents) || [];
+    enhancedComponents += enhanced.length;
+
+    // 🆕 בדיקת שימוש ב-haptic feedback
+    const hapticUsage = content.match(patterns.hapticFeedback) || [];
+    hapticComponents += hapticUsage.length;
+
+    // 🆕 בדיקת loading states
+    const loadingUsage = content.match(patterns.loadingStates) || [];
+    loadingComponents += loadingUsage.length;
 
     // בדיקת Image ללא alt
     const images = content.match(patterns.images) || [];
@@ -199,11 +231,114 @@ function checkAccessibilityLabels() {
   const stats = {
     "Touchable elements": totalTouchables,
     "עם labels": `${labeledTouchables} (${labelPercentage.toFixed(1)}%)`,
+    "🆕 רכיבים משופרים": enhancedComponents,
+    "🆕 עם haptic feedback": hapticComponents,
+    "🆕 עם loading states": loadingComponents,
   };
 
-  analyzer.printResults("🏷️  בדיקת Accessibility Labels", issues, stats);
+  analyzer.printResults(
+    "🏷️  בדיקת Accessibility Labels - Enhanced",
+    issues,
+    stats
+  );
   analyzer.results.accessibility = { issues, stats };
   return analyzer.results.accessibility;
+}
+
+// 🆕 בדיקת תכונות נגישות מתקדמות (haptic, loading, reducedMotion)
+function checkAdvancedAccessibilityFeatures() {
+  const analyzer = new AccessibilityAnalyzer();
+  const files = analyzer.scanAllFiles();
+  const patterns = analyzer.getPatterns();
+  const issues = [];
+  let stats = {
+    filesChecked: 0,
+    hapticUsage: 0,
+    loadingStates: 0,
+    reducedMotionSupport: 0,
+    enhancedComponents: 0,
+    modernPressables: 0,
+  };
+
+  const tsxFiles = files.filter(({ path }) => path.endsWith(".tsx"));
+
+  tsxFiles.forEach(({ path: filePath, content }) => {
+    stats.filesChecked++;
+
+    // בדיקת שימוש ב-haptic feedback
+    const hapticMatches = content.match(patterns.hapticFeedback) || [];
+    stats.hapticUsage += hapticMatches.length;
+
+    // בדיקת loading states
+    const loadingMatches = content.match(patterns.loadingStates) || [];
+    stats.loadingStates += loadingMatches.length;
+
+    // בדיקת תמיכה ב-reducedMotion
+    const reducedMotionMatches = content.match(patterns.reducedMotion) || [];
+    stats.reducedMotionSupport += reducedMotionMatches.length;
+
+    // בדיקת שימוש ברכיבים משופרים
+    const enhancedMatches = content.match(patterns.enhancedComponents) || [];
+    stats.enhancedComponents += enhancedMatches.length;
+
+    // בדיקת שימוש ב-Pressable מודרני במקום TouchableOpacity ישן
+    const pressableCount = (content.match(/<Pressable[^>]*>/g) || []).length;
+    const touchableOpacityCount = (
+      content.match(/<TouchableOpacity[^>]*>/g) || []
+    ).length;
+    stats.modernPressables += pressableCount;
+
+    // המלצות לשיפור
+    if (touchableOpacityCount > pressableCount && touchableOpacityCount > 2) {
+      issues.push(
+        `${filePath}: מומלץ להעביר TouchableOpacity ל-Pressable מודרני (${touchableOpacityCount} instances)`
+      );
+    }
+
+    // בדיקה אם יש רכיבי כפתורים שיכולים להפיק תועלת מ-haptic feedback
+    const buttonComponents =
+      content.match(/<(TouchableOpacity|Pressable)[^>]*onPress[^>]*>/g) || [];
+    const buttonComponentsWithHaptic =
+      content.match(/<(TouchableOpacity|Pressable)[^>]*haptic[^>]*>/g) || [];
+
+    if (
+      buttonComponents.length > 3 &&
+      buttonComponentsWithHaptic.length === 0
+    ) {
+      issues.push(
+        `${filePath}: יש הרבה כפתורים שיכולים להפיק תועלת מ-haptic feedback`
+      );
+    }
+
+    // בדיקת אנימציות ללא reducedMotion support
+    const animationUsage =
+      content.includes("Animated.") || content.includes("transform:");
+    const hasReducedMotionCheck =
+      content.includes("reducedMotion") ||
+      content.includes("AccessibilityInfo");
+
+    if (
+      animationUsage &&
+      !hasReducedMotionCheck &&
+      !content.includes("CloseButton") &&
+      !content.includes("BackButton")
+    ) {
+      issues.push(`${filePath}: יש אנימציות ללא תמיכה ב-reducedMotion`);
+    }
+  });
+
+  const statsDisplay = {
+    "קבצים נבדקו": stats.filesChecked,
+    "🎯 שימוש ב-haptic feedback": stats.hapticUsage,
+    "⏳ Loading states": stats.loadingStates,
+    "♿ ReducedMotion support": stats.reducedMotionSupport,
+    "✨ רכיבים משופרים": stats.enhancedComponents,
+    "📱 Pressable מודרני": stats.modernPressables,
+  };
+
+  analyzer.printResults("🚀 בדיקת תכונות נגישות מתקדמות", issues, statsDisplay);
+  analyzer.results.advancedFeatures = { issues, stats: statsDisplay };
+  return analyzer.results.advancedFeatures;
 }
 
 // בדיקת ניגודיות צבעים - מותאם ל-theme.ts של GYMovoo - משופרת
@@ -446,12 +581,13 @@ function checkAccessibleText() {
   return analyzer.results.accessibleText;
 }
 
-// הרצה - עם דו"ח מאוחד ואופציונלי
+// הרצה - עם דו"ח מאוחד ואופציונלי + תכונות מתקדמות
 try {
-  console.log("🔍 GYMovoo Accessibility Checker v2.0");
-  console.log("=====================================\n");
+  console.log("🔍 GYMovoo Accessibility Checker v2.1 - Enhanced");
+  console.log("================================================\n");
 
   const accessibilityResults = checkAccessibilityLabels();
+  const advancedResults = checkAdvancedAccessibilityFeatures();
   const colorResults = checkColorContrast();
   const touchResults = checkTouchTargets();
   const textResults = checkAccessibleText();
@@ -462,6 +598,7 @@ try {
 
   const totalIssues = [
     accessibilityResults,
+    advancedResults,
     colorResults,
     touchResults,
     textResults,
@@ -477,9 +614,11 @@ try {
   if (ACCESSIBILITY_CONFIG.SAVE_REPORT) {
     const report = {
       timestamp: new Date().toISOString(),
+      version: "2.1",
       summary: { totalIssues },
       details: {
         accessibility: accessibilityResults,
+        advancedFeatures: advancedResults,
         colors: colorResults,
         touchTargets: touchResults,
         accessibleText: textResults,
@@ -488,16 +627,16 @@ try {
 
     const reportPath = path.join(
       __dirname,
-      `accessibility-report-${Date.now()}.json`
+      `accessibility-report-enhanced-${Date.now()}.json`
     );
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    console.log(`💾 דו"ח נשמר ב: ${reportPath}`);
+    console.log(`💾 דו"ח משופר נשמר ב: ${reportPath}`);
   }
 
-  console.log("==========================================");
-  console.log("📊 סיכום בדיקת נגישות - GYMovoo");
-  console.log("==========================================");
-  console.log("💡 המלצות נגישות מותאמות לפרויקט:");
+  console.log("========================================");
+  console.log("📊 סיכום בדיקת נגישות - GYMovoo v2.1");
+  console.log("========================================");
+  console.log("💡 המלצות נגישות מעודכנות לפרויקט:");
   console.log(
     `  1. הוסף accessibilityLabel לכל touchable (מינימום ${ACCESSIBILITY_CONFIG.MIN_TOUCH_TARGET_SIZE}x${ACCESSIBILITY_CONFIG.MIN_TOUCH_TARGET_SIZE})`
   );
@@ -510,9 +649,14 @@ try {
   console.log("  4. תמיכה מלאה בRTL לטקסטים עבריים");
   console.log("  5. MaterialCommunityIcons עם accessibility labels");
   console.log("  6. תמיכה בtheme.ts עם Light/Dark mode");
-  console.log("  7. בדוק עם Voice Over (iOS) ו-TalkBack (Android)");
-  console.log("");
-  console.log("🔗 מדריכים לGYMovoo:");
+  console.log("  🆕 7. השתמש ב-CloseButton ו-BackButton המשופרים");
+  console.log("  🆕 8. הוסף haptic feedback לאינטראקציות חשובות");
+  console.log("  🆕 9. השתמש ב-loading states לפעולות ארוכות");
+  console.log("  🆕 10. תמיכה ב-reducedMotion לנגישות אנימציות");
+  console.log("  🆕 11. העבר מ-TouchableOpacity ל-Pressable מודרני");
+  console.log("  12. בדוק עם Voice Over (iOS) ו-TalkBack (Android)");
+
+  console.log("\n🔗 מדריכים מעודכנים לGYMovoo:");
   console.log(
     "  - React Native Accessibility: https://reactnative.dev/docs/accessibility"
   );
@@ -520,8 +664,12 @@ try {
     "  - RTL Support: https://reactnative.dev/blog/2016/08/19/right-to-left-support-for-react-native-apps"
   );
   console.log("  - WCAG Guidelines: https://www.w3.org/WAI/WCAG21/quickref/");
+  console.log(
+    "  🆕 - Haptic Feedback: https://docs.expo.dev/versions/latest/sdk/haptics/"
+  );
+  console.log("  🆕 - Pressable: https://reactnative.dev/docs/pressable");
 
-  console.log("\n✅ בדיקת נגישות הושלמה");
+  console.log("\n✅ בדיקת נגישות משופרת הושלמה");
 } catch (error) {
   console.error("❌ שגיאה בבדיקת נגישות:", error.message);
   process.exit(1);

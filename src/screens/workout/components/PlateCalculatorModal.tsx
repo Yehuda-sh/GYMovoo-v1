@@ -75,6 +75,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { PLATE_WEIGHTS } from "../utils/workoutConstants";
 import { triggerVibration } from "../../../utils/workoutHelpers";
+import { CloseButton } from "./shared/CloseButton";
 
 interface PlateCalculatorModalProps {
   visible: boolean;
@@ -227,18 +228,14 @@ export const PlateCalculatorModal: React.FC<PlateCalculatorModalProps> = ({
         >
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.header} accessibilityRole="header">
-              <TouchableOpacity
+              <CloseButton
                 onPress={onClose}
-                activeOpacity={0.7}
-                accessibilityRole="button"
+                size="medium"
+                variant="ghost"
                 accessibilityLabel="סגור מחשבון פלטות"
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={28}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
+                accessibilityHint="הקש כדי לסגור את מחשבון הפלטות"
+                testID="plate-calculator-close-button"
+              />
               <Text style={styles.title}>מחשבון פלטות</Text>
               <View style={styles.headerSpacer} />
             </View>

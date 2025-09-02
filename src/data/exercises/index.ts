@@ -17,7 +17,7 @@
 // =====================================
 
 import { Exercise } from "./types";
-export { Exercise } from "./types";
+export type { Exercise } from "./types";
 
 // יבוא תרגילים לפי קטגוריות
 import { bodyweightExercises } from "./bodyweight";

@@ -19,6 +19,7 @@ import LoadingSpinner from "./common/LoadingSpinner";
 import { useSubscription } from "../stores/userStore";
 import { logger } from "../utils/logger";
 import ConfirmationModal from "./common/ConfirmationModal";
+import { CloseButton } from "../screens/workout/components/shared/CloseButton";
 
 interface AdManagerProps {
   /** מיקום הפרסומת - תחילת או סוף אימון */
@@ -101,6 +102,11 @@ const AdManager: React.FC<AdManagerProps> = ({
     return null;
   }, [placement, canAccessPremium]);
 
+  // קריאה יציבה לסגירת פרסומת
+  const handleAdClosed = useCallback(() => {
+    onAdClosed();
+  }, [onAdClosed]);
+
   // הגדרת תוכן הפרסומת כשהקומפוננטה נטענת
   useEffect(() => {
     if (visible) {
@@ -108,8 +114,8 @@ const AdManager: React.FC<AdManagerProps> = ({
       const content = determineAdContent();
 
       if (!content) {
-        // אין פרסומת להציג
-        onAdClosed();
+        // אין פרסומת להציג - קריאה מאוחרת למניעת בעיות רינדור
+        setTimeout(() => handleAdClosed(), 0);
         return;
       }
 
@@ -126,7 +132,13 @@ const AdManager: React.FC<AdManagerProps> = ({
         });
       }, 1000);
     }
-  }, [visible, determineAdContent, onAdClosed, placement, subscriptionType]);
+  }, [
+    visible,
+    determineAdContent,
+    handleAdClosed,
+    placement,
+    subscriptionType,
+  ]);
 
   // ספירה לאחור עד שניתן לסגור את הפרסומת
   useEffect(() => {
@@ -209,18 +221,14 @@ const AdManager: React.FC<AdManagerProps> = ({
 
                 {/* כפתור סגירה - זמין רק לאחר הספירה לאחור */}
                 {countdown === 0 ? (
-                  <TouchableOpacity
+                  <CloseButton
                     onPress={handleAdClose}
-                    style={styles.closeButton}
+                    size="medium"
+                    variant="solid"
                     accessibilityLabel="סגור פרסומת"
-                    accessibilityRole="button"
-                  >
-                    <MaterialCommunityIcons
-                      name="close"
-                      size={24}
-                      color={theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
+                    accessibilityHint="הקש כדי לסגור את הפרסומת"
+                    testID="ad-close-button"
+                  />
                 ) : (
                   <View style={styles.countdownContainer}>
                     <Text style={styles.countdownText}>{countdown}</Text>
@@ -311,12 +319,6 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: "center",
     padding: theme.spacing.xl,
-  },
-  loadingText: {
-    fontSize: theme.typography.body.fontSize,
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    textAlign: "center",
   },
   header: {
     flexDirection: "row-reverse",

@@ -127,6 +127,7 @@ export const UniversalModal: React.FC<UniversalModalProps> = ({
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [visible, autoClose, autoCloseDelay, loading, onClose]);
 
   // Backdrop press handler

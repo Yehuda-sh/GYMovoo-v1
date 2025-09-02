@@ -1,11 +1,11 @@
 /**
  * @file src/utils/personalDataUtils.ts
- * @description פונקציות עזר מרכזיות לטיפול בנתונים אישיים
- * @created 2025-08-10 - ריכוז כפילויות מקבצים שונים
- * English: Central utility functions for personal data handling
+ * @description פונקציות עזר פשוטות לטיפול בנתונים אישיים
+ * @updated 2025-09-03 - פישוט והסרת קוד מיותר
+ * English: Simple utility functions for personal data handling
  */
 
-// ✅ ממשק נתונים אישיים מרכזי - מחליף את כל הממשקים הכפולים
+// ✅ ממשק נתונים אישיים מרכזי
 export interface PersonalData {
   gender: "male" | "female";
   age: string; // "25_34", "35_44", etc.
@@ -17,9 +17,9 @@ export interface PersonalData {
 
 /**
  * מיצוי ערך אמצעי מטווח משקל/גובה
- * Used by: workoutHistoryService (simulation service removed)
+ * Used internally by calculatePersonalizedCalories
  */
-export const extractMidValueFromRange = (range: string): number => {
+const extractMidValueFromRange = (range: string): number => {
   const ranges: Record<string, number> = {
     // Weight ranges (kg)
     "50_59": 55,
@@ -40,9 +40,9 @@ export const extractMidValueFromRange = (range: string): number => {
 
 /**
  * חישוב פקטור מטבוליזם לפי גיל
- * Used by: workoutHistoryService (simulation service removed)
+ * Used internally by calculatePersonalizedCalories
  */
-export const getAgeMetabolismFactor = (age: string): number => {
+const getAgeMetabolismFactor = (age: string): number => {
   const factors: Record<string, number> = {
     "18_24": 1.1,
     "25_34": 1.0,
@@ -56,7 +56,7 @@ export const getAgeMetabolismFactor = (age: string): number => {
 
 /**
  * חישוב פקטור כוח לפי גיל
- * Used by: workoutHistoryService
+ * Used by: workoutRecommendationService
  */
 export const getAgeStrengthFactor = (age: string): number => {
   const factors: Record<string, number> = {
@@ -71,8 +71,8 @@ export const getAgeStrengthFactor = (age: string): number => {
 };
 
 /**
- * חישוב קלוריות משוערות מותאם אישית - פונקציה מרכזית
- * Replaces: calculatePersonalizedCalories in multiple services
+ * חישוב קלוריות משוערות מותאם אישית
+ * Used by: workoutRecommendationService
  */
 export const calculatePersonalizedCalories = (
   durationMinutes: number,
@@ -112,78 +112,4 @@ export const calculatePersonalizedCalories = (
   );
 
   return Math.max(50, totalCalories); // Minimum 50 calories
-};
-
-/**
- * חישוב BMI מנתוני משקל וגובה
- * Used by: workoutHistoryService
- */
-export const calculatePersonalizedBMI = (
-  personalData: PersonalData
-): number => {
-  const weightMid = extractMidValueFromRange(personalData.weight);
-  const heightMid = extractMidValueFromRange(personalData.height) / 100; // Convert to meters
-
-  return Math.round((weightMid / (heightMid * heightMid)) * 10) / 10;
-};
-
-/**
- * ניתוח ביצועים מותאם לגיל ורמת כושר
- * Used by: workoutHistoryService
- */
-export const analyzePersonalizedPerformance = (
-  currentValue: number,
-  exerciseType: "weight" | "volume" | "reps",
-  personalData?: PersonalData
-): {
-  percentile: number;
-  rating: "excellent" | "good" | "average" | "below_average" | "poor";
-  ageAdjusted: boolean;
-} => {
-  if (!personalData) {
-    return { percentile: 50, rating: "average", ageAdjusted: false };
-  }
-
-  // Base expectations by fitness level
-  const baseExpectations = {
-    beginner: { weight: 0.7, volume: 0.8, reps: 0.9 },
-    intermediate: { weight: 1.0, volume: 1.0, reps: 1.0 },
-    advanced: { weight: 1.3, volume: 1.2, reps: 1.1 },
-  };
-
-  // Age adjustment factor
-  const ageAdjustment = getAgeStrengthFactor(personalData.age);
-
-  // Gender adjustment factor
-  const genderAdjustment = personalData.gender === "male" ? 1.0 : 0.85;
-
-  const expectedValue =
-    baseExpectations[personalData.fitnessLevel][exerciseType] *
-    ageAdjustment *
-    genderAdjustment *
-    50; // Base reference value
-
-  const ratio = currentValue / expectedValue;
-
-  let percentile: number;
-  let rating: "excellent" | "good" | "average" | "below_average" | "poor";
-
-  if (ratio >= 1.5) {
-    percentile = 95;
-    rating = "excellent";
-  } else if (ratio >= 1.2) {
-    percentile = 80;
-    rating = "good";
-  } else if (ratio >= 0.8) {
-    percentile = 50;
-    rating = "average";
-  } else if (ratio >= 0.6) {
-    percentile = 25;
-    rating = "below_average";
-  } else {
-    percentile = 10;
-    rating = "poor";
-  }
-
-  return { percentile, rating, ageAdjusted: true };
 };

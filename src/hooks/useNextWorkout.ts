@@ -18,6 +18,7 @@ import { fieldMapper } from "../utils/fieldMapper";
 import { WorkoutPlan } from "../screens/workout/types/workout.types";
 import { logger } from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
+import { performanceManager } from "../utils/performanceManager";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;
@@ -49,6 +50,70 @@ export interface UseNextWorkoutReturn {
 // ===============================================
 // 🚀 Performance Cache & Optimizations - מערכת Cache ואופטימיזציות
 // ===============================================
+
+/**
+ * Singleton cache for workout recommendations
+ * מניעת חישובים כפולים על ידי cache גלובלי
+ */
+class GlobalWorkoutCache {
+  private static instance: GlobalWorkoutCache;
+  private cachedRecommendation: NextWorkoutRecommendation | null = null;
+  private cacheTimestamp = 0;
+  private readonly CACHE_DURATION = 10000; // 10 שניות
+  private activeFetches = new Set<string>();
+
+  static getInstance(): GlobalWorkoutCache {
+    if (!GlobalWorkoutCache.instance) {
+      GlobalWorkoutCache.instance = new GlobalWorkoutCache();
+    }
+    return GlobalWorkoutCache.instance;
+  }
+
+  getCachedRecommendation(userId?: string): NextWorkoutRecommendation | null {
+    const now = Date.now();
+    if (
+      this.cachedRecommendation &&
+      now - this.cacheTimestamp < this.CACHE_DURATION
+    ) {
+      logger.debug("useNextWorkout", "Using global cached recommendation", {
+        age: now - this.cacheTimestamp,
+        userId,
+      });
+      return this.cachedRecommendation;
+    }
+    return null;
+  }
+
+  setCachedRecommendation(
+    recommendation: NextWorkoutRecommendation,
+    userId?: string
+  ): void {
+    this.cachedRecommendation = recommendation;
+    this.cacheTimestamp = Date.now();
+    logger.debug("useNextWorkout", "Cached recommendation globally", {
+      workoutName: recommendation.workoutName,
+      userId,
+    });
+  }
+
+  isActiveFetch(key: string): boolean {
+    return this.activeFetches.has(key);
+  }
+
+  setActiveFetch(key: string): void {
+    this.activeFetches.add(key);
+  }
+
+  clearActiveFetch(key: string): void {
+    this.activeFetches.delete(key);
+  }
+
+  clearCache(): void {
+    this.cachedRecommendation = null;
+    this.cacheTimestamp = 0;
+    this.activeFetches.clear();
+  }
+}
 
 /**
  * Cache מהיר לתוכניות שבועיות וחישובים תכופים
@@ -97,9 +162,9 @@ const WorkoutHookCache = {
  * Hook לניהול האימון הבא במחזור
  * Hook for managing next workout in cycle
  */
-const DEBUG_NEXT_WORKOUT = __DEV__; // Use development mode flag
+const DEBUG_NEXT_WORKOUT = false; // ✅ השבתת דיבוג בייצור
 const debug = (...args: unknown[]) => {
-  if (DEBUG_NEXT_WORKOUT) {
+  if (DEBUG_NEXT_WORKOUT && __DEV__) {
     logger.debug("useNextWorkout", "Debug info", ...args);
   }
 };
@@ -126,6 +191,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
   const [weeklyPlanCache, setWeeklyPlanCache] = useState<string[]>([]);
 
+  // ✅ Global cache instance
+  const globalCache = useMemo(() => GlobalWorkoutCache.getInstance(), []);
+
   /**
    * Reset cache function
    * פונקציית איפוס cache
@@ -133,15 +201,17 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const resetCache = useCallback(() => {
     const beforeStats = WorkoutHookCache.getCacheStats();
     WorkoutHookCache.clear();
+    globalCache.clearCache(); // ✅ ניקוי cache גלובלי
     setWeeklyPlanCache([]);
     setPersonalizedInsights(null);
+    hasInitializedRef.current = false; // ✅ איפוס flag של initialization
 
     logger.info("useNextWorkout", "Cache reset completed", {
       beforeReset: beforeStats,
       afterReset: WorkoutHookCache.getCacheStats(),
     });
     debug("🧹 Cache cleared", { beforeStats });
-  }, []);
+  }, [globalCache]);
 
   /**
    * Enhanced personal data extraction with questionnaire integration
@@ -451,10 +521,48 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
   const refreshRecommendation = useCallback(async () => {
     try {
-      // אל תכניס loading אם כבר טוען
-      if (!isLoading) {
-        setIsLoading(true);
+      const userId = user?.id || "anonymous";
+      const fetchKey = `${userId}_${JSON.stringify(weeklyPlan)}`;
+
+      // ✅ בדיקת cache גלובלי
+      const cachedRecommendation = globalCache.getCachedRecommendation(userId);
+      if (cachedRecommendation && !globalCache.isActiveFetch(fetchKey)) {
+        setNextWorkout(cachedRecommendation);
+        setIsLoading(false);
+        debug("🚀 Using cached recommendation", cachedRecommendation);
+        return;
       }
+
+      // ✅ מניעת קריאות כפולות
+      if (globalCache.isActiveFetch(fetchKey)) {
+        debug("⏳ Fetch already in progress, skipping", { fetchKey });
+        return;
+      }
+
+      // בדיקה האם יש בקשה פעילה דומה
+      const requestKey = `nextWorkout_${user?.id}_${JSON.stringify(weeklyPlan)}`;
+
+      // בדיקת cache בסיסי מהמנהל הגלובלי
+      const cachedResult =
+        performanceManager.getCachedData<NextWorkoutRecommendation>(requestKey);
+      if (cachedResult) {
+        debug("🎯 Using cached workout recommendation", { cachedResult });
+        setNextWorkout(cachedResult);
+        globalCache.clearActiveFetch(fetchKey);
+        if (isMountedRef.current) setIsLoading(false);
+        return;
+      }
+
+      // בדיקה האם הבקשה מותרת על פי הביצועים
+      if (!performanceManager.canMakeRequest(requestKey)) {
+        debug("⏸️ Request blocked by performance manager", { requestKey });
+        globalCache.clearActiveFetch(fetchKey);
+        if (isMountedRef.current) setIsLoading(false);
+        return;
+      }
+
+      globalCache.setActiveFetch(fetchKey);
+      setIsLoading(true);
       setError(null);
 
       debug("🔄 Fetching next workout recommendation", {
@@ -501,6 +609,13 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       if (isMountedRef.current) {
         setNextWorkout(recommendation);
         setCycleStats(stats);
+
+        // ✅ שמירה ב-cache גלובלי
+        globalCache.setCachedRecommendation(recommendation, userId);
+
+        // ✅ שמירה במנהל הביצועים הגלובלי
+        performanceManager.setCachedData(requestKey, recommendation, 30000); // 30 שניות
+        performanceManager.completeRequest(requestKey);
 
         // ✅ יצירת insights מותאמים אישית מהנתונים החדשים
         if (personalData && recommendation) {
@@ -555,14 +670,17 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       if (isMountedRef.current) setNextWorkout(fallbackRecommendation);
       debug("🔄 Using fallback recommendation", fallbackRecommendation);
     } finally {
+      const userId = user?.id || "anonymous";
+      const fetchKey = `${userId}_${JSON.stringify(weeklyPlan)}`;
+      globalCache.clearActiveFetch(fetchKey);
       if (isMountedRef.current) setIsLoading(false);
     }
   }, [
     weeklyPlan,
-    isLoading,
     user,
     enhancedPersonalData,
     generatePersonalizedInsights,
+    globalCache,
   ]);
 
   /**
@@ -630,12 +748,29 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   );
 
   /**
-   * טעינה ראשונית
-   * Initial load
+   * טעינה ראשונית עם throttling
+   * Initial load with throttling
    */
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    refreshRecommendation();
-  }, [refreshRecommendation]);
+    // ✅ מניעת קריאות מיותרות - רק פעם אחת או כשמשתמש משתנה
+    if (!hasInitializedRef.current || !nextWorkout) {
+      hasInitializedRef.current = true;
+      refreshRecommendation();
+    }
+  }, [user?.id, nextWorkout, refreshRecommendation]); // תיקון dependencies
+
+  // ✅ רענון כשמשתנה תוכנית האימון
+  useEffect(() => {
+    if (hasInitializedRef.current && workoutPlan) {
+      const timeoutId = setTimeout(() => {
+        refreshRecommendation();
+      }, 100); // debounce קצר
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined; // תיקון return value
+  }, [workoutPlan, refreshRecommendation]); // תיקון dependencies
 
   return {
     nextWorkout,

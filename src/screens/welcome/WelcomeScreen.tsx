@@ -2,15 +2,20 @@
  * @file src/screens/welcome/WelcomeScreen.tsx
  * @description מסך ברוכים הבאים ראשי עם אפשרויות הרשמה והתחברות מהירה - מותאם לכושר מובייל
  * @description English: Main welcome screen with signup and quick login options - fitness mobile optimized
+ * @date 2025-09-02
+ * @enhanced שיפורים מתקדמים עם טקסטים דינמיים ואופטימיזציות ביצועים
+ * @updated 2025-09-02 אינטגרציה עם מערכת טקסטים מתקדמת ושיפורי UX
  *
  * ✅ ACTIVE & PRODUCTION-READY: מסך מרכזי קריטי עם ארכיטקטורה מותאמת לייצור וכושר מובייל
  * - Critical entry point for the entire application
  * - Simplified authentication system with local data integration
  * - Production-ready with comprehensive error handling
  * - Full accessibility compliance and RTL support
- * - Live user counter display
+ * - Live user counter display with enhanced statistics
  * - Clean UI without legacy demo systems
  * - Fitness mobile optimizations: haptic feedback, performance tracking, enlarged hitSlop
+ * - Dynamic time-based greetings and motivational messages
+ * - Enhanced text system integration with caching
  *
  * @description התחברות מהירה למשתמש אמיתי ממאגר מקומי + הרשמה חדשה עם אופטימיזציות כושר
  * Features quick login to real stored user from local data service + new registration with fitness optimizations
@@ -18,12 +23,14 @@
  * @features
  * - ✅ התחברות מהירה למשתמש אמיתי ממאגר מקומי
  * - ✅ הרשמה חדשה לאפליקציה
- * - ✅ Live user counter עם תצוגה סטטית
+ * - ✅ Live user counter עם תצוגה סטטית משופרת
  * - ✅ Cross-platform TouchableButton עם native feedback
  * - ✅ נגישות מלאה עם screen readers ו-RTL support
  * - ✅ Error handling מקיף עם modals אינפורמטיביים
  * - ✅ Features showcase עם אייקונים אינטראקטיביים
  * - ✅ Production optimization עם clean imports
+ * - ✅ Dynamic time-based content and motivational messages
+ * - ✅ Enhanced user statistics with multiple metrics
  *
  * @architecture
  * - Authentication: Quick login with Supabase + Registration flow
@@ -31,12 +38,14 @@
  * - Navigation: Simple routing to Register or MainApp
  * - Error Handling: Modal feedback for missing users
  * - Cloud Data: Integration with Supabase for stored users
+ * - Text System: Advanced text management with caching and dynamic content
  *
  * @performance
  * - Minimal imports and dependencies
- * - Static UI elements (no animations)
+ * - Static UI elements with dynamic content
  * - Direct service integration
  * - Optimized re-render patterns
+ * - Text caching system integration
  *
  * @accessibility
  * - Full screen reader support with descriptive labels
@@ -50,10 +59,10 @@
  * - React Navigation: Multi-screen navigation
  * - userApi: Supabase cloud data management
  * - theme: Complete design system integration
- * - WELCOME_SCREEN_TEXTS: Localized text constants
+ * - WELCOME_SCREEN_TEXTS: Enhanced localized text constants with caching
  *
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, userApi (Supabase)
- * @updated 2025-09-01 - Extracted TouchableButton component, added style constants, improved testability
+ * @updated 2025-09-02 - Enhanced text system integration, dynamic content, performance optimizations
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -77,8 +86,9 @@ import {
 import { RootStackParamList } from "../../navigation/types";
 import {
   WELCOME_SCREEN_TEXTS,
-  generateActiveUsersCount,
-  formatActiveUsersText,
+  formatEnhancedUserStats,
+  getWelcomeContentPackage,
+  getWelcomeTextCacheStats,
 } from "../../constants/welcomeScreenTexts";
 
 // Constants to prevent duplications
@@ -129,6 +139,9 @@ const WelcomeScreen = React.memo(() => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isQuickLoginVisible, setIsQuickLoginVisible] = useState(false);
+  const [welcomeContent, setWelcomeContent] = useState(() =>
+    getWelcomeContentPackage(false)
+  );
 
   // 🔍 בדיקה אם יש משתמש מחובר וניווט אוטומטי
   useEffect(() => {
@@ -194,9 +207,27 @@ const WelcomeScreen = React.memo(() => {
     checkQuickLoginAvailability();
   }, []);
 
+  // 🔄 Refresh welcome content periodically for dynamic updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Refresh content every 30 seconds for dynamic greetings and stats
+      const newContent = getWelcomeContentPackage(user !== null);
+      setWelcomeContent(newContent);
+
+      if (__DEV__) {
+        logger.debug("WelcomeScreen", "Content refreshed", {
+          cacheStats: getWelcomeTextCacheStats(),
+          hasUser: user !== null,
+        });
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Generate realistic active users count based on time of day
   // יצירת מספר משתמשים פעילים מציאותי לפי שעות היום
-  const [activeUsers] = useState(() => generateActiveUsersCount());
+  const [userStats] = useState(() => formatEnhancedUserStats());
 
   // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
   const triggerHapticFeedback = useCallback(
@@ -233,6 +264,10 @@ const WelcomeScreen = React.memo(() => {
             `userId: ${result.userId}`
           );
         }
+
+        // Update content for returning user
+        const returningUserContent = getWelcomeContentPackage(true);
+        setWelcomeContent(returningUserContent);
 
         // אתחול מנוי ברירת מחדל (trial) אם קיים אימפלמנטציה
         try {
@@ -337,13 +372,26 @@ const WelcomeScreen = React.memo(() => {
             <Text style={styles.tagline}>
               {WELCOME_SCREEN_TEXTS.HEADERS.TAGLINE}
             </Text>
+            {/* Dynamic time-based greeting */}
+            <Text style={styles.dynamicGreeting}>
+              {welcomeContent.greeting}
+            </Text>
           </View>
 
-          {/* Live user activity counter with pulse animation */}
+          {/* Live user activity counter with enhanced statistics */}
           <View style={styles.activeUsersContainer}>
             <View style={styles.activeUsersBadge}>
               <Text style={styles.activeUsersText}>
-                {formatActiveUsersText(activeUsers)}
+                {userStats.activeUsers}
+              </Text>
+            </View>
+            {/* Additional user statistics */}
+            <View style={styles.additionalStatsContainer}>
+              <Text style={styles.additionalStatsText}>
+                {userStats.newMembers}
+              </Text>
+              <Text style={styles.additionalStatsText}>
+                {userStats.successStories}
               </Text>
             </View>
           </View>
@@ -398,6 +446,12 @@ const WelcomeScreen = React.memo(() => {
 
           {/* Main action buttons with enhanced accessibility and animations */}
           <View style={styles.buttonsContainer}>
+            {/* Motivational message */}
+            <View style={styles.motivationContainer}>
+              <Text style={styles.motivationText}>
+                {welcomeContent.motivation}
+              </Text>
+            </View>
             {/* Primary call-to-action button with gradient design */}
             <UniversalButton
               title={WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
@@ -413,16 +467,14 @@ const WelcomeScreen = React.memo(() => {
 
             {/* הוסר: כפתור דמו */}
 
-            {/* Free trial promotion badge */}
+            {/* Free trial promotion badge with dynamic content */}
             <View style={styles.trialBadge}>
               <MaterialCommunityIcons
                 name="gift"
                 size={16}
                 color={theme.colors.warning}
               />
-              <Text style={styles.trialText}>
-                {WELCOME_SCREEN_TEXTS.PROMOTION.FREE_TRIAL}
-              </Text>
+              <Text style={styles.trialText}>{welcomeContent.promotion}</Text>
             </View>
 
             {/* Content divider for alternative authentication options */}
@@ -490,6 +542,28 @@ const WelcomeScreen = React.memo(() => {
               color={theme.colors.primary}
             />
             <Text style={styles.developerButtonText}>מסך פיתוח</Text>
+          </TouchableButton>
+        )}
+
+        {/* Performance Debug Info - Development Mode Only */}
+        {__DEV__ && (
+          <TouchableButton
+            style={styles.debugInfoButton}
+            onPress={() => {
+              const cacheStats = getWelcomeTextCacheStats();
+              console.warn("🎯 Welcome Screen Cache Stats:", cacheStats);
+              console.warn("🎯 Welcome Content Package:", welcomeContent);
+            }}
+            accessibilityLabel="מידע ביצועים"
+            accessibilityHint="הצגת סטטיסטיקות cache וביצועים"
+            testID="debug-info-button"
+          >
+            <Ionicons
+              name="speedometer"
+              size={16}
+              color={theme.colors.success}
+            />
+            <Text style={styles.debugInfoButtonText}>Debug Cache</Text>
           </TouchableButton>
         )}
 
@@ -571,6 +645,15 @@ const styles = StyleSheet.create({
     letterSpacing: CONSTANTS.STYLE_CONSTANTS.TAGLINE_LETTER_SPACING,
     lineHeight: CONSTANTS.STYLE_CONSTANTS.TAGLINE_LINE_HEIGHT,
   },
+  dynamicGreeting: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.primary,
+    textAlign: "center",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    marginTop: theme.spacing.sm,
+    fontWeight: "600",
+    fontStyle: "italic",
+  },
 
   // Live activity indicator section // מדור מחוון פעילות חי
   activeUsersContainer: {
@@ -600,6 +683,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
   },
+  additionalStatsContainer: {
+    marginTop: theme.spacing.sm,
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
+  additionalStatsText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    fontWeight: "400",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    textAlign: "center",
+  },
   // Features showcase section // מדור הצגת תכונות
   featuresContainer: {
     width: "100%",
@@ -627,6 +722,24 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: "100%",
     alignItems: "center",
+  },
+  motivationContainer: {
+    width: "100%",
+    backgroundColor: `${theme.colors.primary}10`,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.primary,
+  },
+  motivationText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.text,
+    textAlign: "center",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    fontWeight: "500",
+    lineHeight: 22,
   },
 
   // Promotional elements // אלמנטים קידומיים
@@ -750,6 +863,26 @@ const styles = StyleSheet.create({
   developerButtonText: {
     fontSize: CONSTANTS.STYLE_CONSTANTS.DEVELOPER_BUTTON_FONT_SIZE,
     color: theme.colors.primary,
+    fontWeight: "500",
+  },
+  debugInfoButton: {
+    position: "absolute",
+    bottom: 80,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.success,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    ...theme.shadows.small,
+    gap: theme.spacing.xs,
+  },
+  debugInfoButtonText: {
+    fontSize: 10,
+    color: theme.colors.success,
     fontWeight: "500",
   },
 

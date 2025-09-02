@@ -5,13 +5,12 @@
  *
  * Features:
  * - Workout management hooks with AI-powered recommendations
- * - Premium content access control with advanced analytics
- * - User preferences with smart algorithms and caching
+ * - User preferences with smart algorithms and optimized performance
  * - Performance optimization utilities
  * - Type-safe exports with comprehensive TypeScript support
  *
  * Performance optimizations:
- * - All hooks include built-in caching systems
+ * - Optimized hooks with minimal re-renders
  * - Memoized calculations for better performance
  * - Smart dependency tracking
  */
@@ -23,15 +22,12 @@
 // Next workout planning with AI recommendations
 export { useNextWorkout } from "./useNextWorkout";
 
-// Performance tracking and historical analysis
-export { usePreviousPerformance } from "./usePreviousPerformance";
-
 // ================================
-// 💎 PREMIUM CONTENT HOOKS
+// ♿ ACCESSIBILITY HOOKS
 // ================================
 
-// Premium access control with advanced analytics and conversion tracking
-export { usePremiumAccess } from "./usePremiumAccess";
+// Simple accessibility announcements
+export { useAccessibilityAnnouncements } from "./useAccessibilityAnnouncements";
 
 // ================================
 // ⚙️ USER PREFERENCES HOOKS
@@ -49,17 +45,6 @@ export * from "./userPreferencesHelpers";
 
 // Workout management types
 export type { UseNextWorkoutReturn } from "./useNextWorkout";
-export type {
-  SmartPreviousPerformance,
-  UsePreviousPerformanceReturn,
-} from "./usePreviousPerformance";
-
-// Premium access types
-export type {
-  ContentType,
-  SubscriptionTier,
-  PremiumInsights,
-} from "./usePremiumAccess";
 
 // User preferences types
 export type {
@@ -123,23 +108,15 @@ export const HookPresets = {
    * Complete workout session setup
    */
   WORKOUT_SESSION: {
-    hooks: ["useNextWorkout", "usePreviousPerformance", "usePremiumAccess"],
+    hooks: ["useNextWorkout"],
     description: "Everything needed for a complete workout session",
-  },
-
-  /**
-   * Premium content management
-   */
-  PREMIUM_CONTENT: {
-    hooks: ["usePremiumAccess", "useUserPreferences"],
-    description: "Premium content access and user preferences",
   },
 
   /**
    * User profile and preferences
    */
   USER_PROFILE: {
-    hooks: ["useUserPreferences", "usePremiumAccess"],
-    description: "User profile management and premium features",
+    hooks: ["useUserPreferences"],
+    description: "User profile management and preferences",
   },
 } as const;

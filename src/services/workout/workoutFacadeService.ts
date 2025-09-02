@@ -51,6 +51,13 @@ class WorkoutFacadeService {
   private readonly MAX_WORKOUT_STREAK_GAP_DAYS = 3;
   private readonly DEFAULT_MOST_ACTIVE_DAY = "לא זמין";
 
+  // 🚀 Cache מניעת קריאות כפולות
+  private genderStatsCache: {
+    data: unknown;
+    timestamp: number;
+  } | null = null;
+  private readonly GENDER_STATS_CACHE_TTL = 10000; // 10 שניות
+
   // --- Storage Methods ---
   // --- Storage Methods ---
 
@@ -474,6 +481,17 @@ class WorkoutFacadeService {
     };
   }> {
     try {
+      // 🚀 בדיקת cache תחילה
+      const now = Date.now();
+      if (
+        this.genderStatsCache &&
+        now - this.genderStatsCache.timestamp < this.GENDER_STATS_CACHE_TTL
+      ) {
+        return this.genderStatsCache.data as ReturnType<
+          typeof WorkoutFacadeService.prototype.getGenderGroupedStatistics
+        >;
+      }
+
       const history = await this.getHistory();
 
       // אתחול נתונים
@@ -557,17 +575,26 @@ class WorkoutFacadeService {
       // חישוב רצף אימונים נוכחי
       stats.total.workoutStreak = this.calculateWorkoutStreak(history);
 
-      logger.info(
-        "WorkoutFacadeService",
-        "Generated gender grouped statistics",
-        {
-          totalWorkouts: stats.total.totalWorkouts,
-          maleCount: stats.byGender.male.count,
-          femaleCount: stats.byGender.female.count,
-          otherCount: stats.byGender.other.count,
-          workoutStreak: stats.total.workoutStreak,
-        }
-      );
+      // ✅ הפחתת לוגים - רק ב-dev mode
+      if (__DEV__) {
+        logger.info(
+          "WorkoutFacadeService",
+          "Generated gender grouped statistics",
+          {
+            totalWorkouts: stats.total.totalWorkouts,
+            maleCount: stats.byGender.male.count,
+            femaleCount: stats.byGender.female.count,
+            otherCount: stats.byGender.other.count,
+            workoutStreak: stats.total.workoutStreak,
+          }
+        );
+      }
+
+      // 🚀 שמירה ב-cache
+      this.genderStatsCache = {
+        data: stats,
+        timestamp: Date.now(),
+      };
 
       return stats;
     } catch (error) {

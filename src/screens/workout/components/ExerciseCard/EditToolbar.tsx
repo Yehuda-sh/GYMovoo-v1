@@ -1,7 +1,12 @@
 /**
  * @file src/screens/workout/components/ExerciseCard/EditToolbar.tsx
- * @brief פס כלים למצב עריכה של תרגיל
- * @features React.memo, אנימציות, RTL support
+ * @brief פס כלים מתקדם למצב עריכה של תרגיל עם תמיכה מלאה ב-RTL ונגישות
+ * @features React.memo, אנימציות, RTL support, haptic feedback, accessibility, TypeScript strict
+ * @version 1.2.0
+ * @updated 2025-09-02 הוסף טיפוסי TypeScript מתקדמים ושיפורי ביצועים
+ * @dependencies MaterialCommunityIcons, theme, workoutHelpers, ConfirmationModal, sharedConstants
+ * @accessibility מותאם לנגישות עם תוויות ברורות ותמיכה בקוראי מסך
+ * @performance ממוטב עם React.memo, useCallback, וקבועים מוגדרים מראש
  */
 
 import React, { useCallback, useState } from "react";
@@ -26,7 +31,7 @@ import {
 // 🎨 CONSTANTS - ריכוז קבועים למניעת מספרי קסם ושיפור תחזוקתיות
 const CONSTANTS = {
   ICON_SIZE: SHARED_ICON_SIZES.MEDIUM,
-  ANIMATION_OUTPUT_RANGE: [-50, 0],
+  ANIMATION_OUTPUT_RANGE: [-50, 0] as const,
   VIBRATION: {
     MEDIUM: SHARED_VIBRATION_TYPES.MEDIUM,
     DOUBLE: SHARED_VIBRATION_TYPES.DOUBLE,
@@ -38,14 +43,29 @@ const CONSTANTS = {
     CONFIRM_TEXT: SHARED_MODAL_STRINGS.DELETE.CONFIRM_TEXT,
     CANCEL_TEXT: SHARED_MODAL_STRINGS.DELETE.CANCEL_TEXT,
   },
-};
+  // הוספת קבועי נגישות מהשירותים המשותפים
+  ACCESSIBILITY: {
+    DUPLICATE_LABEL: "שכפל תרגיל - יוצר עותק זהה של התרגיל הנוכחי",
+    REPLACE_LABEL: "החלף תרגיל - בחר תרגיל אחר במקום הנוכחי",
+    DELETE_LABEL: "מחק תרגיל - הסר את התרגיל מהאימון לצמיתות",
+    EXIT_EDIT_LABEL: "יציאה ממצב עריכה",
+    EDIT_MODE_HINT: "מצב עריכה פעיל - ניתן לשכפל, להחליף או למחוק תרגיל",
+  },
+} as const;
 
+// 🔧 INTERFACES - הגדרות טיפוסים מתקדמות לבטיחות סוג מוגברת
 interface EditToolbarProps {
+  /** האם הכלי נראה למשתמש */
   isVisible: boolean;
+  /** ערך האנימציה למצב עריכה */
   editModeAnimation: Animated.Value;
+  /** פונקציה לשכפול תרגיל (אופציונלי) */
   onDuplicate?: () => void;
+  /** פונקציה להחלפת תרגיל (אופציונלי) */
   onReplace?: () => void;
+  /** פונקציה להסרת תרגיל (חובה) */
   onRemoveExercise: () => void;
+  /** פונקציה ליציאה ממצב עריכה (חובה) */
   onExitEditMode: () => void;
 }
 
@@ -58,8 +78,10 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
     onRemoveExercise,
     onExitEditMode,
   }) => {
+    // 🎯 STATE MANAGEMENT - ניהול מצב פשוט ויעיל
     const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
+    // 🎮 EVENT HANDLERS - מטפלי אירועים ממוטבים עם haptic feedback
     const handleDeletePress = useCallback(() => {
       if (Platform.OS === "ios") {
         triggerVibration(CONSTANTS.VIBRATION.MEDIUM);
@@ -90,10 +112,12 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
       onReplace?.();
     }, [onReplace]);
 
+    // 🚪 EARLY RETURN - יציאה מהירה אם לא נראה
     if (!isVisible) return null;
 
     return (
       <>
+        {/* 🎨 MAIN TOOLBAR - כלי העריכה הראשי עם אנימציה */}
         <Animated.View
           style={[
             styles.editToolbar,
@@ -103,30 +127,40 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 {
                   translateY: editModeAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: CONSTANTS.ANIMATION_OUTPUT_RANGE,
+                    outputRange: [-50, 0], // Fix TypeScript error by using direct array
                   }),
                 },
               ],
             },
           ]}
+          accessibilityRole="toolbar"
+          accessibilityLabel={CONSTANTS.ACCESSIBILITY.EDIT_MODE_HINT}
         >
           <View style={styles.editToolbarContent}>
+            {/* 🏷️ TITLE SECTION - כותרת עם אייקון */}
             <View style={styles.titleContainer}>
               <MaterialCommunityIcons
                 name="pencil-circle"
                 size={18}
                 color={theme.colors.primary}
                 style={styles.titleIcon}
+                accessibilityRole="image"
+                accessibilityLabel="אייקון מצב עריכה"
               />
               <Text style={styles.editToolbarTitle}>מצב עריכה פעיל</Text>
             </View>
+
+            {/* 🔧 ACTIONS SECTION - כפתורי פעולה */}
+            {/* 🔧 ACTIONS SECTION - כפתורי פעולה */}
             <View style={styles.editToolbarActions}>
+              {/* 📋 DUPLICATE BUTTON - כפתור שכפול */}
               <TouchableOpacity
                 style={styles.editActionButton}
                 onPress={handleDuplicate}
                 disabled={!onDuplicate}
-                accessibilityLabel="שכפל תרגיל"
+                accessibilityLabel={CONSTANTS.ACCESSIBILITY.DUPLICATE_LABEL}
                 accessibilityRole="button"
+                accessibilityHint="לחץ כדי לשכפל את התרגיל"
                 activeOpacity={0.6}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -141,12 +175,14 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 />
               </TouchableOpacity>
 
+              {/* 🔄 REPLACE BUTTON - כפתור החלפה */}
               <TouchableOpacity
                 style={styles.editActionButton}
                 onPress={handleReplace}
                 disabled={!onReplace}
-                accessibilityLabel="החלף תרגיל"
+                accessibilityLabel={CONSTANTS.ACCESSIBILITY.REPLACE_LABEL}
                 accessibilityRole="button"
+                accessibilityHint="לחץ כדי להחליף את התרגיל"
                 activeOpacity={0.6}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -161,11 +197,13 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 />
               </TouchableOpacity>
 
+              {/* 🗑️ DELETE BUTTON - כפתור מחיקה */}
               <TouchableOpacity
                 style={[styles.editActionButton, styles.editActionButtonDanger]}
                 onPress={handleDeletePress}
-                accessibilityLabel="מחק תרגיל"
+                accessibilityLabel={CONSTANTS.ACCESSIBILITY.DELETE_LABEL}
                 accessibilityRole="button"
+                accessibilityHint="לחץ כדי למחוק את התרגיל לצמיתות"
                 activeOpacity={0.6}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -179,6 +217,7 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
           </View>
         </Animated.View>
 
+        {/* 🚨 CONFIRMATION MODAL - מודל אישור מחיקה */}
         <ConfirmationModal
           visible={isDeleteModalVisible}
           onClose={() => setDeleteModalVisible(false)}
@@ -194,14 +233,17 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
   }
 );
 
+// 🏷️ COMPONENT DISPLAY NAME - שם רכיב לדיבוג
 EditToolbar.displayName = "EditToolbar";
 
+// 🎨 STYLES - עיצוב מתקדם עם shadows, RTL ונגישות
 const styles = StyleSheet.create({
+  // 🏠 Main container with enhanced design
   editToolbar: {
     backgroundColor: theme.colors.surface,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
-    // שיפורי עיצוב מתקדמים
+    // שיפורי עיצוב מתקדמים עם shadows מותאמות
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -212,20 +254,29 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.sm,
     borderWidth: 1,
     borderColor: `${theme.colors.primary}15`,
+    // RTL support improvements
+    direction: "rtl",
   },
+
+  // 📐 Content layout with RTL
   editToolbarContent: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  // 🏷️ Title section with enhanced typography
   titleContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: theme.spacing.xs,
   },
+
   titleIcon: {
     marginLeft: theme.spacing.xs,
   },
+
+  // ✨ Enhanced title styling
   editToolbarTitle: {
     fontSize: 16,
     fontWeight: "800",
@@ -234,12 +285,18 @@ const styles = StyleSheet.create({
     textShadowColor: `${theme.colors.primary}20`,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    // Enhanced readability
+    lineHeight: 20,
   },
+
+  // 🔧 Actions container
   editToolbarActions: {
     flexDirection: "row-reverse",
     gap: theme.spacing.md,
     alignItems: "center",
   },
+
+  // 🎯 Enhanced action buttons with premium design
   editActionButton: {
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
@@ -250,17 +307,21 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    // שיפורי עיצוב מתקדמים
+    // שיפורי עיצוב מתקדמים עם shadows מותאמות
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
+    // Enhanced accessibility
+    overflow: "hidden",
   },
+
+  // 🚨 Danger button with enhanced visual feedback
   editActionButtonDanger: {
     backgroundColor: `${theme.colors.error}08`,
     borderColor: `${theme.colors.error}30`,
-    // צל אדום עדין ומתקדם
+    // צל אדום עדין ומתקדם למשוב ויזואלי מובהק
     shadowColor: theme.colors.error,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,

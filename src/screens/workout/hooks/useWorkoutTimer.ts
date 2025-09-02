@@ -26,7 +26,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { formatTime } from "../../../utils";
+import { formatWorkoutTime } from "../../../utils";
 
 /**
  * ממשק החזרה של Hook עם פונקציונליות מלאה לניהול טיימר אימון
@@ -226,7 +226,7 @@ export const useWorkoutTimer = (workoutId?: string): UseWorkoutTimerReturn => {
 
   return {
     elapsedTime,
-    formattedTime: formatTime(elapsedTime),
+    formattedTime: formatWorkoutTime(elapsedTime),
     isRunning,
     startTimer,
     pauseTimer,

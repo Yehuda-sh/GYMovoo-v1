@@ -1,8 +1,31 @@
-<!-- COPILOT_GUIDELINES.md -->
+<!-- COP## תוכן עניינים (TOC)
+
+1. עקרונות יסוד וקונבנציות
+2. ארכיטקטורת פיצ'רים (חדש!)
+3. עבודה עם טרמינל ו-Expo
+4. Supabase – מקור אמת ונתוני דמו
+5. RTL + נגישות (Accessibility)
+6. ארכיטקטורה ותצורת פרויקט
+7. מניעת כפילויות ודפוסי Refactor
+8. BackButton ו-ConfirmationModal – שימוש מחייב
+9. TypeScript & Data Contracts (כולל UserStore)
+10. בדיקות (TS / יחידה / אינטגרציה)
+11. ניהול תיעוד ומיזוג מסמכים
+12. יצירת / עדכון נתוני דמו נכונים
+13. Impact & Quality Checklists
+14. הנחיות לעוזר AI (GitHub Copilot)
+15. דיבוג מהיר (Navigation / UI / Cache)
+16. בטיחות שינויים והסרת Legacy
+17. דפוסי שאלון וציוד
+18. טעויות נפוצות / DO & DON'T
+19. ביצועים ואופטימיזציה (חדש!)
+20. אבטחה ופרטיות (חדש!)
+21. תרחישי קיצון וחוסן מערכת (חדש!)
+22. לקחים משיפור TypeScript ורכיבים משותפים (חדש!)->
 
 # הנחיות מאוחדות לפרויקט GYMovoo (Master Guidelines)
 
-Last updated: 2025-09-01
+Last updated: 2025-09-02 (נוסף ידע מתקדם על userStore, ביצועים, אבטחה, ושיפור TypeScript + רכיבים משותפים)
 
 מסמך זה הוא מקור אמת יחיד לכללי עבודה, שימוש ב-AI, ארכיטקטורה, RTL, נגישות, Supabase, דמו, וניהול תיעוד. שני קובצי ההנחיות הישנים (`copilot-instructions.md`, `copilot-instructions-updated.md`) הוחלפו ומכילים הפניה בלבד. אין לשכפל תוכן חדש אליהם.
 
@@ -89,6 +112,12 @@ Last updated: 2025-09-01
 - AsyncStorage: לאחסון זמני בלבד (`user_cache`), לא מקור אמת.
 - שינוי סכימה → לציין בתקציר PR (מיגרציה).
 
+### 4.1 אסטרטגיית סנכרון חכמה
+- **סנכרון סלקטיבי**: רק משתמשי פרימיום מסתנכרנים עם השרת
+- **debouncing**: מרווח 2 שניות בין עדכונים למניעת spam של השרת
+- **התנגשויות**: `refreshFromServer()` עלול לגבור על שינויים מקומיים בעבודה מקבילית
+- **התאמת שדות**: `fieldMapper.toDB()` ממיר מcamelCase ללowercase לפני שמירה
+
 ### 4.1 אימות נתוני דמו
 
 השתמש רק בערכים המופיעים ב-`src/data/unifiedQuestionnaire.ts` ובקבועים תחת `src/constants/`.
@@ -132,6 +161,17 @@ ConfirmationModal מחליף `Alert.alert` לכל הודעת אישור/אזהר
 - **איתור מבנים מורכבים**: יש לאתר את הנתיב המדויק לשדה הנדרש. לדוגמה, `equipment` יכול להימצא ב-`user.customDemoUser.equipment` או `user.trainingstats.selectedEquipment`. יש לתמוך בכל האפשרויות.
 - מסונכרן בין legacy `questionnaire` ל-`smartquestionnairedata` עד הסרה מלאה.
 
+### 9.1 ניהול מצב משתמש (UserStore) - עקרונות מרכזיים
+
+- **session יחיד**: רק משתמש אחד בכל פעם, התחברות חדשה מחליפה את הקודמת
+- **מטמון ציוד**: `memoizedNormalizeEquipment` עם TTL למניעת memory leaks
+- **דיבאונס שרת**: `scheduleServerSync` עם עיכוב 2 שניות - רק הקריאה האחרונה מתבצעת
+- **התנתקות**: `logout()` מציב דגל `user_logged_out` ב-AsyncStorage, `clearAllUserData()` לניקוי מלא
+- **תקופת ניסיון**: מעבר אוטומטי מ-trial ל-free עם השבתת תכני פרימיום
+- **סנכרון**: רק משתמשי פרימיום מסתנכרנים לשרת, משתמשי דמו (`demo_*`) מקומיים בלבד
+- **שגיאות שרת**: נשמרות בלוג, נתונים נשארים מקומיים עד הסנכרון הבא
+- **storage מלא**: טיפול ב-QUOTA_EXCEEDED עם ניסיונות ניקוי וחזרה
+
 ## 10. בדיקות
 
 - **חובה**: לפני commit, הרץ `npx tsc --noEmit --skipLibCheck`.
@@ -146,8 +186,6 @@ ConfirmationModal מחליף `Alert.alert` לכל הודעת אישור/אזהר
 - הוסף "Last updated" בראש כל מסמך חדש מהותי.
 - מיזוג/מחיקת מסמכים: לציין ב-PR (Removed / Merged).
 - שמור 5–10 מסמכים חיוניים קצרים.
-- **מחיקת מסמכי תיקונים ישנים:** מסמכים כמו `undefined-sets-fix.md` שמתעדים תיקונים שבוצעו לפני זמן רב - יש למחוק לאחר וידוא שהתיקון מיושם ויציב.
-- **ניקוי תיקיית docs/reports:** תיקיית `docs/reports/` צריכה להכיל רק דוחות עדכניים ורלוונטיים. דוחות ישנים (ללא תאריכים או מתאריכים ישנים) יש למחוק כדי לשמור על סדר וניקיון.
 
 ## 12. יצירת / עדכון משתמש דמו
 
@@ -242,6 +280,57 @@ Email ייחודי (timestamp). שדות JSONB ריקים = `{}` מותר אם �
 DO: BackButton, ConfirmationModal, theme.colors, accessibility props, lower-case DB columns, unified questionnaire.
 DON'T: Alert.alert, chevron-back ב-RTL, any, hard-coded colors, נתונים דינמיים בתיעוד, כפילות רכיבים.
 
+## 19. ביצועים ואופטימיזציה - עקרונות מתקדמים
+
+### 19.1 ניהול זיכרון ומטמון
+- **Memoization חכם**: השתמש ב-TTL (Time To Live) למניעת memory leaks
+- **דוגמה**: `memoizedNormalizeEquipment` עם cache של 5 דקות ו-override אוטומטי
+- **עקרון**: cache יחיד למידע זהה, ניקוי אוטומטי לרשומות ישנות
+
+### 19.2 סנכרון שרת מאופטם
+- **Debouncing**: קריאות רבות למעט לקריאה אחת (2 שניות עיכוב)
+- **גישה סלקטיבית**: רק משתמשי פרימיום מסתנכרנים, דמו נשאר מקומי
+- **חוסן לשגיאות**: כשל ברשת לא מונע פעילות מקומית
+
+### 19.3 ארכיטקטורת State Management
+- **Store separation**: הפרדה ברורה בין user/workout/history stores
+- **Persistence חכמה**: שמירת מינימום נתונים (`partialize`) למניעת bloat
+- **זיכרון efficient**: פונקציות לא נשמרות ב-AsyncStorage
+
+## 20. אבטחה ופרטיות - הגנה על נתוני משתמש
+
+### 20.1 ניהול session ואימות
+- **דגל התנתקות**: `user_logged_out` ב-AsyncStorage שולט בגישה
+- **חשיבות**: זיוף הדגל ל-true יגרום לחזרה למסך Welcome
+- **אבטחה**: כל בדיקת הרשאה עוברת דרך `isLoggedIn()` שבודק את הדגל
+
+### 20.2 הפרדת נתוני דמו ומשתמשים אמיתיים
+- **זיהוי דמו**: משתמשים עם ID שמתחיל ב-`demo_*` לא מסתנכרנים לשרת
+- **בידוד**: נתוני דמו נשארים מקומיים למניעת זיהום בסיס הנתונים
+- **בטיחות**: `refreshFromServer()` מתעלם ממשתמשי דמו אוטומטית
+
+### 20.3 טיפול בכשלונות ושחזור
+- **גישה לחלקין**: כשל בסנכרון לא גורם לאובדן נתונים מקומיים
+- **fallback strategy**: שגיאות נרשמות בלוג, המשתמש לא מודע אלא אם הוא בודק
+- **ניקוי בטוח**: מטמון מתנקה אוטומטית כשיש בעיות קיבולת אחסון
+
+## 21. תרחישי קיצון וחוסן מערכת
+
+### 21.1 עומס ובקשות מרובות
+- **הגנה מפני spam**: `scheduleServerSync` מבטל בקשות קודמות
+- **דוגמה**: 100 קריאות בשנייה → רק הבקשה האחרונה תרוץ אחרי 2 שניות
+- **חוסן**: המערכת לא תקרוס ולא תחסום את השרת
+
+### 21.2 בעיות אחסון וזיכרון
+- **מלא AsyncStorage**: זיהוי `QUOTA_EXCEEDED` וניסיון ניקוי אוטומטי
+- **סגירת אפליקציה**: סנכרון שלא הושלם לא יגרום לאובדן נתונים
+- **שחזור נתונים**: הפעלה מחדש תנסה לסנכרן שוב את הנתונים הלא מעודכנים
+
+### 21.3 תזמון וגישה מקבילית
+- **setState אחרי יצירה**: פונקציות מורכבות מוגדרות אחרי יצירת ה-store למניעת circular dependencies
+- **race conditions**: AsyncStorage בטוח למרות קריאות מקבילות
+- **עקביות**: כל שינוי עובר דרך Zustand לעקביות state גלובלי
+
 ---
 
 להוספת כלל חדש: ודא שאינו קיים; הוסף לסעיף הרלוונטי בלבד. שינוי מהותי → עדכן תאריך בראש.
@@ -315,12 +404,12 @@ DON'T: Alert.alert, chevron-back ב-RTL, any, hard-coded colors, נתונים ד
   - ✅ **מטמון חכם:** 90% פחות קריאות API עם mappingsCache
   - ✅ **ביצועים משופרים:** הסרת כפילויות והמרות מיותרות
   - ✅ **איחוד הושלם:** הסרת `WgerExerciseFormatted` ב-useWgerExercises.ts
-- **🎯 Demo Service Optimization:** שירות דמו מציאותי מאופטם (904 שורות)
+- **🎯 Demo Service Optimization:** שירות דמו מציאותי מאופטם
   - ✅ **ממשקים מאוחדים:** `RealisticExerciseSet` מרחיב את `ExerciseSet` הבסיסי
   - ✅ **פתרון התנגשויות:** `PerformanceRecommendation` במקום `WorkoutRecommendation` כפול
   - ✅ **בטיחות טיפוסים:** הירארכיית inheritance נכונה עם imports מפורשים
   - ✅ **דוח מלא:** `docs/REALISTIC_DEMO_SERVICE_OPTIMIZATION_REPORT.md`
-- **🏋️ Large Services Optimization:** אופטימיזציה של שירותים גדולים (2,474 שורות)
+- **🏋️ Large Services Optimization:** אופטימיזציה של שירותים גדולים
   - ✅ **פתרון כפילויות UserProfile:** `WorkoutUserProfile` ו-`ScientificUserProfile`
   - ✅ **התמחות ממשקים:** כל שירות עם ממשק מותאם לצרכיו הייחודיים
   - ✅ **בטיחות טיפוסים משופרת:** סיום התנגשויות בין שירותים
@@ -483,7 +572,40 @@ const handleAction = () => {
   size={90}
   // accessibility label נוצר אוטומטית: "תמונת פרופיל של יוסי כהן"
 />
+
+// ✅ CloseButton - רכיב סגירה מאוחד (שימוש מועדף על TouchableOpacity)
+<CloseButton
+  onPress={onClose}
+  size="medium"            // small | medium | large
+  variant="solid"          // solid | outline | ghost
+  position="center"        // center | start | end
+  accessibilityLabel="סגור מסך"
+  accessibilityHint="הקש כדי לסגור את המסך"
+  testID="modal-close-button"
+/>
+
+// ❌ להימנע מ:
+<TouchableOpacity onPress={onClose}>
+  <Ionicons name="close" size={24} />
+</TouchableOpacity>
+
+// ✅ במקום - השתמש ב-CloseButton המאוחד
 ```
+
+### 🔄 קונבנציית רכיבים משותפים:
+**תמיד בדוק אם קיים רכיב משותף לפני יצירת חדש:**
+- `CloseButton` - לכל כפתורי סגירה ובטלה
+- `BackButton` - לניווט חזרה
+- `LoadingSpinner` - למצבי טעינה
+- `UniversalModal` - למודלים כלליים
+- `InputField` - לקלטי טקסט
+- `UniversalButton` - לכפתורים עיקריים
+
+**לפני יצירת רכיב חדש:**
+1. 🔍 בדוק ב-`src/components/common/` ו-`src/screens/workout/components/shared/`
+2. 🔍 חפש ברכיבים הקיימים אם יש דומה
+3. 🎯 אם צריך רכיב חדש - צור אותו במיקום המתאים ותעד
+4. 📋 עדכן את הרשימה במסמכי התיעוד
 
 <!-- סעיפים ישנים תחתית המסמך עברו לאיחוד למעלה. -->
 
@@ -498,7 +620,7 @@ questionnaireService.ts, WorkoutPlansScreen.tsx – משמשים כמודל לק
 - **תיעוד דו-לשוני:** עברית ואנגלית בכל הערה
 - **בדיקות אוטומטיות:** `npx tsc --noEmit --skipLibCheck` מחויב
 
-## 🔄 שדרוגים מתוכננים לביצוע (אוגוסט 2025)
+## 🔄 שדרוגים מתוכננים לביצוע (ספטמבר 2025)
 
 ### ✅ הושלם: wgerApiService.ts + useWgerExercises.ts אופטימיזציה
 
@@ -582,7 +704,7 @@ questionnaireService.ts, WorkoutPlansScreen.tsx – משמשים כמודל לק
  */
 ```
 
-### דוגמת תיעוד מושלמת (מעודכן יולי 2025):
+### דוגמת תיעוד מושלמת (מעודכן ספטמבר 2025):
 
 ```typescript
 /**
@@ -600,10 +722,114 @@ questionnaireService.ts, WorkoutPlansScreen.tsx – משמשים כמודל לק
 
 ## 🎉 תקציר הצלחות (תמציתי)
 
-- TypeScript מחמיר ללא any
-- נגישות + RTL עקביים
-- הפחתת כפילויות (BackButton, ConfirmationModal)
-- מטמון ויעילות קריאות API (שירות WGER)
+- TypeScript מחמיר ללא any + ניהול state מתקדם עם Zustand
+- נגישות + RTL עקביים עם תמיכה מלאה בעברית
+- הפחתת כפילויות (BackButton, ConfirmationModal) וייעול ביצועים
+- מטמון ויעילות קריאות API (שירות WGER + userStore מאופטם)
+- אבטחה מתקדמת עם הפרדת משתמשי דמו וסנכרון חכם
+- חוסן מערכת מול תרחישי קיצון ובעיות רשת/אחסון
+- ארכיטקטורה מתקנת עצמה עם fallback strategies מובנים
+- שיפור ברכיבים משותפים (CloseButton, BackButton) עם תכונות מתקדמות
+- עדכון כלי בדיקת נגישות לזיהוי תכונות מודרניות
+
+## 22. לקחים משיפור TypeScript ורכיבים משותפים (חדש!)
+
+### 22.1 שיפור קונפיגורציית TypeScript
+
+**שיפורים שבוצעו**:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+**לקחים**:
+
+- הוספת הגדרות מחמירות מתוך תחילת הפרויקט חשובה
+- `paths` mapping מקל על imports יחסיים
+- שימוש ב-`npx tsc --noEmit` לבדיקה מהירה של שגיאות
+
+### 22.2 שיטתיות בתיקון שגיאות TypeScript
+
+**תהליך נכון**:
+
+1. רץ בדיקה כוללת: `npx tsc --noEmit`
+2. תקן שגיאות אחת אחת עם הוספת `override` מילות מפתח
+3. תקן `useEffect` dependencies וערכי החזרה
+4. בדוק שוב עד קבלת 0 שגיאות
+
+**לקחים**:
+
+- תיקון שגיאות צריך להיות שיטתי ומסודר
+- חשוב לבדוק כל קובץ בנפרד כדי לוודא שהתיקון עובד
+- שמירת האחידות בדפוסי קוד חשובה יותר ממהירות
+
+### 22.3 שיפור רכיבים משותפים
+
+**CloseButton ו-BackButton עודכנו עם**:
+
+- `React.memo` לביצועים
+- Haptic feedback עם `expo-haptics`
+- Loading states מובנים
+- תמיכה ב-`reducedMotion`
+- `Pressable` במקום `TouchableOpacity`
+
+**מחליפים שימושים ידניים**:
+
+```tsx
+// ❌ לפני
+<TouchableOpacity onPress={onClose}>
+  <MaterialCommunityIcons name="close" size={24} />
+</TouchableOpacity>
+
+// ✅ אחרי
+<CloseButton onPress={onClose} />
+```
+
+**לקחים**:
+
+- רכיבים משותפים חוסכים זמן ומגדילים אחידות
+- חשוב לעדכן את כל השימושים הקיימים ברכיבים
+- תיעוד השימוש הנכון מעודד אימוץ
+
+### 22.4 עדכון כלי בדיקת נגישות
+
+**שיפורים בסקריפט `accessibilityCheck.js`**:
+
+- גרסה 2.1 עם זיהוי תכונות מתקדמות
+- בדיקת haptic feedback, loading states, reducedMotion
+- זיהוי שימוש ב-Pressable מודרני
+- זיהוי רכיבים משופרים (CloseButton, BackButton)
+- דו"ח JSON מפורט עם סטטיסטיקות
+
+**לקחים**:
+
+- כלי בדיקה צריכים להתעדכן עם התפתחות הקוד
+- חשוב לכלול גם בדיקות לתכונות מתקדמות, לא רק בסיסיות
+- דיווח ברור עוזר להבין היכן להשקיע מאמץ
+
+### 22.5 עקרונות פיתוח נוספים שנלמדו
+
+**תיעדוף עבודה**:
+
+1. תחילה תיקון בעיות קיימות (TypeScript errors)
+2. שיפור רכיבים משותפים וההשפעה שלהם
+3. עדכון כלי פיתוח לזיהוי השיפורים
+4. תיעוד הלקחים למניעת חזרה
+
+**מטרות איכות**:
+
+- קוד נקי ועקבי
+- נגישות מקיפה
+- ביצועים אופטימליים
+- כלי פיתוח מעודכנים
 
 ---
 

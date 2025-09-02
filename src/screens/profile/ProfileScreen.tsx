@@ -2064,7 +2064,7 @@ function ProfileScreen() {
                         {PROFILE_SCREEN_TEXTS.ACTIONS.COMPLETE_QUESTIONNAIRE}
                       </Text>
                       <Text style={styles.questionnaireSubtitle}>
-                        {!questionnaireStatus.hasTrainingStage
+                        {!questionnaireStatus.isComplete
                           ? "קבל תוכנית אימונים מותאמת אישית"
                           : "השלם את הפרופיל האישי שלך"}
                       </Text>

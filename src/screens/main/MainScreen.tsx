@@ -383,8 +383,12 @@ function MainScreen() {
   }, [user]);
 
   useEffect(() => {
-    loadAdvancedData();
-  }, [loadAdvancedData]);
+    // ✅ הוספת delay למניעת קריאות מיותרות
+    const timeoutId = setTimeout(() => {
+      loadAdvancedData();
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [user?.id, loadAdvancedData]); // רק כשמשתמש משתנה
 
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;

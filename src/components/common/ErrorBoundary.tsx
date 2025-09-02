@@ -98,7 +98,7 @@ export class ErrorBoundary extends Component<
     return "unknown";
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // דיווח שגיאה למערכת מרכזית
     errorHandler.reportError(error, {
       componentStack: errorInfo.componentStack,
@@ -155,7 +155,7 @@ export class ErrorBoundary extends Component<
     });
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       const {
         variant = "default",

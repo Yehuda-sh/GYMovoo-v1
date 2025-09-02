@@ -142,6 +142,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
       animation.start();
       return () => animation.stop();
     }
+    return undefined;
   }, [variant, scaleAnim]);
 
   // סגנון מינימלי

@@ -759,7 +759,7 @@ class ExerciseCardErrorBoundary extends Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
 
     // Log error for debugging
@@ -778,7 +778,7 @@ class ExerciseCardErrorBoundary extends Component<
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <View style={errorBoundaryStyles.container}>
@@ -1081,6 +1081,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             if (Platform.OS === "ios") {
               Vibration.vibrate([50, 100, 50]);
             }
+            return undefined;
           }
         };
       },
@@ -1621,6 +1622,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
 
         return () => clearTimeout(timer);
       }
+      return undefined;
     }, [error]);
     useEffect(() => {
       if (isCompleted) {

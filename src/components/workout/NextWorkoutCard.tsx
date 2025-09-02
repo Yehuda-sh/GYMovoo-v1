@@ -97,6 +97,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
         return () => clearTimeout(timeout);
       } else {
         setShowTimeout(false);
+        return undefined;
       }
     }, [isLoading]);
 

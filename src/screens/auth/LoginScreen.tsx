@@ -855,7 +855,7 @@ const LoginScreen = React.memo(() => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <BackButton />
+            <BackButton loading={loading} haptic={true} />
 
             <Animated.View
               style={[

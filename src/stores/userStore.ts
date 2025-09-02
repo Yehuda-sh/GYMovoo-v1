@@ -3,10 +3,22 @@
  * @description Store מרכזי לניהול מצב המשתמש עם תמיכה בשאלון חכם
  * English: Central store for managing user state with smart questionnaire support
  *
+ * מה הקובץ הזה עושה?
+ * ===================
+ * זה כמו "מחסן מרכזי" לאפליקציה ששומר את כל המידע על המשתמש:
+ * - שם, אימייל, העדפות
+ * - תשובות לשאלון החכם
+ * - תוכניות אימון
+ * - מצב מנוי (חינם/ניסיון/פרימיום)
+ *
+ * למה זה חשוב?
+ * =============
+ * בלי זה, האפליקציה "תשכח" הכל כשאתה סוגר אותה.
+ * זה שומר את כל הנתונים בטלפון ומסנכרן עם השרת כשצריך.
+ *
  * @features
  * - ניהול מצב משתמש מרכזי עם Zustand ו-AsyncStorage persistence
  * - תמיכה מלאה בשאלון חכם חדש (SmartQuestionnaireData)
- * - תאימות לאחור עם שאלון ישן (LegacyQuestionnaireData)
  * - פונקציות התאמת מגדר והעדפות מותאמות אישית
  * - ניהול משתמש דמו מותאם עם אפשרויות ניקוי מתקדמות
  * - Hooks נוספים לנוחות ובדיקות מצב
@@ -34,12 +46,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  User,
-  SmartQuestionnaireData,
-  LegacyQuestionnaireData,
-  WorkoutPlan,
-} from "../types";
+import { User, SmartQuestionnaireData, WorkoutPlan } from "../types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
@@ -49,24 +56,19 @@ import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipm
 
 // Import new helper files
 import { USER_STORE_CONSTANTS } from "./userStoreConstants";
-import {
-  clearAllStorageData,
-  createDebouncedSync,
-  shouldSyncUser,
-  handleStoreError,
-  updateUserAndScheduleSync,
-} from "./userStoreHelpers";
+import { clearAllStorageData } from "./userStoreHelpers";
 import {
   updateUserWithDemoData,
   createNewUserWithDemoData,
 } from "./userStoreDemoUtils";
 
 // ==============================
-// Constants
+// קבועים - כמו הגדרות קבועות שלא משתנות
 // ==============================
 const CONSTANTS = USER_STORE_CONSTANTS;
 
 // ==============================
+// אופטימיזציה לביצועים - שמירה בזיכרון של חישובים
 // Performance Optimization Utils
 // ==============================
 let __memoizedEquipment: {
@@ -111,12 +113,6 @@ const normalizeEquipment = (arr?: string[]): string[] => {
   return memoizedNormalizeEquipment(arr);
 };
 
-// טיפוס תשובות השאלון הישן (לתאימות לאחור)
-// Old questionnaire answers type (for backward compatibility)
-type LegacyQuestionnaireAnswers = {
-  [key: number]: string | string[];
-};
-
 // טיפוס מורחב לתשובות השאלון עם שדות נוספים
 // Extended questionnaire answers type with additional fields
 type ExtendedQuestionnaireAnswers = {
@@ -125,14 +121,17 @@ type ExtendedQuestionnaireAnswers = {
 };
 
 // =======================================
-// 🏪 Store Interface Definition
-// הגדרת ממשק ה-Store
+// 🏪 הגדרת הממשק - כמו חוזה של מה ה-store יכול לעשות
+// Store Interface Definition
 // =======================================
 
 interface UserStore {
   // מצב המשתמש
   // User state
   user: User | null;
+
+  // 🚫 מניעת עדכונים תכופים מדי
+  lastSubscriptionUpdate: number;
 
   // פעולות בסיסיות
   // Basic actions
@@ -142,7 +141,7 @@ interface UserStore {
 
   // בדיקות מצב התחברות
   // Authentication state checks
-  isLoggedIn: () => boolean;
+  isLoggedIn: () => Promise<boolean>;
   clearAllUserData: () => Promise<void>;
   clearDataForFreshStart: () => Promise<void>; // חדש: לניקוי במצב פיתוח
 
@@ -160,12 +159,6 @@ interface UserStore {
   setUserGender: (gender: "male" | "female" | "other") => void;
   updateGenderProfile: (profile: Partial<User["genderprofile"]>) => void;
   getAdaptedWorkoutName: (originalName: string) => string;
-
-  // פעולות שאלון ישן (לתאימות לאחור)
-  // Old questionnaire actions (for backward compatibility)
-  setQuestionnaire: (answers: LegacyQuestionnaireAnswers) => void;
-  setQuestionnaireData: (data: LegacyQuestionnaireData) => void;
-  resetQuestionnaire: () => void;
 
   // פעולות העדפות מורחבות
   // Extended preferences actions
@@ -198,7 +191,6 @@ interface UserStore {
   getCompletionStatus: () => {
     hasBasicInfo: boolean;
     hasSmartQuestionnaire: boolean;
-    hasOldQuestionnaire: boolean;
     isFullySetup: boolean;
   };
 
@@ -237,10 +229,17 @@ interface UserStore {
   scheduleServerSync: (reason?: string) => void;
 }
 
+// =======================================
+// 🏪 יצירת ה-Store הראשי - זה הלב של כל ניהול המשתמש
+// Creating the main store with Zustand
+// =======================================
 export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       user: null,
+      // 🚫 מניעת עדכונים תכופים מדי
+      lastSubscriptionUpdate: 0,
+
       // Stubs for server sync (replaced below after store creation)
       refreshFromServer: async () => {},
       scheduleServerSync: () => {},
@@ -290,6 +289,11 @@ export const useUserStore = create<UserStore>()(
         }
       },
 
+      // ===========================================
+      // 🚪 התנתקות - מוחק את כל הנתונים ומסמן שהמשתמש התנתק
+      // Logout - clears all data and marks user as logged out
+      // ===========================================
+
       // התנתקות מפושטת עם ניקוי יעיל
       // Simplified logout with efficient cleanup
       logout: async () => {
@@ -299,8 +303,6 @@ export const useUserStore = create<UserStore>()(
           // רשימת מפתחות עיקריים לניקוי
           const keysToRemove = [
             "user-storage",
-            "questionnaire_metadata",
-            "questionnaire_answers",
             "smart_questionnaire_results",
             "user_gender_preference",
             "selected_equipment",
@@ -309,7 +311,10 @@ export const useUserStore = create<UserStore>()(
           // מחיקה יעילה של המפתחות העיקריים
           await AsyncStorage.multiRemove(keysToRemove);
 
-          // איפוס ה-store
+          // שמירת מצב התנתקות
+          await AsyncStorage.setItem("user_logged_out", "true");
+
+          // איפוס ה-store עם סימון התנתקות
           set({ user: null });
 
           logger.info("Auth", "userStore.logout - התנתקות הושלמה בהצלחה");
@@ -320,6 +325,11 @@ export const useUserStore = create<UserStore>()(
           throw error;
         }
       },
+
+      // ===========================================
+      // 📋 פונקציות השאלון החכם - מנהלות את התשובות והנתונים
+      // Smart Questionnaire Functions - manage answers and data
+      // ===========================================
 
       // === פונקציות השאלון החכם החדש ===
       // === New Smart Questionnaire Functions ===
@@ -549,121 +559,6 @@ export const useUserStore = create<UserStore>()(
         return originalName;
       },
 
-      // === פונקציות שאלון ישן (לתאימות לאחור) ===
-      // === Old Questionnaire Functions (Backward Compatibility) ===
-
-      // הגדרת תשובות שאלון (פורמט ישן)
-      // Set questionnaire answers (old format)
-      setQuestionnaire: (answers) => {
-        logger.debug("Store", "userStore.setQuestionnaire נקרא", {
-          answerCount: Object.keys(answers).length,
-        });
-
-        // יצירת נתוני שאלון מורחבים
-        const questionnaireData: LegacyQuestionnaireData = {
-          answers: answers,
-          metadata: {
-            completedAt: new Date().toISOString(),
-            version: "smart-questionnaire-v1",
-          },
-          completedAt: new Date().toISOString(),
-          version: "smart-questionnaire-v1",
-        };
-
-        logger.debug("Store", "Creating questionnaireData", {
-          hasMetadata: !!questionnaireData.metadata,
-        });
-
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                questionnaire: answers,
-                questionnaireData: questionnaireData,
-              }
-            : {
-                questionnaire: answers,
-                questionnaireData: questionnaireData,
-              },
-        }));
-
-        // שמירה גם ב-AsyncStorage הנפרד לתאימות
-        AsyncStorage.setItem(
-          StorageKeys.QUESTIONNAIRE_ANSWERS,
-          JSON.stringify(answers)
-        )
-          .then(() =>
-            logger.info(
-              "UserStore",
-              "questionnaire_answers saved to AsyncStorage"
-            )
-          )
-          .catch((err) =>
-            logger.error("UserStore", "Error saving questionnaire_answers", {
-              error: err,
-            })
-          );
-
-        // שמירת המטאדאטה המורחבת
-        AsyncStorage.setItem(
-          StorageKeys.QUESTIONNAIRE_METADATA,
-          JSON.stringify(answers)
-        )
-          .then(() =>
-            logger.info(
-              "UserStore",
-              "questionnaire_metadata saved to AsyncStorage"
-            )
-          )
-          .catch((err) =>
-            logger.error("UserStore", "Error saving questionnaire_metadata", {
-              error: err,
-            })
-          );
-
-        get().scheduleServerSync("setQuestionnaire");
-      },
-
-      // הגדרת נתוני שאלון מורחבים (ישן)
-      // Set extended questionnaire data (old)
-      setQuestionnaireData: (data) => {
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                questionnaireData: data,
-                // שמירת תאימות לאחור
-                questionnaire: data.answers,
-              }
-            : {
-                questionnaireData: data,
-                questionnaire: data.answers,
-              },
-        }));
-        get().scheduleServerSync("setQuestionnaireData");
-      },
-
-      // איפוס שאלון ישן
-      // Reset old questionnaire
-      resetQuestionnaire: () => {
-        set((state) => ({
-          user: {
-            ...(state.user || {}),
-            questionnaire: undefined,
-            questionnaireData: undefined,
-          },
-        }));
-
-        // ניקוי מ-AsyncStorage
-        AsyncStorage.multiRemove([
-          "questionnaire_metadata",
-          "questionnaire_draft",
-          "questionnaire_answers",
-        ]);
-
-        get().scheduleServerSync("resetQuestionnaire");
-      },
-
       // === פונקציות העדפות מורחבות ===
       // === Extended Preferences Functions ===
 
@@ -879,16 +774,11 @@ export const useUserStore = create<UserStore>()(
           // בדיקות בסיסיות
           const hasBasicInfo = !!(user.id || user.email || user.name);
           const hasSmartQuestionnaire = !!user.smartquestionnairedata?.answers;
-          const hasOldQuestionnaire = !!(
-            user.questionnaire || user.questionnairedata
-          );
 
           const consistencyCheck = get().validateUserConsistency();
 
           return (
-            hasBasicInfo &&
-            (hasSmartQuestionnaire || hasOldQuestionnaire) &&
-            consistencyCheck.isValid
+            hasBasicInfo && hasSmartQuestionnaire && consistencyCheck.isValid
           );
         } catch (error) {
           logger.error("Validation", "Error validating user data", error);
@@ -904,25 +794,24 @@ export const useUserStore = create<UserStore>()(
 
         const hasBasicInfo = !!(user?.id || user?.email || user?.name);
         const hasSmartQuestionnaire = !!user?.smartquestionnairedata?.answers;
-        const hasOldQuestionnaire = !!(
-          user?.questionnaire || user?.questionnairedata
-        );
-        const isFullySetup =
-          hasBasicInfo && (hasSmartQuestionnaire || hasOldQuestionnaire);
+        const isFullySetup = hasBasicInfo && hasSmartQuestionnaire;
 
         return {
           hasBasicInfo,
           hasSmartQuestionnaire,
-          hasOldQuestionnaire,
           isFullySetup,
         };
       },
 
       // בדיקת מצב התחברות
       // Check login status
-      isLoggedIn: () => {
+      isLoggedIn: async () => {
         const state = get();
-        return state.user !== null;
+        if (state.user === null) return false;
+
+        // בדיקה אם המשתמש התנתק בעבר
+        const loggedOut = await AsyncStorage.getItem("user_logged_out");
+        return loggedOut !== "true";
       },
 
       // ניקוי מלא של כל נתוני המשתמש (כולל AsyncStorage)
@@ -987,6 +876,11 @@ export const useUserStore = create<UserStore>()(
         set({ user: null });
       },
 
+      // ===========================================
+      // 💳 ניהול מנוי ותקופת ניסיון - בודק גישה לתכנים
+      // Subscription & Trial Management - checks access to content
+      // ===========================================
+
       // =======================================
       // 🎯 Subscription & Trial Management
       // ניהול מנוי ותקופת ניסיון
@@ -1040,6 +934,17 @@ export const useUserStore = create<UserStore>()(
 
       updateSubscription: (updates) => {
         try {
+          const state = get();
+          const now = Date.now();
+
+          // 🚫 מניעת עדכונים תכופים מדי - מינימום 5 שניות בין עדכונים
+          if (now - state.lastSubscriptionUpdate < 5000) {
+            logger.debug("Subscription", "Update throttled - too frequent", {
+              timeSinceLastUpdate: now - state.lastSubscriptionUpdate,
+            });
+            return;
+          }
+
           set((state) => ({
             user: state.user
               ? {
@@ -1051,11 +956,16 @@ export const useUserStore = create<UserStore>()(
                   } as User["subscription"],
                 }
               : null,
+            lastSubscriptionUpdate: now, // 🚫 עדכון timestamp
           }));
           get().scheduleServerSync("updateSubscription");
-          logger.debug("Subscription", "Subscription updated", {
-            updatedFields: Object.keys(updates || {}),
-          });
+
+          // ✅ הפחתת לוגים - רק ב-dev mode
+          if (__DEV__) {
+            logger.debug("Subscription", "Subscription updated", {
+              updatedFields: Object.keys(updates || {}),
+            });
+          }
         } catch (error) {
           logger.error("Subscription", "Error updating subscription", error);
         }
@@ -1069,10 +979,29 @@ export const useUserStore = create<UserStore>()(
           return { isTrialActive: false, daysRemaining: 0, hasExpired: true };
         }
 
-        const now = new Date();
+        // 🚫 מניעת קריאות תכופות מדי - מחייבים מינימום 30 שניות בין בדיקות
+        const now = Date.now();
+        const lastCheck = subscription.lastTrialCheck
+          ? new Date(subscription.lastTrialCheck).getTime()
+          : 0;
+        if (now - lastCheck < 30000) {
+          // החזר את הערכים הקיימים מבלי לעדכן
+          const currentDays = subscription.trialDaysRemaining ?? 0;
+          return {
+            isTrialActive:
+              subscription.type === "trial" &&
+              currentDays > 0 &&
+              subscription.isActive,
+            daysRemaining: currentDays,
+            hasExpired: currentDays === 0 && subscription.type === "trial",
+          };
+        }
+
+        const nowDate = new Date();
         const registrationDate = new Date(subscription.registrationDate);
         const daysSinceRegistration = Math.floor(
-          (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
+          (nowDate.getTime() - registrationDate.getTime()) /
+            (1000 * 60 * 60 * 24)
         );
 
         const daysRemaining = Math.max(0, 7 - daysSinceRegistration);
@@ -1081,8 +1010,21 @@ export const useUserStore = create<UserStore>()(
           daysRemaining > 0 &&
           subscription.isActive;
 
-        // עדכון סטטוס הניסיון אם צריך
-        if (subscription.trialDaysRemaining !== daysRemaining) {
+        // עדכון סטטוס הניסיון אם צריך - 🚫 מניעת עדכונים תכופים
+        const currentDays = subscription.trialDaysRemaining ?? 0;
+        const daysDiff = Math.abs(currentDays - daysRemaining);
+
+        if (__DEV__ && daysDiff > 0.1) {
+          console.warn("🔍 Trial days check:", {
+            currentDays,
+            calculatedDays: daysRemaining,
+            diff: daysDiff,
+            registrationDate: subscription.registrationDate,
+          });
+        }
+
+        // עדכן רק אם ההפרש הוא יותר משעה (1/24 של יום)
+        if (daysDiff >= 1 / 24) {
           get().updateSubscription({
             trialDaysRemaining: daysRemaining,
             hasCompletedTrial: daysRemaining === 0,
@@ -1110,8 +1052,18 @@ export const useUserStore = create<UserStore>()(
 
         if (subscription.type === "premium") return true;
 
-        const trialStatus = get().checkTrialStatus();
-        return trialStatus.isTrialActive;
+        // 🚫 חישוב ישיר ללא קריאה ל-checkTrialStatus למניעת לולאה
+        if (subscription.type === "trial") {
+          const now = new Date();
+          const registrationDate = new Date(subscription.registrationDate);
+          const daysSinceRegistration = Math.floor(
+            (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const daysRemaining = Math.max(0, 7 - daysSinceRegistration);
+          return daysRemaining > 0 && subscription.isActive;
+        }
+
+        return false;
       },
 
       startPremiumSubscription: () => {
@@ -1121,6 +1073,11 @@ export const useUserStore = create<UserStore>()(
           isActive: true,
         });
       },
+
+      // ===========================================
+      // 🏋️ ניהול תוכניות אימון - מחליט איזו תוכנית להציג
+      // Workout Plans Management - decides which plan to show
+      // ===========================================
 
       // =======================================
       // 📋 Workout Plans Management
@@ -1143,6 +1100,10 @@ export const useUserStore = create<UserStore>()(
         get().scheduleServerSync("setWorkoutPlans");
       },
 
+      // ===========================================
+      // ✏️ עדכון תוכנית אימון ספציפית - משנה רק חלק מהתוכניות
+      // Update Specific Workout Plan - changes only part of the plans
+      // ===========================================
       updateWorkoutPlan: (planType, plan) => {
         set((state) => ({
           user: state.user
@@ -1163,6 +1124,10 @@ export const useUserStore = create<UserStore>()(
         get().scheduleServerSync("updateWorkoutPlan");
       },
 
+      // ===========================================
+      // 🎯 בחירת התוכנית הנגישה - מחזירה את התוכנית הטובה ביותר לפי המנוי
+      // Select Accessible Plan - returns the best plan based on subscription
+      // ===========================================
       getAccessibleWorkoutPlan: () => {
         const state = get();
         const plans = state.user?.workoutplans;
@@ -1179,6 +1144,10 @@ export const useUserStore = create<UserStore>()(
         return plans.basicPlan || null;
       },
 
+      // ===========================================
+      // 👁️ האם להציג תוכן בטשטוש - רק אם אין גישה לפרימיום
+      // Should Blur Premium Content - only if no premium access
+      // ===========================================
       shouldBlurPremiumContent: () => {
         return !get().canAccessPremiumFeatures();
       },
@@ -1249,8 +1218,10 @@ export type {
   LegacyQuestionnaireData,
 } from "../types";
 
-// Hooks נוספים לנוחות
+// =======================================
+// 🎣 Hooks נוחים - כמו כלי עזר לשימוש בקומפוננטים
 // Additional convenience hooks
+// =======================================
 
 export const useUser = () => useUserStore((state) => state.user);
 export const useIsLoggedIn = () => useUserStore((state) => state.user !== null);
@@ -1271,9 +1242,7 @@ export const useUserEquipment = () => {
 // useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
 export const useQuestionnaireCompleted = () =>
   useUserStore(
-    (state) =>
-      state.user?.questionnaire !== undefined ||
-      state.user?.questionnairedata?.completedAt !== undefined
+    (state) => state.user?.smartquestionnairedata?.answers !== undefined
   );
 
 // Hook לגישה למשתמש דמו מותאם
@@ -1314,21 +1283,28 @@ export const useAuthState = () => {
     logout,
     clearAllData,
     hasBasicInfo: !!(user?.id || user?.email || user?.name),
-    hasQuestionnaire: !!(
-      user?.questionnaire ||
-      user?.questionnairedata ||
-      user?.smartquestionnairedata
-    ),
+    hasQuestionnaire: !!user?.smartquestionnairedata,
   };
 };
 
 // ==============================
+// 🔄 סנכרון עם השרת - שולח נתונים רק אם יש מנוי בתשלום
 // Server sync implementation
 // ==============================
+// זה שולח את הנתונים שלך לשרת כדי לשמור אותם בענן
+// This sends your data to the server to save it in the cloud
+// - עובד רק עם מנוי פרימיום
+// - שולח רק שינויים חדשים
+// - מונע שליחה כפולה עם טיימר מיוחד
 let __userSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
 useUserStore.setState((prev) => ({
   ...prev,
+
+  // ===========================================
+  // 📥 טעינת נתונים מהשרת - מושך את הנתונים העדכניים ביותר
+  // Load data from server - pulls the latest data
+  // ===========================================
   refreshFromServer: async () => {
     try {
       const state = useUserStore.getState();
@@ -1348,6 +1324,11 @@ useUserStore.setState((prev) => ({
       });
     }
   },
+
+  // ===========================================
+  // ⏰ תזמון סנכרון עם השרת - שולח שינויים בזמן הנכון
+  // Schedule server sync - sends changes at the right time
+  // ===========================================
   scheduleServerSync: (reason?: string) => {
     try {
       if (__userSyncTimer) clearTimeout(__userSyncTimer);
@@ -1356,6 +1337,19 @@ useUserStore.setState((prev) => ({
         const u = state.user;
         if (!u?.id || typeof u.id !== "string") return;
         if (u.id.startsWith("demo_")) return; // אל תסנכרן משתמש דמו
+
+        // בדיקה אם יש גישה לפרימיום - רק אז מסנכרנים עם השרת
+        const canAccessPremium = state.canAccessPremiumFeatures();
+        if (!canAccessPremium) {
+          // ✅ הפחתת לוגים - רק ב-dev mode
+          if (__DEV__) {
+            logger.debug("ServerSync", "לא מסנכרנים - אין גישה לפרימיום", {
+              reason,
+            });
+          }
+          return;
+        }
+
         try {
           // בניית אובייקט קנוני (camelCase) ורק שדות רלוונטיים לסנכרון
           // הערה: אם נוסיף שדות חדשים בעתיד מספיק להוסיף אותם לרשימה זו;
@@ -1370,10 +1364,6 @@ useUserStore.setState((prev) => ({
               (ux as Record<string, unknown>)["smartQuestionnaireData"] ||
               ux.smartquestionnairedata;
           }
-          if (ux.questionnaire)
-            canonicalUpdates.questionnaire = ux.questionnaire;
-          if (ux.questionnairedata)
-            canonicalUpdates.questionnairedata = ux.questionnairedata;
           if (ux.preferences) canonicalUpdates.preferences = ux.preferences;
           if (ux.genderprofile)
             canonicalUpdates.genderprofile = ux.genderprofile;
@@ -1408,8 +1398,8 @@ useUserStore.setState((prev) => ({
 }));
 
 // =======================================
-// 🎯 Subscription & Trial Hooks
-// Hooks למערכת מנוי ותקופת ניסיון
+// 💰 Hooks למערכת מנוי ותקופת ניסיון
+// Subscription & Trial Hooks
 // =======================================
 
 /**
@@ -1417,7 +1407,6 @@ useUserStore.setState((prev) => ({
  */
 export const useSubscription = () => {
   const subscription = useUserStore((state) => state.user?.subscription);
-  const checkTrialStatus = useUserStore((state) => state.checkTrialStatus);
   const getSubscriptionType = useUserStore(
     (state) => state.getSubscriptionType
   );
@@ -1431,7 +1420,19 @@ export const useSubscription = () => {
     (state) => state.startPremiumSubscription
   );
 
-  const trialStatus = checkTrialStatus();
+  const trialStatus = useUserStore((state) => {
+    const sub = state.user?.subscription;
+    if (!sub)
+      return { isTrialActive: false, daysRemaining: 0, hasExpired: false };
+
+    // 🚫 השתמש בערכים הקיימים במנוי במקום לחשב מחדש
+    const daysRemaining = sub.trialDaysRemaining ?? 0;
+    return {
+      isTrialActive: sub.type === "trial" && daysRemaining > 0 && sub.isActive,
+      daysRemaining,
+      hasExpired: daysRemaining === 0 && sub.type === "trial",
+    };
+  });
 
   return {
     subscription,
@@ -1477,17 +1478,33 @@ export const useCanAccessPremium = () =>
  * Hook לקבלת ימי ניסיון נותרים
  */
 export const useTrialDaysRemaining = () => {
-  const checkTrialStatus = useUserStore((state) => state.checkTrialStatus);
-  return checkTrialStatus().daysRemaining;
-};
+  return useUserStore((state) => {
+    const sub = state.user?.subscription;
+    if (!sub) return 0;
 
+    // 🚫 השתמש בערך הקיים במנוי במקום לחשב מחדש
+    return sub.trialDaysRemaining ?? 0;
+  });
+}; // =======================================
+// 🚀 Hooks מתקדמים - לבדיקות מיוחדות ונגישות
+// Advanced Hooks for Better UX
 // =======================================
-// 🎯 Advanced Hooks for Better UX
-// Hooks מתקדמים לחוויית משתמש משופרת
-// =======================================
+// כאן יש כלים מיוחדים לעזור למפתחים ולמשתמשים
+// Here are special tools to help developers and users
+// - בדיקת סטטוס נתונים
+// - תמיכה בקורא מסך
+// - טיפול בשגיאות בצורה בטוחה
 
 /**
  * Hook מתקדם לניהול סטטוס נתונים
+ * Advanced hook for managing data status
+ *
+ * זה בודק אם הנתונים של המשתמש תקינים ומוכנים לשימוש
+ * This checks if the user's data is valid and ready to use
+ * - בודק אם יש משתמש
+ * - בודק אם הנתונים תקינים
+ * - בודק אם הנתונים עקביים
+ * - בודק אם ההתקנה הושלמה
  */
 export const useUserDataStatus = () => {
   const user = useUserStore((state) => state.user);
@@ -1514,6 +1531,13 @@ export const useUserDataStatus = () => {
 
 /**
  * Hook לנגישות ותמיכה בקורא מסך
+ * Hook for accessibility and screen reader support
+ *
+ * עוזר למשתמשים עם מוגבלויות להשתמש באפליקציה
+ * Helps users with disabilities use the app
+ * - יוצר תוויות נגישות
+ * - מכין טקסט לקורא מסך
+ * - מדווח על פעולות למשתמש
  */
 export const useUserAccessibility = () => {
   const getAccessibilityLabel = useUserStore(
@@ -1537,6 +1561,13 @@ export const useUserAccessibility = () => {
 
 /**
  * Hook מתקדם לניהול שגיאות
+ * Advanced hook for error handling
+ *
+ * עוזר לטפל בשגיאות בצורה בטוחה ולא לקרוס את האפליקציה
+ * Helps handle errors safely without crashing the app
+ * - מטפל בשגיאות אחסון
+ * - מריץ פעולות בצורה בטוחה
+ * - מחזיר ערך ברירת מחדל אם יש שגיאה
  */
 export const useUserErrorHandling = () => {
   const handleStorageError = useUserStore((state) => state.handleStorageError);

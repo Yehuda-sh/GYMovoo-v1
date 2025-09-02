@@ -1,17 +1,20 @@
 /**
  * @file src/components/common/BackButton.tsx
- * @brief ✨ כפתור חזרה אוניברסלי משופר עם אינטגרציה מלאה ל-theme
- * @dependencies React Navigation, Ionicons, theme
- * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, fallback navigation
- * @version 2.6 - RTL icon support, emergency navigation, enhanced logging
+ * @brief ✨ כפתור חזרה אוניברסלי משופר עם אינטגרציה מלאה ל-theme + ביצועים מתקדמים
+ * @dependencies React Navigation, MaterialCommunityIcons, theme, expo-haptics
+ * @notes כולל תמיכה במיקום מוחלט ויחסי, נגישות מלאה, fallback navigation, haptic feedback
+ * @version 2.7 - Enhanced with haptic feedback, loading state, reducedMotion, Pressable upgrade
+ * @updated 2025-09-02 - Performance optimizations and modern React Native patterns
  */
 
-import React, { useMemo } from "react";
-import { TouchableOpacity, StyleProp, ViewStyle } from "react-native";
+import React, { useMemo, useCallback } from "react";
+import { Pressable, StyleProp, ViewStyle } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
 import { logger } from "../../utils/logger";
+import LoadingSpinner from "./LoadingSpinner";
 
 // Define a more flexible navigation type for this component's purpose
 interface NavProp {
@@ -38,6 +41,12 @@ interface BackButtonProps {
   testID?: string;
   iconName?: keyof typeof MaterialCommunityIcons.glyphMap;
   hitSlop?: number;
+
+  // 🆕 Enhanced Features
+  loading?: boolean; // מצב טעינה
+  haptic?: boolean; // רטט בלחיצה
+  hapticType?: "light" | "medium" | "heavy"; // סוג הרטט
+  reducedMotion?: boolean; // השבתת אנימציות
 }
 
 const BackButton: React.FC<BackButtonProps> = React.memo(
@@ -56,6 +65,11 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
     testID,
     iconName = theme.icons.chevron,
     hitSlop, // Default value removed, will be handled by theme
+    // Enhanced Features
+    loading = false,
+    haptic = false,
+    hapticType = "light",
+    reducedMotion = false,
   }) => {
     const navigation = useNavigation<NavProp>();
 
@@ -98,7 +112,7 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
      * ניווט למסך בית במקרה חירום
      * Navigate to home screen as emergency fallback
      */
-    const navigateToHome = () => {
+    const navigateToHome = useCallback(() => {
       try {
         if (navigation.reset) {
           navigation.reset({
@@ -111,10 +125,25 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
       } catch (error) {
         logger.error("BackButton", "Failed to navigate to home", error);
       }
-    };
+    }, [navigation]);
 
-    const handlePress = () => {
-      if (disabled) return;
+    // 🎯 Haptic feedback handler
+    const triggerHapticFeedback = useCallback(() => {
+      if (haptic && !disabled && !loading) {
+        const feedbackTypes = {
+          light: Haptics.ImpactFeedbackStyle.Light,
+          medium: Haptics.ImpactFeedbackStyle.Medium,
+          heavy: Haptics.ImpactFeedbackStyle.Heavy,
+        };
+        Haptics.impactAsync(feedbackTypes[hapticType]);
+      }
+    }, [haptic, disabled, loading, hapticType]);
+
+    const handlePress = useCallback(() => {
+      if (disabled || loading) return;
+
+      // Trigger haptic feedback
+      triggerHapticFeedback();
 
       try {
         if (onPress) {
@@ -139,19 +168,45 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
       } catch (error) {
         logger.error("BackButton", "Navigation error", error);
       }
-    };
+    }, [
+      disabled,
+      loading,
+      triggerHapticFeedback,
+      onPress,
+      navigation,
+      fallbackScreen,
+      fallbackParams,
+      navigateToHome,
+    ]);
+
+    const handleLongPress = useCallback(() => {
+      if (disabled || loading || !onLongPress) return;
+      triggerHapticFeedback();
+      onLongPress();
+    }, [disabled, loading, onLongPress, triggerHapticFeedback]);
+
+    // 🎯 Interactive state
+    const isInteractive = !disabled && !loading;
 
     return (
-      <TouchableOpacity
-        onPress={handlePress}
-        onLongPress={onLongPress}
-        style={buttonStyle}
-        activeOpacity={disabled ? 1 : 0.7}
-        disabled={disabled}
-        accessibilityLabel={accessibilityLabel}
+      <Pressable
+        onPress={isInteractive ? handlePress : undefined}
+        onLongPress={isInteractive ? handleLongPress : undefined}
+        style={({ pressed }) => [
+          buttonStyle,
+          {
+            opacity: pressed && !reducedMotion ? 0.7 : 1,
+            transform:
+              pressed && !reducedMotion ? [{ scale: 0.95 }] : [{ scale: 1 }],
+          },
+        ]}
+        disabled={!isInteractive}
+        accessibilityLabel={
+          loading ? `${accessibilityLabel} - טוען` : accessibilityLabel
+        }
         accessibilityRole="button"
         accessibilityHint={accessibilityHint}
-        accessibilityState={{ disabled }}
+        accessibilityState={{ disabled: !isInteractive, busy: loading }}
         testID={testID || "back-button"}
         hitSlop={{
           top: hitSlopValue,
@@ -160,13 +215,21 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
           right: hitSlopValue,
         }}
       >
-        <MaterialCommunityIcons
-          name={iconName as keyof typeof MaterialCommunityIcons.glyphMap}
-          size={iconSize}
-          color={iconColor}
-          testID="back-button-icon"
-        />
-      </TouchableOpacity>
+        {loading ? (
+          <LoadingSpinner
+            size="small"
+            variant="fade"
+            testID={`${testID || "back-button"}-loading`}
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name={iconName as keyof typeof MaterialCommunityIcons.glyphMap}
+            size={iconSize}
+            color={iconColor}
+            testID="back-button-icon"
+          />
+        )}
+      </Pressable>
     );
   }
 );

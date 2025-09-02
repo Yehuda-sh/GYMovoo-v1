@@ -76,7 +76,10 @@ const rtlCardStyleInterpolator: StackCardStyleInterpolator = ({
  */
 export default memo(function AppNavigator() {
   // 🔍 בדיקת מצב משתמש להחלטה על מסך התחלתי
-  const { user, getCompletionStatus } = useUserStore();
+  const { user } = useUserStore();
+  const getCompletionStatus = useUserStore(
+    (state) => state.getCompletionStatus
+  );
 
   // 🚀 פונקציית עזר ללוג דיבוג מאורגן
   const logDebugInfo = (message: string, data?: Record<string, unknown>) => {
@@ -93,11 +96,6 @@ export default memo(function AppNavigator() {
       hasUser: !!user,
       userEmail: user?.email,
     });
-
-    if (process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH === "1") {
-      logDebugInfo("DEBUG MODE: Going directly to MainApp");
-      return "MainApp"; // ישירות לאפליקציה לבדיקה
-    }
 
     if (!user) {
       logDebugInfo("No user found, going to Welcome");

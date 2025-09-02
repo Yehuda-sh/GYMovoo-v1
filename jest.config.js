@@ -6,9 +6,6 @@ module.exports = {
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": "babel-jest",
   },
-  testPathIgnorePatterns: [
-    "<rootDir>/src/screens/welcome/__tests__/WelcomeScreen.test.tsx",
-  ],
   transformIgnorePatterns: [
     "node_modules/(?!(react-native|@react-native|react-navigation|@react-navigation|expo|@expo|expo-modules-core|@unimodules|unimodules|react-native-safe-area-context|@react-native-community)/)",
   ],

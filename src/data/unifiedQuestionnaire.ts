@@ -2,33 +2,118 @@
  * @file src/data/unifiedQuestionnaire.ts
  * @brief מערכת שאלון אחודה וחדשה - החלפת כל המערכות הקיימות
  * @description Unified questionnaire system to replace all existing questionnaire files
+ * @date 2025-09-02
+ * @enhanced מערכת cache מתקדמת, אופטימיזציה וביצועים משופרים
+ * @updated 2025-09-02 הוספת אופטימיזציות וטיפוח איכות קוד
  *
  * 🎯 מטרה: להחליף את כל קבצי השאלון הקיימים במערכת אחת פשוטה ויעילה
  * ✅ תמיכה מלאה בגלילה ו-ScrollView
  * ✅ ממשק פשוט וברור
  * ✅ ציוד מאורגן ונפרד
  * ✅ תמיכה ב-RTL ועברית
+ * ✅ מערכת cache מתקדמת עם TTL
+ * ✅ אופטימיזציות ביצועים
+ * ✅ תיעוד מלא ותמיכה במטריקות
  */
 
 import { ImageSourcePropType } from "react-native";
 import type { SmartQuestionnaireData } from "../types";
 import { getEquipmentById } from "./equipmentData";
 
-const QUESTIONNAIRE_VERSION = "2.2";
+export const QUESTIONNAIRE_VERSION = "2.3" as const;
+
+// ================== טיפוסים מתקדמים - Advanced Types ==================
+
+/**
+ * Personal profile data types
+ * טיפוסי נתונים אישיים
+ */
+export interface PersonalProfileData {
+  gender?: string;
+  age?: string;
+  weight?: string;
+  height?: string;
+}
+
+/**
+ * Fitness profile data types
+ * טיפוסי נתוני כושר
+ */
+export interface FitnessProfileData {
+  level?: string;
+  goals: string[];
+  availability: string[];
+  sessionDuration?: string;
+  location?: string;
+}
+
+/**
+ * User preferences data types
+ * טיפוסי העדפות משתמש
+ */
+export interface UserPreferencesData {
+  nutrition: string[];
+  workoutLocation?: string;
+}
+
+/**
+ * Analytics data types
+ * טיפוסי נתוני אנליטיקה
+ */
+export interface AnalyticsData {
+  completionRate: number;
+  timeSpent: number;
+  equipmentCount: number;
+  recommendedProfile: string;
+  strengthAreas: string[];
+}
+
+/**
+ * Recommendations data types
+ * טיפוסי המלצות
+ */
+export interface RecommendationsData {
+  workoutFrequency: string;
+  sessionDuration: string;
+  primaryFocus: string[];
+  equipmentSuggestions: string[];
+  nutritionTips: string[];
+}
 
 // ================== מערכת Cache ואופטימיזציות ==================
 
 /**
- * Cache מהיר לשאלות תכופות
- * Fast cache for frequent questionnaire operations
+ * Cache מהיר לשאלות תכופות עם TTL וניטור ביצועים
+ * Fast cache for frequent questionnaire operations with TTL and performance monitoring
  */
 const QuestionnaireCache = {
   questionsById: new Map<string, Question>(),
   equipmentValidation: new Map<string, boolean>(),
 
+  // Cache TTL settings (5 minutes)
+  CACHE_TTL: 5 * 60 * 1000,
+
+  // Performance tracking
+  metrics: {
+    hits: 0,
+    misses: 0,
+    validationCalls: 0,
+    lastCleanup: Date.now(),
+  },
+
   clear() {
     this.questionsById.clear();
     this.equipmentValidation.clear();
+    this.resetMetrics();
+  },
+
+  resetMetrics() {
+    this.metrics = {
+      hits: 0,
+      misses: 0,
+      validationCalls: 0,
+      lastCleanup: Date.now(),
+    };
   },
 
   initialize() {
@@ -36,26 +121,90 @@ const QuestionnaireCache = {
     UNIFIED_QUESTIONS.forEach((q) => {
       this.questionsById.set(q.id, q);
     });
+    console.warn(
+      "🎯 QuestionnaireCache initialized with",
+      this.questionsById.size,
+      "questions"
+    );
   },
 
   getQuestionById(id: string): Question | null {
     if (this.questionsById.size === 0) this.initialize();
-    return this.questionsById.get(id) || null;
+
+    const question = this.questionsById.get(id);
+    if (question) {
+      this.metrics.hits++;
+    } else {
+      this.metrics.misses++;
+    }
+
+    return question || null;
+  },
+
+  /**
+   * Get cache statistics
+   * קבלת סטטיסטיקות Cache
+   */
+  getStats(): {
+    questionsCached: number;
+    equipmentValidationCached: number;
+    hitRate: string;
+    validationCalls: number;
+    lastCleanup: string;
+  } {
+    const totalRequests = this.metrics.hits + this.metrics.misses;
+    const hitRate =
+      totalRequests > 0
+        ? `${((this.metrics.hits / totalRequests) * 100).toFixed(1)}%`
+        : "0%";
+
+    return {
+      questionsCached: this.questionsById.size,
+      equipmentValidationCached: this.equipmentValidation.size,
+      hitRate,
+      validationCalls: this.metrics.validationCalls,
+      lastCleanup: new Date(this.metrics.lastCleanup).toLocaleString("he-IL"),
+    };
+  },
+
+  /**
+   * Performance-aware cache cleanup
+   * ניקוי cache מודע ביצועים
+   */
+  cleanup(): void {
+    // Clear equipment validation cache periodically
+    if (Date.now() - this.metrics.lastCleanup > this.CACHE_TTL) {
+      this.equipmentValidation.clear();
+      this.metrics.lastCleanup = Date.now();
+      console.warn("🧹 QuestionnaireCache cleanup completed");
+    }
   },
 };
 
 /**
- * Equipment validation using equipmentData.ts
- * אימות ציוד באמצעות מאגר הציוד המרכזי
+ * Equipment validation using equipmentData.ts with enhanced caching
+ * אימות ציוד באמצעות מאגר הציוד המרכזי עם cache משופר
  */
 function validateEquipmentId(equipmentId: string): boolean {
-  const cacheKey = equipmentId;
+  const cacheKey = equipmentId.trim().toLowerCase();
+  QuestionnaireCache.metrics.validationCalls++;
+
+  // Check cache first
   if (QuestionnaireCache.equipmentValidation.has(cacheKey)) {
+    QuestionnaireCache.metrics.hits++;
     return QuestionnaireCache.equipmentValidation.get(cacheKey)!;
   }
 
+  // Compute and cache result
+  QuestionnaireCache.metrics.misses++;
   const isValid = getEquipmentById(equipmentId) !== undefined;
   QuestionnaireCache.equipmentValidation.set(cacheKey, isValid);
+
+  // Trigger cleanup periodically (10% chance)
+  if (Math.random() < 0.1) {
+    QuestionnaireCache.cleanup();
+  }
+
   return isValid;
 }
 
@@ -725,6 +874,15 @@ export class UnifiedQuestionnaireManager {
     }
     // Initialize cache on first use
     QuestionnaireCache.initialize();
+
+    // Log system health on initialization
+    const health = validateQuestionnaireSystem();
+    if (!health.isHealthy) {
+      console.warn(
+        "⚠️ Questionnaire system health issues detected:",
+        health.errors
+      );
+    }
   }
 
   // ================== בסיסי - Core Navigation ==================
@@ -990,7 +1148,6 @@ export class UnifiedQuestionnaireManager {
   } {
     const goal = this.getAnswerId("fitness_goal");
     const experience = this.getAnswerId("experience_level");
-    const availability = this.getAnswerId("availability");
     const equipment = this.normalizeEquipment();
 
     // Workout frequency recommendations
@@ -1148,15 +1305,60 @@ export class UnifiedQuestionnaireManager {
 
     const equipment = this.normalizeEquipment();
 
+    // Convert string IDs to proper types for SmartQuestionnaireData
+    const parseAge = (): number | undefined => {
+      if (!ageId) return undefined;
+      const ageMap: Record<string, number> = {
+        under_18: 16,
+        "18_25": 22,
+        "26_35": 30,
+        "36_50": 43,
+        "51_65": 58,
+        over_65: 70,
+      };
+      return ageMap[ageId];
+    };
+
+    const parseWeight = (): number | undefined => {
+      if (!weightId) return undefined;
+      const weightMap: Record<string, number> = {
+        under_50: 45,
+        "50_60": 55,
+        "61_70": 65,
+        "71_80": 75,
+        "81_90": 85,
+        "91_100": 95,
+        over_100: 105,
+      };
+      return weightMap[weightId];
+    };
+
+    const parseHeight = (): number | undefined => {
+      if (!heightId) return undefined;
+      const heightMap: Record<string, number> = {
+        under_150: 145,
+        "150_160": 155,
+        "161_170": 165,
+        "171_180": 175,
+        "181_190": 185,
+        over_190: 195,
+      };
+      return heightMap[heightId];
+    };
+
     return {
       answers: {
         // ✅ נתונים אישיים - עכשיו נאספים בשאלון המאוחד
-        gender: genderId,
-        age: ageId,
-        weight: weightId,
-        height: heightId,
+        gender: genderId as "male" | "female" | "other" | undefined,
+        age: parseAge(),
+        weight: parseWeight(),
+        height: parseHeight(),
         // נתונים קיימים
-        fitnessLevel: experienceId,
+        fitnessLevel: experienceId as
+          | "beginner"
+          | "intermediate"
+          | "advanced"
+          | undefined,
         goals: goalsId ? [goalsId] : [],
         equipment,
         availability: availabilityId ? [availabilityId] : [],
@@ -1166,7 +1368,7 @@ export class UnifiedQuestionnaireManager {
       },
       metadata: {
         completedAt: new Date().toISOString(),
-        version: "2.2", // ✅ עדכון גרסה עם השיפורים החדשים
+        version: "2.3", // ✅ עדכון גרסה עם השיפורים החדשים
         sessionId: `unified_${Date.now()}`,
         completionTime: Math.max(60, this.answers.size * 10),
         questionsAnswered: this.answers.size,
@@ -1189,12 +1391,12 @@ export class UnifiedQuestionnaireManager {
    * יצוא לפורמט פרופיל משתמש מקיף
    */
   toUserProfile(): {
-    personal: Record<string, any>;
-    fitness: Record<string, any>;
-    preferences: Record<string, any>;
+    personal: PersonalProfileData;
+    fitness: FitnessProfileData;
+    preferences: UserPreferencesData;
     equipment: string[];
-    analytics: Record<string, any>;
-    recommendations: Record<string, any>;
+    analytics: AnalyticsData;
+    recommendations: RecommendationsData;
   } {
     const smart = this.toSmartQuestionnaireData();
     const analytics = this.getAnalytics();
@@ -1203,19 +1405,19 @@ export class UnifiedQuestionnaireManager {
     return {
       personal: {
         gender: smart.answers.gender,
-        age: smart.answers.age,
-        weight: smart.answers.weight,
-        height: smart.answers.height,
+        age: smart.answers.age?.toString(),
+        weight: smart.answers.weight?.toString(),
+        height: smart.answers.height?.toString(),
       },
       fitness: {
         level: smart.answers.fitnessLevel,
-        goals: smart.answers.goals,
-        availability: smart.answers.availability,
+        goals: smart.answers.goals || [],
+        availability: smart.answers.availability || [],
         sessionDuration: smart.answers.sessionDuration,
         location: smart.answers.workoutLocation,
       },
       preferences: {
-        nutrition: smart.answers.nutrition,
+        nutrition: smart.answers.nutrition || [],
         workoutLocation: smart.answers.workoutLocation,
       },
       equipment: smart.answers.equipment || [],
@@ -1293,6 +1495,106 @@ export default UnifiedQuestionnaireManager;
 // ===============================================
 // 🌟 Global Utility Exports - יצוא פונקציות עזר גלובליות
 // ===============================================
+
+/**
+ * Get questionnaire cache statistics
+ * קבלת סטטיסטיקות cache של השאלון
+ */
+export function getQuestionnaireCacheStats(): ReturnType<
+  typeof QuestionnaireCache.getStats
+> {
+  return QuestionnaireCache.getStats();
+}
+
+/**
+ * Refresh questionnaire cache for performance optimization
+ * רענון cache השאלון לאופטימיזציה
+ */
+export function refreshQuestionnaireCache(): void {
+  const oldStats = QuestionnaireCache.getStats();
+  QuestionnaireCache.clear();
+  QuestionnaireCache.initialize();
+  const newStats = QuestionnaireCache.getStats();
+
+  console.warn(
+    `🔄 QuestionnaireCache refreshed: ${oldStats.questionsCached} → ${newStats.questionsCached} questions cached`
+  );
+}
+
+/**
+ * Validate questionnaire system health
+ * אימות תקינות מערכת השאלון
+ */
+export function validateQuestionnaireSystem(): {
+  isHealthy: boolean;
+  cacheStats: ReturnType<typeof QuestionnaireCache.getStats>;
+  questionsLoaded: number;
+  errors: string[];
+  recommendations: string[];
+} {
+  const errors: string[] = [];
+  const recommendations: string[] = [];
+
+  // Check if questions are loaded
+  if (UNIFIED_QUESTIONS.length === 0) {
+    errors.push("אין שאלות זמינות במערכת");
+  }
+
+  // Check cache health
+  const cacheStats = QuestionnaireCache.getStats();
+  if (parseInt(cacheStats.hitRate) < 50) {
+    recommendations.push("שיפור ביצועי cache - שימוש נמוך");
+  }
+
+  // Validate question consistency
+  const questionIds = new Set<string>();
+  UNIFIED_QUESTIONS.forEach((q, index) => {
+    if (questionIds.has(q.id)) {
+      errors.push(`ID כפול נמצא: ${q.id} בשאלה ${index}`);
+    }
+    questionIds.add(q.id);
+
+    if (!q.options || q.options.length === 0) {
+      errors.push(`שאלה ללא אפשרויות: ${q.id}`);
+    }
+  });
+
+  const isHealthy = errors.length === 0;
+
+  return {
+    isHealthy,
+    cacheStats,
+    questionsLoaded: UNIFIED_QUESTIONS.length,
+    errors,
+    recommendations,
+  };
+}
+
+/**
+ * Create questionnaire manager with advanced configuration options
+ * יצירת מנהל שאלון עם אפשרויות תצורה מתקדמות
+ */
+export function createAdvancedQuestionnaireManager(options?: {
+  enablePerformanceTracking?: boolean;
+  preloadCache?: boolean;
+  debugMode?: boolean;
+}): UnifiedQuestionnaireManager {
+  const manager = new UnifiedQuestionnaireManager();
+
+  if (options?.preloadCache) {
+    // Pre-warm cache for better performance
+    UNIFIED_QUESTIONS.forEach((q) => manager.getQuestionById(q.id));
+  }
+
+  if (options?.debugMode) {
+    console.warn("🔧 QuestionnaireManager created in debug mode", {
+      cacheStats: getQuestionnaireCacheStats(),
+      systemHealth: validateQuestionnaireSystem(),
+    });
+  }
+
+  return manager;
+}
 
 /**
  * Create questionnaire manager with pre-filled demo data

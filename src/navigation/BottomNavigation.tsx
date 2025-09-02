@@ -114,13 +114,6 @@ TabIcon.displayName = "TabIcon";
  * @accessibility Advanced RTL support and screen reader optimization
  */
 export default function BottomNavigation(): React.JSX.Element {
-  // DEBUG: רכיב ניווט תחתון נטען - only log once
-  React.useEffect(() => {
-    if (__DEV__) {
-      console.warn("🔄 BottomNavigation component mounted");
-    }
-  }, []);
-
   // 🚀 Performance optimization - מחושב מראש לביצועים
   const tabBarStyle = useMemo(
     () => ({

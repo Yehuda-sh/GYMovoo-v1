@@ -75,6 +75,69 @@ src/
 
 **כלל זהב #4:** כל קובץ במקום הנכון. אין "misc" או "other".
 
+### 🔍 בדיקת רכיבים קיימים - חובה לפני פיתוח!
+
+**לפני יצירת רכיב חדש - תמיד בדוק:**
+
+```bash
+# 1. חפש רכיבים דומים
+find src/components -name "*.tsx" | grep -i "button\|modal\|input"
+
+# 2. חפש פונקציונליות דומה
+grep -r "onPress\|TouchableOpacity" src/components/
+
+# 3. בדוק רכיבים משותפים
+ls src/components/common/
+ls src/screens/workout/components/shared/
+```
+
+**✅ דוגמה לשימוש נכון ברכיבים קיימים:**
+
+```tsx
+// ❌ יצירת כפתור סגירה מחדש
+<TouchableOpacity onPress={onClose}>
+  <MaterialCommunityIcons name="close" size={24} />
+</TouchableOpacity>
+
+// ✅ שימוש ב-CloseButton הקיים
+<CloseButton
+  onPress={onClose}
+  size="medium"
+  variant="solid"
+  accessibilityLabel="סגור מסך"
+/>
+
+// ❌ יצירת מודל מחדש
+<Modal visible={show}>
+  <View style={customStyles}>
+    <Text>אישור מחיקה?</Text>
+    <TouchableOpacity onPress={onConfirm}>
+      <Text>מחק</Text>
+    </TouchableOpacity>
+  </View>
+</Modal>
+
+// ✅ שימוש ב-UniversalModal הקיים
+<UniversalModal
+  visible={show}
+  type="warning"
+  title="אישור מחיקה"
+  message="האם אתה בטוח שברצונך למחוק?"
+  onConfirm={onConfirm}
+  onClose={onClose}
+/>
+```
+
+**🎯 רשימת רכיבים משותפים עיקריים:**
+
+- `CloseButton` - כפתורי סגירה וביטול
+- `BackButton` - כפתורי חזרה וניווט
+- `LoadingSpinner` - מצבי טעינה
+- `UniversalModal` - מודלים כלליים
+- `UniversalButton` - כפתורים עיקריים
+- `InputField` - קלטי טקסט
+- `EmptyState` - מצבים ריקים
+
 ### 🔧 TypeScript חובה מוחלטת
 
 ```typescript

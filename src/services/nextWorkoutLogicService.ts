@@ -72,6 +72,11 @@ class NextWorkoutLogicService {
   private cacheTimestamp: number = 0;
   private readonly CACHE_DURATION = 5000; // 5 seconds optimized cache
 
+  // ✅ הוספת מנגנון להגנה מפני קריאות כפולות
+  private activeFetches = new Set<string>();
+  private static lastRecommendationTime = 0;
+  private static readonly MIN_REQUEST_INTERVAL = 1000; // 1 שנייה בין בקשות
+
   // =======================================
   // 🚀 Core Recommendation Engine
   // מנוע המלצות מרכזי
@@ -98,12 +103,59 @@ class NextWorkoutLogicService {
     }
   ): Promise<NextWorkoutRecommendation> {
     try {
-      console.warn(
-        "🚀 NextWorkoutLogic: Starting intelligent workout recommendation calculation"
-      );
+      const now = Date.now();
+      const requestKey = `${JSON.stringify(weeklyPlan)}_${JSON.stringify(personalData)}`;
 
-      // ✅ הדפסת נתונים אישיים לצורך דיבוג ושיפור המלצות
-      if (personalData) {
+      // ✅ הגנה מפני קריאות תכופות מדי
+      if (
+        now - NextWorkoutLogicService.lastRecommendationTime <
+        NextWorkoutLogicService.MIN_REQUEST_INTERVAL
+      ) {
+        if (__DEV__)
+          console.warn(
+            "⏱️ NextWorkoutLogic: Request too frequent, using cached result"
+          );
+        // החזר המלצה מהירה אם יש cache
+        if (this.cachedCycleState) {
+          return this.createRecommendation(
+            weeklyPlan[0] || "דחיפה",
+            0,
+            "המלצה זמנית - מונע עומס יתר",
+            true,
+            0,
+            "normal"
+          );
+        }
+      }
+
+      // ✅ מניעת קריאות כפולות בו זמנית
+      if (this.activeFetches.has(requestKey)) {
+        if (__DEV__)
+          console.warn(
+            "🔄 NextWorkoutLogic: Request already in progress, skipping duplicate"
+          );
+        return this.createRecommendation(
+          weeklyPlan[0] || "דחיפה",
+          0,
+          "ממתין לחישוב קודם",
+          true,
+          0,
+          "normal"
+        );
+      }
+
+      this.activeFetches.add(requestKey);
+      NextWorkoutLogicService.lastRecommendationTime = now;
+
+      // ✅ הפחתת לוגים מיותרים - רק לוגים חשובים
+      if (__DEV__) {
+        console.warn(
+          "🚀 NextWorkoutLogic: Starting intelligent workout recommendation calculation"
+        );
+      }
+
+      // ✅ הדפסת נתונים אישיים רק ב-dev mode
+      if (personalData && __DEV__) {
         console.warn("👤 Personal data available for recommendations:", {
           gender: personalData.gender,
           age: personalData.age,
@@ -115,9 +167,10 @@ class NextWorkoutLogicService {
 
       // Enhanced weekly plan validation with fallback
       if (!weeklyPlan || weeklyPlan.length === 0) {
-        console.warn(
-          "⚠️ NextWorkoutLogic: No weekly plan provided, using enhanced default"
-        );
+        if (__DEV__)
+          console.warn(
+            "⚠️ NextWorkoutLogic: No weekly plan provided, using enhanced default"
+          );
         weeklyPlan = ["דחיפה", "משיכה", "רגליים"];
       }
 
@@ -129,16 +182,19 @@ class NextWorkoutLogicService {
         cycleState.lastWorkoutDate
       );
 
-      console.warn(
-        `📊 NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
-      );
+      if (__DEV__)
+        console.warn(
+          `📊 NextWorkoutLogic: Analysis - Days: ${daysSinceLastWorkout}, Current: ${cycleState.currentDayInWeek}, Total: ${cycleState.totalWorkoutsCompleted}`
+        );
 
       // Enhanced decision logic with comprehensive scenarios
-      return this.determineNextWorkout(
+      const recommendation = this.determineNextWorkout(
         weeklyPlan,
         cycleState,
         daysSinceLastWorkout
       );
+
+      return recommendation;
     } catch (error) {
       console.error(
         "❌ NextWorkoutLogic: Error in recommendation calculation:",
@@ -157,6 +213,10 @@ class NextWorkoutLogicService {
         0,
         "normal"
       );
+    } finally {
+      // ✅ ניקוי ה-active fetch
+      const requestKey = `${JSON.stringify(weeklyPlan)}_${JSON.stringify(personalData)}`;
+      this.activeFetches.delete(requestKey);
     }
   }
 

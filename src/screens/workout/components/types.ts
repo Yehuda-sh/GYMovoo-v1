@@ -9,7 +9,7 @@
  * - Comprehensive interface definitions for component props
  * - Clean separation of concerns between different component types
  * - Production-ready with detailed documentation
- * - Updated for January 2025 with all current implementations
+ * - Updated for September 2025 with all current implementations
  *
  * @architecture
  * - WorkoutVariant: מערכת variants גלובלית עם Extract types
@@ -35,21 +35,28 @@
  * - Common types למניעת חזרה על קוד
  * - Extended interfaces עם backward compatibility
  *
- * @updated 2025-01-17 Enhanced documentation and status for audit completion
+ * @updated 2025-09-02 Enhanced documentation and fixed type inconsistencies
  */
 
 import {
-  Exercise,
-  Set,
   WorkoutData,
-  PersonalRecord,
+  WorkoutExercise,
+  Set as WorkoutSet,
 } from "../types/workout.types";
+
+// 📝 Type Mapping Notes - הערות על מיפוי טיפוסים
+// WorkoutExercise replaces Exercise for workout-specific implementations
+// WorkoutSet replaces Set for consistent typing across workout components
+// PersonalRecord is defined inline where needed for specific use cases
+// LastWorkout is defined inline for component-specific requirements
 
 // Common Types למניעת חזרה על קוד ושיפור type safety
 /**
  * רשימת כל ה-variants הגלובליים עם Extract types לבטיחות טיפוסים
  * Global superset of workout visual variants with Extract types for type safety.
- * NOTE: "pills" משמש כרגע רק ב-NextExerciseBar (ייתכן הסרה עתידית) | may be removed later.
+ *
+ * @deprecated "pills" variant is used only in NextExerciseBar and planned for removal
+ * ✅ NOTE: "pills" משמש כרגע רק ב-NextExerciseBar ומתוכנן להסרה עתידית
  */
 export type WorkoutVariant =
   | "default"
@@ -87,7 +94,8 @@ export type ButtonVariant =
   | "error"
   | "minimal";
 
-// Last Workout Type
+// 📊 Last Workout Type - טיפוס עצמאי שלא נמצא בשימוש נוכחי
+// @deprecated This type is defined but not currently used. Consider removal or implementation.
 export interface LastWorkout {
   date: string;
   bestSet: { weight: number; reps: number };
@@ -123,32 +131,37 @@ export interface WorkoutDashboardProps {
   isEditMode?: boolean; // מצב עריכה משפיע על אייקונים | Edit mode affects icons
 }
 
-// ExerciseCard Props - עדכון עם טיפוסים חדשים
+// ExerciseCard Props - עדכון מדויק לפי המימוש הנוכחי ב-ExerciseCard/index.tsx
 export interface ExerciseCardProps {
-  exercise: Exercise;
-  sets: Set[];
-  onUpdateSet: (setId: string, updates: Partial<Set>) => void;
+  exercise: WorkoutExercise;
+  sets: WorkoutSet[];
+  onUpdateSet: (setId: string, updates: Partial<WorkoutSet>) => void;
   onAddSet: () => void;
   onDeleteSet?: (setId: string) => void;
-  onCompleteSet: (setId: string) => void;
+  onCompleteSet: (setId: string, isCompleting?: boolean) => void; // הוספת פרמטר אופציונלי
   onRemoveExercise: () => void;
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   // onShowTips?: () => void; // מוסר - הפונקציה לא משמשת עוד
-  onTitlePress?: () => void;
+  onTitlePress?: () => void; // עבור מעבר לתרגיל יחיד
   isFirst?: boolean;
   isLast?: boolean;
   isPaused?: boolean;
   showHistory?: boolean;
   showNotes?: boolean;
-  personalRecord?: PersonalRecord;
-  lastWorkout?: LastWorkout;
+  personalRecord?: { weight: number; reps: number };
+  lastWorkout?: {
+    date: string;
+    bestSet: { weight: number; reps: number };
+  };
   onDuplicate?: () => void;
   onReplace?: () => void;
+  // פונקציה להזזת סטים - אופציונלי לעתיד
+  onReorderSets?: (fromIndex: number, toIndex: number) => void;
 }
 
-// SetRow Props - עדכון לפי המימוש הנוכחי
+// SetRow Props - עדכון לפי המימוש הנוכחי עם WorkoutSet
 export interface SetRowProps {
   set: ExtendedSet;
   setNumber: number;
@@ -157,11 +170,11 @@ export interface SetRowProps {
   onComplete: () => void;
   onLongPress: () => void;
   isActive?: boolean;
-  exercise: Exercise;
+  exercise: WorkoutExercise;
 }
 
-// Extended Set interface עם שדות נוספים לממשק המשתמש
-export interface ExtendedSet extends Set {
+// Extended Set interface עם שדות נוספים לממשק המשתמש - מבוסס על WorkoutSet
+export interface ExtendedSet extends WorkoutSet {
   previousWeight?: number;
   previousReps?: number;
 }
@@ -190,7 +203,7 @@ export interface ExerciseMenuProps {
 
 // NextExerciseBar Props - עדכון עם טיפוסים משופרים ו-4 variants
 export interface NextExerciseBarProps {
-  nextExercise: Exercise | null;
+  nextExercise: WorkoutExercise | null;
   onSkipToNext?: () => void;
   variant?: NextExerciseBarVariant;
 }
@@ -205,18 +218,19 @@ export interface WorkoutStatusBarProps {
   onSkipRest?: () => void;
 
   // Next Exercise Props עם אפשרות דילוג
-  nextExercise?: Exercise | null;
+  nextExercise?: WorkoutExercise | null;
   onSkipToNext?: () => void;
 
   // Common Props עם variants מתקדמים
   variant?: WorkoutStatusBarVariant;
 }
 
-// WorkoutSummary Props - עדכון לפי המימוש הנוכחי
+// WorkoutSummary Props - עדכון לפי המימוש הנוכחי עם visible prop
 export interface WorkoutSummaryProps {
   workout: WorkoutData;
   onClose: () => void;
   onSave: () => void;
+  visible: boolean; // Missing in original definition - required for modal visibility
 }
 
 // PlateCalculatorModal Props

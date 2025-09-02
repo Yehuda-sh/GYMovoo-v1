@@ -135,6 +135,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
 
         return () => clearTimeout(timer);
       }
+      return undefined;
     }, [hideAfter, fadeAnim]);
 
     // 🎨 חישוב סגנונות דינמיים // Dynamic styles calculation
