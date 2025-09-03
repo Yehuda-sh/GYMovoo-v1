@@ -376,8 +376,8 @@ const styles = StyleSheet.create({
     marginLeft: theme.isRTL ? theme.spacing.md : 0,
   },
   title: {
-    fontSize: theme.typography.heading.fontSize,
-    fontWeight: theme.typography.heading.fontWeight,
+    fontSize: theme.typography.h5.fontSize,
+    fontWeight: theme.typography.h5.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
     writingDirection: "rtl", // 🔴 תיקון RTL חובה לטקסטים עבריים

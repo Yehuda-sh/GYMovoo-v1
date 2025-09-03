@@ -120,7 +120,7 @@ export const spacing = {
 
 // --- Typography ---
 export const typography = {
-  // Headers (h1-h6 style)
+  // Core typography system - simplified
   h1: {
     fontSize: 32,
     fontWeight: "700" as const,
@@ -158,13 +158,7 @@ export const typography = {
     lineHeight: 22,
   },
 
-  // Named sizes (aliases)
-  largeTitle: {
-    fontSize: 32,
-    fontWeight: "700" as const,
-    letterSpacing: -0.5,
-    lineHeight: 40,
-  },
+  // Simplified aliases (only the essential ones)
   title1: {
     fontSize: 28,
     fontWeight: "700" as const,
@@ -182,12 +176,6 @@ export const typography = {
     fontWeight: "600" as const,
     letterSpacing: -0.1,
     lineHeight: 26,
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    letterSpacing: 0,
-    lineHeight: 24,
   },
   bodyLarge: {
     fontSize: 16,
@@ -212,12 +200,6 @@ export const typography = {
     fontWeight: "400" as const,
     letterSpacing: 0.2,
     lineHeight: 14,
-  },
-  captionSmall: {
-    fontSize: 9,
-    fontWeight: "400" as const,
-    letterSpacing: 0.3,
-    lineHeight: 12,
   },
   button: {
     fontSize: 16,
@@ -549,15 +531,8 @@ export const components = {
     zIndex: zIndex.floatingButton,
   },
 
-  // גדלים שונים לכפתור צף - Floating button sizes
+  // גדלים שונים לכפתור צף - Essential floating button sizes only
   floatingButtonSizes: {
-    small: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      button: 40,
-      icon: 18,
-    },
     medium: {
       width: 56,
       height: 56,
@@ -734,26 +709,6 @@ export const components = {
   },
 };
 
-/**
- * 👤 Avatar Helpers - עוזרי אווטאר מאוחדים
- */
-const getAvatarStyle = (
-  size: number,
-  backgroundColor?: string,
-  borderColor?: string
-) => ({
-  width: size,
-  height: size,
-  borderRadius: size / 2,
-  backgroundColor: backgroundColor || colors.backgroundAlt,
-  borderWidth: 2,
-  borderColor: borderColor || colors.accent,
-  alignItems: "center" as const,
-  justifyContent: "center" as const,
-  overflow: "hidden" as const,
-  ...shadows.small,
-});
-
 // --- Layout Helpers ---
 export const layout = {
   screenPadding: spacing.xl,
@@ -764,11 +719,10 @@ export const layout = {
   isLargeDevice: screenWidth >= 768,
 };
 
-// --- Gender-Adaptive Theme Helpers ---
+// --- Gender-Adaptive Theme Helpers - Simplified ---
 export const genderHelpers = {
   /**
    * קבלת צבע לפי מגדר
-   * Get color by gender
    */
   getGenderColor: (gender: "male" | "female" | "other") => {
     switch (gender) {
@@ -783,7 +737,6 @@ export const genderHelpers = {
 
   /**
    * קבלת גרדיאנט לפי מגדר
-   * Get gradient by gender
    */
   getGenderGradient: (gender: "male" | "female" | "other") => {
     switch (gender) {
@@ -795,42 +748,12 @@ export const genderHelpers = {
         return colors.genderGradientNeutral;
     }
   },
-
-  /**
-   * קבלת סגנון כפתור מגדר - צור ידנית עם צבעי מגדר
-   * Get gender button style - create manually with gender colors
-   */
-  getGenderButtonStyle: (
-    gender: "male" | "female" | "other",
-    isSelected: boolean = false
-  ) => {
-    const baseStyle = {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      borderRadius: radius.lg,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-      minWidth: 100,
-      borderWidth: 2,
-      borderColor: colors.border,
-    };
-
-    if (!isSelected) return baseStyle;
-
-    const genderColor = genderHelpers.getGenderColor(gender);
-    return {
-      ...baseStyle,
-      backgroundColor: genderColor,
-      borderColor: genderColor,
-    };
-  },
 };
 
-// --- RTL Theme Helpers ---
+// --- RTL Theme Helpers - Simplified ---
 export const rtlHelpers = {
   /**
    * קבלת סגנון RTL מלא לטקסט
-   * Get full RTL text style
    */
   getFullRTLTextStyle: (variant: "title" | "body" | "caption" = "body") => {
     switch (variant) {
@@ -844,43 +767,13 @@ export const rtlHelpers = {
   },
 
   /**
-   * קבלת סגנון קונטיינר RTL
-   * Get RTL container style
-   */
-  getRTLContainerStyle: (
-    options: {
-      alignItems?: "flex-start" | "flex-end" | "center";
-      paddingDirection?: "right" | "left";
-      paddingValue?: number;
-    } = {}
-  ) => ({
-    alignItems: options.alignItems || "flex-end",
-    flexDirection: isRTL ? "row-reverse" : "row",
-    ...(options.paddingDirection === "right"
-      ? { paddingRight: options.paddingValue || spacing.md }
-      : options.paddingDirection === "left"
-        ? { paddingLeft: options.paddingValue || spacing.md }
-        : {}),
-  }),
-
-  /**
-   * קבלת סגנון אינדיקטור בחירה RTL
-   * Get RTL selection indicator style
-   */
-  getSelectionIndicatorStyle: (isSelected: boolean = false) => ({
-    ...components.selectionIndicator,
-    opacity: isSelected ? 1 : 0,
-  }),
-
-  /**
    * קבלת סגנון input RTL מלא
-   * Get full RTL input style
    */
   getRTLInputStyle: () => components.rtlInput,
 };
 
 /**
- * 🎭 Modal Helpers - עוזרי מודלים מאוחדים
+ * 🎭 Modal & Avatar Helpers - Simplified
  */
 const getModalOverlayStyle = (position: "center" | "bottom" = "center") => ({
   flex: 1,
@@ -893,19 +786,22 @@ const getModalOverlayStyle = (position: "center" | "bottom" = "center") => ({
 const getModalContentStyle = (position: "center" | "bottom" = "center") => ({
   backgroundColor: colors.card,
   borderRadius: position === "bottom" ? 0 : radius.xl,
-  borderTopLeftRadius: position === "bottom" ? radius.xl : radius.xl,
-  borderTopRightRadius: position === "bottom" ? radius.xl : radius.xl,
+  borderTopLeftRadius: radius.xl,
+  borderTopRightRadius: radius.xl,
   padding: spacing.xl,
   borderWidth: position === "center" ? 1 : 0,
   borderColor: position === "center" ? colors.cardBorder : "transparent",
   ...shadows.large,
 });
 
-const getModalHeaderStyle = () => ({
-  flexDirection: (isRTL ? "row-reverse" : "row") as "row" | "row-reverse",
-  justifyContent: "space-between" as const,
+const getAvatarStyle = (size: number, backgroundColor?: string) => ({
+  width: size,
+  height: size,
+  borderRadius: size / 2,
+  backgroundColor: backgroundColor || colors.backgroundAlt,
   alignItems: "center" as const,
-  marginBottom: spacing.lg,
+  justifyContent: "center" as const,
+  ...shadows.small,
 });
 
 // --- Theme Object ---
@@ -932,13 +828,12 @@ export const theme = {
   // Modal helpers
   getModalOverlayStyle,
   getModalContentStyle,
-  getModalHeaderStyle,
 
   // Avatar helpers
   getAvatarStyle,
   getContrastTextColor,
 
-  // Utility styles (previously unused constants - now part of components)
+  // Utility styles
   sectionHeader: {
     backgroundColor: colors.background,
     paddingHorizontal: spacing.xl,

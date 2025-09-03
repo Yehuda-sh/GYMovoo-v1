@@ -20,7 +20,7 @@ import { useUserEquipment } from "../../../stores/userStore";
 import {
   normalizeEquipment,
   canPerform,
-  getExerciseAvailability,
+  checkExerciseAvailability,
   type EquipmentTag,
 } from "../../../utils/equipmentCatalog";
 import { allExercises } from "../../../data/exercises";
@@ -264,17 +264,18 @@ export const useWorkoutGeneration = () => {
       if (alternatives.length > 0) {
         // Score alternatives and pick the best one
         const scoredAlternatives = alternatives.map((exercise: any) => {
-          const availability = getExerciseAvailability(
+          const availability = checkExerciseAvailability(
             [exercise.equipment],
             normalizedEquipment
           );
           return {
             ...exercise,
-            score: availability.isFullySupported
-              ? 1.0
-              : availability.canPerform
-                ? 0.8
-                : 0.3,
+            score:
+              availability.available && !availability.needsSubstitutes
+                ? 1.0
+                : availability.available
+                  ? 0.8
+                  : 0.3,
           };
         });
 

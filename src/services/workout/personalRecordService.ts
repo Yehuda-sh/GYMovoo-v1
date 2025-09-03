@@ -26,7 +26,7 @@ import {
 } from "../../screens/workout/types/workout.types";
 import { logger } from "../../utils/logger";
 import {
-  adaptExerciseNameToGender,
+  adaptBasicTextToGender,
   UserGender,
 } from "../../utils/genderAdaptation";
 
@@ -889,9 +889,9 @@ class PersonalRecordService {
             reps: set.actualReps || set.targetReps || 0,
           }));
 
-          const adaptedExerciseName = adaptExerciseNameToGender(
+          const adaptedExerciseName = adaptBasicTextToGender(
             exercise.name,
-            userGender
+            userGender || "other"
           );
 
           const maxWeight = Math.max(...setsData.map((s) => s.weight), 0);

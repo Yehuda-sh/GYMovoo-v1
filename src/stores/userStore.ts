@@ -369,7 +369,10 @@ export const useUserStore = create<UserStore>()(
                   return 3;
                 })(),
                 selectedEquipment: (() => {
-                  if (data.answers.equipment && data.answers.equipment.length)
+                  if (
+                    Array.isArray(data.answers.equipment) &&
+                    data.answers.equipment.length
+                  )
                     return normalizeEquipment(data.answers.equipment);
                   const extendedAnswers =
                     data.answers as ExtendedQuestionnaireAnswers;
@@ -401,7 +404,7 @@ export const useUserStore = create<UserStore>()(
             );
 
           // שמירת העדפת מגדר בנפרד
-          if (data.answers.gender) {
+          if (data.answers.gender && typeof data.answers.gender === "string") {
             AsyncStorage.setItem(
               StorageKeys.USER_GENDER_PREFERENCE,
               data.answers.gender
@@ -411,7 +414,7 @@ export const useUserStore = create<UserStore>()(
           }
 
           // שמירת ציוד נבחר
-          if (data.answers.equipment) {
+          if (Array.isArray(data.answers.equipment)) {
             AsyncStorage.setItem(
               StorageKeys.SELECTED_EQUIPMENT,
               JSON.stringify(normalizeEquipment(data.answers.equipment))
@@ -979,7 +982,7 @@ export const useUserStore = create<UserStore>()(
           return { isTrialActive: false, daysRemaining: 0, hasExpired: true };
         }
 
-        // 🚫 מניעת קריאות תכופות מדי - מחייבים מינימום 30 שניות בין בדיקות
+        // מניעת קריאות תכופות מדי - מחייבים מינימום 30 שניות בין בדיקות
         const now = Date.now();
         const lastCheck = subscription.lastTrialCheck
           ? new Date(subscription.lastTrialCheck).getTime()
@@ -1010,7 +1013,7 @@ export const useUserStore = create<UserStore>()(
           daysRemaining > 0 &&
           subscription.isActive;
 
-        // עדכון סטטוס הניסיון אם צריך - 🚫 מניעת עדכונים תכופים
+        // עדכון סטטוס הניסיון אם צריך - מניעת עדכונים תכופים
         const currentDays = subscription.trialDaysRemaining ?? 0;
         const daysDiff = Math.abs(currentDays - daysRemaining);
 
@@ -1041,7 +1044,8 @@ export const useUserStore = create<UserStore>()(
 
       getSubscriptionType: () => {
         const state = get();
-        return state.user?.subscription?.type || "free";
+        const type = state.user?.subscription?.type || "free";
+        return type as "trial" | "premium" | "free";
       },
 
       canAccessPremiumFeatures: () => {
@@ -1052,7 +1056,7 @@ export const useUserStore = create<UserStore>()(
 
         if (subscription.type === "premium") return true;
 
-        // 🚫 חישוב ישיר ללא קריאה ל-checkTrialStatus למניעת לולאה
+        // חישוב ישיר ללא קריאה ל-checkTrialStatus למניעת לולאה
         if (subscription.type === "trial") {
           const now = new Date();
           const registrationDate = new Date(subscription.registrationDate);

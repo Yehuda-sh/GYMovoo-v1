@@ -74,7 +74,7 @@ export const triggerVibration = (
     Vibration.vibrate(vibrationPattern);
   } catch (error) {
     logger.error(
-      "triggerVibration failed", 
+      "triggerVibration failed",
       error instanceof Error ? error.message : String(error)
     );
   }
@@ -104,6 +104,10 @@ export const animationConfig = {
   },
   fade: {
     duration: 250,
+    useNativeDriver: true,
+  },
+  pulse: {
+    duration: 600,
     useNativeDriver: true,
   },
 } as const;

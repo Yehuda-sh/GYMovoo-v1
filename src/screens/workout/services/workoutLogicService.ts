@@ -11,7 +11,7 @@ import { logger } from "../../../utils/logger";
 import {
   normalizeEquipment,
   canPerform,
-  getExerciseAvailability,
+  checkExerciseAvailability,
   type EquipmentTag,
 } from "../../../utils/equipmentCatalog";
 import { GOAL_MAP, DEFAULT_GOAL } from "../utils/workoutConstants";
@@ -250,7 +250,7 @@ export const selectExercisesForDay = (
   const enhancedExercises = muscleFilteredExercises.map((exercise) => {
     const exerciseEquipment =
       exercise.equipment === "none" ? "bodyweight" : exercise.equipment;
-    const availability = getExerciseAvailability(
+    const availability = checkExerciseAvailability(
       [exerciseEquipment as EquipmentTag],
       normalizedEquipment
     );
@@ -259,13 +259,13 @@ export const selectExercisesForDay = (
 
   // Sort by availability score (higher is better)
   enhancedExercises.sort((a, b) => {
-    const scoreA = a.availability.canPerform
-      ? a.availability.isFullySupported
+    const scoreA = a.availability.available
+      ? !a.availability.needsSubstitutes
         ? 1.0
         : 0.8
       : 0;
-    const scoreB = b.availability.canPerform
-      ? b.availability.isFullySupported
+    const scoreB = b.availability.available
+      ? !b.availability.needsSubstitutes
         ? 1.0
         : 0.8
       : 0;
@@ -279,7 +279,7 @@ export const selectExercisesForDay = (
     selected: selectedExercises.length,
     scores: selectedExercises.map((ex) => ({
       id: ex.id,
-      canPerform: ex.availability.canPerform,
+      available: ex.availability.available,
     })),
   });
 
