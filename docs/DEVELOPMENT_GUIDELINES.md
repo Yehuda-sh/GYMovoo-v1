@@ -1,6 +1,6 @@
 # 📋 כללים והנחיות פיתוח - GYMovoo Development Guidelines
 
-> **📅 עדכון אחרון:** 1 באוגוסט 2025  
+> **📅 עדכון אחרון:** 3 בספטמבר 2025  
 > **⚠️ הערה:** מדריך זה משלים את [`DEVELOPMENT.md`](../DEVELOPMENT.md) - עיין בשני הקבצים
 
 ## 🎯 עקרונות פיתוח מרכזיים

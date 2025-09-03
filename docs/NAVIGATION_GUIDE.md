@@ -1,165 +1,55 @@
-# מדריך ניווט מתקדם - GYMovoo Smart Navigation System
+# מדריך ניווט - GYMovoo Navigation System
 
-## 🚀 עדכון מרכזי: מערכת ניווט חכמה (1 באוגוסט 2025)
+## מבנה הניווט
 
-### 💪 המערכת החדשה - AppNavigator.tsx מתקדם
-
-המערכת עודכנה למערכת ניווט חכמה מתקדמת עם:
-
-- 🎨 **אנימציות RTL מותאמות אישית** לכל מסך
-- ⚡ **אופטימיזציות ביצועים מתקדמות**
-- 🎯 **גסטורות חכמות** עם רספונסיביות מירבית
-- 🎪 **אפקטים ויזואליים מתקדמים** למודלים ומסכים
-
-## 📱 מבנה הניווט המתקדם
-
-### Stack Navigator (ראשי) - עם אנימציות RTL חכמות
+### Stack Navigator (ראשי)
 
 ```
-AppNavigator.tsx - ניווט ראשי מתקדם עם אלגוריתמים חכמים
-├── Welcome - מסך ברוכים הבאים (אנימציה מיוחדת)
-├── Login - התחברות (RTL animations)
-├── Register - הרשמה (RTL animations)
-├── Terms - תנאי שימוש (RTL animations)
-├── Questionnaire - שאלון דינמי (מודל עם גסטורות אנכיות)
-├── WorkoutPlan - תוכנית אימון AI (RTL optimized)
-├── MainApp - אפליקציה ראשית (Bottom Tabs עם הגנה)
-├── QuickWorkout - אימון פעיל (הגנה מפני יציאה בטעות)
-├── ActiveWorkout - מסך תרגיל פעיל (ניווט בין תרגילים)
-├── ExerciseList - רשימת תרגילים (מודל עם רקע כהה)
-├── Notifications - התראות (RTL animations)
-├── Progress - מסך התקדמות (אופטימיזציה לגרפים)
-└── Exercises - ספריית תרגילים (אופטימיזציה לרשימות גדולות)
+AppNavigator.tsx - ניווט ראשי
+├── Welcome - מסך ברוכים הבאים
+├── Login - התחברות
+├── Register - הרשמה
+├── Terms - תנאי שימוש
+├── Questionnaire - שאלון אחוד
+├── WorkoutPlan - תוכנית אימון
+├── MainApp - אפליקציה ראשית (Bottom Tabs)
+├── ActiveWorkout - מסך אימון פעיל
+├── ExerciseList - רשימת תרגילים
+├── Notifications - התראות
+├── Progress - מסך התקדמות
+└── Exercises - ספריית תרגילים
 ```
 
-### 🎨 אנימציות RTL מותאמות אישית
+## 🔗 זרימת ניווט עיקרית
 
-```typescript
-// אנימציה חכמה לכל מסך עברי
-cardStyleInterpolator: ({ current, layouts }) => ({
-  cardStyle: {
-    transform: [{
-      translateX: current.progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [layouts.screen.width, 0], // RTL slide
-      }),
-    }],
-  },
-}),
-gestureDirection: "horizontal-inverted", // RTL gestures
-```
+### מסכי Auth & Onboarding
 
-### ⚡ אופטימיזציות ביצועים מתקדמות
+- **WelcomeScreen** → Register, Login, UnifiedQuestionnaireScreen
+- **LoginScreen** → Register
+- **RegisterScreen** → Login, Terms, UnifiedQuestionnaireScreen
+- **TermsScreen** → (חזרה)
 
-```typescript
-// אופטימיזציות חכמות לכל המסכים
-screenOptions: {
-  freezeOnBlur: true,              // חיסכון זיכרון
-  detachPreviousScreen: false,     // אנימציות חלקות
-  gestureResponseDistance: 200,    // רספונסיביות מירבית
-  animationTypeForReplace: "push", // אנימציה עדינה
-}
-```
+### מסכים עיקריים
 
-## 🎯 מסכים עם אופטימיזציות ייעודיות
-
-### 📋 שאלון חכם (Questionnaire)
-
-```typescript
-options: {
-  presentation: "modal",          // פתיחה כמודל מתקדם
-  gestureDirection: "vertical",   // סגירה בגרירה למטה
-  gestureResponseDistance: 200,   // רספונסיביות מירבית
-  headerShown: false
-}
-```
-
-### 💪 אימון פעיל (QuickWorkout)
-
-```typescript
-options: {
-  gestureEnabled: false,          // הגנה מפני יציאה בטעות
-  presentation: "card",
-  cardStyle: {
-    backgroundColor: "transparent" // רקע שקוף לאנימציות
-  }
-}
-```
-
-### 📊 רשימת תרגילים (ExerciseList)
-
-```typescript
-options: {
-  presentation: "modal",          // פתיחה כמודל
-  gestureDirection: "vertical",   // סגירה למטה
-  cardStyle: {
-    backgroundColor: "rgba(0,0,0,0.5)" // רקע כהה למודל
-  }
-}
-```
-
-### 📈 מסכי נתונים מותאמים
-
-```typescript
-// Progress Screen - אופטימיזציה לגרפים
-Progress: {
-  cardStyle: {
-    backgroundColor: "rgba(248, 250, 252, 1)"; // רקע בהיר
-  }
-}
-
-// Exercises Screen - אופטימיזציה לרשימות גדולות
-Exercises: {
-  freezeOnBlur: true; // חיסכון בביצועים
-}
-```
-
-## 🔗 מפת קישורים מעודכנת
-
-### מסכי Auth & Onboarding (עם RTL חלק)
-
-- **WelcomeScreen** → Register, Login, Questionnaire (אנימציה מיוחדת)
-- **LoginScreen** → Register (RTL animations)
-- **RegisterScreen** → Login, Terms, Questionnaire (RTL animations)
-- **TermsScreen** → (חזרה עם RTL animation)
-
-### מסכים עיקריים (עם אופטימיזציות חכמות)
-
-- **MainScreen** → כל המסכים עם navigation מותאם
-- **ProfileScreen** → Questionnaire (עריכה במודל)
-- **WorkoutPlansScreen** → QuickWorkout, Questionnaire (RTL optimized)
-- **QuickWorkout** → הגנה מפני יציאה + רקע שקוף
-- **ExerciseList** → מודל עם רקע כהה ואנימציות חלקות
-  - **תכונות AI:** התקדמות אוטומטית, התאמה דינמית, למידה אישית
-- **QuickWorkoutScreen** → Questionnaire
+- **MainScreen** → כל המסכים
+- **ProfileScreen** → UnifiedQuestionnaireScreen (עריכה)
+- **WorkoutPlansScreen** → ActiveWorkout, UnifiedQuestionnaireScreen
+- **ActiveWorkout** → תרגילים פעילים
+- **ExerciseList** → מודל בחירת תרגילים
 - **ExercisesScreen** → ExerciseList
-- **ExerciseListScreen** → (מודל)
-
-### מסכים חדשים וחדשנים
-
-- **NotificationsScreen** - מסך התראות מלא עם הגדרות התאמה אישית
-- **ProgressScreen** - מעקב התקדמות מתקדם עם גרפים וסטטיסטיקות
-- **ExercisesScreen** - ספריית תרגילים מלאה עם 200+ תרגילים
-- **HistoryScreen משופר** - תצוגת כרטיסי אימון עשירה עם משוב חזותי
-- **WorkoutSummary משופר** - מסך סיום אימון עם זיהוי שיאים אישיים בזמן אמת
-
-### רכיבים משותפים חדשים
-
-- **LoadingSpinner** - ספינר טעינה אוניברסלי
-- **EmptyState** - תצוגת מצב ריק עם פעולות
-- **IconButton** - כפתור אייקון לשימוש חוזר
-- **ConfirmationModal** - מודל אישור פעולות
-- **InputField** - שדה קלט משופר עם RTL
+- **HistoryScreen** → פרטי אימונים קודמים
+- **NotificationsScreen** → הגדרות התראות
+- **ProgressScreen** → מעקב התקדמות
 
 ## 📋 פרמטרים לניווט
 
-### Questionnaire
+### UnifiedQuestionnaireScreen
 
 ```typescript
 { stage?: "profile" | "training" }
 ```
 
-### WorkoutPlan / WorkoutPlans
+### WorkoutPlansScreen
 
 ```typescript
 {
@@ -167,37 +57,6 @@ Exercises: {
   autoStart?: boolean;
   returnFromWorkout?: boolean;
   completedWorkoutId?: string;
-  preSelectedDay?: number;
-  requestedWorkoutIndex?: number;
-  requestedWorkoutName?: string;
-}
-```
-
-### QuickWorkout
-
-```typescript
-{
-  exercises?: Exercise[];
-  workoutName?: string;
-  workoutId?: string;
-  source?: "workout_plan" | "quick_start" | "day_selection";
-  requestedDay?: number;
-  planData?: {
-    targetMuscles: string[];
-    estimatedDuration: number;
-    equipment: string[];
-  };
-}
-```
-
-### ExerciseList
-
-```typescript
-{
-  fromScreen?: string;
-  mode?: "view" | "selection";
-  onSelectExercise?: (exercise: Exercise) => void;
-  selectedMuscleGroup?: string;
 }
 ```
 
@@ -205,93 +64,42 @@ Exercises: {
 
 ```typescript
 {
-  exercise: Exercise;
-  exerciseIndex: number;
-  totalExercises: number;
-  workoutData?: {
-    name?: string;
-    startTime?: string;
-    exercises?: Exercise[];
-  };
-  onExerciseUpdate?: (exercise: Exercise) => void;
-  onNavigate?: (direction: "prev" | "next") => void;
+  exercises?: Exercise[];
+  workoutName?: string;
+  workoutId?: string;
+  source?: "workout_plan" | "quick_start";
 }
 ```
 
-## 🛠️ טיפוסי TypeScript - מעודכן 2025
+## 🛠️ טיפוסי TypeScript
 
-### RootStackParamList משופר
+### RootStackParamList
 
-כל המסכים והפרמטרים שלהם מוגדרים ב-`src/navigation/types.ts` עם ארגון משופר:
+כל המסכים והפרמטרים מוגדרים ב-`src/navigation/types.ts`:
 
 ```typescript
 export type RootStackParamList = {
-  // 🔐 Authentication & Onboarding
+  // Authentication & Onboarding
   Welcome: undefined;
-  Login: { google?: boolean };
+  Login: undefined;
   Register: undefined;
   Terms: undefined;
-  Questionnaire: { stage?: QuestionnaireStage };
+  Questionnaire: { stage?: "profile" | "training" };
 
-  // 🏋️ Workout & Exercise Screens
-  WorkoutPlan: BaseWorkoutParams;
-  QuickWorkout: { ... };
-  ActiveWorkout: { ... };
-  ExerciseList: { mode?: ExerciseListMode; ... };
-
-  // 📱 Main Application
+  // Main Application
+  WorkoutPlan: WorkoutPlanParams;
+  ActiveWorkout: ActiveWorkoutParams;
+  ExerciseList: ExerciseListParams;
   MainApp: undefined;
 
-  // 📋 Additional Features
+  // Additional Screens
   Notifications: undefined;
   Progress: undefined;
   Exercises: undefined;
-
-  // 🧭 Bottom Navigation (RTL)
-  Main: undefined;
-  WorkoutPlans: ExtendedWorkoutParams;
-  History: undefined;
-  Profile: undefined;
 };
 ```
 
-### טיפוסים עזר חדשים
-
-```typescript
-// מונעים כפילויות ומשפרים עקביות
-export type WorkoutSource = "workout_plan" | "quick_start" | "day_selection";
-export type ExerciseListMode = "view" | "selection";
-export type QuestionnaireStage = "profile" | "training";
-
-export interface BaseWorkoutParams {
-  regenerate?: boolean;
-  autoStart?: boolean;
-  returnFromWorkout?: boolean;
-  completedWorkoutId?: string;
-  preSelectedDay?: number;
-}
-
-export interface ExtendedWorkoutParams extends BaseWorkoutParams {
-  requestedWorkoutIndex?: number;
-  requestedWorkoutName?: string;
-}
-```
-
-## 🔍 כלי בדיקה
-
-### סקריפט checkNavigation.js
-
-```bash
-node scripts/checkNavigation.js
-```
-
-בודק:
-
-- התאמה בין routes לcomponents
-- קישורי ניווט תקינים
-- imports של מסכים
-
-## 📁 מבנה קבצים
+## מבנה קבצים
 
 ```
 src/
@@ -299,44 +107,12 @@ src/
 │   ├── AppNavigator.tsx      # ניווט ראשי
 │   ├── BottomNavigation.tsx  # ניווט תחתון
 │   └── types.ts             # טיפוסי ניווט
-├── screens/
-│   ├── auth/                # מסכי התחברות
-│   ├── welcome/            # מסך ברוכים הבאים
-│   ├── main/               # מסך ראשי
-│   ├── profile/            # פרופיל
-│   ├── workout/            # מסכי אימון
-│   ├── exercise/           # מסכי תרגילים
-│   ├── exercises/          # ספריית תרגילים
-│   ├── questionnaire/      # שאלון
-│   ├── history/            # היסטוריה
-│   ├── progress/           # התקדמות
-│   └── notifications/      # התראות
-└── components/             # רכיבים משותפים
-```
-
-## ✅ רשימת בדיקות
-
-### לפני Release
-
-- [ ] כל המסכים נטענים בלי שגיאות
-- [ ] כל הקישורים עובדים
-- [ ] פרמטרים מועברים נכון
-- [ ] Back navigation עובד
-- [ ] Deep linking עובד
-- [ ] TypeScript validation עובר
-- [ ] כל ה-imports קיימים
-
-### בדיקות אוטומטיות
-
-```bash
-# בדיקת TypeScript
-npx tsc --noEmit
-
-# בדיקת ESLint
-npx eslint src/
-
-# בדיקת ניווט
-node scripts/checkNavigation.js
+└── screens/                 # כל המסכים
+    ├── auth/               # מסכי התחברות
+    ├── welcome/            # ברוכים הבאים
+    ├── main/               # מסך ראשי
+    ├── workout/            # מסכי אימון
+    └── ...                 # שאר המסכים
 ```
 
 ## 🔧 פתרון בעיות נפוצות
@@ -349,23 +125,9 @@ node scripts/checkNavigation.js
 
 ### שגיאת TypeScript בניווט
 
-1. בדיק את טיפוס הפרמטרים ב-`types.ts`
+1. בדוק את טיפוס הפרמטרים ב-`types.ts`
 2. ייבא את `RootStackParamList` מ-`navigation/types`
 3. השתמש ב-`NavigationProp<RootStackParamList>`
-
-### מסך לא נטען
-
-1. בדיק את ה-import במסך המקור
-2. וודא שהמסך קיים בתיקייה הנכונה
-3. בדיק שהמסך מייצא default export
-
-## 📚 המלצות לפיתוח
-
-1. **Type Safety** - תמיד השתמש בטיפוסי TypeScript לניווט
-2. **Naming Convention** - השתמש בשמות עקביים למסכים ו-routes
-3. **Parameters** - תעד את כל הפרמטרים של המסכים
-4. **Testing** - רוץ בדיקות אוטומטיות לפני commit
-5. **Documentation** - עדכן תיעוד כשמוסיפים מסכים חדשים
 
 ## 🆕 הוספת מסך חדש
 
@@ -374,4 +136,10 @@ node scripts/checkNavigation.js
 3. ייבא המסך ב-`AppNavigator.tsx`
 4. הוסף `<Stack.Screen>` חדש
 5. עדכן תיעוד
-6. רוץ בדיקות אוטומטיות
+
+---
+
+**הערות:**
+
+- מסמך זה מתמקד בתכונות הקריטיות של מערכת הניווט
+- לפרטים טכניים נוספים ראה את הקוד ב-navigation/

@@ -1,8 +1,7 @@
 /**
  * @file src/screens/workout/services/workoutLogicService.ts
- * @brief Workout Logic Service - שירות לוגיקה לתוכניות אימון
- * @dependencies Exercise types, constants
- * @updated September 2025 - Code cleanup: Removed unused functions and console.log statements
+ * @description שירות לוגיקה לתוכניות אימון
+ * @updated 2025-09-03 Added exercise constants and improved structure
  */
 
 import { allExercises as ALL_EXERCISES } from "../../../data/exercises";
@@ -15,6 +14,22 @@ import {
   type EquipmentTag,
 } from "../../../utils/equipmentCatalog";
 import { GOAL_MAP, DEFAULT_GOAL } from "../utils/workoutConstants";
+
+// קבועי תרגילים ומשקלים
+const EXERCISE_CONSTANTS = {
+  // הודעות ברירת מחדל
+  DEFAULT_EXERCISE_NOTE: "בצע את התרגיל לפי ההנחיות",
+  PUSHUP_INSTRUCTIONS:
+    "שכב על הבטן, ידיים ברוחב הכתפיים, דחף את הגוף מעלה ומטה",
+
+  // קבועי זמנים ומספרים
+  MIN_EXERCISES: 4,
+  MAX_EXERCISES: 8,
+  MINUTES_PER_EXERCISE: 10,
+
+  // קבוצות שרירים ברירת מחדל
+  DEFAULT_MUSCLE_GROUPS: ["חזה", "גב"],
+} as const;
 
 /**
  * Get muscle groups for a specific workout day
@@ -39,7 +54,7 @@ export const getMuscleGroupsForDay = (dayName: string): string[] => {
     "בטן + קרדיו": ["בטן", "core", "cardio"],
   };
 
-  return muscleGroupMap[dayName] || ["חזה", "גב"];
+  return muscleGroupMap[dayName] || EXERCISE_CONSTANTS.DEFAULT_MUSCLE_GROUPS;
 };
 
 /**
@@ -184,7 +199,8 @@ const createExerciseTemplate = (
   sets: getSetsForExperience(experience),
   reps: getRepsForGoal((metadata.goal as string) || DEFAULT_GOAL),
   restTime: getRestTimeForGoal((metadata.goal as string) || DEFAULT_GOAL),
-  notes: exercise.instructions?.he[0] || "בצע את התרגיל לפי ההנחיות",
+  notes:
+    exercise.instructions?.he[0] || EXERCISE_CONSTANTS.DEFAULT_EXERCISE_NOTE,
 });
 
 /**
@@ -209,7 +225,13 @@ export const selectExercisesForDay = (
 
   // Get target muscle groups based on day name
   const muscleGroups = getMuscleGroupsForDay(dayName);
-  const exerciseCount = Math.max(4, Math.min(8, Math.floor(duration / 10)));
+  const exerciseCount = Math.max(
+    EXERCISE_CONSTANTS.MIN_EXERCISES,
+    Math.min(
+      EXERCISE_CONSTANTS.MAX_EXERCISES,
+      Math.floor(duration / EXERCISE_CONSTANTS.MINUTES_PER_EXERCISE)
+    )
+  );
 
   logger.debug("Workout", "Target selection", {
     muscleGroups: muscleGroups.slice(0, 3),
@@ -297,7 +319,7 @@ export const selectExercisesForDay = (
       sets: getSetsForExperience(experience),
       reps: getRepsForGoal((metadata.goal as string) || DEFAULT_GOAL),
       restTime: getRestTimeForGoal((metadata.goal as string) || DEFAULT_GOAL),
-      notes: "שכב על הבטן, ידיים ברוחב הכתפיים, דחף את הגוף מעלה ומטה",
+      notes: EXERCISE_CONSTANTS.PUSHUP_INSTRUCTIONS,
     },
   ];
 };

@@ -3,7 +3,7 @@
  * @brief מסך פיתוח מקיף עם כלי בדיקה ודיבוג מותאמים לפרויקט
  * @dependencies React Native, Expo, userApi, userStore, BackButton, ConfirmationModal
  * @notes תומך ב-RTL ונגישות, משתמש בעקרונות מאוחדות (BackButton, ConfirmationModal)
- * @updates 2025-08-17: החלפת Alert.alert ב-ConfirmationModal, החלפת כפתור חזרה ב-BackButton
+ * @updates 2025-09-03: הוספת קבועי UI מרוכזים, הוספת מתודת create ל-userApi
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -47,6 +47,36 @@ const DeveloperScreen = () => {
   const QUESTIONNAIRE_MIN_ANSWERS = 10;
   const DEMO_USER_PREFIX = "משתמש דמו";
   const NO_QUESTIONNAIRE_PREFIX = "משתמש חסר שאלון";
+
+  // קבועי UI
+  const UI_TEXTS = {
+    // כותרות
+    SCREEN_TITLE: "מסך פיתוח",
+    SYSTEM_INFO: "מידע מערכת",
+    QUICK_ACTIONS: "פעולות מהירות",
+    DEBUG_SETTINGS: "הגדרות Debug",
+    USERS_LIST: "רשימת משתמשים",
+
+    // מצבי חיבור
+    CONNECTED: "מחובר",
+    NOT_CONNECTED: "לא מחובר",
+    NO_USER: "אין משתמש",
+
+    // מצבי שאלון
+    FULL_QUESTIONNAIRE: "שאלון מלא",
+    REQUIRES_QUESTIONNAIRE: "דרוש שאלון",
+    DEMO_TAG: "דמו",
+
+    // מצבים כלליים
+    NO_USERS: "אין משתמשים",
+    LOADING: "טוען...",
+
+    // כפתורי אישור
+    CONFIRM: "אישור",
+    CANCEL: "ביטול",
+    DELETE_ALL: "מחק הכל",
+    CONTINUE_TO_QUESTIONNAIRE: "המשך לשאלון",
+  } as const;
 
   // פונקציית עזר לבדיקת מצב שאלון
   const checkQuestionnaireStatus = useCallback(
@@ -98,21 +128,21 @@ const DeveloperScreen = () => {
         title,
         message,
         onConfirm,
-        confirmText: options.confirmText || "אישור",
-        cancelText: options.cancelText || "ביטול",
+        confirmText: options.confirmText || UI_TEXTS.CONFIRM,
+        cancelText: options.cancelText || UI_TEXTS.CANCEL,
         destructive: options.destructive || false,
         singleButton: options.singleButton || false,
       });
       setShowModal(true);
     },
-    []
+    [UI_TEXTS.CONFIRM, UI_TEXTS.CANCEL]
   );
 
   // מידע מערכת
   const [systemInfo, setSystemInfo] = useState({
     storageKeys: 0,
     userCount: 0,
-    currentUser: user?.name || "אין משתמש",
+    currentUser: user?.name || UI_TEXTS.NO_USER,
     supabaseConnected: false,
   });
 
@@ -125,13 +155,13 @@ const DeveloperScreen = () => {
       setSystemInfo({
         storageKeys: allKeys.length,
         userCount: users.length,
-        currentUser: user?.name || "אין משתמש",
+        currentUser: user?.name || UI_TEXTS.NO_USER,
         supabaseConnected: supabaseTest === "ok",
       });
     } catch (error) {
       logger.error("developer", "שגיאה בטעינת מידע מערכת", error);
     }
-  }, [users.length, user?.name]);
+  }, [users.length, user?.name, UI_TEXTS.NO_USER]);
 
   useEffect(() => {
     loadSystemInfo();
@@ -203,7 +233,10 @@ const DeveloperScreen = () => {
           "התחברות בהצלחה",
           `התחברת כ-${selectedUser.name}. כעת תעבור להשלמת השאלון.`,
           () => navigation.navigate("Questionnaire", {}),
-          { singleButton: true, confirmText: "המשך לשאלון" }
+          {
+            singleButton: true,
+            confirmText: UI_TEXTS.CONTINUE_TO_QUESTIONNAIRE,
+          }
         );
       }
     } catch (error) {
@@ -322,7 +355,7 @@ const DeveloperScreen = () => {
           setLoading(false);
         }
       },
-      { destructive: true, confirmText: "מחק הכל" }
+      { destructive: true, confirmText: UI_TEXTS.DELETE_ALL }
     );
   };
 
@@ -417,7 +450,7 @@ const DeveloperScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <BackButton variant="minimal" />
-          <Text style={styles.headerTitle}>מסך פיתוח</Text>
+          <Text style={styles.headerTitle}>{UI_TEXTS.SCREEN_TITLE}</Text>
           <TouchableOpacity onPress={onRefresh}>
             <Ionicons name="refresh" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -431,7 +464,7 @@ const DeveloperScreen = () => {
         >
           {/* מידע מערכת */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>מידע מערכת</Text>
+            <Text style={styles.sectionTitle}>{UI_TEXTS.SYSTEM_INFO}</Text>
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>משתמש נוכחי</Text>
@@ -457,7 +490,9 @@ const DeveloperScreen = () => {
                     },
                   ]}
                 >
-                  {systemInfo.supabaseConnected ? "מחובר" : "לא מחובר"}
+                  {systemInfo.supabaseConnected
+                    ? UI_TEXTS.CONNECTED
+                    : UI_TEXTS.NOT_CONNECTED}
                 </Text>
               </View>
             </View>
@@ -465,7 +500,7 @@ const DeveloperScreen = () => {
 
           {/* פעולות מהירות */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>פעולות מהירות</Text>
+            <Text style={styles.sectionTitle}>{UI_TEXTS.QUICK_ACTIONS}</Text>
             <View style={styles.actionsGrid}>
               <ActionButton
                 title="בדיקת Supabase"
@@ -494,7 +529,7 @@ const DeveloperScreen = () => {
 
           {/* הגדרות debug */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>הגדרות Debug</Text>
+            <Text style={styles.sectionTitle}>{UI_TEXTS.DEBUG_SETTINGS}</Text>
             <DebugToggle
               label="רישום מפורט"
               value={debugSettings.verboseLogging}
@@ -524,7 +559,7 @@ const DeveloperScreen = () => {
           {/* רשימת משתמשים */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              רשימת משתמשים ({users.length})
+              {UI_TEXTS.USERS_LIST} ({users.length})
             </Text>
             {users.map((userItem) => {
               // בדיקת מצב השאלון לכל משתמש
@@ -540,7 +575,7 @@ const DeveloperScreen = () => {
                     <Text style={styles.userEmail}>{userItem.email}</Text>
                     <View style={styles.userTags}>
                       {userItem.name?.includes(DEMO_USER_PREFIX) && (
-                        <Text style={styles.demoTag}>דמו</Text>
+                        <Text style={styles.demoTag}>{UI_TEXTS.DEMO_TAG}</Text>
                       )}
                       <Text
                         style={[
@@ -555,7 +590,9 @@ const DeveloperScreen = () => {
                           },
                         ]}
                       >
-                        {hasSmartQuestionnaire ? "שאלון מלא" : "דרוש שאלון"}
+                        {hasSmartQuestionnaire
+                          ? UI_TEXTS.FULL_QUESTIONNAIRE
+                          : UI_TEXTS.REQUIRES_QUESTIONNAIRE}
                       </Text>
                     </View>
                   </View>
@@ -569,7 +606,7 @@ const DeveloperScreen = () => {
             })}
 
             {users.length === 0 && !loading && (
-              <Text style={styles.emptyText}>אין משתמשים</Text>
+              <Text style={styles.emptyText}>{UI_TEXTS.NO_USERS}</Text>
             )}
           </View>
         </ScrollView>
@@ -582,7 +619,7 @@ const DeveloperScreen = () => {
                 color={theme.colors.primary}
                 variant="pulse"
               />
-              <Text style={styles.loadingText}>טוען...</Text>
+              <Text style={styles.loadingText}>{UI_TEXTS.LOADING}</Text>
             </View>
           </View>
         )}

@@ -1,6 +1,6 @@
 # WelcomeScreen Updates Report 📱
 
-**תאריך עדכון:** 18 אוגוסט 2025
+**תאריך עדכון:** 3 ספטמבר 2025
 **קובץ מעודכן:** `src/screens/welcome/WelcomeScreen.tsx`
 
 ## סיכום השינויים 🔄

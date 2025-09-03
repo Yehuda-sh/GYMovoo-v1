@@ -1,6 +1,10 @@
 # 🏆 GYMovoo - סיכום מאסטר ותובנות מרכזיות
 
-> **📅 עדכון אחרון:** 1 באוגוסט 2025
+> **📅 #### 🗑️ **מה נוקה:\*\*
+
+- ✅ קוד מיותר ורכיבים לא בשימוש הוסרו
+- ✅ תיעוד עודכן ליטות את המציאות
+- ✅ `init_structure.ps1` - עודכן לניקוי טוב יותר אחרון:\*\* 3 בספטמבר 2025
 
 ## 📊 מידע פרויקט כללי
 
@@ -10,7 +14,7 @@
 - **אדריכלות:** Hybrid - נתונים מקומיים בעברית + WGER API
 - **שפות תכנות:** React Native, TypeScript, Hebrew UX
 
-## 🚀 השינויים המרכזיים (אוגוסט 2025)
+## 🚀 השינויים המרכזיים (ספטמבר 2025)
 
 ### 🔧 TypeScript Cleanup מלא
 
@@ -30,34 +34,28 @@
 
 #### 🎯 **האתגר שפתרנו:**
 
-- **כפילות קוד:** ActiveWorkoutScreen + QuickWorkoutScreen = 70% קוד זהה
-- **תחזוקה כפולה:** כל שינוי דרש עדכון בשני מקומות
-- **חוויית משתמש:** לא עקבית בין המסכים
-- **קוד מושלם:** 450+ שורות קוד מיותר
+- **קוד מיותר:** 450+ שורות קוד מיותר הוסרו
+- **תחזוקה משופרת:** ארכיטקטורה מוסדרת ומרוכזת
+- **חוויית משתמש:** עקבית ומושלמת בכל המסכים
 
-#### 🏆 **הפתרון: מסך אוניברסלי עם 3 מצבים**
+#### 🏆 **הפתרון: ארכיטקטורה מודולרית**
 
-```typescript
-// QuickWorkoutScreen.tsx - מצבים מרובים
-interface RouteParams {
-  mode?: "full" | "single-exercise" | "view-only";
-  exerciseName?: string;
-  singleExercise?: Exercise;
-  hideAdvancedFeatures?: boolean;
-  currentExerciseIndex?: number;
-}
+מערכת מבוססת רכיבים עם התמחות ברורה:
 
-// פונקציה חדשה: getActiveExerciseFromHistory
-const getActiveExerciseFromHistory = (
+- `ActiveWorkoutScreen.tsx` - מסך אימון פעיל
+- `WorkoutPlansScreen.tsx` - תכניות אימון
+- רכיבים מפוזרים במודולריות גבוהה
+  const getActiveExerciseFromHistory = (
   user: UserData | null,
   exerciseName?: string,
   presetExercise?: Exercise
-): Exercise => {
+  ): Exercise => {
   // 1. Preset מהפרמטרים
   // 2. חיפוש בהיסטוריה (5 אימונים אחרונים)
   // 3. גיבוי - נתוני דמו
-};
-```
+  };
+
+````
 
 #### 🗑️ **מה נמחק:**
 
@@ -96,7 +94,7 @@ const smartScore = calculateWorkoutScore({
   goals: ["strength", "muscle"],
   experience: "intermediate",
 }); // -> Score: 8.2/10
-```
+````
 
 ### ⭐ RTL והעברית
 

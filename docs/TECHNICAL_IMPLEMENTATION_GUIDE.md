@@ -7,7 +7,7 @@
 
 מדריך זה מתמקד ברכיבים הטכניים המרכזיים של מערכת השאלון החכם עם תמיכה מלאה ב-RTL והתאמת מגדר.
 
-## 🚀 **תיקונים חדשים - אוגוסט 2025**
+## 🚀 **תיקונים חדשים - ספטמבר 2025**
 
 ### ✅ **ממשק עריכה מתקדם לסטים - SetRow Component**
 
@@ -206,7 +206,8 @@ useEffect(() => {
 
 ```
 src/screens/workout/
-├── QuickWorkoutScreen.tsx        # מסך אימון מהיר (מחליף ActiveWorkout)
+├── ActiveWorkoutScreen.tsx       # מסך אימון פעיל
+├── WorkoutPlansScreen.tsx        # מסך תכניות אימון
 └── components/
     └── WorkoutSummary.tsx        # רכיב סיכום עם שמירה
 
@@ -303,27 +304,15 @@ const styles = StyleSheet.create({
 
 ### עדכוני ניווט מרכזיים
 
-```typescript
-// QuickWorkoutScreen.tsx - מצבים מרובים
-const QuickWorkoutScreen = () => {
-  const [mode, setMode] = useState<'single' | 'full'>('full');
+מערכת הניווט מבוססת על React Navigation 6 עם תמיכה מלאה ב-RTL ואופטימיזציות למובייל.
 
-  if (mode === 'single') {
-    // מצב תרגיל יחיד - מה שהיה ב-ActiveWorkout
-    return <SingleExerciseMode />;
-  }
+### קבצים קיימים
 
-  // מצב אימון מלא
-  return <FullWorkoutMode />;
-};
 ```
-
-### קבצים שהוחלפו
-
-```diff
-- src/screens/workout/ActiveWorkoutScreen.tsx  # נמחק
-+ src/screens/workout/QuickWorkoutScreen.tsx   # עודכן למצבים מרובים
-+ init_structure.ps1                          # עודכן להסיר הקובץ הישן
+✅ src/screens/workout/ActiveWorkoutScreen.tsx
+✅ src/screens/workout/WorkoutPlansScreen.tsx
+✅ src/navigation/AppNavigator.tsx
+✅ src/navigation/BottomNavigation.tsx
 ```
 
 ## 📊 מערכת ההיסטוריה
@@ -660,4 +649,4 @@ npm test -- --coverage
 
 **מסמך זה מכסה את הרכיבים הטכניים המרכזיים של מערכת השאלון החכם עם תמיכה מלאה ב-RTL והתאמת מגדר. לפרטים נוספים, עיינו בקבצי הקוד המקבילים.**
 
-_עדכון אחרון: 01/08/2025_
+_עדכון אחרון: 03/09/2025_

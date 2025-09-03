@@ -15,7 +15,7 @@
 ```
 WelcomeScreen → LoginScreen ⟷ RegisterScreen
                     ↓              ↓
-                TermsScreen    SmartQuestionnaireScreen <!-- מיקום נכון: src/screens/questionnaire/SmartQuestionnaireScreen.tsx -->
+                TermsScreen    UnifiedQuestionnaireScreen <!-- מיקום נכון: src/screens/questionnaire/UnifiedQuestionnaireScreen.tsx -->
                     ↓              ↓
             MainScreen         MainScreen
 ```
@@ -41,19 +41,11 @@ WelcomeScreen → LoginScreen ⟷ RegisterScreen
 - React Native, TypeScript
 - React Hook Form, Yup
 - AsyncStorage, Expo SecureStore
-
-## משימות עתידיות
-
-- התחברות עם Google/Facebook
-- אימות דו-שלבי (2FA)
-- שחזור סיסמה ב-SMS
-- ביומטריה (Face/Touch ID)
-- SSO עם מערכות חיצוניות
+- Supabase (אימות ונתונים)
 
 ---
 
 **הערות:**
 
-- שמור על קוד ותיעוד דו-לשוני.
-- עדכן מסמך זה בכל שינוי משמעותי בזרימה, אבטחה או עיצוב.
-- אם יש כפילויות/מידע לא רלוונטי – מיזג/קצר והשאר רק את הדגשים הקריטיים.
+- מסמך זה מתמקד בתכונות הקריטיות של מסכי האימות
+- לפרטים טכניים נוספים ראה את קבצי הקוד עצמם

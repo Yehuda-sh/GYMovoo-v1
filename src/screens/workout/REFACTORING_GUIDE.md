@@ -14,7 +14,7 @@
    - Hook מיותר שהחליף 3 שורות של useState פשוט
    - שימוש יחיד ב-ActiveWorkoutScreen הוחלף בקוד ישיר
 
-2. **workout.types.ts**: 410→271 שורות (34% צמצום)
+2. **workout.types.ts**: 410→295 שורות (28% צמצום)
    - הסרת UI enhancement types שלא היו בשימוש
    - מחיקת ממשק QuestionnaireBasicData כפול
    - תיקון Exercise vs WorkoutExercise confusion
@@ -48,7 +48,7 @@ src/screens/workout/
 │   ├── WorkoutPlanLoading.tsx        # מסך טעינה ⭐ עיצוב משופר
 │   ├── QuickActions.tsx              # פעולות מהירות ⭐ עיצוב משופר
 │   └── WorkoutErrorBoundary.tsx      # טיפול בשגיאות
-└── WorkoutPlansScreen.tsx            # קובץ עיקרי (856 שורות)
+└── WorkoutPlansScreen.tsx            # קובץ עיקרי (367 שורות)
 ```
 
 ## 🎨 שיפורי עיצוב נרחבים (ספטמבר 2025)
@@ -83,7 +83,7 @@ src/screens/workout/
 
 ### ✅ רכיבים מיושמים
 
-1. **מבנה מודולרי**: קובץ עיקרי של 522 שורות עם רכיבים נפרדים
+1. **מבנה מודולרי**: קובץ עיקרי של 367 שורות עם רכיבים נפרדים
 2. **Data layer מאוחד**: `questionnaireService` + `userStore` integration
 3. **TypeScript נקי**: אופטימיזציות עם useMemo ו-useCallback
 4. **עיצוב מתקדם**: 30+ רכיבים עם shadows, typography, spacing משופרים
@@ -107,8 +107,8 @@ src/screens/workout/
 
 ### ארכיטקטורה ועיצוב נוכחיים (ספטמבר 2025):
 
-- **גודל קובץ עיקרי**: 856 שורות (WorkoutPlansScreen)
-- **מורכבות**: 6/10 (מודולרי וקריא)
+- **גודל קובץ עיקרי**: 367 שורות (WorkoutPlansScreen)
+- **מורכבות**: 5/10 (מודולרי וקריא יותר)
 - **תחזוקה**: 9/10 (מבנה נקי + code cleanup אחרון)
 - **ביצועים**: 9/10 (אופטימיזציות מתקדמות)
 - **יציבות**: 9/10 (Error boundaries + TypeScript)
@@ -231,7 +231,7 @@ import WorkoutErrorBoundary from "./components/WorkoutErrorBoundary";
 ### הקובץ הנוכחי - מודולרי ומאופטם:
 
 ```tsx
-// WorkoutPlansScreen.tsx - 856 שורות
+// WorkoutPlansScreen.tsx - 367 שורות
 export default function WorkoutPlansScreen({ route }) {
   // Custom hooks מיועלים
   const { showError, showSuccess } = useModalManager();
@@ -267,7 +267,7 @@ export default function WorkoutPlansScreen({ route }) {
 
 | קטגוריה        | ערך נוכחי | יעד   | סטטוס    | הערות                               |
 | -------------- | --------- | ----- | -------- | ----------------------------------- |
-| שורות קוד      | 856       | <900  | ✅ טוב   | WorkoutPlansScreen בלבד             |
+| שורות קוד      | 367       | <400  | ✅ מצוין | WorkoutPlansScreen בלבד             |
 | מורכבות        | 6/10      | <7/10 | ✅ טוב   | מבנה מודולרי וקריא                  |
 | תחזוקה         | 9/10      | >7/10 | ✅ מצוין | רכיבים עצמאיים + cleanup אחרון      |
 | ביצועים        | 9/10      | >8/10 | ✅ מצוין | React.memo + optimizations          |
@@ -283,7 +283,7 @@ export default function WorkoutPlansScreen({ route }) {
 
 ### ✅ ארכיטקטורה:
 
-- **קוד נקי וקריא** (856 שורות עיקריות)
+- **קוד נקי וקריא** (367 שורות עיקריות)
 - **ביצועים משופרים** (React.memo + optimizations)
 - **תחזוקה קלה** (מבנה מודולרי)
 - **יציבות גבוהה** (Error boundaries + TypeScript)
@@ -346,3 +346,25 @@ export default function WorkoutPlansScreen({ route }) {
 | Code Quality Excellence | ✅ הושלם   | 95% ✅      |
 
 **סיכום**: האפליקציה כעת במצב מצוין עם עיצוב מקצועי, יוקרתי וקוד נקי! 🌟
+
+---
+
+## 📝 עדכון מסמך (3 בספטמבר 2025)
+
+### ✅ תיקונים שבוצעו במסמך:
+
+1. **מספרי שורות מעודכנים**:
+   - `WorkoutPlansScreen.tsx`: 856→367 שורות (57% פחות!)
+   - `workout.types.ts`: 271→295 שורות (תיקון מספר)
+   - שיפור דירוג מורכבות: 6/10→5/10
+
+2. **עדכון מטריקות**:
+   - שורות קוד: יעד השתפר מ-<900 ל-<400 ✅
+   - סטטוס שורות קוד: טוב→מצוין ✅
+
+3. **אימות קבצים**:
+   - ✅ `useWorkoutAds.ts` אכן נמחק (כפי שמתועד)
+   - ✅ `workoutConstants.ts` - 195 שורות (מדויק)
+   - ✅ `workout.types.ts` - קיים ומעודכן
+
+**מסקנה**: המסמך כעת מדויק יותר ומשקף את המציאות הנוכחית של הקוד! 📊

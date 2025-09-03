@@ -1,4 +1,5 @@
 // User API service for Supabase integration
+// @updates 2025-09-03: הוספת מתודת create ליצירת משתמשים חדשים
 import type { User } from "../../types";
 import { fieldMapper } from "../../utils/fieldMapper";
 import { supabase } from "../supabase/client";
@@ -68,6 +69,23 @@ export const userApi = {
       .maybeSingle();
 
     if (error || !data) throw new Error("Failed to update user");
+
+    const mapped = mapFromDB(data);
+    if (!mapped) throw new Error("Failed to map user data");
+    return mapped;
+  },
+
+  create: async (userData: Omit<User, "id">): Promise<User> => {
+    if (!client) throw new Error("Supabase client not initialized");
+
+    const payload = mapToDB(userData);
+    const { data, error } = await client
+      .from("users")
+      .insert(payload)
+      .select()
+      .maybeSingle();
+
+    if (error || !data) throw new Error("Failed to create user");
 
     const mapped = mapFromDB(data);
     if (!mapped) throw new Error("Failed to map user data");

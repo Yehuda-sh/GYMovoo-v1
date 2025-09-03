@@ -1,9 +1,9 @@
 /**
  * @file src/screens/workout/ActiveWorkoutScreen.tsx
  * @brief מסך אימון פעיל - מעקב אחר אימון מלא של יום נבחר
- * @version 3.2.0
+ * @version 3.3.0
  * @author GYMovoo Development Team
- * @modified 2025-08-02
+ * @modified 2025-09-03
  *
  * @description
  * מסך אימון פעיל המציג את כל התרגילים של האימון הנבחר עם:
@@ -29,13 +29,7 @@
  * }
  */
 
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  Suspense,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, StyleSheet, Text, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -48,12 +42,8 @@ import EmptyState from "../../components/common/EmptyState";
 
 // Components
 import ExercisesList from "./components/ExercisesList";
+import WorkoutStatusBar from "./components/WorkoutStatusBar";
 import { FloatingActionButton } from "../../components";
-
-// Lazy Components for performance
-const WorkoutStatusBar = React.lazy(
-  () => import("./components/WorkoutStatusBar")
-);
 
 // Hooks & Services
 import { useRestTimer } from "./hooks/useRestTimer";
@@ -324,34 +314,19 @@ const ActiveWorkoutScreen: React.FC = () => {
               }
               testID="btn-toggle-timer"
             />
-
-            {/* כפתור סיים אימון עם טקסט */}
-            <UniversalButton
-              style={[styles.headerButton, styles.finishButtonSmall]}
-              onPress={handleFinishWorkout}
-              variant="primary"
-              size="small"
-              title="סיים"
-              icon="checkmark"
-              accessibilityLabel="סיים אימון"
-              accessibilityHint="פתח חלון אישור לסיום האימון"
-              testID="btn-finish-header"
-            />
           </View>
         </View>
 
         {/* Status Bar - Rest Timer */}
-        <Suspense fallback={null}>
-          <WorkoutStatusBar
-            isRestActive={isRestTimerActive}
-            restTimeLeft={restTimeRemaining}
-            onAddRestTime={addRestTime}
-            onSubtractRestTime={subtractRestTime}
-            onSkipRest={skipRestTimer}
-            nextExercise={null}
-            onSkipToNext={() => {}}
-          />
-        </Suspense>
+        <WorkoutStatusBar
+          isRestActive={isRestTimerActive}
+          restTimeLeft={restTimeRemaining}
+          onAddRestTime={addRestTime}
+          onSubtractRestTime={subtractRestTime}
+          onSkipRest={skipRestTimer}
+          nextExercise={null}
+          onSkipToNext={() => {}}
+        />
 
         {/* Workout Stats */}
         <View style={styles.statsContainer}>
@@ -566,11 +541,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     borderColor: theme.colors.primary + "30",
     minWidth: 80,
-  },
-
-  finishButtonSmall: {
-    backgroundColor: theme.colors.success + "20",
-    borderColor: theme.colors.success + "30",
   },
 
   statsContainer: {
