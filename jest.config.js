@@ -1,13 +1,13 @@
 module.exports = {
   preset: "jest-expo",
-  testEnvironment: "node",
+  testEnvironment: "jsdom",
   roots: ["<rootDir>/src"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": "babel-jest",
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(react-native|@react-native|react-navigation|@react-navigation|expo|@expo|expo-modules-core|@unimodules|unimodules|react-native-safe-area-context|@react-native-community)/)",
+    "node_modules/(?!(react-native|@react-native|expo|@expo|expo-modules-core|react-navigation|@react-navigation)/)",
   ],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   moduleNameMapper: {
@@ -19,8 +19,6 @@ module.exports = {
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
-    "!src/services/demo/**",
     "!src/**/__tests__/**",
-    "!src/**/node_modules/**",
   ],
 };

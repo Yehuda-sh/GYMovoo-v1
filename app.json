@@ -7,37 +7,42 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "platforms": ["ios", "android", "web"],
+    "scheme": "gymovoo",
+    "platforms": ["ios", "android"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": ["assets/**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gymovoo.app"
+      "bundleIdentifier": "com.gymovoo.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "The app needs access to your camera to take profile pictures",
+        "NSPhotoLibraryUsageDescription": "The app needs access to your photos to allow profile picture selection"
+      }
     },
     "android": {
       "package": "com.gymovoo.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
-
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "האפליקציה צריכה גישה לתמונות שלך כדי לאפשר בחירת תמונת פרופיל | The app needs access to your photos to allow profile picture selection",
-          "cameraPermission": "האפליקציה צריכה גישה למצלמה כדי לצלם תמונת פרופיל | The app needs access to your camera to take profile pictures"
+          "photosPermission": "The app needs access to your photos to allow profile picture selection",
+          "cameraPermission": "The app needs access to your camera to take profile pictures"
         }
       ]
-    ],
-
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    ]
   }
 }

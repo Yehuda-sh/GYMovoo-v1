@@ -18,7 +18,6 @@ import { fieldMapper } from "../utils/fieldMapper";
 import { WorkoutPlan } from "../screens/workout/types/workout.types";
 import { logger } from "../utils/logger";
 import { errorHandler } from "../utils/errorHandler";
-import { performanceManager } from "../utils/performanceManager";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;
@@ -542,22 +541,10 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       // בדיקה האם יש בקשה פעילה דומה
       const requestKey = `nextWorkout_${user?.id}_${JSON.stringify(weeklyPlan)}`;
 
-      // בדיקת cache בסיסי מהמנהל הגלובלי
-      const cachedResult =
-        performanceManager.getCachedData<NextWorkoutRecommendation>(requestKey);
-      if (cachedResult) {
-        debug("🎯 Using cached workout recommendation", { cachedResult });
-        setNextWorkout(cachedResult);
-        globalCache.clearActiveFetch(fetchKey);
-        if (isMountedRef.current) setIsLoading(false);
-        return;
-      }
-
-      // בדיקה האם הבקשה מותרת על פי הביצועים
-      if (!performanceManager.canMakeRequest(requestKey)) {
-        debug("⏸️ Request blocked by performance manager", { requestKey });
-        globalCache.clearActiveFetch(fetchKey);
-        if (isMountedRef.current) setIsLoading(false);
+      // Removed complex caching and performance management - not needed for fitness app
+      // Simple check for active fetch is sufficient
+      if (globalCache.isActiveFetch(fetchKey)) {
+        debug("⏸️ Request already in progress", { requestKey });
         return;
       }
 
@@ -613,9 +600,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         // ✅ שמירה ב-cache גלובלי
         globalCache.setCachedRecommendation(recommendation, userId);
 
-        // ✅ שמירה במנהל הביצועים הגלובלי
-        performanceManager.setCachedData(requestKey, recommendation, 30000); // 30 שניות
-        performanceManager.completeRequest(requestKey);
+        // Removed performance manager caching - using simple globalCache is sufficient
 
         // ✅ יצירת insights מותאמים אישית מהנתונים החדשים
         if (personalData && recommendation) {

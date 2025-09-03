@@ -1,26 +1,26 @@
 /**
- * @file src/utils/equipmentIconMapping.ts
- * @description מיפוי בין סוגי ציוד לאייקונים של MaterialCommunityIcons ושמות בעברית
- * Equipment to icons mapping and Hebrew names for MaterialCommunityIcons
+ * Equipment to icons mapping and Hebrew names
  */
 
-// מיפוי מקיף בין ציוד לאייקונים
+// Equipment to MaterialCommunityIcons mapping
 export const EQUIPMENT_ICON_MAP: Record<string, string> = {
-  // ציוד בסיסי / Basic equipment
+  // Basic equipment
   none: "human",
   bodyweight: "human",
 
-  // משקולות / Weights
+  // Weights
   dumbbells: "dumbbell",
+  dumbbell: "dumbbell",
   barbell: "barbell",
   kettlebell: "kettle",
   free_weights: "weight",
 
-  // גומיות וחבלים / Bands and ropes
+  // Bands and ropes
   resistance_bands: "resistor",
+  resistance_band: "resistor",
   trx: "power-socket",
 
-  // מכונות חדר כושר / Gym machines
+  // Gym machines
   cable_machine: "cable-data",
   smith_machine: "office-building",
   leg_press: "car-seat",
@@ -28,43 +28,39 @@ export const EQUIPMENT_ICON_MAP: Record<string, string> = {
   chest_press: "arrow-expand-horizontal",
   rowing_machine: "rowing",
 
-  // קרדיו / Cardio
+  // Cardio
   treadmill: "run",
   bike: "bike",
   elliptical: "bike-fast",
 
-  // אביזרים / Accessories
+  // Accessories
   yoga_mat: "meditation",
   foam_roller: "cylinder",
   exercise_ball: "circle",
   medicine_ball: "basketball",
   pullup_bar: "minus",
 
-  // ציוד מאולתר / Improvised equipment
-  water_bottles: "bottle-water",
-  water_gallon: "cup-water",
-  sandbag: "bag-personal",
-  tire: "tire",
-  backpack_heavy: "backpack",
-
-  // ציוד נוסף / Additional equipment
+  // Additional equipment
   bench: "table-chair",
+  bench_press: "table-chair",
   squat_rack: "gate",
   preacher_curl: "chair-school",
 
-  // ברירת מחדל / Default
+  // Default
   default: "help-circle-outline",
 };
 
-// מיפוי לשמות בעברית
+// Equipment Hebrew names
 export const EQUIPMENT_HEBREW_NAMES: Record<string, string> = {
   none: "ללא ציוד",
   bodyweight: "משקל גוף",
   dumbbells: "דמבלים",
+  dumbbell: "דמבלים",
   barbell: "ברבל",
   kettlebell: "קטלבל",
   free_weights: "משקולות חופשיות",
   resistance_bands: "גומיות התנגדות",
+  resistance_band: "גומיות התנגדות",
   trx: "רצועות TRX",
   cable_machine: "מכונת כבלים",
   smith_machine: "מכונת סמית",
@@ -80,101 +76,32 @@ export const EQUIPMENT_HEBREW_NAMES: Record<string, string> = {
   exercise_ball: "כדור פיטנס",
   medicine_ball: "כדור רפואי",
   pullup_bar: "מתקן מתח",
-  water_bottles: "בקבוקי מים",
-  water_gallon: "כד מים",
-  sandbag: "שק חול",
-  tire: "צמיג",
-  backpack_heavy: "תיק כבד",
   bench: "ספסל",
+  bench_press: "ספסל",
   squat_rack: "מתקן סקוואט",
   preacher_curl: "ספסל כיפופים",
 };
 
 /**
- * אליאסים → מפתח קנוני (כדי למנוע הכפלת לוגיקה).
- * שמרנו גם את המפתחות האלטרנטיביים במפות המקור (לא שוברים קוד ישן),
- * אבל מעתה ננרמל דרך מיפוי זה. ניתן להרחיב כאן בעתיד במקום לשכפל.
+ * Normalize equipment name for lookup
  */
-const EQUIPMENT_ALIASES: Record<string, string> = {
-  dumbbell: "dumbbells", // מאחד יחיד לרבים
-  resistance_band: "resistance_bands",
-  bench_press: "bench",
-};
-
-/**
- * נרמול מפתח ציוד: lowercase, רווחים → _, הסרת תווים לא אלפא-נומריים בסיסיים,
- * טיפול בסיומת s (רבים) אם לא נמצא, ופתרון אליאסים.
- */
-function normalizeEquipmentKey(raw: string): string {
-  if (!raw) return "";
-  const base = raw
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-  // אליאס מפורש
-  if (EQUIPMENT_ALIASES[base]) return EQUIPMENT_ALIASES[base];
-  // אם לא נמצא והמילה ברבים קיימת – הפניה
-  if (!EQUIPMENT_ICON_MAP[base] && base.endsWith("s")) {
-    const singular = base.slice(0, -1);
-    if (EQUIPMENT_ICON_MAP[singular]) return singular;
-  }
-  return base;
+function normalizeEquipmentName(equipment: string): string {
+  if (!equipment) return "";
+  return equipment.toLowerCase().trim().replace(/\s+/g, "_");
 }
 
 /**
- * איתור כפילויות (אותו אייקון למספר מפתחות) – כלי עזר לדיבוג / בדיקות.
- */
-export function findDuplicateIconMappings(): Record<string, string[]> {
-  const reverse: Record<string, string[]> = {};
-  Object.entries(EQUIPMENT_ICON_MAP).forEach(([k, icon]) => {
-    reverse[icon] = reverse[icon] ? [...reverse[icon], k] : [k];
-  });
-  const dups: Record<string, string[]> = {};
-  Object.entries(reverse).forEach(([icon, keys]) => {
-    if (keys.length > 1) dups[icon] = keys;
-  });
-  return dups;
-}
-
-/**
- * קבלת אייקון לציוד מסוים
- * Get icon for specific equipment
+ * Get icon for equipment
  */
 export function getEquipmentIcon(equipment: string): string {
-  const key = normalizeEquipmentKey(equipment);
-  if (EQUIPMENT_ICON_MAP[key]) return EQUIPMENT_ICON_MAP[key];
-
-  // fallback חיפוש חלקי (נשמר מההתנהגות הקודמת – יעיל למקרי ספיח)
-  const partial = Object.keys(EQUIPMENT_ICON_MAP).find(
-    (k) => key && (key.includes(k) || k.includes(key))
-  );
-  if (partial) return EQUIPMENT_ICON_MAP[partial];
-  return EQUIPMENT_ICON_MAP.default;
+  const normalized = normalizeEquipmentName(equipment);
+  return EQUIPMENT_ICON_MAP[normalized] || EQUIPMENT_ICON_MAP.default;
 }
 
 /**
- * קבלת שם הציוד בעברית
- * Get equipment name in Hebrew
+ * Get Hebrew name for equipment
  */
 export function getEquipmentHebrewName(equipment: string): string {
-  const key = normalizeEquipmentKey(equipment);
-  return EQUIPMENT_HEBREW_NAMES[key] || equipment;
-}
-
-/**
- * קבלת כל האייקונים הזמינים
- * Get all available icons
- */
-export function getAllEquipmentIcons(): Record<string, string> {
-  return { ...EQUIPMENT_ICON_MAP };
-}
-
-/**
- * בדיקה אם קיים אייקון לציוד
- * Check if icon exists for equipment
- */
-export function hasEquipmentIcon(equipment: string): boolean {
-  const key = normalizeEquipmentKey(equipment);
-  return key in EQUIPMENT_ICON_MAP;
+  const normalized = normalizeEquipmentName(equipment);
+  return EQUIPMENT_HEBREW_NAMES[normalized] || equipment;
 }

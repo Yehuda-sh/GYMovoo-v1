@@ -1,135 +1,41 @@
-# Equipment-Aware Workout Plans - Implementation Summary
+# Equipment-Aware Workout Plans
 
-## 🎯 Overview
+## Overview
 
-This PR implements intelligent equipment-aware workout plan generation that:
+The system generates intelligent workout plans based on user's available equipment:
 
-- ✅ Filters exercises based on user's available equipment
-- ✅ Provides intelligent equipment substitutions
-- ✅ Falls back to bodyweight exercises when needed
-- ✅ Integrates seamlessly with existing Supabase data flow
+- Filters exercises based on available equipment
+- Provides equipment substitutions when needed
+- Falls back to bodyweight exercises
+- Integrates with existing Supabase data flow
 
-## 📁 Files Modified/Created
+## Core Files
 
-### Core Implementation
+- `src/utils/equipmentCatalog.ts` - Equipment taxonomy and substitution logic
+- `src/stores/userStore.ts` - Equipment data access
+- `src/screens/workout/services/workoutLogicService.ts` - Equipment-aware filtering
+- `src/utils/__tests__/equipmentCatalog.test.ts` - Test suite (24 tests)
 
-- **`src/utils/equipmentCatalog.ts`** - ✅ ACTIVE: Equipment taxonomy and substitution logic
-- **`src/stores/userStore.ts`** - UPDATED: Equipment data access selectors
-- **`src/screens/workout/services/workoutLogicService.ts`** - ✅ ACTIVE: Equipment-aware exercise filtering
+## Key Features
 
-### Testing
+**Equipment Normalization:** Handles synonyms and variations (`["dumbbells", "free weights"]` → `['dumbbell']`)
 
-- **`src/utils/__tests__/equipmentCatalog.test.ts`** - ✅ NEW: Comprehensive test suite (24 tests covering all functionality)
+**Smart Substitutions:** Machine exercises substitute with dumbbells, cables with bands, etc.
 
-## 🔧 Key Features
+**Availability Scoring:** Perfect match vs. substitution scoring for exercise selection
 
-### 1. Equipment Normalization
+**Type Safety:** Full TypeScript support with EquipmentTag union types
 
-```typescript
-// Handles synonyms and variations
-normalizeEquipment(["dumbbells", "free weights"]);
-// → ['dumbbell']
-```
+## Architecture
 
-### 2. Intelligent Substitutions
+**Equipment Catalog:** 23+ equipment types with synonym mapping and substitution hierarchy
 
-```typescript
-// Machine exercises can substitute with dumbbells
-canPerform(["machine"], ["dumbbell"]); // → false (direct check only)
-getExerciseAvailability(["machine"], ["dumbbell"]); // → { canPerform: true, substitutions: { machine: 'dumbbell' } }
+**Integration:** Works with existing questionnaire flow and Supabase data
 
-// Hierarchical fallbacks: machine → cable → free_weights → dumbbell → band → bodyweight
-```
+**Testing:** Comprehensive coverage including normalization, availability checking, substitutions, and edge cases
 
-### 3. Exercise Availability Scoring
+## Usage
 
-```typescript
-// Perfect match = isFullySupported: true, substitutions = undefined
-// Substitutions = isFullySupported: false, substitutions: { required: substitute }
-getExerciseAvailability(["machine"], ["dumbbell"]);
-// → { canPerform: true, isFullySupported: false, substitutions: { machine: 'dumbbell' } }
-```
+User equipment is retrieved from questionnaire data, exercises are filtered and scored based on equipment compatibility, with smart substitutions applied when needed.
 
-## 🏗️ Architecture
-
-### Equipment Catalog System
-
-- **23+ Equipment Types**: Complete taxonomy from machines to bodyweight
-- **Synonym Mapping**: Handles variations like "dumbbells" → "dumbbell"
-- **Substitution Hierarchy**: Smart fallbacks with priority ordering
-- **Type Safety**: Full TypeScript support with EquipmentTag union
-
-### Integration Points
-
-- **User Store**: Accesses equipment from `customDemoUser.equipment` or `trainingstats.selectedEquipment`
-- **Workout Service**: Enhanced exercise filtering with equipment intelligence
-- **Existing UI**: No changes needed - works with current questionnaire flow
-
-## 🧪 Testing
-
-Comprehensive test coverage includes:
-
-- ✅ Equipment normalization and synonym handling (5 tests)
-- ✅ Direct availability checking (5 tests)
-- ✅ Substitution logic validation (4 tests)
-- ✅ Edge cases (undefined, duplicates, special chars) (4 tests)
-- ✅ Integration workflow testing (3 tests)
-- ✅ Synonym and substitution mappings (3 tests)
-
-## 🚀 Usage Example
-
-```typescript
-// User has dumbbells and resistance bands
-const userEquipment = useUserEquipment(); // ['bodyweight', 'dumbbell', 'resistance_bands']
-
-// Generate workout for chest day
-const exercises = selectExercisesForDay(
-  "חזה",
-  userEquipment,
-  "intermediate",
-  45,
-  { goal: "muscle_gain" }
-);
-
-// Result: Mix of dumbbell exercises + machine exercises substituted with dumbbells
-```
-
-## 🔄 Data Flow
-
-1. **User completes questionnaire** → Equipment stored in Supabase
-2. **Workout generation** → `useUserEquipment()` retrieves normalized equipment
-3. **Exercise filtering** → `canPerform()` checks equipment compatibility
-4. **Smart substitution** → `getExerciseAvailability()` scores alternatives
-5. **Workout delivery** → Optimized exercise list with user's equipment
-
-## 🎛️ Configuration
-
-Equipment substitution rules are easily configurable in `equipmentCatalog.ts`:
-
-```typescript
-export const SUBSTITUTIONS: Record<EquipmentTag, EquipmentTag[]> = {
-  machine: ["cable", "free_weights", "dumbbell", "band", "bodyweight"],
-  cable: ["band", "dumbbell", "bodyweight"],
-  // ... fully customizable with priority ordering
-};
-```
-
-## 🔜 Future Enhancements
-
-- [ ] Equipment preference learning (user feedback on substitutions)
-- [ ] Equipment purchase recommendations
-- [ ] Gym vs. home workout modes
-- [ ] Equipment-specific exercise variations
-
-## 🧩 Backward Compatibility
-
-- ✅ Existing workout generation continues to work
-- ✅ No breaking changes to current UI/UX
-- ✅ Graceful degradation when equipment data unavailable
-- ✅ Maintains all existing Supabase integrations
-
----
-
-**✅ IMPLEMENTATION COMPLETE - READY FOR PRODUCTION** 🚀
-
-This implementation provides a solid foundation for equipment-aware workout personalization while maintaining full compatibility with the existing GYMovoo system.
+Equipment substitution rules are configurable with priority ordering (e.g., machine → cable → dumbbell → bodyweight).

@@ -1,7 +1,7 @@
 /**
  * @file src/utils/equipmentCatalog.ts
- * @description ניהול ונרמול תגי ציוד, תחליפים ובדיקת זמינות
- * @brief Equipment catalog with normalization, substitutions and availability checks
+ * @description ניהול בסיסי של תגי ציוד ובדיקת זמינות
+ * @brief Basic equipment management and availability checking
  */
 
 export type EquipmentTag =
@@ -18,115 +18,53 @@ export type EquipmentTag =
   | "yoga_mat"
   | "trx"
   | "squat_rack"
-  | "smith_machine"
-  | "leg_press"
-  | "lat_pulldown"
-  | "chest_press"
-  | "preacher_curl"
-  | "rowing_machine"
-  | "treadmill"
-  | "bike"
   | "free_weights"
-  | "cable_machine"
   | "resistance_bands";
 
 /**
- * מיפוי כינויים וסינונימים לתגים סטנדרטיים
- * Mapping of aliases and synonyms to standard tags
+ * מיפוי כינויים בסיסיים לתגים סטנדרטיים
+ * Basic aliases mapping to standard tags
  */
-export const EQUIPMENT_SYNONYMS: Record<string, EquipmentTag> = {
-  // Dumbbell variations
-  db: "dumbbell",
+const EQUIPMENT_ALIASES: Record<string, EquipmentTag> = {
+  // Common variations only
   dumbbells: "dumbbell",
-  dumbells: "dumbbell",
   weights: "dumbbell",
-
-  // Barbell variations
-  bb: "barbell",
   barbells: "barbell",
-  olympic_bar: "barbell",
-
-  // Machine variations
-  machines: "machine",
-  gym_machine: "machine",
-  weight_machine: "machine",
-
-  // Kettlebell variations
-  kb: "kettlebell",
-  kettlebells: "kettlebell",
-  kettle_bell: "kettlebell",
-
-  // Band variations
   bands: "band",
-  resistance_band: "band",
-  resistance_bands: "resistance_bands",
+  resistance_band: "resistance_bands",
   elastic_band: "band",
-  elastic_bands: "band",
-
-  // Cable variations
   cables: "cable",
-  cable_system: "cable",
-  pulley: "cable",
-  cable_machine: "cable_machine",
-
-  // Bench variations
-  workout_bench: "bench",
-  weight_bench: "bench",
-  exercise_bench: "bench",
-
-  // Pullup bar variations
-  pull_up_bar: "pullup_bar",
-  pullup: "pullup_bar",
-  chin_up_bar: "pullup_bar",
-
-  // Bodyweight variations
-  body_weight: "bodyweight",
-  no_equipment: "bodyweight",
+  kettlebells: "kettlebell",
+  bodyweight: "bodyweight",
   none: "bodyweight",
-
-  // Other equipment
   mat: "yoga_mat",
-  exercise_mat: "yoga_mat",
   roller: "foam_roller",
-  suspension: "trx",
-  suspension_trainer: "trx",
-  free_weight: "free_weights",
-  cardio_machine: "treadmill",
-  stationary_bike: "bike",
-  exercise_bike: "bike",
 };
 
 /**
- * נרמול רשימת ציוד - ניקוי, המרת סינונימים וסינון כפילויות
- * Normalize equipment list - clean, convert synonyms, filter duplicates
+ * נרמול ציוד בסיסי
+ * Basic equipment normalization
  */
 export function normalizeEquipment(
   equipment?: string[] | null
 ): EquipmentTag[] {
-  if (!equipment || !Array.isArray(equipment)) {
-    return ["bodyweight"]; // Default fallback
+  if (!equipment?.length) {
+    return ["bodyweight"];
   }
 
-  const normalized = new Set<EquipmentTag>();
-
-  // Always include bodyweight as base capability
-  normalized.add("bodyweight");
+  const normalized = new Set<EquipmentTag>(["bodyweight"]);
 
   for (const item of equipment) {
     if (!item || typeof item !== "string") continue;
 
     const cleaned = item.toLowerCase().trim().replace(/\s+/g, "_");
 
-    // Direct match first
-    if (isValidEquipmentTag(cleaned)) {
-      normalized.add(cleaned as EquipmentTag);
-      continue;
-    }
-
-    // Try synonym lookup
-    const synonym = EQUIPMENT_SYNONYMS[cleaned];
-    if (synonym) {
-      normalized.add(synonym);
+    // Direct match or alias lookup
+    const tag = isEquipmentTag(cleaned)
+      ? (cleaned as EquipmentTag)
+      : EQUIPMENT_ALIASES[cleaned];
+    if (tag) {
+      normalized.add(tag);
     }
   }
 
@@ -135,9 +73,9 @@ export function normalizeEquipment(
 
 /**
  * בדיקה אם תג הוא ציוד תקני
- * Check if tag is a valid equipment tag
+ * Check if tag is valid equipment
  */
-function isValidEquipmentTag(tag: string): boolean {
+function isEquipmentTag(tag: string): boolean {
   const validTags: EquipmentTag[] = [
     "bodyweight",
     "dumbbell",
@@ -152,157 +90,86 @@ function isValidEquipmentTag(tag: string): boolean {
     "yoga_mat",
     "trx",
     "squat_rack",
-    "smith_machine",
-    "leg_press",
-    "lat_pulldown",
-    "chest_press",
-    "preacher_curl",
-    "rowing_machine",
-    "treadmill",
-    "bike",
     "free_weights",
-    "cable_machine",
     "resistance_bands",
   ];
-
   return validTags.includes(tag as EquipmentTag);
 }
 
 /**
- * בדיקת זמינות - האם אפשר לבצע תרגיל עם הציוד הזמין
- * Availability check - can perform exercise with available equipment
+ * בדיקת זמינות בסיסית
+ * Basic availability check
  */
 export function canPerform(
   required: EquipmentTag[],
   owned: EquipmentTag[]
 ): boolean {
-  if (!required || required.length === 0) {
-    return true; // No requirements means always available
-  }
+  if (!required?.length) return true;
+  if (!owned?.length) return required.every((tag) => tag === "bodyweight");
 
-  if (!owned || owned.length === 0) {
-    return required.every((tag) => tag === "bodyweight");
-  }
-
-  // Check if all required equipment is available
-  return required.every(
-    (requiredTag) => owned.includes(requiredTag) || requiredTag === "bodyweight" // Bodyweight is always available
-  );
+  return required.every((tag) => owned.includes(tag) || tag === "bodyweight");
 }
 
 /**
- * סדר עדיפויות לתחליפי ציוד
- * Priority order for equipment substitutions
+ * תחליפים בסיסיים לציוד
+ * Basic equipment substitutes
  */
-export const SUBSTITUTIONS: Record<EquipmentTag, EquipmentTag[]> = {
-  // Machine alternatives (prefer functional movements)
-  machine: ["cable", "free_weights", "dumbbell", "band", "bodyweight"],
-  smith_machine: ["barbell", "dumbbell", "bodyweight"],
-  leg_press: ["squat_rack", "dumbbell", "bodyweight"],
-  lat_pulldown: ["pullup_bar", "cable", "band", "bodyweight"],
-  chest_press: ["dumbbell", "barbell", "bench", "bodyweight"],
-  preacher_curl: ["dumbbell", "barbell", "cable", "band"],
-
-  // Barbell alternatives
-  barbell: ["dumbbell", "kettlebell", "cable", "band", "bodyweight"],
-
-  // Dumbbell alternatives
-  dumbbell: ["kettlebell", "band", "cable", "bodyweight"],
-
-  // Cable alternatives
-  cable: ["band", "dumbbell", "bodyweight"],
-  cable_machine: ["band", "dumbbell", "bodyweight"],
-
-  // Kettlebell alternatives
-  kettlebell: ["dumbbell", "band", "bodyweight"],
-
-  // Band alternatives
-  band: ["cable", "bodyweight"],
-  resistance_bands: ["cable", "bodyweight"],
-
-  // Specialized equipment alternatives
-  bench: ["yoga_mat", "bodyweight"],
-  pullup_bar: ["band", "cable", "bodyweight"],
-  squat_rack: ["dumbbell", "bodyweight"],
-
-  // Cardio equipment alternatives
-  treadmill: ["bodyweight"],
-  bike: ["bodyweight"],
-  rowing_machine: ["cable", "band", "bodyweight"],
-
-  // Accessory equipment alternatives
+const BASIC_SUBSTITUTES: Record<EquipmentTag, EquipmentTag[]> = {
+  machine: ["dumbbell", "bodyweight"],
+  barbell: ["dumbbell", "bodyweight"],
+  dumbbell: ["resistance_bands", "bodyweight"],
+  cable: ["resistance_bands", "bodyweight"],
+  kettlebell: ["dumbbell", "bodyweight"],
+  band: ["bodyweight"],
+  resistance_bands: ["bodyweight"],
+  bench: ["bodyweight"],
+  pullup_bar: ["bodyweight"],
+  squat_rack: ["bodyweight"],
   foam_roller: ["bodyweight"],
   yoga_mat: ["bodyweight"],
-  trx: ["band", "bodyweight"],
-  free_weights: ["dumbbell", "bodyweight"],
-
-  // Bodyweight has no substitutes (it's the base)
+  trx: ["bodyweight"],
+  free_weights: ["bodyweight"],
   bodyweight: [],
 };
 
 /**
- * מציאת תחליף זמין לציוד חסר
- * Find available substitute for missing equipment
+ * מציאת תחליף פשוט
+ * Find simple substitute
  */
 export function findSubstitute(
-  requiredTag: EquipmentTag,
-  ownedEquipment: EquipmentTag[]
+  required: EquipmentTag,
+  owned: EquipmentTag[]
 ): EquipmentTag | null {
-  const alternatives = SUBSTITUTIONS[requiredTag] || [];
+  const alternatives = BASIC_SUBSTITUTES[required] || [];
 
-  for (const alternative of alternatives) {
-    if (ownedEquipment.includes(alternative)) {
-      return alternative;
-    }
+  for (const alt of alternatives) {
+    if (owned.includes(alt)) return alt;
   }
 
-  // If no substitute found and bodyweight is owned, return it as last resort
-  if (ownedEquipment.includes("bodyweight")) {
-    return "bodyweight";
-  }
-
-  return null;
+  return owned.includes("bodyweight") ? "bodyweight" : null;
 }
 
 /**
- * בדיקה אם תרגיל ניתן לביצוע או דורש תחליף
- * Check if exercise can be performed or needs substitution
+ * בדיקת זמינות עם תחליפים
+ * Availability check with substitutes
  */
-export function getExerciseAvailability(
+export function checkExerciseAvailability(
   exerciseEquipment: EquipmentTag[],
   ownedEquipment: EquipmentTag[]
-): {
-  canPerform: boolean;
-  substitutions?: Partial<Record<EquipmentTag, EquipmentTag>>;
-  isFullySupported: boolean;
-} {
-  if (canPerform(exerciseEquipment, ownedEquipment)) {
-    return {
-      canPerform: true,
-      isFullySupported: true,
-    };
+): { available: boolean; needsSubstitutes: boolean } {
+  const canDo = canPerform(exerciseEquipment, ownedEquipment);
+
+  if (canDo) {
+    return { available: true, needsSubstitutes: false };
   }
 
-  // Try to find substitutions for missing equipment
-  const substitutions: Partial<Record<EquipmentTag, EquipmentTag>> = {};
-  let hasValidSubstitutes = true;
-
-  for (const requiredTag of exerciseEquipment) {
-    if (!ownedEquipment.includes(requiredTag)) {
-      const substitute = findSubstitute(requiredTag, ownedEquipment);
-      if (substitute) {
-        substitutions[requiredTag] = substitute;
-      } else {
-        hasValidSubstitutes = false;
-        break;
-      }
-    }
-  }
+  // Check if substitutes exist for missing equipment
+  const hasSubstitutes = exerciseEquipment.every(
+    (tag) => ownedEquipment.includes(tag) || findSubstitute(tag, ownedEquipment)
+  );
 
   return {
-    canPerform: hasValidSubstitutes,
-    substitutions:
-      Object.keys(substitutions).length > 0 ? substitutions : undefined,
-    isFullySupported: false,
+    available: hasSubstitutes,
+    needsSubstitutes: hasSubstitutes,
   };
 }

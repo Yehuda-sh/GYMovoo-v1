@@ -3,36 +3,16 @@ import { User } from "../types";
 import { PersonalData } from "./personalDataUtils";
 
 /**
- * Extract smart questionnaire answers from user
- * Note: This is a thin wrapper around fieldMapper.getSmartAnswers for backward compatibility
+ * Extract questionnaire answers from user
  */
 export function extractSmartAnswers(user: unknown) {
   return fieldMapper.getSmartAnswers(user);
 }
 
 /**
- * Validate that a value is a valid gender
+ * Convert age to range string
  */
-const isValidGender = (gender: unknown): gender is "male" | "female" => {
-  return gender === "male" || gender === "female";
-};
-
-/**
- * Validate that a value is a valid fitness level
- */
-const isValidFitnessLevel = (
-  level: unknown
-): level is "beginner" | "intermediate" | "advanced" => {
-  return (
-    level === "beginner" || level === "intermediate" || level === "advanced"
-  );
-};
-
-/**
- * Convert numeric value to age range string (e.g., 25 -> "25_34")
- */
-const convertToAgeRange = (age: number): string => {
-  if (age < 18) return "18_24";
+const getAgeRange = (age: number): string => {
   if (age < 25) return "18_24";
   if (age < 35) return "25_34";
   if (age < 45) return "35_44";
@@ -42,34 +22,32 @@ const convertToAgeRange = (age: number): string => {
 };
 
 /**
- * Convert numeric value to weight range string (e.g., 75 -> "70_79")
+ * Convert weight to range string
  */
-const convertToWeightRange = (weight: number): string => {
-  const ranges = [50, 60, 70, 80, 90, 100, 110, 120];
-  for (let i = 0; i < ranges.length - 1; i++) {
-    if (weight >= ranges[i] && weight < ranges[i + 1]) {
-      return `${ranges[i]}_${ranges[i + 1] - 1}`;
-    }
-  }
-  return weight >= 120 ? "120_plus" : "under_50";
+const getWeightRange = (weight: number): string => {
+  if (weight < 60) return "50_59";
+  if (weight < 70) return "60_69";
+  if (weight < 80) return "70_79";
+  if (weight < 90) return "80_89";
+  if (weight < 100) return "90_99";
+  if (weight < 110) return "100_109";
+  if (weight < 120) return "110_119";
+  return "120_plus";
 };
 
 /**
- * Convert numeric value to height range string (e.g., 175 -> "170_179")
+ * Convert height to range string
  */
-const convertToHeightRange = (height: number): string => {
-  const ranges = [150, 160, 170, 180, 190];
-  for (let i = 0; i < ranges.length - 1; i++) {
-    if (height >= ranges[i] && height < ranges[i + 1]) {
-      return `${ranges[i]}_${ranges[i + 1] - 1}`;
-    }
-  }
-  return height >= 190 ? "190_plus" : "under_150";
+const getHeightRange = (height: number): string => {
+  if (height < 160) return "150_159";
+  if (height < 170) return "160_169";
+  if (height < 180) return "170_179";
+  if (height < 190) return "180_189";
+  return "190_plus";
 };
 
 /**
- * Extract and validate personal data from user questionnaire answers
- * Returns PersonalData with proper range formatting or undefined if invalid
+ * Extract and validate personal data from user
  */
 export function getPersonalDataFromUser(
   user: User | null | undefined
@@ -77,41 +55,26 @@ export function getPersonalDataFromUser(
   const answers = extractSmartAnswers(user);
   if (!answers) return undefined;
 
-  // Validate required fields with proper type checking
-  const rawGender = answers.gender;
-  const rawAge = answers.age;
-  const rawWeight = answers.weight;
-  const rawHeight = answers.height;
-  const rawFitnessLevel = answers.fitnessLevel;
+  const { gender, age, weight, height, fitnessLevel } = answers;
 
-  // Gender validation
-  if (!isValidGender(rawGender)) return undefined;
+  // Basic validation
+  if (!gender || !["male", "female"].includes(gender)) return undefined;
+  if (!fitnessLevel || !["beginner", "intermediate", "advanced"].includes(fitnessLevel)) return undefined;
 
-  // Fitness level validation
-  if (!isValidFitnessLevel(rawFitnessLevel)) return undefined;
-
-  // Numeric field validation and conversion
-  const ageNum =
-    typeof rawAge === "number" ? rawAge : parseFloat(String(rawAge || ""));
-  const weightNum =
-    typeof rawWeight === "number"
-      ? rawWeight
-      : parseFloat(String(rawWeight || ""));
-  const heightNum =
-    typeof rawHeight === "number"
-      ? rawHeight
-      : parseFloat(String(rawHeight || ""));
+  const ageNum = Number(age);
+  const weightNum = Number(weight);
+  const heightNum = Number(height);
 
   if (isNaN(ageNum) || isNaN(weightNum) || isNaN(heightNum)) return undefined;
-  if (ageNum < 10 || ageNum > 120) return undefined; // Reasonable age bounds
-  if (weightNum < 30 || weightNum > 300) return undefined; // Reasonable weight bounds
-  if (heightNum < 120 || heightNum > 250) return undefined; // Reasonable height bounds
+  if (ageNum < 15 || ageNum > 100) return undefined;
+  if (weightNum < 40 || weightNum > 200) return undefined;
+  if (heightNum < 140 || heightNum > 220) return undefined;
 
   return {
-    gender: rawGender,
-    age: convertToAgeRange(ageNum),
-    weight: convertToWeightRange(weightNum),
-    height: convertToHeightRange(heightNum),
-    fitnessLevel: rawFitnessLevel,
+    gender: gender as "male" | "female",
+    age: getAgeRange(ageNum),
+    weight: getWeightRange(weightNum),
+    height: getHeightRange(heightNum),
+    fitnessLevel: fitnessLevel as "beginner" | "intermediate" | "advanced",
   };
 }

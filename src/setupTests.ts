@@ -34,22 +34,6 @@ jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock")
 );
 
-// Mock expo-modules-core (מונע שגיאות ESM כמו "Cannot use import statement outside a module")
-jest.mock("expo-modules-core", () => ({
-  NativeModulesProxy: {},
-  EventEmitter: class MockEventEmitter {
-    addListener() {
-      return { remove: () => undefined };
-    }
-    removeAllListeners() {}
-  },
-  requireNativeModule: () => ({}),
-  requireNativeViewManager: () => ({}),
-}));
-
-// Mock ל-polyfill בעייתי של RN שנכשל בפרסינג בסביבת Jest
-jest.mock("@react-native/js-polyfills/error-guard", () => ({}));
-
 // Mock AsyncStorage for Jest environment
 jest.mock("@react-native-async-storage/async-storage", () => {
   let store: Record<string, string> = {};
@@ -71,32 +55,8 @@ jest.mock("@react-native-async-storage/async-storage", () => {
   };
 });
 
-// Suppress console warnings in tests
-global.console = {
-  ...console,
-  warn: jest.fn(),
-  error: jest.fn(),
-};
-
 // Mock NativeEventEmitter למניעת אזהרות
 jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter");
-
-// Mock react-native-toast-message (קומפוננט ו-API)
-jest.mock("react-native-toast-message", () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
-// Mock axios כדי לחסום קריאות רשת מה-API clients
-jest.mock("axios", () => {
-  const instance = {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  };
-  return { create: () => instance };
-});
 
 // ניקוי אוטומטי בין בדיקות
 afterEach(() => {
