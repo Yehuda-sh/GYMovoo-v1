@@ -15,7 +15,6 @@
 ### 🛡️ **עדכון השיפורים האחרונים**
 
 - הוספת אזכור למיגרציית `workoutErrorHandlingService` ל-Supabase
-- הוספת אזכור למיגרציית `workoutFeedbackService` ל-Supabase
 - עדכון הערות על fallback mechanisms מתקדמים
 
 ### 🌐 **עדכון Supabase Integration**

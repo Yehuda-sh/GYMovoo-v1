@@ -17,7 +17,7 @@
  * @updated 2025-08-15 Added comprehensive AI capabilities and performance optimizations
  */
 
-import { Exercise } from "../screens/workout/types/workout.types";
+import { WorkoutExercise } from "../screens/workout/types/workout.types";
 
 // ===============================================
 // 🤖 AI & Analytics Types - טיפוסי AI ואנליטיקה
@@ -128,7 +128,7 @@ export type RootStackParamList = {
       name: string;
       dayName: string;
       startTime: string;
-      exercises: Exercise[];
+      exercises: WorkoutExercise[];
     };
     /**
      * @description הזרקת תרגיל מיידית למסך האימון הפעיל (למשל ממסך פרטי תרגיל)
@@ -150,11 +150,11 @@ export type RootStackParamList = {
   ExerciseList: {
     fromScreen?: string;
     mode?: ExerciseListMode;
-    onSelectExercise?: (exercise: Exercise) => void;
+    onSelectExercise?: (exercise: WorkoutExercise) => void;
     selectedMuscleGroup?: string;
     // 🤖 תכונות AI חדשות
     aiFiltering?: boolean;
-    smartRecommendations?: Exercise[];
+    smartRecommendations?: WorkoutExercise[];
     performanceOptimization?: boolean;
   };
 

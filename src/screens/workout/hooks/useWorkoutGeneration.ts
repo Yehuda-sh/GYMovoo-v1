@@ -2,7 +2,7 @@
  * @file src/screens/workout/hooks/useWorkoutGeneration.ts
  * @brief Specialized workout generation hook - Hook מתמחה לגנרציה של תרגילים
  * @dependencies workoutLogicService, equipmentCatalog
- * @created August 2025 - Complement to useWorkoutPlanGeneration
+ * @created August 2025 - Specialized workout exercise generation
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

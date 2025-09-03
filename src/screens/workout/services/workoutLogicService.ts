@@ -2,11 +2,8 @@
  * @file src/screens/workout/services/workoutLogicService.ts
  * @brief Workout Logic Service - שירות לוגיקה לתוכניות אימון
  * @dependencies Exercise types, constants
- * @updated August 2025 - Extracted from main screen for better separation of concerns
+ * @updated September 2025 - Code cleanup: Removed unused functions and console.log statements
  */
-
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { allExercises as ALL_EXERCISES } from "../../../data/exercises";
 import { ExerciseTemplate } from "../types/workout.types";
@@ -15,33 +12,9 @@ import {
   normalizeEquipment,
   canPerform,
   getExerciseAvailability,
+  type EquipmentTag,
 } from "../../../utils/equipmentCatalog";
 import { GOAL_MAP, DEFAULT_GOAL } from "../utils/workoutConstants";
-
-// Global exercise state for repetition prevention
-interface GlobalExerciseState {
-  usedExercises_day0?: Set<string>;
-  usedExercises_day1?: Set<string>;
-  usedExercises_day2?: Set<string>;
-  [key: string]: Set<string> | undefined;
-}
-
-declare global {
-  var exerciseState: GlobalExerciseState;
-}
-
-if (typeof global !== "undefined") {
-  global.exerciseState = global.exerciseState || {};
-}
-
-/**
- * Initialize exercise cache for workout generation
- */
-export const initializeExerciseCache = (): void => {
-  global.exerciseState.usedExercises_day0 = new Set<string>();
-  global.exerciseState.usedExercises_day1 = new Set<string>();
-  global.exerciseState.usedExercises_day2 = new Set<string>();
-};
 
 /**
  * Get muscle groups for a specific workout day
@@ -87,9 +60,14 @@ export const mapExperienceToDifficulty = (experience: string): string => {
  */
 export const getSetsForExperience = (experience: string): number => {
   const diff = mapExperienceToDifficulty(experience);
-  if (diff === "advanced") return 5;
-  if (diff === "intermediate") return 4;
-  return 3;
+  switch (diff) {
+    case "advanced":
+      return 5;
+    case "intermediate":
+      return 4;
+    default:
+      return 3;
+  }
 };
 
 /**
@@ -129,81 +107,76 @@ export const getRestTimeForGoal = (goal: string): number => {
 };
 
 /**
- * Get difficulty filter for exercises
- */
-export const getDifficultyFilter = (experience: string): string[] => {
-  const diff = mapExperienceToDifficulty(experience);
-  if (diff === "advanced") return ["advanced", "intermediate"];
-  if (diff === "intermediate") return ["intermediate", "beginner"];
-  return ["beginner"];
-};
-
-/**
  * Check if exercise targets the required muscle groups
  */
-const checkMuscleMatch = (exercise: any, muscleGroups: string[]): boolean => {
-  return exercise.primaryMuscles?.some((muscle: string) => {
-    // Direct match
-    const directMatch = muscleGroups.some(
-      (group) => muscle.includes(group) || group.includes(muscle)
-    );
+const checkMuscleMatch = (
+  exercise: { primaryMuscles?: string[] },
+  muscleGroups: string[]
+): boolean => {
+  return (
+    exercise.primaryMuscles?.some((muscle: string) => {
+      // Direct match
+      const directMatch = muscleGroups.some(
+        (group) => muscle.includes(group) || group.includes(muscle)
+      );
 
-    // Additional flexible matching for common muscle name variations
-    const flexibleMatch = muscleGroups.some((group) => {
-      // Hebrew to English mappings
-      if (
-        group === "חזה" &&
-        (muscle.includes("chest") || muscle.includes("pectoral"))
-      )
-        return true;
-      if (
-        group === "גב" &&
-        (muscle.includes("back") ||
-          muscle.includes("lat") ||
-          muscle.includes("rhomboid"))
-      )
-        return true;
-      if (
-        group === "כתפיים" &&
-        (muscle.includes("shoulder") || muscle.includes("deltoid"))
-      )
-        return true;
-      if (group === "טריצפס" && muscle.includes("tricep")) return true;
-      if (group === "ביצפס" && muscle.includes("bicep")) return true;
-      if (
-        group === "רגליים" &&
-        (muscle.includes("quad") || muscle.includes("leg"))
-      )
-        return true;
-      if (group === "ישבן" && muscle.includes("glute")) return true;
-      if (group === "בטן" && muscle.includes("core")) return true;
+      // Additional flexible matching for common muscle name variations
+      const flexibleMatch = muscleGroups.some((group) => {
+        // Hebrew to English mappings
+        if (
+          group === "חזה" &&
+          (muscle.includes("chest") || muscle.includes("pectoral"))
+        )
+          return true;
+        if (
+          group === "גב" &&
+          (muscle.includes("back") ||
+            muscle.includes("lat") ||
+            muscle.includes("rhomboid"))
+        )
+          return true;
+        if (
+          group === "כתפיים" &&
+          (muscle.includes("shoulder") || muscle.includes("deltoid"))
+        )
+          return true;
+        if (group === "טריצפס" && muscle.includes("tricep")) return true;
+        if (group === "ביצפס" && muscle.includes("bicep")) return true;
+        if (
+          group === "רגליים" &&
+          (muscle.includes("quad") || muscle.includes("leg"))
+        )
+          return true;
+        if (group === "ישבן" && muscle.includes("glute")) return true;
+        if (group === "בטן" && muscle.includes("core")) return true;
 
-      // English to Hebrew mappings
-      if (muscle === "chest" && group.includes("חזה")) return true;
-      if (muscle === "back" && group.includes("גב")) return true;
-      if (muscle === "shoulders" && group.includes("כתפיים")) return true;
-      if (muscle === "triceps" && group.includes("טריצפס")) return true;
-      if (muscle === "biceps" && group.includes("ביצפס")) return true;
-      if (
-        (muscle === "quadriceps" || muscle === "legs") &&
-        group.includes("רגליים")
-      )
-        return true;
-      if (muscle === "glutes" && group.includes("ישבן")) return true;
-      if (muscle === "core" && group.includes("בטן")) return true;
+        // English to Hebrew mappings
+        if (muscle === "chest" && group.includes("חזה")) return true;
+        if (muscle === "back" && group.includes("גב")) return true;
+        if (muscle === "shoulders" && group.includes("כתפיים")) return true;
+        if (muscle === "triceps" && group.includes("טריצפס")) return true;
+        if (muscle === "biceps" && group.includes("ביצפס")) return true;
+        if (
+          (muscle === "quadriceps" || muscle === "legs") &&
+          group.includes("רגליים")
+        )
+          return true;
+        if (muscle === "glutes" && group.includes("ישבן")) return true;
+        if (muscle === "core" && group.includes("בטן")) return true;
 
-      return false;
-    });
+        return false;
+      });
 
-    return directMatch || flexibleMatch;
-  });
+      return directMatch || flexibleMatch;
+    }) ?? false
+  );
 };
 
 /**
  * Helper function to convert exercises to workout templates
  */
 const createExerciseTemplate = (
-  exercise: any,
+  exercise: { id: string; instructions?: { he: string[]; en: string[] } },
   experience: string,
   metadata: Record<string | number, string | string[]>
 ): ExerciseTemplate => ({
@@ -211,7 +184,7 @@ const createExerciseTemplate = (
   sets: getSetsForExperience(experience),
   reps: getRepsForGoal((metadata.goal as string) || DEFAULT_GOAL),
   restTime: getRestTimeForGoal((metadata.goal as string) || DEFAULT_GOAL),
-  notes: exercise.instructions || "בצע את התרגיל לפי ההנחיות",
+  notes: exercise.instructions?.he[0] || "בצע את התרגיל לפי ההנחיות",
 });
 
 /**
@@ -245,21 +218,22 @@ export const selectExercisesForDay = (
   });
 
   // Primary filtering: exercises that target correct muscles
-  const muscleFilteredExercises = ALL_EXERCISES.filter((exercise: any) => {
+  const muscleFilteredExercises = ALL_EXERCISES.filter((exercise) => {
     return checkMuscleMatch(exercise, muscleGroups);
   });
 
   // Secondary filtering: exercises that user can perform with available equipment
-  const availableExercises = muscleFilteredExercises.filter((exercise: any) => {
-    return canPerform([exercise.equipment], normalizedEquipment);
+  const availableExercises = muscleFilteredExercises.filter((exercise) => {
+    // Normalize exercise equipment to match expected format
+    const exerciseEquipment =
+      exercise.equipment === "none" ? "bodyweight" : exercise.equipment;
+    return canPerform([exerciseEquipment as EquipmentTag], normalizedEquipment);
   });
 
-  console.log(
-    "🔍 WorkoutLogicService: Available exercises after filtering:",
-    availableExercises.length,
-    "from muscle-filtered:",
-    muscleFilteredExercises.length
-  );
+  logger.debug("WorkoutLogicService", "Available exercises after filtering", {
+    available: availableExercises.length,
+    muscleFiltered: muscleFilteredExercises.length,
+  });
 
   // If we have enough exercises, use them
   if (availableExercises.length >= exerciseCount) {
@@ -271,11 +245,13 @@ export const selectExercisesForDay = (
   }
 
   // Not enough exercises - try intelligent substitution
-  console.log("⚡ WorkoutLogicService: Attempting equipment substitution...");
+  logger.debug("WorkoutLogicService", "Attempting equipment substitution");
 
-  const enhancedExercises = muscleFilteredExercises.map((exercise: any) => {
+  const enhancedExercises = muscleFilteredExercises.map((exercise) => {
+    const exerciseEquipment =
+      exercise.equipment === "none" ? "bodyweight" : exercise.equipment;
     const availability = getExerciseAvailability(
-      [exercise.equipment],
+      [exerciseEquipment as EquipmentTag],
       normalizedEquipment
     );
     return { ...exercise, availability };
@@ -299,13 +275,13 @@ export const selectExercisesForDay = (
   // Take the best available exercises
   const selectedExercises = enhancedExercises.slice(0, exerciseCount);
 
-  console.log(
-    "🔧 WorkoutLogicService: Selected exercises with substitution scores:",
-    selectedExercises.map((ex) => ({
+  logger.debug("WorkoutLogicService", "Selected exercises with substitution", {
+    selected: selectedExercises.length,
+    scores: selectedExercises.map((ex) => ({
       id: ex.id,
       canPerform: ex.availability.canPerform,
-    }))
-  );
+    })),
+  });
 
   if (selectedExercises.length > 0) {
     return selectedExercises.map((exercise) =>
@@ -314,7 +290,7 @@ export const selectExercisesForDay = (
   }
 
   // Last resort: return basic bodyweight exercises
-  console.log("⚠️ WorkoutLogicService: Using last resort bodyweight exercises");
+  logger.warn("WorkoutLogicService", "Using last resort bodyweight exercises");
   return [
     {
       exerciseId: "pushups",
@@ -330,15 +306,19 @@ export const selectExercisesForDay = (
  * Generate workout plan for all days
  */
 export const generateWorkoutPlan = (
-  workoutDays: any[],
+  workoutDays: Array<{ name: string; [key: string]: unknown }>,
   equipment: string[],
   experience: string,
   duration: number,
   metadata: Record<string | number, string | string[]>
-): any => {
+): Array<{
+  name: string;
+  exercises: ExerciseTemplate[];
+  [key: string]: unknown;
+}> => {
   const normalizedEquipment = normalizeEquipment(equipment);
 
-  return workoutDays.map((day, _index) => ({
+  return workoutDays.map((day) => ({
     ...day,
     exercises: selectExercisesForDay(
       day.name,

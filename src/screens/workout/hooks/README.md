@@ -30,40 +30,29 @@ Contains specialized hooks for time management and functionality in workout scre
 
 **Purpose:** ניהול זמן האימון הכללי / Overall workout time management
 
-**Enhanced Features (2025-01-31):**
+**Simplified Features (2025-09-03):**
 
-- ✅ **Improved Accuracy**: 100ms interval instead of 1000ms (consistent with useRestTimer)
-- ✅ **Memory Leak Protection**: Added `isMountedRef` flag to prevent updates after unmount
-- ✅ **Enhanced Error Handling**: Better AsyncStorage error management with quota cleanup
-- ✅ **Performance Optimization**: Reduced unnecessary re-renders and improved state management
+- ✅ **Simplified Architecture**: Reduced from 237→50 lines, removed over-engineering
+- ✅ **Core Functionality**: Only essential features kept (timer display and basic controls)
+- ✅ **Memory Leak Protection**: Basic `isMountedRef` flag protection
+- ✅ **High Accuracy**: 100ms interval for smooth timer updates
 
 **Usage:**
 
 ```typescript
-const {
-  elapsedTime,
-  formattedTime,
-  isRunning,
-  startTimer,
-  pauseTimer,
-  resetTimer,
-  lapTime,
-} = useWorkoutTimer(workoutId);
+const { formattedTime, isRunning, startTimer, pauseTimer } = useWorkoutTimer(); // workoutId parameter now optional/unused
 ```
 
 **Parameters:**
 
-- `workoutId?: string` - מזהה אימון לשמירה אוטומטית / Workout ID for auto-save
+- `workoutId?: string` - מזהה אימון (לא בשימוש, שמור לתאימות) / Workout ID (unused, kept for compatibility)
 
 **Returns:**
 
-- `elapsedTime: number` - זמן שעבר בשניות / Elapsed time in seconds
 - `formattedTime: string` - זמן מפורמט לתצוגה / Formatted time for display
 - `isRunning: boolean` - האם הטיימר פועל / Whether timer is running
 - `startTimer(): void` - התחל טיימר / Start timer
 - `pauseTimer(): void` - השהה טיימר / Pause timer
-- `resetTimer(): void` - אפס טיימר / Reset timer
-- `lapTime(): number` - זמן בין תרגילים / Time between exercises
 
 ---
 
@@ -228,31 +217,25 @@ const recommendation = previousPerformance?.recommendedProgression;
 
 ## 🚀 Performance Improvements / שיפורי ביצועים
 
-### 2025-01-17 Latest Enhancements (Audit Completion):
+### 2025-09-03 Simplification & Cleanup:
 
-1. **⏱️ Timing Accuracy & Dependencies**
-   - useWorkoutTimer: Fixed React Hook dependencies with proper useCallback structure
-   - Enhanced function ordering to prevent redeclaration issues
-   - Consistent 100ms interval timing with useRestTimer
-   - Better synchronization between both timer hooks
+1. **⏱️ Simplified useWorkoutTimer**
+   - Reduced from 237→50 lines (79% reduction)
+   - Removed over-engineered AsyncStorage persistence
+   - Removed unused lapTime() and resetTimer() functions
+   - Kept only essential functionality: timer display and basic controls
 
-2. **🛡️ Memory Management & Reliability**
-   - Improved `isMountedRef` implementation in both hooks
-   - Enhanced interval cleanup with comprehensive null checks
+2. **🛡️ Memory Management**
+   - Basic `isMountedRef` implementation maintained
+   - Essential interval cleanup preserved
    - Prevention of state updates after component unmount
-   - Memory leak protection optimized for production use
+   - Simplified but effective memory leak protection
 
-3. **💾 Storage Optimization & Error Handling**
-   - Advanced AsyncStorage error handling with specific error type detection
-   - Automatic cleanup of old workout timer data when quota exceeded
-   - Graceful degradation for storage full scenarios
-   - Enhanced error logging with diagnostic information
-
-4. **🔧 Code Quality & TypeScript**
-   - Better TypeScript consistency across both hooks
-   - Enhanced useCallback usage with proper dependency management
-   - Improved error logging with specific diagnostics
-   - Documentation alignment with actual implementation
+3. **� Code Quality**
+   - Removed complex error handling for storage quotas
+   - Eliminated unused features and dependencies
+   - Better alignment with actual usage patterns
+   - Cleaner, more maintainable codebase
 
 ---
 
@@ -263,7 +246,7 @@ const recommendation = previousPerformance?.recommendedProgression;
 ```typescript
 const WorkoutScreen = () => {
   const { formattedTime, startTimer, pauseTimer, isRunning } =
-    useWorkoutTimer('workout-123');
+    useWorkoutTimer(); // No workoutId needed
 
   return (
     <View>

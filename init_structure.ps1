@@ -14,7 +14,7 @@
  Updated (2025-08-17):
   - Removed references to scientificAIService (deleted)
   - Updated service list to reflect current state
-  - Added workoutErrorHandlingService and workoutFeedbackService Supabase migration notes
+  - Added workoutErrorHandlingService migration notes
   - Updated RestTimer → TimerDisplay transition
   - Clarified exercises vs exercise directories
  Future Option: external JSON manifest (structure.json)
@@ -170,7 +170,6 @@ ${files} = @(
   # "src/services/workoutSimulationService.ts", # הוסר בניקוי 2025-08-13
   # "src/services/scientificAIService.ts", # הוסר בניקוי 2025-08-14 (מערכת AI ניסיונית מורכבת)
   "src/screens/workout/services/workoutErrorHandlingService.ts", # משופר 2025-08-17 עם Supabase
-  "src/screens/workout/services/workoutFeedbackService.ts", # מוהגר ל-Supabase 2025-08-17
 
   # Types and utils (existing)
   "src/screens/workout/types/workout.types.ts",

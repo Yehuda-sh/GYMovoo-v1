@@ -13,7 +13,10 @@
  * @updated 2025-08-11 שיפור תיעוד והוספת validations
  */
 
-import type { Exercise, Set } from "../screens/workout/types/workout.types";
+import type {
+  WorkoutExercise,
+  Set,
+} from "../screens/workout/types/workout.types";
 import { logger } from "./logger";
 
 export interface WorkoutStats {
@@ -109,7 +112,9 @@ function processExerciseSets(sets: Set[]) {
  * חישוב סטטיסטיקות אימון מלא עם validation
  * Calculates comprehensive workout statistics with validation
  */
-export function calculateWorkoutStats(exercises: Exercise[]): WorkoutStats {
+export function calculateWorkoutStats(
+  exercises: WorkoutExercise[]
+): WorkoutStats {
   if (!exercises || exercises.length === 0) {
     return {
       totalExercises: 0,

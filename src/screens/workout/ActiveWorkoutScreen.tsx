@@ -6,24 +6,12 @@
  * @modified 2025-08-02
  *
  * @description
- * מסך אימון פעיל מלא המציג את כל התרגילים של האימון הנבחר עם:
- * - הצגת כל התרגילים של האימון בפריסה אחת
- * - מעקב אחר כל הסטים, משקלים וחזרות בכל תרגיל
- * - טיימר מנוחה אוטומטי לכל תרגיל
- * - מעקב התקדמות כללי של האימון (נפח, זמן, חזרות)
- * - שמירת כל הנתונים בזמן אמת
+ * מסך אימון פעיל המציג את כל התרגילים של האימון הנבחר עם:
+ * - מעקב אחר כל הסטים, משקלים וחזרות
+ * - טיימר מנוחה ומעקב זמן
+ * - סטטיסטיקות אימון כלליות
+ * - שמירת התקדמות בזמן אמת
  * - אפשרות להוסיף/למחוק סטים ותרגילים
- * - 🆕 הזזת סטים בתוך תרגיל (drag & drop) במצב עריכה
- *
- * @features
- * - ✅ הצגת אימון מלא עם כל התרגילים
- * - ✅ מעקב אחר כל התרגילים, סטים ומשקלים
- * - ✅ טיימר מנוחה אוטומטי לכל תרגיל
- * - ✅ סטטיסטיקות אימון כלליות (נפח, זמן, חזרות, התקדמות)
- * - ✅ שמירת התקדמות בזמן אמת
- * - ✅ מצב אימון פעיל עם כל הפקדים
- * - ✅ גלילה חלקה בין תרגילים
- * - 🆕 onReorderSets - הזזת סטים במצב עריכה עם חצי מעלית (v3.2.0)
  *
  * @props
  * - workoutData: נתוני האימון המלא
@@ -55,7 +43,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
 import { triggerVibration } from "../../utils/workoutHelpers";
 import BackButton from "../../components/common/BackButton";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { UniversalModal } from "../../components/common/UniversalModal";
 import EmptyState from "../../components/common/EmptyState";
 
 // Components
@@ -71,23 +59,17 @@ const WorkoutStatusBar = React.lazy(
 import { useRestTimer } from "./hooks/useRestTimer";
 import { useWorkoutTimer } from "./hooks/useWorkoutTimer";
 import { useExerciseManager } from "./hooks/useExerciseManager";
-import { useWorkoutModals } from "./hooks/useWorkoutModals";
-import { useWorkoutAds } from "./hooks/useWorkoutAds";
+import { useModalManager } from "./hooks/useModalManager";
 
 // Utils
-import {
-  calculateWorkoutStats,
-  formatVolume,
-  workoutLogger,
-} from "../../utils";
+import { calculateWorkoutStats, formatVolume } from "../../utils";
 import { calculateAvailableTrainingDays } from "../../utils/mainScreenUtils";
 
 // Types
-import { Exercise, Set } from "./types/workout.types";
 import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService";
 import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
-import { errorHandler } from "../../utils/errorHandler";
+import { WorkoutExercise } from "./types/workout.types";
 import { useAccessibilityAnnouncements } from "../../hooks/useAccessibilityAnnouncements";
 import { UniversalButton } from "../../components/ui/UniversalButton";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
@@ -98,20 +80,19 @@ const ActiveWorkoutScreen: React.FC = () => {
   const route = useRoute();
 
   // Accessibility announcements
-  const { announceSuccess, announceInfo, announceError } =
-    useAccessibilityAnnouncements();
+  const { announceSuccess, announceInfo } = useAccessibilityAnnouncements();
 
-  // סלקטור ממוקד ל-userStore - אופטימיזציה לביצועים
+  // סלקטור ממוקד ל-userStore
   const user = useUserStore(useCallback((state) => state.user, []));
 
-  // קבלת פרמטרים מהניווט - עכשיו מקבלים אימון מלא
+  // קבלת פרמטרים מהניווט
   const { workoutData, pendingExercise } =
     (route.params as {
       workoutData?: {
         name?: string;
         dayName?: string;
         startTime?: string;
-        exercises?: Exercise[];
+        exercises?: WorkoutExercise[];
       };
       pendingExercise?: {
         id: string;
@@ -121,85 +102,50 @@ const ActiveWorkoutScreen: React.FC = () => {
       };
     }) || {};
 
-  // 🎯 Development Debug Hooks (only in __DEV__ mode)
+  // Development Debug
   useEffect(() => {
     if (__DEV__) {
-      logger.debug("ActiveWorkoutScreen", "נטענו נתוני אימון", {
-        workoutName: workoutData?.name,
-        dayName: workoutData?.dayName,
-        startTime: workoutData?.startTime,
-        exerciseCount: workoutData?.exercises?.length || 0,
-        exercises:
-          workoutData?.exercises?.map((ex) => ({
-            id: ex.id,
-            name: ex.name,
-            setsCount: ex.sets?.length || 0,
-          })) || [],
-        rawWorkoutData: workoutData,
-      });
+      logger.debug(
+        "ActiveWorkoutScreen",
+        `Loaded: ${workoutData?.name} (${workoutData?.exercises?.length || 0} exercises)`
+      );
     }
-
-    workoutLogger.info("נטענו נתוני אימון", {
-      workoutName: workoutData?.name,
-      exerciseCount: workoutData?.exercises?.length || 0,
-      exercises: workoutData?.exercises?.map((ex) => ex.name) || [],
-    });
   }, [workoutData]);
 
-  // 🎯 Custom Hooks for State Management
+  // Custom Hooks for State Management
   const exerciseManager = useExerciseManager({
     initialExercises: workoutData?.exercises,
     pendingExercise,
   });
 
-  const {
-    showErrorModal,
-    showExitModal,
-    showDeleteModal,
-    errorMessage,
-    deleteExerciseId,
-    showError,
-    showExitConfirmation,
-    showDeleteConfirmation,
-    hideAllModals,
-  } = useWorkoutModals();
+  const { activeModal, modalConfig, showError, hideModal, showConfirm } =
+    useModalManager();
 
-  const {
-    showStartAd,
-    showEndAd,
-    workoutStarted,
-    startWorkout,
-    showEndAdForCompletion,
-    hideStartAd,
-    hideEndAd,
-  } = useWorkoutAds();
+  // Simple ad state management
+  const [showStartAd, setShowStartAd] = useState(true);
+  const [showEndAd, setShowEndAd] = useState(false);
+
+  // Ad convenience functions
+  const hideStartAd = () => setShowStartAd(false);
+  const hideEndAd = () => setShowEndAd(false);
+  const showEndAdForCompletion = useCallback(() => setShowEndAd(true), []);
 
   // Extract exercises from the manager
-  const { exercises, setExercises } = exerciseManager;
+  const { exercises } = exerciseManager;
 
-  // סטטיסטיקות האימון המלא - אופטימיזציה עם יוטיליטי
+  // סטטיסטיקות האימון המלא
   const workoutStats = useMemo(() => {
     const stats = calculateWorkoutStats(exercises);
     if (__DEV__) {
-      logger.debug("ActiveWorkoutScreen", "workout stats calculated", {
-        totalExercises: stats.totalExercises,
-        completedExercises: stats.completedExercises,
-        totalSets: stats.totalSets,
-        completedSets: stats.completedSets,
-        progressPercentage: stats.progressPercentage,
-        exercisesArray: exercises.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          setsCount: ex.sets?.length || 0,
-          completedSetsInExercise:
-            ex.sets?.filter((s) => s.completed).length || 0,
-        })),
-      });
+      logger.debug(
+        "ActiveWorkoutScreen",
+        `Stats: ${stats.completedExercises}/${stats.totalExercises} exercises, ${stats.completedSets}/${stats.totalSets} sets`
+      );
     }
     return stats;
   }, [exercises]);
 
-  // טיימרים - workoutId יציב לאורך חיי הקומפוננט
+  // טיימרים
   const workoutId = useMemo(() => {
     const timestamp = workoutData?.startTime || Date.now();
     return `active-workout-${timestamp}`;
@@ -220,19 +166,11 @@ const ActiveWorkoutScreen: React.FC = () => {
     startTimer();
     return () => {
       pauseTimer();
-      // קריאה בטוחה: אם אין טיימר מנוחה פעיל, הפונקציה תתעלם
       skipRestTimer();
     };
   }, [startTimer, pauseTimer, skipRestTimer]);
 
-  // טיפול בפרסומת התחלה
-  useEffect(() => {
-    if (!workoutStarted) {
-      startWorkout();
-    }
-  }, [workoutStarted, startWorkout]);
-
-  // הפקת תוכנית שבועית לזיהוי אינדקס האימון - אופטימיזציה בסיסית
+  // הפקת תוכנית שבועית לזיהוי אינדקס האימון
   const weeklyPlan = useMemo(() => {
     const WORKOUT_DAYS_MAP: Record<number, string[]> = {
       1: ["אימון מלא"],
@@ -244,7 +182,7 @@ const ActiveWorkoutScreen: React.FC = () => {
       7: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן", "קרדיו קל"],
     };
 
-    // שליפת תדירות מהירה ופשוטה
+    // שליפת תדירות
     const days = calculateAvailableTrainingDays(user);
 
     return WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
@@ -257,12 +195,12 @@ const ActiveWorkoutScreen: React.FC = () => {
     return idx >= 0 ? idx : 0;
   }, [weeklyPlan, workoutData?.name]);
 
-  // מחיקת סט מתרגיל - בדיקת שגיאות מיועלת
+  // מחיקת סט מתרגיל
   const handleDeleteSet = useCallback(
     (exerciseId: string, setId: string) => {
       const exercise = exercises.find((ex) => ex.id === exerciseId);
       if (exercise && (exercise.sets || []).length <= 1) {
-        showError("חייב להיות לפחות סט אחד בתרגיל");
+        showError("שגיאה", "חייב להיות לפחות סט אחד בתרגיל");
         return;
       }
 
@@ -280,7 +218,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   const handleFinishWorkout = useCallback(() => {
     if (!hasCompletedExercises) {
       const errorMsg = "יש להשלים לפחות תרגיל אחד לפני סיום האימון";
-      showError(errorMsg);
+      showError("שגיאה", errorMsg);
       return;
     }
 
@@ -288,13 +226,33 @@ const ActiveWorkoutScreen: React.FC = () => {
     showEndAdForCompletion();
 
     announceInfo("פותח חלון סיום אימון");
-    showExitConfirmation();
+    showConfirm(
+      "סיום אימון",
+      `האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`,
+      async () => {
+        hideModal();
+        // עדכון מחזור האימונים
+        await nextWorkoutLogicService.updateWorkoutCompleted(
+          workoutIndexInPlan,
+          workoutData?.name || "אימון"
+        );
+      },
+      true // destructive
+    );
   }, [
     hasCompletedExercises,
     showError,
     showEndAdForCompletion,
     announceInfo,
-    showExitConfirmation,
+    showConfirm,
+    hideModal,
+    workoutStats.completedExercises,
+    workoutStats.totalExercises,
+    workoutStats.completedSets,
+    workoutStats.totalSets,
+    workoutStats.totalVolume,
+    workoutIndexInPlan,
+    workoutData?.name,
   ]);
 
   // הוספת תרגיל חדש לאימון הפעיל
@@ -303,7 +261,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     navigation.navigate("ExerciseList", {
       fromScreen: "ActiveWorkout",
       mode: "selection",
-      onSelectExercise: (selectedExercise: Exercise) => {
+      onSelectExercise: (selectedExercise: WorkoutExercise) => {
         // הוסף את התרגיל החדש לרשימת התרגילים
         exerciseManager.handleAddExercise(selectedExercise);
         announceSuccess(`תרגיל ${selectedExercise.name} נוסף לאימון`);
@@ -395,7 +353,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           />
         </Suspense>
 
-        {/* Workout Stats - פורמט משופר עם אייקונים */}
+        {/* Workout Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statItemWithBorder}>
             <MaterialCommunityIcons
@@ -447,7 +405,15 @@ const ActiveWorkoutScreen: React.FC = () => {
               onDeleteSet={handleDeleteSet}
               onReorderSets={exerciseManager.handleReorderSets}
               onRemoveExercise={(exerciseId: string) => {
-                showDeleteConfirmation(exerciseId);
+                showConfirm(
+                  "מחיקת תרגיל",
+                  "האם אתה בטוח שברצונך למחוק את התרגיל?",
+                  () => {
+                    exerciseManager.handleRemoveExercise(exerciseId);
+                    hideModal();
+                  },
+                  true // destructive
+                );
               }}
               onStartRest={startRestTimer}
             />
@@ -493,62 +459,24 @@ const ActiveWorkoutScreen: React.FC = () => {
           accessibilityHint="לחץ כדי לבחור תרגיל חדש להוספה לאימון הנוכחי"
         />
 
-        {/* Error Modal */}
-        <ConfirmationModal
-          visible={showErrorModal}
-          onClose={hideAllModals}
-          onConfirm={hideAllModals}
-          title="שגיאה"
-          message={errorMessage}
-          variant="error"
-          singleButton={true}
-          confirmText="הבנתי"
-        />
-
-        {/* Exit Confirmation Modal */}
-        <ConfirmationModal
-          visible={showExitModal}
-          onClose={hideAllModals}
-          onConfirm={async () => {
-            hideAllModals();
-            // עדכון מחזור האימונים בשירות
-            await nextWorkoutLogicService.updateWorkoutCompleted(
-              workoutIndexInPlan,
-              workoutData?.name || "אימון"
-            );
-          }}
-          onCancel={hideAllModals}
-          title="סיום אימון"
-          message={`האם ברצונך לסיים את האימון?\n\nסטטיסטיקות:\n• ${workoutStats.completedExercises}/${workoutStats.totalExercises} תרגילים הושלמו\n• ${workoutStats.completedSets}/${workoutStats.totalSets} סטים הושלמו\n• ${workoutStats.totalVolume} ק"ג נפח כללי`}
-          confirmText="סיים אימון"
-          cancelText="המשך באימון"
-          destructive={true}
-          icon="fitness"
-        />
-
-        {/* Delete Exercise Modal */}
-        <ConfirmationModal
-          visible={showDeleteModal}
-          onClose={hideAllModals}
-          onConfirm={() => {
-            if (deleteExerciseId) {
-              exerciseManager.handleRemoveExercise(deleteExerciseId);
-            }
-            hideAllModals();
-          }}
-          onCancel={hideAllModals}
-          title="מחיקת תרגיל"
-          message="האם אתה בטוח שברצונך למחוק את התרגיל?"
-          confirmText="מחק"
-          cancelText="ביטול"
-          destructive={true}
-          icon="trash"
+        {/* Universal Modal for all modals */}
+        <UniversalModal
+          visible={activeModal !== null}
+          type={activeModal || "error"}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onClose={hideModal}
+          onConfirm={modalConfig.onConfirm}
+          onCancel={modalConfig.onCancel}
+          confirmText={modalConfig.confirmText}
+          cancelText={modalConfig.cancelText}
+          destructive={modalConfig.destructive}
         />
 
         {/* Ad Manager - פרסומות למשתמשי Free */}
         <AdManager
           placement="workout-start"
-          visible={showStartAd && workoutStarted}
+          visible={showStartAd}
           onAdClosed={hideStartAd}
         />
 
@@ -615,7 +543,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     writingDirection: "rtl",
   },
-  // 🆕 סטיילים משופרים לכפתורי ההדר
+  // סטיילים לכפתורי ההדר
   headerActions: {
     flexDirection: "row-reverse",
     gap: theme.spacing.sm,
@@ -654,7 +582,6 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.sm,
     borderRadius: theme.radius.lg,
     ...theme.shadows.medium,
-    // שיפור עיצוב נוסף
     borderWidth: 1,
     borderColor: theme.colors.cardBorder + "20",
   },
@@ -703,7 +630,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     gap: theme.spacing.lg,
-    // שיפור עיצוב נוסף
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -719,7 +645,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.success,
     borderRadius: theme.radius.lg,
     gap: theme.spacing.sm,
-    // שיפור עיצוב נוסף
     shadowColor: theme.colors.success,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

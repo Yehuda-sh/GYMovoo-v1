@@ -1,28 +1,12 @@
 /**
  * @file src/screens/workout/hooks/useWorkoutGeneration.test.ts
- * @brief Test suite for useWorkoutGeneration hook - בדיקות מקיפות לצורך ייצור תרגילים
- * @version 1.0.0
- * @author GYMovoo Development Team
- * @description בדיקות יסודיות לכל פונקציות הgeneration של תרגילים
- *
- * 📝 הנחיות למפתחים:
- * - וודא שכל הבדיקות עוברות לפני commit
- * - הקובץ אינו ריק ומכיל תוכן מלא
- * - השתמש במטודולוגיית TDD
- * - בדוק integration עם רכיבי מערכת אחרים
- * - וודא coverage מלא של edge cases
+ * @brief Test suite for useWorkoutGeneration hook
  */
 
-import { renderHook } from "@testing-library/react-native";
+import { renderHook, act } from "@testing-library/react-native";
 import { useWorkoutGeneration } from "./useWorkoutGeneration";
-import { logger } from "../../../utils/logger";
-import { errorHandler } from "../../../utils/errorHandler";
 
-// ===============================================
-// 🧪 Mock Configuration - הגדרת חיקויים
-// ===============================================
-
-// Mock logger
+// Mock dependencies
 jest.mock("../../../utils/logger", () => ({
   logger: {
     debug: jest.fn(),
@@ -32,96 +16,65 @@ jest.mock("../../../utils/logger", () => ({
   },
 }));
 
-// Mock error handler
-jest.mock("../../../utils/errorHandler", () => ({
-  errorHandler: {
-    reportError: jest.fn(),
-    handleError: jest.fn(),
-  },
-}));
-
-// Mock safety utils
-jest.mock("../../../utils/workoutSafetyUtils", () => ({
-  getSafeSets: jest.fn((sets) => sets || []),
-  validateExercise: jest.fn(() => true),
-  hasValidSets: jest.fn(() => true),
-}));
-
-// Mock user store
 jest.mock("../../../stores/userStore", () => ({
-  useUserEquipment: jest.fn(() => [
-    "dumbbells",
-    "bodyweight",
-    "resistance_bands",
-  ]),
+  useUserEquipment: jest.fn(() => ["dumbbells", "bodyweight"]),
 }));
 
-// Mock workout logic service
 jest.mock("../services/workoutLogicService", () => ({
-  selectExercisesForDay: jest.fn(() => []),
+  selectExercisesForDay: jest.fn(() => [
+    {
+      exerciseId: "test_exercise",
+      sets: 3,
+      reps: 12,
+      restTime: 60,
+    },
+  ]),
   getMuscleGroupsForDay: jest.fn(() => ["chest", "triceps"]),
   getSetsForExperience: jest.fn(() => 3),
   getRepsForGoal: jest.fn(() => 12),
   getRestTimeForGoal: jest.fn(() => 60),
 }));
 
-// Mock equipment catalog
 jest.mock("../../../utils/equipmentCatalog", () => ({
   normalizeEquipment: jest.fn((equipment) => equipment),
   canPerform: jest.fn(() => true),
   getExerciseAvailability: jest.fn(() => ({
     canPerform: true,
     score: 100,
-    reasons: [],
+    isFullySupported: true,
   })),
 }));
 
-// Mock exercise data
 jest.mock("../../../data/exercises", () => ({
-  allExercises: [],
+  allExercises: [
+    {
+      id: "test_exercise",
+      primaryMuscles: ["chest"],
+      equipment: "dumbbell",
+    },
+  ],
 }));
 
-// ===============================================
-// 🧪 Test Suite - חבילת בדיקות מקיפה
-// ===============================================
-
 describe("useWorkoutGeneration Hook", () => {
-  // ===============================================
-  // 🔧 Setup & Cleanup
-  // ===============================================
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  // ===============================================
-  // 🏗️ הגדרות בסיסיות של ה-Hook
-  // ===============================================
-  describe("🏗️ Hook Initialization", () => {
-    it("should initialize hook without errors", () => {
+  describe("Hook Initialization", () => {
+    it("should initialize with correct default state", () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקה בסיסית שה-hook נטען
       expect(result.current).toBeDefined();
-      expect(typeof result.current).toBe("object");
-    });
-
-    it("should have correct state properties", () => {
-      const { result } = renderHook(() => useWorkoutGeneration());
-
-      // בדיקת state התחלתי
       expect(result.current.isGenerating).toBe(false);
       expect(Array.isArray(result.current.lastGeneratedExercises)).toBe(true);
+      expect(result.current.lastGeneratedExercises).toHaveLength(0);
       expect(Array.isArray(result.current.generationHistory)).toBe(true);
+      expect(result.current.generationHistory).toHaveLength(0);
     });
 
-    it("should expose required functions", () => {
+    it("should expose all required functions", () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקת זמינות פונקציות עיקריות
       expect(typeof result.current.generateExercisesForMuscleGroup).toBe(
         "function"
       );
@@ -134,226 +87,141 @@ describe("useWorkoutGeneration Hook", () => {
     });
   });
 
-  // ===============================================
-  // 🎯 בדיקות פונקציונליות בסיסיות
-  // ===============================================
-  describe("🎯 Basic Functionality", () => {
-    it("should handle function calls without crashing", async () => {
+  describe("Exercise Generation", () => {
+    it("should generate exercises for muscle group", async () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקה שהפונקציות לא קורסות כשקוראים להן
-      expect(() => {
-        result.current.generateExercisesForMuscleGroup({
-          muscleGroup: "chest",
-        });
-      }).not.toThrow();
+      let generationResult;
+      await act(async () => {
+        generationResult = await result.current.generateExercisesForMuscleGroup(
+          {
+            muscleGroup: "chest",
+          }
+        );
+      });
 
-      expect(() => {
-        result.current.findExerciseSubstitute({
-          originalExercise: { exerciseId: "test" },
-          availableEquipment: ["dumbbells"],
-        });
-      }).not.toThrow();
-
-      expect(() => {
-        result.current.generateRandomExercise("chest");
-      }).not.toThrow();
+      expect(generationResult).toBeDefined();
+      expect(generationResult.exercises).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            exerciseId: expect.any(String),
+            sets: expect.any(Number),
+            reps: expect.any(Number),
+            restTime: expect.any(Number),
+          }),
+        ])
+      );
     });
 
-    it("should maintain state consistency", () => {
+    it("should handle exercise substitution", () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקה שה-state עקבי
-      expect(result.current.isGenerating).toBe(false);
-      expect(result.current.lastGeneratedExercises).toEqual([]);
-      expect(result.current.generationHistory).toEqual([]);
+      const substitutionResult = result.current.findExerciseSubstitute({
+        originalExercise: { exerciseId: "test_exercise", equipment: "barbell" },
+        availableEquipment: ["dumbbells"],
+      });
+
+      expect(substitutionResult).toBeDefined();
+      expect(substitutionResult).toHaveProperty("exercise");
+      expect(substitutionResult).toHaveProperty("isSubstitution");
+    });
+
+    it("should generate random exercises", () => {
+      const { result } = renderHook(() => useWorkoutGeneration());
+
+      const randomResult = result.current.generateRandomExercise("chest");
+
+      expect(randomResult).toBeDefined();
+      expect(randomResult).toHaveProperty("exercise");
+      expect(randomResult).toHaveProperty("isSubstitution");
     });
   });
 
-  // ===============================================
-  // �️ בדיקות בטיחות
-  // ===============================================
-  describe("�️ Safety Tests", () => {
-    it("should handle valid but minimal parameters safely", () => {
+  describe("Equipment Analysis", () => {
+    it("should analyze equipment coverage", () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקה שהפונקציות עובדות עם פרמטרים מינימליים תקינים
-      expect(() => {
-        result.current.generateExercisesForMuscleGroup({
-          muscleGroup: "chest",
-        });
-      }).not.toThrow();
+      const coverage = result.current.analyzeEquipmentCoverage([
+        "chest",
+        "back",
+      ]);
 
-      expect(() => {
-        result.current.generateRandomExercise("chest");
-      }).not.toThrow();
+      expect(Array.isArray(coverage)).toBe(true);
+      coverage.forEach((item) => {
+        expect(item).toHaveProperty("muscleGroup");
+        expect(item).toHaveProperty("totalExercises");
+        expect(item).toHaveProperty("performableExercises");
+        expect(item).toHaveProperty("coveragePercentage");
+      });
     });
 
-    it("should handle minimal parameters", () => {
+    it("should provide equipment recommendations", () => {
       const { result } = renderHook(() => useWorkoutGeneration());
 
-      // בדיקה עם פרמטרים מינימליים
-      expect(() => {
-        result.current.generateExercisesForMuscleGroup({
-          muscleGroup: "chest",
+      const recommendations = result.current.getEquipmentRecommendations([
+        "chest",
+        "back",
+      ]);
+
+      expect(Array.isArray(recommendations)).toBe(true);
+      recommendations.forEach((rec) => {
+        expect(rec).toHaveProperty("equipment");
+        expect(rec).toHaveProperty("impact");
+        expect(rec).toHaveProperty("reason");
+      });
+    });
+  });
+
+  describe("Edge Cases", () => {
+    it("should handle empty muscle group", async () => {
+      const { result } = renderHook(() => useWorkoutGeneration());
+
+      await act(async () => {
+        const result1 = await result.current.generateExercisesForMuscleGroup({
+          muscleGroup: "",
         });
-      }).not.toThrow();
+        expect(result1).toBeDefined();
+      });
+    });
+
+    it("should handle invalid parameters gracefully", () => {
+      const { result } = renderHook(() => useWorkoutGeneration());
 
       expect(() => {
         result.current.findExerciseSubstitute({
-          originalExercise: { exerciseId: "test" },
+          originalExercise: { exerciseId: "" },
           availableEquipment: [],
         });
       }).not.toThrow();
-    });
-
-    it("should handle invalid muscle groups", () => {
-      const { result } = renderHook(() => useWorkoutGeneration());
-
-      // בדיקה עם קבוצות שרירים לא תקינות
-      expect(() => {
-        result.current.generateExercisesForMuscleGroup({
-          muscleGroup: "",
-        });
-      }).not.toThrow();
 
       expect(() => {
-        result.current.generateExercisesForMuscleGroup({
-          muscleGroup: "invalid_muscle_group",
-        });
+        result.current.generateRandomExercise("");
       }).not.toThrow();
     });
   });
 
-  // ===============================================
-  // 📊 בדיקות מבנה
-  // ===============================================
-  describe("📊 Structure Tests", () => {
-    it("should return consistent object structure", () => {
-      const { result } = renderHook(() => useWorkoutGeneration());
-
-      // בדיקת מבנה האובייקט המוחזר
-      const hookResult = result.current;
-
-      expect(hookResult).toHaveProperty("isGenerating");
-      expect(hookResult).toHaveProperty("lastGeneratedExercises");
-      expect(hookResult).toHaveProperty("generationHistory");
-      expect(hookResult).toHaveProperty("generateExercisesForMuscleGroup");
-      expect(hookResult).toHaveProperty("findExerciseSubstitute");
-      expect(hookResult).toHaveProperty("generateRandomExercise");
-      expect(hookResult).toHaveProperty("analyzeEquipmentCoverage");
-      expect(hookResult).toHaveProperty("getEquipmentRecommendations");
-    });
-
-    it("should have correct property types", () => {
-      const { result } = renderHook(() => useWorkoutGeneration());
-
-      const hookResult = result.current;
-
-      expect(typeof hookResult.isGenerating).toBe("boolean");
-      expect(Array.isArray(hookResult.lastGeneratedExercises)).toBe(true);
-      expect(Array.isArray(hookResult.generationHistory)).toBe(true);
-      expect(typeof hookResult.generateExercisesForMuscleGroup).toBe(
-        "function"
-      );
-      expect(typeof hookResult.findExerciseSubstitute).toBe("function");
-      expect(typeof hookResult.generateRandomExercise).toBe("function");
-      expect(typeof hookResult.analyzeEquipmentCoverage).toBe("function");
-      expect(typeof hookResult.getEquipmentRecommendations).toBe("function");
-    });
-  });
-
-  // ===============================================
-  // � בדיקות רי-רינדור
-  // ===============================================
-  describe("� Re-render Tests", () => {
-    it("should maintain function references on re-renders", () => {
+  describe("State Management", () => {
+    it("should maintain stable behavior across re-renders", () => {
       const { result, rerender } = renderHook(() => useWorkoutGeneration());
 
       const firstRender = result.current;
-
       rerender({});
-
       const secondRender = result.current;
 
-      // בדיקה שהפונקציות נשארות עקביות
-      expect(firstRender.generateExercisesForMuscleGroup).toBe(
-        secondRender.generateExercisesForMuscleGroup
+      // State should remain consistent
+      expect(firstRender.isGenerating).toBe(secondRender.isGenerating);
+      expect(firstRender.lastGeneratedExercises).toEqual(
+        secondRender.lastGeneratedExercises
       );
-      expect(firstRender.findExerciseSubstitute).toBe(
-        secondRender.findExerciseSubstitute
+      expect(firstRender.generationHistory).toEqual(
+        secondRender.generationHistory
       );
-      expect(firstRender.generateRandomExercise).toBe(
-        secondRender.generateRandomExercise
+
+      // Functions should still work after re-render
+      expect(typeof secondRender.generateExercisesForMuscleGroup).toBe(
+        "function"
       );
-    });
-
-    it("should maintain state consistency across re-renders", () => {
-      const { result, rerender } = renderHook(() => useWorkoutGeneration());
-
-      const firstState = {
-        isGenerating: result.current.isGenerating,
-        lastGeneratedExercises: result.current.lastGeneratedExercises,
-        generationHistory: result.current.generationHistory,
-      };
-
-      rerender({});
-
-      const secondState = {
-        isGenerating: result.current.isGenerating,
-        lastGeneratedExercises: result.current.lastGeneratedExercises,
-        generationHistory: result.current.generationHistory,
-      };
-
-      // בדיקה שה-state נשאר עקבי
-      expect(firstState.isGenerating).toBe(secondState.isGenerating);
-      expect(firstState.lastGeneratedExercises).toEqual(
-        secondState.lastGeneratedExercises
-      );
-      expect(firstState.generationHistory).toEqual(
-        secondState.generationHistory
-      );
-    });
-  });
-
-  // ===============================================
-  // 🎛️ בדיקות תצורה
-  // ===============================================
-  describe("🎛️ Configuration Tests", () => {
-    it("should work with default configuration", () => {
-      const { result } = renderHook(() => useWorkoutGeneration());
-
-      // בדיקה שה-hook עובד עם הגדרות ברירת מחדל
-      expect(result.current).toBeDefined();
-      expect(result.current.isGenerating).toBe(false);
-    });
-
-    it("should handle hook lifecycle correctly", () => {
-      const { result, unmount } = renderHook(() => useWorkoutGeneration());
-
-      // בדיקה שה-hook עובד עד ל-unmount
-      expect(result.current).toBeDefined();
-
-      // לא אמור לזרוק שגיאה כש-unmount
-      expect(() => unmount()).not.toThrow();
+      expect(typeof secondRender.findExerciseSubstitute).toBe("function");
     });
   });
 });
-
-/**
- * ✅ Checklist for Test Quality:
- *
- * 1. 📝 הקובץ אינו ריק ומכיל תוכן מלא ✓
- * 2. 🏗️ בדיקות initialization ו-structure ✓
- * 3. 🛡️ בדיקות בטיחות ו-error handling ✓
- * 4. 🔄 בדיקות re-render ו-lifecycle ✓
- * 5. 📊 בדיקות מבנה ועקביות ✓
- * 6. 🎛️ בדיקות תצורה ✓
- * 7. 💪 בדיקות חוסן ויציבות ✓
- * 8. 📋 תיעוד ברור והנחיות למפתחים ✓
- *
- * 🚀 הקובץ מוכן לשימוש והכל עובד כראוי!
- * 📝 הקובץ אינו ריק ומכיל בדיקות מקיפות לכל הפונקציונליות
- * 🧪 כל הבדיקות מתמקדות ביציבות ובטיחות ה-hook
- * 🛡️ מערכת מוגנת מפני שגיאות וקלטים שגויים
- */

@@ -232,14 +232,8 @@ export default function WorkoutPlansScreen({
   const updateUser = useUserStore((state) => state.updateUser);
 
   // Modal management
-  const {
-    activeModal,
-    modalConfig,
-    isOpen,
-    showError,
-    showSuccess,
-    hideModal,
-  } = useModalManager();
+  const { activeModal, modalConfig, showError, showSuccess, hideModal } =
+    useModalManager();
 
   // 🎯 Custom hook for workout plans management
   const {
@@ -865,7 +859,7 @@ export default function WorkoutPlansScreen({
 
         {/* Universal Modal */}
         <UniversalModal
-          visible={isOpen}
+          visible={activeModal !== null}
           type={activeModal || "error"}
           title={modalConfig.title || ""}
           message={modalConfig.message || ""}

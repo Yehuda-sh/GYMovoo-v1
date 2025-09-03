@@ -5,12 +5,10 @@
  */
 
 import { useState, useCallback } from "react";
-import { Exercise, Set } from "../types/workout.types";
-import { workoutLogger } from "../../../utils";
-import { logger } from "../../../utils/logger";
+import { WorkoutExercise, Set } from "../types/workout.types";
 
 interface UseExerciseManagerProps {
-  initialExercises?: Exercise[];
+  initialExercises?: WorkoutExercise[];
   pendingExercise?: {
     id: string;
     name: string;
@@ -20,8 +18,7 @@ interface UseExerciseManagerProps {
 }
 
 interface UseExerciseManagerReturn {
-  exercises: Exercise[];
-  setExercises: React.Dispatch<React.SetStateAction<Exercise[]>>;
+  exercises: WorkoutExercise[];
   handleUpdateSet: (
     exerciseId: string,
     setId: string,
@@ -35,9 +32,8 @@ interface UseExerciseManagerReturn {
     fromIndex: number,
     toIndex: number
   ) => void;
-  handleAddExercise: (exercise: Exercise) => void;
+  handleAddExercise: (exercise: WorkoutExercise) => void;
   handleRemoveExercise: (exerciseId: string) => void;
-  createDefaultSets: (exerciseId: string, count?: number) => Set[];
 }
 
 export const useExerciseManager = ({
@@ -60,26 +56,13 @@ export const useExerciseManager = ({
   );
 
   // Initialize exercises with proper sets
-  const [exercises, setExercises] = useState<Exercise[]>(() => {
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => {
     const base = initialExercises || [];
 
-    if (__DEV__) {
-      logger.debug("useExerciseManager", "הגדרת exercises state", {
-        baseExercisesCount: base.length,
-        baseExercises: base.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          hasSets: !!(ex.sets && ex.sets.length > 0),
-          setsCount: ex.sets?.length || 0,
-        })),
-        hasPendingExercise: !!pendingExercise,
-      });
-    }
-
     // Convert base exercises to exercises with sets
-    const baseExercisesWithSets: Exercise[] = base.map((ex) => {
+    const baseExercisesWithSets: WorkoutExercise[] = base.map((ex) => {
       if (ex.sets && ex.sets.length > 0) {
-        return ex as Exercise;
+        return ex as WorkoutExercise;
       }
 
       return {
@@ -90,11 +73,11 @@ export const useExerciseManager = ({
         equipment: ex.equipment || "bodyweight",
         restTime: ex.restTime || 60,
         sets: createDefaultSets(ex.id),
-      } as Exercise;
+      } as WorkoutExercise;
     });
 
     if (pendingExercise) {
-      const newExercise: Exercise = {
+      const newExercise: WorkoutExercise = {
         id: `${pendingExercise.id}_${Date.now()}`,
         name: pendingExercise.name,
         category: "כללי",
@@ -114,8 +97,6 @@ export const useExerciseManager = ({
   // Update a set in an exercise
   const handleUpdateSet = useCallback(
     (exerciseId: string, setId: string, updates: Partial<Set>) => {
-      workoutLogger.setCompleted(exerciseId, setId, updates);
-
       setExercises((prev) =>
         prev.map((exercise) => {
           if (exercise.id === exerciseId) {
@@ -212,8 +193,6 @@ export const useExerciseManager = ({
   // Reorder sets within an exercise
   const handleReorderSets = useCallback(
     (exerciseId: string, fromIndex: number, toIndex: number) => {
-      workoutLogger.reorderSets(exerciseId, fromIndex, toIndex);
-
       setExercises((prev) =>
         prev.map((exercise) => {
           if (exercise.id === exerciseId) {
@@ -235,8 +214,8 @@ export const useExerciseManager = ({
 
   // Add a new exercise
   const handleAddExercise = useCallback(
-    (exercise: Exercise) => {
-      const newExercise: Exercise = {
+    (exercise: WorkoutExercise) => {
+      const newExercise: WorkoutExercise = {
         ...exercise,
         id: `${exercise.id}_${Date.now()}`,
         sets: createDefaultSets(exercise.id, 1),
@@ -254,7 +233,6 @@ export const useExerciseManager = ({
 
   return {
     exercises,
-    setExercises,
     handleUpdateSet,
     handleCompleteSet,
     handleAddSet,
@@ -262,6 +240,5 @@ export const useExerciseManager = ({
     handleReorderSets,
     handleAddExercise,
     handleRemoveExercise,
-    createDefaultSets,
   };
 };

@@ -1,32 +1,11 @@
 /**
  * @file src/screens/workout/types/workout.types.ts
- * @description טיפוסים עבור מסך האימון - מעודכן לאוגוסט 2025
- * @description English: Types for workout screen - Updated August 2025
- * @updated 2025-08-24 תיקון כפילות Exercise + עדכון תיעוד + הוספת טיפוסי UI משופרים
+ * @description Core workout types - updated August 2025
+ * @updated 2025-09-03 Cleanup: Removed over-engineering and duplicated types
  *
- * ✅ CORE & CRITICAL: קובץ טיפוסים מרכזי בשימוש נרחב
- * - 15+ files: Services, components, screens מייבאים מכאן
- * - src/types/index.ts: מייצא הכל מקובץ זה כנקודה מרכזית
- * - DataManager, WorkoutHistoryService: תלויים בטיפוסים אלה
- * - All workout components: משתמשים בממשקים המוגדרים כאן
- * - Enhanced UI Components: תמיכה ב-30+ רכיבים עם עיצוב מתקדם
- *
- * @architecture Core type definitions for entire workout system
- * @exports 15+ interfaces covering all workout-related data structures
- * @usage Foundation types used across services, components, and screens
- * @performance Type-only imports ensure no runtime overhead
- * @enhancements Added UI enhancement types for advanced design system
- *
- * @interfaces
- * - Set, WorkoutExercise, WorkoutData: Core workout building blocks
- * - WorkoutPlan, WorkoutTemplate: Workout planning and templates
- * - WorkoutWithFeedback: Complete workout with user feedback
- * - WorkoutStatistics: Comprehensive analytics data
- * - PersonalRecord, ProgressData: Performance tracking
- * - UIEnhancementSettings: Advanced UI customization support
- *
- * @note WorkoutExercise vs Exercise: WorkoutExercise מייצג תרגיל באימון פעיל
- *       Exercise (מ-data/exercises/types) מייצג תרגיל במאגר הנתונים
+ * ✅ CORE & CRITICAL: Central types file used by 15+ components
+ * @architecture Foundation types for entire workout system
+ * @exports Core workout interfaces and data structures
  */
 
 // === סוגי עזר כלליים ===
@@ -43,20 +22,14 @@ export interface Set {
   type: "warmup" | "working" | "dropset" | "failure";
   targetReps: number;
   targetWeight: number;
-  actualReps?: number; // הוספת שדה חסר
-  actualWeight?: number; // הוספת שדה חסר
+  actualReps?: number;
+  actualWeight?: number;
   completed: boolean;
   restTime?: number; // זמן מנוחה אחרי הסט
   notes?: string;
   isPR?: boolean; // האם זה שיא אישי
   rpe?: number; // Rate of Perceived Exertion (1-10)
   timeToComplete?: number; // Time to complete the set in seconds
-  // Enhanced UI data (added 2025-08-24)
-  uiState?: {
-    highlighted: boolean; // האם הסט מודגש בממשק
-    animationPlayed: boolean; // האם נוגנה אנימציה להשלמה
-    visualFeedbackGiven: boolean; // האם ניתן משוב ויזואלי
-  };
 }
 
 // תרגיל באימון - אוסף של סטים עם מטא-דאטה (שונה מ-Exercise במאגר הנתונים)
@@ -76,9 +49,6 @@ export interface WorkoutExercise {
   instructions?: string[];
   tips?: string[];
 }
-
-// Backward compatibility alias - תמיכה לאחור
-export type Exercise = WorkoutExercise;
 
 // === WORKOUT MANAGEMENT & PLANNING ===
 // === ניהול ותכנון אימונים ===
@@ -248,10 +218,6 @@ export interface WorkoutWithFeedback {
     userGender?: "male" | "female" | "other";
     version: string;
     workoutSource: "generated" | "manual" | "demo"; // מקור האימון
-    // Enhanced UI metadata (added 2025-08-24)
-    uiEnhancements?: UIEnhancementSettings;
-    designPreferences?: DisplayPreferences;
-    uiPerformance?: UIPerformanceMetrics;
   };
 }
 
@@ -326,84 +292,3 @@ export interface NextWorkoutInsights {
   focusAreas: string[];
   expectedCalorieBurn: number;
 }
-
-// תשובות שאלון בסיסיות
-// Basic questionnaire answers
-export interface QuestionnaireBasicData {
-  gender: "male" | "female" | "other";
-  experienceLevel: "beginner" | "intermediate" | "advanced";
-  mainGoals: string[];
-  availability: string;
-  [key: string]: unknown; // Allow additional properties
-}
-
-// === UI ENHANCEMENT TYPES (Added 2025-08-24) ===
-// === טיפוסי שיפור ממשק משתמש (נוסף 2025-08-24) ===
-
-// הגדרות עיצוב מתקדם לרכיבי UI
-// Advanced design settings for UI components
-export interface UIEnhancementSettings {
-  shadowsEnabled: boolean;
-  enhancedTypography: boolean;
-  premiumAnimations: boolean;
-  accessibilityMode: boolean;
-  designTheme: "classic" | "enhanced" | "premium";
-}
-
-// מצב עיצוב לרכיב בודד
-// Design state for individual component
-export interface ComponentDesignState {
-  hasAdvancedShadows: boolean;
-  usesEnhancedSpacing: boolean;
-  hasTextShadows: boolean;
-  elevationLevel: "low" | "medium" | "high" | "premium";
-  borderRadiusLevel: "sm" | "md" | "lg" | "xl" | "xxl";
-}
-
-// מטריקות ביצועי UI
-// UI performance metrics
-export interface UIPerformanceMetrics {
-  renderTime: number; // ms
-  shadowRenderTime?: number; // ms
-  animationFrameDrops: number;
-  lastOptimizationCheck: ISODateString;
-  performanceGrade: "A" | "B" | "C" | "D" | "F";
-}
-
-// העדפות תצוגה מותאמות אישית
-// Personalized display preferences
-export interface DisplayPreferences {
-  fontSize: "small" | "medium" | "large" | "extra-large";
-  spacing: "compact" | "comfortable" | "spacious";
-  animations: "minimal" | "standard" | "enhanced";
-  contrast: "normal" | "high";
-  rtlOptimized: boolean;
-}
-
-// נתוני analytics למעקב שימוש בתכונות UI
-// Analytics data for UI feature usage tracking
-export interface UIUsageAnalytics {
-  enhancedComponentsUsed: string[];
-  preferredDesignSettings: UIEnhancementSettings;
-  userEngagementScore: number; // 1-10
-  lastUIUpdate: ISODateString;
-  designPreferenceChanges: number;
-}
-
-// הגדרות תצוגה מתקדמות לאימון
-// Advanced workout display settings
-export interface WorkoutDisplaySettings {
-  showEnhancedShadows: boolean;
-  useAdvancedTypography: boolean;
-  enableSmoothAnimations: boolean;
-  highContrastMode: boolean;
-  compactMode: boolean;
-  showPerformanceMetrics: boolean;
-  enableHapticFeedback: boolean;
-  autoSavePreferences: boolean;
-}
-
-// אליאסים לייצוא נוח של טיפוסי UI חדשים
-// Convenient aliases for new UI types
-export type EnhancedUISettings = UIEnhancementSettings & DisplayPreferences;
-export type WorkoutUIState = ComponentDesignState & WorkoutDisplaySettings;

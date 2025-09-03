@@ -6,7 +6,7 @@
  * @updated 2025-08-17 Updated documentation and PersonalData import standardization
  *
  * ✅ CORE & INNOVATIVE: שירות וידוא נתונים מתקדם ומותאם אישית
- * - Used by 4+ services: autoSaveService, workoutErrorHandlingService, workoutStorageService
+ * - Used by 3+ services: workoutErrorHandlingService, workoutStorageService
  * - Exported system-wide via services/index.ts and src/services/index.ts
  * - Singleton pattern: instance יחיד לכל המערכת
  * - Personalized validation: וידוא מותאם לגיל, מין, משקל, רמת כושר (חדשנות!)
@@ -25,8 +25,7 @@
  * @performance Optimized validation with quick checks for auto-save scenarios
  */
 
-import { WorkoutData, WorkoutDraft } from "../types/workout.types";
-import { AUTO_SAVE } from "../utils/workoutConstants";
+import { WorkoutData } from "../types/workout.types";
 
 // Interface לנתוני אימון בסיסי - מותאם ל-WorkoutData
 interface BaseWorkoutData {
@@ -368,64 +367,6 @@ class WorkoutValidationService {
       console.error("Error validating date:", error, "Input:", dateString);
       return null;
     }
-  }
-
-  /**
-   * וידוא טיוטת אימון
-   */
-  validateWorkoutDraft(draft: WorkoutDraft): ValidationResult {
-    const workoutValidation = this.validateWorkoutData(
-      draft.workout as BaseWorkoutData
-    );
-
-    // בדיקות נוספות לטיוטה
-    const additionalWarnings: string[] = [];
-
-    if (!draft.lastSaved) {
-      additionalWarnings.push("זמן השמירה האחרונה חסר");
-    } else {
-      const savedDate = new Date(draft.lastSaved);
-      if (isNaN(savedDate.getTime())) {
-        additionalWarnings.push("זמן השמירה האחרונה לא תקין");
-      } else {
-        const now = new Date();
-        const age = now.getTime() - savedDate.getTime();
-        const maxAge = AUTO_SAVE.draftExpiry;
-
-        if (age > maxAge) {
-          additionalWarnings.push("הטיוטה ישנה מדי");
-        }
-      }
-    }
-
-    return {
-      ...workoutValidation,
-      warnings: [...workoutValidation.warnings, ...additionalWarnings],
-    };
-  }
-
-  /**
-   * וידוא מהיר לפני שמירה אוטומטית
-   */
-  quickValidateForAutoSave(workout: WorkoutData): boolean {
-    try {
-      // בדיקות מהירות בלבד
-      if (!workout) return false;
-      if (!workout.name) return false;
-      if (!Array.isArray(workout.exercises)) return false;
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * ניקוי נתונים לפני שמירה
-   */
-  sanitizeWorkoutForSave(workout: WorkoutData): WorkoutData {
-    const validation = this.validateWorkoutData(workout as BaseWorkoutData);
-    return validation.correctedData || workout;
   }
 }
 

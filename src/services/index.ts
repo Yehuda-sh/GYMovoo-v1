@@ -73,10 +73,8 @@ export type { AppDataCache, ServerConfig, DataStatus } from "./core";
 // שירותי מסך אימון
 // =======================================
 export {
-  autoSaveService,
   workoutValidationService,
   workoutErrorHandlingService,
-  workoutFeedbackService,
 } from "../screens/workout/services";
 
 // =======================================

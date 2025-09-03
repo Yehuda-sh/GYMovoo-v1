@@ -30,7 +30,7 @@
 
 #### 🆕 עדכונים אחרונים (ספטמבר 2025)
 
-- 🧪 **שיפור מקיף של בדיקות** - הוספת 6 בדיקות חדשות ל-useWorkoutPlanGeneration.test.ts עם כיסוי מלא של edge cases
+- 🧪 **שיפור מקיף של בדיקות** - הוספת בדיקות מקיפות למודולי האימון עם כיסוי מלא של edge cases
 - 📊 **אופטימיזציה של ביצועי בדיקות** - כל הבדיקות עוברות תוך 1.087 שניות עם 0 שגיאות
 - 🔍 **בדיקות מקיפות לטיפול בשגיאות** - בדיקות לטיפול בפרמטרים null/undefined ותרחישי קיצון
 - 📈 **שיפור כיסוי בדיקות** - בדיקות לניהול היסטוריית תוכניות, custom muscle groups ותרחישי ציוד שונים
@@ -41,7 +41,6 @@
 
 - 🌐 **מיגרציה מלאה ל-Supabase** – נתוני דמו הוסרו; אין יותר צורך בשרת מקומי או `EXPO_PUBLIC_STORAGE_BASE_URL`
 - 🛡️ **שיפור טיפול בשגיאות** - workoutErrorHandlingService עודכן עם תמיכה מלאה בSupabase (2025-08-17)
-- 💾 **מיגרציית שירותים** - workoutFeedbackService הועבר ל-Supabase עם fallback mechanisms מתקדמים
 - **🔧 TypeScript Cleanup מלא** - 50+ `any` types הוחלפו בטיפוסים מדויקים ב-7 מסכי Screen מרכזיים
 - **🐛 תיקוני שגיאות קריטיות** - פתרון 52+ שגיאות TypeScript ב-WelcomeScreen, useUserPreferences, ו-MuscleMapInteractive
 - **⚡ אופטימיזציה מתקדמת** - קובץ questionnaireService צומצם מ-1428 ל-1417 שורות (הסרת כפילויות)
@@ -171,7 +170,7 @@ npx expo start --tunnel
 9. סטטיסטיקות README: נתפסות כצילום מצב – לא להבטיח עדכניות בלי ריצת סקריפט איסוף.
 10. נגישות: רכיבים חדשים – חובה `accessibilityLabel` בעברית + סימון role היכן רלוונטי.
 11. RTL: כל טקסט חדש – לוודא `writingDirection: 'rtl'` אם אינו יורש סגנון גלובלי.
-12. בדיקות: שיפור מקיף של כיסוי בדיקות עם 13+ בדיקות ל-useWorkoutPlanGeneration (2025-09-01).
+12. בדיקות: שיפור מקיף של כיסוי בדיקות למודולי האימון (2025-09-01).
 
 ### 📂 סטטוס תיעוד – מועמדי איחוד / סידור
 
@@ -464,7 +463,7 @@ eas build -p ios
 
 #### 🆕 Latest Updates (September 2025)
 
-- 🧪 **Comprehensive Test Improvements** - Added 6 new tests to useWorkoutPlanGeneration.test.ts with full edge case coverage
+- 🧪 **Comprehensive Test Improvements** - Added comprehensive tests for workout modules with full edge case coverage
 - 📊 **Test Performance Optimization** - All tests pass in 1.087 seconds with 0 errors
 - 🔍 **Comprehensive Error Handling Tests** - Tests for null/undefined parameters and extreme scenarios
 - 📈 **Enhanced Test Coverage** - Tests for plan history management, custom muscle groups, and different equipment scenarios
@@ -475,7 +474,6 @@ eas build -p ios
 
 - 🌐 **Complete Supabase Migration** – Demo data removed; no more local server or `EXPO_PUBLIC_STORAGE_BASE_URL` needed
 - 🛡️ **Enhanced Error Handling** - workoutErrorHandlingService updated with full Supabase support (2025-08-17)
-- 💾 **Service Migration** - workoutFeedbackService migrated to Supabase with advanced fallback mechanisms
 - **🔧 Complete TypeScript Cleanup** - 50+ `any` types replaced with precise typing across 7 major Screen components
 - **🐛 Critical Bug Fixes** - Resolved 52+ TypeScript errors in WelcomeScreen, useUserPreferences, and MuscleMapInteractive
 - **⚡ Advanced Optimization** - questionnaireService reduced from 1428 to 1417 lines (removed duplications)
