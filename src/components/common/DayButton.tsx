@@ -4,12 +4,12 @@
  * @brief Shared day button component with support for different designs
  * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה, טקסט מותאם אישית, haptic feedback
  * @features RTL support, accessibility, animations, selection states, custom text, haptic feedback
- * @version 2.1.0 - Added haptic feedback, logging, useCallback, performance optimizations
+ * @version 2.1.1 - Performance optimizations, improved accessibility, useRef cleanup
  * @created 2025-08-06
- * @updated 2025-09-01 הוספת haptic feedback, logging ו-useCallback
+ * @updated 2025-09-04 שיפורי ביצועים, נגישות משופרת, ניקוי useRef
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -95,7 +95,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     // 🎯 Animation Setup - הגדרת אנימציות
     // ===============================================
 
-    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     // ===============================================
     // 🎯 Haptic Feedback - משוב מישושי
@@ -184,20 +184,22 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
     const defaultAccessibilityLabel = useMemo(() => {
       if (accessibilityLabel) return accessibilityLabel;
 
-      let label = displayText;
+      const baseLabel = displayText;
+      const parts = [baseLabel];
+
       if (workoutType) {
-        label += `, ${workoutType}`;
+        parts.push(workoutType);
       }
 
       if (selected) {
-        label += ", נבחר";
+        parts.push("נבחר");
       }
 
       if (disabled) {
-        label += ", לא זמין";
+        parts.push("לא זמין");
       }
 
-      return label;
+      return parts.join(", ");
     }, [accessibilityLabel, displayText, workoutType, selected, disabled]);
 
     const defaultAccessibilityHint = useMemo(() => {
@@ -207,11 +209,10 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
         return "כפתור זה אינו זמין כרגע";
       }
 
-      if (selected) {
-        return `${displayText} נבחר כרגע. לחץ כדי לבטל בחירה`;
-      }
+      const action = selected ? "לבטל בחירה" : "לבחור";
+      const context = workoutType ? ` - ${workoutType}` : "";
 
-      return `לחץ כדי לבחור ${displayText}${workoutType ? ` - ${workoutType}` : ""}`;
+      return `לחץ כדי ${action} ${displayText}${context}`;
     }, [accessibilityHint, disabled, selected, displayText, workoutType]);
 
     // ===============================================
@@ -493,8 +494,9 @@ export const DayButtonGrid: React.FC<{
     // Accessibility for grid container
     const defaultAccessibilityLabel = useMemo(
       () =>
-        accessibilityLabel || `בחירת יום אימון, ${days.length} אפשרויות זמינות`,
-      [accessibilityLabel, days.length]
+        accessibilityLabel ||
+        `בחירת יום אימון, ${days.length} אפשרויות זמינות${selectedDay ? `, יום ${selectedDay} נבחר` : ""}`,
+      [accessibilityLabel, days.length, selectedDay]
     );
 
     const defaultAccessibilityHint = useMemo(
@@ -506,10 +508,11 @@ export const DayButtonGrid: React.FC<{
       (day: number) => {
         logger.debug("DayButtonGrid", `Day ${day} pressed`, {
           totalDays: days.length,
+          selectedDay,
         });
         onDayPress(day);
       },
-      [onDayPress, days.length]
+      [onDayPress, days.length, selectedDay]
     );
 
     return (

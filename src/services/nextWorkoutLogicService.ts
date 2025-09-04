@@ -458,10 +458,12 @@ class NextWorkoutLogicService {
       this.cachedCycleState = newState;
       this.cacheTimestamp = now;
 
-      console.warn("🆕 NextWorkoutLogic: Created new cycle state", {
-        weekNumber: newState.currentWeekNumber,
-        planLength: newState.weeklyPlan.length,
-      });
+      if (__DEV__) {
+        console.warn("🆕 NextWorkoutLogic: Created new cycle state", {
+          weekNumber: newState.currentWeekNumber,
+          planLength: newState.weeklyPlan.length,
+        });
+      }
 
       return newState;
     } catch (error) {
@@ -714,11 +716,13 @@ class NextWorkoutLogicService {
         consistency: Math.min(100, Math.max(0, Math.round(consistency))),
       };
 
-      console.warn("✅ NextWorkoutLogic: Statistics calculated", {
-        week: statistics.currentWeek,
-        workouts: statistics.totalWorkouts,
-        consistency: `${statistics.consistency}%`,
-      });
+      if (__DEV__ && statistics.totalWorkouts > 0) {
+        console.warn("✅ NextWorkoutLogic: Statistics calculated", {
+          week: statistics.currentWeek,
+          workouts: statistics.totalWorkouts,
+          consistency: `${statistics.consistency}%`,
+        });
+      }
 
       return statistics;
     } catch (error) {

@@ -149,6 +149,68 @@ export const PROFILE_SCREEN_TEXTS = {
       title: "ינשוף לילה",
       description: "10 אימונים בשעות הערב",
     },
+
+    // הישגים חדשים / New achievements
+    FIRST_WORKOUT: {
+      title: "אימון ראשון",
+      description: "השלמת האימון הראשון",
+    },
+    STREAK_MASTER: {
+      title: "מאסטר רצף",
+      description: "50 ימי אימון ברציפות",
+    },
+    UNSTOPPABLE: {
+      title: "בלתי ניתן לעצירה",
+      description: "100 ימי אימון ברציפות",
+    },
+    WORKOUT_VETERAN: {
+      title: "וטרן אימונים",
+      description: "השלמת 200 אימונים",
+    },
+    LEGENDARY_TRAINER: {
+      title: "מאמן אגדי",
+      description: "השלמת 500 אימונים",
+    },
+    QUARTER_CENTURY: {
+      title: "רבע מאה",
+      description: "37.5 שעות של אימונים",
+    },
+    LOYAL_MEMBER: {
+      title: "חבר נאמן",
+      description: "6 חודשים שימוש באפליקציה",
+    },
+    YEAR_WITH_GYMOVOO: {
+      title: "שנה עם GYMovoo",
+      description: "שנה שימוש באפליקציה",
+    },
+    CONSISTENT_TRAINER: {
+      title: "מאמן עקבי",
+      description: "דירוג ממוצע של 4.0 כוכבים",
+    },
+    MASTER_RATER: {
+      title: "מאסטר דירוג",
+      description: "25 דירוגים של 5 כוכבים",
+    },
+    EARLY_BIRD: {
+      title: "ציפור מוקדמת",
+      description: "אימונים מוקדמים בבוקר",
+    },
+    DEDICATED_TRAINER: {
+      title: "מאמן מסור",
+      description: "5 אימונים מושלמים",
+    },
+    SPEED_DEMON: {
+      title: "שד מהירות",
+      description: "50 שעות של אימונים",
+    },
+    CENTURY_CLUB: {
+      title: "מועדון המאה",
+      description: "100 אימונים מושלמים",
+    },
+    PERFECTIONIST: {
+      title: "פרפקציוניסט",
+      description: "50 דירוגים של 5 כוכבים",
+    },
   },
 
   // נתוני שאלון / Questionnaire data

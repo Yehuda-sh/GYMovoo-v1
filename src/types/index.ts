@@ -73,10 +73,24 @@ export interface SmartQuestionnaireData {
 }
 
 export interface Questionnaire {
-  [key: string]: any;
+  age?: string;
+  gender?: string;
+  fitnessLevel?: string;
+  primaryGoal?: string;
+  workoutLocation?: string;
+  availableEquipment?: string[];
+  sessionDuration?: string;
+  workoutFrequency?: string;
+  healthStatus?: string;
+  experienceLevel?: string;
+  weeklyAvailability?: string;
+  [key: string]: any; // For additional dynamic fields
 }
 
 export interface QuestionnaireMetadata {
+  completedAt?: string;
+  version?: string;
+  source?: "legacy" | "smart" | "updated";
   [key: string]: any;
 }
 
@@ -85,7 +99,58 @@ export interface DynamicQuestion {
 }
 
 export interface LegacyQuestionnaireData {
+  age?: string;
+  gender?: string;
+  fitnessLevel?: string;
+  goals?: string[];
+  equipment?: string[];
   [key: string]: any;
+}
+
+// =======================================
+// 🔔 Notification Types
+// =======================================
+
+export interface NotificationSettings {
+  workoutReminders?: boolean;
+  achievementAlerts?: boolean;
+  weeklyReports?: boolean;
+  motivationalMessages?: boolean;
+  soundEnabled?: boolean;
+  vibrationEnabled?: boolean;
+}
+
+export interface PushNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: "workout_reminder" | "achievement" | "motivation" | "system";
+  scheduledFor?: string;
+  isRead?: boolean;
+  actionUrl?: string;
+}
+
+// =======================================
+// 🏆 Achievement Types
+// =======================================
+
+export interface Achievement {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  unlocked: boolean;
+  progress?: number;
+  unlockedAt?: string;
+}
+
+export interface AchievementProgress {
+  achievementId: number;
+  currentValue: number;
+  targetValue: number;
+  percentage: number;
+  lastUpdated: string;
 }
 
 // =======================================
@@ -140,14 +205,17 @@ export interface User {
   // Questionnaire data
   smartquestionnairedata?: SmartQuestionnaireData;
   hasQuestionnaire?: boolean;
-  questionnaire?: any;
-  questionnairedata?: any;
+  questionnaire?: Questionnaire;
+  questionnairedata?: LegacyQuestionnaireData;
 
   // User preferences
   preferences?: {
-    theme?: "light" | "dark";
+    theme?: "light" | "dark" | "system";
     language?: "he" | "en";
     notifications?: boolean;
+    soundEnabled?: boolean;
+    hapticFeedback?: boolean;
+    units?: "metric" | "imperial";
   };
 
   // User profiles and subscriptions
@@ -175,6 +243,7 @@ export interface User {
     xp?: number;
     level?: number;
     totalVolume?: number;
+    lastWorkoutDate?: string;
   };
 }
 
@@ -232,5 +301,248 @@ export interface WorkoutPlan {
   requiresSubscription?: boolean;
   difficulty?: "beginner" | "intermediate" | "advanced";
   targetMuscles?: string[];
-  features?: any;
+  features?: WorkoutPlanFeatures;
+  createdAt?: string;
+  updatedAt?: string;
+  isActive?: boolean;
+}
+
+export interface WorkoutPlanFeatures {
+  periodization?: boolean;
+  progressiveOverload?: boolean;
+  deloadWeeks?: boolean;
+  customExercises?: boolean;
+  aiOptimization?: boolean;
+  nutritionIntegration?: boolean;
+  personalizedWorkouts?: boolean;
+  equipmentOptimization?: boolean;
+  progressTracking?: boolean;
+  aiRecommendations?: boolean;
+  customSchedule?: boolean;
+}
+
+// =======================================
+// 📈 Progress Tracking Types
+// =======================================
+
+export interface ProgressEntry {
+  id: string;
+  date: string;
+  weight?: number;
+  bodyFat?: number;
+  measurements?: BodyMeasurements;
+  photos?: string[];
+  notes?: string;
+  workoutId?: string;
+}
+
+export interface BodyMeasurements {
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  biceps?: number;
+  thighs?: number;
+  neck?: number;
+  shoulders?: number;
+}
+
+export interface ProgressGoal {
+  id: string;
+  type: "weight_loss" | "muscle_gain" | "measurement" | "strength";
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  deadline?: string;
+  isActive: boolean;
+}
+
+// =======================================
+// 🥗 Nutrition Types
+// =======================================
+
+export interface NutritionProfile {
+  id: string;
+  dailyCalories?: number;
+  macroTargets?: MacroTargets;
+  mealPreferences?: string[];
+  dietaryRestrictions?: string[];
+  waterIntake?: number; // glasses per day
+  supplementRoutine?: Supplement[];
+}
+
+export interface MacroTargets {
+  protein?: number; // grams
+  carbs?: number; // grams
+  fat?: number; // grams
+}
+
+export interface Supplement {
+  id: string;
+  name: string;
+  dosage: string;
+  timing: string;
+  purpose: string;
+}
+
+export interface MealEntry {
+  id: string;
+  date: string;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  foods: FoodItem[];
+  totalCalories: number;
+  totalMacros: MacroTargets;
+  notes?: string;
+}
+
+export interface FoodItem {
+  id: string;
+  name: string;
+  calories: number;
+  macros: MacroTargets;
+  quantity: number;
+  unit: string;
+}
+
+// =======================================
+// 💊 Health & Recovery Types
+// =======================================
+
+export interface HealthProfile {
+  id: string;
+  medicalConditions?: string[];
+  injuries?: Injury[];
+  medications?: Medication[];
+  allergies?: string[];
+  sleepQuality?: number; // 1-10
+  stressLevel?: number; // 1-10
+  recoveryRate?: "slow" | "normal" | "fast";
+}
+
+export interface Injury {
+  id: string;
+  type: string;
+  location: string;
+  severity: "mild" | "moderate" | "severe";
+  occurredAt: string;
+  recoveryTime?: number; // days
+  notes?: string;
+}
+
+export interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  purpose: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// =======================================
+// 🎯 Goal Management Types
+// =======================================
+
+export interface FitnessGoal {
+  id: string;
+  title: string;
+  description?: string;
+  category: "weight" | "strength" | "endurance" | "flexibility" | "general";
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  deadline?: string;
+  priority: "low" | "medium" | "high";
+  status: "active" | "completed" | "paused" | "cancelled";
+  milestones?: GoalMilestone[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalMilestone {
+  id: string;
+  description: string;
+  targetValue: number;
+  achievedAt?: string;
+  reward?: string;
+}
+
+// =======================================
+// 👥 Social & Community Types
+// =======================================
+
+export interface Friend {
+  id: string;
+  name: string;
+  avatar?: string;
+  fitnessLevel?: string;
+  mutualFriends?: number;
+  isOnline?: boolean;
+  lastActive?: string;
+}
+
+export interface WorkoutShare {
+  id: string;
+  workoutId: string;
+  sharedBy: string;
+  sharedWith: string[];
+  message?: string;
+  sharedAt: string;
+  reactions?: WorkoutReaction[];
+}
+
+export interface WorkoutReaction {
+  userId: string;
+  reaction: "like" | "fire" | "clap" | "trophy";
+  reactedAt: string;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  type: "personal" | "group" | "community";
+  category: "workouts" | "calories" | "streak" | "weight";
+  targetValue: number;
+  unit: string;
+  duration: number; // days
+  participants: ChallengeParticipant[];
+  startDate: string;
+  endDate: string;
+  status: "upcoming" | "active" | "completed";
+  prize?: string;
+}
+
+export interface ChallengeParticipant {
+  userId: string;
+  joinedAt: string;
+  currentValue: number;
+  completed: boolean;
+  rank?: number;
+}
+
+// =======================================
+// 📱 App Settings Types
+// =======================================
+
+export interface AppSettings {
+  theme: "light" | "dark" | "system";
+  language: "he" | "en";
+  units: "metric" | "imperial";
+  notifications: NotificationSettings;
+  privacy: PrivacySettings;
+  dataSync: DataSyncSettings;
+}
+
+export interface PrivacySettings {
+  profileVisibility: "public" | "friends" | "private";
+  workoutSharing: "public" | "friends" | "private";
+  leaderboardParticipation: boolean;
+  dataCollection: boolean;
+}
+
+export interface DataSyncSettings {
+  autoBackup: boolean;
+  syncFrequency: "realtime" | "hourly" | "daily" | "manual";
+  offlineMode: boolean;
+  cloudStorage: boolean;
 }

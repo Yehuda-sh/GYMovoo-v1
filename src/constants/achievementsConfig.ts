@@ -10,7 +10,7 @@ import type { ComponentProps } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { PROFILE_SCREEN_TEXTS } from "./profileScreenTexts";
 import { getAchievementColor } from "./profileScreenColors";
-import type { User } from "../types";
+import type { User, Workout } from "../types";
 
 /**
  * Material Community Icon name type for type safety
@@ -32,6 +32,7 @@ export enum AchievementCategory {
   LOYALTY = "loyalty",
   PERFORMANCE = "performance",
   SPECIAL = "special",
+  CHALLENGE = "challenge",
 }
 
 /**
@@ -56,7 +57,7 @@ export interface AchievementConfig {
     value: number | string;
     condition?: "gte" | "eq" | "lte";
   };
-  priority: number; // תעדיפות הצגה / Display priority
+  priority: number; // עדיפות הצגה / Display priority
 }
 
 /**
@@ -116,12 +117,13 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
   },
   {
     id: 2,
-    titleKey: "QUESTIONNAIRE_COMPLETE",
+    titleKey: "FIRST_WORKOUT",
     category: AchievementCategory.BASIC,
-    icon: "clipboard-check",
+    icon: "dumbbell",
     requirement: {
-      type: "questionnaire",
-      value: "completed",
+      type: "workoutCount",
+      value: 1,
+      condition: "gte",
     },
     priority: 2,
   },
@@ -162,6 +164,30 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
       condition: "gte",
     },
     priority: 12,
+  },
+  {
+    id: 31,
+    titleKey: "STREAK_MASTER",
+    category: AchievementCategory.STREAK,
+    icon: "fire-circle",
+    requirement: {
+      type: "streak",
+      value: 50,
+      condition: "gte",
+    },
+    priority: 13,
+  },
+  {
+    id: 32,
+    titleKey: "UNSTOPPABLE",
+    category: AchievementCategory.STREAK,
+    icon: "fire-alert",
+    requirement: {
+      type: "streak",
+      value: 100,
+      condition: "gte",
+    },
+    priority: 14,
   },
 
   // 💪 Quantity achievements / הישגי כמות
@@ -213,6 +239,30 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     },
     priority: 23,
   },
+  {
+    id: 29,
+    titleKey: "WORKOUT_VETERAN",
+    category: AchievementCategory.QUANTITY,
+    icon: "shield-star",
+    requirement: {
+      type: "workoutCount",
+      value: 200,
+      condition: "gte",
+    },
+    priority: 24,
+  },
+  {
+    id: 30,
+    titleKey: "LEGENDARY_TRAINER",
+    category: AchievementCategory.QUANTITY,
+    icon: "crown-outline",
+    requirement: {
+      type: "workoutCount",
+      value: 500,
+      condition: "gte",
+    },
+    priority: 25,
+  },
 
   // ⏰ Time achievements / הישגי זמן
   {
@@ -250,6 +300,18 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
       condition: "gte",
     },
     priority: 32,
+  },
+  {
+    id: 21,
+    titleKey: "QUARTER_CENTURY",
+    category: AchievementCategory.TIME,
+    icon: "timer-sand",
+    requirement: {
+      type: "totalTime",
+      value: 2250, // 37.5 hours in minutes
+      condition: "gte",
+    },
+    priority: 33,
   },
 
   // 📅 Loyalty achievements / הישגי נאמנות
@@ -289,6 +351,30 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     },
     priority: 42,
   },
+  {
+    id: 33,
+    titleKey: "LOYAL_MEMBER",
+    category: AchievementCategory.LOYALTY,
+    icon: "heart",
+    requirement: {
+      type: "registrationTime",
+      value: 180, // 6 months
+      condition: "gte",
+    },
+    priority: 43,
+  },
+  {
+    id: 34,
+    titleKey: "YEAR_WITH_GYMOVOO",
+    category: AchievementCategory.LOYALTY,
+    icon: "calendar-star",
+    requirement: {
+      type: "registrationTime",
+      value: 365, // 1 year
+      condition: "gte",
+    },
+    priority: 44,
+  },
 
   // 🎯 Performance achievements / הישגי ביצועים
   {
@@ -314,6 +400,30 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
       condition: "gte",
     },
     priority: 51,
+  },
+  {
+    id: 22,
+    titleKey: "CONSISTENT_TRAINER",
+    category: AchievementCategory.PERFORMANCE,
+    icon: "target",
+    requirement: {
+      type: "averageRating",
+      value: 4.0,
+      condition: "gte",
+    },
+    priority: 52,
+  },
+  {
+    id: 23,
+    titleKey: "MASTER_RATER",
+    category: AchievementCategory.PERFORMANCE,
+    icon: "crown",
+    requirement: {
+      type: "perfectRatings",
+      value: 25,
+      condition: "gte",
+    },
+    priority: 53,
   },
 
   // 💯 Special achievements / הישגים מיוחדים
@@ -350,6 +460,67 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     },
     priority: 62,
   },
+  {
+    id: 24,
+    titleKey: "EARLY_BIRD",
+    category: AchievementCategory.SPECIAL,
+    icon: "bird",
+    requirement: {
+      type: "timeOfDay",
+      value: "morning",
+    },
+    priority: 63,
+  },
+  {
+    id: 25,
+    titleKey: "DEDICATED_TRAINER",
+    category: AchievementCategory.SPECIAL,
+    icon: "account-hard-hat",
+    requirement: {
+      type: "workoutCount",
+      value: 5,
+      condition: "gte",
+    },
+    priority: 64,
+  },
+
+  // 🏆 Challenge achievements / הישגי אתגר
+  {
+    id: 26,
+    titleKey: "SPEED_DEMON",
+    category: AchievementCategory.CHALLENGE,
+    icon: "lightning-bolt",
+    requirement: {
+      type: "totalTime",
+      value: 3000, // 50 hours
+      condition: "gte",
+    },
+    priority: 70,
+  },
+  {
+    id: 27,
+    titleKey: "CENTURY_CLUB",
+    category: AchievementCategory.CHALLENGE,
+    icon: "numeric-10",
+    requirement: {
+      type: "workoutCount",
+      value: 100,
+      condition: "gte",
+    },
+    priority: 71,
+  },
+  {
+    id: 28,
+    titleKey: "PERFECTIONIST",
+    category: AchievementCategory.CHALLENGE,
+    icon: "bullseye",
+    requirement: {
+      type: "perfectRatings",
+      value: 50,
+      condition: "gte",
+    },
+    priority: 72,
+  },
 ];
 
 /**
@@ -372,13 +543,13 @@ export interface Achievement {
  * Calculate user's current streak from workout history
  * חישוב הרצף הנוכחי של המשתמש מהיסטוריית האימונים
  */
-const calculateStreak = (workouts: WorkoutWithRating[]): number => {
+const calculateStreak = (workouts: Workout[]): number => {
   if (!workouts || workouts.length === 0) return 0;
 
   const sortedWorkouts = [...workouts]
     .map((workout) => ({
       ...workout,
-      workoutDate: new Date(workout.date || workout.completedAt || ""),
+      workoutDate: workout.date || new Date(workout.completedAt || ""),
     }))
     .filter((workout) => !isNaN(workout.workoutDate.getTime()))
     .sort((a, b) => b.workoutDate.getTime() - a.workoutDate.getTime());
@@ -429,9 +600,9 @@ const calculateStreak = (workouts: WorkoutWithRating[]): number => {
  * Calculate total workout time in minutes
  * חישוב זמן אימון כולל בדקות
  */
-const calculateTotalTime = (workouts: WorkoutWithRating[]): number => {
+const calculateTotalTime = (workouts: Workout[]): number => {
   // Normalize duration to minutes. If value looks like seconds (> threshold), convert to minutes.
-  return workouts.reduce((sum: number, workout: WorkoutWithRating) => {
+  return workouts.reduce((sum: number, workout: Workout) => {
     const raw = workout.duration;
     if (raw == null) return sum + WORKOUT_CONSTANTS.DEFAULT_DURATION_MINUTES;
     const minutes =
@@ -446,16 +617,12 @@ const calculateTotalTime = (workouts: WorkoutWithRating[]): number => {
  * Calculate average rating from workouts
  * חישוב דירוג ממוצע מאימונים
  */
-const calculateAverageRating = (workouts: WorkoutWithRating[]): number => {
-  const ratedWorkouts = workouts.filter(
-    (w) =>
-      (w.rating && w.rating > 0) ||
-      (w.feedback?.difficulty && w.feedback.difficulty > 0)
-  );
+const calculateAverageRating = (workouts: Workout[]): number => {
+  const ratedWorkouts = workouts.filter((w) => w.rating && w.rating > 0);
   if (ratedWorkouts.length === 0) return 0;
 
   const totalRating = ratedWorkouts.reduce(
-    (sum, w) => sum + (w.rating ?? w.feedback?.difficulty ?? 0),
+    (sum, w) => sum + (w.rating ?? 0),
     0
   );
   return totalRating / ratedWorkouts.length;
@@ -465,9 +632,8 @@ const calculateAverageRating = (workouts: WorkoutWithRating[]): number => {
  * Count perfect ratings (5 stars)
  * ספירת דירוגים מושלמים (5 כוכבים)
  */
-const countPerfectRatings = (workouts: WorkoutWithRating[]): number => {
-  return workouts.filter((w) => w.rating === 5 || w.feedback?.difficulty === 5)
-    .length;
+const countPerfectRatings = (workouts: Workout[]): number => {
+  return workouts.filter((w) => w.rating === 5).length;
 };
 
 /**
@@ -488,14 +654,11 @@ const calculateDaysSinceRegistration = (user: User): number | null => {
  * Count workouts by time of day
  * ספירת אימונים לפי שעות היום
  */
-const countWorkoutsByTime = (
-  workouts: WorkoutWithRating[],
-  timeType: string
-): number => {
+const countWorkoutsByTime = (workouts: Workout[], timeType: string): number => {
   const { TIME_RANGES } = WORKOUT_CONSTANTS;
 
   return workouts.filter((workout) => {
-    const workoutDate = new Date(workout.date || workout.completedAt || "");
+    const workoutDate = workout.date || new Date(workout.completedAt || "");
     if (isNaN(workoutDate.getTime())) return false;
     const hour = workoutDate.getHours();
     const dayOfWeek = workoutDate.getDay();

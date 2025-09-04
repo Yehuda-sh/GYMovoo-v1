@@ -111,7 +111,8 @@ export const completeUserOnboarding = async (
     // 5. וידוא התקנה תקינה
     const validationChecks = {
       hasQuestionnaire: !!(
-        smartData.answers?.fitnessLevel || smartData.answers?.goals?.[0]
+        smartData.answers?.fitnessLevel ||
+        (Array.isArray(smartData.answers?.goals) && smartData.answers.goals[0])
       ),
       hasEquipment: result.equipmentAssigned.length > 0,
       hasWorkoutPlans: result.workoutPlansGenerated > 0,
@@ -162,12 +163,15 @@ export const validateUserSetup = async (userId: string): Promise<boolean> => {
     const hasBasicData = !!(
       smartData.answers?.fitnessLevel &&
       smartData.answers?.workoutLocation &&
-      smartData.answers?.equipment?.length
+      Array.isArray(smartData.answers?.equipment) &&
+      smartData.answers?.equipment.length
     );
 
     // בדיקה שיש ציוד מתאים למיקום
     const hasEquipment = !!(
-      smartData.answers?.equipment?.length && smartData.answers?.workoutLocation
+      Array.isArray(smartData.answers?.equipment) &&
+      smartData.answers?.equipment.length &&
+      smartData.answers?.workoutLocation
     );
 
     return hasBasicData && hasEquipment;

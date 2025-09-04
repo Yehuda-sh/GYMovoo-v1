@@ -708,13 +708,57 @@ export default function RegisterScreen() {
   // ----------- DEBUG: AUTO FILL FOR DEVELOPMENT -----------
   const handleAutoFill = () => {
     if (__DEV__) {
-      setFullName("יהודה שלמה");
-      setEmail("test@gymovoo.dev");
-      setPassword("Test123!");
-      setConfirmPassword("Test123!");
+      // Generate semi-unique suffix (time + random) to avoid duplicate emails in dev
+      const ts = Date.now().toString(36); // base36 timestamp
+      const rand = Math.random().toString(36).slice(2, 6); // 4 chars
+      const suffix = `${ts}${rand}`;
+
+      // Random English name pools (lightweight, inline to avoid extra imports)
+      const firstNames = [
+        "Liam",
+        "Noah",
+        "Olivia",
+        "Emma",
+        "Ava",
+        "Mia",
+        "Ethan",
+        "Mason",
+        "Ella",
+        "Lucas",
+      ];
+      const lastNames = [
+        "Smith",
+        "Johnson",
+        "Williams",
+        "Brown",
+        "Jones",
+        "Garcia",
+        "Miller",
+        "Davis",
+        "Wilson",
+        "Taylor",
+      ];
+      const pick = <T,>(arr: T[]) =>
+        arr[Math.floor(Math.random() * arr.length)];
+      const full = `${pick(firstNames)} ${pick(lastNames)}-${suffix.slice(-3)}`; // small differentiator
+
+      // Email: ensure uniqueness & recognizable as dev
+      const emailGenerated = `dev_${suffix}@gymovoo.dev`;
+
+      // Password: meets criteria (>=6, numbers, upper, symbol) & random core
+      const baseRandom = Math.random().toString(36).slice(2, 8); // 6 chars
+      const passwordGenerated = `T${baseRandom}#1`; // Ensures uppercase, number, symbol
+
+      setFullName(full);
+      setEmail(emailGenerated);
+      setPassword(passwordGenerated);
+      setConfirmPassword(passwordGenerated);
       setIs16Plus(true);
       setAcceptTerms(true);
-      console.warn("🔧 Auto-filled registration form for development");
+      console.warn("🔧 Auto-filled (random) dev registration", {
+        email: emailGenerated,
+        fullName: full,
+      });
     }
   };
 

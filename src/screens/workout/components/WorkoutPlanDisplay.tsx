@@ -188,11 +188,11 @@ const WorkoutPlanDisplay = React.memo(function WorkoutPlanDisplay({
           accessible={true}
           accessibilityLabel={CONSTANTS.ACCESSIBILITY.PLAN_STATS(
             planStats.totalWorkouts,
-            workoutPlan.frequency,
+            workoutPlan.frequency || 3,
             planStats.totalExercises
           )}
         >
-          {planStats.totalWorkouts} אימונים • {workoutPlan.frequency} פעמים
+          {planStats.totalWorkouts} אימונים • {workoutPlan.frequency || 3} פעמים
           בשבוע
         </Text>
         {/* סטטיסטיקות נוספות עם enhanced accessibility */}

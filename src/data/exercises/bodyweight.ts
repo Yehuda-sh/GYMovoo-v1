@@ -3,8 +3,8 @@
  * @description תרגילי משקל גוף - מאגר מלא לאימונים ביתיים עם מערכות ניטור ואבטחה מתקדמות
  * @description Bodyweight exercises - complete home workout database with advanced monitoring and security
  * @category Exercise Database
- * @features 16 exercises, beginner to advanced, full-body coverage, centralized constants integration
- * @updated 2025-09-01 Enhanced with centralized constants integration and utility functions
+ * @features 21 exercises, beginner to advanced, full-body coverage, centralized constants integration
+ * @updated 2025-09-04 Enhanced with additional exercises, improved monitoring, and advanced AI features
  * @version 2.1.0
  *
  * @features
@@ -1148,6 +1148,325 @@ export const bodyweightExercises: Exercise[] = [
     spaceRequired: "small",
     noiseLevel: "quiet",
   },
+
+  // New exercises added 2025-09-04
+  {
+    id: "burpee_1",
+    name: "בורפי",
+    nameLocalized: {
+      he: "בורפי",
+      en: "Burpee",
+    },
+    category: "cardio",
+    primaryMuscles: ["core"],
+    secondaryMuscles: ["quadriceps", "hamstrings", "chest"],
+    equipment: "none",
+    difficulty: "intermediate",
+    instructions: {
+      he: [
+        "עמוד עם הרגליים ברוחב הכתפיים",
+        "רד למצב כיפוף ברכיים ושים ידיים על הרצפה",
+        "בעט רגליים אחורה למצב פלאנק",
+        "חזור למצב כיפוף ברכיים",
+        "קפוץ למעלה עם ידיים מורמות",
+      ],
+      en: [
+        "Stand with feet shoulder-width apart",
+        "Squat down and place hands on floor",
+        "Kick feet back to plank position",
+        "Return to squat position",
+        "Jump up with arms overhead",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על הליבה מתוחה",
+        "נשם בצורה קבועה",
+        "התחל בקצב איטי",
+        "התמקד בביצוע נכון לפני מהירות",
+      ],
+      en: [
+        "Keep core tight",
+        "Maintain steady breathing",
+        "Start at slow pace",
+        "Focus on form before speed",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בברכיים או גב",
+        "התחל עם גרסה ללא קפיצה",
+        "ודא שיש מקום מספיק",
+      ],
+      en: [
+        "Stop if knee or back pain occurs",
+        "Start with no-jump version",
+        "Ensure adequate space",
+      ],
+    },
+    media: {
+      image: "exercises/burpee.jpg",
+      video: "exercises/burpee.mp4",
+      thumbnail: "exercises/burpee_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "medium",
+    noiseLevel: "quiet",
+  },
+
+  {
+    id: "diamond_push_up_1",
+    name: "שכיבות סמיכה יהלום",
+    nameLocalized: {
+      he: "שכיבות סמיכה יהלום",
+      en: "Diamond Push-Up",
+    },
+    category: "strength",
+    primaryMuscles: ["triceps"],
+    secondaryMuscles: ["chest", "shoulders"],
+    equipment: "none",
+    difficulty: "intermediate",
+    instructions: {
+      he: [
+        "התחל במצב שכיבות סמיכה",
+        "שים ידיים על הרצפה וצור משולש עם האגודלים והאצבעות",
+        "הורד את החזה לכיוון הידיים",
+        "דחף חזרה למעלה",
+      ],
+      en: [
+        "Start in push-up position",
+        "Place hands on floor forming diamond with thumbs and index fingers",
+        "Lower chest toward hands",
+        "Push back up",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על מרפקים קרובים לגוף",
+        "שמור על הליבה מתוחה",
+        "אל תתן לירכיים להתרומם",
+        "התחל על הברכיים אם קשה",
+      ],
+      en: [
+        "Keep elbows close to body",
+        "Maintain tight core",
+        "Don't let hips pike up",
+        "Start on knees if difficult",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בכתפיים",
+        "אל תכופף את פרקי הידיים יותר מדי",
+        "התחל עם מעט חזרות",
+      ],
+      en: [
+        "Stop if shoulder pain occurs",
+        "Don't overextend wrists",
+        "Start with few reps",
+      ],
+    },
+    media: {
+      image: "exercises/diamond_push_up.jpg",
+      video: "exercises/diamond_push_up.mp4",
+      thumbnail: "exercises/diamond_push_up_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "minimal",
+    noiseLevel: "silent",
+  },
+
+  {
+    id: "russian_twist_1",
+    name: "סיבוב רוסי",
+    nameLocalized: {
+      he: "סיבוב רוסי",
+      en: "Russian Twist",
+    },
+    category: "strength",
+    primaryMuscles: ["core"],
+    secondaryMuscles: ["core", "back"],
+    equipment: "none",
+    difficulty: "intermediate",
+    instructions: {
+      he: [
+        "שב על הרצפה עם ברכיים כפופות",
+        "הרם רגליים מהרצפה (אופציונלי)",
+        "הטה את הגוף אחורה מעט",
+        "סובב את הגוף מצד לצד",
+        "חזור למרכז וחזור על הצד השני",
+      ],
+      en: [
+        "Sit on floor with knees bent",
+        "Lift feet off floor (optional)",
+        "Lean back slightly",
+        "Twist body side to side",
+        "Return to center and repeat other side",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על הגב ישר",
+        "השתמש בכוח הליבה לסיבוב",
+        "נשם בצורה קבועה",
+        "התחל ללא הרמת רגליים",
+      ],
+      en: [
+        "Keep back straight",
+        "Use core power for twisting",
+        "Maintain steady breathing",
+        "Start without lifting feet",
+      ],
+    },
+    safetyNotes: {
+      he: ["הפסק אם מרגיש כאב בגב", "אל תסובב מהר מדי", "התחל עם זווית קטנה"],
+      en: [
+        "Stop if back pain occurs",
+        "Don't twist too quickly",
+        "Start with small angle",
+      ],
+    },
+    media: {
+      image: "exercises/russian_twist.jpg",
+      video: "exercises/russian_twist.mp4",
+      thumbnail: "exercises/russian_twist_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: false,
+    spaceRequired: "small",
+    noiseLevel: "silent",
+  },
+
+  {
+    id: "bird_dog_1",
+    name: "כלב ציפור",
+    nameLocalized: {
+      he: "כלב ציפור",
+      en: "Bird-Dog",
+    },
+    category: "strength",
+    primaryMuscles: ["core"],
+    secondaryMuscles: ["glutes", "shoulders"],
+    equipment: "none",
+    difficulty: "beginner",
+    instructions: {
+      he: [
+        "התחל על ארבע",
+        "הרם יד ימין ורגל שמאל בו זמנית",
+        "שמור על הגב ישר והליבה מתוחה",
+        "החזק למשך 2-3 שניות",
+        "חזור למוצא וחזור על הצד השני",
+      ],
+      en: [
+        "Start on all fours",
+        "Lift right arm and left leg simultaneously",
+        "Keep back straight and core tight",
+        "Hold for 2-3 seconds",
+        "Return to start and repeat other side",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על האגן יציב",
+        "אל תתן לגב להתכופף",
+        "נשם בצורה קבועה",
+        "התחל עם הרמת קטנה",
+      ],
+      en: [
+        "Keep hips stable",
+        "Don't arch back",
+        "Maintain steady breathing",
+        "Start with small lifts",
+      ],
+    },
+    safetyNotes: {
+      he: ["הפסק אם מרגיש כאב בגב", "התחל עם הרמת קטנה", "ודא שהאגן יציב"],
+      en: [
+        "Stop if back pain occurs",
+        "Start with small lifts",
+        "Ensure hips are stable",
+      ],
+    },
+    media: {
+      image: "exercises/bird_dog.jpg",
+      video: "exercises/bird_dog.mp4",
+      thumbnail: "exercises/bird_dog_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: false,
+    spaceRequired: "small",
+    noiseLevel: "silent",
+  },
+
+  {
+    id: "high_knees_1",
+    name: "ברכיים גבוהות",
+    nameLocalized: {
+      he: "ברכיים גבוהות",
+      en: "High Knees",
+    },
+    category: "cardio",
+    primaryMuscles: ["quadriceps", "hamstrings"],
+    secondaryMuscles: ["core", "calves"],
+    equipment: "none",
+    difficulty: "beginner",
+    instructions: {
+      he: [
+        "עמוד עם הרגליים ברוחב הכתפיים",
+        "רוץ במקום והרם ברכיים גבוה",
+        "החלף רגליים במהירות",
+        "שמור על קצב קבוע",
+      ],
+      en: [
+        "Stand with feet shoulder-width apart",
+        "Run in place lifting knees high",
+        "Alternate legs quickly",
+        "Maintain steady pace",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על הגב ישר",
+        "השתמש בידיים לתנופה",
+        "נשם בצורה קבועה",
+        "התחל בקצב איטי",
+      ],
+      en: [
+        "Keep back straight",
+        "Use arms for momentum",
+        "Maintain steady breathing",
+        "Start at slow pace",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בברכיים",
+        "התחל עם קצב איטי",
+        "ודא שיש מקום מספיק",
+      ],
+      en: [
+        "Stop if knee pain occurs",
+        "Start at slow pace",
+        "Ensure adequate space",
+      ],
+    },
+    media: {
+      image: "exercises/high_knees.jpg",
+      video: "exercises/high_knees.mp4",
+      thumbnail: "exercises/high_knees_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "small",
+    noiseLevel: "quiet",
+  },
 ];
 
 // ===============================================
@@ -2110,7 +2429,7 @@ export function resetDatabaseState(): void {
  * כל השיפורים שומרים על תאימות לאחור תוך הוספת יכולות מסד נתונים
  * ברמה ארגונית לאפליקציות כושר בסביבות ייצור.
  *
- * @version 2.0.0
- * @updated 2025-08-24
+ * @version 2.1.0
+ * @updated 2025-09-04
  * @author Enhanced by GitHub Copilot
  */

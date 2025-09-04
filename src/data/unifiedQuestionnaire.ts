@@ -1281,8 +1281,6 @@ export class UnifiedQuestionnaireManager {
     }
 
     const equipmentArray = Array.from(result);
-    console.warn("🔧 Equipment normalized (smart):", equipmentArray); // ✅ דיבוג לעקוב אחר הציוד
-
     return equipmentArray;
   }
 
@@ -1404,23 +1402,31 @@ export class UnifiedQuestionnaireManager {
 
     return {
       personal: {
-        gender: smart.answers.gender,
+        gender: String(smart.answers.gender),
         age: smart.answers.age?.toString(),
         weight: smart.answers.weight?.toString(),
         height: smart.answers.height?.toString(),
       },
       fitness: {
-        level: smart.answers.fitnessLevel,
-        goals: smart.answers.goals || [],
-        availability: smart.answers.availability || [],
-        sessionDuration: smart.answers.sessionDuration,
-        location: smart.answers.workoutLocation,
+        level: String(smart.answers.fitnessLevel),
+        goals: Array.isArray(smart.answers.goals)
+          ? smart.answers.goals
+          : [String(smart.answers.goals)],
+        availability: Array.isArray(smart.answers.availability)
+          ? smart.answers.availability
+          : [String(smart.answers.availability)],
+        sessionDuration: String(smart.answers.sessionDuration),
+        location: String(smart.answers.workoutLocation),
       },
       preferences: {
-        nutrition: smart.answers.nutrition || [],
-        workoutLocation: smart.answers.workoutLocation,
+        nutrition: Array.isArray(smart.answers.nutrition)
+          ? smart.answers.nutrition
+          : [String(smart.answers.nutrition)],
+        workoutLocation: String(smart.answers.workoutLocation),
       },
-      equipment: smart.answers.equipment || [],
+      equipment: Array.isArray(smart.answers.equipment)
+        ? smart.answers.equipment
+        : [String(smart.answers.equipment)],
       analytics,
       recommendations,
     };
@@ -1483,7 +1489,9 @@ export class UnifiedQuestionnaireManager {
       goal: a.goals,
       experience: a.fitnessLevel,
       location: a.workoutLocation,
-      frequency: a.availability?.[0],
+      frequency: Array.isArray(a.availability)
+        ? a.availability[0]
+        : String(a.availability),
       duration: a.sessionDuration,
       nutrition: a.nutrition,
     };

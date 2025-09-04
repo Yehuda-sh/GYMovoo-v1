@@ -3,8 +3,8 @@
  * @description תרגילי קרדיו - מאגר לאימונים אירוביים ביתיים
  * @description Cardio exercises - aerobic home workout database
  * @category Exercise Database
- * @features 13 exercises, equipment-free, varied intensity levels
- * @updated 2025-08-15 Enhanced with intensity levels and performance metrics
+ * @features 18 exercises, equipment-free, varied intensity levels, advanced HIIT generation
+ * @updated 2025-09-04 Enhanced with additional exercises, improved calorie calculations, and advanced workout generation
  */
 
 import { Exercise } from "./types";
@@ -17,6 +17,8 @@ const CARDIO_INTENSITY = {
     "high_knees_1",
     "butt_kicks_1",
     "fast_feet_1",
+    "arm_circles_1",
+    "marching_in_place_1",
   ],
   MODERATE: [
     "jumping_jacks_1",
@@ -24,8 +26,10 @@ const CARDIO_INTENSITY = {
     "lateral_shuffles_1",
     "plank_jacks_1",
     "skaters_1",
+    "bear_crawl_1",
+    "inchworms_1",
   ],
-  HIGH: ["burpee_1", "burpees_no_pushup_1"],
+  HIGH: ["burpee_1", "burpees_no_pushup_1", "tuck_jumps_1", "box_jumps_1"],
 } as const;
 
 // Exercise duration recommendations (in seconds)
@@ -451,6 +455,327 @@ export const cardioExercises: Exercise[] = [
     spaceRequired: "small",
     noiseLevel: "quiet",
   },
+
+  // New exercises added 2025-09-04
+  {
+    id: "arm_circles_1",
+    name: "מעגלי זרועות",
+    nameLocalized: {
+      he: "מעגלי זרועות",
+      en: "Arm Circles",
+    },
+    category: "cardio",
+    primaryMuscles: ["shoulders"],
+    secondaryMuscles: ["triceps", "biceps"],
+    equipment: "none",
+    difficulty: "beginner",
+    instructions: {
+      he: [
+        "עמוד זקוף עם זרועות מורמות לצדדים",
+        "צור מעגלים קטנים עם הזרועות קדימה",
+        "הגדל את גודל המעגלים בהדרגה",
+        "שנה כיוון למעגלים אחורה",
+      ],
+      en: [
+        "Stand upright with arms extended to sides",
+        "Make small forward circles with arms",
+        "Gradually increase circle size",
+        "Change direction to backward circles",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על גב ישר",
+        "התחל עם מעגלים קטנים",
+        "נשום בצורה קבועה",
+        "הרגש את העבודה בכתפיים",
+      ],
+      en: [
+        "Keep back straight",
+        "Start with small circles",
+        "Maintain steady breathing",
+        "Feel the work in shoulders",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בכתפיים",
+        "אל תכופף את פרקי הידיים",
+        "התחל לאט והגדל מהירות",
+      ],
+      en: [
+        "Stop if shoulder pain occurs",
+        "Don't bend wrists",
+        "Start slow and increase speed",
+      ],
+    },
+    media: {
+      image: "exercises/arm_circles.jpg",
+      video: "exercises/arm_circles.mp4",
+      thumbnail: "exercises/arm_circles_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "small",
+    noiseLevel: "silent",
+  },
+
+  {
+    id: "marching_in_place_1",
+    name: "צעידה במקום",
+    nameLocalized: {
+      he: "צעידה במקום",
+      en: "Marching in Place",
+    },
+    category: "cardio",
+    primaryMuscles: ["quadriceps", "hamstrings"],
+    secondaryMuscles: ["calves", "core"],
+    equipment: "none",
+    difficulty: "beginner",
+    instructions: {
+      he: [
+        "עמוד זקוף עם רגליים ברוחב הכתפיים",
+        "הרם ברך אחת לכיוון החזה",
+        "הורד והרם את הרגל השנייה",
+        "המשך להחליף רגליים בקצב קבוע",
+      ],
+      en: [
+        "Stand upright with feet shoulder-width apart",
+        "Lift one knee toward chest",
+        "Lower and lift opposite leg",
+        "Continue alternating at steady pace",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על גב ישר",
+        "הרם ברכיים לגובה המותן",
+        "השתמש בידיים לתנופה",
+        "שמור על קצב קבוע",
+      ],
+      en: [
+        "Keep back straight",
+        "Lift knees to hip height",
+        "Use arms for momentum",
+        "Maintain steady pace",
+      ],
+    },
+    safetyNotes: {
+      he: ["הפסק אם מרגיש כאב בברכיים", "התחל בקצב איטי", "ודא משטח יציב"],
+      en: [
+        "Stop if knee pain occurs",
+        "Start at slow pace",
+        "Ensure stable surface",
+      ],
+    },
+    media: {
+      image: "exercises/marching_in_place.jpg",
+      video: "exercises/marching_in_place.mp4",
+      thumbnail: "exercises/marching_in_place_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "small",
+    noiseLevel: "quiet",
+  },
+
+  {
+    id: "bear_crawl_1",
+    name: "זחילה דובית",
+    nameLocalized: {
+      he: "זחילה דובית",
+      en: "Bear Crawl",
+    },
+    category: "cardio",
+    primaryMuscles: ["shoulders", "core"],
+    secondaryMuscles: ["quadriceps", "hamstrings"],
+    equipment: "none",
+    difficulty: "intermediate",
+    instructions: {
+      he: [
+        "התחל בעמדת פלאנק על ארבע",
+        "הרם את הירכיים למעלה",
+        "זחל קדימה עם יד אחת ורגל נגדית",
+        "המשך להחליף ידיים ורגליים",
+      ],
+      en: [
+        "Start in plank position on all fours",
+        "Lift hips up high",
+        "Crawl forward with opposite hand and foot",
+        "Continue alternating hands and feet",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על הליבה מתוחה",
+        "אל תתן לירכיים לרדת נמוך מדי",
+        "נשום בצורה קבועה",
+        "התחל לאט ובצע בטכניקה נכונה",
+      ],
+      en: [
+        "Keep core tight",
+        "Don't let hips sag too low",
+        "Maintain steady breathing",
+        "Start slow with proper form",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בכתפיים או גב",
+        "ודא משטח לא חלק",
+        "התחל עם מרחק קצר",
+      ],
+      en: [
+        "Stop if shoulder or back pain occurs",
+        "Ensure non-slip surface",
+        "Start with short distance",
+      ],
+    },
+    media: {
+      image: "exercises/bear_crawl.jpg",
+      video: "exercises/bear_crawl.mp4",
+      thumbnail: "exercises/bear_crawl_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "medium",
+    noiseLevel: "quiet",
+  },
+
+  {
+    id: "inchworms_1",
+    name: "תולעי אינץ'",
+    nameLocalized: {
+      he: "תולעי אינץ'",
+      en: "Inchworms",
+    },
+    category: "cardio",
+    primaryMuscles: ["hamstrings", "shoulders"],
+    secondaryMuscles: ["core", "calves"],
+    equipment: "none",
+    difficulty: "intermediate",
+    instructions: {
+      he: [
+        "עמוד זקוף עם רגליים ישרות",
+        "כופף קדימה והנח ידיים על הרצפה",
+        "צעד עם הידיים קדימה לפלאנק",
+        "צעד עם הרגליים קדימה לכיוון הידיים",
+        "חזור לעמידה וחזור על התרגיל",
+      ],
+      en: [
+        "Stand upright with feet together",
+        "Bend forward and place hands on floor",
+        "Walk hands forward to plank position",
+        "Walk feet forward toward hands",
+        "Return to standing and repeat",
+      ],
+    },
+    tips: {
+      he: [
+        "שמור על רגליים ישרות ככל האפשר",
+        "התמקד במתיחת האחורי ירך",
+        "נשום בצורה קבועה",
+        "התחל עם צעדים קטנים",
+      ],
+      en: [
+        "Keep legs as straight as possible",
+        "Focus on hamstring stretch",
+        "Maintain steady breathing",
+        "Start with small steps",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בגב או אחורי ירך",
+        "אל תכופף את הברכיים יותר מדי",
+        "התחל עם טווח תנועה קטן",
+      ],
+      en: [
+        "Stop if back or hamstring pain occurs",
+        "Don't bend knees too much",
+        "Start with small range of motion",
+      ],
+    },
+    media: {
+      image: "exercises/inchworms.jpg",
+      video: "exercises/inchworms.mp4",
+      thumbnail: "exercises/inchworms_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "medium",
+    noiseLevel: "quiet",
+  },
+
+  {
+    id: "tuck_jumps_1",
+    name: "קפיצות כיווץ",
+    nameLocalized: {
+      he: "קפיצות כיווץ",
+      en: "Tuck Jumps",
+    },
+    category: "cardio",
+    primaryMuscles: ["quadriceps", "core"],
+    secondaryMuscles: ["hamstrings", "calves"],
+    equipment: "none",
+    difficulty: "advanced",
+    instructions: {
+      he: [
+        "עמוד זקוף עם רגליים ברוחב הכתפיים",
+        "כופף מעט את הברכיים",
+        "קפוץ למעלה וכווץ ברכיים לכיוון החזה",
+        "חזור לנחיתה רכה",
+      ],
+      en: [
+        "Stand upright with feet shoulder-width apart",
+        "Slightly bend knees",
+        "Jump up and tuck knees toward chest",
+        "Return to soft landing",
+      ],
+    },
+    tips: {
+      he: [
+        "השתמש בידיים לתנופה",
+        "נחיתה על כריות כף הרגל",
+        "שמור על קצב קבוע",
+        "התחל עם קפיצות נמוכות",
+      ],
+      en: [
+        "Use arms for momentum",
+        "Land on balls of feet",
+        "Maintain steady rhythm",
+        "Start with low jumps",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "הפסק אם מרגיש כאב בברכיים",
+        "ודא משטח לא חלק",
+        "התחל עם קפיצות נמוכות",
+        "השתמש במזרן אם אפשר",
+      ],
+      en: [
+        "Stop if knee pain occurs",
+        "Ensure non-slip surface",
+        "Start with low jumps",
+        "Use mat if possible",
+      ],
+    },
+    media: {
+      image: "exercises/tuck_jumps.jpg",
+      video: "exercises/tuck_jumps.mp4",
+      thumbnail: "exercises/tuck_jumps_thumb.jpg",
+    },
+    homeCompatible: true,
+    gymPreferred: false,
+    outdoorSuitable: true,
+    spaceRequired: "small",
+    noiseLevel: "moderate",
+  },
 ];
 
 // ===============================================
@@ -496,6 +821,9 @@ export function getCardioByImpact(type: "low" | "high"): Exercise[] {
     "shadow_boxing_1",
     "mountain_climbers_1",
     "plank_jacks_1",
+    "arm_circles_1",
+    "marching_in_place_1",
+    "inchworms_1",
   ];
   const highImpactIds = [
     "jumping_jacks_1",
@@ -503,6 +831,8 @@ export function getCardioByImpact(type: "low" | "high"): Exercise[] {
     "high_knees_1",
     "butt_kicks_1",
     "skaters_1",
+    "tuck_jumps_1",
+    "bear_crawl_1",
   ];
 
   const targetIds = type === "low" ? lowImpactIds : highImpactIds;
@@ -586,12 +916,168 @@ export function estimateCaloriesBurned(
     plank_jacks_1: 7,
     fast_feet_1: 6,
     shadow_boxing_1: 5,
+    arm_circles_1: 4,
+    marching_in_place_1: 5,
+    bear_crawl_1: 8,
+    inchworms_1: 6,
+    tuck_jumps_1: 10,
   };
 
   const baseRate = calorieRates[exerciseId] || 7;
   const weightFactor = weightKg / 70; // Adjust for different weights
 
   return Math.round(baseRate * durationMinutes * weightFactor);
+}
+
+/**
+ * Estimate heart rate zones based on exercise intensity
+ * חישוב משוער של אזורי דופק לפי עצימות התרגיל
+ */
+export function estimateHeartRateZone(
+  exerciseId: string,
+  age: number = 30,
+  restingHR: number = 70
+): {
+  zone: "fat_burn" | "cardio" | "peak";
+  minHR: number;
+  maxHR: number;
+  targetHR: number;
+} {
+  // Maximum heart rate estimation: 220 - age
+  const estimatedMaxHR = 220 - age;
+  const heartReserve = estimatedMaxHR - restingHR;
+
+  // Exercise intensity factors
+  const intensityFactors: { [key: string]: number } = {
+    jumping_jacks_1: 0.7,
+    burpee_1: 0.9,
+    mountain_climbers_1: 0.8,
+    high_knees_1: 0.75,
+    butt_kicks_1: 0.7,
+    burpees_no_pushup_1: 0.85,
+    skaters_1: 0.8,
+    invisible_jump_rope_1: 0.75,
+    lateral_shuffles_1: 0.65,
+    plank_jacks_1: 0.7,
+    fast_feet_1: 0.6,
+    shadow_boxing_1: 0.55,
+    arm_circles_1: 0.5,
+    marching_in_place_1: 0.6,
+    bear_crawl_1: 0.75,
+    inchworms_1: 0.65,
+    tuck_jumps_1: 0.85,
+  };
+
+  const intensity = intensityFactors[exerciseId] || 0.6;
+  const targetHR = Math.round(restingHR + heartReserve * intensity);
+
+  // Determine zone
+  let zone: "fat_burn" | "cardio" | "peak";
+  if (intensity < 0.7) {
+    zone = "fat_burn";
+  } else if (intensity < 0.85) {
+    zone = "cardio";
+  } else {
+    zone = "peak";
+  }
+
+  // Zone ranges
+  const zoneRanges = {
+    fat_burn: { min: 0.5, max: 0.7 },
+    cardio: { min: 0.7, max: 0.85 },
+    peak: { min: 0.85, max: 0.95 },
+  };
+
+  const range = zoneRanges[zone];
+  const minHR = Math.round(restingHR + heartReserve * range.min);
+  const calculatedMaxHR = Math.round(restingHR + heartReserve * range.max);
+
+  return {
+    zone,
+    minHR,
+    maxHR: calculatedMaxHR,
+    targetHR,
+  };
+}
+
+/**
+ * Generate cardio circuit workout
+ * יצירת אימון מעגלי קרדיו
+ */
+export function generateCardioCircuit(
+  _duration: number = 20, // minutes
+  intensity: "low" | "moderate" | "high" = "moderate",
+  includeWarmup: boolean = true,
+  includeCooldown: boolean = true
+): {
+  warmup?: Exercise[];
+  circuit: {
+    exercise: Exercise;
+    duration: number;
+    rest: number;
+  }[];
+  cooldown?: Exercise[];
+  totalDuration: number;
+} {
+  const exercises = getCardioByIntensity(intensity);
+  const circuitLength = Math.min(6, exercises.length);
+  const selectedExercises = exercises.slice(0, circuitLength);
+
+  // Circuit parameters based on intensity
+  const circuitParams = {
+    low: { work: 45, rest: 30, rounds: 2 },
+    moderate: { work: 40, rest: 20, rounds: 3 },
+    high: { work: 30, rest: 15, rounds: 4 },
+  };
+
+  const params = circuitParams[intensity];
+
+  // Build circuit
+  const circuit = selectedExercises.map((exercise, index) => ({
+    exercise,
+    duration: params.work,
+    rest:
+      index === selectedExercises.length - 1 ? params.rest * 2 : params.rest,
+  }));
+
+  // Repeat for multiple rounds
+  const fullCircuit = [];
+  for (let round = 0; round < params.rounds; round++) {
+    fullCircuit.push(...circuit);
+  }
+
+  const result: {
+    warmup?: Exercise[];
+    circuit: {
+      exercise: Exercise;
+      duration: number;
+      rest: number;
+    }[];
+    cooldown?: Exercise[];
+    totalDuration: number;
+  } = {
+    circuit: fullCircuit,
+    totalDuration: fullCircuit.reduce(
+      (sum, item) => sum + item.duration + item.rest,
+      0
+    ),
+  };
+
+  // Add warmup if requested
+  if (includeWarmup) {
+    const warmupExercises = getCardioByIntensity("low").slice(0, 2);
+    result.warmup = warmupExercises;
+    result.totalDuration += 5 * 60; // 5 minutes warmup
+  }
+
+  // Add cooldown if requested
+  if (includeCooldown) {
+    const cooldownExercises = getCardioByIntensity("low").slice(0, 1);
+    result.cooldown = cooldownExercises;
+    result.totalDuration += 3 * 60; // 3 minutes cooldown
+  }
+
+  return result;
 }
 
 // Export utility constants for external use

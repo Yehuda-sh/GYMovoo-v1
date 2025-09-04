@@ -94,6 +94,16 @@ export default [
       "no-unused-vars": "off", // Handled by TypeScript rule
       "prefer-const": "error",
       "no-var": "error",
+
+      // Prevent stray raw text nodes (e.g., {' '}) that trigger RN warnings
+      // Uses react-native/no-raw-text to enforce wrapping text in <Text>
+      // Hebrew & RTL text is allowed inside <Text> components.
+      "react-native/no-raw-text": [
+        "warn",
+        {
+          skip: ["Trans", "FormattedMessage"],
+        },
+      ],
     },
     settings: {
       react: {

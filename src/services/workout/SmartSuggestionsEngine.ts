@@ -164,7 +164,11 @@ class SmartSuggestionsEngine {
       recentPerformance: await this.analyzePerformance(history),
       userPreferences: this.extractUserPreferences(user, history),
       currentFitnessLevel:
-        user?.trainingstats?.currentFitnessLevel || "beginner",
+        user?.trainingstats?.currentFitnessLevel === "beginner" ||
+        user?.trainingstats?.currentFitnessLevel === "intermediate" ||
+        user?.trainingstats?.currentFitnessLevel === "advanced"
+          ? user.trainingstats.currentFitnessLevel
+          : "beginner",
       trainingGoals: request.goal ? [request.goal] : [],
       availableEquipment: request.equipment || [],
       timeConstraints: {

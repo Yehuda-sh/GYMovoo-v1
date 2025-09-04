@@ -46,7 +46,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, SmartQuestionnaireData, WorkoutPlan } from "../types";
+import {
+  User,
+  SmartQuestionnaireData,
+  WorkoutPlan,
+  QuestionnaireAnswers,
+} from "../types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
@@ -338,58 +343,86 @@ export const useUserStore = create<UserStore>()(
       // Set smart questionnaire data
       setSmartQuestionnaireData: (data) => {
         try {
-          logger.debug("Store", "userStore.setSmartQuestionnaireData נקרא", {
-            hasData: !!data,
-          });
-
-          set((state) => ({
-            user: {
-              ...(state.user || {}),
-              smartquestionnairedata: data,
-              // עדכון העדפות בהתאם לתשובות
-              preferences: {
-                ...state.user?.preferences,
-                gender: data.answers.gender,
-                rtlPreference: true, // תמיד נכון לעברית
-              },
-              // עדכון נתוני אימון
-              trainingstats: {
-                ...state.user?.trainingstats,
-                // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
-                preferredWorkoutDays: (() => {
-                  const arr = data.answers.availability;
-                  if (Array.isArray(arr) && arr.length > 0) {
-                    const token = arr[0];
-                    if (typeof token === "string" && /_days$/.test(token)) {
-                      const n = parseInt(token.split("_", 1)[0], 10);
-                      if (!isNaN(n) && n >= 1 && n <= 7) return n;
+          // אם יש משתמש קיים - עדכן אותו
+          // אם אין משתמש - רק שמור את נתוני השאלון ב-AsyncStorage
+          const state = get();
+          if (state.user?.email) {
+            // עדכון משתמש קיים
+            set((state) => ({
+              user: {
+                ...state.user!,
+                smartquestionnairedata: data,
+                // עדכון העדפות בהתאם לתשובות
+                preferences: {
+                  ...state.user?.preferences,
+                  gender:
+                    typeof data.answers.gender === "string"
+                      ? data.answers.gender
+                      : undefined,
+                  rtlPreference: true, // תמיד נכון לעברית
+                },
+                // עדכון נתוני אימון
+                trainingstats: {
+                  ...state.user?.trainingstats,
+                  // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
+                  preferredWorkoutDays: (() => {
+                    const arr = data.answers.availability;
+                    if (Array.isArray(arr) && arr.length > 0) {
+                      const token = arr[0];
+                      if (typeof token === "string" && /_days$/.test(token)) {
+                        const n = parseInt(token.split("_", 1)[0], 10);
+                        if (!isNaN(n) && n >= 1 && n <= 7) {
+                          // המרה למערך של ימי השבוע
+                          const days = [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday",
+                          ];
+                          return days.slice(0, n);
+                        }
+                      }
+                      return arr.map((item) =>
+                        typeof item === "string" ? item : String(item)
+                      ); // fallback: מערך של strings
                     }
-                    return arr.length; // fallback: מספר פריטים במערך (מודל ישן)
-                  }
-                  return 3;
-                })(),
-                selectedEquipment: (() => {
-                  if (
-                    Array.isArray(data.answers.equipment) &&
-                    data.answers.equipment.length
-                  )
-                    return normalizeEquipment(data.answers.equipment);
-                  const extendedAnswers =
-                    data.answers as ExtendedQuestionnaireAnswers;
-                  const ge = extendedAnswers.gym_equipment;
-                  if (Array.isArray(ge) && ge.length) {
-                    const mapped = ge
-                      .map((g) => (typeof g === "string" ? g : g.id || g.label))
-                      .filter(Boolean) as string[];
-                    if (mapped.length) return normalizeEquipment(mapped);
-                  }
-                  return [];
-                })(),
-                fitnessGoals: data.answers.goals || [],
-                currentFitnessLevel: data.answers.fitnessLevel,
+                    return ["monday", "wednesday", "friday"]; // ברירת מחדל
+                  })(),
+                  selectedEquipment: (() => {
+                    if (
+                      Array.isArray(data.answers.equipment) &&
+                      data.answers.equipment.length
+                    )
+                      return normalizeEquipment(data.answers.equipment);
+                    const extendedAnswers =
+                      data.answers as ExtendedQuestionnaireAnswers;
+                    const ge = extendedAnswers.gym_equipment;
+                    if (Array.isArray(ge) && ge.length) {
+                      const mapped = ge
+                        .map((g) =>
+                          typeof g === "string" ? g : g.id || g.label
+                        )
+                        .filter(Boolean) as string[];
+                      if (mapped.length) return normalizeEquipment(mapped);
+                    }
+                    return [];
+                  })(),
+                  fitnessGoals: Array.isArray(data.answers.goals)
+                    ? data.answers.goals
+                    : typeof data.answers.goals === "string"
+                      ? [data.answers.goals]
+                      : [],
+                  currentFitnessLevel:
+                    typeof data.answers.fitnessLevel === "string"
+                      ? data.answers.fitnessLevel
+                      : undefined,
+                },
               },
-            },
-          }));
+            }));
+          }
 
           // שמירה ב-AsyncStorage
           AsyncStorage.setItem(
@@ -397,7 +430,7 @@ export const useUserStore = create<UserStore>()(
             JSON.stringify(data)
           )
             .then(() =>
-              logger.debug("Store", "smart_questionnaire_results נשמר")
+              logger.info("Store", "smart_questionnaire_results נשמר")
             )
             .catch((err) =>
               logger.error("Store", "שגיאה בשמירת השאלון החכם", err)
@@ -433,14 +466,23 @@ export const useUserStore = create<UserStore>()(
             "Error setting smart questionnaire data",
             error
           );
-          // Try to save minimal data as fallback
+          // Try to save minimal data as fallback only if user exists
           try {
-            set((state) => ({
-              user: {
-                ...(state.user || {}),
-                smartquestionnairedata: data,
-              },
-            }));
+            const state = get();
+            if (state.user?.email) {
+              set((state) => ({
+                user: {
+                  ...(state.user || {}),
+                  smartquestionnairedata: data,
+                },
+              }));
+            } else {
+              // אם אין משתמש, רק נשמור ב-AsyncStorage
+              logger.info(
+                "Store",
+                "No user found, saving questionnaire data to AsyncStorage only"
+              );
+            }
           } catch (fallbackError) {
             logger.error("Store", "Fallback save also failed", fallbackError);
           }
@@ -462,7 +504,7 @@ export const useUserStore = create<UserStore>()(
                       answers: {
                         ...(extractSmartAnswers(state.user) || {}),
                         ...(updates.answers || {}),
-                      } as Record<string, unknown>,
+                      } as QuestionnaireAnswers,
                       metadata: {
                         ...state.user.smartquestionnairedata.metadata,
                         ...updates.metadata,
@@ -591,7 +633,21 @@ export const useUserStore = create<UserStore>()(
                 ...state.user,
                 trainingstats: {
                   ...state.user.trainingstats,
-                  preferredWorkoutDays: prefs.workoutDays,
+                  preferredWorkoutDays: prefs.workoutDays
+                    ? Array.from(
+                        { length: prefs.workoutDays },
+                        (_, i) =>
+                          [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday",
+                          ][i % 7]
+                      )
+                    : undefined,
                   selectedEquipment: normalizeEquipment(prefs.equipment),
                   fitnessGoals: prefs.goals,
                   currentFitnessLevel: prefs.fitnessLevel,
@@ -795,11 +851,19 @@ export const useUserStore = create<UserStore>()(
         const state = get();
         const user = state.user;
 
-        const hasBasicInfo = !!(user?.id || user?.email || user?.name);
+        // בדיקה מדויקת יותר של השלמת השאלון - רק אם יש completedAt או hasQuestionnaire
         const hasSmartQuestionnaire =
-          !!user?.smartquestionnairedata?.answers ||
-          !!user?.questionnairedata?.equipment;
-        const isFullySetup = hasBasicInfo && hasSmartQuestionnaire;
+          !!user?.smartquestionnairedata?.metadata?.completedAt ||
+          !!user?.questionnairedata?.completedAt ||
+          !!user?.hasQuestionnaire;
+
+        // אם יש שאלון מושלם, המשתמש נחשב כמוכן גם בלי נתונים בסיסיים (עבור זרימת Questionnaire->Register)
+        // אבל אם יש ID, אז צריך גם נתונים בסיסיים
+        const hasBasicInfo = !!(user?.id || user?.email || user?.name);
+
+        // לזרימת Questionnaire->Register: אם יש שאלון מושלם אבל אין ID, המשתמש מוכן להרשמה
+        // לזרימת רגילה: אם יש ID, צריך גם שאלון
+        const isFullySetup = hasSmartQuestionnaire && hasBasicInfo;
 
         return {
           hasBasicInfo,
@@ -996,7 +1060,7 @@ export const useUserStore = create<UserStore>()(
             isTrialActive:
               subscription.type === "trial" &&
               currentDays > 0 &&
-              subscription.isActive,
+              (subscription.isActive ?? false),
             daysRemaining: currentDays,
             hasExpired: currentDays === 0 && subscription.type === "trial",
           };
@@ -1013,7 +1077,7 @@ export const useUserStore = create<UserStore>()(
         const isTrialActive =
           subscription.type === "trial" &&
           daysRemaining > 0 &&
-          subscription.isActive;
+          (subscription.isActive ?? false);
 
         // עדכון סטטוס הניסיון אם צריך - מניעת עדכונים תכופים
         const currentDays = subscription.trialDaysRemaining ?? 0;
@@ -1066,7 +1130,7 @@ export const useUserStore = create<UserStore>()(
             (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
           );
           const daysRemaining = Math.max(0, 7 - daysSinceRegistration);
-          return daysRemaining > 0 && subscription.isActive;
+          return daysRemaining > 0 && (subscription.isActive ?? false);
         }
 
         return false;
@@ -1173,7 +1237,7 @@ export const useUserStore = create<UserStore>()(
 
         // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
         // Development mode: Auto-clear on every fresh start (temporarily disabled)
-        if (CONSTANTS.DEV.AUTO_CLEAR && __DEV__) {
+        if (CONSTANTS.DEV.AUTO_CLEAR && __DEV__ && !state?.user?.email) {
           logger.debug(
             "Store",
             "DEV MODE: Auto-clearing user data for fresh start"

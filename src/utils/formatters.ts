@@ -172,3 +172,41 @@ export const getWorkoutIcon = (
 
   return "weight-lifter";
 };
+
+/**
+ * Format equipment list to Hebrew names
+ */
+export const formatEquipmentList = (equipment: string[]): string => {
+  if (!equipment || equipment.length === 0) return "משקל גוף";
+
+  const equipmentMap: { [key: string]: string } = {
+    dumbbells: "דמבלים",
+    barbell: "מוט ומשקולות",
+    bodyweight: "משקל גוף",
+    resistance_bands: "גומיות התנגדות",
+    cable_machine: "מכונת כבלים",
+    smith_machine: "מכונת סמית",
+    leg_press: "מכונת לחיצת רגליים",
+    chest_press: "מכונת לחיצת חזה",
+    lat_pulldown: "מכונת משיכת גב",
+    rowing_machine: "מכונת חתירה",
+    treadmill: "הליכון",
+    bike: "אופניים",
+    squat_rack: "מתקן סקווט",
+    pullup_bar: "מוט משיכה",
+    preacher_curl: "מכונת כפיפת זרועות",
+    trx: "TRX",
+    kettlebell: "קטלבול",
+    foam_roller: "גלגל קצף",
+    yoga_mat: "מחצלת יוגה",
+    free_weights: "משקולות חופשיות",
+  };
+
+  const translatedEquipment = equipment
+    .map((eq) => equipmentMap[eq.toLowerCase()] || eq)
+    .filter(Boolean);
+
+  return translatedEquipment.length > 0
+    ? translatedEquipment.join(", ")
+    : "משקל גוף";
+};

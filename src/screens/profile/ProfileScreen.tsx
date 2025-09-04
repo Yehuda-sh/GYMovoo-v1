@@ -79,6 +79,15 @@ import { UniversalModal } from "../../components/common/UniversalModal";
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 import { userApi } from "../../services/api/userApi";
 
+// =============================================================
+// 🔐 CRITICAL FLOW INVARIANTS (Questionnaire → Register → Main/Profile)
+// 1. ProfileScreen only for fully setup users (questionnaire + basic info).
+// 2. If smart questionnaire missing → redirect to Questionnaire.
+// 3. If questionnaire done but basic info missing → redirect to Register.
+// 4. Never fabricate or auto-complete user here.
+// 5. Update QUESTIONNAIRE_FLOW_CRITICAL.md if gating changes.
+// =============================================================
+
 // 🆕 קבועים וקונפיגורציות מרכזיות / New centralized constants and configurations
 import {
   PROFILE_SCREEN_TEXTS,
@@ -655,7 +664,12 @@ function ProfileScreen() {
   // 🔧 Core Dependencies - תלויות בסיסיות
   // ===============================================
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user, updateUser, logout: userLogout } = useUserStore();
+  const {
+    user,
+    updateUser,
+    logout: userLogout,
+    getCompletionStatus,
+  } = useUserStore();
   const setUser = useUserStore((s) => s.setUser);
 
   // Modal management - אחיד במקום Alert.alert מפוזר
@@ -791,6 +805,22 @@ function ProfileScreen() {
 
   /** @description בדיקת השלמת השאלון / Questionnaire completion check */
   const questionnaireStatus = useQuestionnaireStatus();
+
+  // 🚧 Strict onboarding gating
+  useEffect(() => {
+    const completion = getCompletionStatus?.();
+    if (!completion) return;
+    if (!completion.hasSmartQuestionnaire) {
+      devLog("Gating → Questionnaire (missing smart questionnaire)");
+      navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+      return;
+    }
+    if (!completion.hasBasicInfo) {
+      devLog("Gating → Register (questionnaire done, missing basic info)");
+      navigation.reset({ index: 0, routes: [{ name: "Register" }] });
+      return;
+    }
+  }, [user, getCompletionStatus, navigation]);
 
   /** @description חישוב הישגים מהנתונים המדעיים / Calculate achievements from scientific data */
   const achievements = useMemo(() => calculateAchievements(user), [user]);
@@ -2567,36 +2597,7 @@ function ProfileScreen() {
                   {PROFILE_SCREEN_TEXTS.HEADERS.SETTINGS}
                 </Text>
 
-                <TouchableOpacity
-                  style={styles.settingItem}
-                  onPress={() => {
-                    if (__DEV__) {
-                      console.warn("ProfileScreen: Edit questionnaire");
-                    }
-                    navigation.navigate("Questionnaire", { stage: "training" });
-                  }}
-                  activeOpacity={0.7}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="עריכת שאלון אימון"
-                  accessibilityHint="לחץ כדי לערוך את השאלון ולעדכן העדפות אימון"
-                >
-                  <View style={styles.settingLeft}>
-                    <MaterialCommunityIcons
-                      name="clipboard-list"
-                      size={24}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.settingText}>
-                      {PROFILE_SCREEN_TEXTS.ACTIONS.EDIT_QUESTIONNAIRE}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-left"
-                    size={20}
-                    color={theme.colors.textSecondary}
-                  />
-                </TouchableOpacity>
+                {/* אפשרות עריכת שאלון הוסרה - משתמשים רשומים לא יכולים לערוך שאלון */}
 
                 <TouchableOpacity
                   style={styles.settingItem}

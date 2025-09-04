@@ -2,10 +2,11 @@
  * @file src/constants/mainScreenTexts.ts
  * @brief טקסטים קבועים למסך הראשי - MainScreen
  * @brief Constant texts for MainScreen
- * @features טקסטים מרוכזים, תמיכה RTL, דו-לשוני
- * @features Centralized texts, RTL support, bilingual
- * @version 1.0.0
+ * @features טקסטים מרוכזים, תמיכה RTL, דו-לשוני, מיפוי שאלון מלא
+ * @features Centralized texts, RTL support, bilingual, full questionnaire mapping
+ * @version 1.1.0 - Enhanced with additional units, questionnaire mappings, and error states
  * @created 2025-08-06
+ * @updated 2025-09-04 - הוספת יחידות מדידה, מיפוי שאלון מורחב, מצבי שגיאה נוספים
  */
 
 // ===============================================
@@ -75,6 +76,14 @@ export const MAIN_SCREEN_TEXTS = {
     WEEK: "שבוע",
     WORKOUTS: "אימונים",
     ACHIEVEMENT: "הישג",
+    CONTINUE: "המשך",
+    PAUSE: "השהה",
+    STOP: "עצור",
+    SAVE: "שמור",
+    CANCEL: "ביטול",
+    EDIT: "ערוך",
+    DELETE: "מחק",
+    SHARE: "שתף",
   },
 
   // Loading and error states // מצבי טעינה ושגיאה
@@ -85,6 +94,9 @@ export const MAIN_SCREEN_TEXTS = {
     NOT_SPECIFIED: "לא צוין",
     NO_RECENT_WORKOUTS: "אין לך עדיין אימונים אחרונים",
     START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
+    NETWORK_ERROR: "שגיאת רשת - בדוק חיבור אינטרנט",
+    SERVER_ERROR: "שגיאת שרת - נסה שוב מאוחר יותר",
+    NO_DATA_AVAILABLE: "אין נתונים זמינים",
   },
 
   // Questionnaire answers // תשובות שאלון
@@ -130,13 +142,31 @@ export const MAIN_SCREEN_TEXTS = {
     BODYWEIGHT: "משקל גוף",
     RESISTANCE_BANDS: "גומיות",
 
+    // Age ranges // טווחי גיל
+    AGE_18_25: "18-25",
+    AGE_26_35: "26-35",
+    AGE_36_45: "36-45",
+    AGE_46_55: "46-55",
+    AGE_56_PLUS: "56+",
+
+    // Session durations // זמני אימון
+    DURATION_30_MIN: "30 דקות",
+    DURATION_45_MIN: "45 דקות",
+    DURATION_60_MIN: "שעה",
+    DURATION_90_MIN: "שעה וחצי",
+
+    // Frequency // תדירות
+    FREQUENCY_2_DAYS: "2 ימים בשבוע",
+    FREQUENCY_3_DAYS: "3 ימים בשבוע",
+    FREQUENCY_4_DAYS: "4 ימים בשבוע",
+    FREQUENCY_5_DAYS: "5 ימים בשבוע",
+    FREQUENCY_6_DAYS: "6 ימים בשבוע",
+
     // Health status // מצב בריאותי
     EXCELLENT: "מעולה",
     GOOD: "טוב",
     SOME_ISSUES: "יש כמה בעיות",
     SERIOUS_ISSUES: "בעיות רציניות",
-
-    // DEMO_NOTE הוסר – אין דמו מצד לקוח
   },
 
   // DEMO_WORKOUTS הוסר – אין דמו מצד לקוח
@@ -147,6 +177,10 @@ export const MAIN_SCREEN_TEXTS = {
     MINUTES: "דקות",
     DAYS_WEEK: "ימים בשבוע",
     PER_WEEK: "בשבוע",
+    HOURS: "שעות",
+    KG: "ק״ג",
+    LBS: "ליברות",
+    CALORIES: "קלוריות",
   },
 
   // Accessibility labels // תוויות נגישות
@@ -296,19 +330,46 @@ export const formatQuestionnaireValue = (
       : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
-  // Duration and frequency with units
-  if (key === "session_duration") {
-    if (typeof value === "string" || typeof value === "number") {
-      return `${String(value)} ${MAIN_SCREEN_TEXTS.PROGRESS.MINUTES}`;
-    }
-    return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+  // Age range mapping
+  if (key === "age_range") {
+    const ageMap: { [key: string]: string } = {
+      "18-25": QUESTIONNAIRE.AGE_18_25,
+      "26-35": QUESTIONNAIRE.AGE_26_35,
+      "36-45": QUESTIONNAIRE.AGE_36_45,
+      "46-55": QUESTIONNAIRE.AGE_46_55,
+      "56+": QUESTIONNAIRE.AGE_56_PLUS,
+    };
+    return typeof value === "string"
+      ? ageMap[value] || MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
+  // Session duration mapping
+  if (key === "session_duration") {
+    const durationMap: { [key: string]: string } = {
+      "30": QUESTIONNAIRE.DURATION_30_MIN,
+      "45": QUESTIONNAIRE.DURATION_45_MIN,
+      "60": QUESTIONNAIRE.DURATION_60_MIN,
+      "90": QUESTIONNAIRE.DURATION_90_MIN,
+    };
+    return typeof value === "string"
+      ? durationMap[value] || `${value} ${MAIN_SCREEN_TEXTS.PROGRESS.MINUTES}`
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+  }
+
+  // Frequency mapping
   if (key === "available_days") {
-    if (typeof value === "string" || typeof value === "number") {
-      return `${String(value)} ${MAIN_SCREEN_TEXTS.PROGRESS.DAYS_WEEK}`;
-    }
-    return MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
+    const frequencyMap: { [key: string]: string } = {
+      "2": QUESTIONNAIRE.FREQUENCY_2_DAYS,
+      "3": QUESTIONNAIRE.FREQUENCY_3_DAYS,
+      "4": QUESTIONNAIRE.FREQUENCY_4_DAYS,
+      "5": QUESTIONNAIRE.FREQUENCY_5_DAYS,
+      "6": QUESTIONNAIRE.FREQUENCY_6_DAYS,
+    };
+    return typeof value === "string"
+      ? frequencyMap[value] ||
+          `${value} ${MAIN_SCREEN_TEXTS.PROGRESS.DAYS_WEEK}`
+      : MAIN_SCREEN_TEXTS.STATUS.NOT_SPECIFIED;
   }
 
   return typeof value === "string"

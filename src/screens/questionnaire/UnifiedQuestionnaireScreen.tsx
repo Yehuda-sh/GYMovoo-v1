@@ -24,11 +24,14 @@ import {
   ScrollView,
   StyleSheet,
   BackHandler,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Import ConfirmationModal
@@ -48,10 +51,21 @@ import { theme } from "../../styles/theme";
 import { logger } from "../../utils/logger";
 import type { SmartQuestionnaireData } from "../../types";
 
-// Debug logging system
-const DEBUG = __DEV__;
+// =============================================================
+// 🔐 CRITICAL FLOW INVARIANTS (See 02-מסך-השאלון.md & QUESTIONNAIRE_FLOW_CRITICAL.md)
+// 1. Questionnaire MUST always finish BEFORE registration.
+// 2. No implicit user creation here. Never call any createUser logic.
+// 3. Completion → must persist smart_questionnaire_results → navigation.reset("Register").
+// 4. Do NOT redirect to MainApp from here after completion (registration required first).
+// 5. setSmartQuestionnaireData must NOT fabricate user objects (userStore enforces this).
+// 6. Guard: If user already has questionnaire & smartquestionnairedata → redirect to MainApp (prevents re-entry).
+// Any change to completion or persistence logic requires updating the documentation files above.
+// =============================================================
+
+// Simplified logging system - minimal debug logs
+const DEBUG_LOGS = false; // Set to true only when debugging
 const dlog = (message: string, ...args: unknown[]) => {
-  if (DEBUG) {
+  if (DEBUG_LOGS) {
     logger.debug(
       `[UnifiedQuestionnaireScreen] ${message}`,
       args.length > 0 ? JSON.stringify(args) : ""
@@ -73,6 +87,8 @@ const CONSTANTS = {
   TIMINGS: {
     DEBOUNCE_SAVE: 1200,
     QUESTION_TRANSITION: 300,
+    NEXT_BUTTON_DELAY: 300,
+    QUESTION_LOAD_TIMEOUT: 5000,
   },
   SIZES: {
     ICON_SMALL: 16,
@@ -105,6 +121,12 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   } | null>(null);
   const [serverSaved, setServerSaved] = useState(false);
 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
   // ConfirmationModal state
   const [confirmationModal, setConfirmationModal] = useState<{
     visible: boolean;
@@ -127,6 +149,69 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   // ScrollView reference for programmatic scrolling
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Animation functions
+  const animateQuestionTransition = useCallback(() => {
+    // Slide out current question
+    Animated.sequence([
+      Animated.timing(slideAnim, {
+        toValue: -50,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Reset and slide in new question
+      slideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  }, [slideAnim, fadeAnim]);
+
+  const animateProgress = useCallback(
+    (newProgress: number) => {
+      Animated.timing(progressAnim, {
+        toValue: newProgress,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    },
+    [progressAnim]
+  );
+
+  const animateOptionSelect = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.elastic(1.2),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim]);
+
   // Helper function for modal operations
   const hideModal = () =>
     setConfirmationModal({
@@ -136,22 +221,25 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       onConfirm: () => {},
     });
 
-  const showModal = (config: {
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    onCancel?: () => void;
-    confirmText?: string;
-    cancelText?: string;
-    destructive?: boolean;
-    variant?: "default" | "error" | "success" | "warning" | "info";
-    singleButton?: boolean;
-  }) => {
-    setConfirmationModal({
-      visible: true,
-      ...config,
-    });
-  };
+  const showModal = useCallback(
+    (config: {
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      onCancel?: () => void;
+      confirmText?: string;
+      cancelText?: string;
+      destructive?: boolean;
+      variant?: "default" | "error" | "success" | "warning" | "info";
+      singleButton?: boolean;
+    }) => {
+      setConfirmationModal({
+        visible: true,
+        ...config,
+      });
+    },
+    []
+  );
 
   // שמירה לשרת בדיבאונס כדי לא להציף קריאות בזמן מענה על שאלות
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,14 +269,17 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
     };
   }, []);
 
-  // בדיקה אם המשתמש כבר יש לו שאלון מושלם - עבור ישר ל-MainApp
+  // בדיקה אם המשתמש כבר יש לו שאלון מושלם - Guard למניעת גישה
   useEffect(() => {
     if (user?.id && user?.hasQuestionnaire && user?.smartquestionnairedata) {
-      dlog("User already has completed questionnaire, redirecting to MainApp", {
-        userId: user.id,
-        hasQuestionnaire: user.hasQuestionnaire,
-        hasSmartData: !!user.smartquestionnairedata,
-      });
+      dlog(
+        "Guard: User already has completed questionnaire, redirecting to MainApp",
+        {
+          userId: user.id,
+          hasQuestionnaire: user.hasQuestionnaire,
+          hasSmartData: !!user.smartquestionnairedata,
+        }
+      );
       navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
     }
   }, [user, navigation]);
@@ -205,11 +296,36 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   };
 
   const loadCurrentQuestion = useCallback(() => {
-    const question = manager.getCurrentQuestion();
-    setCurrentQuestion(question);
-    setSelectedOptions([]);
-    // מצמצמים רעש: לא מדפיסים לוג טעינת שאלה בכל פעם
-  }, [manager]);
+    try {
+      const question = manager.getCurrentQuestion();
+
+      if (!question) {
+        setCurrentQuestion(null);
+        return;
+      }
+
+      setCurrentQuestion(question);
+      setSelectedOptions([]);
+
+      // Animate progress bar
+      try {
+        const newProgress = manager.getProgress();
+        animateProgress(newProgress);
+      } catch (progressError) {
+        dlog("Failed to get progress", { error: progressError });
+      }
+
+      // Animate question transition
+      try {
+        animateQuestionTransition();
+      } catch (animError) {
+        dlog("Failed to animate transition", { error: animError });
+      }
+    } catch (error) {
+      dlog("Error in loadCurrentQuestion", { error });
+      setCurrentQuestion(null);
+    }
+  }, [manager, animateProgress, animateQuestionTransition]);
 
   const restoreProgress = useCallback(
     (progressData: SavedProgress) => {
@@ -217,7 +333,14 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         // שחזר את התשובות
         if (progressData.answers && Array.isArray(progressData.answers)) {
           progressData.answers.forEach((answer: QuestionnaireAnswer) => {
-            manager.answerQuestion(answer.questionId, answer.answer);
+            try {
+              manager.answerQuestion(answer.questionId, answer.answer);
+            } catch (e) {
+              dlog("Failed to restore answer", {
+                questionId: answer.questionId,
+                error: e,
+              });
+            }
           });
 
           dlog(
@@ -228,10 +351,11 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         // טען את השאלה הנוכחית
         loadCurrentQuestion();
 
-        // מחק את ההתקדמות השמורה כי היא נטענה
-        AsyncStorage.removeItem("questionnaire_draft");
+        // אל תמחק את הטיוטה עדיין - נמחק אותה רק כשהשאלון יושלם
+        dlog("Progress restored, keeping draft until completion");
       } catch (error) {
         dlog("Error restoring progress", { error });
+        // אם יש שגיאה בשחזור, פשוט התחל מחדש
         loadCurrentQuestion();
       }
     },
@@ -251,30 +375,107 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
           savedAt: progressData.savedAt,
         });
 
-        // שחזור אוטומטי ללא שאלה למשתמש
-        restoreProgress(progressData);
-        // מעבר לשאלה הבאה שלא נענתה לשמירה על רצף
-        try {
-          manager.goToNextUnanswered();
-          loadCurrentQuestion();
-        } catch (e) {
-          dlog("auto-restore navigation failed", { error: e });
-        }
+        // שאל את המשתמש אם רוצה להמשיך או להתחיל מחדש
+        showModal({
+          title: "שאלון בתהליך",
+          message: `נמצא שאלון שהתחלת (${progressData.totalAnswered} תשובות). רוצה להמשיך, התחיל מחדש או לצאת?`,
+          confirmText: "המשך",
+          cancelText: "התחל מחדש",
+          onConfirm: () => {
+            dlog("User chose to continue with saved progress");
+            try {
+              restoreProgress(progressData);
+              dlog(
+                "Progress restored, now trying to navigate to next unanswered"
+              );
+              manager.goToNextUnanswered();
+              dlog("Navigation successful, loading current question");
+              loadCurrentQuestion();
+            } catch (e) {
+              dlog("restore navigation failed", { error: e });
+              // אם יש שגיאה בשחזור, התחל מחדש
+              dlog("Falling back to fresh start");
+              loadCurrentQuestion();
+            }
+          },
+          onCancel: async () => {
+            // הצג modal נוסף לבחירה בין התחלה מחדש ויציאה
+            showModal({
+              title: "בחר פעולה",
+              message: "האם תרצה להתחיל את השאלון מחדש או לחזור לעמוד הראשי?",
+              confirmText: "התחל מחדש",
+              cancelText: "חזור לעמוד הראשי",
+              onConfirm: async () => {
+                dlog("User chose to start fresh");
+                try {
+                  await AsyncStorage.removeItem("questionnaire_draft");
+                  dlog("Draft removed successfully");
+                  loadCurrentQuestion();
+                } catch (e) {
+                  dlog("Failed to clear draft", { error: e });
+                  loadCurrentQuestion();
+                }
+              },
+              onCancel: async () => {
+                dlog("User chose to exit questionnaire completely");
+                try {
+                  // מחק את כל הנתונים הקשורים לשאלון כדי למנוע לולאה
+                  await AsyncStorage.multiRemove([
+                    "questionnaire_draft",
+                    "smart_questionnaire_results",
+                    "questionnaire_metadata",
+                  ]);
+
+                  // התנתק מהמשתמש הנוכחי
+                  await logout();
+                  dlog("Full logout completed - navigating to clean Welcome");
+
+                  // חזור למסך Welcome נקי לגמרי
+                  navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+                } catch (error) {
+                  dlog("Error during exit questionnaire cleanup", { error });
+                  // גם אם יש שגיאה, נווט למסך Welcome
+                  navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+                }
+              },
+            });
+          },
+        });
       } else {
+        // אין התקדמות שמורה - התחל מחדש
         loadCurrentQuestion();
       }
     } catch (error) {
       dlog("Error checking saved progress", { error });
+      // אם יש שגיאה בטעינת ההתקדמות, פשוט התחל מחדש
       loadCurrentQuestion();
     }
-  }, [loadCurrentQuestion, restoreProgress, manager]);
+  }, [
+    loadCurrentQuestion,
+    restoreProgress,
+    manager,
+    showModal,
+    logout,
+    navigation,
+  ]);
 
   // restoreProgress הוגדרה למעלה
 
   // Load initial question and check for saved progress
   useEffect(() => {
-    loadCurrentQuestionWithProgress();
-  }, [loadCurrentQuestionWithProgress]);
+    const timeoutId = setTimeout(() => {
+      dlog("Loading questionnaire timed out, forcing direct load");
+      loadCurrentQuestion();
+    }, CONSTANTS.TIMINGS.QUESTION_LOAD_TIMEOUT); // timeout via CONSTANTS
+
+    loadCurrentQuestionWithProgress().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [loadCurrentQuestionWithProgress, loadCurrentQuestion]);
 
   // הגנה מפני יציאה בטעות עם Back button
   useEffect(() => {
@@ -378,7 +579,7 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
     );
 
     return () => backHandler.remove();
-  }, [navigation, manager, logout]);
+  }, [navigation, manager, logout, showModal]);
 
   // loadCurrentQuestion מוגדר למעלה עם useCallback
 
@@ -392,6 +593,9 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   // Handle option selection
   const handleOptionSelect = (option: QuestionOption) => {
     if (!currentQuestion) return;
+
+    // Add haptic feedback
+    animateOptionSelect();
 
     if (currentQuestion.type === "single") {
       // Single selection - replace
@@ -437,11 +641,15 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       dlog("draft save failed", { error: e });
     }
 
-    // ⚡ עדכון בזמן אמת ל-store עם תמונת מצב חוקית (IDs מהשאלון בלבד)
+    // ⚡ עדכון בזמן אמת ל-store רק אם השאלון הושלם
     try {
       const snapshot = manager.toSmartQuestionnaireData();
-      setSmartQuestionnaireData(snapshot);
-      // סנכרון מדורג לשרת בכל תשובה
+      // רק אם השאלון הושלם, נעדכן את הstore
+      if (manager.isCompleted()) {
+        setSmartQuestionnaireData(snapshot);
+        dlog("Questionnaire completed - updating store with final data");
+      }
+      // סנכרון מדורג לשרת בכל תשובה (אבל לא עדכון store)
       scheduleServerSync(snapshot);
     } catch (e) {
       // שקט כברירת מחדל
@@ -455,8 +663,8 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         id: a.questionId,
         value: extractIds(a.answer),
       }));
-      // לוג יחיד מרוכז
-      dlog("Questionnaire answers (compact)", compact);
+      // Debug log disabled by default - enable DEBUG_LOGS to see answers
+      dlog("Questionnaire answers updated", { count: compact.length });
     } catch (e) {
       dlog("Failed to build compact answers log", { error: e });
     }
@@ -472,12 +680,14 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       }
 
       setIsLoading(false);
-    }, 300);
+    }, CONSTANTS.TIMINGS.NEXT_BUTTON_DELAY);
   };
 
   // Handle previous question
   const handlePrevious = () => {
     if (manager.canGoBack()) {
+      // Add haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       manager.previousQuestion();
       loadCurrentQuestion();
     }
@@ -624,6 +834,8 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       };
 
       updateUser({
+        // סימון השאלון כמושלם
+        hasQuestionnaire: true,
         // נעדכן נתוני אימון/העדפות בסיסיות לפי התשובות
         trainingstats: {
           selectedEquipment: finalEquipment,
@@ -801,6 +1013,60 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>טוען שאלון...</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              dlog(
+                "Manual retry requested - clearing saved progress and starting fresh"
+              );
+              // נמחק את כל ההתקדמות השמורה ונתחיל מחדש
+              AsyncStorage.multiRemove([
+                "questionnaire_draft",
+                "smart_questionnaire_results",
+              ])
+                .then(() => {
+                  dlog("Cleared all saved questionnaire data");
+                  loadCurrentQuestion();
+                })
+                .catch((e) => {
+                  dlog("Failed to clear saved data", { error: e });
+                  // גם אם נכשל במחיקה, ננסה לטעון מחדש
+                  loadCurrentQuestion();
+                });
+            }}
+          >
+            <Text style={styles.retryButtonText}>נסה שוב</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={async () => {
+              dlog(
+                "User chose to skip questionnaire loading - clearing data and logging out"
+              );
+              try {
+                // מחק את כל הנתונים הקשורים לשאלון כדי למנוע לולאה
+                await AsyncStorage.multiRemove([
+                  "questionnaire_draft",
+                  "smart_questionnaire_results",
+                  "questionnaire_metadata",
+                  "user_profile",
+                ]);
+
+                // התנתק מהמשתמש הנוכחי
+                await logout();
+                dlog("Full logout completed - navigating to clean Welcome");
+
+                // חזור למסך Welcome נקי לגמרי
+                navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+              } catch (error) {
+                dlog("Error during skip questionnaire cleanup", { error });
+                // גם אם יש שגיאה, נווט למסך Welcome
+                navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+              }
+            }}
+          >
+            <Text style={styles.skipButtonText}>חזור לעמוד הראשי</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -811,7 +1077,12 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[theme.colors.background, theme.colors.backgroundElevated]}
+        colors={[
+          theme.colors.background,
+          theme.colors.backgroundElevated + "F0",
+          theme.colors.background + "E0",
+        ]}
+        locations={[0, 0.5, 1]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -932,7 +1203,18 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ["0%", "100%"],
+                    extrapolate: "clamp",
+                  }),
+                },
+              ]}
+            />
           </View>
           <Text style={styles.progressText}>{Math.round(progress)}%</Text>
         </View>
@@ -959,22 +1241,32 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
           {manager.canGoBack() && (
             <TouchableOpacity
               style={styles.backButton}
-              onPress={handlePrevious}
+              onPress={() => {
+                handlePrevious();
+              }}
               disabled={isLoading}
               accessibilityLabel="חזור לשאלה הקודמת"
               accessibilityRole="button"
             >
               <Ionicons
                 name="chevron-forward" // RTL: שימוש בחץ ימינה במקום שמאלה
-                size={16}
-                color={theme.colors.textSecondary}
+                size={20}
+                color={theme.colors.primary}
               />
               <Text style={styles.backButtonText}>השאלה הקודמת</Text>
             </TouchableOpacity>
           )}
 
           {/* Question Header */}
-          <View style={styles.questionHeader}>
+          <Animated.View
+            style={[
+              styles.questionHeader,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+              },
+            ]}
+          >
             <Text style={styles.questionIcon}>{currentQuestion.icon}</Text>
             <Text style={styles.questionTitle}>{currentQuestion.title}</Text>
             {currentQuestion.subtitle && (
@@ -982,75 +1274,126 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                 {currentQuestion.subtitle}
               </Text>
             )}
-          </View>
+          </Animated.View>
 
           {/* Question Text */}
-          <View style={styles.questionContainer}>
+          <Animated.View
+            style={[
+              styles.questionContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
             {currentQuestion.helpText && (
               <Text style={styles.helpText}>{currentQuestion.helpText}</Text>
             )}
-          </View>
+          </Animated.View>
 
           {/* Options */}
-          <View style={styles.optionsContainer}>
-            {currentQuestion.options.map((option) => {
+          <Animated.View
+            style={[
+              styles.optionsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {currentQuestion.options.map((option, index) => {
               const isSelected = selectedOptions.some(
                 (opt) => opt.id === option.id
               );
 
               return (
-                <TouchableOpacity
+                <Animated.View
                   key={option.id}
-                  style={[
-                    styles.optionButton,
-                    isSelected && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => handleOptionSelect(option)}
-                  disabled={isLoading}
+                  style={{
+                    transform: [
+                      {
+                        translateY: slideAnim.interpolate({
+                          inputRange: [-50, 0, 50],
+                          outputRange: [0, 0, index * 10],
+                          extrapolate: "clamp",
+                        }),
+                      },
+                    ],
+                  }}
                 >
-                  <View style={styles.optionContent}>
-                    <View style={styles.optionTextContainer}>
-                      <Text
-                        style={[
-                          styles.optionLabel,
-                          isSelected && styles.optionLabelSelected,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                      {option.description && (
-                        <Text
+                  <TouchableOpacity
+                    style={[
+                      styles.optionButton,
+                      isSelected && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => handleOptionSelect(option)}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={
+                        isSelected
+                          ? [
+                              theme.colors.primary + "15",
+                              theme.colors.primary + "25",
+                            ]
+                          : [theme.colors.card, theme.colors.card]
+                      }
+                      locations={[0, 1]}
+                      style={styles.optionGradient}
+                    >
+                      <View style={styles.optionContent}>
+                        <View style={styles.optionTextContainer}>
+                          <Text
+                            style={[
+                              styles.optionLabel,
+                              isSelected && styles.optionLabelSelected,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                          {option.description && (
+                            <Text
+                              style={[
+                                styles.optionDescription,
+                                isSelected && styles.optionDescriptionSelected,
+                              ]}
+                            >
+                              {option.description}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Selection Indicator */}
+                        <Animated.View
                           style={[
-                            styles.optionDescription,
-                            isSelected && styles.optionDescriptionSelected,
+                            styles.selectionIndicator,
+                            isSelected && styles.selectionIndicatorSelected,
+                            {
+                              transform: [
+                                {
+                                  scale: isSelected ? 1.1 : 1,
+                                },
+                              ],
+                            },
                           ]}
                         >
-                          {option.description}
-                        </Text>
-                      )}
-                    </View>
-
-                    {/* Selection Indicator */}
-                    <View
-                      style={[
-                        styles.selectionIndicator,
-                        isSelected && styles.selectionIndicatorSelected,
-                      ]}
-                    >
-                      {isSelected && (
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color={theme.colors.white}
-                        />
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color={theme.colors.white}
+                            />
+                          )}
+                        </Animated.View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
-          </View>
+          </Animated.View>
 
           {/* Bottom Spacer */}
           <View style={styles.bottomSpacer} />
@@ -1058,21 +1401,49 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
 
         {/* Floating Next Button - צף בתחתית המסך */}
         {selectedOptions.length > 0 && (
-          <View style={styles.floatingButtonContainer}>
+          <Animated.View
+            style={[
+              styles.floatingButtonContainer,
+              {
+                transform: [
+                  {
+                    translateY: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <TouchableOpacity
               style={[
                 styles.floatingButton,
                 isLoading && styles.floatingButtonDisabled,
               ]}
-              onPress={handleNext}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleNext();
+              }}
               disabled={isLoading}
+              activeOpacity={0.9}
             >
               <LinearGradient
                 colors={
                   isLoading
-                    ? [theme.colors.textTertiary, theme.colors.textTertiary]
-                    : [theme.colors.primary, theme.colors.primaryDark]
+                    ? [
+                        theme.colors.textTertiary,
+                        theme.colors.textTertiary,
+                        theme.colors.textTertiary,
+                      ]
+                    : [
+                        theme.colors.primary,
+                        theme.colors.primaryDark,
+                        theme.colors.primary + "CC",
+                      ]
                 }
+                locations={[0, 0.7, 1]}
                 style={styles.floatingButtonGradient}
               >
                 <Text style={styles.floatingButtonText}>
@@ -1084,13 +1455,42 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
 
         {/* Completion Card Overlay */}
         {showCompletionCard && completionSummary && (
-          <View style={styles.completionOverlay}>
-            <View style={styles.completionCard}>
+          <Animated.View
+            style={[
+              styles.completionOverlay,
+              {
+                opacity: fadeAnim,
+              },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.completionCard,
+                {
+                  transform: [
+                    {
+                      scale: scaleAnim.interpolate({
+                        inputRange: [0.95, 1],
+                        outputRange: [0.95, 1],
+                        extrapolate: "clamp",
+                      }),
+                    },
+                    {
+                      translateY: slideAnim.interpolate({
+                        inputRange: [-50, 0, 50],
+                        outputRange: [0, 0, 20],
+                        extrapolate: "clamp",
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               <Text style={styles.completionTitle}>🎉 השאלון הושלם!</Text>
               <Text style={styles.completionSubtitle}>
                 התוכנית האישית שלך מוכנה לפי הבחירות שלך.
@@ -1159,43 +1559,54 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                     }
                     setShowCompletionCard(false);
 
-                    // 🔄 זרימה נכונה: כל משתמש שמגיע לשאלון ללא חשבון עובר להרשמה
-                    // אם המשתמש הגיע לשאלון, זה אומר שהוא צריך להירשם קודם
-                    if (!user?.id) {
-                      // Persist final smart questionnaire snapshot for post-registration attach
-                      try {
-                        const smartData = manager.toSmartQuestionnaireData();
-                        await AsyncStorage.setItem(
-                          "smart_questionnaire_results",
-                          JSON.stringify(smartData)
-                        );
-                      } catch (e) {
-                        dlog(
-                          "Failed persisting smart_questionnaire_results before register",
-                          { error: e }
-                        );
-                      }
-                      dlog("Redirecting to Register (unauthenticated user)");
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "Register" }],
+                    // 🔄 זרימה קשיחה: כל סיום שאלון מחייב הרשמה
+                    // שמירה חובה ב-AsyncStorage לפני הרשמה
+                    try {
+                      const smartData = manager.toSmartQuestionnaireData();
+                      await AsyncStorage.setItem(
+                        "smart_questionnaire_results",
+                        JSON.stringify(smartData)
+                      );
+                      logger.info(
+                        "UnifiedQuestionnaireScreen",
+                        "Smart questionnaire results saved successfully"
+                      );
+                    } catch (e) {
+                      logger.error(
+                        "UnifiedQuestionnaireScreen",
+                        "CRITICAL: Failed persisting smart_questionnaire_results",
+                        e
+                      );
+                      showModal({
+                        title: "שגיאת שמירה",
+                        message:
+                          "לא ניתן להמשיך ללא שמירת התשובות. אנא פנה מקום ונסה שוב.",
+                        confirmText: "אישור",
+                        singleButton: true,
+                        variant: "error",
+                        onConfirm: () => {},
                       });
-                    } else {
-                      dlog("Authenticated user – navigating to MainApp");
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: "MainApp" }],
-                      });
+                      return; // חוסמים המשך אם שמירה נכשלת
                     }
+
+                    // מעבר להרשמה (זרימה יחידה)
+                    logger.info(
+                      "UnifiedQuestionnaireScreen",
+                      "Questionnaire completed - redirecting to Register"
+                    );
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: "Register" }],
+                    });
                   }}
                 >
                   <Text style={styles.completionButtonTextPrimary}>
-                    {serverSaved ? "בואו נתחיל!" : "ממתין לשרת..."}
+                    {serverSaved ? "סיים שאלון" : "ממתין לשרת..."}
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
         )}
       </LinearGradient>
 
@@ -1294,12 +1705,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: theme.spacing.xl,
   },
   loadingText: {
     ...theme.typography.bodyLarge,
     color: theme.colors.textSecondary,
     textAlign: "center",
     writingDirection: "rtl",
+    marginBottom: theme.spacing.xl,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.md,
+  },
+  retryButtonText: {
+    ...theme.typography.bodyLarge,
+    color: theme.colors.white,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  skipButton: {
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  skipButtonText: {
+    ...theme.typography.bodyLarge,
+    color: theme.colors.text,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   // Back Button
@@ -1312,14 +1752,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
     borderWidth: CONSTANTS.BORDERS.THIN,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.primary + "40",
     marginBottom: theme.spacing.lg,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButtonText: {
     ...theme.typography.body,
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
     marginLeft: theme.spacing.xs,
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    fontWeight: "600",
   },
 
   // Question
@@ -1368,16 +1814,27 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   optionButton: {
-    backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
     borderWidth: CONSTANTS.BORDERS.THICK,
     borderColor: theme.colors.border,
     marginBottom: theme.spacing.md,
     overflow: "hidden",
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   optionButtonSelected: {
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "10",
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  optionGradient: {
+    flex: 1,
+    borderRadius: theme.radius.lg,
   },
   optionContent: {
     flexDirection: "row",

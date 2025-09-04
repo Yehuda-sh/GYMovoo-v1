@@ -78,25 +78,28 @@ import type { User } from "../../types";
 // Import NextWorkoutCard
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
+// =============================================================
+// 🔐 CRITICAL FLOW INVARIANTS (See QUESTIONNAIRE_FLOW_CRITICAL.md)
+// 1. MainScreen must only render for fully setup users (questionnaire + basic info).
+// 2. If questionnaire missing → redirect to Questionnaire.
+// 3. If questionnaire done BUT basic info missing (not registered) → redirect to Register.
+// 4. Never auto-create or mutate user completion state here.
+// 5. Any change to gating logic requires documentation update & review.
+// =============================================================
+
 // ===============================================
 // 🔧 Helper Functions - פונקציות עזר
 // ===============================================
 
 /** @description Enhanced logging for development - לוגינג מתקדם לפיתוח */
+const DEBUG_MAIN_SCREEN = false; // toggle for local debugging
 const logDebug = (message: string, data?: unknown) => {
-  if (__DEV__) {
+  if (__DEV__ && DEBUG_MAIN_SCREEN) {
     console.warn(`🔍 MainScreen: ${message}`, data || "");
   }
 };
 
-// ✅ Helper: determine if questionnaire is completed for current user
-const userHasCompletedQuestionnaire = (user: User | null): boolean => {
-  if (!user) return false;
-  if (user.hasQuestionnaire) return true;
-  if (user.smartquestionnairedata?.answers) return true;
-  if (user.questionnairedata?.metadata?.completedAt) return true; // legacy support
-  return false;
-};
+// (Removed legacy helper userHasCompletedQuestionnaire after gating refactor)
 
 /** @description Helper to get questionnaire answer safely - פונקציית עזר לחילוץ תשובות שאלון */
 const getQuestionnaireAnswer = (
@@ -402,7 +405,7 @@ interface MinimalWorkout {
  */
 function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user } = useUserStore();
+  const { user, getCompletionStatus } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -423,16 +426,25 @@ function MainScreen() {
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => Date.now(), []);
 
-  // 🚧 Guard: prevent rendering dashboard for users without questionnaire completion
+  // 🚧 Guard: enforce strict onboarding flow (Questionnaire → Register → Main)
   useEffect(() => {
-    if (!userHasCompletedQuestionnaire(user)) {
-      logDebug("Guard redirect → Questionnaire (missing completion)", {
-        hasFlag: user?.hasQuestionnaire,
-        hasSmart: !!user?.smartquestionnairedata?.answers,
+    const completion = getCompletionStatus?.();
+    if (!completion) return;
+    if (!completion.hasSmartQuestionnaire) {
+      logDebug("Guard redirect → Questionnaire (missing smart questionnaire)", {
+        hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
       });
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+      return;
     }
-  }, [user, navigation]);
+    if (!completion.hasBasicInfo) {
+      logDebug(
+        "Guard redirect → Register (questionnaire done, missing basic info)"
+      );
+      navigation.reset({ index: 0, routes: [{ name: "Register" }] });
+      return;
+    }
+  }, [user, navigation, getCompletionStatus]);
 
   // 📊 טעינת נתונים מתקדמים מ-WorkoutFacadeService
   const loadAdvancedData = useCallback(async () => {
@@ -1148,7 +1160,7 @@ function MainScreen() {
                 label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}
                 subtitle={MAIN_SCREEN_TEXTS.STATS.DAYS}
                 testID="current-streak-card"
-              />{" "}
+              />
               <StatCard
                 variant="default"
                 icon="chart-line"

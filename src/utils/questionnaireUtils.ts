@@ -58,8 +58,12 @@ export function getPersonalDataFromUser(
   const { gender, age, weight, height, fitnessLevel } = answers;
 
   // Basic validation
-  if (!gender || !["male", "female"].includes(gender)) return undefined;
-  if (!fitnessLevel || !["beginner", "intermediate", "advanced"].includes(fitnessLevel)) return undefined;
+  if (!gender || !["male", "female"].includes(String(gender))) return undefined;
+  if (
+    !fitnessLevel ||
+    !["beginner", "intermediate", "advanced"].includes(String(fitnessLevel))
+  )
+    return undefined;
 
   const ageNum = Number(age);
   const weightNum = Number(weight);

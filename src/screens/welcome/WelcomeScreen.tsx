@@ -146,36 +146,41 @@ const WelcomeScreen = React.memo(() => {
   // 🔍 בדיקה אם יש משתמש מחובר וניווט אוטומטי
   useEffect(() => {
     if (user) {
-      const completion = getCompletionStatus();
-      if (__DEV__) {
-        logger.debug("WelcomeScreen: מצא משתמש מחובר", "user", {
-          userId: user.id,
-          hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
-          isFullySetup: completion.isFullySetup,
-        });
-      }
+      // 🛡️ דחייה קטנה כדי לתת ל-store זמן להתעדכן במלואו
+      const timer = setTimeout(() => {
+        const completion = getCompletionStatus();
+        if (__DEV__) {
+          logger.debug("WelcomeScreen: מצא משתמש מחובר", "user", {
+            userId: user.id,
+            hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
+            isFullySetup: completion.isFullySetup,
+          });
+        }
 
-      if (completion.isFullySetup) {
-        if (__DEV__)
-          logger.debug(
-            "WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
-            "navigation"
-          );
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "MainApp" }],
-        });
-      } else {
-        if (__DEV__)
-          logger.debug(
-            "WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון",
-            "navigation"
-          );
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Questionnaire" }],
-        });
-      }
+        if (completion.isFullySetup) {
+          if (__DEV__)
+            logger.debug(
+              "WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
+              "navigation"
+            );
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "MainApp" }],
+          });
+        } else {
+          if (__DEV__)
+            logger.debug(
+              "WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון",
+              "navigation"
+            );
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Questionnaire" }],
+          });
+        }
+      }, 100); // 100ms דחייה קלה
+
+      return () => clearTimeout(timer);
     }
   }, [user, getCompletionStatus, navigation]);
 

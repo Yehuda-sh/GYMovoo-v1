@@ -4,6 +4,8 @@
  * @brief Centralized color system for profile screen - replacing hardcoded colors
  * @notes תמיכה מלאה בתמה, צבעים סמנטיים, נגישות משופרת
  * @notes Full theme support, semantic colors, enhanced accessibility
+ * @version 2025.2
+ * @updated 2025-09-04 הרחבה משמעותית עם צבעים חדשים ופונקציות עזר
  */
 
 import { theme } from "../styles/theme";
@@ -60,6 +62,14 @@ export const ACHIEVEMENT_COLORS = {
     MORNING_PERSON: "#FFA500", // כתום - חובב בוקר
     NIGHT_OWL: "#483D8B", // כחול כהה - ינשוף לילה
   },
+
+  // Challenge achievements / הישגי אתגר
+  CHALLENGE: {
+    FIRST_CHALLENGE: "#FF6B35", // כתום אדום - אתגר ראשון
+    CHALLENGE_MASTER: "#8B0000", // אדום כהה - מאסטר אתגרים
+    SOCIAL_CHALLENGER: "#9370DB", // סגול בינוני - אתגר חברתי
+    PERSONAL_BEST: "#00CED1", // טורקיז - שיא אישי
+  },
 };
 
 /**
@@ -89,6 +99,30 @@ export const STATS_COLORS = {
   // Time gradient / גרדיאנט זמן
   TIME: {
     GRADIENT: ["#32cd32", "#228b22"],
+    ICON: theme.colors.surface,
+  },
+
+  // Nutrition gradient / גרדיאנט תזונה
+  NUTRITION: {
+    GRADIENT: ["#FF6B6B", "#D32F2F"],
+    ICON: theme.colors.surface,
+  },
+
+  // Health gradient / גרדיאנט בריאות
+  HEALTH: {
+    GRADIENT: ["#4CAF50", "#2E7D32"],
+    ICON: theme.colors.surface,
+  },
+
+  // Social gradient / גרדיאנט חברתי
+  SOCIAL: {
+    GRADIENT: ["#9C27B0", "#7B1FA2"],
+    ICON: theme.colors.surface,
+  },
+
+  // Goals gradient / גרדיאנט מטרות
+  GOALS: {
+    GRADIENT: ["#FF9800", "#F57C00"],
     ICON: theme.colors.surface,
   },
 };
@@ -121,6 +155,26 @@ export const PROFILE_UI_COLORS = {
     SECONDARY: theme.colors.textSecondary,
     MUTED: theme.colors.textSecondary,
     WHITE: theme.colors.surface,
+    ACCENT: theme.colors.primary,
+    SUCCESS: theme.colors.success,
+    ERROR: theme.colors.error,
+    WARNING: theme.colors.warning || "#FFA500",
+  },
+
+  // Status colors / צבעי סטטוס
+  STATUS: {
+    ONLINE: theme.colors.success,
+    OFFLINE: theme.colors.textSecondary,
+    BUSY: theme.colors.error,
+    AWAY: theme.colors.warning || "#FFA500",
+  },
+
+  // Accessibility colors / צבעי נגישות
+  ACCESSIBILITY: {
+    HIGH_CONTRAST: "#000000",
+    LOW_CONTRAST: "#666666",
+    FOCUS_RING: theme.colors.primary,
+    ERROR_RING: theme.colors.error,
   },
 };
 
@@ -156,6 +210,19 @@ export const BUTTON_COLORS = {
   SUCCESS: {
     BACKGROUND: theme.colors.success,
     TEXT: theme.colors.surface,
+  },
+  WARNING: {
+    BACKGROUND: theme.colors.warning || "#FFA500",
+    TEXT: theme.colors.surface,
+  },
+  DISABLED: {
+    BACKGROUND: theme.colors.textSecondary,
+    TEXT: theme.colors.surface,
+  },
+  OUTLINE: {
+    BACKGROUND: "transparent",
+    TEXT: theme.colors.primary,
+    BORDER: theme.colors.primary,
   },
 };
 
@@ -194,6 +261,10 @@ export const getAchievementColor = (
     18: ACHIEVEMENT_COLORS.SPECIAL.WEEKEND_WARRIOR,
     19: ACHIEVEMENT_COLORS.SPECIAL.MORNING_PERSON,
     20: ACHIEVEMENT_COLORS.SPECIAL.NIGHT_OWL,
+    21: ACHIEVEMENT_COLORS.CHALLENGE.FIRST_CHALLENGE,
+    22: ACHIEVEMENT_COLORS.CHALLENGE.CHALLENGE_MASTER,
+    23: ACHIEVEMENT_COLORS.CHALLENGE.SOCIAL_CHALLENGER,
+    24: ACHIEVEMENT_COLORS.CHALLENGE.PERSONAL_BEST,
   };
 
   return colorMap[achievementId] || theme.colors.primary;
@@ -204,7 +275,15 @@ export const getAchievementColor = (
  * קבלת צבעי גרדיאנט לסטטיסטיקות
  */
 export const getStatsGradient = (
-  type: "workouts" | "streak" | "rating" | "time"
+  type:
+    | "workouts"
+    | "streak"
+    | "rating"
+    | "time"
+    | "nutrition"
+    | "health"
+    | "social"
+    | "goals"
 ): [string, string] => {
   switch (type) {
     case "workouts":
@@ -215,6 +294,14 @@ export const getStatsGradient = (
       return STATS_COLORS.RATING.GRADIENT as [string, string];
     case "time":
       return STATS_COLORS.TIME.GRADIENT as [string, string];
+    case "nutrition":
+      return STATS_COLORS.NUTRITION.GRADIENT as [string, string];
+    case "health":
+      return STATS_COLORS.HEALTH.GRADIENT as [string, string];
+    case "social":
+      return STATS_COLORS.SOCIAL.GRADIENT as [string, string];
+    case "goals":
+      return STATS_COLORS.GOALS.GRADIENT as [string, string];
     default:
       return [theme.colors.primary, theme.colors.primary];
   }
@@ -233,6 +320,10 @@ export const DATA_VISUALIZATION_COLORS = {
     ACHIEVEMENT_COLORS.TIME.HOUR,
     ACHIEVEMENT_COLORS.MEDALS.GOLD,
     ACHIEVEMENT_COLORS.SPECIAL.MORNING_PERSON,
+    ACHIEVEMENT_COLORS.CHALLENGE.FIRST_CHALLENGE,
+    ACHIEVEMENT_COLORS.LOYALTY.VETERAN,
+    STATS_COLORS.NUTRITION.GRADIENT[0],
+    STATS_COLORS.HEALTH.GRADIENT[0],
   ],
 
   // Progress colors / צבעי התקדמות
@@ -241,5 +332,154 @@ export const DATA_VISUALIZATION_COLORS = {
     MEDIUM: "#FFA500", // כתום
     HIGH: theme.colors.success,
     EXCELLENT: ACHIEVEMENT_COLORS.MEDALS.GOLD,
+    SUPERB: ACHIEVEMENT_COLORS.MEDALS.DIAMOND,
+  },
+
+  // Status indicators / מחווני סטטוס
+  STATUS_INDICATORS: {
+    ACTIVE: theme.colors.success,
+    INACTIVE: theme.colors.textSecondary,
+    PENDING: theme.colors.warning || "#FFA500",
+    COMPLETED: theme.colors.primary,
+    FAILED: theme.colors.error,
+  },
+
+  // Trend colors / צבעי מגמה
+  TRENDS: {
+    UP: theme.colors.success,
+    DOWN: theme.colors.error,
+    STABLE: theme.colors.warning || "#FFA500",
+    IMPROVING: "#00CED1", // טורקיז
+    DECLINING: "#DC143C", // אדום כהה
+  },
+};
+
+/**
+ * Helper functions for color management
+ * פונקציות עזר לניהול צבעים
+ */
+export const COLOR_HELPERS = {
+  /**
+   * Get achievement category color
+   * קבלת צבע קטגוריית הישג
+   */
+  getAchievementCategoryColor: (category: string): string => {
+    const categoryColors: Record<string, string> = {
+      basic: ACHIEVEMENT_COLORS.BASIC.FIRST_WORKOUT,
+      streak: ACHIEVEMENT_COLORS.STREAK.WEEKLY,
+      medals: ACHIEVEMENT_COLORS.MEDALS.GOLD,
+      time: ACHIEVEMENT_COLORS.TIME.HOUR,
+      loyalty: ACHIEVEMENT_COLORS.LOYALTY.WEEK,
+      performance: ACHIEVEMENT_COLORS.PERFORMANCE.EXCELLENT_RATER,
+      special: ACHIEVEMENT_COLORS.SPECIAL.WEEKEND_WARRIOR,
+      challenge: ACHIEVEMENT_COLORS.CHALLENGE.FIRST_CHALLENGE,
+    };
+    return categoryColors[category] || theme.colors.primary;
+  },
+
+  /**
+   * Get button color by state
+   * קבלת צבע כפתור לפי מצב
+   */
+  getButtonColor: (
+    state:
+      | "primary"
+      | "secondary"
+      | "danger"
+      | "success"
+      | "warning"
+      | "disabled"
+      | "outline",
+    property: "background" | "text" | "border" = "background"
+  ): string => {
+    const stateColors =
+      BUTTON_COLORS[state.toUpperCase() as keyof typeof BUTTON_COLORS];
+    if (!stateColors) return theme.colors.primary;
+
+    return (
+      stateColors[property.toUpperCase() as keyof typeof stateColors] ||
+      theme.colors.primary
+    );
+  },
+
+  /**
+   * Get text color by type
+   * קבלת צבע טקסט לפי סוג
+   */
+  getTextColor: (
+    type:
+      | "primary"
+      | "secondary"
+      | "muted"
+      | "white"
+      | "accent"
+      | "success"
+      | "error"
+      | "warning"
+  ): string => {
+    return (
+      PROFILE_UI_COLORS.TEXT[
+        type.toUpperCase() as keyof typeof PROFILE_UI_COLORS.TEXT
+      ] || theme.colors.text
+    );
+  },
+
+  /**
+   * Get status indicator color
+   * קבלת צבע מחוון סטטוס
+   */
+  getStatusColor: (status: "online" | "offline" | "busy" | "away"): string => {
+    return (
+      PROFILE_UI_COLORS.STATUS[
+        status.toUpperCase() as keyof typeof PROFILE_UI_COLORS.STATUS
+      ] || theme.colors.textSecondary
+    );
+  },
+
+  /**
+   * Get progress color based on percentage
+   * קבלת צבע התקדמות לפי אחוז
+   */
+  getProgressColor: (percentage: number): string => {
+    if (percentage >= 90) return DATA_VISUALIZATION_COLORS.PROGRESS.EXCELLENT;
+    if (percentage >= 75) return DATA_VISUALIZATION_COLORS.PROGRESS.HIGH;
+    if (percentage >= 50) return DATA_VISUALIZATION_COLORS.PROGRESS.MEDIUM;
+    return DATA_VISUALIZATION_COLORS.PROGRESS.LOW;
+  },
+
+  /**
+   * Get trend color based on change
+   * קבלת צבע מגמה לפי שינוי
+   */
+  getTrendColor: (change: number): string => {
+    if (change > 0) return DATA_VISUALIZATION_COLORS.TRENDS.UP;
+    if (change < 0) return DATA_VISUALIZATION_COLORS.TRENDS.DOWN;
+    return DATA_VISUALIZATION_COLORS.TRENDS.STABLE;
+  },
+
+  /**
+   * Check if color has good contrast with background
+   * בדיקה אם צבע יש ניגודיות טובה עם הרקע
+   */
+  hasGoodContrast: (
+    color: string,
+    background: string = theme.colors.surface
+  ): boolean => {
+    // Simple contrast check - in a real app you'd use a proper contrast calculation
+    const colorBrightness = color === theme.colors.surface ? 1 : 0;
+    const bgBrightness = background === theme.colors.surface ? 1 : 0;
+    return Math.abs(colorBrightness - bgBrightness) > 0.5;
+  },
+
+  /**
+   * Get accessible color variant
+   * קבלת גרסת צבע נגישה
+   */
+  getAccessibleColor: (color: string, forDarkBg: boolean = false): string => {
+    // Return high contrast version for accessibility
+    if (forDarkBg) {
+      return PROFILE_UI_COLORS.ACCESSIBILITY.HIGH_CONTRAST;
+    }
+    return color;
   },
 };
