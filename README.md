@@ -25,6 +25,20 @@ npx expo start
 - 🌍 **RTL Hebrew Support** - Complete right-to-left interface
 - 🔧 **Full TypeScript** - 100% type safety
 
+## 🧭 Onboarding Flow (Updated 2025-09-04)
+
+1. Welcome (unauthenticated users only)
+2. Smart Questionnaire (ALWAYS before account creation)
+3. Register (answers already collected – attached to new user)
+4. MainApp (guarded: cannot enter without completed questionnaire)
+
+Rules:
+
+- Returning user without questionnaire is forced into Questionnaire (cannot reach MainApp)
+- Questionnaire completion for unauthenticated user always navigates to Register (not directly to MainApp)
+- After successful registration the questionnaire data is attached (local → server best-effort) and user is reset into MainApp
+- MainScreen now contains a runtime guard that redirects if questionnaire data/flags are missing
+
 ## 🛠️ Tech Stack
 
 - **React Native** + **Expo** - Cross-platform mobile development

@@ -6,9 +6,9 @@
 
 מערכת ההתחברות עובדת אוטומטית:
 
-1. **פתיחת האפליקציה** → WelcomeScreen בודק אוטומטית אם יש משתמש מחובר
-2. **משתמש מחובר** → ניווט ישיר למסך הבית (MainApp)
-3. **משתמש לא מחובר** → הצגת מסך ברוכים הבאים
+1. **פתיחת האפליקציה** → אם יש משתמש + שאלון מלא → MainApp / אם יש משתמש בלי שאלון → Questionnaire / אחרת Welcome
+2. **משתמש מחובר ללא שאלון** → Redirect מיידי ל-Questionnaire (Guard)
+3. **משתמש לא מחובר** → Welcome → Questionnaire (איסוף תשובות) → Register (צירוף תשובות) → MainApp
 
 ### התחברות אוטומטית (Auto-Login)
 
@@ -47,12 +47,13 @@ function MyComponent() {
 
 ## 🔄 התנהגות מצופה
 
-### ✅ התחברות רגילה:
+### ✅ התחברות רגילה (מעודכן):
 
-1. פותח את האפליקציה
-2. Zustand טוען את המשתמש מ-AsyncStorage
-3. אם יש משתמש → עובר למסך הראשי
-4. אם אין → עובר למסך התחברות
+1. פתיחת אפליקציה
+2. טוען משתמש מקומי (אם קיים)
+3. אם user && hasQuestionnaire → MainApp
+4. אם user && !hasQuestionnaire → Questionnaire (אי אפשר לדלג)
+5. אם אין משתמש → Welcome → Questionnaire → Register → MainApp
 
 ### ✅ התנתקות מלאה:
 
@@ -77,4 +78,10 @@ function MyComponent() {
 
 ---
 
-**המערכת מוכנה ועובדת כמו שצריך! 🎉**
+### 🛡️ Guards חדשים
+
+- MainScreen: לפני רינדור – בדיקה אם יש questionnairedata/smartquestionnairedata/hasQuestionnaire אחרת redirect
+- Questionnaire: בעת השלמה ללא משתמש → reset ל-Register (ולא MainApp)
+- Register: אם קיימים smart_questionnaire_results מקומיים → מצרף ונכנס ל-MainApp עם reset
+
+**המערכת מעודכנת ועובדת עם זרימת Onboarding קשיחה! 🎉**

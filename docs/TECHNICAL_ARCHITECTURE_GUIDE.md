@@ -1,6 +1,7 @@
 # 🔧 מדריך טכני מרכזי - GYMovoo Technical Architecture
 
 **עדכון אחרון:** 03/09/2025
+**תוספת זרימת Onboarding קשיחה:** 04/09/2025
 
 ## 🏗️ ארכיטקטורה כללית
 
@@ -47,6 +48,29 @@ const handlePress = (data: WorkoutStatistics) => {
 │   RTL מלא       │    │  1-10 scoring    │    │  users data      │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
+
+### 🔐 Enforcement חדש (04/09/2025)
+
+```mermaid
+flowchart TD
+  A[Launch] --> B{Stored User?}
+  B -- No --> W[Welcome]
+  W --> Q[Questionnaire]
+  Q -- Completed + !User --> R[Register]
+  Q -- Completed + User --> M[MainApp]
+  B -- Yes --> C{Has Questionnaire?}
+  C -- No --> Q
+  C -- Yes --> M
+  R --> M
+  M -- Guard Fail (missing data) --> Q
+```
+
+Implementation Notes:
+
+- MainScreen guard: redirects using navigation.reset
+- Questionnaire completion: always persists smart_questionnaire_results locally before Register
+- Register attach: best-effort server update, local state authoritative
+- navigation.reset used after Questionnaire completion & registration to prevent back navigation
 
 ## מערכת הרכיבים המתקדמת
 

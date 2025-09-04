@@ -35,17 +35,25 @@ BottomNavigation.tsx - ניווט תחתון ישראלי מתקדם
 
 ## 🔗 זרימת ניווט עיקרית
 
-### מסכי Auth & Onboarding
+### מסכי Auth & Onboarding (מעודכן 04/09/2025)
 
-- **WelcomeScreen** → Register, Login, Questionnaire
-- **LoginScreen** → Register, Terms, MainApp
-- **RegisterScreen** → Login, Terms, Questionnaire
-- **TermsScreen** → (חזרה)
-- **Questionnaire** → MainApp (אחרי השלמה)
+סדר מחייב ובלתי עביר ללא השלמה:
+
+1. **WelcomeScreen** (רק אם אין משתמש טעון) → Questionnaire
+2. **Questionnaire** (תמיד לפני יצירת חשבון) → Register (אם לא מחובר) / MainApp (אם מחובר)
+3. **RegisterScreen** (מצרפת את תוצאות השאלון שכבר מולאו) → MainApp
+4. **MainApp** (Guard: אם אין שאלון מלא → redirect לשאלון)
+
+שינויים עיקריים:
+
+- אי אפשר יותר לעבור מהשאלון הלאה ללא שמירת נתונים ל-local + מעבר להרשמה אם אנונימי.
+- Welcome לא יוצג למשתמש מחובר.
+- Register לא מתחיל שאלון – הוא רק מצרף נתונים שנאספו לפני כן.
+- שימוש ב-navigation.reset בכל שלב סיום (Questionnaire → Register/MainApp, Register → MainApp) למניעת חזרה לאחור.
 
 ### מסכים עיקריים
 
-- **MainScreen** → כל המסכים
+- **MainScreen** → כל המסכים (עם Guard לשאלון)
 - **ProfileScreen** → Questionnaire (עריכה)
 - **WorkoutPlansScreen** → ActiveWorkout, Questionnaire
 - **ActiveWorkout** → תרגילים פעילים

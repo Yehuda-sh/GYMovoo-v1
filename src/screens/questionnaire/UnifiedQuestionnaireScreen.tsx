@@ -1111,7 +1111,7 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
               <View style={styles.completionButtonsRow}>
                 <TouchableOpacity
                   style={[styles.completionButton, styles.secondaryButton]}
-                  onPress={() => {
+                  onPress={async () => {
                     // חזרה לעריכה: עבור לשאלה האחרונה שנענתה
                     try {
                       manager.goToLastAnswered();
@@ -1134,7 +1134,7 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                       styles.disabledButton,
                   ]}
                   disabled={!manager.isCompleted() || !serverSaved}
-                  onPress={() => {
+                  onPress={async () => {
                     if (!manager.isCompleted()) {
                       showModal({
                         title: "שאלון לא הושלם",
@@ -1162,13 +1162,30 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                     // 🔄 זרימה נכונה: כל משתמש שמגיע לשאלון ללא חשבון עובר להרשמה
                     // אם המשתמש הגיע לשאלון, זה אומר שהוא צריך להירשם קודם
                     if (!user?.id) {
-                      dlog(
-                        "No authenticated user ID - redirecting to Register after questionnaire completion"
-                      );
-                      navigation.navigate("Register");
+                      // Persist final smart questionnaire snapshot for post-registration attach
+                      try {
+                        const smartData = manager.toSmartQuestionnaireData();
+                        await AsyncStorage.setItem(
+                          "smart_questionnaire_results",
+                          JSON.stringify(smartData)
+                        );
+                      } catch (e) {
+                        dlog(
+                          "Failed persisting smart_questionnaire_results before register",
+                          { error: e }
+                        );
+                      }
+                      dlog("Redirecting to Register (unauthenticated user)");
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Register" }],
+                      });
                     } else {
-                      dlog("Authenticated user found - redirecting to MainApp");
-                      navigation.navigate("MainApp");
+                      dlog("Authenticated user – navigating to MainApp");
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "MainApp" }],
+                      });
                     }
                   }}
                 >

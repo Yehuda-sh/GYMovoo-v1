@@ -467,19 +467,14 @@ export default function RegisterScreen() {
         const smartQuestionnaireResults = await AsyncStorage.getItem(
           "smart_questionnaire_results"
         );
-
         if (questionnaireMetadata && smartQuestionnaireResults) {
           console.warn(
-            "✅ Found existing questionnaire data, uploading to server and going to MainApp"
+            "✅ Found existing questionnaire data – attaching to new user"
           );
-
-          // העלה נתוני השאלון לשרת עם המשתמש החדש
           try {
             const metadata = JSON.parse(questionnaireMetadata);
             const results = JSON.parse(smartQuestionnaireResults);
-
-            // עדכן את המשתמש עם נתוני השאלון
-            const userWithQuestionnaire = {
+            const userWithQuestionnaire: User = {
               ...savedUser,
               smartquestionnairedata: {
                 answers: results.answers || results,
@@ -491,26 +486,36 @@ export default function RegisterScreen() {
               },
               hasQuestionnaire: true,
             };
-
-            // שמור ב-store
+            // Remote best-effort
+            try {
+              if (userWithQuestionnaire.id) {
+                await userApi.update(userWithQuestionnaire.id, {
+                  smartquestionnairedata:
+                    userWithQuestionnaire.smartquestionnairedata,
+                  hasQuestionnaire: true,
+                });
+              }
+            } catch (e) {
+              console.warn(
+                "⚠️ Remote questionnaire attach failed, keeping local state",
+                e
+              );
+            }
             useUserStore.getState().setUser(userWithQuestionnaire);
-
-            // נקה את נתוני השאלון הזמניים
             await AsyncStorage.multiRemove([
               "questionnaire_metadata",
               "smart_questionnaire_results",
               "questionnaire_draft",
             ]);
-
-            // עבור ישר ל-MainApp
             navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
             return;
-          } catch (uploadError) {
+          } catch (attachErr) {
             console.warn(
-              "⚠️ Failed to upload questionnaire data:",
-              uploadError
+              "⚠️ Failed parsing questionnaire – redirecting to Questionnaire",
+              attachErr
             );
-            // במקרה של שגיאה, עבור לשאלון
+            navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+            return;
           }
         }
       } catch (storageError) {

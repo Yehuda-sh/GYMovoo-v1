@@ -89,6 +89,15 @@ const logDebug = (message: string, data?: unknown) => {
   }
 };
 
+// ✅ Helper: determine if questionnaire is completed for current user
+const userHasCompletedQuestionnaire = (user: User | null): boolean => {
+  if (!user) return false;
+  if (user.hasQuestionnaire) return true;
+  if (user.smartquestionnairedata?.answers) return true;
+  if (user.questionnairedata?.metadata?.completedAt) return true; // legacy support
+  return false;
+};
+
 /** @description Helper to get questionnaire answer safely - פונקציית עזר לחילוץ תשובות שאלון */
 const getQuestionnaireAnswer = (
   user: User | null,
@@ -413,6 +422,17 @@ function MainScreen() {
 
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => Date.now(), []);
+
+  // 🚧 Guard: prevent rendering dashboard for users without questionnaire completion
+  useEffect(() => {
+    if (!userHasCompletedQuestionnaire(user)) {
+      logDebug("Guard redirect → Questionnaire (missing completion)", {
+        hasFlag: user?.hasQuestionnaire,
+        hasSmart: !!user?.smartquestionnairedata?.answers,
+      });
+      navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
+    }
+  }, [user, navigation]);
 
   // 📊 טעינת נתונים מתקדמים מ-WorkoutFacadeService
   const loadAdvancedData = useCallback(async () => {
