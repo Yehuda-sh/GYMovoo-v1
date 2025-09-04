@@ -9,12 +9,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { workoutApi } from "../api/workoutApi";
 import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
+import { StorageKeys } from "../../constants/StorageKeys";
 import {
   WorkoutWithFeedback,
   WorkoutHistoryItem,
 } from "../../screens/workout/types/workout.types";
-
-const WORKOUT_HISTORY_KEY = "workout_history";
 
 class WorkoutStorageService {
   private readonly SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 ימים במילישניות
@@ -59,7 +58,7 @@ class WorkoutStorageService {
     const existingHistory = await this.getLocalHistory();
     const updatedHistory = [workout, ...existingHistory];
     await AsyncStorage.setItem(
-      WORKOUT_HISTORY_KEY,
+      StorageKeys.WORKOUT_HISTORY,
       JSON.stringify(updatedHistory)
     );
   }
@@ -84,7 +83,7 @@ class WorkoutStorageService {
       // שמירה רק אם יש הבדל
       if (filteredHistory.length !== history.length) {
         await AsyncStorage.setItem(
-          WORKOUT_HISTORY_KEY,
+          StorageKeys.WORKOUT_HISTORY,
           JSON.stringify(filteredHistory)
         );
         logger.info(
@@ -98,38 +97,6 @@ class WorkoutStorageService {
   }
 
   /**
-   * קבלת מידע על הגבלות Free users
-   */
-  async getFreeUserStorageInfo(): Promise<{
-    isFreeLimited: boolean;
-    workoutCount: number;
-    oldestWorkoutAge: number; // ימים
-    canSync: boolean;
-  }> {
-    const user = useUserStore.getState().user;
-    const subscription = user?.subscription;
-    const isFreeLimited = subscription?.type === "free";
-
-    const history = await this.getLocalHistory();
-    const workoutCount = history.length;
-
-    let oldestWorkoutAge = 0;
-    if (history.length > 0) {
-      const oldestWorkout = history[history.length - 1];
-      const oldestDate = new Date(oldestWorkout.feedback.completedAt).getTime();
-      const now = new Date().getTime();
-      oldestWorkoutAge = Math.floor((now - oldestDate) / (24 * 60 * 60 * 1000));
-    }
-
-    return {
-      isFreeLimited,
-      workoutCount,
-      oldestWorkoutAge,
-      canSync: !isFreeLimited && !!user?.id,
-    };
-  }
-
-  /**
    * Get the full workout history.
    * Free users: Local storage only with automatic cleanup
    * Premium users: Remote storage with local fallback
@@ -137,18 +104,6 @@ class WorkoutStorageService {
   async getHistory(): Promise<WorkoutWithFeedback[]> {
     const user = useUserStore.getState().user;
     const subscription = user?.subscription;
-
-    // בדיקה תחילה אם יש נתונים ב-activityhistory של המשתמש
-    if (
-      user?.activityhistory?.workouts &&
-      Array.isArray(user.activityhistory.workouts)
-    ) {
-      logger.info(
-        "Loading workout history from user.activityhistory",
-        "storage"
-      );
-      return user.activityhistory.workouts;
-    }
 
     // Premium users: ניסיון remote תחילה, אם לא אז local
     if (user?.id && subscription?.type !== "free") {
@@ -174,7 +129,7 @@ class WorkoutStorageService {
    */
   private async getLocalHistory(): Promise<WorkoutWithFeedback[]> {
     try {
-      const raw = await AsyncStorage.getItem(WORKOUT_HISTORY_KEY);
+      const raw = await AsyncStorage.getItem(StorageKeys.WORKOUT_HISTORY);
       const data: WorkoutWithFeedback[] = raw ? JSON.parse(raw) : [];
       return Array.isArray(data) ? data : [];
     } catch (error) {
@@ -199,35 +154,11 @@ class WorkoutStorageService {
   }
 
   /**
-   * Synchronize local workout history with the remote server.
-   */
-  async syncLocalHistoryWithServer(userId: string): Promise<void> {
-    try {
-      const localHistory = await this.getLocalHistory();
-      if (localHistory.length === 0) {
-        return; // Nothing to sync
-      }
-
-      // In a real app, you'd probably want to merge intelligently.
-      // For now, we'll just upload all local workouts.
-      for (const workout of localHistory) {
-        await workoutApi.createForUser(userId, workout);
-      }
-
-      // Clear local history after successful sync
-      await AsyncStorage.removeItem(WORKOUT_HISTORY_KEY);
-      logger.info("Local workout history synced successfully", "storage");
-    } catch (error) {
-      logger.error("Error syncing local workout history", "storage", error);
-    }
-  }
-
-  /**
    * Clear all workout history.
    */
   async clearHistory(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(WORKOUT_HISTORY_KEY);
+      await AsyncStorage.removeItem(StorageKeys.WORKOUT_HISTORY);
       // Also need to clear remote history if a user is logged in
       const user = useUserStore.getState().user;
       if (user?.id) {

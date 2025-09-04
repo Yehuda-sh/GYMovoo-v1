@@ -398,6 +398,111 @@ const DeveloperScreen = () => {
     }
   };
 
+  // עדכון מאסיבי של משתמשים
+  const updateAllUsers = async () => {
+    showConfirmationModal(
+      "עדכון מאסיבי",
+      `האם לעדכן את כל ${users.length} המשתמשים בשרת?`,
+      async () => {
+        try {
+          setLoading(true);
+          logger.info("developer", "מתחיל עדכון מאסיבי למשתמשים");
+
+          let updatedCount = 0;
+          for (const user of users) {
+            try {
+              if (user.id?.startsWith("demo_")) continue; // דילוג על משתמשי דמו
+              if (!user.id) continue; // דילוג על משתמשים ללא ID
+
+              // כאן תוכל להוסיף עדכונים ספציפיים
+              const updates = {
+                // דוגמה: הוספת timestamp אחרון
+                // updated_at: new Date().toISOString(),
+                // או עדכון העדפות
+                // preferences: { ...user.preferences, language: 'he' }
+              };
+
+              if (Object.keys(updates).length > 0) {
+                await userApi.update(user.id, updates);
+                updatedCount++;
+              }
+            } catch (userError) {
+              logger.error(
+                "developer",
+                `שגיאה בעדכון משתמש ${user.id}`,
+                userError
+              );
+            }
+          }
+
+          announceSuccess(`עודכנו ${updatedCount} משתמשים`);
+          showConfirmationModal(
+            "הצלחה",
+            `עודכנו ${updatedCount} משתמשים`,
+            () => {},
+            {
+              singleButton: true,
+            }
+          );
+          await loadUsers();
+        } catch (error) {
+          logger.error("developer", "שגיאה בעדכון מאסיבי", error);
+          announceError("שגיאה בעדכון מאסיבי");
+          showConfirmationModal("שגיאה", "שגיאה בעדכון המשתמשים", () => {}, {
+            singleButton: true,
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+      { destructive: false, confirmText: "עדכן הכל" }
+    );
+  };
+
+  // בדיקת תקינות נתוני משתמשים
+  const validateUsersData = async () => {
+    try {
+      setLoading(true);
+      logger.info("developer", "בודק תקינות נתוני משתמשים");
+
+      const stats = {
+        total: users.length,
+        withQuestionnaire: 0,
+        withSmartQuestionnaire: 0,
+        withWorkoutPlans: 0,
+        demoUsers: 0,
+        missingFields: [] as string[],
+      };
+
+      users.forEach((user) => {
+        if (user.questionnaire) stats.withQuestionnaire++;
+        if (user.smartquestionnairedata) stats.withSmartQuestionnaire++;
+        if (user.workoutplans) stats.withWorkoutPlans++;
+        if (user.id?.startsWith("demo_")) stats.demoUsers++;
+
+        if (!user.email)
+          stats.missingFields.push(`${user.id || "unknown"}: חסר email`);
+      });
+
+      const message = `
+סה"כ: ${stats.total}
+שאלון רגיל: ${stats.withQuestionnaire}
+שאלון חכם: ${stats.withSmartQuestionnaire}
+תוכניות אימון: ${stats.withWorkoutPlans}
+משתמשי דמו: ${stats.demoUsers}
+${stats.missingFields.length > 0 ? "\nשדות חסרים:\n" + stats.missingFields.join("\n") : ""}`;
+
+      showConfirmationModal("סטטיסטיקות משתמשים", message, () => {}, {
+        singleButton: true,
+      });
+    } catch (error) {
+      logger.error("developer", "שגיאה בבדיקת נתונים", error);
+      announceError("שגיאה בבדיקת נתונים");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // רכיב כפתור debug עם טיפוס חזק
   const DebugToggle = ({
     label,
@@ -516,6 +621,18 @@ const DeveloperScreen = () => {
                 title="משתמש ללא שאלון"
                 icon="person-outline"
                 onPress={createUserWithoutQuestionnaire}
+                variant="outline"
+              />
+              <ActionButton
+                title="עדכון כל המשתמשים"
+                icon="refresh-outline"
+                onPress={updateAllUsers}
+                variant="secondary"
+              />
+              <ActionButton
+                title="בדיקת תקינות נתונים"
+                icon="checkmark-circle-outline"
+                onPress={validateUsersData}
                 variant="outline"
               />
               <ActionButton

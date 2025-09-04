@@ -14,15 +14,34 @@ jest.mock("../screens/workout/components/ExerciseRow", () => {
   const React = require("react");
   const { View, Text } = require("react-native");
 
-  let renderCount = 0;
-
   const MockExerciseRow = React.memo(
-    ({ exercise, index }: { exercise: WorkoutExercise; index: number }) => {
-      renderCount++;
+    ({
+      exercise,
+      index,
+      totalCount,
+      onUpdateSet,
+      onAddSet,
+      onCompleteSet,
+      onDeleteSet,
+      onReorderSets,
+      onRemoveExercise,
+      onStartRest,
+    }: {
+      exercise: WorkoutExercise;
+      index: number;
+      totalCount: number;
+      onUpdateSet: jest.Mock;
+      onAddSet: jest.Mock;
+      onCompleteSet: jest.Mock;
+      onDeleteSet: jest.Mock;
+      onReorderSets: jest.Mock;
+      onRemoveExercise: jest.Mock;
+      onStartRest: jest.Mock;
+    }) => {
       return (
         <View testID={`exercise-row-${exercise.id}`}>
           <Text testID={`exercise-name-${index}`}>{exercise.name}</Text>
-          <Text testID="render-count">{renderCount}</Text>
+          <Text testID={`exercise-total-count-${index}`}>{totalCount}</Text>
         </View>
       );
     }
@@ -39,6 +58,9 @@ jest.mock("../screens/workout/components/ExerciseRow", () => {
 jest.mock("../utils/logger", () => ({
   logger: {
     debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
   },
 }));
 
@@ -120,21 +142,24 @@ describe("ExercisesList", () => {
     // בדיקה שהפרופס הועברו נכון
     expect(getByTestId("exercise-name-0")).toHaveTextContent("תרגיל 1");
     expect(getByTestId("exercise-name-1")).toHaveTextContent("תרגיל 2");
+
+    // בדיקה ש-totalCount הועבר נכון
+    expect(getByTestId("exercise-total-count-0")).toHaveTextContent("2");
+    expect(getByTestId("exercise-total-count-1")).toHaveTextContent("2");
   });
 
   it("should optimize rendering with memoization", () => {
     const exercises = createMockExercises(3);
 
-    const { rerender } = render(
+    const { rerender, getByTestId } = render(
       <ExercisesList exercises={exercises} {...mockHandlers} />
     );
 
     // רינדור מחדש עם אותם נתונים
     rerender(<ExercisesList exercises={exercises} {...mockHandlers} />);
 
-    // בדיקה שהרכיב ממוטב עם memo (לא צריך לבדוק render count במקרה זה
-    // כי זה יותר מסובך עם FlatList, אבל אנחנו יכולים לבדוק שלא קרסנו)
-    expect(true).toBe(true);
+    // בדיקה שהרכיב ממוטב עם memo - לא צריך ליפול
+    expect(getByTestId("exercises-list")).toBeTruthy();
   });
 
   it("should handle empty exercises list", () => {
@@ -143,5 +168,24 @@ describe("ExercisesList", () => {
     );
 
     expect(getByTestId("exercises-list")).toBeTruthy();
+  });
+
+  it("should handle exercises with missing properties gracefully", () => {
+    const exercisesWithMissingProps = [
+      {
+        id: "exercise-1",
+        name: "תרגיל 1",
+        // missing other required properties
+      } as WorkoutExercise,
+    ];
+
+    expect(() => {
+      render(
+        <ExercisesList
+          exercises={exercisesWithMissingProps}
+          {...mockHandlers}
+        />
+      );
+    }).not.toThrow();
   });
 });

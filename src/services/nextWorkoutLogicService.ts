@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { workoutFacadeService } from "./workout/workoutFacadeService";
 
 // =======================================
 // 🔑 Storage Configuration
@@ -405,12 +406,45 @@ class NextWorkoutLogicService {
         );
       }
 
-      // Enhanced new state creation with comprehensive initialization
+      // Enhanced new state creation with comprehensive initialization from real workout history
+      // 🔄 Load actual workout history to get real lastWorkoutDate
+      const workoutHistory = await workoutFacadeService.getHistory();
+
+      if (__DEV__) {
+        console.warn(
+          `📚 NextWorkoutLogic: Found ${workoutHistory.length} workouts in history`
+        );
+      }
+
+      // Sort by date (newest first) to get the most recent workout
+      const sortedHistory = workoutHistory.sort((a, b) => {
+        const dateA = new Date(
+          a.feedback?.completedAt || a.endTime || 0
+        ).getTime();
+        const dateB = new Date(
+          b.feedback?.completedAt || b.endTime || 0
+        ).getTime();
+        return dateB - dateA; // newest first
+      });
+
+      const lastWorkout = sortedHistory.length > 0 ? sortedHistory[0] : null; // Most recent workout
+      const lastWorkoutDate =
+        lastWorkout?.feedback?.completedAt || lastWorkout?.endTime || "";
+
+      if (__DEV__ && lastWorkout) {
+        console.warn(
+          `📅 NextWorkoutLogic: Last workout found: ${lastWorkoutDate}`
+        );
+      }
+
       const newState: WorkoutCycleState = {
         currentWeekNumber: 1,
-        currentDayInWeek: 0,
-        lastWorkoutDate: "",
-        totalWorkoutsCompleted: 0,
+        currentDayInWeek: Math.min(
+          workoutHistory.length,
+          (weeklyPlan ?? []).length - 1
+        ), // Progress based on actual history
+        lastWorkoutDate,
+        totalWorkoutsCompleted: workoutHistory.length, // Real count from history
         programStartDate: new Date().toISOString(),
         weeklyPlan: [...(weeklyPlan ?? [])],
       };

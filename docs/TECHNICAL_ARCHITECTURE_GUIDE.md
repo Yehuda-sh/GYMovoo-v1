@@ -1,6 +1,6 @@
 # 🔧 מדריך טכני מרכזי - GYMovoo Technical Architecture
 
-**עדכון אחרון:** 01/08/2025
+**עדכון אחרון:** 03/09/2025
 
 ## 🏗️ ארכיטקטורה כללית
 
@@ -10,7 +10,7 @@
 Frontend: React Native + TypeScript (100% type-safe)
 State: Zustand stores
 Navigation: React Navigation v6 עם RTL
-Data: Hybrid (Local Hebrew + WGER API)
+Data: Hybrid (Local Hebrew + Supabase)
 AI: Custom algorithms עם scoring 1-10
 UI: עברית נטיבית עם RTL מלא
 ```
@@ -42,73 +42,27 @@ const handlePress = (data: WorkoutStatistics) => {
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Hebrew UX     │    │  Smart Logic     │    │   WGER API      │
+│   Hebrew UX     │    │  Smart Logic     │    │   Supabase API   │
 │   עברית נטיבית  │◄──►│  אלגוריתמים      │◄──►│  תוכן עשיר       │
-│   RTL מלא       │    │  1-10 scoring    │    │  exercises      │
+│   RTL מלא       │    │  1-10 scoring    │    │  users data      │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-## 🧠 מערכת האלגוריתמים החכמים
-
-### ⭐ Smart Scoring System (1-10)
-
-```typescript
-interface SmartEquipmentData {
-  difficulty: number; // 1-10: רמת קושי השימוש
-  effectiveness: number; // 1-10: יעילות לכושר
-  availability: number; // 1-10: זמינות בבתים/חדרי כושר
-  smartScore: number; // ממוצע משוקלל אוטומטי
-}
-
-// אלגוריתם חישוב SmartScore
-const calculateSmartScore = (item: EquipmentData): number => {
-  const weights = {
-    difficulty: 0.2, // 20% - קושי שימוש
-    effectiveness: 0.4, // 40% - יעילות (הכי חשוב!)
-    availability: 0.4, // 40% - זמינות (גם חשוב!)
-  };
-
-  return Number(
-    (
-      item.difficulty * weights.difficulty +
-      item.effectiveness * weights.effectiveness +
-      item.availability * weights.availability
-    ).toFixed(1)
-  );
-};
-```
-
-### 🎯 אלגוריתמי התאמה למשתמש
-
-```typescript
-interface UserMatchingAlgorithm {
-  analyzeUserProfile: (questionnaire: QuestionnaireAnswers) => UserProfile;
-  recommendEquipment: (profile: UserProfile) => EquipmentRecommendation[];
-  generateWorkoutPlan: (
-    profile: UserProfile,
-    equipment: Equipment[]
-  ) => WorkoutPlan;
-  trackProgress: (history: WorkoutHistory[]) => ProgressInsights;
-}
-```
-
-## 🎨 מערכת הרכיבים המתקדמת
+## מערכת הרכיבים המתקדמת
 
 ### 🧩 Component Architecture
 
 ```
 src/components/
 ├── common/           // רכיבים בסיסיים משותפים
-│   ├── LoadingSpinner.tsx     // ספינר עם 4 variants
-│   ├── EmptyState.tsx         // מצב ריק עם 3 variants
-│   ├── IconButton.tsx         // כפתור עם אייקון RTL + 3 variants
+│   ├── LoadingSpinner.tsx     // ספינר עם 4 variants + אנימציות
+│   ├── EmptyState.tsx         // מצב ריק עם 5 variants
 │   ├── ConfirmationModal.tsx  // מודל אישור RTL
 │   ├── BackButton.tsx         // כפתור חזרה אוניברסלי
 │   ├── DefaultAvatar.tsx      // אווטר ברירת מחדל
 │   └── InputField.tsx         // שדה קלט מתקדם עם validation
 ├── ui/               // רכיבי UI מתקדמים
-│   ├── ScreenContainer.tsx    // קונטיינר מסך משופר
-│   ├── UniversalButton.tsx    // כפתור אוניברסלי עם 6 variants
+│   ├── UniversalButton.tsx    // כפתור אוניברסלי עם 7 variants
 │   └── UniversalCard.tsx      // כרטיס אוניברסלי
 └── workout/          // רכיבי אימון ייעודיים
     ├── FloatingActionButton.tsx  // כפתור פעולה צף
@@ -143,50 +97,23 @@ src/components/
 **🔍 תהליך לפני יצירת רכיב חדש:**
 
 1. בדוק `src/components/common/` לרכיבים כלליים
-2. בדוק `src/screens/workout/components/shared/` לרכיבי אימון
+2. בדוק `src/components/workout/shared/` לרכיבי אימון
 3. חפש דוגמות דומות במאגר הקוד
 4. אם אין - צור רכיב משותף חדש במיקום המתאים
 5. תעד את הרכיב החדש במסמכי הארכיטקטורה
 
 ## 🔗 מערכת ה-Hooks המתקדמת
 
-### 💪 useWorkoutIntegration - המוח הטכנולוגי
+### 💪 Custom Hooks קיימים
 
-```typescript
-interface SmartWorkoutIntegration {
-  // ניתוח אימון חכם
-  analyzeWorkout: (workout: WorkoutData) => {
-    difficulty: number; // רמת קושי 1-10
-    effectiveness: number; // יעילות 1-10
-    personalityMatch: number; // התאמה לאישיות 1-10
-    recommendations: string[]; // המלצות מותאמות
-  };
+הפרויקט משתמש ב-hooks מותאמים אישית:
 
-  // יצירת חימום חכם
-  generateWarmup: (intensity: number, muscleGroups: string[]) => Exercise[];
-
-  // אופטימיזציה של סדר תרגילים
-  optimizeExerciseOrder: (exercises: Exercise[]) => {
-    optimizedExercises: Exercise[];
-    reasoning: string[]; // הסבר הלוגיקה
-    expectedImprovement: number; // שיפור צפוי באחוזים
-  };
-}
-```
-
-### 🧠 useUserPreferences - ניתוח אישיות
-
-```typescript
-interface PersonalityAnalysis {
-  personalityType: "motivated" | "social" | "competitive" | "analytical";
-  preferredIntensity: number; // 1-10
-  preferredDuration: number; // דקות
-  motivationFactors: string[]; // גורמי מוטיבציה
-  challengeLevel: number; // רמת אתגר מועדפת
-  socialPreference: boolean; // אימון קבוצתי או פרטי
-  equipmentComfort: number; // נוחות עם ציוד מתקדם
-}
-```
+- **useUserStore**: ניהול מצב משתמש מרכזי
+- **useNavigation**: ניווט בין מסכים
+- **useState**: ניהול מצב רכיבים
+- **useEffect**: אפקטים צדדיים
+- **useMemo**: אופטימיזציה לחישובים
+- **useCallback**: אופטימיזציה לפונקציות
 
 ## 🧭 מערכת הניווט המתקדמת
 
@@ -247,7 +174,7 @@ const screenOptimizations = {
 
 ## 💾 מערכת ניהול המצב
 
-### 🗄️ Zustand Stores Architecture
+### 🗄️ Zustand Store Architecture
 
 ```typescript
 // userStore - מרכז שליטה משתמש
@@ -266,30 +193,9 @@ interface UserStore {
   statistics: UserStatistics;
 
   // פעולות חכמות
-  analyzePersonality: (answers: QuestionnaireAnswers) => void;
-  updatePreferences: (prefs: Partial<UserPreferences>) => void;
+  updateUser: (updates: Partial<UserProfile>) => void;
   addWorkoutToHistory: (workout: WorkoutData) => void;
   calculateProgress: () => ProgressInsights;
-}
-
-// workoutStore - ניהול אימונים
-interface WorkoutStore {
-  // אימון נוכחי
-  currentWorkout: WorkoutSession | null;
-  isWorkoutActive: boolean;
-  currentExercise: Exercise | null;
-
-  // מעקב זמן מתקדם
-  workoutTimer: TimerState;
-  restTimer: TimerState;
-
-  // סטטיסטיקות בזמן אמת
-  currentStats: {
-    duration: number;
-    caloriesBurned: number;
-    exercisesCompleted: number;
-    setsCompleted: number;
-  };
 }
 ```
 
@@ -298,27 +204,23 @@ interface WorkoutStore {
 ### ⚡ Performance Optimizations
 
 ```typescript
-// 1. Lazy Loading של מסכים
-const LazyScreen = React.lazy(() => import('./screens/HeavyScreen'));
-
-// 2. Memoization של רכיבים כבדים
+// 1. React.memo לרכיבים כבדים
 const MemoizedExerciseList = React.memo(ExerciseList);
 
-// 3. Virtual Lists לרשימות ארוכות
-const VirtualizedEquipmentList = ({ data }) => (
-  <VirtualizedList
-    data={data}
-    renderItem={renderEquipmentItem}
-    keyExtractor={item => item.id}
-    windowSize={10}        // אופטימיזציה לזיכרון
-    removeClippedSubviews  // חיסכון בביצועים
-  />
-);
-
-// 4. Smart Caching
+// 2. useMemo לחישובים כבדים
 const cachedWorkoutPlans = useMemo(() =>
   generateWorkoutPlans(userProfile),
   [userProfile.level, userProfile.goals]
+);
+
+// 3. FlatList לרשימות ארוכות
+const OptimizedExerciseList = ({ data }) => (
+  <FlatList
+    data={data}
+    renderItem={renderExerciseItem}
+    keyExtractor={item => item.id}
+    removeClippedSubviews  // חיסכון בביצועים
+  />
 );
 ```
 
@@ -352,12 +254,6 @@ interface GenderAdaptation {
   getGenderIcon: (gender: UserGender) => string;
   getGenderColors: (gender: UserGender) => ColorPalette;
 }
-
-// 4. Smart RTL Detection - זיהוי חכם של תוכן עברי
-const detectRTL = (text: string): boolean => {
-  const hebrewPattern = /[\u0590-\u05FF]/;
-  return hebrewPattern.test(text);
-};
 ```
 
 ### 🎨 Implementation Best Practices
@@ -392,32 +288,16 @@ const hebrewStyles = StyleSheet.create({
 });
 ```
 
-## 🏆 מדדי איכות ובדיקות
+## 🧪 בדיקות איכות
 
-### ✅ Code Quality Metrics
-
-```typescript
-const qualityMetrics = {
-  typeScriptCoverage: "100%", // כיסוי TypeScript מלא
-  componentTestCoverage: "90%+", // כיסוי בדיקות רכיבים
-  hookTestCoverage: "95%+", // כיסוי בדיקות hooks
-  e2eCriticalPaths: "100%", // נתיבים קריטיים
-  codeComplexity: "Low", // פונקציות קטנות ומובנות
-  maintainability: "High", // קוד מודולרי וברור
-  performance: "Excellent", // אופטימיזציות מתקדמות
-  accessibility: "High", // תמיכה מלאה ב-RTL ונגישות
-  userExperience: "Outstanding", // חוויה נטיבית ברמה מסחרית
-};
-```
-
-### 🧪 Testing Strategy
+### ✅ Testing Strategy
 
 ```typescript
-// 1. Unit Tests - כל hook ו-utility
-describe("useWorkoutIntegration", () => {
-  it("should calculate smart score correctly", () => {
-    const result = calculateSmartScore(mockWorkout);
-    expect(result).toBeCloseTo(7.5, 1);
+// 1. Unit Tests - כל utility ו-helper
+describe("Gender Adaptation", () => {
+  it("should adapt text for female users", () => {
+    const result = adaptBasicTextToGender("מתחיל", "female");
+    expect(result).toBe("מתחילה");
   });
 });
 
@@ -441,29 +321,21 @@ describe("RTL Support", () => {
 ### 📊 תיקון HistoryScreen Integration
 
 ```typescript
-// ❌ הבעיה שהייתה - בדיקת מבנה נתונים שגויה
-if (user?.activityHistory && Array.isArray(user.activityHistory)) {
-  // never reached - הנתונים הם object עם workouts key
-}
-
-// ✅ הפתרון שיושם - בדיקה נכונה של מבנה הנתונים
+// בדיקה נכונה של מבנה הנתונים
 if (
   user?.activityHistory?.workouts &&
   Array.isArray(user.activityHistory.workouts)
 ) {
   console.log("🎯 נמצאו", user.activityHistory.workouts.length, "אימונים");
-  // now shows all demo workouts perfectly!
+  // now shows all workouts perfectly!
 }
 ```
 
 ### 📈 תיקון חישוב סטטיסטיקות
 
 ```typescript
-// ❌ חישוב שגוי בלי פילטור - NaN results
-const avg = workouts.reduce((sum, w) => sum + w.rating, 0) / workouts.length;
-
-// ✅ פילטור חכם לפני חישוב
-const workoutsWithDifficulty = user.activityHistory.workouts.filter(
+// פילטור חכם לפני חישוב
+const workoutsWithDifficulty = workouts.filter(
   (w: any) => w.feedback?.overallRating && !isNaN(w.feedback.overallRating)
 );
 
@@ -500,7 +372,7 @@ const smartDefaults = {
 
 ## 🎯 המסקנה הטכנית
 
-**GYMovoo מייצג אדריכלות טכנולוגית מתקדמת שמשלבת:**
+**GYMovoo מייצג ארכיטקטורה טכנולוגית מתקדמת שמשלבת:**
 
 1. **🧠 AI ואלגוריתמים חכמים** - כל החלטה מבוססת על נתונים
 2. **🇮🇱 Hebrew-First Architecture** - עברית בליבה, לא כתוספת

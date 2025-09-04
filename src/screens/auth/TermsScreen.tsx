@@ -15,7 +15,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Vibration,
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,6 +25,49 @@ import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
 import { useNavigation } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
+
+// ===============================================
+// 📋 Constants - קבועים / Constants
+// ===============================================
+
+/** תנאים כלליים / General terms */
+const GENERAL_TERMS = [
+  {
+    number: 1,
+    text: "השימוש באפליקציה מותנה בקבלת תנאי השימוש במלואם",
+    subtext: "תנאי שימוש בסיסי",
+  },
+  {
+    number: 2,
+    text: "המשתמש אחראי לשמירה על פרטי הכניסה שלו בסודיות",
+    subtext: "אבטחת חשבון",
+  },
+  {
+    number: 3,
+    text: "אנו שומרים על זכות לעדכן את התנאים בהתראה מוקדמת",
+    subtext: "עדכונים עתידיים",
+  },
+] as const;
+
+/** מדיניות פרטיות / Privacy policy */
+const PRIVACY_TERMS = [
+  {
+    number: 4,
+    text: "אנו אוספים נתונים רק לשיפור השירות ולמטרות פונקציונליות",
+    subtext: "איסוף נתונים",
+  },
+  {
+    number: 5,
+    text: "פרטיכם מוגנים ולא יועברו לצדדים שלישיים ללא הסכמתכם",
+    subtext: "הגנת פרטיות",
+  },
+  {
+    number: 6,
+    text: "ניתן לבקש מחיקת נתונים אישיים בכל עת דרך הגדרות החשבון",
+    subtext: "זכויות המשתמש",
+  },
+] as const;
 
 // ===============================================
 // 📋 Simple Terms Types - טיפוסי תנאים פשוטים
@@ -39,15 +81,39 @@ interface TermsAgreement {
 }
 
 /**
- * מפעיל haptic feedback פשוט / Simple haptic feedback
+ * מפעיל haptic feedback משופר / Enhanced haptic feedback
  */
 const triggerHaptic = () => {
   if (Platform.OS === "ios") {
-    Vibration.vibrate(25);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   } else {
-    Vibration.vibrate(50);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 };
+
+/**
+ * רכיב תנאי בודד / Single term component
+ */
+const TermItem = React.memo(
+  ({ term }: { term: { number: number; text: string; subtext: string } }) => (
+    <TouchableOpacity
+      style={styles.termCard}
+      onPress={triggerHaptic}
+      accessible={true}
+      accessibilityRole="button"
+    >
+      <View style={styles.termNumber}>
+        <Text style={styles.termNumberText}>{term.number}</Text>
+      </View>
+      <View style={styles.termTextContainer}>
+        <Text style={styles.termText}>{term.text}</Text>
+        <Text style={styles.termSubtext}>{term.subtext}</Text>
+      </View>
+    </TouchableOpacity>
+  )
+);
+
+TermItem.displayName = "TermItem";
 
 const TermsScreen = React.memo(() => {
   const navigation = useNavigation();
@@ -55,12 +121,34 @@ const TermsScreen = React.memo(() => {
   // 📝 States - מצבים בסיסיים / Basic states
   const [agreed, setAgreed] = useState<boolean>(false);
 
+  // 📱 Load existing agreement / טעינת הסכמה קיימת
+  const loadExistingAgreement = useCallback(async () => {
+    try {
+      const existingAgreement = await AsyncStorage.getItem(
+        StorageKeys.TERMS_AGREEMENT
+      );
+      if (existingAgreement) {
+        const agreement: TermsAgreement = JSON.parse(existingAgreement);
+        setAgreed(agreement.agreed);
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("Failed to load existing agreement:", error);
+      }
+    }
+  }, []);
+
+  // טעינה ראשונית
+  React.useEffect(() => {
+    loadExistingAgreement();
+  }, [loadExistingAgreement]);
+
   // 📱 Handle agreement / טיפול בהסכמה
   const handleAgreement = useCallback(async () => {
     triggerHaptic();
     setAgreed(true);
 
-    // שמירת הסכמה ב-AsyncStorage
+    // שמירת הסכמה ב-AsyncStorage במפתח הנכון
     try {
       const agreement: TermsAgreement = {
         agreed: true,
@@ -68,7 +156,7 @@ const TermsScreen = React.memo(() => {
         version: "v1.0",
       };
       await AsyncStorage.setItem(
-        StorageKeys.TERMS_AGREEMENT,
+        StorageKeys.TERMS_AGREEMENT, // ✅ מפתח נכון להסכמת תנאי השימוש
         JSON.stringify(agreement)
       );
 
@@ -138,112 +226,20 @@ const TermsScreen = React.memo(() => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>תנאים כלליים</Text>
 
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>1</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  השימוש באפליקציה מותנה בקבלת תנאי השימוש במלואם
-                </Text>
-                <Text style={styles.termSubtext}>תנאי שימוש בסיסי</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>2</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  המשתמש אחראי לשמירה על פרטי הכניסה שלו בסודיות
-                </Text>
-                <Text style={styles.termSubtext}>אבטחת חשבון</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>3</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  אנו שומרים על זכות לעדכן את התנאים בהתראה מוקדמת
-                </Text>
-                <Text style={styles.termSubtext}>עדכונים עתידיים</Text>
-              </View>
-            </TouchableOpacity>
+            {/* רנדור של תנאים בלולאה לקוד נקי יותר */}
+            {GENERAL_TERMS.map((term) => (
+              <TermItem key={term.number} term={term} />
+            ))}
           </View>
 
           {/* מדיניות פרטיות */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>מדיניות פרטיות</Text>
 
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>4</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  אנו אוספים נתונים רק לשיפור השירות ולמטרות פונקציונליות
-                </Text>
-                <Text style={styles.termSubtext}>איסוף נתונים</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>5</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  פרטיכם מוגנים ולא יועברו לצדדים שלישיים ללא הסכמתכם
-                </Text>
-                <Text style={styles.termSubtext}>הגנת פרטיות</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.termCard}
-              onPress={triggerHaptic}
-              accessible={true}
-              accessibilityRole="button"
-            >
-              <View style={styles.termNumber}>
-                <Text style={styles.termNumberText}>6</Text>
-              </View>
-              <View style={styles.termTextContainer}>
-                <Text style={styles.termText}>
-                  ניתן לבקש מחיקת נתונים אישיים בכל עת דרך הגדרות החשבון
-                </Text>
-                <Text style={styles.termSubtext}>זכויות המשתמש</Text>
-              </View>
-            </TouchableOpacity>
+            {/* רנדור של מדיניות פרטיות בלולאה */}
+            {PRIVACY_TERMS.map((term) => (
+              <TermItem key={term.number} term={term} />
+            ))}
           </View>
 
           {/* יצירת קשר */}
@@ -261,6 +257,7 @@ const TermsScreen = React.memo(() => {
               <TouchableOpacity
                 onPress={() => {
                   triggerHaptic();
+                  // TODO: להוסיף קישור למייל אמיתי
                   if (__DEV__) {
                     console.warn("Opening email app...");
                   }

@@ -21,7 +21,8 @@ interface NextWorkoutCardProps {
 
 export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
   ({ onStartWorkout, workoutPlan }) => {
-    const { nextWorkout, isLoading, cycleStats } = useNextWorkout(workoutPlan);
+    const { nextWorkout, isLoading, cycleStats, error, refreshRecommendation } =
+      useNextWorkout(workoutPlan);
     const [showTimeout, setShowTimeout] = React.useState(false);
 
     // ✨ Performance tracking לרכיבי כושר
@@ -41,10 +42,11 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
       [triggerWorkoutHaptic, onStartWorkout]
     );
 
-    // ✨ משוב ביצועים אוטומטי
+    // ✨ משוב ביצועים אוטומטי - רק בדיבוג מפורט
     useEffect(() => {
       const renderTime = Date.now() - renderStartTime;
-      if (renderTime > 100) {
+      if (__DEV__ && renderTime > 300) {
+        // העלאת סף ל-300ms
         console.warn(
           `⚠️ NextWorkoutCard render time: ${renderTime.toFixed(2)}ms`
         );
@@ -129,6 +131,10 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
     const getIntensityConfig = React.useMemo(() => {
       return INTENSITY_CONFIG[nextWorkout?.suggestedIntensity || "normal"];
     }, [nextWorkout?.suggestedIntensity, INTENSITY_CONFIG]);
+
+    if (error) {
+      return <ErrorWorkoutView error={error} onRetry={refreshRecommendation} />;
+    }
 
     if (isLoading && !showTimeout) {
       return LoadingView;

@@ -12,7 +12,10 @@ const fetchHistory = async (userId: string): Promise<WorkoutWithFeedback[]> => {
     .maybeSingle();
 
   if (error || !data?.activityhistory) return [];
-  return Array.isArray(data.activityhistory) ? data.activityhistory : [];
+
+  // Fix: Access workouts from activityhistory.workouts
+  const workouts = data.activityhistory.workouts;
+  return Array.isArray(workouts) ? workouts : [];
 };
 
 const saveHistory = async (
@@ -21,9 +24,15 @@ const saveHistory = async (
 ): Promise<void> => {
   if (!supabase || !userId) throw new Error("Invalid parameters");
 
+  // Fix: Save to activityhistory.workouts instead of replacing entire activityhistory
   const { error } = await supabase
     .from("users")
-    .update({ activityhistory: history })
+    .update({
+      activityhistory: {
+        workouts: history,
+        weeklyProgress: 0, // maintain structure
+      },
+    })
     .eq("id", userId);
 
   if (error) throw error;

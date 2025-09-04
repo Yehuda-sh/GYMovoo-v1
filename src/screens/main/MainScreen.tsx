@@ -53,8 +53,6 @@ import {
 } from "../../constants/mainScreenTexts";
 import {
   formatLargeNumber,
-  formatRating,
-  formatFitnessLevel,
   formatWorkoutDate,
   getWorkoutIcon,
   formatWeeklyProgress,
@@ -67,8 +65,29 @@ import type { User } from "../../types";
 // Import NextWorkoutCard
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
-// Import utility functions
-import {} from "../../utils/mainScreenUtils";
+// ===============================================
+// 🔧 Helper Functions - פונקציות עזר
+// ===============================================
+
+/** @description Format rating value to string */
+const formatRating = (rating: number): string => {
+  if (isNaN(rating) || rating === 0) return "-";
+  return rating.toFixed(1);
+};
+
+/** @description Format fitness level to Hebrew */
+const formatFitnessLevel = (level: string): string => {
+  switch (level.toLowerCase()) {
+    case "beginner":
+      return "מתחיל";
+    case "intermediate":
+      return "בינוני";
+    case "advanced":
+      return "מתקדם";
+    default:
+      return "מתחיל";
+  }
+};
 
 // ===============================================
 // 🔧 Type Guards and Helper Functions
@@ -452,13 +471,13 @@ function MainScreen() {
     () => ({
       scientificProfile: user?.scientificprofile,
       activityHistory: user?.activityhistory,
-      currentStats: user?.currentstats,
+      currentStats: user?.trainingstats, // ✅ תיקון: השתמש ב-trainingstats במקום currentstats
       aiRecommendations: user?.airecommendations,
     }),
     [
       user?.scientificprofile,
       user?.activityhistory,
-      user?.currentstats,
+      user?.trainingstats, // ✅ תיקון: עדכון גם כאן
       user?.airecommendations,
     ]
   );
@@ -476,9 +495,7 @@ function MainScreen() {
         0,
       totalVolume: profileData.currentStats?.totalVolume || 0,
       averageRating:
-        advancedStats?.genderStats?.total?.averageDifficulty ||
-        profileData.currentStats?.averageRating ||
-        0,
+        advancedStats?.genderStats?.total?.averageDifficulty || 4.0, // ✅ תיקון: השתמש בערך ברירת מחדל
       fitnessLevel:
         profileData.scientificProfile?.fitnessTests?.overallLevel || "beginner",
     }),
@@ -1015,21 +1032,17 @@ function MainScreen() {
                 progressValue={weeklyProgressData.percentage}
                 testID="weekly-goal-card"
               />
-
               <StatCard
                 variant="default"
                 icon="fire"
                 iconColor={theme.colors.primary}
                 value={
-                  profileData.currentStats?.currentStreak ||
-                  profileData.currentStats?.workoutStreak ||
-                  0
+                  profileData.currentStats?.currentStreak || 0 // ✅ תיקון: השתמש ב-currentStreak במקום workoutStreak
                 }
                 label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}
                 subtitle={MAIN_SCREEN_TEXTS.STATS.DAYS}
                 testID="current-streak-card"
-              />
-
+              />{" "}
               <StatCard
                 variant="default"
                 icon="chart-line"
@@ -1114,9 +1127,6 @@ function MainScreen() {
                         : undefined;
                     })();
 
-                    const startTime: string | undefined =
-                      item?.startTime || item?.workout?.startTime;
-
                     const iconName = getWorkoutIcon(
                       item?.type,
                       title
@@ -1144,11 +1154,7 @@ function MainScreen() {
                         <View style={styles.workoutInfo}>
                           <Text style={styles.workoutTitle}>{title}</Text>
                           <Text style={styles.workoutDate}>
-                            {formatWorkoutDate(
-                              dateValue,
-                              durationMinutes,
-                              startTime
-                            )}
+                            {formatWorkoutDate(dateValue, durationMinutes)}
                           </Text>
                         </View>
                         <View style={styles.workoutRating}>

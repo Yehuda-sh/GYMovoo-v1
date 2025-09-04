@@ -47,114 +47,85 @@ export interface UseNextWorkoutReturn {
 }
 
 // ===============================================
-// 🚀 Performance Cache & Optimizations - מערכת Cache ואופטימיזציות
+// 🚀 Simplified Hook Logic - לוגיקה פשוטה ומיושרת
 // ===============================================
 
 /**
- * Singleton cache for workout recommendations
- * מניעת חישובים כפולים על ידי cache גלובלי
+ * Simple cache for workout recommendations
+ * Cache פשוט להמלצות אימון
  */
-class GlobalWorkoutCache {
-  private static instance: GlobalWorkoutCache;
-  private cachedRecommendation: NextWorkoutRecommendation | null = null;
-  private cacheTimestamp = 0;
-  private readonly CACHE_DURATION = 10000; // 10 שניות
-  private activeFetches = new Set<string>();
+const simpleCache = {
+  recommendation: null as NextWorkoutRecommendation | null,
+  timestamp: 0,
+  CACHE_DURATION: 30000, // 30 שניות - סביר יותר
 
-  static getInstance(): GlobalWorkoutCache {
-    if (!GlobalWorkoutCache.instance) {
-      GlobalWorkoutCache.instance = new GlobalWorkoutCache();
-    }
-    return GlobalWorkoutCache.instance;
-  }
-
-  getCachedRecommendation(userId?: string): NextWorkoutRecommendation | null {
+  get(userId?: string): NextWorkoutRecommendation | null {
     const now = Date.now();
-    if (
-      this.cachedRecommendation &&
-      now - this.cacheTimestamp < this.CACHE_DURATION
-    ) {
-      logger.debug("useNextWorkout", "Using global cached recommendation", {
-        age: now - this.cacheTimestamp,
-        userId,
-      });
-      return this.cachedRecommendation;
+    if (this.recommendation && now - this.timestamp < this.CACHE_DURATION) {
+      logger.debug("useNextWorkout", "Using cached recommendation", { userId });
+      return this.recommendation;
     }
     return null;
-  }
+  },
 
-  setCachedRecommendation(
-    recommendation: NextWorkoutRecommendation,
-    userId?: string
-  ): void {
-    this.cachedRecommendation = recommendation;
-    this.cacheTimestamp = Date.now();
-    logger.debug("useNextWorkout", "Cached recommendation globally", {
+  set(recommendation: NextWorkoutRecommendation, userId?: string): void {
+    this.recommendation = recommendation;
+    this.timestamp = Date.now();
+    logger.debug("useNextWorkout", "Cached recommendation", {
       workoutName: recommendation.workoutName,
       userId,
     });
-  }
-
-  isActiveFetch(key: string): boolean {
-    return this.activeFetches.has(key);
-  }
-
-  setActiveFetch(key: string): void {
-    this.activeFetches.add(key);
-  }
-
-  clearActiveFetch(key: string): void {
-    this.activeFetches.delete(key);
-  }
-
-  clearCache(): void {
-    this.cachedRecommendation = null;
-    this.cacheTimestamp = 0;
-    this.activeFetches.clear();
-  }
-}
-
-/**
- * Cache מהיר לתוכניות שבועיות וחישובים תכופים
- * Fast cache for weekly plans and frequent calculations
- */
-const WorkoutHookCache = {
-  weeklyPlans: new Map<string, string[]>(),
-  personalData: new Map<string, Record<string, unknown>>(),
-  recommendations: new Map<string, NextWorkoutRecommendation>(),
+  },
 
   clear(): void {
-    this.weeklyPlans.clear();
-    this.personalData.clear();
-    this.recommendations.clear();
-    logger.debug("useNextWorkout", "Cache cleared", {
-      cacheSize: {
-        weeklyPlans: this.weeklyPlans.size,
-        personalData: this.personalData.size,
-        recommendations: this.recommendations.size,
-      },
-    });
+    this.recommendation = null;
+    this.timestamp = 0;
   },
+};
 
-  getWeeklyPlanKey(
-    userId: string,
-    frequency: string,
-    planType?: string
-  ): string {
-    return `${userId}_${frequency}_${planType || "auto"}`;
-  },
+// Helper functions
+const generatePersonalizedInsights = (
+  recommendation: NextWorkoutRecommendation,
+  personalData: Record<string, unknown> | null
+): { recommendation: string; motivation: string; nextGoal: string } => {
+  const { workoutName, suggestedIntensity } = recommendation;
+  const { fitnessLevel = "beginner", goals = [] } = personalData || {};
 
-  getPersonalDataKey(userId: string, version: string): string {
-    return `${userId}_${version}`;
-  },
+  // המלצות מותאמות
+  let recommendationText = `מוכן/נה ל${workoutName}?`;
+  if (suggestedIntensity === "light") {
+    recommendationText = `התחלה רכה עם ${workoutName}`;
+  } else if (suggestedIntensity === "catchup") {
+    recommendationText = `זמן להדביק פערים עם ${workoutName}`;
+  }
 
-  getCacheStats(): Record<string, number> {
-    return {
-      weeklyPlans: this.weeklyPlans.size,
-      personalData: this.personalData.size,
-      recommendations: this.recommendations.size,
-    };
-  },
+  // מוטיבציה מותאמת לרמה
+  const motivationMap: Record<string, string> = {
+    beginner: "כל התחלה קשה, אבל אתם על הדרך הנכונה! 💪",
+    intermediate: "אתם מתקדמים מצוין! המשיכו ככה! 🔥",
+    advanced: "אתם מקצועים! בואו נדחוף את הגבולות! 🚀",
+  };
+
+  const motivation =
+    motivationMap[String(fitnessLevel)] || motivationMap.beginner;
+
+  // יעד הבא
+  const nextGoalMap: Record<string, string> = {
+    lose_weight: 'המטרה: הפחתת 0.5 ק"ג השבוע',
+    build_muscle: "המטרה: הוספת משקל לתרגיל הבא",
+    general_fitness: "המטרה: שיפור הסיבולת הכללית",
+    athletic_performance: "המטרה: שיפור זמן ההתאוששות",
+  };
+
+  const primaryGoal = Array.isArray(goals) ? goals[0] : goals;
+  const nextGoal =
+    nextGoalMap[String(primaryGoal)] || "המטרה: שמירה על עקביות באימונים";
+
+  return {
+    recommendation: recommendationText,
+    motivation,
+    nextGoal,
+  };
 };
 
 /**
@@ -190,27 +161,19 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
   const [weeklyPlanCache, setWeeklyPlanCache] = useState<string[]>([]);
 
-  // ✅ Global cache instance
-  const globalCache = useMemo(() => GlobalWorkoutCache.getInstance(), []);
-
   /**
    * Reset cache function
    * פונקציית איפוס cache
    */
   const resetCache = useCallback(() => {
-    const beforeStats = WorkoutHookCache.getCacheStats();
-    WorkoutHookCache.clear();
-    globalCache.clearCache(); // ✅ ניקוי cache גלובלי
+    simpleCache.clear(); // ✅ ניקוי cache פשוט
     setWeeklyPlanCache([]);
     setPersonalizedInsights(null);
     hasInitializedRef.current = false; // ✅ איפוס flag של initialization
 
-    logger.info("useNextWorkout", "Cache reset completed", {
-      beforeReset: beforeStats,
-      afterReset: WorkoutHookCache.getCacheStats(),
-    });
-    debug("🧹 Cache cleared", { beforeStats });
-  }, [globalCache]);
+    logger.info("useNextWorkout", "Cache reset completed");
+    debug("🧹 Cache cleared");
+  }, []);
 
   /**
    * Enhanced personal data extraction with questionnaire integration
@@ -218,17 +181,6 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
    */
   const enhancedPersonalData = useMemo(() => {
     if (!user) return null;
-
-    const userId = user.id || "anonymous";
-    const cacheKey = WorkoutHookCache.getPersonalDataKey(
-      userId,
-      user.smartquestionnairedata?.metadata?.version || "1.0"
-    );
-
-    // בדיקת cache
-    if (WorkoutHookCache.personalData.has(cacheKey)) {
-      return WorkoutHookCache.personalData.get(cacheKey);
-    }
 
     // יצירת נתונים משופרים
     let data = {};
@@ -254,7 +206,8 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         age: String(answers.age || ""),
         weight: String(answers.weight || ""),
         height: String(answers.height || ""),
-        fitnessLevel: answers.fitnessLevel as string,
+        fitnessLevel: (answers.fitnessLevel ||
+          answers["experience" as keyof typeof answers]) as string, // Fix: try both field names
         goals: answers.goals || [],
         equipment: answers.equipment || [],
         availability: answers.availability || [],
@@ -285,14 +238,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       };
     }
 
-    // שמירה בcache
-    WorkoutHookCache.personalData.set(cacheKey, data);
-    debug("💾 Personal data cached", { userId, cacheKey, data });
-    logger.debug("useNextWorkout", "Personal data cached", {
-      userId,
-      cacheKey,
+    debug("💾 Personal data processed", { data });
+    logger.debug("useNextWorkout", "Personal data processed", {
       dataKeys: Object.keys(data || {}),
-      cacheStats: WorkoutHookCache.getCacheStats(),
     });
 
     return data;
@@ -404,18 +352,6 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
     const userId = user?.id || "anonymous";
     const rawFrequency = extractFrequencyFromUser();
-    const cacheKey = WorkoutHookCache.getWeeklyPlanKey(
-      userId,
-      rawFrequency,
-      "auto"
-    );
-
-    // בדיקת cache
-    if (WorkoutHookCache.weeklyPlans.has(cacheKey)) {
-      const cachedPlan = WorkoutHookCache.weeklyPlans.get(cacheKey)!;
-      setWeeklyPlanCache(cachedPlan);
-      return cachedPlan;
-    }
 
     // יצירת תוכנית חדשה
     const WORKOUT_DAYS_MAP: Record<number, string[]> = {
@@ -431,8 +367,6 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     const days = parseFrequencyToDays(rawFrequency);
     const selectedPlan = WORKOUT_DAYS_MAP[days] || WORKOUT_DAYS_MAP[3];
 
-    // שמירה בcache
-    WorkoutHookCache.weeklyPlans.set(cacheKey, selectedPlan);
     setWeeklyPlanCache(selectedPlan);
 
     debug("Generated weekly plan", {
@@ -442,69 +376,15 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       selectedPlan,
     });
 
-    logger.debug("useNextWorkout", "Weekly plan generated and cached", {
+    logger.debug("useNextWorkout", "Weekly plan generated", {
       userId,
       rawFrequency,
       days,
       selectedPlan,
-      cacheKey,
-      cacheStats: WorkoutHookCache.getCacheStats(),
     });
 
     return selectedPlan;
   }, [workoutPlan, user, extractFrequencyFromUser, parseFrequencyToDays]);
-
-  /**
-   * Generate personalized insights from recommendation data
-   * יצירת תובנות מותאמות אישית מנתוני המלצה
-   */
-  const generatePersonalizedInsights = useCallback(
-    (
-      recommendation: NextWorkoutRecommendation,
-      personalData: Record<string, unknown> | null,
-      _stats: Record<string, unknown> | null
-    ) => {
-      const { workoutName, suggestedIntensity } = recommendation;
-      const { fitnessLevel = "beginner", goals = [] } = personalData || {};
-
-      // המלצות מותאמות
-      let recommendationText = `מוכן/נה ל${workoutName}?`;
-      if (suggestedIntensity === "light") {
-        recommendationText = `התחלה רכה עם ${workoutName}`;
-      } else if (suggestedIntensity === "catchup") {
-        recommendationText = `זמן להדביק פערים עם ${workoutName}`;
-      }
-
-      // מוטיבציה מותאמת לרמה
-      const motivationMap: Record<string, string> = {
-        beginner: "כל התחלה קשה, אבל אתם על הדרך הנכונה! 💪",
-        intermediate: "אתם מתקדמים מצוין! המשיכו ככה! 🔥",
-        advanced: "אתם מקצועים! בואו נדחוף את הגבולות! 🚀",
-      };
-
-      const motivation =
-        motivationMap[String(fitnessLevel)] || motivationMap.beginner;
-
-      // יעד הבא
-      const nextGoalMap: Record<string, string> = {
-        lose_weight: 'המטרה: הפחתת 0.5 ק"ג השבוע',
-        build_muscle: "המטרה: הוספת משקל לתרגיל הבא",
-        general_fitness: "המטרה: שיפור הסיבולת הכללית",
-        athletic_performance: "המטרה: שיפור זמן ההתאוששות",
-      };
-
-      const primaryGoal = Array.isArray(goals) ? goals[0] : goals;
-      const nextGoal =
-        nextGoalMap[String(primaryGoal)] || "המטרה: שמירה על עקביות באימונים";
-
-      return {
-        recommendation: recommendationText,
-        motivation,
-        nextGoal,
-      };
-    },
-    []
-  );
 
   /**
    * רענון המלצת האימון הבא עם אלגוריתם חכם
@@ -521,34 +401,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const refreshRecommendation = useCallback(async () => {
     try {
       const userId = user?.id || "anonymous";
-      const fetchKey = `${userId}_${JSON.stringify(weeklyPlan)}`;
 
-      // ✅ בדיקת cache גלובלי
-      const cachedRecommendation = globalCache.getCachedRecommendation(userId);
-      if (cachedRecommendation && !globalCache.isActiveFetch(fetchKey)) {
+      // ✅ בדיקת cache פשוט
+      const cachedRecommendation = simpleCache.get(userId);
+      if (cachedRecommendation) {
         setNextWorkout(cachedRecommendation);
         setIsLoading(false);
         debug("🚀 Using cached recommendation", cachedRecommendation);
         return;
       }
 
-      // ✅ מניעת קריאות כפולות
-      if (globalCache.isActiveFetch(fetchKey)) {
-        debug("⏳ Fetch already in progress, skipping", { fetchKey });
-        return;
-      }
-
-      // בדיקה האם יש בקשה פעילה דומה
-      const requestKey = `nextWorkout_${user?.id}_${JSON.stringify(weeklyPlan)}`;
-
-      // Removed complex caching and performance management - not needed for fitness app
-      // Simple check for active fetch is sufficient
-      if (globalCache.isActiveFetch(fetchKey)) {
-        debug("⏸️ Request already in progress", { requestKey });
-        return;
-      }
-
-      globalCache.setActiveFetch(fetchKey);
       setIsLoading(true);
       setError(null);
 
@@ -597,17 +459,14 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         setNextWorkout(recommendation);
         setCycleStats(stats);
 
-        // ✅ שמירה ב-cache גלובלי
-        globalCache.setCachedRecommendation(recommendation, userId);
-
-        // Removed performance manager caching - using simple globalCache is sufficient
+        // ✅ שמירה ב-cache פשוט
+        simpleCache.set(recommendation, userId);
 
         // ✅ יצירת insights מותאמים אישית מהנתונים החדשים
         if (personalData && recommendation) {
           const insights = generatePersonalizedInsights(
             recommendation,
-            personalData,
-            stats
+            personalData
           );
           setPersonalizedInsights(insights);
         }
@@ -655,18 +514,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       if (isMountedRef.current) setNextWorkout(fallbackRecommendation);
       debug("🔄 Using fallback recommendation", fallbackRecommendation);
     } finally {
-      const userId = user?.id || "anonymous";
-      const fetchKey = `${userId}_${JSON.stringify(weeklyPlan)}`;
-      globalCache.clearActiveFetch(fetchKey);
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [
-    weeklyPlan,
-    user,
-    enhancedPersonalData,
-    generatePersonalizedInsights,
-    globalCache,
-  ]);
+  }, [weeklyPlan, user, enhancedPersonalData]);
 
   /**
    * סימון אימון כהושלם with improved error handling
@@ -768,7 +618,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     personalizedInsights,
     weeklyPlanCache,
     resetCache,
-    // ✅ מעקב ביצועים
-    cacheStats: WorkoutHookCache.getCacheStats(),
+    // ✅ מעקב ביצועים פשוט
+    cacheStats: {
+      simpleCache: simpleCache.recommendation ? 1 : 0,
+    },
   };
 };

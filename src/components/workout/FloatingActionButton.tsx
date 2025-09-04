@@ -11,6 +11,7 @@ import { TouchableOpacity, Animated, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../styles/theme";
+import { isRTL } from "../../utils/rtlHelpers";
 
 interface FloatingActionButtonProps {
   onPress: () => void;
@@ -18,7 +19,7 @@ interface FloatingActionButtonProps {
   label?: string;
   visible?: boolean;
   bottom?: number;
-  size?: "small" | "medium" | "large";
+  size?: "medium" | "large" | "workout";
   color?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -27,6 +28,8 @@ interface FloatingActionButtonProps {
   intensity?: "light" | "medium" | "heavy";
   enableHaptic?: boolean;
   hitSlop?: number;
+  // ✨ אפשרות מיקום גמיש
+  position?: "left" | "right" | "auto";
 }
 
 export default function FloatingActionButton({
@@ -44,9 +47,19 @@ export default function FloatingActionButton({
   intensity = "medium",
   enableHaptic = true,
   hitSlop = 20,
+  // ✨ ברירת מחדל למיקום RTL
+  position = "auto",
 }: FloatingActionButtonProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  // ✨ חישוב מיקום דינמי
+  const buttonPosition = useMemo(() => {
+    if (position === "auto") {
+      return isRTL ? "left" : "right";
+    }
+    return position;
+  }, [position]);
 
   // ✨ Performance tracking לרכיבי כושר
   const renderStartTime = useMemo(() => Date.now(), []);
@@ -67,10 +80,11 @@ export default function FloatingActionButton({
     }
   }, [enableHaptic, intensity]);
 
-  // ✨ משוב ביצועים אוטומטי
+  // ✨ משוב ביצועים אוטומטי - רק בדיבוג מפורט
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
-    if (renderTime > 100) {
+    if (__DEV__ && renderTime > 300) {
+      // העלאת סף ל-300ms
       console.warn(
         `⚠️ FloatingActionButton render time: ${renderTime.toFixed(2)}ms`
       );
@@ -143,7 +157,12 @@ export default function FloatingActionButton({
 
   return (
     <Animated.View
-      style={[styles.container, { bottom, transform: [{ scale: scaleAnim }] }]}
+      style={[
+        styles.container,
+        { bottom },
+        buttonPosition === "left" ? styles.leftPosition : styles.rightPosition,
+        { transform: [{ scale: scaleAnim }] },
+      ]}
     >
       {/* תווית אופציונלית - Optional label */}
       {label && (
@@ -212,10 +231,15 @@ export default function FloatingActionButton({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: theme.spacing.lg, // RTL - צד שמאל
     flexDirection: "row-reverse",
     alignItems: "center",
     zIndex: 999,
+  },
+  leftPosition: {
+    left: theme.spacing.lg,
+  },
+  rightPosition: {
+    right: theme.spacing.lg,
   },
   button: {
     justifyContent: "center",

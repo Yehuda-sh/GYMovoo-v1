@@ -16,6 +16,10 @@ export const isQuickLoginAvailable = async (): Promise<boolean> => {
   try {
     if (!supabase) return false;
 
+    // Check if user explicitly logged out
+    const userLoggedOut = await AsyncStorage.getItem("user_logged_out");
+    if (userLoggedOut === "true") return false;
+
     const {
       data: { session },
       error,
@@ -47,6 +51,10 @@ export const tryQuickLogin = async (_opts?: {
 }): Promise<QuickLoginResult> => {
   try {
     if (!supabase) return { ok: false, reason: "NO_SESSION" };
+
+    // Check if user explicitly logged out
+    const userLoggedOut = await AsyncStorage.getItem("user_logged_out");
+    if (userLoggedOut === "true") return { ok: false, reason: "NO_SESSION" };
 
     // Get current session
     const {
@@ -86,6 +94,13 @@ export const tryQuickLogin = async (_opts?: {
 
     // Update user store
     useUserStore.getState().setUser(user);
+
+    // Clear logout flag when successful login
+    try {
+      await AsyncStorage.removeItem("user_logged_out");
+    } catch {
+      // Non-critical
+    }
 
     // Save cache (non-critical)
     try {

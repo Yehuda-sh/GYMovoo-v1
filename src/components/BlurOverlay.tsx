@@ -64,10 +64,11 @@ export const BlurOverlay: React.FC<BlurOverlayProps> = ({
     onActionPress?.();
   }, [triggerHaptic, onActionPress]);
 
-  // ✨ משוב ביצועים אוטומטי
+  // ✨ משוב ביצועים אוטומטי - רק בדיבוג מפורט
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
-    if (renderTime > 100) {
+    if (__DEV__ && renderTime > 300) {
+      // העלאת סף ל-300ms
       console.warn(`⚠️ BlurOverlay render time: ${renderTime.toFixed(2)}ms`);
     }
   }, [renderStartTime]);
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 12,
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   description: {
     fontSize: 14,
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
     lineHeight: 20,
-    writingDirection: "rtl",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   actionButton: {
     backgroundColor: theme.colors.primary,
@@ -185,6 +186,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
-    writingDirection: "rtl",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
 });

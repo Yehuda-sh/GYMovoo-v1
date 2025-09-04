@@ -139,7 +139,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
     }, [hideAfter, fadeAnim]);
 
     // 🎨 חישוב סגנונות דינמיים // Dynamic styles calculation
-    const { containerStyle, spinnerTransform, textStyle } =
+    const { containerStyle, spinnerTransform, spinnerOpacity, textStyle } =
       React.useMemo(() => {
         const baseContainerStyle: ViewStyle[] = [styles.container];
 
@@ -150,9 +150,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transforms: any[] = [];
 
-        if (variant === "fade") {
-          transforms.push({ opacity: fadeAnim });
-        } else if (variant === "pulse") {
+        if (variant === "pulse") {
           transforms.push({ scale: pulseAnim });
         } else if (variant === "dots") {
           const rotation = rotateAnim.interpolate({
@@ -165,6 +163,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         return {
           containerStyle: baseContainerStyle,
           spinnerTransform: transforms.length > 0 ? transforms : undefined,
+          spinnerOpacity: variant === "fade" ? fadeAnim : 1,
           textStyle: [
             styles.loadingText,
             variant === "fade" && { opacity: fadeAnim },
@@ -215,7 +214,10 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = React.memo(
         ) : (
           // 🌀 מצב ActivityIndicator רגיל // Regular ActivityIndicator mode
           <Animated.View
-            style={spinnerTransform && { transform: spinnerTransform }}
+            style={[
+              spinnerTransform && { transform: spinnerTransform },
+              variant === "fade" && { opacity: spinnerOpacity },
+            ]}
           >
             <ActivityIndicator
               size={size}

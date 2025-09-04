@@ -796,7 +796,9 @@ export const useUserStore = create<UserStore>()(
         const user = state.user;
 
         const hasBasicInfo = !!(user?.id || user?.email || user?.name);
-        const hasSmartQuestionnaire = !!user?.smartquestionnairedata?.answers;
+        const hasSmartQuestionnaire =
+          !!user?.smartquestionnairedata?.answers ||
+          !!user?.questionnairedata?.equipment;
         const isFullySetup = hasBasicInfo && hasSmartQuestionnaire;
 
         return {

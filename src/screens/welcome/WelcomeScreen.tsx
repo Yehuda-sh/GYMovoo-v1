@@ -326,9 +326,9 @@ const WelcomeScreen = React.memo(() => {
     setIsQuickLoginVisible,
   ]);
 
-  const handleRegister = useCallback(() => {
-    triggerHapticFeedback("light"); // משוב קל לניווט להרשמה
-    navigation.navigate("Register");
+  const handleStartJourney = useCallback(() => {
+    triggerHapticFeedback("light"); // משוב קל לניווט לשאלון
+    navigation.navigate("Questionnaire", {});
   }, [navigation, triggerHapticFeedback]);
 
   const handleGoogleSignIn = useCallback(async () => {
@@ -455,7 +455,7 @@ const WelcomeScreen = React.memo(() => {
             {/* Primary call-to-action button with gradient design */}
             <UniversalButton
               title={WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
-              onPress={handleRegister}
+              onPress={handleStartJourney}
               variant="gradient"
               size="large"
               icon="arrow-forward"
@@ -507,6 +507,24 @@ const WelcomeScreen = React.memo(() => {
                   </View>
                 </TouchableButton>
               )}
+
+              {/* כפתור כבר יש לי חשבון - ניתוב ישיר ל-LoginScreen */}
+              <TouchableButton
+                style={styles.haveAccountButton}
+                onPress={() => navigation.navigate("Login", {})}
+                accessibilityLabel="כבר יש לי חשבון"
+                accessibilityHint="לחץ אם כבר יש לך חשבון"
+                testID="have-account-button"
+              >
+                <MaterialCommunityIcons
+                  name="account-check"
+                  size={CONSTANTS.ICON_SIZES.SMALL}
+                  color={theme.colors.secondary}
+                />
+                <Text style={styles.haveAccountButtonText}>
+                  {WELCOME_SCREEN_TEXTS.ACTIONS.HAVE_ACCOUNT}
+                </Text>
+              </TouchableButton>
 
               {/* כפתור התחברות מהירה לגוגל */}
               <TouchableButton
@@ -782,22 +800,22 @@ const styles = StyleSheet.create({
   // Authentication options group // קבוצת אפשרויות אימות
   authGroup: {
     width: "100%",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md, // מרווח גדול יותר בין הכפתורים
+    paddingVertical: theme.spacing.sm,
   },
 
   // Quick Login button styles - כפתור קטן מותאם לSession-based quick login
   quickLoginButton: {
-    position: "absolute",
-    bottom: 80,
-    left: 20,
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.primary + "60",
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.xs,
     shadowColor: theme.colors.primary,
     shadowOffset: {
       width: 0,
@@ -806,13 +824,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
+    minHeight: 50,
     gap: theme.spacing.xs,
   },
   quickLoginButtonText: {
-    fontSize: CONSTANTS.STYLE_CONSTANTS.QUICK_LOGIN_FONT_SIZE,
+    fontSize: 15,
     color: theme.colors.primary,
-    fontWeight: "500",
+    fontWeight: "600",
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    letterSpacing: 0.2,
   },
 
   googleButton: {
@@ -822,68 +842,102 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.error + "40",
-    borderRadius: theme.radius.xl,
-    paddingVertical: 16,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.xs,
     shadowColor: theme.colors.error,
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 3,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
-    minHeight: 54,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+    minHeight: 50,
+    gap: theme.spacing.xs,
   },
   googleButtonText: {
-    fontSize: CONSTANTS.STYLE_CONSTANTS.GOOGLE_BUTTON_FONT_SIZE,
+    fontSize: 15,
     color: theme.colors.error,
     fontWeight: "600",
-    marginEnd: theme.spacing.xs,
     writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
-    letterSpacing: CONSTANTS.STYLE_CONSTANTS.GOOGLE_BUTTON_LETTER_SPACING,
+    letterSpacing: 0.2,
+  },
+
+  // כפתור "כבר יש לי חשבון" / "Have Account" button styles
+  haveAccountButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.secondary,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.xs,
+    shadowColor: theme.colors.secondary,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    minHeight: 50,
+    gap: theme.spacing.xs,
+  },
+  haveAccountButtonText: {
+    fontSize: 15,
+    color: theme.colors.secondary,
+    fontWeight: "600",
+    writingDirection: CONSTANTS.RTL_PROPERTIES.WRITING_DIRECTION,
+    letterSpacing: 0.2,
   },
 
   // Development tools styles // סטיילים לכלי פיתוח
   developerButton: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
+    top: 90, // מרווח גדול יותר מהחלק העליון
+    left: 15,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.card + "95", // שקיפות קלה
     borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    ...theme.shadows.small,
-    gap: theme.spacing.xs,
-  },
-  developerButtonText: {
-    fontSize: CONSTANTS.STYLE_CONSTANTS.DEVELOPER_BUTTON_FONT_SIZE,
-    color: theme.colors.primary,
-    fontWeight: "500",
-  },
-  debugInfoButton: {
-    position: "absolute",
-    bottom: 80,
-    right: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
-    borderRadius: theme.radius.md,
+    borderColor: theme.colors.primary + "60",
+    borderRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
     ...theme.shadows.small,
     gap: theme.spacing.xs,
+    minWidth: 80, // רוחב מינימלי
+  },
+  developerButtonText: {
+    fontSize: 10,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  debugInfoButton: {
+    position: "absolute",
+    top: 90, // אותו גובה כמו כפתור הפיתוח
+    right: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.card + "95", // שקיפות קלה
+    borderWidth: 1,
+    borderColor: theme.colors.success + "60",
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    ...theme.shadows.small,
+    gap: theme.spacing.xs,
+    minWidth: 80, // רוחב מינימלי
   },
   debugInfoButtonText: {
     fontSize: 10,
     color: theme.colors.success,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 
   // Utility styles

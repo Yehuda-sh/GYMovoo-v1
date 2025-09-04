@@ -9,6 +9,7 @@ import { Text } from "react-native";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { ErrorBoundary } from "../components/common/ErrorBoundary";
 import { errorHandler } from "../utils/errorHandler";
+import { logger } from "../utils/logger";
 
 // Mock של errorHandler
 jest.mock("../utils/errorHandler", () => ({
@@ -17,10 +18,11 @@ jest.mock("../utils/errorHandler", () => ({
   },
 }));
 
-// Mock של logger
+// Mock של logger - תואם לפרמטרים האמיתיים
 jest.mock("../utils/logger", () => ({
   logger: {
     error: jest.fn(),
+    info: jest.fn(),
   },
 }));
 
@@ -172,5 +174,45 @@ describe("ErrorBoundary", () => {
     expect(retryButton.props.accessibilityHint).toBe(
       "מנסה לטעון מחדש את האפליקציה"
     );
+  });
+
+  it("should support different variants", () => {
+    const { getByText, queryByText } = render(
+      <ErrorBoundary variant="minimal">
+        <ThrowingComponent shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    // בווריאנט minimal אין כותרת וגם לא פרטי שגיאה
+    expect(queryByText("משהו השתבש")).toBeNull();
+    expect(queryByText("פרטי שגיאה (פיתוח):")).toBeNull();
+  });
+
+  it("should call logger.error with correct parameters", () => {
+    render(
+      <ErrorBoundary>
+        <ThrowingComponent shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "ErrorBoundary",
+      "Component error caught",
+      expect.objectContaining({
+        error: "Test error for ErrorBoundary",
+        errorType: "unknown",
+        retryCount: 0,
+      })
+    );
+  });
+
+  it("should show feedback button when enabled", () => {
+    const { getByText } = render(
+      <ErrorBoundary showFeedbackButton={true}>
+        <ThrowingComponent shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(getByText("שלח משוב")).toBeTruthy();
   });
 });

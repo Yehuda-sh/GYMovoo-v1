@@ -23,6 +23,7 @@ import {
   WorkoutRecommendation,
   WorkoutPlan,
   WorkoutExercise,
+  Workout,
 } from "../types";
 import {
   getPersonalizedRestTimes,
@@ -1530,8 +1531,7 @@ class QuestionnaireService {
     if (rehabHistory.length > 5) {
       const avgRating =
         rehabHistory.reduce(
-          (sum: number, w: { feedback?: { overallRating?: number } }) =>
-            sum + (w.feedback?.overallRating || 3),
+          (sum: number, w: Workout) => sum + (w.rating || 3),
           0
         ) / rehabHistory.length;
       if (avgRating > 4) {
@@ -1868,7 +1868,6 @@ class QuestionnaireService {
       workouts: basicWorkouts,
       duration: 4, // 4 שבועות
       frequency: 3, // 3 אימונים בשבוע
-      createdAt: new Date().toISOString(),
       requiresSubscription: false,
     };
   }
@@ -1912,7 +1911,6 @@ class QuestionnaireService {
       frequency: prefs.frequency
         ? this.parseFrequencyToNumber(prefs.frequency)
         : 4,
-      createdAt: new Date().toISOString(),
       requiresSubscription: true,
     };
   }
@@ -2170,8 +2168,20 @@ class QuestionnaireService {
           primaryMuscles: ["רגליים", "גוף מרכזי"],
           equipment: "bodyweight",
           sets: [
-            { reps: 1, duration: 30, weight: 0, completed: false },
-            { reps: 1, duration: 30, weight: 0, completed: false },
+            {
+              id: `set-high-knees-1-${Date.now()}`,
+              reps: 1,
+              duration: 30,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-high-knees-2-${Date.now()}`,
+              reps: 1,
+              duration: 30,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 30,
           notes: "הרם את הברכיים גבוה עד מפלס המותניים",
@@ -2183,8 +2193,20 @@ class QuestionnaireService {
           primaryMuscles: ["גוף מרכזי", "כתפיים"],
           equipment: "bodyweight",
           sets: [
-            { reps: 1, duration: 30, weight: 0, completed: false },
-            { reps: 1, duration: 30, weight: 0, completed: false },
+            {
+              id: `set-mountain-climbers-1-${Date.now()}`,
+              reps: 1,
+              duration: 30,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-mountain-climbers-2-${Date.now()}`,
+              reps: 1,
+              duration: 30,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 45,
           notes: "בעמדת פלאנק, החלף רגליים במהירות",
@@ -2198,9 +2220,24 @@ class QuestionnaireService {
           primaryMuscles: ["גוף מלא"],
           equipment: "bodyweight",
           sets: [
-            { reps: 5, weight: 0, completed: false },
-            { reps: 5, weight: 0, completed: false },
-            { reps: 5, weight: 0, completed: false },
+            {
+              id: `set-burpees-1-${Date.now()}`,
+              reps: 5,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-burpees-2-${Date.now()}`,
+              reps: 5,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-burpees-3-${Date.now()}`,
+              reps: 5,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 60,
           notes:
@@ -2213,9 +2250,24 @@ class QuestionnaireService {
           primaryMuscles: ["רגליים"],
           equipment: "bodyweight",
           sets: [
-            { reps: 8, weight: 0, completed: false },
-            { reps: 8, weight: 0, completed: false },
-            { reps: 8, weight: 0, completed: false },
+            {
+              id: `set-squat-jumps-1-${Date.now()}`,
+              reps: 8,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-squat-jumps-2-${Date.now()}`,
+              reps: 8,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-squat-jumps-3-${Date.now()}`,
+              reps: 8,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 45,
           notes: "כפיפת רגליים עם קפיצה חזקה למעלה",
@@ -2229,8 +2281,18 @@ class QuestionnaireService {
           primaryMuscles: ["רגליים", "ישבן"],
           equipment: "bodyweight",
           sets: [
-            { reps: 10, weight: 0, completed: false },
-            { reps: 10, weight: 0, completed: false },
+            {
+              id: `set-lunges-1-${Date.now()}`,
+              reps: 10,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-lunges-2-${Date.now()}`,
+              reps: 10,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 45,
           notes: "צעד קדימה עם כפיפת שתי הרגליים",
@@ -2242,8 +2304,18 @@ class QuestionnaireService {
           primaryMuscles: ["חזה", "כתפיים"],
           equipment: "bodyweight",
           sets: [
-            { reps: 12, weight: 0, completed: false },
-            { reps: 12, weight: 0, completed: false },
+            {
+              id: `set-wall-pushups-1-${Date.now()}`,
+              reps: 12,
+              weight: 0,
+              completed: false,
+            },
+            {
+              id: `set-wall-pushups-2-${Date.now()}`,
+              reps: 12,
+              weight: 0,
+              completed: false,
+            },
           ],
           restTime: 30,
           notes: "שכיבות סמיכה עדינות מול הקיר למתחילים",
@@ -2316,9 +2388,9 @@ class QuestionnaireService {
         secondaryMuscles: ["גב"],
         equipment: "dumbbell",
         sets: [
-          { reps: 10, weight: 5, completed: false },
-          { reps: 10, weight: 5, completed: false },
-          { reps: 10, weight: 5, completed: false },
+          { id: `set-1-${Date.now()}`, reps: 10, weight: 5, completed: false },
+          { id: `set-2-${Date.now()}`, reps: 10, weight: 5, completed: false },
+          { id: `set-3-${Date.now()}`, reps: 10, weight: 5, completed: false },
         ],
         restTime: 90,
         notes: "השתמש במשקל מתאים לרמתך",
@@ -2336,8 +2408,18 @@ class QuestionnaireService {
         secondaryMuscles: ["ידיים"],
         equipment: "resistance_bands",
         sets: [
-          { reps: 12, weight: 0, completed: false },
-          { reps: 12, weight: 0, completed: false },
+          {
+            id: `set-bands-1-${Date.now()}`,
+            reps: 12,
+            weight: 0,
+            completed: false,
+          },
+          {
+            id: `set-bands-2-${Date.now()}`,
+            reps: 12,
+            weight: 0,
+            completed: false,
+          },
         ],
         restTime: 60,
         notes: "שמור על תנועה מבוקרת ועמידה יציבה",

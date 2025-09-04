@@ -322,8 +322,8 @@ export const getContrastTextColor = (bg: string): string => {
 
 // --- Icon Directions (For RTL) ---
 export const icons = {
-  chevron: isRTL ? "chevron-forward" : "chevron-back",
-  arrow: isRTL ? "arrow-forward" : "arrow-back",
+  chevron: isRTL ? "chevron-right" : "chevron-left",
+  arrow: isRTL ? "arrow-right" : "arrow-left",
   arrowDropdown: isRTL ? "caret-down" : "caret-down",
   menu: isRTL ? "menu" : "menu",
 };

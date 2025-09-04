@@ -7,9 +7,6 @@
  * @enhancements אינדיקטורי ולידציה בזמן אמת, שיפורי חווית הקלדה, אנימציית הצלחה, תמיכה ב-Biometric
  * @recurring_errors השתמש ב-theme בלבד, וודא RTL נכון, השתמש ב-global navigation types
  * @updated 2025-07-30 שיפור RTL, אנימציות מתקדמות, תמיכה ב-global navigation types, אינדיקטורי טעינה חכמים
- *
- * === DEBUG MODE ENABLED ===
- * כל פעולה עיקרית מתועדת ב-console.log ו-console.group. ראה לוגים לכל שינוי state, הולידציה, try/catch, אנימציה, ניווט, ואירועי משתמש.
  */
 
 import React, {
@@ -31,6 +28,7 @@ import {
   Animated,
   ScrollView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,15 +42,6 @@ import { validateEmail as sharedValidateEmail } from "../../utils/authValidation
 import type { RootStackParamList } from "../../navigation/types";
 import { localDataService } from "../../services/localDataService";
 import { userApi } from "../../services/api/userApi";
-import { logger } from "../../utils/logger";
-
-// Debug toggle
-const DEBUG_REGISTER = false;
-const debug = (...args: unknown[]) => {
-  if (DEBUG_REGISTER) {
-    logger.debug("[REGISTER]", args.length > 0 ? JSON.stringify(args) : "");
-  }
-};
 
 // Centralized strings (hebrew only as UX surface; could add i18n layer later)
 const STRINGS = {
@@ -180,9 +169,9 @@ const ValidationIndicator = ({
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  // ----------- DEBUG: MOUNT -----------
+  // Component mount effect
   useEffect(() => {
-    debug("Component mounted", { ts: new Date().toISOString() });
+    // Component initialization logic here if needed
   }, []);
 
   // ----------- STATE -----------
@@ -226,16 +215,12 @@ export default function RegisterScreen() {
   const successScaleAnim = useRef(new Animated.Value(0)).current;
   const successRotateAnim = useRef(new Animated.Value(0)).current;
 
-  // --- DEBUG: STATE CHANGE LOGGING ---
-  // Removed redundant empty effects
+  // Error state management
   useEffect(() => {
     if (error && __DEV__) {
-      console.warn("[REGISTER] error:", error);
+      console.error("Registration error:", error);
     }
   }, [error]);
-  useEffect(() => {
-    debug("Loading state changed", { loading });
-  }, [loading]);
 
   // Password strength
   const passwordStrength = useMemo(
@@ -270,7 +255,7 @@ export default function RegisterScreen() {
     if (email.length > 0) {
       setFieldValidation((prev) => ({
         ...prev,
-        email: sharedValidateEmail(email).isValid,
+        email: sharedValidateEmail(email) === null,
       }));
     }
   }, [email]);
@@ -287,7 +272,7 @@ export default function RegisterScreen() {
     }
   }, [confirmPassword, password]);
 
-  const validateEmail = sharedValidateEmail; // reuse shared util
+  // Use shared validation function directly
 
   const createShakeAnimation = useCallback(() => {
     return Animated.sequence([
@@ -330,14 +315,14 @@ export default function RegisterScreen() {
     ]);
   }, [successRotateAnim, successScaleAnim]);
 
-  // ----------- DEBUG: FORM VALIDATION -----------
+  // Form validation function
   const validateForm = (): boolean => {
-    debug("Form validation start");
     const errors: typeof fieldErrors = {};
     if (!fullName || fullName.length < 2)
       errors.fullName = STRINGS.errors.fullName;
     if (!email) errors.email = STRINGS.errors.emailRequired;
-    else if (!validateEmail(email)) errors.email = STRINGS.errors.emailInvalid;
+    else if (sharedValidateEmail(email))
+      errors.email = STRINGS.errors.emailInvalid;
     if (!password) errors.password = STRINGS.errors.passwordRequired;
     else if (password.length < 6)
       errors.password = STRINGS.errors.passwordShort;
@@ -346,7 +331,6 @@ export default function RegisterScreen() {
     else if (password !== confirmPassword)
       errors.confirmPassword = STRINGS.errors.confirmMismatch;
     setFieldErrors(errors);
-    debug("Validation errors", errors);
     if (Object.keys(errors).length > 0) {
       createShakeAnimation().start();
       return false;
@@ -354,27 +338,16 @@ export default function RegisterScreen() {
     return true;
   };
 
-  // ----------- DEBUG: REGISTRATION -----------
+  // Registration function
   const handleRegister = async () => {
-    debug("handleRegister invoked", {
-      fullName: fullName ? "✓" : "✗",
-      email: email ? "✓" : "✗",
-      passwordEntered: password ? "✓" : "✗",
-      confirmPasswordEntered: confirmPassword ? "✓" : "✗",
-      is16Plus,
-      acceptTerms,
-    });
     if (!validateForm()) {
       if (__DEV__) {
-        console.warn("[REGISTER] Form validation failed.");
+        console.warn("Form validation failed");
       }
       return;
     }
     if (!is16Plus) {
       setError(STRINGS.errors.age);
-      if (__DEV__) {
-        console.warn("[REGISTER] User is under 16.");
-      }
       return;
     }
     if (!acceptTerms) {
@@ -385,7 +358,6 @@ export default function RegisterScreen() {
       return;
     }
     if (loading) {
-      debug("Double-submit prevented");
       return; // guard
     }
     setLoading(true);
@@ -420,6 +392,9 @@ export default function RegisterScreen() {
       // שמירה ב-Zustand store עם הנתונים מהשרת
       useUserStore.getState().setUser(savedUser);
 
+      // Clear logout flag on successful registration
+      await AsyncStorage.removeItem("user_logged_out");
+
       // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
       if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
         try {
@@ -437,10 +412,8 @@ export default function RegisterScreen() {
         }
       }
 
-      debug("Registration success", newUser);
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      debug("Navigated to Questionnaire");
     } catch (error) {
       console.error("[REGISTER] Registration failed:", error);
       setError(STRINGS.errors.generic);
@@ -451,7 +424,6 @@ export default function RegisterScreen() {
 
   // ----------- DEBUG: GOOGLE REGISTER -----------
   const handleGoogleRegister = async () => {
-    debug("handleGoogleRegister invoked");
     if (!is16Plus) {
       setError(STRINGS.errors.age);
       console.warn("[REGISTER] Google - under 16.");
@@ -473,6 +445,9 @@ export default function RegisterScreen() {
 
       // שמירה ב-Zustand store עם הנתונים מהשרת
       useUserStore.getState().setUser(savedGoogleUser);
+
+      // Clear logout flag on successful registration
+      await AsyncStorage.removeItem("user_logged_out");
 
       // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
       if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
@@ -497,7 +472,6 @@ export default function RegisterScreen() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      debug("Google registration success; navigated to Questionnaire");
     } catch (e) {
       console.error("[REGISTER] Google registration failed:", e);
       setError(STRINGS.errors.google);
@@ -510,9 +484,21 @@ export default function RegisterScreen() {
   const handleNavigateToTerms = () => {
     try {
       navigation.navigate("Terms");
-      debug("Navigate to Terms");
     } catch (error) {
       console.error("[NAVIGATE] Failed to Terms:", error);
+    }
+  };
+
+  // ----------- DEBUG: AUTO FILL FOR DEVELOPMENT -----------
+  const handleAutoFill = () => {
+    if (__DEV__) {
+      setFullName("יהודה שלמה");
+      setEmail("test@gymovoo.dev");
+      setPassword("Test123!");
+      setConfirmPassword("Test123!");
+      setIs16Plus(true);
+      setAcceptTerms(true);
+      console.warn("🔧 Auto-filled registration form for development");
     }
   };
 
@@ -953,6 +939,30 @@ export default function RegisterScreen() {
               )}
             </TouchableOpacity>
 
+            {/* --- כפתור פיתוח למילוי אוטומטי --- */}
+            {__DEV__ && (
+              <TouchableOpacity
+                style={styles.devButton}
+                onPress={handleAutoFill}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="מילוי אוטומטי לפיתוח"
+                accessibilityHint="לחץ כדי למלא את הטופס אוטומטית למטרות פיתוח"
+              >
+                <View style={styles.devButtonContent}>
+                  <MaterialIcons
+                    name="developer-mode"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.devButtonText}>
+                    מילוי אוטומטי (פיתוח)
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
             {/* --- קישור להתחברות --- */}
             <View style={styles.linkRow}>
               <Text style={styles.linkText}>{STRINGS.misc.hasAccount}</Text>
@@ -1253,5 +1263,25 @@ const styles = StyleSheet.create({
   },
   switchMarginStart: {
     marginStart: 8,
+  },
+  devButton: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + "30",
+    alignItems: "center",
+  },
+  devButtonContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+  },
+  devButtonText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

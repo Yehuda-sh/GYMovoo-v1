@@ -1,10 +1,15 @@
 /**
  * @file __tests__/errorHandler.test.ts
- * @brief טסט יחידה ל-errorHandler
- * @dependencies jest
+ * @brief טסט מקיף ל-errorHandler ופונקציות עזר
+ * @dependencies jest, errorHandler, logger
+ * @updated 2025-09-03 - עודכן להתאים לקוד האמיתי, הוסרו טסטים שלא רלוונטיים
  */
 
-import { errorHandler, normalizeError } from "../utils/errorHandler";
+import {
+  errorHandler,
+  reportError,
+  getErrorMessage,
+} from "../utils/errorHandler";
 import { logger } from "../utils/logger";
 
 // Mock של logger
@@ -23,172 +28,121 @@ describe("errorHandler", () => {
     jest.clearAllMocks();
   });
 
-  describe("normalizeError", () => {
-    it("should normalize Error objects", () => {
+  describe("getErrorMessage", () => {
+    it("should return message from Error objects", () => {
       const error = new Error("Test error");
-      error.name = "TestError";
-
-      const normalized = normalizeError(error);
-
-      expect(normalized).toEqual({
-        name: "TestError",
-        message: "Test error",
-        stack: expect.any(String),
-      });
+      const result = getErrorMessage(error);
+      expect(result).toBe("Test error");
     });
 
-    it("should normalize string errors", () => {
+    it("should return string errors as-is", () => {
       const error = "String error message";
-
-      const normalized = normalizeError(error);
-
-      expect(normalized).toEqual({
-        name: "StringError",
-        message: "String error message",
-      });
+      const result = getErrorMessage(error);
+      expect(result).toBe("String error message");
     });
 
-    it("should normalize object errors", () => {
-      const error = {
-        name: "CustomError",
-        message: "Custom error message",
-        stack: "custom stack trace",
-      };
-
-      const normalized = normalizeError(error);
-
-      expect(normalized).toEqual({
-        name: "CustomError",
-        message: "Custom error message",
-        stack: "custom stack trace",
-      });
+    it("should extract message from objects", () => {
+      const error = { message: "Object error message" };
+      const result = getErrorMessage(error);
+      expect(result).toBe("Object error message");
     });
 
     it("should handle unknown error types", () => {
-      const error = 42; // number
-
-      const normalized = normalizeError(error);
-
-      expect(normalized).toEqual({
-        name: "UnknownError",
-        message: "An unknown error occurred",
-      });
+      const error = 42;
+      const result = getErrorMessage(error);
+      expect(result).toBe("Unknown error occurred");
     });
 
-    it("should handle null/undefined errors", () => {
-      const normalizedNull = normalizeError(null);
-      const normalizedUndefined = normalizeError(undefined);
-
-      expect(normalizedNull).toEqual({
-        name: "UnknownError",
-        message: "An unknown error occurred",
-      });
-
-      expect(normalizedUndefined).toEqual({
-        name: "UnknownError",
-        message: "An unknown error occurred",
-      });
+    it("should handle null/undefined", () => {
+      expect(getErrorMessage(null)).toBe("Unknown error occurred");
+      expect(getErrorMessage(undefined)).toBe("Unknown error occurred");
     });
   });
 
   describe("reportError", () => {
-    it("should call logger.error in development mode", () => {
-      // הגדרת מצב פיתוח
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
-
+    it("should call logger.error with error message", () => {
       const error = new Error("Test error");
       const context = { source: "test" };
 
       errorHandler.reportError(error, context);
 
-      expect(mockLoggerError).toHaveBeenCalledWith(
-        "ErrorHandler",
-        "Error reported",
-        expect.objectContaining({
-          error: expect.objectContaining({
-            name: "Error",
-            message: "Test error",
-          }),
-          context,
-          timestamp: expect.any(String),
-        })
-      );
-
-      // החזרת מצב מקורי
-      (global as any).__DEV__ = originalDev;
-    });
-
-    it("should not call logger.error in production mode", () => {
-      // הגדרת מצב פרודקשן
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = false;
-
-      const error = new Error("Test error");
-      const context = { source: "test" };
-
-      errorHandler.reportError(error, context);
-
-      expect(mockLoggerError).not.toHaveBeenCalled();
-
-      // החזרת מצב מקורי
-      (global as any).__DEV__ = originalDev;
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "Test error", {
+        context,
+      });
     });
 
     it("should work without context parameter", () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
-
       const error = new Error("Test error");
 
       errorHandler.reportError(error);
 
-      expect(mockLoggerError).toHaveBeenCalledWith(
-        "ErrorHandler",
-        "Error reported",
-        expect.objectContaining({
-          error: expect.objectContaining({
-            name: "Error",
-            message: "Test error",
-          }),
-          context: undefined,
-          timestamp: expect.any(String),
-        })
-      );
-
-      (global as any).__DEV__ = originalDev;
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "Test error", {
+        context: undefined,
+      });
     });
 
-    it("should include timestamp in error report", () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+    it("should handle string errors", () => {
+      const error = "String error";
 
-      const beforeTime = new Date().toISOString();
-      errorHandler.reportError(new Error("Test"));
-      const afterTime = new Date().toISOString();
+      errorHandler.reportError(error);
+
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "String error", {
+        context: undefined,
+      });
+    });
+
+    it("should handle object errors", () => {
+      const error = { message: "Object error" };
+
+      errorHandler.reportError(error);
+
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "Object error", {
+        context: undefined,
+      });
+    });
+
+    it("should handle unknown error types", () => {
+      const error = 42;
+
+      errorHandler.reportError(error);
 
       expect(mockLoggerError).toHaveBeenCalledWith(
-        "ErrorHandler",
-        "Error reported",
-        expect.objectContaining({
-          timestamp: expect.any(String),
-        })
+        "Error",
+        "Unknown error occurred",
+        { context: undefined }
       );
+    });
+  });
 
-      const callArgs = mockLoggerError.mock.calls[0];
-      const reportData = callArgs[2] as any;
-      const timestamp = reportData.timestamp;
+  describe("errorHandler object", () => {
+    it("should have reportError method", () => {
+      expect(typeof errorHandler.reportError).toBe("function");
+    });
 
-      // בדיקה שהזמן תקין ובפורמט ISO
-      expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-      expect(new Date(timestamp).getTime()).toBeGreaterThanOrEqual(
-        new Date(beforeTime).getTime()
-      );
-      expect(new Date(timestamp).getTime()).toBeLessThanOrEqual(
-        new Date(afterTime).getTime()
-      );
+    it("should call the same function as direct reportError", () => {
+      const error = new Error("Test error");
 
-      (global as any).__DEV__ = originalDev;
+      errorHandler.reportError(error);
+
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "Test error", {
+        context: undefined,
+      });
+    });
+
+    it("should handle complex context objects", () => {
+      const error = new Error("Complex error");
+      const context = {
+        userId: 123,
+        action: "save_profile",
+        timestamp: new Date(),
+        metadata: { version: "1.0", platform: "ios" },
+      };
+
+      errorHandler.reportError(error, context);
+
+      expect(mockLoggerError).toHaveBeenCalledWith("Error", "Complex error", {
+        context,
+      });
     });
   });
 });

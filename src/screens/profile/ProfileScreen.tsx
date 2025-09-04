@@ -50,7 +50,6 @@ import {
   Platform,
   Modal,
   FlatList,
-  Alert,
   Dimensions,
   RefreshControl,
   TextInput,
@@ -74,7 +73,7 @@ import { logger } from "../../utils/logger";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import * as ImagePicker from "expo-image-picker";
-import { User, SmartQuestionnaireData } from "../../types";
+import { User, SmartQuestionnaireData, Workout } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
@@ -151,21 +150,6 @@ interface ProfileAnalytics {
 // 🎯 TypeScript Interfaces & Types
 // ממשקי טייפסקריפט וטיפוסים
 // =======================================
-
-/**
- * Workout interface with rating and feedback support
- * ממשק אימון עם תמיכה בדירוג ומשוב
- */
-interface WorkoutWithRating {
-  id: string;
-  date?: string;
-  completedAt?: string;
-  duration?: number;
-  rating?: number;
-  feedback?: {
-    rating?: number;
-  };
-}
 
 // ===============================================
 // 🔧 Constants & Static Data - קונסטנטים ונתונים סטטיים
@@ -889,14 +873,10 @@ function ProfileScreen() {
 
   // טעינת משתמש מהשרת – מקור אמת יחיד
   const fetchUserFromServer = useCallback(async () => {
-    if (!user?.id && !user?.email) return;
+    if (!user?.id) return;
     try {
       setError(null);
-      const fresh = user?.id
-        ? await userApi.getById(user.id)
-        : user?.email
-          ? await userApi.getByEmail(user.email)
-          : null;
+      const fresh = await userApi.getById(user.id);
       if (fresh) {
         setUser(fresh);
         if (fresh.avatar) setSelectedAvatar(fresh.avatar);
@@ -905,7 +885,7 @@ function ProfileScreen() {
       devLog("שגיאה בטעינת משתמש מהשרת", e);
       setError("שגיאה בטעינת נתוני משתמש מהשרת");
     }
-  }, [user?.id, user?.email, setUser]);
+  }, [user?.id, setUser]);
 
   // רענון הנתונים // Data refresh
   const onRefresh = useCallback(async () => {
@@ -1027,27 +1007,10 @@ function ProfileScreen() {
 
       const trimmed = editedName.trim();
 
-      // עדכון המשתמש בשרת אם יש מזהה או אם ניתן לאתר מזהה לפי אימייל
-      if (user?.id || user?.email) {
+      // עדכון המשתמש בשרת אם יש מזהה
+      if (user?.id) {
         try {
-          let updated: User | null = null;
-          if (user?.id) {
-            updated = await userApi.update(user.id, { name: trimmed });
-          } else if (user?.email) {
-            try {
-              const byEmail = await userApi.getByEmail(user.email);
-              if (byEmail?.id) {
-                updated = await userApi.update(byEmail.id, { name: trimmed });
-              }
-            } catch (e) {
-              if (__DEV__) {
-                console.warn(
-                  "ProfileScreen: לא נמצא משתמש לפי אימייל לעדכון",
-                  e
-                );
-              }
-            }
-          }
+          const updated = await userApi.update(user.id, { name: trimmed });
           if (updated) {
             setUser(updated);
           } else {
@@ -1101,15 +1064,7 @@ function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [
-    editedName,
-    updateUser,
-    canEditName,
-    validateName,
-    user?.id,
-    user?.email,
-    setUser,
-  ]);
+  }, [editedName, updateUser, canEditName, validateName, user?.id, setUser]);
 
   // ===============================================
   // 📊 User Info Calculation - חישוב נתוני משתמש
@@ -1624,14 +1579,16 @@ function ProfileScreen() {
       const now = new Date();
       let streakTmp = 0;
       let checkDate = new Date(now);
-      const sortedWorkouts = [...workouts].sort(
-        (a, b) =>
-          new Date(b.date || b.completedAt).getTime() -
-          new Date(a.date || a.completedAt).getTime()
-      );
+      const sortedWorkouts = [...workouts].sort((a, b) => {
+        const dateB = b.date || b.completedAt || new Date();
+        const dateA = a.date || a.completedAt || new Date();
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
 
       for (const workout of sortedWorkouts) {
-        const workoutDate = new Date(workout.date || workout.completedAt);
+        const workoutDate = new Date(
+          workout.date || workout.completedAt || new Date()
+        );
         const diffDays = Math.floor(
           (checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
         );
@@ -1646,7 +1603,7 @@ function ProfileScreen() {
 
       // זמן כולל מקומי (בדקות)
       computedTotalMinutes = workouts.reduce(
-        (sum: number, w: WorkoutWithRating) => sum + (w.duration || 45),
+        (sum: number, w: Workout) => sum + (w.duration || 45),
         0
       );
     }
@@ -2700,7 +2657,7 @@ function ProfileScreen() {
               onPress={() => setShowAvatarModal(false)}
             >
               <View style={theme.getModalContentStyle("bottom")}>
-                <View style={theme.getModalHeaderStyle()}>
+                <View style={styles.sectionHeader}>
                   <Text style={styles.modalTitle}>בחר אווטאר</Text>
                   <TouchableOpacity
                     onPress={() => setShowAvatarModal(false)}
@@ -2784,7 +2741,7 @@ function ProfileScreen() {
               onPress={() => setShowNameModal(false)}
             >
               <View style={theme.getModalContentStyle("bottom")}>
-                <View style={theme.getModalHeaderStyle()}>
+                <View style={styles.sectionHeader}>
                   <Text style={styles.modalTitle}>עריכת שם</Text>
                   <TouchableOpacity
                     onPress={() => setShowNameModal(false)}

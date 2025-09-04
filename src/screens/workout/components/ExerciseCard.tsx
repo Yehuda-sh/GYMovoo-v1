@@ -63,7 +63,10 @@ const ExerciseCard = memo(
     isLoading = false,
     disabled = false,
   }: ExerciseCardProps) => {
-    // � אנימציה עדינה למעבר בין מצבים
+    // 📊 Performance tracking
+    const renderStart = performance.now();
+
+    // אנימציה עדינה למעבר בין מצבים
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
 
@@ -95,6 +98,15 @@ const ExerciseCard = memo(
       triggerHaptic();
       onPress(exercise.id);
     }, [disabled, isLoading, triggerHaptic, onPress, exercise.id, scaleAnim]);
+
+    // 📊 Performance tracking
+    useEffect(() => {
+      const renderEnd = performance.now();
+      const renderTime = renderEnd - renderStart;
+      if (renderTime > 100) {
+        console.warn(`ExerciseCard slow render: ${renderTime.toFixed(2)}ms`);
+      }
+    });
 
     // 🎨 אפקט עבור מצב disabled/loading
     useEffect(() => {
@@ -297,13 +309,17 @@ const ExerciseCard = memo(
   },
   // 📈 אופטימיזציה - השוואה רדודה מותאמת
   (prevProps, nextProps) => {
+    // שיפור: השוואה מהירה יותר ללא JSON.stringify
     return (
       prevProps.exercise.id === nextProps.exercise.id &&
+      prevProps.exercise.name === nextProps.exercise.name &&
+      prevProps.exercise.equipment === nextProps.exercise.equipment &&
+      prevProps.exercise.sets === nextProps.exercise.sets &&
+      prevProps.exercise.reps === nextProps.exercise.reps &&
       prevProps.isExpanded === nextProps.isExpanded &&
       prevProps.showDetails === nextProps.showDetails &&
       prevProps.isLoading === nextProps.isLoading &&
-      prevProps.disabled === nextProps.disabled &&
-      JSON.stringify(prevProps.exercise) === JSON.stringify(nextProps.exercise)
+      prevProps.disabled === nextProps.disabled
     );
   }
 );

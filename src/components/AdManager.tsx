@@ -140,6 +140,16 @@ const AdManager: React.FC<AdManagerProps> = ({
     subscriptionType,
   ]);
 
+  // ניקוי state כשהקומפוננטה נעלמת
+  useEffect(() => {
+    if (!visible) {
+      setIsLoading(false);
+      setCountdown(0);
+      setAdContent(null);
+      setShowUpgradeModal(false);
+    }
+  }, [visible]);
+
   // ספירה לאחור עד שניתן לסגור את הפרסומת
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -321,7 +331,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl,
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: theme.isRTL ? "row-reverse" : "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
@@ -332,13 +342,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     flex: 1,
-    textAlign: "right",
-    writingDirection: "rtl",
-  },
-  closeButton: {
-    padding: theme.spacing.xs,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.backgroundAlt,
+    textAlign: theme.isRTL ? "right" : "left",
+    writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   countdownContainer: {
     width: 32,
@@ -373,7 +378,7 @@ const styles = StyleSheet.create({
     writingDirection: theme.isRTL ? "rtl" : "ltr",
   },
   actionButton: {
-    flexDirection: "row-reverse",
+    flexDirection: theme.isRTL ? "row-reverse" : "row",
     alignItems: "center",
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.lg,

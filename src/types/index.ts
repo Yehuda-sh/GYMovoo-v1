@@ -135,6 +135,7 @@ export interface User {
   name?: string;
   email?: string;
   avatar?: string;
+  provider?: string; // Added for authentication provider (Google, email, etc.)
 
   // Questionnaire data
   smartquestionnairedata?: SmartQuestionnaireData;

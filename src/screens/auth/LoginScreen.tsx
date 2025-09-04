@@ -52,8 +52,7 @@ import type {
 import {
   validateEmail,
   validateLoginForm,
-  AUTH_STRINGS,
-  LoginFieldErrors,
+  FormErrors,
 } from "../../utils/authValidation";
 
 // ===============================================
@@ -153,6 +152,13 @@ const STRINGS = {
     sentMsg: "קישור לאיפוס סיסמה נשלח לאימייל שלך",
     cancel: "ביטול",
     send: "שלח",
+  },
+  errors: {
+    loginFailed: "פרטי ההתחברות שגויים",
+    generalLoginError: "שגיאה בהתחברות",
+    googleFailed: "ההתחברות עם Google נכשלה",
+    emailRequired: "אנא הזן כתובת אימייל",
+    emailInvalid: "פורמט אימייל לא תקין",
   },
   accessibility: {
     emailInput: "שדה אימייל",
@@ -397,7 +403,7 @@ const LoginScreen = React.memo(() => {
   const [loginLoading, setLoginLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const loading = loginLoading || googleLoading; // retained for existing disable logic
-  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
 
   // 🤖 AI & Analytics States - מצבי AI ואנליטיקה / AI & Analytics states
   const [aiInsights, setAiInsights] = useState<LoginAIInsights | null>(null);
@@ -539,7 +545,7 @@ const LoginScreen = React.memo(() => {
    */
   const loadSavedCredentials = async () => {
     try {
-      const savedEmail = await AsyncStorage.getItem(StorageKeys.SAVED_EMAIL);
+      const savedEmail = await AsyncStorage.getItem(StorageKeys.LAST_EMAIL);
       if (savedEmail) {
         setEmail(savedEmail);
         setRememberMe(true);
@@ -557,8 +563,8 @@ const LoginScreen = React.memo(() => {
    */
   const validateForm = (): boolean => {
     const validation = validateLoginForm(email, password);
-    setFieldErrors(validation.errors as LoginFieldErrors);
-    if (!validation.isValid) {
+    setFieldErrors(validation);
+    if (Object.keys(validation).length > 0) {
       createShakeAnimation(shakeAnim).start();
       return false;
     }
@@ -672,16 +678,19 @@ const LoginScreen = React.memo(() => {
 
           // Persist email only if remember me after successful login
           if (rememberMe) {
-            await AsyncStorage.setItem(StorageKeys.SAVED_EMAIL, email.trim());
+            await AsyncStorage.setItem(StorageKeys.LAST_EMAIL, email.trim());
             if (performanceConfig.cacheCredentials) {
               await LoginCacheManager.updateCache({
                 rememberedEmail: email.trim(),
               });
             }
           } else {
-            await AsyncStorage.removeItem(StorageKeys.SAVED_EMAIL);
+            await AsyncStorage.removeItem(StorageKeys.LAST_EMAIL);
             await LoginCacheManager.updateCache({ rememberedEmail: undefined });
           }
+
+          // Clear logout flag on successful login
+          await AsyncStorage.removeItem("user_logged_out");
 
           // 🎯 Haptic feedback להצלחה
           if (performanceConfig.hapticFeedback) {
@@ -691,7 +700,7 @@ const LoginScreen = React.memo(() => {
           handleSuccessfulLogin(user);
         } else {
           // ❌ התחברות נכשלה / Failed login
-          setError(AUTH_STRINGS.errors.loginFailed);
+          setError(STRINGS.errors.loginFailed);
           createShakeAnimation(shakeAnim).start();
 
           // 📊 עדכון analytics כשלון / Update failure analytics
@@ -716,7 +725,7 @@ const LoginScreen = React.memo(() => {
     } catch (e) {
       logger.error("LoginScreen", "Login error", e);
       setLoginLoading(false);
-      setError(AUTH_STRINGS.errors.generalLoginError);
+      setError(STRINGS.errors.generalLoginError);
 
       // 🎯 Haptic feedback לשגיאה קריטית
       if (performanceConfig.hapticFeedback) {
@@ -775,6 +784,9 @@ const LoginScreen = React.memo(() => {
         triggerHapticFeedback("success");
       }
 
+      // Clear logout flag on successful login
+      await AsyncStorage.removeItem("user_logged_out");
+
       handleSuccessfulLogin(googleUser);
     } catch (e) {
       logger.error("LoginScreen", "Google auth failed", e);
@@ -784,7 +796,7 @@ const LoginScreen = React.memo(() => {
         e instanceof Error && e.message.includes("Dev auth disabled");
       const errorMessage = isDevAuthDisabled
         ? "התחברות Google זמינה רק בסביבת פיתוח"
-        : AUTH_STRINGS.errors.googleFailed;
+        : STRINGS.errors.googleFailed;
 
       setError(errorMessage);
 
@@ -817,11 +829,11 @@ const LoginScreen = React.memo(() => {
       variant: "info",
       onConfirm: () => {
         if (!email) {
-          setFieldErrors({ email: AUTH_STRINGS.errors.emailRequired });
+          setFieldErrors({ email: STRINGS.errors.emailRequired });
           return;
         }
         if (!validateEmail(email)) {
-          setFieldErrors({ email: AUTH_STRINGS.errors.emailInvalid });
+          setFieldErrors({ email: STRINGS.errors.emailInvalid });
           return;
         }
         showConfirmationModal({
@@ -923,7 +935,10 @@ const LoginScreen = React.memo(() => {
                     value={email}
                     onChangeText={(text) => {
                       setEmail(text);
-                      setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                      setFieldErrors((prev: FormErrors) => ({
+                        ...prev,
+                        email: undefined,
+                      }));
                       if (error) setError(null);
                     }}
                     textAlign="right"
@@ -976,7 +991,7 @@ const LoginScreen = React.memo(() => {
                     value={password}
                     onChangeText={(text) => {
                       setPassword(text);
-                      setFieldErrors((prev) => ({
+                      setFieldErrors((prev: FormErrors) => ({
                         ...prev,
                         password: undefined,
                       }));
@@ -1192,24 +1207,22 @@ const LoginScreen = React.memo(() => {
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* ConfirmationModal for password reset */}
+        <ConfirmationModal
+          visible={confirmationModal.visible}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onClose={hideConfirmationModal}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={confirmationModal.onCancel}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+          variant={confirmationModal.variant}
+          singleButton={confirmationModal.singleButton}
+        />
       </LinearGradient>
     </SafeAreaView>
-  );
-
-  // ConfirmationModal for password reset (outside main return for proper stacking)
-  return (
-    <ConfirmationModal
-      visible={confirmationModal.visible}
-      title={confirmationModal.title}
-      message={confirmationModal.message}
-      onClose={hideConfirmationModal}
-      onConfirm={confirmationModal.onConfirm}
-      onCancel={confirmationModal.onCancel}
-      confirmText={confirmationModal.confirmText}
-      cancelText={confirmationModal.cancelText}
-      variant={confirmationModal.variant}
-      singleButton={confirmationModal.singleButton}
-    />
   );
 });
 

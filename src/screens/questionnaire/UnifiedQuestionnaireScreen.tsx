@@ -675,7 +675,8 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         if (user?.id) {
           setServerSaved(false);
           // תוך שמירה על ערכים חוקיים בלבד מתוך smartData
-          await userApi.update(user.id, {
+          // הוספת timeout של 10 שניות למניעת תקיעה
+          const savePromise = userApi.update(user.id, {
             smartquestionnairedata: smartData,
             // תמיכה לתאימות מסכים ישנים: נשמור גם metadata בפורמט הקיים
             questionnairedata: {
@@ -699,6 +700,13 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
               version: "unified-1",
             },
           });
+
+          // הוספת timeout למניעת תקיעה
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Server timeout")), 10000)
+          );
+
+          await Promise.race([savePromise, timeoutPromise]);
           setServerSaved(true);
           dlog("Questionnaire saved to server for user", user.id);
 
@@ -713,15 +721,19 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
             dlog("Error in user onboarding", { error: onboardingError });
             // לא נעצור את התהליך אם יש שגיאה באונבורדינג - המשתמש יכול להמשיך
           }
+        } else {
+          // אין משתמש עם ID - מאפשר המשך בכל מקרה
+          setServerSaved(true);
+          dlog("No user ID - proceeding with local data only");
         }
       } catch (serverErr) {
         dlog("Failed to persist questionnaire to server", { error: serverErr });
-        setServerSaved(false);
+        // במקום להשאיר את המשתמש תקוע, נאפשר המשך עם שמירה מקומית בלבד
+        setServerSaved(true); // מאפשר למשתמש להמשיך
         showModal({
-          title: "שגיאת שרת",
-          message:
-            "לא ניתן לשמור את השאלון לשרת כרגע. נסה שוב כשתהיה רשת זמינה.",
-          confirmText: "אישור",
+          title: "שמירה מקומית",
+          message: "השאלון נשמר מקומית במכשיר. תוכל להמשיך ללא שמירה בשרת.",
+          confirmText: "המשך",
           singleButton: true,
           variant: "error",
           onConfirm: () => {},

@@ -33,6 +33,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../styles/theme";
 import { logger } from "../utils/logger";
 
+// Constants for point calculation
+const POINTS_CALCULATION = {
+  PER_WORKOUT: 10,
+  PER_STREAK_DAY: 5,
+} as const;
+
+// Avatar evolution thresholds
+const LEVEL_THRESHOLDS = {
+  SPROUT: 5,
+  YOUNG_TREE: 15,
+  MIGHTY_TREE: 30,
+  ANCIENT_OAK: 60,
+} as const;
+
 const { width: screenWidth } = Dimensions.get("window");
 
 // Interfaces
@@ -93,8 +107,8 @@ const AVATAR_LEVELS: AvatarLevel[] = [
     icon: "sprout-outline",
     color: "#9ACD32",
     gradientColors: ["#98FB98", "#9ACD32"] as [string, string],
-    minWorkouts: 5,
-    maxWorkouts: 14,
+    minWorkouts: LEVEL_THRESHOLDS.SPROUT,
+    maxWorkouts: LEVEL_THRESHOLDS.YOUNG_TREE - 1,
     description: "נביטה ראשונה! אתה מתחיל לראות התקדמות",
   },
   {
@@ -104,8 +118,8 @@ const AVATAR_LEVELS: AvatarLevel[] = [
     icon: "tree-outline",
     color: "#228B22",
     gradientColors: ["#90EE90", "#228B22"] as [string, string],
-    minWorkouts: 15,
-    maxWorkouts: 29,
+    minWorkouts: LEVEL_THRESHOLDS.YOUNG_TREE,
+    maxWorkouts: LEVEL_THRESHOLDS.MIGHTY_TREE - 1,
     description: "עץ צעיר וחזק! אתה בונה הרגלים בריאים",
   },
   {
@@ -115,8 +129,8 @@ const AVATAR_LEVELS: AvatarLevel[] = [
     icon: "pine-tree",
     color: "#006400",
     gradientColors: ["#32CD32", "#006400"] as [string, string],
-    minWorkouts: 30,
-    maxWorkouts: 59,
+    minWorkouts: LEVEL_THRESHOLDS.MIGHTY_TREE,
+    maxWorkouts: LEVEL_THRESHOLDS.ANCIENT_OAK - 1,
     description: "עץ חזק ויציב! אתה מתמיד במצוינות",
   },
   {
@@ -126,7 +140,7 @@ const AVATAR_LEVELS: AvatarLevel[] = [
     icon: "pine-tree",
     color: "#FFD700",
     gradientColors: ["#FFA500", "#FFD700"] as [string, string],
-    minWorkouts: 60,
+    minWorkouts: LEVEL_THRESHOLDS.ANCIENT_OAK,
     maxWorkouts: null,
     description: "אלון עתיק ומפואר! אתה אלוף האימונים שלנו! 🏆",
   },
@@ -151,6 +165,7 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Calculate current level and stats
+  // מחושב מחדש רק כאשר workoutCount או streakDays משתנים
   const { currentLevel, userStats } = useMemo(() => {
     let level = AVATAR_LEVELS[0];
 
@@ -182,12 +197,16 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
       pointsToNext = nextLevel.minWorkouts - workoutCount;
     }
 
+    const totalPoints =
+      workoutCount * POINTS_CALCULATION.PER_WORKOUT +
+      streakDays * POINTS_CALCULATION.PER_STREAK_DAY;
+
     const stats: UserStats = {
       level: level.level,
       progress,
-      pointsEarned: workoutCount * 10 + streakDays * 5, // 10 נקודות לאימון + 5 לכל יום רצוף
+      pointsEarned: totalPoints,
       pointsToNext,
-      totalPoints: workoutCount * 10 + streakDays * 5,
+      totalPoints,
     };
 
     return { currentLevel: level, userStats: stats };
@@ -320,8 +339,9 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons
-              // @ts-expect-error - MaterialCommunityIcons icon typing issue
-              name={currentLevel.icon}
+              name={
+                currentLevel.icon as keyof typeof MaterialCommunityIcons.glyphMap
+              }
               size={sizeConfig.iconSize}
               color={theme.colors.white}
             />
@@ -357,8 +377,9 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
                 end={{ x: 1, y: 1 }}
               >
                 <MaterialCommunityIcons
-                  // @ts-expect-error - MaterialCommunityIcons icon typing issue
-                  name={currentLevel.icon}
+                  name={
+                    currentLevel.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                  }
                   size={80}
                   color={theme.colors.white}
                 />

@@ -1,23 +1,33 @@
 -- טבלת users ל-Supabase תואמת למבנה src/types/index.ts (רוב השדות כ-JSONB)
+-- עודכן: 03/09/2025 - תיקון שדה auth_id חסר והסרת שדות מיותרים
 create table if not exists public.users (
+  -- שדות בסיסיים
   id text primary key,
+  auth_id text unique, -- חסר בסכמה הקודמת - נדרש ל-Supabase Auth
   name text,
   email text unique,
   avatar text,
-  provider text,
-  registration jsonb,
-  smartQuestionnaireData jsonb,
+
+  -- נתוני שאלון (JSONB)
+  smartquestionnairedata jsonb,
   questionnaire jsonb,
-  questionnaireData jsonb,
-  scientificProfile jsonb,
-  aiRecommendations jsonb,
-  activityHistory jsonb,
-  currentStats jsonb,
+  questionnairedata jsonb,
+
+  -- פרופילים והעדפות
+  genderprofile jsonb,
   preferences jsonb,
-  trainingStats jsonb,
+
+  -- נתוני אימון
+  activityhistory jsonb,
+  trainingstats jsonb,
+  workoutplans jsonb,
+
+  -- נתונים מתקדמים
+  scientificprofile jsonb,
+  airecommendations jsonb,
   subscription jsonb,
-  workoutPlans jsonb,
-  genderProfile jsonb,
+
+  -- timestamps
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -55,3 +65,9 @@ on public.users for all
 to anon
 using (true)
 with check (true);
+
+-- הערות חשובות:
+-- 1. auth_id - נדרש ל-Supabase Auth integration
+-- 2. הוסרו שדות מיותרים: provider, registration, currentStats
+-- 3. כל השדות ה-JSONB תואמים ל-types ב-src/types/index.ts
+-- 4. השמות ב-DB הם lowercase, ב-TypeScript הם camelCase (fieldMapper מטפל בזה)

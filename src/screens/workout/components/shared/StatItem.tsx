@@ -174,21 +174,29 @@ const StatItemComponent: React.FC<StatItemProps> = ({
   );
 };
 
+// Optimized equality check with shallow comparison
 const areEqual = (prev: StatItemProps, next: StatItemProps) => {
+  // Check primitive values
+  if (
+    prev.label !== next.label ||
+    prev.value !== next.value ||
+    prev.icon !== next.icon ||
+    prev.iconFamily !== next.iconFamily ||
+    prev.color !== next.color ||
+    prev.iconColor !== next.iconColor ||
+    prev.valueColor !== next.valueColor ||
+    prev.animate !== next.animate ||
+    prev.animateMode !== next.animateMode ||
+    prev.size !== next.size ||
+    prev.unit !== next.unit ||
+    prev.variant !== next.variant ||
+    prev.reducedMotion !== next.reducedMotion
+  ) {
+    return false;
+  }
+
+  // Style props comparison (shallow)
   return (
-    prev.label === next.label &&
-    prev.value === next.value &&
-    prev.icon === next.icon &&
-    prev.iconFamily === next.iconFamily &&
-    prev.color === next.color &&
-    prev.iconColor === next.iconColor &&
-    prev.valueColor === next.valueColor &&
-    prev.animate === next.animate &&
-    prev.animateMode === next.animateMode &&
-    prev.size === next.size &&
-    prev.unit === next.unit &&
-    prev.variant === next.variant &&
-    prev.reducedMotion === next.reducedMotion &&
     prev.containerStyle === next.containerStyle &&
     prev.valueStyle === next.valueStyle &&
     prev.labelStyle === next.labelStyle
