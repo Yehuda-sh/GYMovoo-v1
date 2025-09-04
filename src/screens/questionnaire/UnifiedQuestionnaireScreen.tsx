@@ -181,6 +181,18 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
     };
   }, []);
 
+  // בדיקה אם המשתמש כבר יש לו שאלון מושלם - עבור ישר ל-MainApp
+  useEffect(() => {
+    if (user?.id && user?.hasQuestionnaire && user?.smartquestionnairedata) {
+      dlog("User already has completed questionnaire, redirecting to MainApp", {
+        userId: user.id,
+        hasQuestionnaire: user.hasQuestionnaire,
+        hasSmartData: !!user.smartquestionnairedata,
+      });
+      navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+    }
+  }, [user, navigation]);
+
   // טיפוסים פנימיים לשחזור ושדות אופציונליים בהעדפות
   type SavedProgress = {
     answers: QuestionnaireAnswer[];
@@ -1146,7 +1158,18 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
                       return;
                     }
                     setShowCompletionCard(false);
-                    navigation.navigate("MainApp");
+
+                    // 🔄 זרימה נכונה: כל משתמש שמגיע לשאלון ללא חשבון עובר להרשמה
+                    // אם המשתמש הגיע לשאלון, זה אומר שהוא צריך להירשם קודם
+                    if (!user?.id) {
+                      dlog(
+                        "No authenticated user ID - redirecting to Register after questionnaire completion"
+                      );
+                      navigation.navigate("Register");
+                    } else {
+                      dlog("Authenticated user found - redirecting to MainApp");
+                      navigation.navigate("MainApp");
+                    }
                   }}
                 >
                   <Text style={styles.completionButtonTextPrimary}>

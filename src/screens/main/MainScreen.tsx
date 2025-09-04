@@ -1,16 +1,28 @@
 /**
  * @file src/screens/main/MainScreen.tsx
- * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית - מותאם לכושר מובייל
- * @brief Modern main screen - Central dashboard with scientific statistics and personalization - fitness mobile optimized
- * @dependencies theme, userStore, MaterialCommunityIcons, Animated API, React Navigation, expo-haptics
- * @notes תמיכה מלאה RTL, אנימציות משופרות, אופטימיזציות כושר מובייל
- * @notes Full RTL support, enhanced animations, fitness mobile optimizations
- * @features דשבורד אישי, סטטיסטיקות מתקדמות, המלצות AI, היסטוריית אימונים, haptic feedback מדורג
- * @features Personal dashboard, advanced statistics, AI recommendations, workout history, graduated haptic feedback
- * @accessibility Enhanced with proper labels, semantic structure, and 44px minimum touch targets
- * @performance Optimized with React.memo, useMemo hooks, and render time tracking
- * @version 2.3.0 - Fitness mobile optimization: haptic feedback, performance tracking, enlarged hitSlop
- * @updated 2025-08-14 אופטימיזציות כושר מובייל מלאות עם משוב מישושי מדורג
+ * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
+ * @description Modern main screen - Central dashboard with scientific statistics and personalization
+ *
+ * @features
+ * - דשבורד אישי עם ברכה דינמית לפי שעה
+ * - סטטיסטיקות מתקדמות ותובנות AI
+ * - המלצות אימון חכמות על בסיס השאלון
+ * - היסטוריית אימונים אמיתית
+ * - משוב מישושי מדורג (Haptic Feedback)
+ * - תמיכה מלאה RTL ונגישות
+ *
+ * @performance
+ * - אופטימיזציה עם React.memo ו-useMemo
+ * - מדידת זמני רינדור
+ * - טעינה אסינכרונית של נתונים
+ *
+ * @accessibility
+ * - תוויות נגישות מלאות
+ * - יעדי מגע של 44px מינימום
+ * - מבנה סמנטי נכון
+ *
+ * @version 2.4.0 - Code cleanup and optimization
+ * @updated 2025-09-04 ניקוי קוד ואופטימיזציות
  */
 
 import React, {
@@ -30,6 +42,7 @@ import {
   RefreshControl,
   Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -68,6 +81,21 @@ import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 // ===============================================
 // 🔧 Helper Functions - פונקציות עזר
 // ===============================================
+
+/** @description Enhanced logging for development - לוגינג מתקדם לפיתוח */
+const logDebug = (message: string, data?: unknown) => {
+  if (__DEV__) {
+    console.warn(`🔍 MainScreen: ${message}`, data || "");
+  }
+};
+
+/** @description Helper to get questionnaire answer safely - פונקציית עזר לחילוץ תשובות שאלון */
+const getQuestionnaireAnswer = (
+  user: User | null,
+  key: keyof QuestionnaireAnswers
+): unknown => {
+  return (user?.questionnairedata?.answers as QuestionnaireAnswers)?.[key];
+};
 
 /** @description Format rating value to string */
 const formatRating = (rating: number): string => {
@@ -307,10 +335,6 @@ const extractPersonalDataFromUser = (user: User | null) => {
   };
 };
 
-// (הוסר טיפוס נגישות פנימי לא בשימוש)
-
-// הוסר טיפוס פנימי לא בשימוש למניעת אזהרות לינט
-
 /** @description טיפוס עבור תשובות שאלון עם השדות הנפוצים / Type for questionnaire answers */
 interface QuestionnaireAnswers {
   age_range?: string;
@@ -335,10 +359,38 @@ interface ProcessedStats {
   fitnessLevel: string;
 }
 
+/** @description טיפוס מינימלי עבור פריטי אימון בהיסטוריה / Minimal workout type for history items */
+interface MinimalWorkout {
+  id?: string;
+  type?: string;
+  workoutName?: string;
+  date?: string | Date;
+  completedAt?: string;
+  duration?: number;
+  rating?: number;
+  startTime?: string;
+  workout?: {
+    name?: string;
+    duration?: number;
+    startTime?: string;
+  };
+  stats?: { duration?: number };
+  feedback?: {
+    difficulty?: number;
+    completedAt?: string;
+  };
+}
+
 // ===============================================
 // 🚀 Main Component - קומפוננטה ראשית
 // ===============================================
 
+/**
+ * @description MainScreen - המסך הראשי של האפליקציה
+ * @features דשבורד מותאם אישית, סטטיסטיקות, המלצות AI, בחירת אימונים
+ * @performance מותאם עם React.memo ו-hooks ממוחזרים
+ * @accessibility תמיכה מלאה בנגישות עם תוויות ויעדי מגע מתאימים
+ */
 function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useUserStore();
@@ -394,9 +446,7 @@ function MainScreen() {
         currentStreak: genderGroupedStats.total.workoutStreak,
       });
     } catch (error) {
-      if (__DEV__) {
-        console.warn("⚠️ שגיאה בטעינת נתונים מתקדמים:", error);
-      }
+      logDebug("שגיאה בטעינת נתונים מתקדמים", error);
       // המשך עם נתונים קיימים מה-store
     }
   }, [user]);
@@ -412,11 +462,19 @@ function MainScreen() {
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
-      if (__DEV__) {
-        console.warn(`⚠️ MainScreen רינדור איטי: ${renderTime.toFixed(2)}ms`);
-      }
+      logDebug(`רינדור איטי: ${renderTime.toFixed(2)}ms`);
     }
   }, [renderStartTime]);
+
+  // ===============================================
+  // � Animation References - אנימציות משופרות
+  // ===============================================
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  // �🎯 Micro-interactions for buttons - מיקרו-אינטראקציות לכפתורים
+  const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+  const quickWorkoutScale = useRef(new Animated.Value(1)).current;
 
   // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
   const triggerHapticFeedback = useCallback(
@@ -436,11 +494,22 @@ function MainScreen() {
     []
   );
 
-  // ===============================================
-  // 🎨 Animation References - אנימציות
-  // ===============================================
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  // 🎨 Micro-interaction animations - אנימציות מיקרו-אינטראקציות
+  const animateQuickWorkout = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(quickWorkoutScale, {
+        toValue: 0.98,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.spring(quickWorkoutScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [quickWorkoutScale]);
 
   // ===============================================
   // 💾 Memoized Data Processing - עיבוד נתונים ממוחזר
@@ -563,12 +632,10 @@ function MainScreen() {
   const handleStartWorkout = useCallback(
     (workoutName?: string, workoutIndex?: number) => {
       triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
-      if (__DEV__) {
-        console.warn("🚀 MainScreen - התחל אימון מהיר נלחץ!", {
-          workoutName,
-          workoutIndex,
-        });
-      }
+      logDebug("התחל אימון מהיר נלחץ", {
+        workoutName,
+        workoutIndex,
+      });
       navigation.navigate("WorkoutPlans", {
         autoStart: true,
         requestedWorkoutName: workoutName,
@@ -581,9 +648,7 @@ function MainScreen() {
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
       triggerHapticFeedback("medium"); // משוב בינוני לבחירת יום אימון
-      if (__DEV__) {
-        console.warn(`🚀 MainScreen - בחירת יום ${dayNumber} אימון ישיר!`);
-      }
+      logDebug(`בחירת יום ${dayNumber} אימון ישיר`);
       navigation.navigate("WorkoutPlans", {
         preSelectedDay: dayNumber,
         autoStart: true,
@@ -666,20 +731,38 @@ function MainScreen() {
                 <Text style={styles.userName}>{displayName}</Text>
               </View>
               <View style={styles.profileContainer}>
-                <TouchableOpacity
-                  style={styles.profileButton}
-                  onPress={handleProfilePress}
-                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                  accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
-                  accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
-                  accessibilityRole="button"
+                <Animated.View
+                  style={{ transform: [{ scale: buttonScaleAnim }] }}
                 >
-                  <DefaultAvatar
-                    name={displayName}
-                    size="medium"
-                    showBorder={false}
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.profileButton}
+                    onPress={handleProfilePress}
+                    onPressIn={() => {
+                      Animated.timing(buttonScaleAnim, {
+                        toValue: 0.95,
+                        duration: 100,
+                        useNativeDriver: true,
+                      }).start();
+                    }}
+                    onPressOut={() => {
+                      Animated.timing(buttonScaleAnim, {
+                        toValue: 1,
+                        duration: 100,
+                        useNativeDriver: true,
+                      }).start();
+                    }}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                    accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
+                    accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
+                    accessibilityRole="button"
+                  >
+                    <DefaultAvatar
+                      name={displayName}
+                      size="medium"
+                      showBorder={false}
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
             </View>
             <Text style={styles.motivationText}>
@@ -725,7 +808,7 @@ function MainScreen() {
                   variant="scientific"
                   icon="weight-lifter"
                   iconColor={theme.colors.success}
-                  value={formatLargeNumber(stats.totalVolume)}
+                  value={formatLargeNumber(stats.totalVolume) || "0"}
                   label={MAIN_SCREEN_TEXTS.STATS.TOTAL_VOLUME}
                   testID="total-volume-card"
                 />
@@ -734,7 +817,7 @@ function MainScreen() {
                   variant="scientific"
                   icon="star"
                   iconColor={theme.colors.warning}
-                  value={formatRating(stats.averageRating)}
+                  value={formatRating(stats.averageRating) || "4.0"}
                   label={MAIN_SCREEN_TEXTS.STATS.AVERAGE_RATING}
                   testID="average-rating-card"
                 />
@@ -754,11 +837,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "age_range",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.age_range
-                      )}
+                        getQuestionnaireAnswer(user, "age_range")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -769,11 +849,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "gender",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.gender
-                      )}
+                        getQuestionnaireAnswer(user, "gender")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -784,11 +861,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "primary_goal",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.primary_goal
-                      )}
+                        getQuestionnaireAnswer(user, "primary_goal")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -799,11 +873,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "fitness_experience",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.fitness_experience
-                      )}
+                        getQuestionnaireAnswer(user, "fitness_experience")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -814,11 +885,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "workout_location",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.workout_location
-                      )}
+                        getQuestionnaireAnswer(user, "workout_location")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -829,11 +897,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "session_duration",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.session_duration
-                      )}
+                        getQuestionnaireAnswer(user, "session_duration")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -844,11 +909,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "available_days",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.available_days
-                      )}
+                        getQuestionnaireAnswer(user, "available_days")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -859,11 +921,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "available_equipment",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.available_equipment
-                      )}
+                        getQuestionnaireAnswer(user, "available_equipment")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
 
@@ -874,11 +933,8 @@ function MainScreen() {
                     <Text style={styles.answerValue}>
                       {formatQuestionnaireValue(
                         "health_status",
-                        (
-                          user?.questionnairedata
-                            ?.answers as QuestionnaireAnswers
-                        )?.health_status
-                      )}
+                        getQuestionnaireAnswer(user, "health_status")
+                      ) || "לא צוין"}
                     </Text>
                   </View>
                 </View>
@@ -901,7 +957,7 @@ function MainScreen() {
                       color={theme.colors.primary}
                     />
                     <Text style={styles.aiTipText}>
-                      {profileData.aiRecommendations.quickTip}
+                      {profileData.aiRecommendations.quickTip || ""}
                     </Text>
                   </View>
                 )}
@@ -922,7 +978,9 @@ function MainScreen() {
                               size={14}
                               color={theme.colors.success}
                             />
-                            <Text style={styles.insightText}>{insight}</Text>
+                            <Text style={styles.insightText}>
+                              {insight || ""}
+                            </Text>
                           </View>
                         ))}
                     </View>
@@ -959,7 +1017,7 @@ function MainScreen() {
           >
             <Text style={styles.sectionTitle}>
               {MAIN_SCREEN_TEXTS.SECTIONS.SELECT_DAY_RECOMMENDED(
-                nextRecommendedDay
+                nextRecommendedDay || 1
               )}
             </Text>
 
@@ -983,25 +1041,53 @@ function MainScreen() {
               testID="day-selection-grid"
             />
 
-            {/* כפתור אימון מהיר */}
-            <TouchableOpacity
-              style={styles.quickWorkoutButton}
-              onPress={() => handleStartWorkout()}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
-              accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
-              accessibilityRole="button"
+            {/* כפתור אימון מהיר משופר */}
+            <Animated.View
+              style={{ transform: [{ scale: quickWorkoutScale }] }}
             >
-              <MaterialCommunityIcons
-                name="flash"
-                size={20}
-                color={theme.colors.surface}
-                accessibilityElementsHidden={true}
-              />
-              <Text style={styles.quickWorkoutText}>
-                {MAIN_SCREEN_TEXTS.ACTIONS.START_QUICK_WORKOUT}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickWorkoutButtonContainer}
+                onPress={() => {
+                  animateQuickWorkout();
+                  handleStartWorkout();
+                }}
+                onPressIn={() => {
+                  Animated.timing(quickWorkoutScale, {
+                    toValue: 0.98,
+                    duration: 100,
+                    useNativeDriver: true,
+                  }).start();
+                }}
+                onPressOut={() => {
+                  Animated.timing(quickWorkoutScale, {
+                    toValue: 1,
+                    duration: 100,
+                    useNativeDriver: true,
+                  }).start();
+                }}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
+                accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
+                accessibilityRole="button"
+              >
+                <LinearGradient
+                  colors={[theme.colors.primary, `${theme.colors.primary}DD`]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.quickWorkoutButton}
+                >
+                  <MaterialCommunityIcons
+                    name="flash"
+                    size={20}
+                    color={theme.colors.surface}
+                    accessibilityElementsHidden={true}
+                  />
+                  <Text style={styles.quickWorkoutText}>
+                    {MAIN_SCREEN_TEXTS.ACTIONS.START_QUICK_WORKOUT}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           </Animated.View>
 
           {/* סטטוס שלך */}
@@ -1079,26 +1165,6 @@ function MainScreen() {
                 profileData.activityHistory.workouts
                   .slice(0, 3)
                   .map((workout: unknown, index: number) => {
-                    type MinimalWorkout = {
-                      id?: string;
-                      type?: string;
-                      workoutName?: string;
-                      date?: string | Date;
-                      completedAt?: string;
-                      duration?: number;
-                      rating?: number;
-                      startTime?: string;
-                      workout?: {
-                        name?: string;
-                        duration?: number;
-                        startTime?: string;
-                      };
-                      stats?: { duration?: number };
-                      feedback?: {
-                        difficulty?: number;
-                        completedAt?: string;
-                      };
-                    };
                     const item = workout as MinimalWorkout;
                     const title: string =
                       item?.workout?.name ||
@@ -1154,7 +1220,8 @@ function MainScreen() {
                         <View style={styles.workoutInfo}>
                           <Text style={styles.workoutTitle}>{title}</Text>
                           <Text style={styles.workoutDate}>
-                            {formatWorkoutDate(dateValue, durationMinutes)}
+                            {formatWorkoutDate(dateValue, durationMinutes) ||
+                              "תאריך לא ידוע"}
                           </Text>
                         </View>
                         <View style={styles.workoutRating}>
@@ -1164,7 +1231,7 @@ function MainScreen() {
                             color={theme.colors.warning}
                           />
                           <Text style={styles.ratingText}>
-                            {formatRating(ratingValue)}
+                            {formatRating(ratingValue) || "4.0"}
                           </Text>
                         </View>
                       </View>
@@ -1227,13 +1294,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xl,
     paddingTop: Platform.OS === "ios" ? 70 : 50,
     paddingBottom: theme.spacing.xl,
-    backgroundColor: `${theme.colors.background}FB`,
-    // שיפורי עיצוב מתקדמים
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    // Modern gradient-inspired background - רקע מודרני בהשראת גרדיאנט
+    backgroundColor: `${theme.colors.background}FC`,
+    // Subtle depth effect - אפקט עומק עדין
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    // Top border accent - הדגשת גבול עליון
+    borderTopWidth: 3,
+    borderTopColor: `${theme.colors.primary}20`,
   },
   welcomeHeader: {
     flexDirection: "row-reverse",
@@ -1282,23 +1353,27 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   profileButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: `${theme.colors.accent}F0`,
+    width: 54, // הוגדל מעט לנוכחות טובה יותר
+    height: 54,
+    borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2.5,
-    borderColor: `${theme.colors.surface}E0`,
-    // שיפור כפתור פרופיל
+    // Modern circular button design - עיצוב כפתור מעגלי מודרני
+    backgroundColor: `${theme.colors.accent}F8`,
+    borderWidth: 3,
+    borderColor: `${theme.colors.surface}F0`,
+    // Advanced circular glow effect - אפקט זוהר מעגלי מתקדם
     shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
     // 📱 Touch Target מוגדל
-    minWidth: 50,
-    minHeight: 50,
+    minWidth: 54,
+    minHeight: 54,
+    // Subtle inner shadow effect (simulated)
+    borderTopColor: `${theme.colors.accent}E0`,
+    borderBottomColor: `${theme.colors.accent}FF`,
   },
 
   // Section styles משופר // סטיילים לקטעים מעודכן
@@ -1320,18 +1395,19 @@ const styles = StyleSheet.create({
   statsSection: {
     paddingHorizontal: theme.spacing.xl,
     marginBottom: theme.spacing.xxl,
-    backgroundColor: `${theme.colors.surface}30`,
     paddingVertical: theme.spacing.lg,
     marginHorizontal: theme.spacing.md,
     borderRadius: theme.radius.xl,
-    // שיפורי עיצוב לקטע סטטיסטיקות
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    // Glass morphism inspired effect - אפקט בהשראת זכוכית מודרני
+    backgroundColor: `${theme.colors.surface}15`,
     borderWidth: 1,
-    borderColor: `${theme.colors.cardBorder}40`,
+    borderColor: `${theme.colors.cardBorder}25`,
+    // Enhanced shadows - צללים משופרים
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   statsGrid: {
     gap: theme.spacing.lg,
@@ -1341,18 +1417,19 @@ const styles = StyleSheet.create({
   recentWorkoutsSection: {
     paddingHorizontal: theme.spacing.xl,
     marginBottom: theme.spacing.xxl,
-    backgroundColor: `${theme.colors.surface}25`,
     paddingVertical: theme.spacing.lg,
     marginHorizontal: theme.spacing.md,
     borderRadius: theme.radius.xl,
-    // שיפורי עיצוב לקטע אימונים אחרונים
+    // Enhanced glass-inspired design - עיצוב משופר בהשראת זכוכית
+    backgroundColor: `${theme.colors.surface}12`,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.cardBorder}30`,
+    // Multi-layer shadows for depth - צללים רב-שכבתיים לעומק
     shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: `${theme.colors.cardBorder}35`,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
   },
   recentWorkoutsList: {
     gap: theme.spacing.md,
@@ -1360,35 +1437,43 @@ const styles = StyleSheet.create({
   recentWorkoutItem: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: `${theme.colors.card}F8`,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
-    borderWidth: 1.5,
-    borderColor: `${theme.colors.cardBorder}60`,
-    // שיפור פריט אימון אחרון
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
     marginVertical: theme.spacing.xs,
+    // Premium card design - עיצוב כרטיס פרימיום
+    backgroundColor: `${theme.colors.card}FA`,
+    borderWidth: 1,
+    borderColor: `${theme.colors.cardBorder}40`,
+    // Advanced shadows with subtle glow - צללים מתקדמים עם זוהר עדין
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    // Subtle gradient border effect (simulated)
+    borderTopColor: `${theme.colors.primary}15`,
+    borderTopWidth: 2,
   },
   workoutIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: `${theme.colors.backgroundElevated}F0`,
+    width: 56, // הוגדל מ-52 לנוכחות טובה יותר
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: theme.spacing.lg,
-    borderWidth: 2,
-    borderColor: `${theme.colors.primary}20`,
-    // שיפור אייקון אימון
+    // Modern icon design with gradient-like background
+    backgroundColor: `${theme.colors.backgroundElevated}F5`,
+    borderWidth: 2.5,
+    borderColor: `${theme.colors.primary}25`,
+    // Enhanced 3D effect with multiple shadows
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    // Inner glow effect (simulated)
+    borderTopColor: `${theme.colors.primary}35`,
+    borderBottomColor: `${theme.colors.primary}15`,
   },
   workoutInfo: {
     flex: 1,
@@ -1522,8 +1607,6 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Note styles were removed as demo notes are no longer used
-
   // Error and loading styles // סגנונות שגיאות וטעינה
   errorContainer: {
     backgroundColor: theme.colors.error + "20",
@@ -1596,15 +1679,18 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
     lineHeight: 18,
   },
-  quickWorkoutButton: {
-    backgroundColor: theme.colors.primary,
+  quickWorkoutButtonContainer: {
+    marginTop: theme.spacing.md,
     borderRadius: theme.radius.md,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+    elevation: 8,
+  },
+  quickWorkoutButton: {
     padding: theme.spacing.md,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: theme.spacing.md,
-    ...theme.shadows.small,
     // 📱 44px Minimum Touch Target Validation for Fitness Mobile
     minHeight: 44,
   },

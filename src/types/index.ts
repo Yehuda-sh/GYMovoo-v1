@@ -168,6 +168,7 @@ export interface User {
     selectedEquipment?: string[];
     preferredWorkoutDays?: string[];
     currentFitnessLevel?: string;
+    fitnessGoals?: string[];
     streak?: number;
     totalDurationMinutes?: number;
     totalHours?: number;

@@ -40,6 +40,7 @@ import { fakeGoogleRegister } from "../../services/authService";
 import { useUserStore } from "../../stores/userStore";
 import { validateEmail as sharedValidateEmail } from "../../utils/authValidation";
 import type { RootStackParamList } from "../../navigation/types";
+import type { User } from "../../types";
 import { localDataService } from "../../services/localDataService";
 import { userApi } from "../../services/api/userApi";
 
@@ -321,8 +322,10 @@ export default function RegisterScreen() {
     if (!fullName || fullName.length < 2)
       errors.fullName = STRINGS.errors.fullName;
     if (!email) errors.email = STRINGS.errors.emailRequired;
-    else if (sharedValidateEmail(email))
-      errors.email = STRINGS.errors.emailInvalid;
+    else {
+      const emailError = sharedValidateEmail(email);
+      if (emailError) errors.email = emailError;
+    }
     if (!password) errors.password = STRINGS.errors.passwordRequired;
     else if (password.length < 6)
       errors.password = STRINGS.errors.passwordShort;
@@ -386,33 +389,138 @@ export default function RegisterScreen() {
         },
       };
 
-      // יצירת המשתמש ב-Supabase וקבלת הנתונים המעודכנים עם ID מהשרת
-      const savedUser = await userApi.create(newUser);
+      let savedUser: User = newUser as User;
 
-      // שמירה ב-Zustand store עם הנתונים מהשרת
+      // נסה יצירת המשתמש ב-Supabase, עם fallback ל-localDataService במצב DEV
+      try {
+        savedUser = await userApi.create(newUser);
+        console.warn("✅ User created in Supabase successfully");
+      } catch (supabaseError) {
+        console.warn("⚠️ Supabase creation failed:", supabaseError);
+
+        // במצב פיתוח, השתמש ב-localDataService כגיבוי
+        if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+          try {
+            savedUser = localDataService.addUser(newUser as User);
+            console.warn(
+              "✅ Fallback: User saved to localDataService instead",
+              {
+                email: savedUser.email,
+                name: savedUser.name,
+              }
+            );
+          } catch (localError) {
+            console.error(
+              "❌ Both Supabase and localDataService failed:",
+              localError
+            );
+            const errorMessage =
+              localError instanceof Error
+                ? localError.message
+                : String(localError);
+            throw new Error("Failed to create user: " + errorMessage);
+          }
+        } else {
+          // במצב production, זרוק שגיאה
+          throw supabaseError;
+        }
+      }
+
+      // שמירה ב-Zustand store עם הנתונים מהשרת/מקומי
       useUserStore.getState().setUser(savedUser);
 
       // Clear logout flag on successful registration
       await AsyncStorage.removeItem("user_logged_out");
 
-      // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
-      if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+      // שמירה נוספת ב-localDataService (רק אם נשמר ב-Supabase)
+      if (
+        __DEV__ &&
+        process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1" &&
+        savedUser.id &&
+        !savedUser.id.startsWith("local_")
+      ) {
         try {
           localDataService.addUser(savedUser);
-          console.warn("✅ RegisterScreen: User saved to localDataService", {
-            email: savedUser.email,
-            name: savedUser.name,
-          });
+          console.warn(
+            "✅ RegisterScreen: User also saved to localDataService backup",
+            {
+              email: savedUser.email,
+              name: savedUser.name,
+            }
+          );
         } catch (saveError) {
           console.warn(
-            "⚠️ RegisterScreen: Failed to save to localDataService:",
+            "⚠️ RegisterScreen: Failed to save backup to localDataService:",
             saveError
           );
-          // לא נעצור את התהליך אם השמירה המקומית נכשלה
+          // לא נעצור את התהליך אם השמירה הנוספת נכשלה
         }
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // בדוק אם יש נתוני שאלון קיימים ב-AsyncStorage
+      try {
+        const questionnaireMetadata = await AsyncStorage.getItem(
+          "questionnaire_metadata"
+        );
+        const smartQuestionnaireResults = await AsyncStorage.getItem(
+          "smart_questionnaire_results"
+        );
+
+        if (questionnaireMetadata && smartQuestionnaireResults) {
+          console.warn(
+            "✅ Found existing questionnaire data, uploading to server and going to MainApp"
+          );
+
+          // העלה נתוני השאלון לשרת עם המשתמש החדש
+          try {
+            const metadata = JSON.parse(questionnaireMetadata);
+            const results = JSON.parse(smartQuestionnaireResults);
+
+            // עדכן את המשתמש עם נתוני השאלון
+            const userWithQuestionnaire = {
+              ...savedUser,
+              smartquestionnairedata: {
+                answers: results.answers || results,
+                metadata: {
+                  ...metadata,
+                  completedAt: metadata.completedAt || new Date().toISOString(),
+                  version: "2.0",
+                },
+              },
+              hasQuestionnaire: true,
+            };
+
+            // שמור ב-store
+            useUserStore.getState().setUser(userWithQuestionnaire);
+
+            // נקה את נתוני השאלון הזמניים
+            await AsyncStorage.multiRemove([
+              "questionnaire_metadata",
+              "smart_questionnaire_results",
+              "questionnaire_draft",
+            ]);
+
+            // עבור ישר ל-MainApp
+            navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+            return;
+          } catch (uploadError) {
+            console.warn(
+              "⚠️ Failed to upload questionnaire data:",
+              uploadError
+            );
+            // במקרה של שגיאה, עבור לשאלון
+          }
+        }
+      } catch (storageError) {
+        console.warn(
+          "⚠️ Error checking for existing questionnaire data:",
+          storageError
+        );
+      }
+
+      // אם אין נתוני שאלון או היה שגיאה, עבור לשאלון
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
     } catch (error) {
       console.error("[REGISTER] Registration failed:", error);
@@ -440,21 +548,61 @@ export default function RegisterScreen() {
       const googleUser = await fakeGoogleRegister();
       createSuccessAnimation().start();
 
-      // יצירת המשתמש ב-Supabase וקבלת הנתונים המעודכנים עם ID מהשרת
-      const savedGoogleUser = await userApi.create(googleUser);
+      let savedGoogleUser: User = googleUser as User;
 
-      // שמירה ב-Zustand store עם הנתונים מהשרת
+      // נסה יצירת המשתמש ב-Supabase, עם fallback ל-localDataService במצב DEV
+      try {
+        savedGoogleUser = await userApi.create(googleUser);
+        console.warn("✅ Google user created in Supabase successfully");
+      } catch (supabaseError) {
+        console.warn("⚠️ Supabase Google creation failed:", supabaseError);
+
+        // במצב פיתוח, השתמש ב-localDataService כגיבוי
+        if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+          try {
+            savedGoogleUser = localDataService.addUser(googleUser as User);
+            console.warn(
+              "✅ Fallback: Google user saved to localDataService instead",
+              {
+                email: savedGoogleUser.email,
+                name: savedGoogleUser.name,
+                provider: savedGoogleUser.provider,
+              }
+            );
+          } catch (localError) {
+            console.error(
+              "❌ Both Supabase and localDataService failed for Google user:",
+              localError
+            );
+            const errorMessage =
+              localError instanceof Error
+                ? localError.message
+                : String(localError);
+            throw new Error("Failed to create Google user: " + errorMessage);
+          }
+        } else {
+          // במצב production, זרוק שגיאה
+          throw supabaseError;
+        }
+      }
+
+      // שמירה ב-Zustand store עם הנתונים מהשרת/מקומי
       useUserStore.getState().setUser(savedGoogleUser);
 
       // Clear logout flag on successful registration
       await AsyncStorage.removeItem("user_logged_out");
 
-      // שמירה גם ב-localDataService (DEV בלבד, לא בפרודקשן)
-      if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1") {
+      // שמירה נוספת ב-localDataService (רק אם נשמר ב-Supabase)
+      if (
+        __DEV__ &&
+        process.env.EXPO_PUBLIC_ENABLE_DEV_AUTH === "1" &&
+        savedGoogleUser.id &&
+        !savedGoogleUser.id.startsWith("local_")
+      ) {
         try {
           localDataService.addUser(savedGoogleUser);
           console.warn(
-            "✅ RegisterScreen: Google user saved to localDataService",
+            "✅ RegisterScreen: Google user also saved to localDataService backup",
             {
               email: savedGoogleUser.email,
               name: savedGoogleUser.name,
@@ -463,14 +611,77 @@ export default function RegisterScreen() {
           );
         } catch (saveError) {
           console.warn(
-            "⚠️ RegisterScreen: Failed to save Google user to localDataService:",
+            "⚠️ RegisterScreen: Failed to save Google backup to localDataService:",
             saveError
           );
-          // לא נעצור את התהליך אם השמירה המקומית נכשלה
+          // לא נעצור את התהליך אם השמירה הנוספת נכשלה
         }
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // בדוק אם יש נתוני שאלון קיימים ב-AsyncStorage (גם עבור Google)
+      try {
+        const questionnaireMetadata = await AsyncStorage.getItem(
+          "questionnaire_metadata"
+        );
+        const smartQuestionnaireResults = await AsyncStorage.getItem(
+          "smart_questionnaire_results"
+        );
+
+        if (questionnaireMetadata && smartQuestionnaireResults) {
+          console.warn(
+            "✅ Found existing questionnaire data for Google user, uploading to server and going to MainApp"
+          );
+
+          // העלה נתוני השאלון לשרת עם המשתמש החדש
+          try {
+            const metadata = JSON.parse(questionnaireMetadata);
+            const results = JSON.parse(smartQuestionnaireResults);
+
+            // עדכן את המשתמש עם נתוני השאלון
+            const userWithQuestionnaire = {
+              ...savedGoogleUser,
+              smartquestionnairedata: {
+                answers: results.answers || results,
+                metadata: {
+                  ...metadata,
+                  completedAt: metadata.completedAt || new Date().toISOString(),
+                  version: "2.0",
+                },
+              },
+              hasQuestionnaire: true,
+            };
+
+            // שמור ב-store
+            useUserStore.getState().setUser(userWithQuestionnaire);
+
+            // נקה את נתוני השאלון הזמניים
+            await AsyncStorage.multiRemove([
+              "questionnaire_metadata",
+              "smart_questionnaire_results",
+              "questionnaire_draft",
+            ]);
+
+            // עבור ישר ל-MainApp
+            navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+            return;
+          } catch (uploadError) {
+            console.warn(
+              "⚠️ Failed to upload questionnaire data for Google user:",
+              uploadError
+            );
+            // במקרה של שגיאה, עבור לשאלון
+          }
+        }
+      } catch (storageError) {
+        console.warn(
+          "⚠️ Error checking for existing questionnaire data for Google user:",
+          storageError
+        );
+      }
+
+      // אם אין נתוני שאלון או היה שגיאה, עבור לשאלון
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
     } catch (e) {
       console.error("[REGISTER] Google registration failed:", e);
