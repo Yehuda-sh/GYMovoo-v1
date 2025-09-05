@@ -112,7 +112,7 @@ export const UniversalCard: React.FC<UniversalCardProps> = React.memo(
     // Haptic feedback function for fitness apps
     const handlePress = useCallback(() => {
       if (enableHapticFeedback && !disabled && onPress) {
-        // משוב מושגי בהתאם לvariant
+        // משוב מושגי בהתאם variant
         const feedbackIntensity =
           variant === "workout"
             ? Haptics.ImpactFeedbackStyle.Heavy

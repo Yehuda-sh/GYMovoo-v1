@@ -3,7 +3,7 @@
  * @brief פס כלים מתקדם למצב עריכה של תרגיל עם תמיכה מלאה ב-RTL ונגישות
  * @features React.memo, אנימציות, RTL support, haptic feedback, accessibility, TypeScript strict
  * @version 1.2.0
- * @updated 2025-09-02 הוסף טיפוסי TypeScript מתקדמים ושיפורי ביצועים
+ * @updated 2025-09-05 ייעול קוד, הסרת duplications, שיפור ארגון constants
  * @dependencies MaterialCommunityIcons, theme, workoutHelpers, ConfirmationModal, sharedConstants
  * @accessibility מותאם לנגישות עם תוויות ברורות ותמיכה בקוראי מסך
  * @performance ממוטב עם React.memo, useCallback, וקבועים מוגדרים מראש
@@ -23,15 +23,15 @@ import { theme } from "../../../../styles/theme";
 import { triggerVibration } from "../../../../utils/workoutHelpers";
 import ConfirmationModal from "../../../../components/common/ConfirmationModal";
 import {
-  SHARED_ICON_SIZES,
   SHARED_VIBRATION_TYPES,
   SHARED_MODAL_STRINGS,
 } from "../../../../constants/sharedConstants";
 
 // 🎨 CONSTANTS - ריכוז קבועים למניעת מספרי קסם ושיפור תחזוקתיות
 const CONSTANTS = {
-  ICON_SIZE: SHARED_ICON_SIZES.MEDIUM,
   ANIMATION_OUTPUT_RANGE: [-50, 0] as const,
+  BUTTON_HIT_SLOP: { top: 8, bottom: 8, left: 8, right: 8 } as const,
+  BUTTON_ACTIVE_OPACITY: 0.6,
   VIBRATION: {
     MEDIUM: SHARED_VIBRATION_TYPES.MEDIUM,
     DOUBLE: SHARED_VIBRATION_TYPES.DOUBLE,
@@ -81,36 +81,38 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
     // 🎯 STATE MANAGEMENT - ניהול מצב פשוט ויעיל
     const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
+    // 🎮 HAPTIC FEEDBACK HELPER - פונקציה משותפת למשוב מישושי
+    const triggerHapticFeedback = useCallback(
+      (type: "medium" | "short" | "double") => {
+        if (Platform.OS === "ios") {
+          triggerVibration(type);
+        }
+      },
+      []
+    );
+
     // 🎮 EVENT HANDLERS - מטפלי אירועים ממוטבים עם haptic feedback
     const handleDeletePress = useCallback(() => {
-      if (Platform.OS === "ios") {
-        triggerVibration(CONSTANTS.VIBRATION.MEDIUM);
-      }
+      triggerHapticFeedback(CONSTANTS.VIBRATION.MEDIUM);
       setDeleteModalVisible(true);
-    }, []);
+    }, [triggerHapticFeedback]);
 
     const handleConfirmDelete = useCallback(() => {
-      if (Platform.OS === "ios") {
-        triggerVibration(CONSTANTS.VIBRATION.DOUBLE);
-      }
+      triggerHapticFeedback(CONSTANTS.VIBRATION.DOUBLE);
       onRemoveExercise();
       onExitEditMode();
       setDeleteModalVisible(false); // נסגר אוטומטית, אבל טוב להיות בטוחים
-    }, [onRemoveExercise, onExitEditMode]);
+    }, [onRemoveExercise, onExitEditMode, triggerHapticFeedback]);
 
     const handleDuplicate = useCallback(() => {
-      if (Platform.OS === "ios") {
-        triggerVibration(CONSTANTS.VIBRATION.SHORT);
-      }
+      triggerHapticFeedback(CONSTANTS.VIBRATION.SHORT);
       onDuplicate?.();
-    }, [onDuplicate]);
+    }, [onDuplicate, triggerHapticFeedback]);
 
     const handleReplace = useCallback(() => {
-      if (Platform.OS === "ios") {
-        triggerVibration(CONSTANTS.VIBRATION.SHORT);
-      }
+      triggerHapticFeedback(CONSTANTS.VIBRATION.SHORT);
       onReplace?.();
-    }, [onReplace]);
+    }, [onReplace, triggerHapticFeedback]);
 
     // 🚪 EARLY RETURN - יציאה מהירה אם לא נראה
     if (!isVisible) return null;
@@ -151,7 +153,6 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
             </View>
 
             {/* 🔧 ACTIONS SECTION - כפתורי פעולה */}
-            {/* 🔧 ACTIONS SECTION - כפתורי פעולה */}
             <View style={styles.editToolbarActions}>
               {/* 📋 DUPLICATE BUTTON - כפתור שכפול */}
               <TouchableOpacity
@@ -161,8 +162,8 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 accessibilityLabel={CONSTANTS.ACCESSIBILITY.DUPLICATE_LABEL}
                 accessibilityRole="button"
                 accessibilityHint="לחץ כדי לשכפל את התרגיל"
-                activeOpacity={0.6}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={CONSTANTS.BUTTON_ACTIVE_OPACITY}
+                hitSlop={CONSTANTS.BUTTON_HIT_SLOP}
               >
                 <MaterialCommunityIcons
                   name="content-copy"
@@ -183,8 +184,8 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 accessibilityLabel={CONSTANTS.ACCESSIBILITY.REPLACE_LABEL}
                 accessibilityRole="button"
                 accessibilityHint="לחץ כדי להחליף את התרגיל"
-                activeOpacity={0.6}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={CONSTANTS.BUTTON_ACTIVE_OPACITY}
+                hitSlop={CONSTANTS.BUTTON_HIT_SLOP}
               >
                 <MaterialCommunityIcons
                   name="swap-horizontal"
@@ -204,8 +205,8 @@ const EditToolbar: React.FC<EditToolbarProps> = React.memo(
                 accessibilityLabel={CONSTANTS.ACCESSIBILITY.DELETE_LABEL}
                 accessibilityRole="button"
                 accessibilityHint="לחץ כדי למחוק את התרגיל לצמיתות"
-                activeOpacity={0.6}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={CONSTANTS.BUTTON_ACTIVE_OPACITY}
+                hitSlop={CONSTANTS.BUTTON_HIT_SLOP}
               >
                 <MaterialCommunityIcons
                   name="delete-outline"

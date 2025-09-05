@@ -62,7 +62,7 @@
  * - WELCOME_SCREEN_TEXTS: Enhanced localized text constants with caching
  *
  * @dependencies userStore (Zustand), React Navigation, Expo Linear Gradient, userApi (Supabase)
- * @updated 2025-09-02 - Enhanced text system integration, dynamic content, performance optimizations
+ * @updated 2025-09-05 - TypeScript fixes, cleanup, console.warn to logger replacement
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -82,7 +82,6 @@ import {
   isQuickLoginAvailable,
   tryQuickLogin,
 } from "../../services/auth/quickLoginService";
-// Removed unused demo/google auth imports
 import { RootStackParamList } from "../../navigation/types";
 import {
   WELCOME_SCREEN_TEXTS,
@@ -104,12 +103,6 @@ const CONSTANTS = {
     LARGE: 22,
     EXTRA_LARGE: 28,
     LOGO: 80,
-  },
-  HIT_SLOP: {
-    TOP: 20,
-    BOTTOM: 20,
-    LEFT: 20,
-    RIGHT: 20,
   },
   MIN_TOUCH_TARGET: 44,
   // Style constants for consistent design
@@ -145,43 +138,43 @@ const WelcomeScreen = React.memo(() => {
 
   // 🔍 בדיקה אם יש משתמש מחובר וניווט אוטומטי
   useEffect(() => {
-    if (user) {
-      // 🛡️ דחייה קטנה כדי לתת ל-store זמן להתעדכן במלואו
-      const timer = setTimeout(() => {
-        const completion = getCompletionStatus();
-        if (__DEV__) {
-          logger.debug("WelcomeScreen: מצא משתמש מחובר", "user", {
-            userId: user.id,
-            hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
-            isFullySetup: completion.isFullySetup,
-          });
-        }
+    if (!user) return;
 
-        if (completion.isFullySetup) {
-          if (__DEV__)
-            logger.debug(
-              "WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
-              "navigation"
-            );
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "MainApp" }],
-          });
-        } else {
-          if (__DEV__)
-            logger.debug(
-              "WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון",
-              "navigation"
-            );
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Questionnaire" }],
-          });
-        }
-      }, 100); // 100ms דחייה קלה
+    // 🛡️ דחייה קטנה כדי לתת ל-store זמן להתעדכן במלואו
+    const timer = setTimeout(() => {
+      const completion = getCompletionStatus();
+      if (__DEV__) {
+        logger.debug("WelcomeScreen: מצא משתמש מחובר", "user", {
+          userId: user.id,
+          hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
+          isFullySetup: completion.isFullySetup,
+        });
+      }
 
-      return () => clearTimeout(timer);
-    }
+      if (completion.isFullySetup) {
+        if (__DEV__)
+          logger.debug(
+            "WelcomeScreen: משתמש עם שאלון מלא - מעבר לאפליקציה ראשית",
+            "navigation"
+          );
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        if (__DEV__)
+          logger.debug(
+            "WelcomeScreen: משתמש ללא שאלון מלא - מעבר לשאלון",
+            "navigation"
+          );
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Questionnaire" }],
+        });
+      }
+    }, 100); // 100ms דחייה קלה
+
+    return () => clearTimeout(timer);
   }, [user, getCompletionStatus, navigation]);
 
   // 🔍 בדיקת זמינות Quick Login מבוסס Supabase session
@@ -350,8 +343,6 @@ const WelcomeScreen = React.memo(() => {
     }
   }, [triggerHapticFeedback, setErrorMessage, setShowErrorModal]);
 
-  // Removed legacy loading & questionnaire generation logic
-
   return (
     <SafeAreaView style={styles.flexFull} edges={["top"]}>
       <LinearGradient
@@ -459,18 +450,21 @@ const WelcomeScreen = React.memo(() => {
             </View>
             {/* Primary call-to-action button with gradient design */}
             <UniversalButton
-              title={WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW}
+              title={WELCOME_SCREEN_TEXTS.ACTIONS.START_NOW || "התחל עכשיו"}
               onPress={handleStartJourney}
               variant="gradient"
               size="large"
               icon="arrow-forward"
               iconPosition="right"
               fullWidth
-              accessibilityLabel={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY}
-              accessibilityHint={WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY_HINT}
+              accessibilityLabel={
+                WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY || "התחל המסע"
+              }
+              accessibilityHint={
+                WELCOME_SCREEN_TEXTS.A11Y.START_JOURNEY_HINT ||
+                "התחל את המסע לכושר"
+              }
             />
-
-            {/* הוסר: כפתור דמו */}
 
             {/* Free trial promotion badge with dynamic content */}
             <View style={styles.trialBadge}>
@@ -574,8 +568,8 @@ const WelcomeScreen = React.memo(() => {
             style={styles.debugInfoButton}
             onPress={() => {
               const cacheStats = getWelcomeTextCacheStats();
-              console.warn("🎯 Welcome Screen Cache Stats:", cacheStats);
-              console.warn("🎯 Welcome Content Package:", welcomeContent);
+              logger.debug("WelcomeScreen", "Cache Stats", cacheStats);
+              logger.debug("WelcomeScreen", "Content Package", welcomeContent);
             }}
             accessibilityLabel="מידע ביצועים"
             accessibilityHint="הצגת סטטיסטיקות cache וביצועים"

@@ -75,8 +75,8 @@ import {
 // Import User type for type safety
 import type { User } from "../../types";
 
-// Import NextWorkoutCard
-import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+// NextWorkoutCard import commented out until proper workoutPlan integration
+// import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 
 // =============================================================
 // 🔐 CRITICAL FLOW INVARIANTS (See QUESTIONNAIRE_FLOW_CRITICAL.md)
@@ -668,11 +668,21 @@ function MainScreen() {
         workoutName,
         workoutIndex,
       });
-      navigation.navigate("WorkoutPlans", {
+
+      // Create navigation params with proper type handling
+      const navigationParams: Record<string, unknown> = {
         autoStart: true,
-        requestedWorkoutName: workoutName,
-        requestedWorkoutIndex: workoutIndex,
-      });
+      };
+
+      if (workoutName) {
+        navigationParams.requestedWorkoutName = workoutName;
+      }
+
+      if (workoutIndex !== undefined) {
+        navigationParams.requestedWorkoutIndex = workoutIndex;
+      }
+
+      navigation.navigate("WorkoutPlans", navigationParams);
     },
     [navigation, triggerHapticFeedback]
   );
@@ -1031,10 +1041,12 @@ function MainScreen() {
               },
             ]}
           >
-            <NextWorkoutCard
+            {/* Remove NextWorkoutCard for now as it requires workoutPlan prop */}
+            {/* TODO: Implement NextWorkoutCard with proper workoutPlan data */}
+            {/* <NextWorkoutCard
               workoutPlan={undefined}
               onStartWorkout={handleStartWorkout}
-            />
+            /> */}
           </Animated.View>
 
           {/* בחירת יום אימון עם המלצה דינמית */}

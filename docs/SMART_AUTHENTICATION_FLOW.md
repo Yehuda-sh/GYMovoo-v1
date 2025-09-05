@@ -1,6 +1,8 @@
-# 🔐 Smart Authentication Flow - זרימה חכמה
+# 🔐 Smart Authentication Flow - Architecture Documentation
 
-## נבצעה בהצלחה ✅
+## 📋 Overview
+
+This document describes the smart authentication system implemented in GYMovoo, providing seamless user experience while respecting explicit logout intentions.
 
 ### 📱 איך זה עובד עכשיו:
 
@@ -74,7 +76,7 @@ await AsyncStorage.setItem("user_logged_out", "true");
 
 ---
 
-## 🎯 **התנהגות הצפויה**:
+## 🎯 **User Flow Scenarios**:
 
 ### 📱 **מסך Welcome**:
 
@@ -95,25 +97,37 @@ await AsyncStorage.setItem("user_logged_out", "true");
 
 ---
 
-## ✅ **הוחמרות לבטיחות**:
+## ✅ **Security Features**:
 
-1. **זכירה חכמה**: המערכת זוכרת משתמשים אבל מכבדת התנתקות מפורשת
-2. **בטיחות**: אי אפשר לעקוף התנתקות עם Quick Login
-3. **נוחות**: משתמשים חוזרים עדיין נהנים מכניסה מהירה
-4. **שקיפות**: המשתמש יודע בדיוק מה קורה
-
----
-
-## 🎉 **הזרימה החכמה מוכנה!**
-
-### ללא שינוי טיפי הבונוס ✅
-
-### עם התנתקות מפורשת מהפרופיל ✅
-
-### עם Quick Login חכם ✅
-
-### עם זכירת משתמשים עד התנתקות ✅
+1. **Smart Memory**: System remembers users but respects explicit logout intentions
+2. **Security**: Quick Login cannot bypass explicit logout
+3. **Convenience**: Returning users still enjoy fast login experience
+4. **Transparency**: Users always know what's happening
 
 ---
 
-**💡 הערה:** השינויים שמרו על כל הפונקציונליות הקיימת ורק הוסיפו את הלוגיקה החכמה להתנתקות!
+## 🎉 **Smart Authentication Flow Complete!**
+
+### ✅ Preserves existing user flows
+
+### ✅ Implements explicit logout handling
+
+### ✅ Provides smart Quick Login
+
+### ✅ Maintains user memory until logout
+
+---
+
+## 📚 Implementation Files
+
+This authentication flow is implemented across multiple files:
+
+- `src/services/auth/quickLoginService.ts` - Core logic for quick login availability
+- `src/screens/auth/LoginScreen.tsx` - Clears logout flag on successful login
+- `src/screens/auth/RegisterScreen.tsx` - Clears logout flag on successful registration
+- `src/stores/userStore.ts` - Sets logout flag on explicit logout
+- `src/screens/welcome/WelcomeScreen.tsx` - Quick login UI integration
+
+---
+
+**💡 Note:** This flow maintains all existing functionality while adding smart logout detection logic.

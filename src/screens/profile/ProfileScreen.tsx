@@ -76,7 +76,8 @@ import * as ImagePicker from "expo-image-picker";
 import { User, SmartQuestionnaireData, Workout } from "../../types";
 import { useModalManager } from "../workout/hooks/useModalManager";
 import { UniversalModal } from "../../components/common/UniversalModal";
-import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+// NextWorkoutCard import commented out until proper workoutPlan integration
+// import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
 import { userApi } from "../../services/api/userApi";
 
 // =============================================================
@@ -442,7 +443,9 @@ class ProfileScreenCacheManager {
 
       if (this.cache.size >= this.maxCacheSize) {
         const oldestKey = Array.from(this.cache.keys())[0];
-        this.cache.delete(oldestKey);
+        if (oldestKey) {
+          this.cache.delete(oldestKey);
+        }
       }
 
       this.cache.set(key, {
@@ -1421,24 +1424,34 @@ function ProfileScreen() {
     value: string;
   };
   const getDisplayFields = React.useCallback(
-    (userInfo: Record<string, string>) => {
+    (userInfo: Record<string, string | undefined>) => {
       const fields: DisplayField[] = [];
 
       // שדות בסיסיים - תמיד מוצגים (אם יש ערך)
       const basicFields: DisplayField[] = [
-        { key: "goal", icon: "target", label: "מטרה", value: userInfo.goal },
-        { key: "age", icon: "calendar", label: "גיל", value: userInfo.age },
+        {
+          key: "goal",
+          icon: "target",
+          label: "מטרה",
+          value: userInfo.goal || "",
+        },
+        {
+          key: "age",
+          icon: "calendar",
+          label: "גיל",
+          value: userInfo.age || "",
+        },
         {
           key: "experience",
           icon: "arm-flex",
           label: "ניסיון",
-          value: userInfo.experience,
+          value: userInfo.experience || "",
         },
         {
           key: "location",
           icon: "map-marker",
           label: "מיקום",
-          value: userInfo.location,
+          value: userInfo.location || "",
         },
       ];
 
@@ -1450,36 +1463,39 @@ function ProfileScreen() {
       });
 
       // בדיקת כפילויות משך אימון - עדיפות ל-duration על פני session_duration
-      if (userInfo.duration !== "לא צוין") {
+      if (userInfo.duration && userInfo.duration !== "לא צוין") {
         fields.push({
           key: "duration",
           icon: "clock-outline",
           label: "משך אימון",
-          value: userInfo.duration,
+          value: userInfo.duration || "",
         });
-      } else if (userInfo.session_duration !== "לא צוין") {
+      } else if (
+        userInfo.session_duration &&
+        userInfo.session_duration !== "לא צוין"
+      ) {
         fields.push({
           key: "session_duration",
           icon: "timer",
           label: "משך מועדף",
-          value: userInfo.session_duration,
+          value: userInfo.session_duration || "",
         });
       }
 
       // בדיקת כפילויות תדירות - יכול להיות frequency או availability
-      if (userInfo.frequency !== "לא צוין") {
+      if (userInfo.frequency && userInfo.frequency !== "לא צוין") {
         fields.push({
           key: "frequency",
           icon: "calendar-week",
           label: "תדירות",
-          value: userInfo.frequency,
+          value: userInfo.frequency || "",
         });
-      } else if (userInfo.availability !== "לא צוין") {
+      } else if (userInfo.availability && userInfo.availability !== "לא צוין") {
         fields.push({
           key: "availability",
           icon: "calendar-check",
           label: "זמינות לאימונים",
-          value: userInfo.availability,
+          value: userInfo.availability || "",
         });
       }
 
@@ -1489,19 +1505,24 @@ function ProfileScreen() {
           key: "height",
           icon: "human-male-height",
           label: "גובה",
-          value: userInfo.height,
+          value: userInfo.height || "",
         },
         {
           key: "weight",
           icon: "weight",
           label: "משקל",
-          value: userInfo.weight,
+          value: userInfo.weight || "",
         },
-        { key: "gender", icon: "human", label: "מגדר", value: userInfo.gender },
+        {
+          key: "gender",
+          icon: "human",
+          label: "מגדר",
+          value: userInfo.gender || "",
+        },
       ];
 
       physicalFields.forEach((field) => {
-        if (field.value !== "לא צוין") {
+        if (field.value && field.value !== "לא צוין") {
           fields.push(field);
         }
       });
@@ -1512,54 +1533,54 @@ function ProfileScreen() {
           key: "diet",
           icon: "food-apple",
           label: "תזונה",
-          value: userInfo.diet,
+          value: userInfo.diet || "",
         },
         {
           key: "activity_level",
           icon: "run",
           label: "רמת פעילות",
-          value: userInfo.activity_level,
+          value: userInfo.activity_level || "",
         },
         {
           key: "workout_time",
           icon: "clock-time-four",
           label: "שעת אימון",
-          value: userInfo.workout_time,
+          value: userInfo.workout_time || "",
         },
         {
           key: "motivation",
           icon: "heart-pulse",
           label: "מוטיבציה",
-          value: userInfo.motivation,
+          value: userInfo.motivation || "",
         },
         {
           key: "body_type",
           icon: "human-male-board",
           label: "סוג גוף",
-          value: userInfo.body_type,
+          value: userInfo.body_type || "",
         },
         {
           key: "sleep_hours",
           icon: "sleep",
           label: "שעות שינה",
-          value: userInfo.sleep_hours,
+          value: userInfo.sleep_hours || "",
         },
         {
           key: "stress_level",
           icon: "alert-circle",
           label: "רמת לחץ",
-          value: userInfo.stress_level,
+          value: userInfo.stress_level || "",
         },
         {
           key: "health_conditions",
           icon: "medical-bag",
           label: "מגבלות רפואיות",
-          value: userInfo.health_conditions,
+          value: userInfo.health_conditions || "",
         },
       ];
 
       lifestyleFields.forEach((field) => {
-        if (field.value !== "לא צוין") {
+        if (field.value && field.value !== "לא צוין") {
           fields.push(field);
         }
       });
@@ -1817,7 +1838,7 @@ function ProfileScreen() {
         quality: 0.7,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         const newAvatar = result.assets[0].uri;
 
         // 🔒 ולידציה בסיסית (אופציונלי)
@@ -1853,7 +1874,7 @@ function ProfileScreen() {
         quality: 0.7,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         const newAvatar = result.assets[0].uri;
 
         // 🔒 ולידציה בסיסית (אופציונלי)
@@ -2232,8 +2253,8 @@ function ProfileScreen() {
                 </View>
               </View>
 
-              {/* Next Workout Recommendation */}
-              <NextWorkoutCard
+              {/* Next Workout Recommendation - Commented out until proper workoutPlan data */}
+              {/* <NextWorkoutCard
                 workoutPlan={undefined}
                 onStartWorkout={(workoutName, workoutIndex) => {
                   navigation.navigate("WorkoutPlans", {
@@ -2242,7 +2263,7 @@ function ProfileScreen() {
                     requestedWorkoutIndex: workoutIndex,
                   });
                 }}
-              />
+              /> */}
 
               {/* מידע אישי מהשאלון - כולו דינמי */}
               {questionnaireStatus.isComplete && (
@@ -2942,30 +2963,36 @@ function ProfileScreen() {
           )}
 
           {/* מודל אחיד למקום Alert.alert מפוזר */}
-          <UniversalModal
-            visible={activeModal !== null}
-            type={activeModal || "comingSoon"}
-            title={modalConfig.title}
-            message={modalConfig.message}
-            onClose={hideModal}
-            onConfirm={modalConfig.onConfirm}
-            confirmText={modalConfig.confirmText}
-            destructive={modalConfig.destructive}
-          />
+          {activeModal && modalConfig.onConfirm && modalConfig.confirmText && (
+            <UniversalModal
+              visible={activeModal !== null}
+              type={activeModal}
+              title={modalConfig.title}
+              message={modalConfig.message}
+              onClose={hideModal}
+              onConfirm={modalConfig.onConfirm}
+              confirmText={modalConfig.confirmText}
+              destructive={modalConfig.destructive || false}
+            />
+          )}
 
           {/* ConfirmationModal for success/error messages */}
-          <ConfirmationModal
-            visible={confirmationModal.visible}
-            title={confirmationModal.title}
-            message={confirmationModal.message}
-            onClose={hideConfirmationModal}
-            onConfirm={confirmationModal.onConfirm}
-            onCancel={confirmationModal.onCancel}
-            confirmText={confirmationModal.confirmText}
-            cancelText={confirmationModal.cancelText}
-            variant={confirmationModal.variant}
-            singleButton={confirmationModal.singleButton}
-          />
+          {confirmationModal.onCancel &&
+            confirmationModal.confirmText &&
+            confirmationModal.cancelText && (
+              <ConfirmationModal
+                visible={confirmationModal.visible}
+                title={confirmationModal.title}
+                message={confirmationModal.message}
+                onClose={hideConfirmationModal}
+                onConfirm={confirmationModal.onConfirm}
+                onCancel={confirmationModal.onCancel}
+                confirmText={confirmationModal.confirmText}
+                cancelText={confirmationModal.cancelText}
+                variant={confirmationModal.variant || "default"}
+                singleButton={confirmationModal.singleButton || false}
+              />
+            )}
         </SafeAreaView>
       </LinearGradient>
     </ErrorBoundary>

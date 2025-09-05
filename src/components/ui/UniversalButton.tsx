@@ -306,7 +306,7 @@ export const UniversalButton: React.FC<UniversalButtonProps> = React.memo(
             borderColor: variantStyles.borderColor,
             paddingHorizontal: sizeStyles.paddingHorizontal,
             paddingVertical: sizeStyles.paddingVertical,
-            opacity: isDisabled ? 0.5 : 1,
+            opacity: (isDisabled ? 0.5 : 1) as number,
           },
           fullWidth && styles.fullWidth,
           style,

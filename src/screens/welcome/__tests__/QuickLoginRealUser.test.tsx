@@ -1,14 +1,19 @@
+/**
+ * @file src/screens/welcome/__tests__/QuickLoginRealUser.test.tsx
+ * @brief בדיקות עבור התחברות מהירה במסך הברוכים הבאים
+ * @description בודק את פונקציונליות ההתחברות המהירה ב-WelcomeScreen
+ *
+ * Features tested:
+ * - התחברות מהירה עם פורמט תוצאה נכון
+ * - הסתרת כפתור כשהשירות לא זמין
+ * - אינטגרציה עם quickLoginService
+ *
+ * @updated 2025-09-05 תוקן המבנה והוסרו mocks מיותרים
+ */
+
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import WelcomeScreen from "../WelcomeScreen";
-// Mock userApi early to avoid Supabase env validation
-const mockList = jest.fn();
-jest.mock("../../../services/api/userApi", () => ({
-  userApi: {
-    list: (...args: any[]) => mockList(...args),
-  },
-}));
-import { userApi } from "../../../services/api/userApi";
 
 // Mock useUserStore
 const mockSetUser = jest.fn();
@@ -19,11 +24,53 @@ jest.mock("../../../stores/userStore", () => ({
     getState: mockGetState,
   }),
 }));
-import { useUserStore } from "../../../stores/userStore";
 
 // Mock navigation
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ reset: jest.fn(), navigate: jest.fn() }),
+}));
+
+// Mock logger
+jest.mock("../../../utils/logger", () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+// Mock welcome texts
+jest.mock("../../../constants/welcomeScreenTexts", () => ({
+  WELCOME_SCREEN_TEXTS: {
+    HEADERS: {
+      APP_NAME: "GYMovoo",
+      TAGLINE: "המסע שלך להתעוררות",
+    },
+    FEATURES: {
+      PERSONAL_PLANS: "תוכניות אישיות",
+      PROGRESS_TRACKING: "מעקב התקדמות",
+      QUICK_WORKOUTS: "אימונים מהירים",
+      SUPPORTIVE_COMMUNITY: "קהילה תומכת",
+    },
+    ACTIONS: {
+      START_NOW: "התחל עכשיו",
+      HAVE_ACCOUNT: "יש לך חשבון?",
+    },
+    A11Y: {
+      START_JOURNEY: "התחל המסע",
+      START_JOURNEY_HINT: "התחל את המסע לכושר",
+    },
+    PROMOTION: {
+      DIVIDER_TEXT: "או",
+    },
+  },
+  getWelcomeContentPackage: jest.fn().mockReturnValue({
+    greeting: "ברוכים הבאים",
+    subtitle: "בואו נתחיל",
+    userStats: "משתמשים פעילים",
+  }),
+  getWelcomeTextCacheStats: jest.fn().mockReturnValue({}),
+  formatEnhancedUserStats: jest.fn().mockReturnValue("סטטיסטיקות"),
 }));
 
 // Basic noop mocks
@@ -39,25 +86,25 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock quick login service
+// Mock quick login service with correct API format
 jest.mock("../../../services/auth/quickLoginService", () => ({
   isQuickLoginAvailable: jest.fn().mockResolvedValue(true),
   tryQuickLogin: jest.fn().mockImplementation(async () => {
-    // Simulate setting a demo user
-    const demoUser = {
-      id: "demo_1",
-      name: "Demo User One",
-      isDemo: true,
+    // Simulate successful quick login with correct return format
+    const testUser = {
+      id: "test_user_123",
+      name: "Test User",
+      email: "test@example.com",
       smartquestionnairedata: {
-        answers: { age: 26 },
+        answers: { age: "26_35" },
         metadata: {
           completedAt: new Date().toISOString(),
           version: "1.0",
         },
       },
     };
-    mockSetUser(demoUser);
-    return { success: true };
+    mockSetUser(testUser);
+    return { ok: true, userId: "test_user_123" }; // Correct format
   }),
 }));
 
@@ -66,34 +113,37 @@ describe("QuickLoginRealUser", () => {
     jest.clearAllMocks();
   });
 
-  test("בחר משתמש דמו בלבד לבטיחות", async () => {
-    const fakeUsers = [
-      {
-        id: "demo_1",
-        name: "Demo User One",
-        isDemo: true,
-        smartquestionnairedata: { answers: { age: "26_35" } },
-      },
-      {
-        id: "real_2",
-        name: "Real User Two",
-        isDemo: false,
-        smartquestionnairedata: { answers: { age: "18_25" } },
-      },
-    ];
-    mockList.mockResolvedValueOnce(fakeUsers as any);
-
+  test("בדיקה שהתחברות מהירה עובדת עם הפורמט הנכון", async () => {
     const { getByText } = render(<WelcomeScreen />);
+
+    // Wait for quick login button to appear
     const btn = await waitFor(() => getByText("כניסה מהירה"));
     fireEvent.press(btn);
 
+    // Verify that setUser was called with the expected user data
     await waitFor(() => {
       expect(mockSetUser).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: "demo_1",
-          isDemo: true,
+          id: "test_user_123",
+          name: "Test User",
+          email: "test@example.com",
         })
       );
+    });
+  });
+
+  test("בדיקה שהכפתור לא מופיע כשהשירות לא זמין", async () => {
+    // Mock service unavailable
+    const {
+      isQuickLoginAvailable,
+    } = require("../../../services/auth/quickLoginService");
+    isQuickLoginAvailable.mockResolvedValue(false);
+
+    const { queryByText } = render(<WelcomeScreen />);
+
+    // Quick login button should not be visible
+    await waitFor(() => {
+      expect(queryByText("כניסה מהירה")).toBeNull();
     });
   });
 });

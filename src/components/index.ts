@@ -41,6 +41,14 @@ export { BlurOverlay } from "./BlurOverlay"; // רכיב ערפול עם workout
 export { default as WorkoutPlanManager } from "./WorkoutPlanManager"; // מנהל תוכניות אימון עם haptic feedback ו-performance tracking ⚡💪
 
 // ===============================================
+// 🎮 Gamification & Marketing - גיימיפיקציה ושיווק
+// ===============================================
+// רכיבים מתקדמים לחוויית משתמש משפרת / Advanced components for enhanced user experience
+
+export { default as AvatarEvolution } from "./AvatarEvolution"; // מערכת אווטאר מתפתח עם 5 רמות ואנימציות ⚡🎮⭐
+export { default as AdManager } from "./AdManager"; // מנהל פרסומות חכם עם התאמה לסוג מנוי ⚡📱⭐
+
+// ===============================================
 // 🌟 Screen Components - רכיבי מסכים מותאמים לכושר
 // ===============================================
 // מסכים מרכזיים עם אופטימיזציות כושר מובייל / Core screens with fitness mobile optimizations
@@ -54,15 +62,17 @@ export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansSc
 // ===============================================
 //
 // 📈 סטטיסטיקות כוללות:
-// • סה"כ רכיבים: 19 (כולל UniversalModal ו-StatCard שנוספו)
-// • רכיבים פעילים: 19
-// • מותאמים לכושר מובייל: 12 ⚡ (כולל מסך תוכניות האימון + רכיבים חדשים)
-// • עם Haptic Feedback: 10 💪 (תוכניות אימון עם משוב מדורג לבחירת יום ותחילת אימון)
-// • עם Performance Tracking: 8 🚀 (כולל מדידת render time ב-WorkoutPlansScreen)
-// • עם React.memo: 9 ⭐ (כולל UniversalModal ו-StatCard שנוספו)
+// • סה"כ רכיבים: 21 (הוספת AdManager ו-AvatarEvolution)
+// • רכיבים פעילים: 21
+// • מותאמים לכושר מובייל: 14 ⚡ (הוספת 2 רכיבים מתקדמים)
+// • עם Haptic Feedback: 12 💪 (הוספת AvatarEvolution עם אנימציות מתקדמות)
+// • עם Performance Tracking: 10 🚀 (הוספת AdManager עם logger ו-AvatarEvolution)
+// • עם React.memo: 11 ⭐ (הוספת AdManager ו-AvatarEvolution עם אופטימיזציות)
 // • עם 44px Validation: 8 ♿ (כולל כפתורי התוכניות ו-tabs)
 // • עם Workout Variants: 4 🏋️
 // • עם Enlarged HitSlop: 10 📱 (אזור מגע מוגדל לכל פעולות האימון)
+// • עם Gamification: 1 🎮 (AvatarEvolution עם 5 רמות התפתחות)
+// • עם Ad Management: 1 📱 (AdManager עם התאמה לסוג מנוי)
 //
 // 🎯 אופטימיזציות כושר מובייל שבוצעו:
 // ✅ Haptic Feedback - משוב מישושי מדורג (light/medium/heavy) לכל הפעולות
@@ -77,6 +87,8 @@ export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansSc
 // • UI: UniversalButton, UniversalCard
 // • Common: UniversalModal (4 סוגים + useModalManager), StatCard (4 variants + grid)
 // • Workout: FloatingActionButton, NextWorkoutCard, BlurOverlay, WorkoutPlanManager
+// • Gamification: AvatarEvolution (5 רמות התפתחות + אנימציות מתקדמות)
+// • Marketing: AdManager (התאמה חכמה לסוג מנוי + ConfirmationModal)
 // • Screens: WelcomeScreen (TouchableButton מדורג), MainScreen (דשבורד עם 4 כפתורים), WorkoutPlansScreen (AI + haptic feedback)
 //
-// Total: 19 components | Fitness Optimized: 12 | With Haptic: 10 | Performance Tracked: 8
+// Total: 21 components | Fitness Optimized: 14 | With Haptic: 12 | Performance Tracked: 10 | With Gamification: 1

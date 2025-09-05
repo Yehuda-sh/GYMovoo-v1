@@ -38,11 +38,11 @@ import {
 } from "../workout/types/workout.types";
 import { getGenderIcon, getUserGender } from "../../utils/workoutHelpers";
 import {
+  HISTORY_SCREEN_CONFIG,
   HISTORY_SCREEN_TEXTS,
   HISTORY_SCREEN_ACCESSIBILITY,
   HISTORY_SCREEN_ICONS,
-} from "../../constants/historyScreenTexts";
-import { HISTORY_SCREEN_CONFIG } from "../../constants/historyScreenConfig";
+} from "../../constants/historyScreenConfig";
 import {
   formatDateHebrew,
   getDifficultyStars,
@@ -729,7 +729,6 @@ const HistoryScreen: React.FC = React.memo(() => {
 
               {/* Next Workout Recommendation */}
               <NextWorkoutCard
-                workoutPlan={undefined}
                 onStartWorkout={(workoutName, workoutIndex) => {
                   // Navigate to workout plans screen with specific workout
                   navigation.navigate("WorkoutPlans", {

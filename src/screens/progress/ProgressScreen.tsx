@@ -5,7 +5,7 @@
  * @version 1.1.0 (2025-08-13)
  */
 
-import React from "react";
+import { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
@@ -13,54 +13,62 @@ import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+// useNavigation import commented out until NextWorkoutCard integration
+// import { useNavigation } from "@react-navigation/native";
 import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
 import { logger } from "../../utils/logger";
-import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+// NextWorkoutCard import commented out until proper workoutPlan integration
+// import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+
+// Types for stats
+interface ProgressStats {
+  totalWorkouts: number;
+  totalDuration: number;
+  averageDifficulty: number;
+  workoutStreak: number;
+}
 
 export default function ProgressScreen(): JSX.Element {
-  const navigation = useNavigation();
-  const [loading, setLoading] = React.useState(true);
-  const [stats, setStats] = React.useState<{
-    totalWorkouts: number;
-    totalDuration: number;
-    averageDifficulty: number;
-    workoutStreak: number;
-  } | null>(null);
-  const [personalRecords, setPersonalRecords] = React.useState<number>(0);
+  // const navigation = useNavigation(); // Commented out until NextWorkoutCard integration
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ProgressStats | null>(null);
+  const [personalRecords, setPersonalRecords] = useState<number>(0);
 
-  React.useEffect(() => {
+  const loadProgressData = useCallback(async () => {
+    try {
+      const [statsData, historyData] = await Promise.all([
+        workoutFacadeService.getGenderGroupedStatistics(),
+        workoutFacadeService.getHistory(),
+      ]);
+
+      const personalRecordsCount = historyData.reduce(
+        (acc, curr) => acc + (curr.stats?.personalRecords || 0),
+        0
+      );
+
+      setStats(statsData.total);
+      setPersonalRecords(personalRecordsCount);
+    } catch (error) {
+      logger.error("ProgressScreen: failed to load stats", String(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
-    // ✅ הוספת delay למניעת קריאות מיותרות
-    const timeoutId = setTimeout(async () => {
-      const load = async () => {
-        try {
-          const s = await workoutFacadeService.getGenderGroupedStatistics();
-          // The analytics part needs to be refactored to not require personalData or to get it from a store
-          // For now, we'll just get the total records for the badge.
-          const history = await workoutFacadeService.getHistory();
-          const personalRecordsCount = history.reduce(
-            (acc, curr) => acc + (curr.stats?.personalRecords || 0),
-            0
-          );
-
-          if (!mounted) return;
-          setStats(s.total);
-          setPersonalRecords(personalRecordsCount);
-        } catch (e) {
-          logger.error("ProgressScreen: failed to load stats", String(e));
-        } finally {
-          if (mounted) setLoading(false);
-        }
-      };
-      await load();
+    // Add delay to prevent unnecessary calls
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        loadProgressData();
+      }
     }, 200);
 
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [loadProgressData]);
 
   return (
     <SafeAreaView
@@ -128,8 +136,8 @@ export default function ProgressScreen(): JSX.Element {
           )}
         </View>
 
-        {/* Next Workout Recommendation */}
-        <NextWorkoutCard
+        {/* Next Workout Recommendation - Commented out until proper workoutPlan data */}
+        {/* <NextWorkoutCard
           workoutPlan={undefined}
           onStartWorkout={(workoutName, workoutIndex) => {
             navigation.navigate("WorkoutPlans", {
@@ -138,7 +146,7 @@ export default function ProgressScreen(): JSX.Element {
               requestedWorkoutIndex: workoutIndex,
             });
           }}
-        />
+        /> */}
       </View>
     </SafeAreaView>
   );

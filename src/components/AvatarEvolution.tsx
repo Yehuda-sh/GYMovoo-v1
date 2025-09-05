@@ -1,9 +1,9 @@
 /**
  * @file src/components/AvatarEvolution.tsx
- * @description מערכת אוואטר מתפתח לגיימיפיקציה באפליקציית GYMovoo
+ * @description מערכת אווטאר מתפתח גיימיפיקציה באפליקציית GYMovoo
  *
  * @features
- * - אוואטר שמתפתח לפי כמות אימונים וביצועים
+ * - אווטאר שמתפתח לפי כמות אימונים וביצועים
  * - שלבי התפתחות: Seedling → Sprout → Tree → Mighty Tree → Ancient Oak
  * - מערכת נקודות ורמות עם הישגים
  * - אנימציות חלקות וחוויה מקסימה
@@ -167,7 +167,7 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
   // Calculate current level and stats
   // מחושב מחדש רק כאשר workoutCount או streakDays משתנים
   const { currentLevel, userStats } = useMemo(() => {
-    let level = AVATAR_LEVELS[0];
+    let level: AvatarLevel = AVATAR_LEVELS[0]!; // ביטוח שהמערך לא ריק
 
     // מצא את הרמה הנוכחית
     for (const levelConfig of AVATAR_LEVELS) {
@@ -186,7 +186,7 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
     let progress = 100; // אם זו הרמה הגבוהה ביותר
     let pointsToNext = 0;
 
-    if (nextLevel) {
+    if (nextLevel && level) {
       const workoutsInCurrentLevel = workoutCount - level.minWorkouts;
       const workoutsNeededForNextLevel =
         nextLevel.minWorkouts - level.minWorkouts;
@@ -310,7 +310,7 @@ const AvatarEvolution: React.FC<AvatarEvolutionProps> = ({
         ]}
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`אוואטר רמה ${currentLevel.level}: ${currentLevel.name}`}
+        accessibilityLabel={`אווטאר רמה ${currentLevel.level}: ${currentLevel.name}`}
         accessibilityHint={showDetails ? "לחץ לפרטים נוספים" : undefined}
       >
         <Animated.View

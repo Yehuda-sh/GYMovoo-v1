@@ -6,7 +6,7 @@
  * @version 3.0 - Fitness mobile optimized with haptic feedback and performance tracking
  */
 
-import React, { useRef, useEffect, useMemo, useCallback } from "react";
+import { useRef, useEffect, useMemo, useCallback } from "react";
 import { TouchableOpacity, Animated, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";

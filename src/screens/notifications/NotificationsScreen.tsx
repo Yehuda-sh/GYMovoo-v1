@@ -2,57 +2,23 @@
  * @file src/screens/notifications/NotificationsScreen.tsx
  * @brief מסך ניהול התראות מתקדם עם הגדרות מותאמות אישית
  * @version 2.0.0
- * @author GYMovoo Development Team
- * @created 2025-08-25
- * @modified 2025-07-31
+ * @updated 2025-09-05
  *
  * @description
  * מסך ניהול התראות מקיף המאפשר למשתמש לקבוע העדפות אישיות עבור:
  * - תזכורות אימון מותאמות
  * - דוחות שבועיים אוטומטיים
  * - התראות הישגים ויעדים
- * מכיל מערכת הגדרות דינמית עם Switch components נגישים
  *
  * @features
- * - ✅ הגדרות התראות מותאמות אישית
- * - ✅ תמיכת RTL מלאה עם פריסה מימין לשמאל
- * - ✅ נגישות מקיפה עם ARIA labels ו-Screen Reader support
- * - ✅ Switch components עם תמיכה בצבעי theme
- * - ✅ סקשן "בקרוב" לתכונות עתידיות
- * - ✅ עיצוב מודרני עם CardViews ו-Shadows
- * - ✅ אנימציות חלקות ואינטראקציות מתקדמות
- *
- * @performance
- * אופטימיזציה עם useState hooks, ScrollView מיוחד עם showsVerticalScrollIndicator=false,
- * ו-contentContainerStyle לביצועים מיטביים של רשימות הגדרות
- *
- * @rtl
- * תמיכה מלאה בעברית עם flexDirection: row-reverse, textAlign: right,
- * marginEnd במקום marginRight, ופריסת אייקונים מותאמת לכיוון קריאה מימין לשמאל
- *
- * @accessibility
- * תמיכה מלאה ב-Screen Readers עם accessibilityLabel, accessibilityRole,
- * accessibilityHint מפורטים לכל Switch ואלמנט אינטרקטיבי
- *
- * @algorithm
- * מערכת הגדרות דינמית עם state management מבוסס useState hooks
- * לכל הגדרה: setState → re-render → Switch visual update
- *
- * @dependencies React Native, MaterialCommunityIcons, BackButton, theme
- * @exports NotificationsScreen (default)
- *
- * @example
- * ```tsx
- * // בשימוש ב-navigation
- * navigation.navigate('NotificationsScreen');
- * ```
- *
- * @notes
- * מוכן לאינטגרציה עם מערכת התראות אמיתית בעתיד
- * כולל placeholder לתכונות מתקדמות
+ * - הגדרות התראות מותאמות אישית
+ * - תמיכת RTL מלאה
+ * - נגישות מקיפה
+ * - עיצוב מודרני עם אנימציות
+ * - אופטימיזציה עם hooks מתקדמים
  */
 
-import React from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -66,18 +32,27 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Types for notification settings
+interface NotificationSetting {
+  id: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  title: string;
+  description: string;
+  value: boolean;
+  setValue: (value: boolean) => void;
+}
+
 export default function NotificationsScreen(): JSX.Element {
-  const [workoutReminders, setWorkoutReminders] = React.useState<boolean>(true);
-  const [weeklyReports, setWeeklyReports] = React.useState<boolean>(false);
-  const [achievements, setAchievements] = React.useState<boolean>(true);
+  const [workoutReminders, setWorkoutReminders] = useState<boolean>(true);
+  const [weeklyReports, setWeeklyReports] = useState<boolean>(false);
+  const [achievements, setAchievements] = useState<boolean>(true);
 
   // הגדרות התראות דינמיות
-  // Dynamic notification settings
-  const notificationSettings = React.useMemo(
-    () => [
+  const notificationSettings = useMemo(
+    (): NotificationSetting[] => [
       {
         id: "workoutReminders",
-        icon: "dumbbell" as const,
+        icon: "dumbbell",
         title: "תזכורות אימון",
         description: "קבל תזכורת כשהגיע הזמן להתאמן",
         value: workoutReminders,
@@ -85,7 +60,7 @@ export default function NotificationsScreen(): JSX.Element {
       },
       {
         id: "weeklyReports",
-        icon: "chart-line" as const,
+        icon: "chart-line",
         title: "דוחות שבועיים",
         description: "סיכום שבועי של ההתקדמות שלך",
         value: weeklyReports,
@@ -93,7 +68,7 @@ export default function NotificationsScreen(): JSX.Element {
       },
       {
         id: "achievements",
-        icon: "trophy" as const,
+        icon: "trophy",
         title: "הישגים",
         description: "התראות על הישגים חדשים ויעדים שהושגו",
         value: achievements,

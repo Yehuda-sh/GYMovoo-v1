@@ -11,20 +11,13 @@
 import {
   HISTORY_SCREEN_CONFIG,
   HISTORY_SCREEN_FORMATS,
+  HISTORY_SCREEN_ICONS,
 } from "../../../constants/historyScreenConfig";
-import { HISTORY_SCREEN_ICONS } from "../../../constants/historyScreenTexts";
 import { logger } from "../../../utils/logger";
 
 // ===============================================
 // 🔧 Type Definitions - הגדרות טיפוסים
 // ===============================================
-
-/** @description טיפוס לבדיקת תקינות ערך */
-type ValidationResult<T> = {
-  isValid: boolean;
-  value: T;
-  error?: string;
-};
 
 /** @description טיפוס לנתוני feedback גולמיים */
 interface RawWorkoutFeedback {
@@ -60,13 +53,13 @@ interface RawWorkoutRecord {
   };
 }
 
-/** @description טיפוס לתוצאת חישוב התקדמות */
-interface ProgressCalculation {
-  percentage: number;
-  loaded: number;
-  total: number;
-  isValid: boolean;
-}
+/** @description טיפוס לתוצאת חישוב התקדמות - שמור להשלמה עתידית */
+// interface ProgressCalculation {
+//   percentage: number;
+//   loaded: number;
+//   total: number;
+//   isValid: boolean;
+// }
 
 // Debug logging system - שימוש בלוגר מרכזי
 const dlog = (message: string, ...args: unknown[]) => {

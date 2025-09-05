@@ -455,11 +455,11 @@ export const WorkoutPlanManager: React.FC<WorkoutPlanManagerProps> = ({
         message={confirmationModal.message}
         onClose={hideConfirmationModal}
         onConfirm={confirmationModal.onConfirm}
-        onCancel={confirmationModal.onCancel}
-        confirmText={confirmationModal.confirmText}
-        cancelText={confirmationModal.cancelText}
-        variant={confirmationModal.variant}
-        singleButton={confirmationModal.singleButton}
+        onCancel={confirmationModal.onCancel || hideConfirmationModal}
+        confirmText={confirmationModal.confirmText || "אישור"}
+        cancelText={confirmationModal.cancelText || "ביטול"}
+        variant={confirmationModal.variant || "default"}
+        singleButton={confirmationModal.singleButton || false}
       />
     </Modal>
   );

@@ -152,6 +152,36 @@ export const HISTORY_SCREEN_TEXTS = {
     RECENT_WORKOUTS: "אימונים אחרונים",
   },
 
+  // כותרות נוספות
+  SCREEN_TITLE: "היסטוריית אימונים",
+  STATISTICS_TITLE: "📊 סטטיסטיקות",
+
+  // הודעות טעינה
+  LOADING_MAIN: "טוען היסטוריה...",
+  LOADING_MORE: "טוען עוד...",
+  LOADING_SUBTEXT: "מאחזר נתוני אימונים קודמים",
+
+  // מצב ריק
+  EMPTY_STATE_TITLE: "אין עדיין אימונים שמורים",
+  EMPTY_STATE_DESCRIPTION:
+    "לאחר סיום אימון, לחץ על 'שמור אימון ומשוב' כדי לראות את ההיסטוריה שלך כאן. האימונים הבאים שלך יופיעו כאן עם פרטים מלאים וסטטיסטיקות.",
+  EMPTY_ACTION_TEXT: "בואו נתחיל לאמן!",
+
+  // פרטי אימון
+  WORKOUT_DEFAULT_NAME: "אימון",
+
+  // משוב על אימון
+  FEEDBACK_DIFFICULTY_LABEL: "קושי:",
+  FEEDBACK_FEELING_LABEL: "הרגשה:",
+
+  // ניווט ועמוד נוסף
+  LOAD_MORE_HINT: "גלול למטה לראות עוד אימונים",
+
+  // תוויות סטטיסטיקה
+  STAT_TOTAL_WORKOUTS: 'סה"כ אימונים',
+  STAT_AVERAGE_DIFFICULTY: "קושי ממוצע",
+  STAT_MY_WORKOUTS: "האימונים שלי",
+
   // פעולות
   ACTIONS: {
     VIEW_DETAILS: "צפה בפרטים",
@@ -309,4 +339,31 @@ export const HISTORY_SCREEN_HELPERS = {
       (completed / total) * HISTORY_SCREEN_FORMATS.PERCENTAGE_MULTIPLIER
     );
   },
+} as const;
+
+export const HISTORY_SCREEN_ICONS = {
+  // אייקונים עיקריים
+  TROPHY: "trophy",
+  CLOCK: "clock",
+  DUMBBELL: "dumbbell",
+  CHECK_CIRCLE: "check-circle",
+  TIME_OUTLINE: "time-outline",
+
+  // אייקונים למצבים שונים
+  MALE_ICON: "gender-male",
+  FEMALE_ICON: "gender-female",
+  OTHER_ICON: "gender-transgender",
+} as const;
+
+export const HISTORY_SCREEN_ACCESSIBILITY = {
+  // מזהים לבדיקות
+  MAIN_LOADING_TEST_ID: "history-main-loading",
+  LOADING_MORE_TEST_ID: "history-loading-more",
+  EMPTY_STATE_TEST_ID: "history-empty-state",
+
+  // תוויות נגישות
+  LOADING_SPINNER_LABEL: "טוען נתוני היסטוריה",
+  STATISTICS_CARD_LABEL: "כרטיס סטטיסטיקות אימונים",
+  WORKOUT_CARD_LABEL: "כרטיס פרטי אימון",
+  PROGRESS_BAR_LABEL: "מחוון התקדמות טעינת נתונים",
 } as const;

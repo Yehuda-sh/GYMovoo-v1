@@ -5,13 +5,7 @@
  * @updated 2025-08-24 Premium UI enhancements with advanced design patterns
  */
 
-import React, {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,7 +16,6 @@ import {
   Platform,
   Vibration,
   AccessibilityInfo,
-  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../styles/theme";
@@ -73,6 +66,37 @@ const QUICK_INCREMENTS = {
 
 const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 const ELEVATOR_HIT_SLOP = { top: 5, bottom: 5, left: 5, right: 5 };
+
+// Common shadow styles to reduce duplication
+const COMMON_SHADOWS = {
+  light: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  medium: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  subtle: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 1,
+  },
+  minimal: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 0.5,
+  },
+} as const;
 
 // מאפיינים משותפים לשדות קלט לחיסכון בכפילויות
 const SHARED_TEXT_INPUT_PROPS = {
@@ -158,12 +182,6 @@ const SetRow: React.FC<SetRowProps> = ({
   const [weightFocused, setWeightFocused] = useState(false);
   const [repsFocused, setRepsFocused] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
-  const [lastValidWeight, setLastValidWeight] = useState<number | undefined>(
-    set.actualWeight
-  );
-  const [lastValidReps, setLastValidReps] = useState<number | undefined>(
-    set.actualReps
-  );
 
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,7 +328,6 @@ const SetRow: React.FC<SetRowProps> = ({
       const newWeight = Math.max(0, currentWeight + increment);
 
       if (validateInput(newWeight.toString(), "weight")) {
-        setLastValidWeight(newWeight);
         debouncedUpdate({ actualWeight: newWeight });
 
         // Micro animation for feedback
@@ -354,7 +371,6 @@ const SetRow: React.FC<SetRowProps> = ({
       const newReps = Math.max(0, currentReps + increment);
 
       if (validateInput(newReps.toString(), "reps")) {
-        setLastValidReps(newReps);
         debouncedUpdate({ actualReps: newReps });
 
         // Micro animation for feedback
@@ -404,15 +420,14 @@ const SetRow: React.FC<SetRowProps> = ({
     return Number.isNaN(n) ? undefined : n;
   };
 
-  // Enhanced input change handlers with validation
+  // Input change handlers with validation
   const handleWeightChange = useCallback(
     (value: string) => {
       if (validateInput(value, "weight")) {
         const parsed = parseNumeric(value, false);
         if (parsed !== undefined) {
-          setLastValidWeight(parsed);
+          debouncedUpdate({ actualWeight: parsed });
         }
-        debouncedUpdate({ actualWeight: parsed });
       }
       dlog("weightChange", { value, valid: validateInput(value, "weight") });
     },
@@ -424,9 +439,8 @@ const SetRow: React.FC<SetRowProps> = ({
       if (validateInput(value, "reps")) {
         const parsed = parseNumeric(value, true);
         if (parsed !== undefined) {
-          setLastValidReps(parsed);
+          debouncedUpdate({ actualReps: parsed });
         }
-        debouncedUpdate({ actualReps: parsed });
       }
       dlog("repsChange", { value, valid: validateInput(value, "reps") });
     },
@@ -1139,9 +1153,7 @@ const styles = StyleSheet.create({
   },
   trendIcon: {
     marginTop: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    ...COMMON_SHADOWS.light,
     shadowRadius: 1,
   },
   inputContainer: {
@@ -1194,11 +1206,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     lineHeight: 20,
     // Enhanced input styling with glass effect
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...COMMON_SHADOWS.light,
     // Subtle inner border effect
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.1)",
@@ -1219,11 +1227,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontWeight: "600",
     // Enhanced hint styling
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...COMMON_SHADOWS.light,
   },
   actionsContainer: {
     flexDirection: "row-reverse",
@@ -1249,10 +1253,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingHorizontal: 3,
     // Enhanced wrapper with subtle shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 1,
+    ...COMMON_SHADOWS.subtle,
   },
   actionButtonDanger: {
     backgroundColor: theme.colors.error + "12",
@@ -1351,11 +1352,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginVertical: 1,
     // Enhanced elevator buttons
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0.5 },
-    shadowOpacity: 0.03,
-    shadowRadius: 1,
-    elevation: 0.5,
+    ...COMMON_SHADOWS.minimal,
   },
   elevatorButtonUp: {
     borderBottomWidth: 1,

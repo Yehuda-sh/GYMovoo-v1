@@ -623,7 +623,9 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
     const answer =
       currentQuestion.type === "single" ? selectedOptions[0] : selectedOptions;
 
-    manager.answerQuestion(currentQuestion.id, answer);
+    if (answer) {
+      manager.answerQuestion(currentQuestion.id, answer);
+    }
 
     // 💾 שמירת טיוטה מיידית אחרי כל תשובה
     try {
@@ -839,7 +841,7 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
         // נעדכן נתוני אימון/העדפות בסיסיות לפי התשובות
         trainingstats: {
           selectedEquipment: finalEquipment,
-          fitnessGoals: goalToStringArray(questionnairePayload.goal),
+          fitnessGoals: goalToStringArray(questionnairePayload.goal) || [],
         },
         // שימור נתוני שאלון בפורמט תואם (metadata)
         questionnairedata: {
@@ -1611,19 +1613,23 @@ const UnifiedQuestionnaireScreen: React.FC = React.memo(() => {
       </LinearGradient>
 
       {/* ConfirmationModal */}
-      <ConfirmationModal
-        visible={confirmationModal.visible}
-        title={confirmationModal.title}
-        message={confirmationModal.message}
-        onConfirm={confirmationModal.onConfirm}
-        onCancel={confirmationModal.onCancel}
-        confirmText={confirmationModal.confirmText}
-        cancelText={confirmationModal.cancelText}
-        destructive={confirmationModal.destructive}
-        variant={confirmationModal.variant}
-        singleButton={confirmationModal.singleButton}
-        onClose={() => hideModal()}
-      />
+      {confirmationModal.onCancel &&
+        confirmationModal.confirmText &&
+        confirmationModal.cancelText && (
+          <ConfirmationModal
+            visible={confirmationModal.visible}
+            title={confirmationModal.title}
+            message={confirmationModal.message}
+            onConfirm={confirmationModal.onConfirm}
+            onCancel={confirmationModal.onCancel}
+            confirmText={confirmationModal.confirmText}
+            cancelText={confirmationModal.cancelText}
+            destructive={confirmationModal.destructive || false}
+            variant={confirmationModal.variant || "default"}
+            singleButton={confirmationModal.singleButton || false}
+            onClose={() => hideModal()}
+          />
+        )}
     </SafeAreaView>
   );
 });

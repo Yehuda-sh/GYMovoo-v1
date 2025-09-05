@@ -82,23 +82,6 @@ const WORKOUT_CONSTANTS = {
 } as const;
 
 /**
- * Workout interface with rating and feedback support
- * ממשק אימון עם תמיכה בדירוג ומשוב
- */
-interface WorkoutWithRating {
-  id: string;
-  date?: string;
-  completedAt?: string;
-  duration?: number;
-  rating?: number;
-  feedback?: {
-    difficulty?: number;
-    enjoyment?: number;
-    effectiveness?: number;
-  };
-}
-
-/**
  * Achievement definitions configuration
  * קונפיגורציית הגדרות הישגים
  */
@@ -562,6 +545,8 @@ const calculateStreak = (workouts: Workout[]): number => {
 
   // Check if user worked out today or yesterday (within streak gap)
   const mostRecentWorkout = sortedWorkouts[0];
+  if (!mostRecentWorkout) return 0; // Safety check
+
   const daysSinceLastWorkout = Math.floor(
     (today.getTime() - mostRecentWorkout.workoutDate.getTime()) /
       (1000 * 60 * 60 * 24)

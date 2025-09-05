@@ -62,6 +62,38 @@ import { CloseButton } from "../shared/CloseButton";
 
 const { height: screenHeight } = Dimensions.get("window");
 
+// --- Helper Functions ---
+const performHapticFeedback = (type: "medium" | "double") => {
+  if (Platform.OS === "ios") {
+    triggerVibration(type);
+  }
+};
+
+// --- Common Styles ---
+const commonShadows = {
+  light: {
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  strong: {
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+};
+
 // --- Types ---
 
 interface MenuItemProps {
@@ -287,26 +319,16 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
 
     // Delete confirmation with optimization
     const confirmDelete = useCallback(() => {
-      const title = isBatchMode ? "מחיקת תרגילים" : "מחיקת תרגיל";
-      const message = isBatchMode
-        ? `למחוק ${selectedExercises.length} תרגילים?`
-        : "למחוק את התרגיל?";
-
       // Provide haptic feedback on confirmation dialogs
-      if (Platform.OS === "ios") {
-        // Light haptic feedback for confirmation
-        triggerVibration("medium");
-      }
+      performHapticFeedback("medium");
 
       setShowDeleteModal(true);
-    }, [isBatchMode, selectedExercises.length, triggerVibration]);
+    }, []);
 
     // Modal handlers
     const handleDeleteConfirm = useCallback(() => {
       // Strong haptic feedback for destructive action
-      if (Platform.OS === "ios") {
-        triggerVibration("double");
-      }
+      performHapticFeedback("double");
 
       if (isBatchMode && onBatchDelete) {
         onBatchDelete();
@@ -315,7 +337,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       }
       onClose();
       setShowDeleteModal(false);
-    }, [isBatchMode, onBatchDelete, onDelete, onClose, triggerVibration]);
+    }, [isBatchMode, onBatchDelete, onDelete, onClose]);
 
     const handleDeleteCancel = useCallback(() => {
       setShowDeleteModal(false);
@@ -327,9 +349,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
           setIsProcessing(true);
 
           // Light haptic feedback for actions
-          if (Platform.OS === "ios") {
-            triggerVibration("medium");
-          }
+          performHapticFeedback("medium");
 
           // Execute action with small delay to show processing state
           processingTimeoutRef.current = setTimeout(() => {
@@ -342,7 +362,7 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
       [onClose, isProcessing]
     );
 
-    // Optimized handlers
+    // Optimized handlers - using handleAction wrapper
     const handleMoveUp = useCallback(
       () => handleAction(onMoveUp),
       [handleAction, onMoveUp]
@@ -651,11 +671,11 @@ const ExerciseMenu: React.FC<ExerciseMenuProps> = React.memo(
                             <MenuItem
                               key={key}
                               icon={icon}
-                              iconFamily={iconFamily}
+                              iconFamily={iconFamily || "ionicons"}
                               label={label}
                               onPress={action || (() => {})}
                               disabled={!!disabled || isProcessing}
-                              danger={danger}
+                              danger={!!danger}
                             />
                           )
                         )}
@@ -732,7 +752,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingBottom: 20,
     maxHeight: screenHeight * 0.75 - 80, // נגרע את מקום הכפתור
-    // שיפורי צללים מתקדמים
     shadowColor: theme.colors.shadow,
     shadowOffset: {
       width: 0,
@@ -753,7 +772,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 14,
     marginBottom: 12,
-    // שיפורי עיצוב
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -769,12 +787,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     marginTop: 8,
     borderRadius: 16,
-    // שיפורי עיצוב
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    ...commonShadows.light,
   },
   title: {
     fontSize: 20,
@@ -783,7 +796,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     writingDirection: "rtl",
     letterSpacing: 0.5,
-    // שיפורי טיפוגרפיה
     textShadowColor: `${theme.colors.primary}15`,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -815,12 +827,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    // שיפורי עיצוב מתקדמים
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...commonShadows.medium,
     borderWidth: 1,
     borderColor: `${theme.colors.cardBorder}40`,
   },
@@ -872,12 +879,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: `${theme.colors.primary}30`,
-    // שיפורי עיצוב מתקדמים
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    ...commonShadows.strong,
   },
   cancelButtonContainer: {
     position: "absolute",

@@ -66,7 +66,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
       []
     );
 
-    // ✨ רכיب בטעינה מאוחד - Unified loading component
+    // ✨ רכיב בטעינה מאוחד - Unified loading component
     const LoadingView = React.useMemo(
       () => (
         <View style={styles.container}>

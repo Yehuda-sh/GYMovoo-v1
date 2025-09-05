@@ -73,7 +73,6 @@ interface TouchableButtonProps {
   loading?: boolean; // מצב טעינה
   longPressDelay?: number; // השהיית לחיצה ארוכה
   onLongPress?: () => void; // פונקציית לחיצה ארוכה
-  _dismissKeyboardOnPress?: boolean; // סגירת מקלדת בלחיצה
 }
 
 /**
@@ -95,7 +94,6 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
     loading = false,
     longPressDelay = 500,
     onLongPress,
-    _dismissKeyboardOnPress = false,
   }) => {
     // 🎯 פונקציית haptic feedback מותאמת
     // Optimized haptic feedback function
@@ -144,6 +142,16 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
       : style;
     const minTouchTarget = TOUCHABLE_CONSTANTS.MIN_TOUCH_TARGET;
 
+    // Get width and height safely
+    const styleWidth =
+      buttonStyle && typeof buttonStyle === "object" && "width" in buttonStyle
+        ? (buttonStyle.width as number) || 0
+        : 0;
+    const styleHeight =
+      buttonStyle && typeof buttonStyle === "object" && "height" in buttonStyle
+        ? (buttonStyle.height as number) || 0
+        : 0;
+
     // Native feedback for Android, fallback for iOS
     if (Platform.OS === "android") {
       return (
@@ -165,9 +173,9 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
             style={[
               style,
               {
-                minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
-                minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
-                opacity: loading ? 0.6 : 1,
+                minWidth: Math.max(styleWidth, minTouchTarget),
+                minHeight: Math.max(styleHeight, minTouchTarget),
+                opacity: (loading ? 0.6 : 1) as number,
               },
             ]}
           >
@@ -186,9 +194,9 @@ const TouchableButton: React.FC<TouchableButtonProps> = React.memo(
         style={[
           style,
           {
-            minWidth: Math.max(buttonStyle?.width || 0, minTouchTarget),
-            minHeight: Math.max(buttonStyle?.height || 0, minTouchTarget),
-            opacity: loading ? 0.6 : 1,
+            minWidth: Math.max(styleWidth, minTouchTarget),
+            minHeight: Math.max(styleHeight, minTouchTarget),
+            opacity: (loading ? 0.6 : 1) as number,
           },
         ]}
         hitSlop={enhancedHitSlop}

@@ -365,7 +365,9 @@ class ExerciseCardCacheManager {
       // Remove oldest entries if cache is full
       if (this.cache.size >= this.maxCacheSize) {
         const oldestKey = Array.from(this.cache.keys())[0];
-        this.cache.delete(oldestKey);
+        if (oldestKey) {
+          this.cache.delete(oldestKey);
+        }
       }
 
       this.cache.set(key, {
@@ -594,7 +596,11 @@ class ExerciseCardAI {
       );
     }
 
-    if (popularExercises.length > 0 && popularExercises[0].percentage > 40) {
+    if (
+      popularExercises.length > 0 &&
+      popularExercises[0]?.percentage &&
+      popularExercises[0].percentage > 40
+    ) {
       recommendations.push(
         `Most used exercise: ${popularExercises[0].exerciseName} - consider adding quick access`
       );
@@ -606,7 +612,7 @@ class ExerciseCardAI {
       );
       if (lowCompletionExercises.length > 0) {
         recommendations.push(
-          `Low completion rates detected for: ${lowCompletionExercises[0].exerciseName} - consider providing guidance`
+          `Low completion rates detected for: ${lowCompletionExercises[0]?.exerciseName} - consider providing guidance`
         );
       }
     }
@@ -673,9 +679,9 @@ const PERFORMANCE_THRESHOLDS = {
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_EXERCISECARD === "1";
 const log = (message: string, data?: object) => {
   if (DEBUG) {
-    console.warn(
-      `🏋️ ExerciseCard: ${message}` +
-        (data ? ` -> ${JSON.stringify(data)}` : "")
+    logger.info(
+      `🏋️ ExerciseCard: ${message}`,
+      data ? `Data: ${JSON.stringify(data)}` : ""
     );
   }
 };
@@ -717,7 +723,10 @@ const usePerformanceMonitoring = () => {
 
       // Alert if performance degrades
       if (renderTime > PERFORMANCE_THRESHOLDS.SLOW_RENDER_TIME) {
-        console.warn(`ExerciseCard slow render: ${renderTime.toFixed(2)}ms`);
+        logger.warn(
+          "ExerciseCard: Slow render detected",
+          `Render time: ${renderTime.toFixed(2)}ms`
+        );
       }
     };
   });
@@ -775,7 +784,7 @@ class ExerciseCardErrorBoundary extends Component<
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false });
   };
 
   override render() {
@@ -888,7 +897,6 @@ interface ExerciseCardProps {
   onStartRest?: (duration: number) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  // onShowTips?: () => void; // מוסר - הפונקציה לא משמשת עוד
   onTitlePress?: () => void; // עבור מעבר לתרגיל יחיד
   isFirst?: boolean;
   isLast?: boolean;
@@ -915,17 +923,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     onDeleteSet,
     onCompleteSet,
     onRemoveExercise,
-    // onStartRest, // לא בשימוש כרגע
     onMoveUp: _onMoveUp,
     onMoveDown: _onMoveDown,
-    // onShowTips, // מוסר - הפונקציה לא משמשת עוד
     onTitlePress, // עבור מעבר לתרגיל יחיד
     isFirst: _isFirst = false,
     isLast: _isLast = false,
-    // isPaused = false, // לא בשימוש כרגע
     showHistory = false,
     showNotes = false,
-    // personalRecord, // לא בשימוש כרגע
     lastWorkout,
     onDuplicate,
     onReplace,
@@ -933,16 +937,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
   }) => {
     // Debug logging
     if (__DEV__) {
-      console.warn("🃏 ExerciseCard rendering:", {
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        setsCount: sets.length,
-        sets: sets.map((s) => ({
-          id: s.id,
-          completed: s.completed,
-          targetReps: s.targetReps,
-        })),
-      });
+      logger.info(
+        "ExerciseCard: Component rendering",
+        `Exercise: ${exercise.name}, Sets: ${sets.length}`
+      );
     }
 
     // מצבים מקומיים
@@ -1088,7 +1086,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
       [exercise.id, exercise.name]
     );
 
-    // Enhanced announcement function with throttling
+    // Announcement function with throttling
     const announceToScreenReader = useCallback(
       (message: string) => {
         if (!accessibilityInfo.screenReaderEnabled) return;
@@ -1238,7 +1236,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             )
           );
 
-          // Enhanced animation with reduced motion support
+          // Animation with reduced motion support
           if (!accessibilityInfo.reduceMotionEnabled) {
             Animated.timing(expandAnimation, {
               toValue,
@@ -1297,7 +1295,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
     }, []);
 
     // מחיקת סטים נבחרים עם confirmation משופר
-    // Delete selected sets with enhanced confirmation
+    // Delete selected sets with confirmation
     const deleteSelectedSets = useCallback(() => {
       withErrorHandling(() => {
         log("Delete selected sets", { count: selectedSets.size });
@@ -1359,7 +1357,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         const toValue = !isEditMode ? 1 : 0;
         performanceMonitor.recordAnimation();
 
-        // Enhanced haptic feedback
+        // Haptic feedback
         if (Platform.OS === "ios") {
           triggerVibration(!isEditMode ? "medium" : "short");
         }
@@ -1403,7 +1401,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           setIsExpanded(true);
         }
 
-        // Enhanced accessibility announcements
+        // Accessibility announcements
         const message = !isEditMode
           ? `נכנס למצב עריכה עבור תרגיל ${exercise.name}. השתמש בכפתורים למעלה ולמטה להזזת סטים`
           : `יוצא ממצב עריכה עבור תרגיל ${exercise.name}`;
@@ -1448,20 +1446,22 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           const currentSet = sets[setIndex];
           const previousSet = sets[setIndex - 1];
 
-          // עדכן את הסדר - כאן צריכה להיות לוגיקה של החלפת מיקומים
-          // בינתיים נוסיף רק לוג
-          log("Swapping sets", {
-            current: currentSet.id,
-            previous: previousSet.id,
-            fromIndex: setIndex,
-            toIndex: setIndex - 1,
-          });
+          if (currentSet && previousSet) {
+            // עדכן את הסדר - כאן צריכה להיות לוגיקה של החלפת מיקומים
+            // בינתיים נוסיף רק לוג
+            log("Swapping sets", {
+              current: currentSet.id,
+              previous: previousSet.id,
+              fromIndex: setIndex,
+              toIndex: setIndex - 1,
+            });
 
-          // Update set order in parent component if function is available
-          if (onReorderSets) {
-            onReorderSets(setIndex, setIndex - 1);
-          } else {
-            log("onReorderSets not provided - cannot move sets");
+            // Update set order in parent component if function is available
+            if (onReorderSets) {
+              onReorderSets(setIndex, setIndex - 1);
+            } else {
+              log("onReorderSets not provided - cannot move sets");
+            }
           }
         }
       },
@@ -1482,19 +1482,21 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           const currentSet = sets[setIndex];
           const nextSet = sets[setIndex + 1];
 
-          // עדכן את הסדר
-          log("Swapping sets", {
-            current: currentSet.id,
-            next: nextSet.id,
-            fromIndex: setIndex,
-            toIndex: setIndex + 1,
-          });
+          if (currentSet && nextSet) {
+            // עדכן את הסדר
+            log("Swapping sets", {
+              current: currentSet.id,
+              next: nextSet.id,
+              fromIndex: setIndex,
+              toIndex: setIndex + 1,
+            });
 
-          // Update set order in parent component if function is available
-          if (onReorderSets) {
-            onReorderSets(setIndex, setIndex + 1);
-          } else {
-            log("onReorderSets not provided - cannot move sets");
+            // Update set order in parent component if function is available
+            if (onReorderSets) {
+              onReorderSets(setIndex, setIndex + 1);
+            } else {
+              log("onReorderSets not provided - cannot move sets");
+            }
           }
         }
       },
@@ -1521,6 +1523,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             onAddSet();
 
             // Record analytics
+            const setData = sets[setIndex];
+
             const analytics: ExerciseAnalytics = {
               exerciseId: exercise.id,
               exerciseName: exercise.name,
@@ -1528,15 +1532,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
               timestamp: Date.now(),
               responseTime: Date.now() - interactionStartTime.current,
               interactionMethod: "touch",
-              setData: sets[setIndex]
-                ? {
-                    setId: sets[setIndex].id,
-                    weight: sets[setIndex].actualWeight,
-                    reps: sets[setIndex].actualReps,
-                    completed: sets[setIndex].completed,
-                  }
-                : undefined,
             };
+
+            if (setData) {
+              analytics.setData = {
+                setId: setData.id,
+                ...(setData.actualWeight && { weight: setData.actualWeight }),
+                ...(setData.actualReps && { reps: setData.actualReps }),
+                completed: setData.completed,
+              };
+            }
 
             aiAnalytics.recordExerciseAction(analytics);
             announceToScreenReader(`סט שוכפל עבור תרגיל ${exercise.name}`);
@@ -1554,22 +1559,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
         withErrorHandling,
       ]
     );
-
-    // טיפול בבחירת סט
-    // Handle set selection
-    // const handleSetSelect = useCallback((setId: string) => {
-    //   log("Set select", { setId });
-
-    //   setSelectedSets((prev: globalThis.Set<string>) => {
-    //     const newSet = new globalThis.Set(prev);
-    //     if (newSet.has(setId)) {
-    //       newSet.delete(setId);
-    //     } else {
-    //       newSet.add(setId);
-    //     }
-    //     return newSet;
-    //   });
-    // }, []);
 
     // Cleanup effect for performance and monitoring
     useEffect(() => {
@@ -1697,7 +1686,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
             totalReps={totalReps}
             onToggleExpanded={handleToggleExpanded}
             onToggleEditMode={toggleEditMode}
-            onTitlePress={onTitlePress}
+            {...(onTitlePress && { onTitlePress })}
             editModeAnimation={editModeAnimation}
           />
 
@@ -1705,8 +1694,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
           <EditToolbar
             isVisible={isEditMode}
             editModeAnimation={editModeAnimation}
-            onDuplicate={onDuplicate}
-            onReplace={onReplace}
+            {...(onDuplicate && { onDuplicate })}
+            {...(onReplace && { onReplace })}
             onRemoveExercise={onRemoveExercise}
             onExitEditMode={() => setIsEditMode(false)}
           />
@@ -1757,7 +1746,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                 sets={sets}
                 isEditMode={isEditMode}
                 onUpdateSet={onUpdateSet}
-                onDeleteSet={onDeleteSet}
+                {...(onDeleteSet && { onDeleteSet })}
                 onCompleteSet={onCompleteSet}
                 onSetLongPress={handleSetLongPress}
                 onMoveSetUp={handleMoveSetUp}
@@ -1806,7 +1795,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                         ]).start();
                       }
 
-                      // Enhanced haptic feedback
+                      // Haptic feedback
                       if (Platform.OS === "ios") {
                         triggerVibration("medium");
                       }
@@ -1817,7 +1806,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(
                       performanceMonitor.recordSetUpdate();
                       onAddSet();
 
-                      // Enhanced accessibility feedback
+                      // Accessibility feedback
                       announceToScreenReader(
                         `סט חדש נוסף לתרגיל ${exercise.name}`
                       );

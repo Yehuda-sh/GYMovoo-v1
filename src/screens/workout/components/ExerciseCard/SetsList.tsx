@@ -32,6 +32,19 @@ const TABLE_HEADERS = {
   actions: "פעולות",
 };
 
+// Header configuration with styles
+const HEADER_CONFIG = [
+  {
+    key: "setNumber",
+    label: TABLE_HEADERS.setNumber,
+    style: "setNumberHeader",
+  },
+  { key: "previous", label: TABLE_HEADERS.previous, style: "previousHeader" },
+  { key: "weight", label: TABLE_HEADERS.weight, style: "weightHeader" },
+  { key: "reps", label: TABLE_HEADERS.reps, style: "repsHeader" },
+  { key: "actions", label: TABLE_HEADERS.actions, style: "actionsHeader" },
+] as const;
+
 const SetsList: React.FC<SetsListProps> = React.memo(
   ({
     sets,
@@ -44,38 +57,15 @@ const SetsList: React.FC<SetsListProps> = React.memo(
     onMoveSetDown,
     onDuplicateSet,
   }) => {
-    // Debug logging
-    if (__DEV__) {
-      console.warn("📋 SetsList rendering:", {
-        setsCount: sets.length,
-        isEditMode,
-        sets: sets.map((s) => ({
-          id: s.id,
-          completed: s.completed,
-          targetReps: s.targetReps,
-        })),
-      });
-    }
-
     return (
       <View style={styles.setsList}>
         {/* Table headers */}
         <View style={styles.setsTableHeader}>
-          <View style={styles.setNumberHeader}>
-            <Text style={styles.headerText}>{TABLE_HEADERS.setNumber}</Text>
-          </View>
-          <View style={styles.previousHeader}>
-            <Text style={styles.headerText}>{TABLE_HEADERS.previous}</Text>
-          </View>
-          <View style={styles.weightHeader}>
-            <Text style={styles.headerText}>{TABLE_HEADERS.weight}</Text>
-          </View>
-          <View style={styles.repsHeader}>
-            <Text style={styles.headerText}>{TABLE_HEADERS.reps}</Text>
-          </View>
-          <View style={styles.actionsHeader}>
-            <Text style={styles.headerText}>{TABLE_HEADERS.actions}</Text>
-          </View>
+          {HEADER_CONFIG.map(({ key, label, style }) => (
+            <View key={key} style={styles[style]}>
+              <Text style={styles.headerText}>{label}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Sets rows */}
@@ -86,8 +76,7 @@ const SetsList: React.FC<SetsListProps> = React.memo(
             };
 
             const handleComplete = () => {
-              const currentSet = sets.find((s) => s.id === set.id);
-              const isCompleting = !currentSet?.completed;
+              const isCompleting = !set.completed;
               onCompleteSet(set.id, isCompleting);
             };
 
@@ -102,12 +91,10 @@ const SetsList: React.FC<SetsListProps> = React.memo(
                 onLongPress={() => onSetLongPress(set.id)}
                 isActive={index === 0 && !set.completed}
                 isEditMode={isEditMode}
-                onMoveUp={index > 0 ? () => onMoveSetUp(index) : undefined}
-                onMoveDown={
-                  index < sets.length - 1
-                    ? () => onMoveSetDown(index)
-                    : undefined
-                }
+                {...(index > 0 && { onMoveUp: () => onMoveSetUp(index) })}
+                {...(index < sets.length - 1 && {
+                  onMoveDown: () => onMoveSetDown(index),
+                })}
                 onDuplicate={() => onDuplicateSet(index)}
                 isFirst={index === 0}
                 isLast={index === sets.length - 1}
@@ -145,8 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    // Premium shadows for enhanced depth
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -186,7 +172,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     lineHeight: 18,
-    // Enhanced typography for premium feel
     textShadowColor: theme.colors.background,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
@@ -201,8 +186,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.border + "40",
     borderStyle: "dashed",
-    // Enhanced empty state design
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -217,7 +201,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     letterSpacing: 0.5,
-    // Enhanced empty text styling
     marginTop: 4,
   },
   emptySetsSubtext: {

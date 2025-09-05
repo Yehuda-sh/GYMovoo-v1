@@ -70,12 +70,41 @@ const CONSTANTS = {
   VIBRATION_TYPE: SHARED_VIBRATION_TYPES.SHORT,
   // 🎨 Animation timing constants
   TIMING: {
-    ANIMATION_DURATION: 300,
     HAPTIC_DELAY: 50,
   },
 } as const;
 
-// 🔧 INTERFACES - הגדרות טיפוסים מתקדמות לבטיחות סוג מוגברת ותיעוד מפורט
+// � HELPER COMPONENT - רכיב עזר להצגת סטטיסטיקות
+interface StatItemProps {
+  iconName: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  text: string;
+  accessibilityLabel: string;
+  accessibilityText: string;
+}
+
+const StatItem: React.FC<StatItemProps> = React.memo(
+  ({ iconName, color, text, accessibilityLabel, accessibilityText }) => (
+    <View
+      style={styles.stat}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ text: accessibilityText }}
+    >
+      <MaterialCommunityIcons
+        name={iconName}
+        size={CONSTANTS.ICON_SIZES.STATS}
+        color={color}
+      />
+      <Text style={[styles.statText, { color }]}>{text}</Text>
+    </View>
+  )
+);
+
+StatItem.displayName = "StatItem";
+
+// �🔧 INTERFACES - הגדרות טיפוסים מתקדמות לבטיחות סוג מוגברת ותיעוד מפורט
 interface ExerciseHeaderProps {
   /** נתוני התרגיל הבסיסיים */
   exercise: WorkoutExercise;
@@ -127,6 +156,12 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
 
     // 🛡️ SAFE DATA VALIDATION - וידוא בטיחות נתונים עם בדיקות מתקדמות
     const safeSets = useMemo(() => sets || [], [sets]);
+
+    // ✅ COMPLETION CHECK - בדיקת השלמת כל הסטים
+    const isFullyCompleted = useMemo(
+      () => completedSets === safeSets.length,
+      [completedSets, safeSets.length]
+    );
 
     // 🎨 MEMOIZED EQUIPMENT DATA - נתוני ציוד ממוטבים למניעת חישובים מיותרים
     const equipmentIconName = useMemo(
@@ -280,11 +315,7 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
 
     // 🎉 COMPLETION EFFECT - אפקט השלמת תרגיל עם הכרזות מתקדמות
     React.useEffect(() => {
-      if (
-        isCompleted &&
-        completedSets === safeSets.length &&
-        completedSets > 0
-      ) {
+      if (isCompleted && isFullyCompleted && completedSets > 0) {
         const completionMessage = `תרגיל ${exercise.name} הושלם בהצלחה! ${completedSets} סטים, ${totalReps} חזרות, ${totalVolume} ק״ג נפח`;
         announceSuccess(completionMessage);
 
@@ -305,6 +336,7 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
       }
     }, [
       isCompleted,
+      isFullyCompleted,
       completedSets,
       safeSets.length,
       exercise.name,
@@ -418,7 +450,6 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
               </Text>
 
               {/* 📊 STATS ROW - שורת סטטיסטיקות */}
-              {/* 📊 STATS ROW - שורת סטטיסטיקות */}
               <View style={styles.statsRow}>
                 {/* ✅ SETS COMPLETION STAT */}
                 <View
@@ -434,7 +465,7 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
                     name="checkbox-marked-circle-outline"
                     size={CONSTANTS.ICON_SIZES.STATS}
                     color={
-                      completedSets === safeSets.length
+                      isFullyCompleted
                         ? theme.colors.success
                         : theme.colors.primary
                     }
@@ -442,7 +473,7 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
                   <Text
                     style={[
                       styles.statText,
-                      completedSets === safeSets.length && {
+                      isFullyCompleted && {
                         color: theme.colors.success,
                       },
                     ]}
@@ -453,50 +484,24 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
 
                 {/* 🏋️ VOLUME STAT */}
                 {totalVolume > 0 && (
-                  <View
-                    style={styles.stat}
-                    accessible={true}
-                    accessibilityRole="text"
+                  <StatItem
+                    iconName="weight-kilogram"
+                    color={theme.colors.warning}
+                    text={`${totalVolume} ק״ג`}
                     accessibilityLabel={CONSTANTS.ACCESSIBILITY.STATS_VOLUME}
-                    accessibilityValue={{
-                      text: `נפח כולל ${totalVolume} קילוגרם`,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="weight-kilogram"
-                      size={CONSTANTS.ICON_SIZES.STATS}
-                      color={theme.colors.warning}
-                    />
-                    <Text
-                      style={[styles.statText, { color: theme.colors.warning }]}
-                    >
-                      {totalVolume} ק״ג
-                    </Text>
-                  </View>
+                    accessibilityText={`נפח כולל ${totalVolume} קילוגרם`}
+                  />
                 )}
 
                 {/* 🔄 REPS STAT */}
                 {totalReps > 0 && (
-                  <View
-                    style={styles.stat}
-                    accessible={true}
-                    accessibilityRole="text"
+                  <StatItem
+                    iconName="repeat"
+                    color={theme.colors.success}
+                    text={`${totalReps} חזרות`}
                     accessibilityLabel={CONSTANTS.ACCESSIBILITY.STATS_REPS}
-                    accessibilityValue={{
-                      text: `סך הכל ${totalReps} חזרות`,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="repeat"
-                      size={CONSTANTS.ICON_SIZES.STATS}
-                      color={theme.colors.success}
-                    />
-                    <Text
-                      style={[styles.statText, { color: theme.colors.success }]}
-                    >
-                      {totalReps} חזרות
-                    </Text>
-                  </View>
+                    accessibilityText={`סך הכל ${totalReps} חזרות`}
+                  />
                 )}
               </View>
             </View>
@@ -529,7 +534,9 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = React.memo(
                       {
                         rotate: editModeAnimation.interpolate({
                           inputRange: CONSTANTS.ANIMATION.INPUT_RANGE,
-                          outputRange: ["0deg", "90deg"], // Fix TypeScript error by using direct array
+                          outputRange: [
+                            ...CONSTANTS.ANIMATION.OUTPUT_RANGE_ROTATE,
+                          ],
                         }),
                       },
                     ],
