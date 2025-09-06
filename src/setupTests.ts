@@ -1,10 +1,13 @@
 /**
  * @file src/setupTests.ts
- * @description הגדרות בסיס לבדיקות Jest
+ * @description הגדרות בסיס לבדיקות Jest - מאופטם וקומפקטי
  */
-import React from "react";
 
 import "react-native-gesture-handler/jestSetup";
+
+// ===============================================
+// 🎭 UI Component Mocks
+// ===============================================
 
 // Mock react-native-safe-area-context
 jest.mock("react-native-safe-area-context", () => ({
@@ -26,37 +29,51 @@ jest.mock("@expo/vector-icons", () => ({
   FontAwesome5: "FontAwesome5",
 }));
 
-// Mock Animated from react-native
-jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
+// ===============================================
+// 🎬 Animation & Performance Mocks
+// ===============================================
 
-// Mock react-native-reanimated (נדרש כדי למנוע אזהרות/שגיאות ב-Jest)
+// Mock react-native-reanimated
 jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock")
 );
 
-// Mock AsyncStorage for Jest environment
-jest.mock("@react-native-async-storage/async-storage", () => {
-  let store: Record<string, string> = {};
-  return {
-    setItem: jest.fn(async (key: string, value: string) => {
-      store[key] = value;
-    }),
-    getItem: jest.fn(async (key: string) => store[key] ?? null),
-    removeItem: jest.fn(async (key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(async () => {
-      store = {};
-    }),
-    getAllKeys: jest.fn(async () => Object.keys(store)),
-    multiRemove: jest.fn(async (keys: string[]) => {
-      for (const k of keys) delete store[k];
-    }),
-  };
-});
-
-// Mock NativeEventEmitter למניעת אזהרות
+// Mock NativeEventEmitter
 jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter");
+
+// ===============================================
+// 📱 Expo & React Native API Mocks
+// ===============================================
+
+// Mock expo-status-bar
+jest.mock("expo-status-bar", () => ({
+  StatusBar: "StatusBar",
+}));
+
+// Mock react-native-toast-message
+jest.mock("react-native-toast-message", () => ({
+  show: jest.fn(),
+  hide: jest.fn(),
+  default: "Toast",
+}));
+
+// ===============================================
+// 💾 Storage Mock - פשוט ויעיל
+// ===============================================
+
+// Mock AsyncStorage - פשוט ומהיר לבדיקות
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+// ===============================================
+// 🧹 Cleanup
+// ===============================================
 
 // ניקוי אוטומטי בין בדיקות
 afterEach(() => {

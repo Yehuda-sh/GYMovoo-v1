@@ -1,76 +1,281 @@
 /**
- * RTL Helper Utilities for Hebrew interface
+ * @file src/utils/rtlHelpers.ts
+ * @description עזרי RTL מאופטמים לממשק עברי - RTL Helper Utilities
  */
 
 import { I18nManager, TextStyle, ViewStyle } from "react-native";
 
-// Initialize RTL for the app
-export const initializeRTL = (): boolean => {
-  I18nManager.allowRTL(true);
-  I18nManager.forceRTL(true);
-  return I18nManager.isRTL;
+// ===============================================
+// 🌐 RTL Configuration - הגדרות RTL
+// ===============================================
+
+/**
+ * תצורת RTL עם אפשרויות
+ */
+interface RTLConfig {
+  allowRTL: boolean;
+  forceRTL: boolean;
+  autoDetect: boolean;
+}
+
+const DEFAULT_RTL_CONFIG: RTLConfig = {
+  allowRTL: true,
+  forceRTL: true, // כיוון שזה אפליקציה עברית
+  autoDetect: false,
 };
 
-// Central RTL state - only definition in project
-export const isRTL = I18nManager.isRTL;
+/**
+ * Unicode ranges לזיהוי טקסט עברי מדויק
+ */
+const HEBREW_UNICODE_RANGES = [
+  [0x0590, 0x05ff], // Hebrew
+  [0xfb1d, 0xfb4f], // Hebrew Presentation Forms
+] as const;
 
-// Get flex direction based on RTL
+// ===============================================
+// 🚀 RTL Initialization - אתחול RTL
+// ===============================================
+
+/**
+ * אתחול RTL עם תצורה מותאמת
+ */
+export const initializeRTL = (config: Partial<RTLConfig> = {}): boolean => {
+  const finalConfig = { ...DEFAULT_RTL_CONFIG, ...config };
+
+  try {
+    I18nManager.allowRTL(finalConfig.allowRTL);
+
+    if (finalConfig.forceRTL) {
+      I18nManager.forceRTL(true);
+    }
+
+    return I18nManager.isRTL;
+  } catch (error) {
+    console.warn("RTL initialization failed:", error);
+    return false;
+  }
+};
+
+// Cache RTL state for performance
+let _cachedIsRTL: boolean | null = null;
+
+/**
+ * מצב RTL מרכזי עם caching לביצועים
+ */
+export const isRTL = (() => {
+  if (_cachedIsRTL === null) {
+    _cachedIsRTL = I18nManager.isRTL;
+  }
+  return _cachedIsRTL;
+})();
+
+/**
+ * רענון cache של RTL state
+ */
+export const refreshRTLState = (): boolean => {
+  _cachedIsRTL = I18nManager.isRTL;
+  return _cachedIsRTL;
+};
+
+// ===============================================
+// 🧭 Direction & Alignment - כיוון ויישור
+// ===============================================
+
+/**
+ * קבלת כיוון flex בהתבסס על RTL
+ */
 export const getFlexDirection = (reverse = false): "row" | "row-reverse" => {
   if (reverse) return isRTL ? "row" : "row-reverse";
   return isRTL ? "row-reverse" : "row";
 };
 
-// Get text alignment
-export const getTextAlign = (center = false): "left" | "right" | "center" => {
-  if (center) return "center";
-  return isRTL ? "right" : "left";
+/**
+ * קבלת יישור טקסט
+ */
+export const getTextAlign = (
+  alignment: "start" | "end" | "center" | "justify" = "start"
+): "left" | "right" | "center" | "justify" => {
+  switch (alignment) {
+    case "center":
+    case "justify":
+      return alignment;
+    case "start":
+      return isRTL ? "right" : "left";
+    case "end":
+      return isRTL ? "left" : "right";
+    default:
+      return isRTL ? "right" : "left";
+  }
 };
 
-// Get arrow icon name for navigation
-export const getArrowIcon = (forward = true): string => {
-  if (forward) return isRTL ? "chevron-left" : "chevron-right";
+/**
+ * קבלת כיוון writing direction
+ */
+export const getWritingDirection = (): "ltr" | "rtl" => {
+  return isRTL ? "rtl" : "ltr";
+};
+
+/**
+ * קבלת שם אייקון חץ לניווט
+ */
+export const getArrowIcon = (
+  direction: "forward" | "back" = "forward"
+): string => {
+  if (direction === "forward") {
+    return isRTL ? "chevron-left" : "chevron-right";
+  }
   return isRTL ? "chevron-right" : "chevron-left";
 };
 
-// Check if text contains Hebrew characters
+// ===============================================
+// 🔍 Text Detection - זיהוי טקסט
+// ===============================================
+
+/**
+ * בדיקה מתקדמת אם טקסט מכיל תווים עבריים
+ */
 export const containsHebrew = (text: string): boolean => {
-  return /[\u0590-\u05FF]/.test(text);
+  if (!text || typeof text !== "string") return false;
+
+  return HEBREW_UNICODE_RANGES.some(([start, end]) => {
+    for (let i = 0; i < text.length; i++) {
+      const charCode = text.charCodeAt(i);
+      if (charCode >= start && charCode <= end) {
+        return true;
+      }
+    }
+    return false;
+  });
 };
 
-// Basic RTL text style
-export const getRTLTextStyle = (): TextStyle => ({
-  textAlign: isRTL ? "right" : "left",
-  writingDirection: isRTL ? "rtl" : "ltr",
-});
+/**
+ * זיהוי אוטומטי של כיוון טקסט
+ */
+export const detectTextDirection = (text: string): "ltr" | "rtl" => {
+  return containsHebrew(text) ? "rtl" : "ltr";
+};
 
-// Basic RTL container style
-export const getRTLContainerStyle = (): ViewStyle => ({
-  flexDirection: getFlexDirection(),
-});
+// ===============================================
+// 🎨 Style Helpers - עזרי עיצוב
+// ===============================================
 
-// Convert layout properties to RTL-aware equivalents
+/**
+ * סגנון טקסט RTL מתקדם
+ */
+export const getRTLTextStyle = (
+  options: {
+    alignment?: "start" | "end" | "center" | "justify";
+    direction?: "auto" | "ltr" | "rtl";
+  } = {}
+): TextStyle => {
+  const { alignment = "start", direction = "auto" } = options;
+
+  return {
+    textAlign: getTextAlign(alignment),
+    writingDirection: direction === "auto" ? getWritingDirection() : direction,
+  };
+};
+
+/**
+ * סגנון container RTL מתקדם
+ */
+export const getRTLContainerStyle = (
+  options: {
+    reverse?: boolean;
+    justifyContent?: ViewStyle["justifyContent"];
+    alignItems?: ViewStyle["alignItems"];
+  } = {}
+): ViewStyle => {
+  const { reverse = false, justifyContent, alignItems } = options;
+
+  return {
+    flexDirection: getFlexDirection(reverse),
+    ...(justifyContent && { justifyContent }),
+    ...(alignItems && { alignItems }),
+  };
+};
+
+// ===============================================
+// 🔄 Style Conversion - המרת סגנונות
+// ===============================================
+
+/**
+ * המרה מתקדמת של properties ל-RTL
+ */
 export const convertToRTL = (style: ViewStyle): ViewStyle => {
   if (!isRTL) return style;
-  
+
   const rtlStyle = { ...style };
-  
-  // Handle margin/padding
+
+  // Handle margin properties
   if (style.marginLeft !== undefined || style.marginRight !== undefined) {
-    rtlStyle.marginStart = style.marginRight;
-    rtlStyle.marginEnd = style.marginLeft;
-    delete rtlStyle.marginLeft;
-    delete rtlStyle.marginRight;
+    if (style.marginLeft !== undefined) {
+      rtlStyle.marginEnd = style.marginLeft;
+      delete rtlStyle.marginLeft;
+    }
+    if (style.marginRight !== undefined) {
+      rtlStyle.marginStart = style.marginRight;
+      delete rtlStyle.marginRight;
+    }
   }
-  
+
+  // Handle padding properties
   if (style.paddingLeft !== undefined || style.paddingRight !== undefined) {
-    rtlStyle.paddingStart = style.paddingRight;
-    rtlStyle.paddingEnd = style.paddingLeft;
-    delete rtlStyle.paddingLeft;
-    delete rtlStyle.paddingRight;
+    if (style.paddingLeft !== undefined) {
+      rtlStyle.paddingEnd = style.paddingLeft;
+      delete rtlStyle.paddingLeft;
+    }
+    if (style.paddingRight !== undefined) {
+      rtlStyle.paddingStart = style.paddingRight;
+      delete rtlStyle.paddingRight;
+    }
   }
-  
+
+  // Handle border properties
+  if (
+    style.borderLeftWidth !== undefined ||
+    style.borderRightWidth !== undefined
+  ) {
+    if (style.borderLeftWidth !== undefined) {
+      rtlStyle.borderEndWidth = style.borderLeftWidth;
+      delete rtlStyle.borderLeftWidth;
+    }
+    if (style.borderRightWidth !== undefined) {
+      rtlStyle.borderStartWidth = style.borderRightWidth;
+      delete rtlStyle.borderRightWidth;
+    }
+  }
+
+  // Handle position properties
+  if (style.left !== undefined || style.right !== undefined) {
+    if (style.left !== undefined) {
+      rtlStyle.end = style.left;
+      delete rtlStyle.left;
+    }
+    if (style.right !== undefined) {
+      rtlStyle.start = style.right;
+      delete rtlStyle.right;
+    }
+  }
+
   return rtlStyle;
 };
 
-// Auto-initialize RTL
+/**
+ * החלפת ערכי left/right לRTL
+ */
+export const swapHorizontalValues = <T>(
+  leftValue: T,
+  rightValue: T
+): { left: T; right: T } => {
+  return isRTL
+    ? { left: rightValue, right: leftValue }
+    : { left: leftValue, right: rightValue };
+};
+
+// ===============================================
+// 🚀 Auto-Initialization - אתחול אוטומטי
+// ===============================================
+
+// אתחול אוטומטי של RTL
 initializeRTL();

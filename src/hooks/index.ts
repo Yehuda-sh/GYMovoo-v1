@@ -4,6 +4,7 @@
  * @description מרכז ייצוא מתקדם לכל ה-hooks באפליקציית הכושר GYMovoo
  *
  * Features:
+ * - App initialization and lifecycle management
  * - Workout management hooks with AI-powered recommendations
  * - User preferences with smart algorithms and optimized performance
  * - Performance optimization utilities
@@ -14,6 +15,11 @@
  * - Memoized calculations for better performance
  * - Smart dependency tracking
  */
+
+// ================================
+// 🚀 APP LIFECYCLE HOOKS
+// ================================
+export { useAppInitialization } from "./useAppInitialization";
 
 // ================================
 // 🏋️ WORKOUT MANAGEMENT HOOKS

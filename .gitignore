@@ -1,24 +1,54 @@
 # ===============================================
-# 📱 GYMovoo React Native & Expo .gitignore
+# 📱 GYMovoo - React Native & Expo .gitignore
 # ===============================================
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# ===============================================
-# 📦 Dependencies - תלויות
-# ===============================================
+# Dependencies
 node_modules/
 
-# ===============================================
-# 📱 Expo Framework - מסגרת Expo
-# ===============================================
+# Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# ===============================================
-# 🤖 Native Platform Files - קבצי פלטפורמה נטיביים
-# ===============================================
+# Build outputs
+build/
+out/
+test-build/
+
+# Environment variables
+.env*
+!.env.example
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+junit.xml
+
+# Cache & temp files
+.cache/
+.tmp/
+.temp/
+*.tmp
+*.temp
+.metro-health-check*
+# Android specific
+android/app/build/
+android/app/release/
+android/.gradle/
+android/local.properties
+android/keystore.properties
+
+# Native files
 .kotlin/
 *.orig.*
 *.jks
@@ -27,98 +57,21 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# ===============================================
-# 🚇 Metro Bundler - מבנה Metro
-# ===============================================
-.metro-health-check*
-
-# ===============================================
-# 🐛 Debug & Logs - דיבוג ולוגים
-# ===============================================
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-*.log
-
-# ===============================================
-# 🍎 macOS System Files - קבצי מערכת macOS
-# ===============================================
+# System files
 .DS_Store
 *.pem
 
-# ===============================================
-# 🔒 Environment & Secrets - סביבה וסודות
-# ===============================================
-.env*.local
-.env
-.env.development
-.env.production
-.env.staging
-
-# ===============================================
-# 🔧 TypeScript Build Files - קבצי בנייה TypeScript
-# ===============================================
-*.tsbuildinfo
-
-# ===============================================
-# 📊 Testing & Coverage - בדיקות וכיסוי
-# ===============================================
-coverage/
-.nyc_output/
-junit.xml
-
-# ===============================================
-# 🏗️ Build Output - פלט בנייה
-# ===============================================
-build/
-out/
-
-# ===============================================
-# 💻 IDE & Editor Files - קבצי עורכים
-# ===============================================
+# IDE & Editors
 .vscode/settings.json
-.vscode/launch.json
+.vscode/launch.json  
 .idea/
 *.swp
 *.swo
 
-# ===============================================
-# 📱 Platform Specific - ספציפי לפלטפורמה
-# ===============================================
+# ESLint production config (generated)
+.eslintrc.production.mjs
 
-# Android
-android/app/build/
-android/app/release/
-android/gradle/
-android/.gradle/
-android/local.properties
-android/keystore.properties
-
-# iOS
-ios/build/
-ios/Pods/
-ios/*.xcworkspace/xcuserdata/
-ios/*.xcodeproj/xcuserdata/
-ios/Podfile.lock
-
-# ===============================================
-# 🔧 Tools & Cache - כלים ומטמון
-# ===============================================
-.cache/
-.tmp/
-.temp/
-*.tmp
-*.temp
-
-# ===============================================
-# 📋 Project Specific - ספציפי לפרויקט
-# ===============================================
-# Backup files created during development
+# Project specific
 *.backup.*
 *.old.*
-
-# Local configuration override files
 config.local.*
-
-# Generated documentation (if any)
-docs/generated/

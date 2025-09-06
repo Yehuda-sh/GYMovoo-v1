@@ -35,16 +35,10 @@
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@screens/*": ["src/screens/*"],
-      "@services/*": ["src/services/*"],
       "@stores/*": ["src/stores/*"],
-      "@types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],
-      "@styles/*": ["src/styles/*"],
       "@constants/*": ["src/constants/*"],
-      "@navigation/*": ["src/navigation/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@data/*": ["src/data/*"],
-      "@assets/*": ["assets/*"]
+      "@hooks/*": ["src/hooks/*"]
     }
   },
   "include": [
@@ -56,14 +50,10 @@
   ],
   "exclude": [
     "node_modules",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
+    "**/*.test.*",
+    "**/*.spec.*",
     "__tests__/**/*",
     "android/**/*",
-    "ios/**/*",
-    "web-build/**/*",
     ".expo/**/*",
     "dist/**/*",
     "build/**/*"

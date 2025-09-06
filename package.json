@@ -8,7 +8,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --watchAll=false",
     "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "type-check": "npx tsc --noEmit"
   },
   "dependencies": {
@@ -48,8 +51,8 @@
     "@testing-library/react-native": "^13.2.2",
     "@types/jest": "^30.0.0",
     "@types/react": "~18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "babel-jest": "^30.0.5",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^9.1.2",
@@ -64,7 +67,7 @@
     "jest-expo": "~52.0.6",
     "prettier": "^3.3.2",
     "ts-jest": "^29.4.1",
-    "typescript": "^5.3.0"
+    "typescript": "^5.8.3"
   },
   "keywords": [
     "fitness",

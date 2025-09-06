@@ -1,6 +1,6 @@
 /**
  * @file src/utils/workoutStatsCalculator.ts
- * @description יוטיליטי לחישוב סטטיסטיקות אימון
+ * @description יוטיליטי מאופטם לחישוב סטטיסטיקות אימון
  */
 
 import type {
@@ -16,31 +16,48 @@ export interface WorkoutStats {
   totalVolume: number;
   totalReps: number;
   progressPercentage: number;
-  personalRecords?: number;
+  personalRecords: number;
   averageVolumePerSet: number;
   averageRepsPerSet: number;
-  timeToComplete?: number;
+  timeToComplete: number;
 }
 
-// Helper functions
-const round2 = (n: number) => Math.round(n * 100) / 100;
-const clampNonNegative = (n: number) => (n < 0 || !Number.isFinite(n) ? 0 : n);
-const toNumberSafe = (v: unknown): number => {
-  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
-  if (typeof v === "string") {
-    const s = v.trim();
-    const range = s.split("-").map((x) => parseFloat(x));
-    if (range.length === 2 && range.every((x) => Number.isFinite(x))) {
-      return (range[0] + range[1]) / 2;
+// ===============================================
+// 🧮 Helper Functions - מאופטמות
+// ===============================================
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+const clamp = (n: number): number => (n < 0 || !Number.isFinite(n) ? 0 : n);
+
+/**
+ * המרה בטוחה למספר עם תמיכה בטווחים
+ */
+const toNumberSafe = (value: unknown): number => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    // תמיכה בטווח כמו "8-12"
+    if (trimmed.includes("-")) {
+      const parts = trimmed.split("-");
+      if (parts.length === 2) {
+        const min = Number(parts[0]);
+        const max = Number(parts[1]);
+        if (Number.isFinite(min) && Number.isFinite(max)) {
+          return (min + max) / 2;
+        }
+      }
     }
-    const num = parseFloat(s);
-    return Number.isFinite(num) ? num : 0;
+    const parsed = parseFloat(trimmed);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
 };
 
-function processExerciseSets(sets: Set[]) {
-  if (!sets || sets.length === 0) {
+/**
+ * חישוב סטטיסטיקות לסט אימונים בודד
+ */
+function calculateExerciseStats(sets: Set[]) {
+  if (!sets?.length) {
     return {
       completedSets: 0,
       totalVolume: 0,
@@ -50,52 +67,43 @@ function processExerciseSets(sets: Set[]) {
     };
   }
 
-  let completedSets = 0;
-  let totalVolume = 0;
-  let totalReps = 0;
-  let personalRecords = 0;
-  let timeToComplete = 0;
+  return sets.reduce(
+    (stats, set) => {
+      if (!set.completed) return stats;
 
-  sets.forEach((set: Set) => {
-    if (set.completed) {
-      completedSets++;
-
-      const reps = clampNonNegative(
-        toNumberSafe(set.actualReps ?? set.targetReps ?? 0)
-      );
-      const weight = clampNonNegative(
+      const reps = clamp(toNumberSafe(set.actualReps ?? set.targetReps ?? 0));
+      const weight = clamp(
         toNumberSafe(set.actualWeight ?? set.targetWeight ?? 0)
       );
+      const time = set.timeToComplete
+        ? clamp(toNumberSafe(set.timeToComplete))
+        : 0;
 
-      totalReps += reps;
-      totalVolume += reps * weight;
-      if (set.timeToComplete) {
-        const t = toNumberSafe(set.timeToComplete);
-        if (t > 0) timeToComplete += t;
-      }
-
-      if (set.isPR) {
-        personalRecords++;
-      }
+      return {
+        completedSets: stats.completedSets + 1,
+        totalVolume: stats.totalVolume + reps * weight,
+        totalReps: stats.totalReps + reps,
+        personalRecords: stats.personalRecords + (set.isPR ? 1 : 0),
+        timeToComplete: stats.timeToComplete + time,
+      };
+    },
+    {
+      completedSets: 0,
+      totalVolume: 0,
+      totalReps: 0,
+      personalRecords: 0,
+      timeToComplete: 0,
     }
-  });
-
-  return {
-    completedSets,
-    totalVolume,
-    totalReps,
-    personalRecords,
-    timeToComplete,
-  };
+  );
 }
 
 /**
- * חישוב סטטיסטיקות אימון מקיפות
+ * חישוב סטטיסטיקות אימון מקיפות - מאופטם
  */
 export function calculateWorkoutStats(
   exercises: WorkoutExercise[]
 ): WorkoutStats {
-  if (!exercises || exercises.length === 0) {
+  if (!exercises?.length) {
     return {
       totalExercises: 0,
       completedExercises: 0,
@@ -112,46 +120,49 @@ export function calculateWorkoutStats(
   }
 
   const totalExercises = exercises.length;
-  let completedExercises = 0;
   let totalSets = 0;
-  let completedSets = 0;
-  let totalVolume = 0;
-  let totalReps = 0;
-  let personalRecords = 0;
-  let totalTimeToComplete = 0;
 
-  exercises.forEach((exercise) => {
-    if (!exercise.sets || exercise.sets.length === 0) return;
+  // שימוש ב-reduce לביצועים טובים יותר
+  const aggregatedStats = exercises.reduce(
+    (acc, exercise) => {
+      if (!exercise.sets?.length) return acc;
 
-    totalSets += exercise.sets.length;
-    const exerciseStats = processExerciseSets(exercise.sets);
-    completedSets += exerciseStats.completedSets;
-    totalVolume += exerciseStats.totalVolume;
-    totalReps += exerciseStats.totalReps;
-    personalRecords += exerciseStats.personalRecords;
-    totalTimeToComplete += exerciseStats.timeToComplete;
+      totalSets += exercise.sets.length;
+      const exerciseStats = calculateExerciseStats(exercise.sets);
 
-    if (exerciseStats.completedSets > 0) {
-      completedExercises++;
+      return {
+        completedExercises:
+          acc.completedExercises + (exerciseStats.completedSets > 0 ? 1 : 0),
+        completedSets: acc.completedSets + exerciseStats.completedSets,
+        totalVolume: acc.totalVolume + exerciseStats.totalVolume,
+        totalReps: acc.totalReps + exerciseStats.totalReps,
+        personalRecords: acc.personalRecords + exerciseStats.personalRecords,
+        timeToComplete: acc.timeToComplete + exerciseStats.timeToComplete,
+      };
+    },
+    {
+      completedExercises: 0,
+      completedSets: 0,
+      totalVolume: 0,
+      totalReps: 0,
+      personalRecords: 0,
+      timeToComplete: 0,
     }
-  });
+  );
 
+  const { completedSets, totalVolume, totalReps } = aggregatedStats;
   const progressPercentage =
     totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
   return {
     totalExercises,
-    completedExercises,
     totalSets,
-    completedSets,
-    totalVolume: round2(totalVolume),
-    totalReps,
     progressPercentage,
-    personalRecords,
+    ...aggregatedStats,
+    totalVolume: round2(totalVolume),
     averageVolumePerSet:
       completedSets > 0 ? round2(totalVolume / completedSets) : 0,
     averageRepsPerSet:
       completedSets > 0 ? round2(totalReps / completedSets) : 0,
-    timeToComplete: totalTimeToComplete,
   };
 }

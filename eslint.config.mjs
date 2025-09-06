@@ -10,7 +10,6 @@ import globals from "globals";
 
 export default [
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
     ignores: [
       "node_modules/**",
       "dist/**",
@@ -24,22 +23,28 @@ export default [
       "**/*.spec.{js,jsx,ts,tsx}",
       "__mocks__/**",
       "jest.config.js",
+      "babel.config.js",
+      "metro.config.js",
+      "src/setupTests.ts",
     ],
+  },
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: "latest",
         sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
-        project: "./tsconfig.json",
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.browser,
         ...globals.node,
         ...globals.es2022,
-        ...globals.jest,
         __DEV__: "readonly",
         fetch: "readonly",
         FormData: "readonly",
@@ -74,6 +79,7 @@ export default [
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "react/display-name": "off",
+      "react/no-unescaped-entities": "off", // מותר להשתמש בגרשיים בטקסט עברי
 
       // React Native rules
       "react-native/no-unused-styles": "warn",
@@ -82,12 +88,12 @@ export default [
       "react-native/no-color-literals": "off",
 
       // Import rules
-      "import/order": "off", // נכבה את בדיקת סידור ה-imports
+      "import/order": "off",
 
-      // General rules
-      "no-console": "warn",
+      // General rules - משותפים יותר למגמות מודרניות
+      "no-console": "off", // מותר לפיתוח, נוסיף rule נפרד לפרודקשן
       "no-debugger": "error",
-      "no-unused-vars": "off", // Use TypeScript version instead
+      "no-unused-vars": "off",
       "prefer-const": "error",
       "no-var": "error",
     },
@@ -96,8 +102,12 @@ export default [
         version: "detect",
       },
       "import/resolver": {
-        typescript: false,
-        node: true,
+        typescript: {
+          alwaysTryTypes: true,
+        },
+        node: {
+          extensions: [".js", ".jsx", ".ts", ".tsx"],
+        },
       },
     },
   },
