@@ -1,92 +1,83 @@
 # GYMovoo 💪
 
-> Smart fitness app that generates personalized workout plans based on fitness level, goals and available equipment.
+> אפליקציית כושר פשוטה ויעילה ליצירת תוכניות אימון אישיות
 
-## 🚀 Quick Start
+## 🚀 התחלה מהירה
 
 ```bash
-# Clone and install
+# שכפול והתקנה
 git clone https://github.com/Yehuda-sh/GYMovoo-v1.git
 cd GYMovoo-v1
 npm install
 
-# Start development
+# התחלת פיתוח
 npx expo start
 ```
 
-## ✨ Key Features
+## ✨ תכונות עיקריות
 
-- 📋 **Smart Questionnaire** - 7 dynamic questions for personalized training
-- 🤖 **AI-Powered Plans** - Custom workouts from 100+ exercises
-- ⏱️ **Real-time Tracking** - Timer, sets, weights, and progress
-- 🏆 **Personal Records** - Automatic detection of new achievements
-- 📊 **Progress Dashboard** - Statistics and workout history
-- 🌙 **Dark/Light Mode** - Full theme support
-- 🌍 **RTL Hebrew Support** - Complete right-to-left interface
-- 🔧 **Full TypeScript** - 100% type safety
+- 📋 **שאלון חכם** - 7 שאלות לאימון מותאם אישית
+- 🏋️ **תוכניות אימון** - מעל 100 תרגילים שונים
+- ⏱️ **מעקב בזמן אמת** - טיימר, סטים, משקלים והתקדמות
+- 🏆 **שיאים אישיים** - זיהוי אוטומטי של הישגים חדשים
+- 📊 **דשבורד התקדמות** - סטטיסטיקות והיסטוריית אימונים
+- 🌙 **מצב כהה/בהיר** - תמיכה מלאה בעיצוב
+- 🌍 **תמיכה בעברית** - ממשק מלא מימין לשמאל
+- 🔧 **TypeScript מלא** - בטיחות טיפוסים 100%
 
-## 🧭 Onboarding Flow (Updated 2025-09-04)
+## 🧭 זרימת המשתמש
 
-1. Welcome (unauthenticated users only)
-2. Smart Questionnaire (ALWAYS before account creation)
-3. Register (answers already collected – attached to new user)
-4. MainApp (guarded: cannot enter without completed questionnaire)
+1. **מסך פתיחה** (משתמשים חדשים)
+2. **שאלון חכם** (תמיד לפני יצירת חשבון)
+3. **הרשמה** (התשובות כבר נאספו)
+4. **אפליקציה ראשית** (דורש השלמת שאלון)
 
-Rules:
+**חוקי אבטחה:**
+- משתמש ללא שאלון מושלם מועבר לשאלון
+- השלמת שאלון מעבירה תמיד להרשמה
+- לאחר הרשמה מוצלחת - כניסה לאפליקציה הראשית
 
-- Returning user without questionnaire is forced into Questionnaire (cannot reach MainApp)
-- Questionnaire completion for unauthenticated user always navigates to Register (not directly to MainApp)
-- After successful registration the questionnaire data is attached (local → server best-effort) and user is reset into MainApp
-- MainScreen now contains a runtime guard that redirects if questionnaire data/flags are missing
+## 🛠️ טכנולוגיות
 
-## 🛠️ Tech Stack
+- **React Native** + **Expo** - פיתוח חוצה פלטפורמות
+- **TypeScript** - בטיחות וטיפוסים
+- **Zustand** - ניהול מצב
+- **Supabase** - מסד נתונים ואימות
+- **React Navigation** - ניווט בין מסכים
+- **AsyncStorage** - שמירה מקומית
 
-- **React Native** + **Expo** - Cross-platform mobile development
-- **TypeScript** - Type safety and code quality
-- **Zustand** - State management
-- **Supabase** - Database and authentication
-- **React Navigation** - Screen navigation
-- **AsyncStorage** - Local caching
+## 📱 מסכים עיקריים
 
-## 📱 Main Screens
+- **ברוכים הבאים** - הרשמה וכניסה
+- **שאלון חכם** - הגדרת פרופיל כושר אישי
+- **דשבורד** - סקירת התקדמות ופעולות מהירות
+- **אימון פעיל** - מעקב אימון בזמן אמת
+- **ספריית תרגילים** - מעל 100 תרגילים עם מיפוי שרירים
+- **פרופיל והיסטוריה** - נתוני משתמש והיסטוריית אימונים
 
-- **Welcome & Auth** - Registration and login
-- **Smart Questionnaire** - Personalized fitness profile setup
-- **Dashboard** - Progress overview and quick actions
-- **Active Workout** - Real-time workout tracking
-- **Exercise Library** - 100+ exercises with muscle mapping
-- **Profile & History** - User data and workout history
-
-## 📚 Documentation
-
-- 🏗️ **[Technical Guide](docs/TECHNICAL_IMPLEMENTATION_GUIDE.md)** - Architecture and implementation
-- 🧭 **[Navigation Guide](docs/NAVIGATION_GUIDE.md)** - Screen structure and routing
-- 📱 **[Screens Guide](docs/screens/README.md)** - Complete screen documentation
-- 📋 **[Development Guidelines](docs/DEVELOPMENT_GUIDELINES.md)** - Coding standards and practices
-
-## 🔧 Development
+## 🔧 פיתוח
 
 ```bash
-# Development
-npm start              # Start Expo development server
-npm run android        # Run on Android
-npm run ios           # Run on iOS
-npm test              # Run tests
+# פיתוח
+npm start              # הפעלת שרת פיתוח Expo
+npm run android        # הרצה על Android
+npm run ios           # הרצה על iOS
+npm test              # הרצת בדיקות
 
-# Code Quality
-npm run lint          # ESLint check
-npx tsc --noEmit     # TypeScript check
+# איכות קוד
+npm run lint          # בדיקת ESLint
+npx tsc --noEmit     # בדיקת TypeScript
 ```
 
-## 📄 License
+## 📄 רישיון
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - ראה [LICENSE](LICENSE) לפרטים.
 
-## 📞 Contact
+## 📞 יצירת קשר
 
 - GitHub: [@Yehuda-sh](https://github.com/Yehuda-sh)
 - Repository: [GYMovoo-v1](https://github.com/Yehuda-sh/GYMovoo-v1)
 
 ---
 
-<p align="center">Made with ❤️ by the GYMovoo Team</p>
+<p align="center">נוצר עם ❤️ על ידי צוות GYMovoo</p>
