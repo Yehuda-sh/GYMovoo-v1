@@ -57,9 +57,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // קומפוננטות פנימיות
 // Internal components
-import ExerciseHeader from "./ExerciseHeader";
-import EditToolbar from "./EditToolbar";
-import SetsList from "./SetsList";
 import { UniversalModal } from "../../../../components/common/UniversalModal";
 
 // ייבוא ה-theme וספריות עזר
@@ -71,6 +68,9 @@ import { logger } from "../../../../utils/logger";
 // ייבוא ה-types
 // Import types
 import { WorkoutExercise, Set as WorkoutSet } from "../../types/workout.types";
+import SetsList from "./SetsList";
+import EditToolbar from "./EditToolbar";
+import ExerciseHeader from "./ExerciseHeader";
 
 // Advanced interfaces for monitoring and analytics
 interface ExerciseCardPerformanceMetrics {

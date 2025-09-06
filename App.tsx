@@ -9,7 +9,6 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-
 import AppNavigator from "./src/navigation/AppNavigator";
 import { StorageCleanup } from "./src/utils/storageCleanup";
 import { dataManager } from "./src/services/core";

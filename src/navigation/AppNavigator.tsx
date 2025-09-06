@@ -1,9 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-import BottomNavigation from "./BottomNavigation";
-import { RootStackParamList } from "./types";
-
 // Auth screens
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -26,8 +23,9 @@ import NotificationsScreen from "../screens/notifications/NotificationsScreen";
 import ProgressScreen from "../screens/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
-
 import { useUserStore } from "../stores/userStore";
+import BottomNavigation from "./BottomNavigation";
+import { RootStackParamList } from "./types";
 
 const Stack = createStackNavigator<RootStackParamList>();
 

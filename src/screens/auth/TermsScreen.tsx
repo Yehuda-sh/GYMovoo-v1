@@ -8,11 +8,11 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { StorageKeys } from "../../constants/StorageKeys";
 import { theme } from "../../styles/theme";
-import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/common/BackButton";
-import { useNavigation } from "@react-navigation/native";
 
 const TermsScreen: React.FC = () => {
   const navigation = useNavigation();

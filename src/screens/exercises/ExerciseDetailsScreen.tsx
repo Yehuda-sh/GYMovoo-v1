@@ -13,9 +13,9 @@ import {
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
-import { StackNavigationProp } from "@react-navigation/stack";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatEquipmentList } from "../../utils/formatters";
 

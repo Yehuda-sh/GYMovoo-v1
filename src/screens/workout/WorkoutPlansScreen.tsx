@@ -8,10 +8,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import type { NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import type { WorkoutPlan } from "../../types/index";
-import type { NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import { UniversalModal } from "../../components/common/UniversalModal";

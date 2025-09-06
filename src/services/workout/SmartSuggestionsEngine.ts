@@ -3,10 +3,10 @@
  * מנוע הצעות בסיסי לאימונים
  */
 
-import { workoutStorageService } from "./workoutStorageService";
-import { progressiveOverloadService } from "./ProgressiveOverloadService";
 import { logger } from "../../utils/logger";
 import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
+import { workoutStorageService } from "./workoutStorageService";
+import { progressiveOverloadService } from "./ProgressiveOverloadService";
 import { WorkoutPlanRequest, WorkoutDay } from "./types";
 
 export interface SimpleSuggestion {

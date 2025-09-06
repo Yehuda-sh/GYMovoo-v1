@@ -3,9 +3,9 @@
  * מבטיח שכל משתמש חדש יקבל הגדרה מלאה אוטומטית
  */
 
+import type { SmartQuestionnaireData } from "../types";
 import { userApi } from "./api/userApi";
 import { questionnaireService } from "./questionnaireService";
-import type { SmartQuestionnaireData } from "../types";
 
 export interface UserOnboardingResult {
   success: boolean;

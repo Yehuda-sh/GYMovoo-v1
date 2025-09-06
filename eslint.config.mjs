@@ -1,164 +1,104 @@
-/**
- * @file eslint.config.mjs
- * @description תצורת ESLint עבור פרויקט GYMovoo
- * English: ESLint configuration for GYMovoo project
- * @features TypeScript, React, React Native, Hebrew support
- */
-
-// eslint.config.mjs
 import js from "@eslint/js";
+import typescript from "@typescript-eslint/eslint-plugin";
+import typescriptParser from "@typescript-eslint/parser";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactNative from "eslint-plugin-react-native";
+import prettier from "eslint-plugin-prettier";
+import importPlugin from "eslint-plugin-import";
 import globals from "globals";
-import tseslint from "typescript-eslint";
-import pluginReact from "eslint-plugin-react";
-import pluginReactHooks from "eslint-plugin-react-hooks";
-import pluginReactNative from "eslint-plugin-react-native";
 
 export default [
-  // Ignore heavy/generated folders (Flat config doesn't read .eslintignore)
   {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     ignores: [
-      "**/node_modules/**",
-      "**/android/**",
-      "**/ios/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/coverage/**",
-      "**/.expo/**",
-      "**/.expo-shared/**",
-      "**/.vscode/**",
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      "android/**",
+      "ios/**",
+      ".expo/**",
+      "**/*.d.ts",
+      "**/__tests__/**",
+      "**/*.test.{js,jsx,ts,tsx}",
+      "**/*.spec.{js,jsx,ts,tsx}",
+      "__mocks__/**",
+      "jest.config.js",
     ],
-  },
-
-  // Base configurations | תצורות בסיס
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  pluginReact.configs.flat.recommended,
-
-  // Main configuration | תצורה עיקרית
-  {
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-    plugins: {
-      "react-hooks": pluginReactHooks,
-      "react-native": pluginReactNative,
-    },
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.es2021,
-        // React Native globals
-        __DEV__: "readonly",
-        fetch: "readonly",
-        FormData: "readonly",
-        navigator: "readonly",
-        requestAnimationFrame: "readonly",
-      },
-      ecmaVersion: 2021,
-      sourceType: "module",
+      parser: typescriptParser,
       parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
+        project: "./tsconfig.json",
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2022,
+        ...globals.jest,
+        __DEV__: "readonly",
+        fetch: "readonly",
+        FormData: "readonly",
+        RequestInit: "readonly",
+        NodeJS: "readonly",
+        JSX: "readonly",
       },
     },
+    plugins: {
+      "@typescript-eslint": typescript,
+      react: react,
+      "react-hooks": reactHooks,
+      "react-native": reactNative,
+      prettier: prettier,
+      import: importPlugin,
+    },
     rules: {
-      // TypeScript rules | חוקי TypeScript
+      ...js.configs.recommended.rules,
+      ...typescript.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+
+      // TypeScript rules
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-require-imports": "off", // Allow require() for assets
-      "@typescript-eslint/no-var-requires": "off", // Allow for React Native assets
+      "@typescript-eslint/no-non-null-assertion": "warn",
 
-      // React rules | חוקי React
-      "react/react-in-jsx-scope": "off", // React 17+ doesn't need import React
-      "react/prop-types": "off", // Using TypeScript instead
-      "react/no-unescaped-entities": "off", // Allow Hebrew text without encoding
-      "react/display-name": "warn",
-      "react/jsx-uses-react": "off",
-      "react/jsx-uses-vars": "error",
+      // React rules
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "react/display-name": "off",
 
-      // React Hooks rules | חוקי React Hooks
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-
-      // React Native specific rules | חוקים ספציפיים ל-React Native
+      // React Native rules
       "react-native/no-unused-styles": "warn",
-      "react-native/no-inline-styles": "warn",
-      "react-native/no-color-literals": "off", // Allow color literals for flexibility
+      "react-native/split-platform-components": "warn",
+      "react-native/no-inline-styles": "off",
+      "react-native/no-color-literals": "off",
 
-      // General code quality | איכות קוד כללית
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-      "no-debugger": "warn",
-      "no-unused-vars": "off", // Handled by TypeScript rule
+      // Import rules
+      "import/order": "off", // נכבה את בדיקת סידור ה-imports
+
+      // General rules
+      "no-console": "warn",
+      "no-debugger": "error",
+      "no-unused-vars": "off", // Use TypeScript version instead
       "prefer-const": "error",
       "no-var": "error",
-
-      // Prevent stray raw text nodes (e.g., {' '}) that trigger RN warnings
-      // Uses react-native/no-raw-text to enforce wrapping text in <Text>
-      // Hebrew & RTL text is allowed inside <Text> components.
-      "react-native/no-raw-text": [
-        "warn",
-        {
-          skip: ["Trans", "FormattedMessage"],
-        },
-      ],
     },
     settings: {
       react: {
         version: "detect",
       },
-    },
-  },
-
-  // TypeScript parser for TS files (explicit in flat config)
-  {
-    files: ["**/*.{ts,tsx,mts,cts}"],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-        sourceType: "module",
+      "import/resolver": {
+        typescript: false,
+        node: true,
       },
-    },
-  },
-
-  // Relaxed rules for debug/test/script files | חוקים מקלים לקבצי דיבוג/בדיקה/סקריפטים
-  {
-    files: [
-      "debug_*.js",
-      "test_*.js",
-      "**/*.test.{js,ts,tsx}",
-      "**/*.spec.{js,ts,tsx}",
-      "scripts/**/*.js",
-      "**/__tests__/**/*.{js,ts,tsx}",
-      "**/__mocks__/**/*.{js,ts}",
-    ],
-    rules: {
-      "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-var-requires": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-      "prefer-const": "off",
-      "no-console": "off", // Allow console in tests/scripts
-      "react-native/no-unused-styles": "off",
-      "react-native/no-inline-styles": "off",
-    },
-  },
-
-  // Configuration files | קבצי תצורה
-  {
-    files: [
-      "*.config.{js,mjs,ts}",
-      "babel.config.js",
-      "metro.config.js",
-      "jest.config.js",
-    ],
-    rules: {
-      "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-var-requires": "off",
-      "no-console": "off",
     },
   },
 ];

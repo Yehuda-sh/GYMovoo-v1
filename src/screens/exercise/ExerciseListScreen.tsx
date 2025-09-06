@@ -19,10 +19,10 @@ import type { RouteProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../styles/theme";
 import { Exercise, getRandomExercises } from "../../data/exercises";
-import ExerciseDetailsModal from "./ExerciseDetailsModal";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import type { RootStackParamList } from "../../navigation/types";
+import ExerciseDetailsModal from "./ExerciseDetailsModal";
 
 const ExerciseListScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();

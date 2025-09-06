@@ -1,6 +1,3 @@
-import { workoutStorageService } from "./workoutStorageService";
-import workoutAnalyticsService from "./workoutAnalyticsService";
-import personalRecordService from "./personalRecordService";
 import {
   WorkoutWithFeedback,
   WorkoutData,
@@ -8,6 +5,9 @@ import {
   WorkoutHistoryItem,
 } from "../../screens/workout/types/workout.types";
 import { PersonalData } from "../../utils/personalDataUtils";
+import { workoutStorageService } from "./workoutStorageService";
+import workoutAnalyticsService from "./workoutAnalyticsService";
+import personalRecordService from "./personalRecordService";
 import type { AdvancedMetrics } from "./workoutAnalyticsService";
 
 class WorkoutFacadeService {

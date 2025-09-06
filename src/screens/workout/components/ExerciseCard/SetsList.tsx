@@ -8,8 +8,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { theme } from "../../../../styles/theme";
-import SetRow from "./SetRow";
 import { Set as WorkoutSet } from "../../types/workout.types";
+import SetRow from "./SetRow";
 
 interface SetsListProps {
   sets: WorkoutSet[];

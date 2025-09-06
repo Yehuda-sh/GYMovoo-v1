@@ -5,8 +5,8 @@
  */
 
 import React from "react";
-import ExerciseCard from "./ExerciseCard/index";
 import { WorkoutExercise, Set } from "../types/workout.types";
+import ExerciseCard from "./ExerciseCard/index";
 
 interface ExerciseRowProps {
   exercise: WorkoutExercise;

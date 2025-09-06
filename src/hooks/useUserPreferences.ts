@@ -11,6 +11,7 @@ import { logger } from "../utils/logger";
 import { questionnaireService } from "../services/questionnaireService";
 import { fieldMapper } from "../utils/fieldMapper";
 import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
+import { useUserStore } from "../stores/userStore";
 import {
   scoreFrequency,
   calculateDataQuality,
@@ -24,7 +25,6 @@ import {
   createPersonalizedWorkoutPlan,
   SmartWorkoutPlan,
 } from "./userPreferencesHelpers";
-import { useUserStore } from "../stores/userStore";
 
 // ממשק פשוט לתוצאות חכמות
 export interface SmartUserPreferences extends QuestionnaireMetadata {

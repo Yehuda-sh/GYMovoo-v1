@@ -1,5 +1,5 @@
-import { fieldMapper } from "./fieldMapper";
 import { User } from "../types";
+import { fieldMapper } from "./fieldMapper";
 import { PersonalData } from "./personalDataUtils";
 
 /**

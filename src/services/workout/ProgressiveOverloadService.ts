@@ -3,10 +3,10 @@
  * מעקב אחרי התקדמות ותמיכה בהגברה הדרגתית
  */
 
-import { workoutStorageService } from "./workoutStorageService";
 import { logger } from "../../utils/logger";
 import { ExerciseTemplate } from "../../screens/workout/types/workout.types";
 import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
+import { workoutStorageService } from "./workoutStorageService";
 
 export interface ProgressSuggestion {
   exerciseId: string;

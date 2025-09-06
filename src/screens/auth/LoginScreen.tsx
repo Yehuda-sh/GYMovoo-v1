@@ -17,22 +17,22 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StorageKeys } from "../../constants/StorageKeys";
-import { logger } from "../../utils/logger";
-import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import BackButton from "../../components/common/BackButton";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { fakeGoogleSignIn } from "../../services/authService";
-import type { User } from "../../services/authService";
-import { useUserStore } from "../../stores/userStore";
 import {
   useNavigation,
   useRoute,
   NavigationProp,
   RouteProp,
 } from "@react-navigation/native";
+import { StorageKeys } from "../../constants/StorageKeys";
+import { logger } from "../../utils/logger";
+import { theme } from "../../styles/theme";
+import BackButton from "../../components/common/BackButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { fakeGoogleSignIn } from "../../services/authService";
+import type { User } from "../../services/authService";
+import { useUserStore } from "../../stores/userStore";
 import type { RootStackParamList } from "../../navigation/types";
 import {
   validateEmail,

@@ -105,6 +105,10 @@ export interface ExerciseMenuProps {
   canMoveDown?: boolean;
   hasLastSet?: boolean;
   isEditMode?: boolean;
+  isBatchMode?: boolean;
+  selectedExercises?: string[];
+  onBatchDelete?: () => void;
+  onBatchMove?: (direction: "up" | "down") => void;
 }
 
 // NextExerciseBar Props

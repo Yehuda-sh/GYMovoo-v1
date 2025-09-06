@@ -8,9 +8,9 @@
 
 import type { ComponentProps } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import type { User, Workout } from "../types";
 import { PROFILE_SCREEN_TEXTS } from "./profileScreenTexts";
 import { getAchievementColor } from "./profileScreenColors";
-import type { User, Workout } from "../types";
 
 /**
  * Material Community Icon name type for type safety

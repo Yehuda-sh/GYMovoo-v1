@@ -15,11 +15,11 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../styles/theme";
-import LoadingSpinner from "./common/LoadingSpinner";
 import { useSubscription } from "../stores/userStore";
 import { logger } from "../utils/logger";
-import ConfirmationModal from "./common/ConfirmationModal";
 import { CloseButton } from "../screens/workout/components/shared/CloseButton";
+import ConfirmationModal from "./common/ConfirmationModal";
+import LoadingSpinner from "./common/LoadingSpinner";
 
 interface AdManagerProps {
   /** מיקום הפרסומת - תחילת או סוף אימון */

@@ -18,8 +18,8 @@ import {
 } from "@react-navigation/native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../../styles/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { useUserStore } from "../../stores/userStore";

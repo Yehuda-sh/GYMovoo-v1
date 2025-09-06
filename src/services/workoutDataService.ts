@@ -12,16 +12,16 @@
  * @used_by WorkoutPlansScreen, services/index.ts
  */
 
-import { questionnaireService } from "./questionnaireService";
 import { useUserStore } from "../stores/userStore";
 import { Exercise } from "../data/exercises/types";
 import { MuscleGroup } from "../constants/exercise";
-import { getSmartFilteredExercises } from "../data/exercises";
+import { allExercises } from "../data/exercises";
 import {
   WorkoutPlan,
   WorkoutTemplate,
   ExerciseTemplate,
 } from "../screens/workout/types/workout.types";
+import { questionnaireService } from "./questionnaireService";
 
 // טיפוס עבור metadata של תוכנית אימון
 interface WorkoutMetadata {
@@ -190,9 +190,8 @@ export class WorkoutDataService {
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
 
-    // שימוש בפונקציית הסינון החכמה
-    const environments: ("home" | "gym" | "outdoor")[] = ["home"];
-    let suitableExercises = getSmartFilteredExercises(environments, equipment);
+    // שימוש בכל התרגילים הזמינים
+    let suitableExercises = allExercises;
 
     // סינון נוסף לפי שרירי היעד
     suitableExercises = suitableExercises.filter((exercise: Exercise) => {
@@ -277,7 +276,7 @@ export class WorkoutDataService {
       "פלג גוף תחתון": ["quadriceps", "hamstrings", "glutes", "calves"],
     };
 
-    return muscleMap[workoutName] || muscleMap["גוף מלא"];
+    return muscleMap[workoutName] || muscleMap["גוף מלא"] || [];
   }
 
   /**
@@ -313,11 +312,11 @@ export class WorkoutDataService {
     // תמיכה בפורמט אנגלי חדש
     if (duration.includes("_min")) {
       const match = duration.match(/(\d+)(?:_(\d+))?_min/);
-      if (match) {
+      if (match && match[1]) {
         const a = parseInt(match[1], 10);
         const b = match[2] ? parseInt(match[2], 10) : undefined;
-        if (!isNaN(a) && !isNaN(b as number)) {
-          return Math.round((a + (b as number)) / 2);
+        if (!isNaN(a) && b !== undefined && !isNaN(b)) {
+          return Math.round((a + b) / 2);
         }
         if (!isNaN(a)) return a;
       }
@@ -325,7 +324,8 @@ export class WorkoutDataService {
     }
 
     // פורמט עברי ישן
-    return parseInt(duration.split("-")[0]) || 45;
+    const firstPart = duration.split("-")[0];
+    return firstPart ? parseInt(firstPart) || 45 : 45;
   }
 
   private static mapExperienceToDifficulty(

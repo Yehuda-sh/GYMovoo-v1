@@ -5,9 +5,9 @@
 
 import React, { useCallback } from "react";
 import { FlatList, StyleSheet, ListRenderItem, View } from "react-native";
-import ExerciseRow from "./ExerciseRow";
 import { WorkoutExercise, Set } from "../types/workout.types";
 import { theme } from "../../../styles/theme";
+import ExerciseRow from "./ExerciseRow";
 
 interface ExercisesListProps {
   exercises: WorkoutExercise[];

@@ -11,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { userApi } from "../../services/api/userApi";
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";

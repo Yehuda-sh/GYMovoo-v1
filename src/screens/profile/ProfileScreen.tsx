@@ -17,10 +17,11 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "../../styles/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import * as ImagePicker from "expo-image-picker";
+import { theme } from "../../styles/theme";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
@@ -28,7 +29,6 @@ import { useUserStore } from "../../stores/userStore";
 import { useQuestionnaireStatus } from "../../hooks/useQuestionnaireStatus";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
-import * as ImagePicker from "expo-image-picker";
 import { User } from "../../types";
 import { userApi } from "../../services/api/userApi";
 import { PROFILE_SCREEN_TEXTS } from "../../constants/profileScreenTexts";

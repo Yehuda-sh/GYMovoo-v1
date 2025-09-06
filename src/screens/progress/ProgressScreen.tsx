@@ -8,11 +8,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
-import { SafeAreaView } from "react-native-safe-area-context";
 import workoutFacadeService from "../../services/workout/workoutFacadeService";
 
 // Types for stats
