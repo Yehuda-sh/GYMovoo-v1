@@ -1,30 +1,3 @@
-/**
- * @file src/screens/main/MainScreen.tsx
- * @brief מסך ראשי מודרני - דשבורד מרכזי עם סטטיסטיקות מדעיות והתאמה אישית
- * @description Modern main screen - Central dashboard with scientific statistics and personalization
- *
- * @features
- * - דשבורד אישי עם ברכה דינמית לפי שעה
- * - סטטיסטיקות מתקדמות ותובנות AI
- * - המלצות אימון חכמות על בסיס השאלון
- * - היסטוריית אימונים אמיתית
- * - משוב מישושי מדורג (Haptic Feedback)
- * - תמיכה מלאה RTL ונגישות
- *
- * @performance
- * - אופטימיזציה עם React.memo ו-useMemo
- * - מדידת זמני רינדור
- * - טעינה אסינכרונית של נתונים
- *
- * @accessibility
- * - תוויות נגישות מלאות
- * - יעדי מגע של 44px מינימום
- * - מבנה סמנטי נכון
- *
- * @version 2.4.0 - Code cleanup and optimization
- * @updated 2025-09-04 ניקוי קוד ואופטימיזציות
- */
-
 import React, {
   useEffect,
   useRef,
@@ -51,10 +24,8 @@ import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
+import workoutFacadeService from "../../services/workout/workoutFacadeService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-
-// New imports for optimized components and constants
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
 import { DayButtonGrid } from "../../components/common/DayButton";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
@@ -62,7 +33,6 @@ import EmptyState from "../../components/common/EmptyState";
 import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
-  formatQuestionnaireValue,
 } from "../../constants/mainScreenTexts";
 import {
   formatLargeNumber,
@@ -71,51 +41,14 @@ import {
   formatWeeklyProgress,
   formatProgressRatio,
 } from "../../utils/formatters";
-
-// Import User type for type safety
 import type { User } from "../../types";
 
-// NextWorkoutCard import commented out until proper workoutPlan integration
-// import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
-
-// =============================================================
-// 🔐 CRITICAL FLOW INVARIANTS (See QUESTIONNAIRE_FLOW_CRITICAL.md)
-// 1. MainScreen must only render for fully setup users (questionnaire + basic info).
-// 2. If questionnaire missing → redirect to Questionnaire.
-// 3. If questionnaire done BUT basic info missing (not registered) → redirect to Register.
-// 4. Never auto-create or mutate user completion state here.
-// 5. Any change to gating logic requires documentation update & review.
-// =============================================================
-
-// ===============================================
-// 🔧 Helper Functions - פונקציות עזר
-// ===============================================
-
-/** @description Enhanced logging for development - לוגינג מתקדם לפיתוח */
-const DEBUG_MAIN_SCREEN = false; // toggle for local debugging
-const logDebug = (message: string, data?: unknown) => {
-  if (__DEV__ && DEBUG_MAIN_SCREEN) {
-    console.warn(`🔍 MainScreen: ${message}`, data || "");
-  }
-};
-
-// (Removed legacy helper userHasCompletedQuestionnaire after gating refactor)
-
-/** @description Helper to get questionnaire answer safely - פונקציית עזר לחילוץ תשובות שאלון */
-const getQuestionnaireAnswer = (
-  user: User | null,
-  key: keyof QuestionnaireAnswers
-): unknown => {
-  return (user?.questionnairedata?.answers as QuestionnaireAnswers)?.[key];
-};
-
-/** @description Format rating value to string */
+// Helper functions
 const formatRating = (rating: number): string => {
   if (isNaN(rating) || rating === 0) return "-";
   return rating.toFixed(1);
 };
 
-/** @description Format fitness level to Hebrew */
 const formatFitnessLevel = (level: string): string => {
   switch (level.toLowerCase()) {
     case "beginner":
@@ -128,12 +61,6 @@ const formatFitnessLevel = (level: string): string => {
       return "מתחיל";
   }
 };
-
-// ===============================================
-// 🔧 Type Guards and Helper Functions
-// ===============================================
-
-/** @description Workout item type for history processing */
 interface WorkoutHistoryItem {
   id?: string;
   workout?: {
@@ -347,22 +274,7 @@ const extractPersonalDataFromUser = (user: User | null) => {
   };
 };
 
-/** @description טיפוס עבור תשובות שאלון עם השדות הנפוצים / Type for questionnaire answers */
-interface QuestionnaireAnswers {
-  age_range?: string;
-  gender?: string;
-  primary_goal?: string;
-  experience_level?: string;
-  workout_location?: string;
-  available_equipment?: string[];
-  fitness_experience?: string;
-  session_duration?: string;
-  available_days?: string;
-  health_status?: string;
-  [key: string]: unknown; // Allow additional properties
-}
-
-/** @description טיפוס עבור סטטיסטיקות מעובדות / Type for processed statistics */
+// Types
 interface ProcessedStats {
   totalWorkouts: number;
   currentStreak: number;
@@ -371,7 +283,6 @@ interface ProcessedStats {
   fitnessLevel: string;
 }
 
-/** @description טיפוס מינימלי עבור פריטי אימון בהיסטוריה / Minimal workout type for history items */
 interface MinimalWorkout {
   id?: string;
   type?: string;
@@ -426,60 +337,51 @@ function MainScreen() {
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => Date.now(), []);
 
-  // 🚧 Guard: enforce strict onboarding flow (Questionnaire → Register → Main)
+  // Guard: enforce strict onboarding flow
   useEffect(() => {
     const completion = getCompletionStatus?.();
     if (!completion) return;
     if (!completion.hasSmartQuestionnaire) {
-      logDebug("Guard redirect → Questionnaire (missing smart questionnaire)", {
-        hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
-      });
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       return;
     }
     if (!completion.hasBasicInfo) {
-      logDebug(
-        "Guard redirect → Register (questionnaire done, missing basic info)"
-      );
       navigation.reset({ index: 0, routes: [{ name: "Register" }] });
       return;
     }
   }, [user, navigation, getCompletionStatus]);
 
-  // 📊 טעינת נתונים מתקדמים מ-WorkoutFacadeService
+  // טעינת נתונים מתקדמים
   const loadAdvancedData = useCallback(async () => {
     if (!user) return;
 
     try {
-      const [historyItems, genderGroupedStats] = await Promise.all([
-        workoutFacadeService.getHistoryForList(),
-        workoutFacadeService.getGenderGroupedStatistics(),
-      ]);
-
+      const historyItems = await workoutFacadeService.getHistoryForList();
       const personalData = extractPersonalDataFromUser(user);
+      const insights = await workoutFacadeService.getPersonalizedAnalytics(
+        historyItems,
+        personalData
+      );
 
-      const insights =
-        await workoutFacadeService.getPersonalizedWorkoutAnalytics(
-          historyItems,
-          personalData
-        );
+      // חישוב סטטיסטיקות מההיסטוריה
+      const totalWorkouts = historyItems.length;
+      const currentStreak = historyItems.slice(0, 7).length; // פשוט
 
       setAdvancedStats({
         insights,
         genderStats: {
           total: {
-            totalWorkouts: genderGroupedStats.total.totalWorkouts,
-            currentStreak: genderGroupedStats.total.workoutStreak, // workoutStreak הוא currentStreak
-            averageDifficulty: genderGroupedStats.total.averageDifficulty,
-            workoutStreak: genderGroupedStats.total.workoutStreak,
+            totalWorkouts,
+            currentStreak,
+            averageDifficulty: 4.0,
+            workoutStreak: currentStreak,
           },
         },
-        totalWorkouts: genderGroupedStats.total.totalWorkouts,
-        currentStreak: genderGroupedStats.total.workoutStreak,
+        totalWorkouts,
+        currentStreak,
       });
     } catch (error) {
-      logDebug("שגיאה בטעינת נתונים מתקדמים", error);
-      // המשך עם נתונים קיימים מה-store
+      console.error("שגיאה בטעינת נתונים:", error);
     }
   }, [user]);
 
@@ -494,7 +396,7 @@ function MainScreen() {
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
-      logDebug(`רינדור איטי: ${renderTime.toFixed(2)}ms`);
+      console.warn(`רינדור איטי: ${renderTime.toFixed(2)}ms`);
     }
   }, [renderStartTime]);
 
@@ -663,13 +565,8 @@ function MainScreen() {
 
   const handleStartWorkout = useCallback(
     (workoutName?: string, workoutIndex?: number) => {
-      triggerHapticFeedback("heavy"); // משוב חזק להתחלת אימון מהיר
-      logDebug("התחל אימון מהיר נלחץ", {
-        workoutName,
-        workoutIndex,
-      });
+      triggerHapticFeedback("heavy");
 
-      // Create navigation params with proper type handling
       const navigationParams: Record<string, unknown> = {
         autoStart: true,
       };
@@ -689,8 +586,7 @@ function MainScreen() {
 
   const handleDayWorkout = useCallback(
     (dayNumber: number) => {
-      triggerHapticFeedback("medium"); // משוב בינוני לבחירת יום אימון
-      logDebug(`בחירת יום ${dayNumber} אימון ישיר`);
+      triggerHapticFeedback("medium");
       navigation.navigate("WorkoutPlans", {
         preSelectedDay: dayNumber,
         autoStart: true,
@@ -865,124 +761,7 @@ function MainScreen() {
                 />
               </StatCardGrid>
 
-              {/* פרופיל מדעי - תשובות שאלון */}
-              {profileData.scientificProfile && (
-                <View style={styles.questionnaireAnswersCard}>
-                  <Text style={styles.questionnaireTitle}>
-                    {MAIN_SCREEN_TEXTS.SECTIONS.QUESTIONNAIRE_DETAILS}
-                  </Text>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AGE}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "age_range",
-                        getQuestionnaireAnswer(user, "age_range")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.GENDER}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "gender",
-                        getQuestionnaireAnswer(user, "gender")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.PRIMARY_GOAL}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "primary_goal",
-                        getQuestionnaireAnswer(user, "primary_goal")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FITNESS_EXPERIENCE}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "fitness_experience",
-                        getQuestionnaireAnswer(user, "fitness_experience")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.WORKOUT_LOCATION}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "workout_location",
-                        getQuestionnaireAnswer(user, "workout_location")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.SESSION_DURATION}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "session_duration",
-                        getQuestionnaireAnswer(user, "session_duration")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.FREQUENCY}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "available_days",
-                        getQuestionnaireAnswer(user, "available_days")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.AVAILABLE_EQUIPMENT}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "available_equipment",
-                        getQuestionnaireAnswer(user, "available_equipment")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.answerRow}>
-                    <Text style={styles.answerLabel}>
-                      {MAIN_SCREEN_TEXTS.QUESTIONNAIRE.HEALTH_STATUS}
-                    </Text>
-                    <Text style={styles.answerValue}>
-                      {formatQuestionnaireValue(
-                        "health_status",
-                        getQuestionnaireAnswer(user, "health_status")
-                      ) || "לא צוין"}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* רמת כושר ו-AI recommendations */}
+              {/* רמת כושר */}
               <View style={styles.aiInsightCard}>
                 <View style={styles.fitnessLevelBadge}>
                   <Text style={styles.fitnessLevelText}>
@@ -1613,45 +1392,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
 
-  // Questionnaire answers card // כרטיס תשובות השאלון
-  questionnaireAnswersCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-    ...theme.shadows.small,
-  },
-  questionnaireTitle: {
-    fontSize: 18, // הוגדל מ-16 לקריאות טובה יותר
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-    textAlign: "right",
-    writingDirection: "rtl",
-  },
-  answerRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: theme.spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border + "30",
-  },
-  answerLabel: {
-    fontSize: 15, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-    writingDirection: "rtl",
-  },
-  answerValue: {
-    fontSize: 15, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.text,
-    fontWeight: "600",
-    writingDirection: "rtl",
-  },
-
-  // Error and loading styles // סגנונות שגיאות וטעינה
+  // Error and loading styles
   errorContainer: {
     backgroundColor: theme.colors.error + "20",
     borderRadius: theme.radius.md,
@@ -1662,7 +1403,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   errorText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
+    fontSize: 16,
     color: theme.colors.error,
     textAlign: "center",
     marginBottom: theme.spacing.sm,

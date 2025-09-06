@@ -60,23 +60,6 @@ export const GOAL_MAP = {
   endurance: "endurance",
 } as const;
 
-// Performance tracking thresholds
-export const PERFORMANCE_THRESHOLDS = {
-  SLOW_RENDER_WARNING: 100, // ms
-  CRITICAL_RENDER_WARNING: 200, // ms
-  SLOW_RENDER_MS: 100,
-  AUTO_START_DELAY: 1500,
-  PRE_SELECTED_DELAY: 1000,
-} as const;
-
-// Global exercise state interface
-export interface GlobalExerciseState {
-  usedExercises_day0?: Set<string>;
-  usedExercises_day1?: Set<string>;
-  usedExercises_day2?: Set<string>;
-  [key: string]: Set<string> | undefined;
-}
-
 // ===============================================
 // 🕒 Rest Timer Constants - קבועי טיימר מנוחה
 // ===============================================
@@ -149,15 +132,6 @@ export const getPersonalizedRestTimes = (
   return baseTimes;
 };
 
-// סוגי סטים
-// Set types
-export const SET_TYPES = [
-  { value: "normal", label: "רגיל", color: "#007AFF" },
-  { value: "warmup", label: "חימום", color: "#FF9500" },
-  { value: "dropset", label: "דרופסט", color: "#AF52DE" },
-  { value: "failure", label: "כישלון", color: "#FF3B30" },
-] as const;
-
 // ✅ משקלי פלטות סטנדרטיים (בשימוש ב-PlateCalculatorModal)
 export const PLATE_WEIGHTS = [
   { weight: 25, color: "#FF3B30", label: "25" },
@@ -214,10 +188,3 @@ export const getPersonalizedStartingWeights = (
 
   return recommendations;
 };
-
-// Auto-save settings
-export const AUTO_SAVE = {
-  interval: 30000, // כל 30 שניות
-  maxDrafts: 5, // מקסימום טיוטות
-  draftExpiry: 7 * 24 * 60 * 60 * 1000, // 7 ימים
-} as const;

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -29,118 +29,86 @@ interface WorkoutPlanScreenProps {
 }
 
 export default function WorkoutPlansScreen({
-  route,
+  route: _route,
 }: WorkoutPlanScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useUserStore((state) => state.user);
-  const updateUser = useUserStore((state) => state.updateUser);
 
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedPlanType, setSelectedPlanType] = useState<"basic" | "smart">(
     "basic"
   );
-  const [basicPlan, setBasicPlan] = useState<WorkoutPlan | null>(null);
-  const [smartPlan, setSmartPlan] = useState<WorkoutPlan | null>(null);
+  const [workoutPlans, setWorkoutPlans] = useState<{
+    basic: WorkoutPlan | null;
+    smart: WorkoutPlan | null;
+  }>({ basic: null, smart: null });
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: "", message: "" });
 
-  const showError = (title: string, message: string) => {
-    setModalConfig({ title, message });
-    setShowModal(true);
-  };
-
-  const showSuccess = (title: string, message: string) => {
-    setModalConfig({ title, message });
-    setShowModal(true);
-  };
-
-  const currentWorkoutPlan =
-    selectedPlanType === "smart" ? smartPlan : basicPlan;
+  const currentWorkoutPlan = workoutPlans[selectedPlanType];
   const canAccessAI =
     user?.subscription?.isActive || !user?.subscription?.hasCompletedTrial;
 
-  const generateBasicPlan = useCallback(async () => {
+  const showMessage = (title: string, message: string) => {
+    setModalConfig({ title, message });
+    setShowModal(true);
+  };
+
+  const generatePlan = async (type: "basic" | "smart") => {
     try {
       setLoading(true);
       if (!user) {
-        showError("שגיאה", "לא נמצא משתמש");
+        showMessage("שגיאה", "לא נמצא משתמש");
         return;
       }
-      const plan = await questionnaireService.generateBasicWorkoutPlan();
-      setBasicPlan(plan);
-      showSuccess("תוכנית נוצרה!", "תוכנית בסיסית נוצרה בהצלחה");
-    } catch (error) {
-      showError("שגיאה", "לא הצלחנו ליצור תוכנית בסיסית");
+
+      if (type === "smart" && !canAccessAI) {
+        showMessage("גישה מוגבלת", "תכונות AI זמינות רק למנויים");
+        return;
+      }
+
+      const plan =
+        type === "smart"
+          ? await questionnaireService.generateSmartWorkoutPlan()
+          : await questionnaireService.generateBasicWorkoutPlan();
+
+      setWorkoutPlans((prev) => ({ ...prev, [type]: plan }));
+      showMessage(
+        "תוכנית נוצרה!",
+        `תוכנית ${type === "smart" ? "חכמה" : "בסיסית"} נוצרה בהצלחה`
+      );
+    } catch (err) {
+      console.warn("Error generating plan:", err);
+      showMessage(
+        "שגיאה",
+        `לא הצלחנו ליצור תוכנית ${type === "smart" ? "AI" : "בסיסית"}`
+      );
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
-  const generateAIPlan = useCallback(async () => {
-    try {
-      setLoading(true);
-      if (!user) {
-        showError("שגיאה", "לא נמצא משתמש");
-        return;
-      }
-      if (!canAccessAI) {
-        showError("גישה מוגבלת", "תכונות AI זמינות רק למנויים");
-        return;
-      }
-      const plan = await questionnaireService.generateSmartWorkoutPlan();
-      setSmartPlan(plan);
-      showSuccess("תוכנית AI נוצרה!", "תוכנית חכמה נוצרה במיוחד עבורך");
-    } catch (error) {
-      showError("שגיאה", "לא הצלחנו ליצור תוכנית AI");
-    } finally {
-      setLoading(false);
-    }
-  }, [user, canAccessAI]);
-
-  const handleSelectPlanType = useCallback((type: "basic" | "smart") => {
-    setSelectedPlanType(type);
-  }, []);
-
-  const handleStartWorkout = useCallback(() => {
-    if (!currentWorkoutPlan) {
-      showError("אין תוכנית", "יש ליצור תוכנית אימון תחילה");
+  const handleStartWorkout = () => {
+    if (!currentWorkoutPlan?.workouts?.[0]) {
+      showMessage("שגיאה", "לא ניתן למצוא תבנית אימון");
       return;
     }
-    const workout = currentWorkoutPlan.workouts?.[0];
-    if (!workout) {
-      showError("שגיאה", "לא ניתן למצוא תבנית אימון");
-      return;
-    }
-    showSuccess("אימון מתחיל!", "מעבר למסך האימון");
+
+    const workout = currentWorkoutPlan.workouts[0];
     navigation.navigate("ActiveWorkout", {
       workoutData: {
         name: currentWorkoutPlan.name || "אימון יומי",
         dayName: workout.name || "יום אימון",
         startTime: new Date().toISOString(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         exercises: (workout.exercises as any) || [],
       },
     });
-  }, [currentWorkoutPlan, navigation]);
+  };
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      if (selectedPlanType === "smart" && canAccessAI) {
-        await generateAIPlan();
-      } else {
-        await generateBasicPlan();
-      }
-    } finally {
-      setRefreshing(false);
-    }
-  }, [selectedPlanType, canAccessAI, generateAIPlan, generateBasicPlan]);
-
-  useEffect(() => {
-    if (!basicPlan) {
-      generateBasicPlan();
-    }
-  }, [basicPlan, generateBasicPlan]);
+  const handleRefresh = async () => {
+    await generatePlan(selectedPlanType);
+  };
 
   if (loading) {
     return (
@@ -163,7 +131,7 @@ export default function WorkoutPlansScreen({
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
         }
       >
         <View style={styles.header}>
@@ -179,7 +147,7 @@ export default function WorkoutPlansScreen({
                 styles.selectorButton,
                 selectedPlanType === "basic" && styles.selectorButtonActive,
               ]}
-              onPress={() => handleSelectPlanType("basic")}
+              onPress={() => setSelectedPlanType("basic")}
             >
               <Text style={styles.selectorButtonText}>בסיסית</Text>
             </TouchableOpacity>
@@ -189,7 +157,7 @@ export default function WorkoutPlansScreen({
                 selectedPlanType === "smart" && styles.selectorButtonActive,
                 !canAccessAI && styles.selectorButtonDisabled,
               ]}
-              onPress={() => canAccessAI && handleSelectPlanType("smart")}
+              onPress={() => canAccessAI && setSelectedPlanType("smart")}
               disabled={!canAccessAI}
             >
               <Text style={styles.selectorButtonText}>חכמה (AI)</Text>
@@ -232,14 +200,14 @@ export default function WorkoutPlansScreen({
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={generateBasicPlan}
+            onPress={() => generatePlan("basic")}
           >
             <Text style={styles.actionButtonText}>צור תוכנית בסיסית</Text>
           </TouchableOpacity>
           {canAccessAI && (
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={generateAIPlan}
+              onPress={() => generatePlan("smart")}
             >
               <Text style={styles.actionButtonText}>צור תוכנית AI</Text>
             </TouchableOpacity>

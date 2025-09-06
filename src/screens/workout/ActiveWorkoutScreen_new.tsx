@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -29,11 +36,11 @@ interface ExerciseItemProps {
   onDeleteSet: (exerciseId: string, setId: string) => void;
 }
 
-const ExerciseItem: React.FC<ExerciseItemProps> = ({ 
-  exercise, 
-  onCompleteSet, 
-  onAddSet, 
-  onDeleteSet 
+const ExerciseItem: React.FC<ExerciseItemProps> = ({
+  exercise,
+  onCompleteSet,
+  onAddSet,
+  onDeleteSet,
 }) => {
   return (
     <View style={styles.exerciseCard}>
@@ -45,25 +52,32 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
       {exercise.sets.map((set, index) => (
         <View key={set.id} style={styles.setRow}>
           <Text style={styles.setNumber}>{index + 1}</Text>
-          
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>משקל</Text>
             <Text style={styles.inputValue}>{set.weight} ק"ג</Text>
           </View>
-          
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>חזרות</Text>
             <Text style={styles.inputValue}>{set.reps}</Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.completeButton, set.completed && styles.completedButton]}
+            style={[
+              styles.completeButton,
+              set.completed && styles.completedButton,
+            ]}
             onPress={() => onCompleteSet(exercise.id, set.id)}
           >
             <MaterialCommunityIcons
               name={set.completed ? "check-circle" : "circle-outline"}
               size={24}
-              color={set.completed ? theme.colors.success : theme.colors.textSecondary}
+              color={
+                set.completed
+                  ? theme.colors.success
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
@@ -72,14 +86,25 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
               style={styles.deleteButton}
               onPress={() => onDeleteSet(exercise.id, set.id)}
             >
-              <MaterialCommunityIcons name="delete" size={20} color={theme.colors.error} />
+              <MaterialCommunityIcons
+                name="delete"
+                size={20}
+                color={theme.colors.error}
+              />
             </TouchableOpacity>
           )}
         </View>
       ))}
 
-      <TouchableOpacity style={styles.addSetButton} onPress={() => onAddSet(exercise.id)}>
-        <MaterialCommunityIcons name="plus" size={20} color={theme.colors.primary} />
+      <TouchableOpacity
+        style={styles.addSetButton}
+        onPress={() => onAddSet(exercise.id)}
+      >
+        <MaterialCommunityIcons
+          name="plus"
+          size={20}
+          color={theme.colors.primary}
+        />
         <Text style={styles.addSetText}>הוסף סט</Text>
       </TouchableOpacity>
     </View>
@@ -90,13 +115,16 @@ const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { workoutData, pendingExercise } = (route.params as {
-    workoutData?: any;
-    pendingExercise?: any;
-  }) || {};
+  const { workoutData, pendingExercise } =
+    (route.params as {
+      workoutData?: any;
+      pendingExercise?: any;
+    }) || {};
 
   // State management
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(workoutData?.exercises || []);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(
+    workoutData?.exercises || []
+  );
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
@@ -105,7 +133,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning) {
       interval = setInterval(() => {
-        setWorkoutTime(prev => prev + 1);
+        setWorkoutTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -126,7 +154,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         sets: [{ id: `${Date.now()}`, weight: 0, reps: 0, completed: false }],
         muscleGroup: pendingExercise.muscleGroup,
       };
-      setExercises(prev => [...prev, newExercise]);
+      setExercises((prev) => [...prev, newExercise]);
     }
   }, [pendingExercise]);
 
@@ -134,31 +162,42 @@ const ActiveWorkoutScreen: React.FC = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Calculate stats
-  const completedSets = exercises.reduce((total, ex) => 
-    total + ex.sets.filter(set => set.completed).length, 0
+  const completedSets = exercises.reduce(
+    (total, ex) => total + ex.sets.filter((set) => set.completed).length,
+    0
   );
   const totalSets = exercises.reduce((total, ex) => total + ex.sets.length, 0);
-  const totalVolume = exercises.reduce((total, ex) => 
-    total + ex.sets.filter(set => set.completed).reduce((vol, set) => vol + (set.weight * set.reps), 0), 0
+  const totalVolume = exercises.reduce(
+    (total, ex) =>
+      total +
+      ex.sets
+        .filter((set) => set.completed)
+        .reduce((vol, set) => vol + set.weight * set.reps, 0),
+    0
   );
 
   // Set management
   const handleCompleteSet = (exerciseId: string, setId: string) => {
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId 
-        ? { ...ex, sets: ex.sets.map(set => 
-            set.id === setId ? { ...set, completed: !set.completed } : set
-          )}
-        : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? {
+              ...ex,
+              sets: ex.sets.map((set) =>
+                set.id === setId ? { ...set, completed: !set.completed } : set
+              ),
+            }
+          : ex
+      )
+    );
   };
 
   const handleAddSet = (exerciseId: string) => {
-    const exercise = exercises.find(ex => ex.id === exerciseId);
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
     if (!exercise) return;
 
     const lastSet = exercise.sets[exercise.sets.length - 1];
@@ -169,23 +208,27 @@ const ActiveWorkoutScreen: React.FC = () => {
       completed: false,
     };
 
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId ? { ...ex, sets: [...ex.sets, newSet] } : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId ? { ...ex, sets: [...ex.sets, newSet] } : ex
+      )
+    );
   };
 
   const handleDeleteSet = (exerciseId: string, setId: string) => {
-    const exercise = exercises.find(ex => ex.id === exerciseId);
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
     if (!exercise || exercise.sets.length <= 1) {
       Alert.alert("שגיאה", "חייב להיות לפחות סט אחד בתרגיל");
       return;
     }
 
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId 
-        ? { ...ex, sets: ex.sets.filter(set => set.id !== setId) }
-        : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? { ...ex, sets: ex.sets.filter((set) => set.id !== setId) }
+          : ex
+      )
+    );
   };
 
   const handleAddExercise = () => {
@@ -197,7 +240,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           ...selectedExercise,
           sets: [{ id: `${Date.now()}`, weight: 0, reps: 0, completed: false }],
         };
-        setExercises(prev => [...prev, newExercise]);
+        setExercises((prev) => [...prev, newExercise]);
         navigation.goBack();
       },
     });
@@ -234,7 +277,11 @@ const ActiveWorkoutScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <BackButton />
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="dumbbell" size={80} color={theme.colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="dumbbell"
+            size={80}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.emptyText}>אין תרגילים באימון</Text>
           <UniversalButton
             title="הוסף תרגיל"
@@ -253,7 +300,9 @@ const ActiveWorkoutScreen: React.FC = () => {
       <View style={styles.header}>
         <BackButton />
         <View style={styles.headerCenter}>
-          <Text style={styles.workoutTitle}>{workoutData?.name || "אימון פעיל"}</Text>
+          <Text style={styles.workoutTitle}>
+            {workoutData?.name || "אימון פעיל"}
+          </Text>
           <Text style={styles.workoutTime}>{formatTime(workoutTime)}</Text>
         </View>
         <TouchableOpacity
@@ -285,8 +334,11 @@ const ActiveWorkoutScreen: React.FC = () => {
       </View>
 
       {/* Exercises */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {exercises.map(exercise => (
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {exercises.map((exercise) => (
           <ExerciseItem
             key={exercise.id}
             exercise={exercise}

@@ -5,6 +5,10 @@ import { userApi } from "../api/userApi";
 import { useUserStore } from "../../stores/userStore";
 import { StorageKeys } from "../../constants/StorageKeys";
 
+if (!supabase) {
+  throw new Error("Supabase client not initialized");
+}
+
 export type QuickLoginResult =
   | { ok: true; userId: string }
   | {
@@ -13,45 +17,12 @@ export type QuickLoginResult =
     };
 
 export const isQuickLoginAvailable = async (): Promise<boolean> => {
-  try {
-    if (!supabase) return false;
-
-    // Check if user explicitly logged out
-    const userLoggedOut = await AsyncStorage.getItem("user_logged_out");
-    if (userLoggedOut === "true") return false;
-
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-    if (error || !session?.user?.id) return false;
-
-    // Check if session is still valid (at least 5 minutes remaining)
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at || 0;
-    if (expiresAt > now + 300) return true;
-
-    // Try to refresh if we have a refresh token
-    if (session.refresh_token) {
-      const { data: refreshData, error: refreshError } =
-        await supabase.auth.refreshSession({
-          refresh_token: session.refresh_token,
-        });
-      return !refreshError && !!refreshData.session?.user;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
+  const result = await tryQuickLogin();
+  return result.ok;
 };
 
-export const tryQuickLogin = async (_opts?: {
-  reason?: string;
-}): Promise<QuickLoginResult> => {
+export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
   try {
-    if (!supabase) return { ok: false, reason: "NO_SESSION" };
-
     // Check if user explicitly logged out
     const userLoggedOut = await AsyncStorage.getItem("user_logged_out");
     if (userLoggedOut === "true") return { ok: false, reason: "NO_SESSION" };
@@ -60,7 +31,7 @@ export const tryQuickLogin = async (_opts?: {
     const {
       data: { session },
       error: sessionError,
-    } = await supabase.auth.getSession();
+    } = await supabase!.auth.getSession();
     if (sessionError || !session?.user?.id)
       return { ok: false, reason: "NO_SESSION" };
 
@@ -75,7 +46,7 @@ export const tryQuickLogin = async (_opts?: {
 
       // Try to refresh session
       const { data: refreshData, error: refreshError } =
-        await supabase.auth.refreshSession({
+        await supabase!.auth.refreshSession({
           refresh_token: session.refresh_token,
         });
 
@@ -95,21 +66,15 @@ export const tryQuickLogin = async (_opts?: {
     // Update user store
     useUserStore.getState().setUser(user);
 
-    // Clear logout flag when successful login
+    // Clear logout flag and save cache
     try {
       await AsyncStorage.removeItem("user_logged_out");
-    } catch {
-      // Non-critical
-    }
-
-    // Save cache (non-critical)
-    try {
       if (user.id)
         await AsyncStorage.setItem(StorageKeys.LAST_USER_ID, user.id);
       if (user.email)
         await AsyncStorage.setItem(StorageKeys.LAST_EMAIL, user.email);
     } catch {
-      // Cache save failure is not critical
+      // Cache operations are non-critical
     }
 
     return { ok: true, userId: user.id };

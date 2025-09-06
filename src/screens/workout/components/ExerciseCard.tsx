@@ -1,35 +1,14 @@
 /**
- * @file Enhanced Exercise Card Component - Simple Version
- * @description רכיב תרגיל מותאם עם React.memo ואופטימיזציות ביצועים - גרסה משופרת פשוטה
- * @updated August 2025 - Enhanced accessibility, performance & UX
- *
- * ⚠️ הערה: זוהי הגרסה הפשוטה של ExerciseCard
- * לגרסה המתקדמת ראה: ./ExerciseCard/index.tsx
- *
- * 🚀 שיפורים שנוספו:
- * - ♿ נגישות מלאה עם accessibilityLabels מפורטים
- * - ⚡ אופטימיזציות ביצועים עם useMemo וuseCallback
- * - 🎯 Haptic feedback משופר
- * - 🎨 עיצוב משופר עם אנימציות עדינות
- * - 🛡️ טיפול בשגיאות עם Error Boundaries
- * - 📱 שיפורי UX עם loading states
- * - 🔄 תמיכה במצבי טעינה ושגיאות
- * - 📊 סטטיסטיקות מחושבות ממוזכרות
- * - 🎪 השוואת props מותאמת למניעת רינדורים מיותרים
+ * @file Exercise Card Component
+ * @description רכיב תרגיל
+ * @version 1.0.0
  */
 
-import React, { memo, useMemo, useCallback, useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from "react-native";
+import { memo, useCallback } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../../styles/theme";
-import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import {
   getEquipmentHebrewName,
   getEquipmentIcon,
@@ -50,7 +29,6 @@ interface ExerciseCardProps {
   isExpanded: boolean;
   onPress: (exerciseId: string) => void;
   showDetails?: boolean;
-  isLoading?: boolean;
   disabled?: boolean;
 }
 
@@ -60,285 +38,118 @@ const ExerciseCard = memo(
     isExpanded,
     onPress,
     showDetails = true,
-    isLoading = false,
     disabled = false,
   }: ExerciseCardProps) => {
-    // 📊 Performance tracking
-    const renderStart = performance.now();
-
-    // אנימציה עדינה למעבר בין מצבים
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const opacityAnim = useRef(new Animated.Value(1)).current;
-
-    // �🎯 Haptic feedback מותאם
-    const triggerHaptic = useCallback(() => {
-      if (!disabled) {
-        Haptics.selectionAsync();
-      }
-    }, [disabled]);
-
-    // 🏃‍♂️ מטפל בלחיצה על הכרטיס
     const handlePress = useCallback(() => {
-      if (disabled || isLoading) return;
+      if (disabled) return;
 
-      // אנימציה קצרה של לחיצה
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      triggerHaptic();
+      Haptics.selectionAsync();
       onPress(exercise.id);
-    }, [disabled, isLoading, triggerHaptic, onPress, exercise.id, scaleAnim]);
+    }, [disabled, onPress, exercise.id]);
 
-    // 📊 Performance tracking
-    useEffect(() => {
-      const renderEnd = performance.now();
-      const renderTime = renderEnd - renderStart;
-      if (renderTime > 100) {
-        console.warn(`ExerciseCard slow render: ${renderTime.toFixed(2)}ms`);
-      }
-    });
+    const equipmentIcon = getEquipmentIcon(exercise.equipment);
+    const equipmentName = getEquipmentHebrewName(exercise.equipment);
 
-    // 🎨 אפקט עבור מצב disabled/loading
-    useEffect(() => {
-      Animated.timing(opacityAnim, {
-        toValue: disabled || isLoading ? 0.6 : 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }, [disabled, isLoading, opacityAnim]);
-
-    // 🎨 מחושבים ממוזכרים לאייקונים וטקסטים
-    const equipmentData = useMemo(
-      () => ({
-        icon: getEquipmentIcon(exercise.equipment),
-        name: getEquipmentHebrewName(exercise.equipment),
-      }),
-      [exercise.equipment]
-    );
-
-    // 📊 סטטיסטיקות מחושבות
-    const exerciseStats = useMemo(() => {
-      const stats = [];
-      if (exercise.sets) stats.push(`${exercise.sets} סטים`);
-      if (exercise.reps) stats.push(exercise.reps);
-      if (exercise.duration) stats.push(`${exercise.duration}״`);
-      return stats;
-    }, [exercise.sets, exercise.reps, exercise.duration]);
-
-    // 🎨 סטיילים דינמיים
-    const cardStyle = useMemo(
-      () => [
-        styles.exerciseCard,
-        isExpanded && styles.expandedCard,
-        disabled && styles.disabledCard,
-        isLoading && styles.loadingCard,
-      ],
-      [isExpanded, disabled, isLoading]
-    );
-
-    // ♿ נגישות - תווית מפורטת
-    const accessibilityLabel = useMemo(() => {
-      const parts = [
-        `תרגיל ${exercise.name}`,
-        `דורש ${equipmentData.name}`,
-        exercise.category && `קטגוריה ${exercise.category}`,
-        exerciseStats.length > 0 && exerciseStats.join(", "),
-        isExpanded ? "מורחב" : "מכווץ",
-        disabled ? "מושבת" : "זמין ללחיצה",
-      ].filter(Boolean);
-
-      return parts.join(", ");
-    }, [
-      exercise.name,
-      exercise.category,
-      equipmentData.name,
-      exerciseStats,
-      isExpanded,
-      disabled,
-    ]);
+    const exerciseStats = [];
+    if (exercise.sets) exerciseStats.push(`${exercise.sets} סטים`);
+    if (exercise.reps) exerciseStats.push(exercise.reps);
+    if (exercise.duration) exerciseStats.push(`${exercise.duration}״`);
 
     return (
-      <Animated.View
-        style={[{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+      <TouchableOpacity
+        style={[
+          styles.exerciseCard,
+          isExpanded && styles.expandedCard,
+          disabled && styles.disabledCard,
+        ]}
+        onPress={handlePress}
+        activeOpacity={disabled ? 1 : 0.6}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`תרגיל ${exercise.name}, דורש ${equipmentName}`}
+        accessibilityState={{
+          disabled,
+          expanded: isExpanded,
+        }}
       >
-        <TouchableOpacity
-          style={cardStyle}
-          onPress={handlePress}
-          activeOpacity={disabled ? 1 : 0.6}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={
-            disabled
-              ? "תרגיל מושבת כרגע"
-              : isExpanded
-                ? "הקש לכווץ את פרטי התרגיל"
-                : "הקש להרחיב את פרטי התרגיל"
-          }
-          accessibilityState={{
-            disabled: disabled || isLoading,
-            expanded: isExpanded,
-          }}
-        >
-          {/* Loading Overlay */}
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <LoadingSpinner
-                size="small"
-                variant="dots"
-                testID="exercise-loading"
+        <View style={styles.exerciseHeader}>
+          <View style={styles.exerciseInfo}>
+            <Text
+              style={[styles.exerciseName, disabled && styles.disabledText]}
+              numberOfLines={2}
+            >
+              {exercise.name}
+            </Text>
+            <View style={styles.equipmentRow}>
+              <MaterialCommunityIcons
+                name={
+                  equipmentIcon as keyof typeof MaterialCommunityIcons.glyphMap
+                }
+                size={18}
+                color={
+                  disabled ? theme.colors.textSecondary : theme.colors.primary
+                }
               />
+              <Text
+                style={[styles.equipmentText, disabled && styles.disabledText]}
+              >
+                {equipmentName}
+              </Text>
+            </View>
+          </View>
+
+          {showDetails && exerciseStats.length > 0 && (
+            <View style={styles.exerciseDetails}>
+              {exerciseStats.map((stat, index) => (
+                <Text
+                  key={index}
+                  style={[styles.detailText, disabled && styles.disabledText]}
+                >
+                  {stat}
+                </Text>
+              ))}
             </View>
           )}
 
-          <View style={styles.exerciseHeader}>
-            <View style={styles.exerciseInfo}>
-              <Text
-                style={[styles.exerciseName, disabled && styles.disabledText]}
-                numberOfLines={2}
-                accessible={true}
-                accessibilityRole="header"
-              >
-                {exercise.name}
-              </Text>
-              <View style={styles.equipmentRow}>
-                <MaterialCommunityIcons
-                  name={
-                    equipmentData.icon as keyof typeof MaterialCommunityIcons.glyphMap
-                  }
-                  size={18}
-                  color={
-                    disabled ? theme.colors.textSecondary : theme.colors.primary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.equipmentText,
-                    disabled && styles.disabledText,
-                  ]}
-                >
-                  {equipmentData.name}
-                </Text>
-              </View>
-            </View>
+          <MaterialCommunityIcons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={28}
+            color={
+              disabled
+                ? theme.colors.textSecondary
+                : isExpanded
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
+            }
+          />
+        </View>
 
-            {showDetails && exerciseStats.length > 0 && (
-              <View style={styles.exerciseDetails}>
-                {exerciseStats.map((stat, index) => (
-                  <Text
-                    key={index}
-                    style={[styles.detailText, disabled && styles.disabledText]}
-                    accessible={true}
-                    accessibilityLabel={stat}
-                  >
-                    {stat}
-                  </Text>
+        {isExpanded &&
+          exercise.muscleGroups &&
+          exercise.muscleGroups.length > 0 && (
+            <View style={styles.expandedContent}>
+              <Text style={styles.muscleGroupsLabel}>קבוצות שריר:</Text>
+              <View style={styles.muscleGroupsContainer}>
+                {exercise.muscleGroups.map((muscle, index) => (
+                  <View key={`${muscle}-${index}`} style={styles.muscleTag}>
+                    <Text style={styles.muscleText}>{muscle}</Text>
+                  </View>
                 ))}
               </View>
-            )}
-
-            <MaterialCommunityIcons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={28}
-              color={
-                disabled
-                  ? theme.colors.textSecondary
-                  : isExpanded
-                    ? theme.colors.primary
-                    : theme.colors.textSecondary
-              }
-              accessible={true}
-              accessibilityLabel={isExpanded ? "סמן כווץ" : "סמן הרחב"}
-            />
-          </View>
-
-          {isExpanded &&
-            exercise.muscleGroups &&
-            exercise.muscleGroups.length > 0 && (
-              <View style={styles.expandedContent}>
-                <Text
-                  style={styles.muscleGroupsLabel}
-                  accessible={true}
-                  accessibilityRole="header"
-                  accessibilityLabel="קבוצות שריר"
-                >
-                  קבוצות שריר:
+              {exercise.rest && (
+                <Text style={styles.restText}>
+                  מנוחה: {exercise.rest} שניות
                 </Text>
-                <View
-                  style={styles.muscleGroupsContainer}
-                  accessible={true}
-                  accessibilityLabel={`קבוצות שריר: ${exercise.muscleGroups.join(", ")}`}
-                >
-                  {exercise.muscleGroups.map((muscle, index) => (
-                    <View key={`${muscle}-${index}`} style={styles.muscleTag}>
-                      <Text
-                        style={styles.muscleText}
-                        accessible={true}
-                        accessibilityLabel={muscle}
-                      >
-                        {muscle}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-                {exercise.rest && (
-                  <Text
-                    style={styles.restText}
-                    accessible={true}
-                    accessibilityLabel={`זמן מנוחה ${exercise.rest} שניות`}
-                  >
-                    מנוחה: {exercise.rest} שניות
-                  </Text>
-                )}
-              </View>
-            )}
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  },
-  // 📈 אופטימיזציה - השוואה רדודה מותאמת
-  (prevProps, nextProps) => {
-    // שיפור: השוואה מהירה יותר ללא JSON.stringify
-    return (
-      prevProps.exercise.id === nextProps.exercise.id &&
-      prevProps.exercise.name === nextProps.exercise.name &&
-      prevProps.exercise.equipment === nextProps.exercise.equipment &&
-      prevProps.exercise.sets === nextProps.exercise.sets &&
-      prevProps.exercise.reps === nextProps.exercise.reps &&
-      prevProps.isExpanded === nextProps.isExpanded &&
-      prevProps.showDetails === nextProps.showDetails &&
-      prevProps.isLoading === nextProps.isLoading &&
-      prevProps.disabled === nextProps.disabled
+              )}
+            </View>
+          )}
+      </TouchableOpacity>
     );
   }
 );
 
 ExerciseCard.displayName = "ExerciseCard";
-
-// 🚀 Export המוגן עם Error Boundary פשוט
-const ExerciseCardWithSafetyWrapper: React.FC<ExerciseCardProps> = (props) => {
-  try {
-    return <ExerciseCard {...props} />;
-  } catch (error) {
-    console.error("ExerciseCard Error:", error);
-    return (
-      <View style={styles.errorFallback}>
-        <Text style={styles.errorText}>שגיאה בטעינת התרגיל</Text>
-      </View>
-    );
-  }
-};
 
 const styles = StyleSheet.create({
   exerciseCard: {
@@ -347,7 +158,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginVertical: 8,
-    // שיפורי צללים מתקדמים
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
@@ -360,7 +170,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderWidth: 2,
     borderColor: theme.colors.primary,
-    // שיפורי עיצוב למצב מורחב
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
@@ -372,18 +181,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.textSecondary,
-  },
-  loadingCard: {
-    opacity: 0.8,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 10,
-    backgroundColor: `${theme.colors.background}90`,
-    borderRadius: 12,
-    padding: 4,
   },
   exerciseHeader: {
     flexDirection: "row",
@@ -464,7 +261,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 6,
-    // שיפורי עיצוב
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -488,22 +284,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
   },
-  // 🚨 Error Handling Styles
-  errorFallback: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.error || theme.colors.textSecondary,
-  },
-  errorText: {
-    color: theme.colors.error || theme.colors.textSecondary,
-    fontSize: 14,
-    textAlign: "center",
-  },
 });
 
-export default ExerciseCardWithSafetyWrapper;
+export default ExerciseCard;

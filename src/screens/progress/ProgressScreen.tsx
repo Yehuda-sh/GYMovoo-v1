@@ -13,12 +13,7 @@ import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { PROGRESS_SCREEN_TEXTS } from "../../constants/progressScreenTexts";
 import { SafeAreaView } from "react-native-safe-area-context";
-// useNavigation import commented out until NextWorkoutCard integration
-// import { useNavigation } from "@react-navigation/native";
-import { workoutFacadeService } from "../../services/workout/workoutFacadeService";
-import { logger } from "../../utils/logger";
-// NextWorkoutCard import commented out until proper workoutPlan integration
-// import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+import workoutFacadeService from "../../services/workout/workoutFacadeService";
 
 // Types for stats
 interface ProgressStats {
@@ -29,45 +24,52 @@ interface ProgressStats {
 }
 
 export default function ProgressScreen(): JSX.Element {
-  // const navigation = useNavigation(); // Commented out until NextWorkoutCard integration
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ProgressStats | null>(null);
   const [personalRecords, setPersonalRecords] = useState<number>(0);
 
   const loadProgressData = useCallback(async () => {
     try {
-      const [statsData, historyData] = await Promise.all([
-        workoutFacadeService.getGenderGroupedStatistics(),
-        workoutFacadeService.getHistory(),
-      ]);
+      const historyData = await workoutFacadeService.getHistory();
+
+      // Calculate stats from history
+      const totalWorkouts = historyData.length;
+      const totalDuration = historyData.reduce(
+        (acc, workout) => acc + (workout.workout?.duration || 0),
+        0
+      );
+      const averageDifficulty =
+        historyData.length > 0
+          ? historyData.reduce(
+              (acc, workout) => acc + (workout.feedback?.difficulty || 0),
+              0
+            ) / historyData.length
+          : 0;
+
+      // Calculate streak (simplified - consecutive recent workouts)
+      const workoutStreak = historyData.slice(0, 7).length;
 
       const personalRecordsCount = historyData.reduce(
-        (acc, curr) => acc + (curr.stats?.personalRecords || 0),
+        (acc: number, curr) => acc + (curr.stats?.personalRecords || 0),
         0
       );
 
-      setStats(statsData.total);
+      setStats({
+        totalWorkouts,
+        totalDuration,
+        averageDifficulty,
+        workoutStreak,
+      });
       setPersonalRecords(personalRecordsCount);
     } catch (error) {
-      logger.error("ProgressScreen: failed to load stats", String(error));
+      console.error("Failed to load progress data:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    // Add delay to prevent unnecessary calls
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        loadProgressData();
-      }
-    }, 200);
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-    };
+    loadProgressData();
   }, [loadProgressData]);
 
   return (
@@ -135,18 +137,6 @@ export default function ProgressScreen(): JSX.Element {
             </>
           )}
         </View>
-
-        {/* Next Workout Recommendation - Commented out until proper workoutPlan data */}
-        {/* <NextWorkoutCard
-          workoutPlan={undefined}
-          onStartWorkout={(workoutName, workoutIndex) => {
-            navigation.navigate("WorkoutPlans", {
-              autoStart: true,
-              requestedWorkoutName: workoutName,
-              requestedWorkoutIndex: workoutIndex,
-            });
-          }}
-        /> */}
       </View>
     </SafeAreaView>
   );
@@ -174,10 +164,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: theme.spacing.lg,
     writingDirection: "rtl",
-    letterSpacing: 0.5,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   subtitle: {
     fontSize: 18,
@@ -186,7 +172,6 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginBottom: theme.spacing.xl,
     writingDirection: "rtl",
-    letterSpacing: 0.3,
     paddingHorizontal: theme.spacing.sm,
   },
   infoBox: {
@@ -197,14 +182,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border + "40",
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   infoTitle: {
     fontSize: 18,
@@ -213,10 +190,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
     textAlign: "center",
     writingDirection: "rtl",
-    letterSpacing: 0.4,
-    textShadowColor: "rgba(0, 0, 0, 0.08)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
   },
   infoText: {
     fontSize: 16,
@@ -225,21 +198,9 @@ const styles = StyleSheet.create({
     textAlign: "right",
     writingDirection: "rtl",
     lineHeight: 24,
-    letterSpacing: 0.2,
   },
   loadingContainer: {
     alignItems: "center",
     paddingVertical: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    marginHorizontal: theme.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
 });

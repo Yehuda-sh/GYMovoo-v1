@@ -251,13 +251,41 @@ export const useUserStore = create<UserStore>()(
 
       // הגדרת משתמש
       // Set user
-      setUser: (user) => {
+      setUser: async (user) => {
         try {
+          // If user doesn't have questionnaire data but there are saved results, load them
+          if (user && !user.smartquestionnairedata) {
+            try {
+              const savedResults = await AsyncStorage.getItem(
+                StorageKeys.SMART_QUESTIONNAIRE_RESULTS
+              );
+              if (savedResults) {
+                const smartData = JSON.parse(savedResults);
+                user = {
+                  ...user,
+                  smartquestionnairedata: smartData,
+                  hasQuestionnaire: true,
+                };
+                logger.debug(
+                  "UserStore",
+                  "Loaded questionnaire results from AsyncStorage"
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                "UserStore",
+                "Failed to load saved questionnaire results",
+                error
+              );
+            }
+          }
+
           set({ user });
           // סנכרון שרת (אם יש מזהה אמיתי)
           get().scheduleServerSync("setUser");
           logger.debug("UserStore", "User set successfully", {
             hasUser: !!user,
+            hasQuestionnaire: !!user?.smartquestionnairedata,
           });
         } catch (error) {
           logger.error("UserStore", "Error setting user", error);

@@ -134,26 +134,14 @@ export interface ProgressData {
 export interface PerformanceData {
   exerciseId: string;
   exerciseName: string;
-  history: PerformanceEntry[];
-}
-
-// רשומת ביצוע
-// Performance entry
-export interface PerformanceEntry {
-  date: ISODateString;
-  sets: Set[];
-  totalVolume: number;
-  maxWeight: number;
-  maxReps: number;
-  notes?: string;
-}
-
-// מצב שמירה
-// Save state
-export interface WorkoutDraft {
-  workout: WorkoutData;
-  lastSaved: ISODateString;
-  version: number;
+  history: Array<{
+    date: ISODateString;
+    sets: Set[];
+    totalVolume: number;
+    maxWeight: number;
+    maxReps: number;
+    notes?: string;
+  }>;
 }
 
 // === ENHANCED ANALYTICS & FEEDBACK (TypeScript Cleanup 2025) ===

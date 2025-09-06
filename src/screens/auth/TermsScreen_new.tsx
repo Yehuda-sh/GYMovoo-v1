@@ -31,7 +31,7 @@ const TermsScreen: React.FC = () => {
         StorageKeys.TERMS_AGREEMENT,
         JSON.stringify(agreement)
       );
-      
+
       navigation.goBack();
     } catch (error) {
       console.warn("Failed to save agreement:", error);
@@ -69,7 +69,7 @@ const TermsScreen: React.FC = () => {
           {/* General Terms */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>תנאים כלליים</Text>
-            
+
             <View style={styles.termItem}>
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>1</Text>
@@ -101,7 +101,7 @@ const TermsScreen: React.FC = () => {
           {/* Privacy Policy */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>מדיניות פרטיות</Text>
-            
+
             <View style={styles.termItem}>
               <View style={styles.termNumber}>
                 <Text style={styles.termNumberText}>4</Text>

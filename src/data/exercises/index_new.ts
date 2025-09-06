@@ -79,23 +79,26 @@ export function getResistanceBandExercises(): Exercise[] {
  */
 
 export function getExercisesByEquipment(equipment: string): Exercise[] {
-  return allExercises.filter(exercise => exercise.equipment === equipment);
+  return allExercises.filter((exercise) => exercise.equipment === equipment);
 }
 
 export function getExercisesByCategory(category: string): Exercise[] {
-  return allExercises.filter(exercise => exercise.category === category);
+  return allExercises.filter((exercise) => exercise.category === category);
 }
 
 export function getExercisesByDifficulty(difficulty: string): Exercise[] {
-  return allExercises.filter(exercise => exercise.difficulty === difficulty);
+  return allExercises.filter((exercise) => exercise.difficulty === difficulty);
 }
 
 export function getHomeCompatibleExercises(): Exercise[] {
-  return allExercises.filter(exercise => exercise.homeCompatible);
+  return allExercises.filter((exercise) => exercise.homeCompatible);
 }
 
 export function getQuietExercises(): Exercise[] {
-  return allExercises.filter(exercise => exercise.noiseLevel === 'silent' || exercise.noiseLevel === 'quiet');
+  return allExercises.filter(
+    (exercise) =>
+      exercise.noiseLevel === "silent" || exercise.noiseLevel === "quiet"
+  );
 }
 
 /**
@@ -104,7 +107,7 @@ export function getQuietExercises(): Exercise[] {
  */
 
 export function getExerciseById(id: string): Exercise | undefined {
-  return allExercises.find(exercise => exercise.id === id);
+  return allExercises.find((exercise) => exercise.id === id);
 }
 
 export function getRandomExercises(count: number = 10): Exercise[] {
@@ -115,18 +118,27 @@ export function getRandomExercises(count: number = 10): Exercise[] {
 export function getExerciseStats() {
   return {
     total: allExercises.length,
-    byCategory: allExercises.reduce((acc, exercise) => {
-      acc[exercise.category] = (acc[exercise.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byEquipment: allExercises.reduce((acc, exercise) => {
-      acc[exercise.equipment] = (acc[exercise.equipment] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byDifficulty: allExercises.reduce((acc, exercise) => {
-      acc[exercise.difficulty] = (acc[exercise.difficulty] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
+    byCategory: allExercises.reduce(
+      (acc, exercise) => {
+        acc[exercise.category] = (acc[exercise.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
+    byEquipment: allExercises.reduce(
+      (acc, exercise) => {
+        acc[exercise.equipment] = (acc[exercise.equipment] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
+    byDifficulty: allExercises.reduce(
+      (acc, exercise) => {
+        acc[exercise.difficulty] = (acc[exercise.difficulty] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
   };
 }
 

@@ -1,16 +1,17 @@
 /**
  * @file src/screens/workout/components/QuickActions.tsx
- * @brief Quick Action Buttons Component for Workout Plans
- * @updated September 2025 - Refactored to use enhanced TouchableButton with haptic feedback
- * @dependencies TouchableButton (enhanced), MaterialCommunityIcons, theme
- * @features Enhanced haptic feedback, loading states, accessibility, cross-platform support
+ * @description Quick action buttons for workout plan management
+ *
+ * Features:
+ * - Basic workout plan generation
+ * - AI workout plan generation (premium feature)
+ * - Start workout functionality
  */
 
-import React, { memo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { memo } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
-import TouchableButton from "../../../components/ui/TouchableButton";
 
 interface QuickActionsProps {
   onRegenerateBasic: () => void;
@@ -36,16 +37,11 @@ const QuickActions = memo(
 
         <View style={styles.actionsGrid}>
           {/* Regenerate Basic Plan */}
-          <TouchableButton
+          <TouchableOpacity
             style={[styles.actionButton, styles.basicButton]}
             onPress={onRegenerateBasic}
             disabled={loading}
-            loading={loading}
-            enableHapticFeedback={true}
-            hapticType="medium"
-            accessibilityLabel="יצירת תוכנית בסיסית חדשה"
-            accessibilityHint="ליצור תוכנית אימון בסיסית מותאמת"
-            testID="regenerate-basic-button"
+            activeOpacity={0.7}
           >
             <MaterialCommunityIcons
               name="refresh"
@@ -53,10 +49,10 @@ const QuickActions = memo(
               color={theme.colors.text}
             />
             <Text style={styles.actionText}>תוכנית בסיסית</Text>
-          </TouchableButton>
+          </TouchableOpacity>
 
           {/* Regenerate AI Plan */}
-          <TouchableButton
+          <TouchableOpacity
             style={[
               styles.actionButton,
               styles.aiButton,
@@ -64,14 +60,7 @@ const QuickActions = memo(
             ]}
             onPress={onRegenerateAI}
             disabled={loading || !canAccessAI}
-            loading={loading}
-            enableHapticFeedback={true}
-            hapticType="heavy"
-            accessibilityLabel="יצירת תוכנית AI חדשה"
-            accessibilityHint={
-              canAccessAI ? "ליצור תוכנית מותאמת עם AI" : "נדרש מנוי פעיל"
-            }
-            testID="regenerate-ai-button"
+            activeOpacity={0.7}
           >
             <MaterialCommunityIcons
               name="brain"
@@ -93,10 +82,10 @@ const QuickActions = memo(
                 style={styles.lockIcon}
               />
             )}
-          </TouchableButton>
+          </TouchableOpacity>
 
           {/* Start Workout */}
-          <TouchableButton
+          <TouchableOpacity
             style={[
               styles.actionButton,
               styles.startButton,
@@ -104,14 +93,7 @@ const QuickActions = memo(
             ]}
             onPress={onStartWorkout}
             disabled={loading || !hasWorkoutPlan}
-            loading={loading}
-            enableHapticFeedback={true}
-            hapticType="heavy"
-            accessibilityLabel="התחלת אימון"
-            accessibilityHint={
-              hasWorkoutPlan ? "להתחיל אימון עכשיו" : "צריך תוכנית אימון תחילה"
-            }
-            testID="start-workout-button"
+            activeOpacity={0.7}
           >
             <MaterialCommunityIcons
               name="play-circle"
@@ -130,7 +112,7 @@ const QuickActions = memo(
             >
               התחל אימון
             </Text>
-          </TouchableButton>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -144,15 +126,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 20,
     textAlign: "center",
-    letterSpacing: 0.5,
-    // שיפור טיפוגרפי
-    textShadowColor: `${theme.colors.text}10`,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   actionsGrid: {
     flexDirection: "row",
@@ -169,66 +146,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 96,
-    borderWidth: 1.5,
-    borderColor: `${theme.colors.border}80`,
-    // שיפורי עיצוב מתקדמים
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...theme.shadows.small,
   },
   basicButton: {
-    backgroundColor: `${theme.colors.surface}F5`,
-    borderColor: `${theme.colors.primary}30`,
-    // גרדיאנט עדין
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.08,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.primary,
   },
   aiButton: {
-    backgroundColor: `${theme.colors.primaryLight}20`,
-    borderColor: `${theme.colors.primary}50`,
-    // הדגשת AI
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
+    backgroundColor: `${theme.colors.primary}10`,
+    borderColor: theme.colors.primary,
   },
   startButton: {
-    backgroundColor: `${theme.colors.success}15`,
-    borderColor: `${theme.colors.success}40`,
-    // הדגשת כפתור התחלה
-    shadowColor: theme.colors.success,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 10,
+    backgroundColor: `${theme.colors.success}10`,
+    borderColor: theme.colors.success,
   },
   disabledButton: {
     opacity: 0.5,
     backgroundColor: theme.colors.surfaceVariant,
-    borderColor: `${theme.colors.border}40`,
-    shadowOpacity: 0.05,
-    elevation: 2,
+    borderColor: theme.colors.border,
   },
   actionText: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: theme.colors.text,
     marginTop: 10,
     textAlign: "center",
-    letterSpacing: 0.3,
-    lineHeight: 18,
   },
   startText: {
     color: theme.colors.success,
-    fontWeight: "800",
-    textShadowColor: `${theme.colors.success}20`,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: "bold",
   },
   disabledText: {
     color: theme.colors.textSecondary,
-    fontWeight: "600",
   },
   lockIcon: {
     position: "absolute",

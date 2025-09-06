@@ -1,10 +1,9 @@
 /**
- * @file src/screens/workout/components/WorkoutPlanLoading.tsx
- * @brief Loading Component for Workout Plan Generation
- * @updated August 2025 - Performance optimized loading component
+ * @file WorkoutPlanLoading.tsx
+ * @description רכיב טעינה לתוכנית אימון
  */
 
-import React, { memo } from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
@@ -15,37 +14,35 @@ interface WorkoutPlanLoadingProps {
   isAI?: boolean;
 }
 
-const WorkoutPlanLoading = memo(
-  ({
-    message = "יוצר תוכנית אימון...",
-    isAI = false,
-  }: WorkoutPlanLoadingProps) => {
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          {isAI && (
-            <MaterialCommunityIcons
-              name="brain"
-              size={56}
-              color={theme.colors.primary}
-              style={styles.brainIcon}
-            />
-          )}
+const WorkoutPlanLoading: React.FC<WorkoutPlanLoadingProps> = ({
+  message = "יוצר תוכנית אימון...",
+  isAI = false,
+}) => {
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {isAI && (
+          <MaterialCommunityIcons
+            name="brain"
+            size={48}
+            color={theme.colors.primary}
+            style={styles.icon}
+          />
+        )}
 
-          <LoadingSpinner size="large" />
+        <LoadingSpinner size="large" />
 
-          <Text style={styles.message}>{message}</Text>
+        <Text style={styles.message}>{message}</Text>
 
-          {isAI && (
-            <Text style={styles.subMessage}>
-              AI מנתח את הנתונים שלך לתוכנית מותאמת אישית
-            </Text>
-          )}
-        </View>
+        {isAI && (
+          <Text style={styles.subMessage}>
+            AI מנתח את הנתונים שלך לתוכנית מותאמת אישית
+          </Text>
+        )}
       </View>
-    );
-  }
-);
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -55,52 +52,35 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingHorizontal: 24,
   },
+
   content: {
     alignItems: "center",
     padding: 32,
-    backgroundColor: `${theme.colors.surface}F8`,
-    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     maxWidth: 320,
     width: "100%",
-    // שיפורי עיצוב מתקדמים
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: `${theme.colors.cardBorder}40`,
   },
-  brainIcon: {
-    marginBottom: 20,
-    opacity: 0.9,
+
+  icon: {
+    marginBottom: 16,
   },
+
   message: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "600",
     color: theme.colors.text,
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 12,
-    letterSpacing: 0.3,
-    lineHeight: 26,
-    // שיפור טיפוגרפי
-    textShadowColor: `${theme.colors.text}10`,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    marginTop: 16,
+    marginBottom: 8,
   },
+
   subMessage: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 22,
-    letterSpacing: 0.2,
-    paddingHorizontal: 16,
     marginTop: 8,
   },
 });
-
-WorkoutPlanLoading.displayName = "WorkoutPlanLoading";
 
 export default WorkoutPlanLoading;

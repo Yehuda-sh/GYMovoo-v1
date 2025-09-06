@@ -1,14 +1,4 @@
-/**
- * @file src/services/supabase/index.ts
- * @brief Supabase services export hub
- * @description Central export point for Supabase-related services and utilities.
- *
- * @status ACTIVE - Core Supabase service exports
- */
-
-// =======================================
-// 🔌 Core Client & Configuration
-// =======================================
+// Supabase services export hub
 export {
   supabase,
   hasSupabaseConfig,
@@ -16,9 +6,6 @@ export {
   isSupabaseReady,
 } from "./client";
 
-// =======================================
-// 🗄️ Storage Services
-// =======================================
 export {
   getPublicStorageBaseUrl,
   buildPublicUrl,
@@ -29,7 +16,4 @@ export {
   isSupabaseStorageUrl,
 } from "./storage";
 
-// =======================================
-// 📝 Type Exports
-// =======================================
 export type { SupabaseClient } from "@supabase/supabase-js";

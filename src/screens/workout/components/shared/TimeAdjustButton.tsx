@@ -2,22 +2,16 @@
  * @file src/screens/workout/components/shared/TimeAdjustButton.tsx
  * @brief כפתור התאמת זמן מאוחד לטיימר מנוחה
  * @version 1.0.0
- * @author GYMovoo Development Team
- * @created 2025-08-05
- *
  * @description
  * רכיב כפתור מאוחד להוספה והפחתה של זמן מטיימר מנוחה
- * תומך בגדלים ועיצובים שונים עם גרדיאנטים
- *
  * @features
- * - ✅ 2 מצבים: compact, full
- * - ✅ תמיכה בהוספה והפחתה
- * - ✅ גרדיאנטים אוטומטיים
- * - ✅ נגישות מלאה
- * - ✅ אייקונים מותאמים
+ * - 2 מצבים: compact, full
+ * - תמיכה בהוספה והפחתה
+ * - גרדיאנטים אוטומטיים
+ * - נגישות מלאה
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -34,9 +28,8 @@ export interface TimeAdjustButtonProps {
   onPress: (seconds: number) => void;
   onLongPress?: (seconds: number) => void;
   disabled?: boolean;
-  haptic?: boolean; // רטט בעת לחיצה
-  gradientOverride?: [string, string, ...string[]]; // צבעים מותאמים
-  reducedMotion?: boolean; // ביטול אפקטים עתידיים
+  haptic?: boolean;
+  gradientOverride?: [string, string, ...string[]];
   testID?: string;
 }
 
@@ -65,8 +58,7 @@ const SIZE_CONFIG = {
       minWidth: 48,
     },
     textStyle: { fontSize: 15, fontWeight: "700" as const },
-    iconSize: 0, // אין אייקון במצב compact
-    useGradient: false,
+    iconSize: 0,
   },
   full: {
     containerStyle: {},
@@ -78,14 +70,10 @@ const SIZE_CONFIG = {
     },
     textStyle: { fontSize: 17, fontWeight: "800" as const, marginTop: 6 },
     iconSize: 36,
-    useGradient: true,
   },
 } as const;
 
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_TIMEADJUST === "1";
-const dlog = (m: string, data?: unknown) => {
-  if (DEBUG) console.warn(`⏱️ TimeAdjustButton: ${m}`, data || "");
-};
 
 export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
   ({
@@ -97,38 +85,28 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
     disabled = false,
     haptic = false,
     gradientOverride,
-    reducedMotion = false,
     testID,
   }) => {
     const config = BUTTON_CONFIG[type];
     const sizeConfig = SIZE_CONFIG[size];
-
-    const value = useMemo(
-      () => (type === "add" ? seconds : -seconds),
-      [type, seconds]
-    );
-
+    const value = type === "add" ? seconds : -seconds;
     const accessibilityLabel = `${config.accessibilityAction} ${seconds} שניות ${type === "add" ? "לטיימר" : "מהטיימר"}`;
-
-    const gradientColors = useMemo<readonly [string, string, ...string[]]>(
-      () =>
-        gradientOverride
-          ? gradientOverride
-          : [config.color + "30", config.color + "10"],
-      [gradientOverride, config.color]
-    );
+    const gradientColors = gradientOverride || [
+      config.color + "30",
+      config.color + "10",
+    ];
 
     const handlePress = useCallback(() => {
       if (disabled) return;
       if (haptic) triggerVibration("short");
-      dlog("press", { value });
+      if (DEBUG) console.warn(`⏱️ TimeAdjustButton: press`, { value });
       onPress(value);
     }, [disabled, haptic, onPress, value]);
 
     const handleLongPress = useCallback(() => {
       if (disabled) return;
       if (haptic) triggerVibration("short");
-      dlog("longPress", { value });
+      if (DEBUG) console.warn(`⏱️ TimeAdjustButton: longPress`, { value });
       onLongPress?.(value);
     }, [disabled, haptic, onLongPress, value]);
 
@@ -185,11 +163,7 @@ export const TimeAdjustButton: React.FC<TimeAdjustButtonProps> = React.memo(
       >
         <LinearGradient
           colors={gradientColors}
-          style={[
-            sizeConfig.buttonStyle,
-            styles.fullGradientInner,
-            reducedMotion && styles.noTransition,
-          ]}
+          style={[sizeConfig.buttonStyle, styles.fullGradientInner]}
         >
           {sizeConfig.iconSize > 0 && (
             <Ionicons
@@ -215,27 +189,15 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     padding: 18,
-    // שיפורי עיצוב
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 6,
   },
-  noTransition: {
-    // future: place holder for disabling animations (if applied)
-  },
   compactInner: {
     alignItems: "center",
     justifyContent: "center",
-    // שיפורי עיצוב compact
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: `${theme.colors.cardBorder}40`,
   },
   disabled: {
     opacity: 0.4,

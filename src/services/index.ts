@@ -38,8 +38,8 @@ export { workoutApi } from "./api/workoutApi";
 // 🎯 Specialized Workout Services
 // שירותי אימון מתמחים
 // =======================================
-export { workoutFacadeService } from "./workout/workoutFacadeService";
-export { personalRecordService } from "./workout/personalRecordService";
+export { default as workoutFacadeService } from "./workout/workoutFacadeService";
+export { default as personalRecordService } from "./workout/personalRecordService";
 export { progressiveOverloadService } from "./workout/ProgressiveOverloadService";
 
 // =======================================
@@ -66,16 +66,12 @@ export type { SupabaseClient } from "./supabase";
 // מנהל נתונים מרכזי וטיפוסים
 // =======================================
 export { dataManager } from "./core";
-export type { AppDataCache, ServerConfig, DataStatus } from "./core";
+export type { AppDataCache } from "./core";
 
 // =======================================
 // 🎯 Workout Screen Services
 // שירותי מסך אימון
 // =======================================
-export {
-  workoutValidationService,
-  workoutErrorHandlingService,
-} from "../screens/workout/services";
 
 // =======================================
 // 🚀 User Onboarding Services

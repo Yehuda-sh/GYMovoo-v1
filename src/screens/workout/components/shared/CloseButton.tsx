@@ -16,23 +16,21 @@
  * - ✅ נגישות מלאה עם Screen Readers
  * - ✅ התאמה לתמה
  * - ✅ התמקמות דינמית
- * - 🆕 React.memo לאופטימיזציית ביצועים
- * - 🆕 Haptic feedback (רטט)
- * - 🆕 Loading state
- * - 🆕 Enhanced hitSlop למובייל
- * - 🆕 ReducedMotion support
+ * - ✅ React.memo לאופטימיזציית ביצועים
+ * - ✅ Haptic feedback (רטט)
+ * - ✅ Loading state
+ * - ✅ Enhanced hitSlop למובייל
+ * - ✅ ReducedMotion support
  *
  * @accessibility
  * תמיכה מלאה ב-Screen Readers עם accessibilityLabel מותאם
  * hitSlop מוגדל לחוויית מגע מובייל משופרת
  *
  * @performance
- * - React.memo למניעת re-renders מיותרים
- * - useMemo לחישובים כבדים
- * - useCallback לפונקציות handlers
+ * React.memo למניעת re-renders מיותרים עם useMemo לחישובים
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -58,8 +56,6 @@ export interface CloseButtonProps {
   testID?: string;
   iconName?: IconName; // allows reuse beyond close (e.g., "chevron-down")
   style?: StyleProp<ViewStyle>;
-
-  // 🆕 Enhanced Features
   loading?: boolean; // מצב טעינה
   haptic?: boolean; // רטט בלחיצה
   hapticType?: "light" | "medium" | "heavy"; // סוג הרטט
@@ -82,70 +78,59 @@ export const CloseButton: React.FC<CloseButtonProps> = React.memo(
     testID = "close-button",
     iconName = "close",
     style,
-    // Enhanced Features
     loading = false,
     haptic = false,
     hapticType = "light",
     reducedMotion = false,
   }) => {
-    // 🎯 Configuration מאופטם עם useMemo
-    const config = React.useMemo(() => {
-      const map = {
-        small: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
-        medium: { width: 40, height: 40, borderRadius: 20, iconSize: 20 },
-        large: { width: 48, height: 48, borderRadius: 24, iconSize: 24 },
-      } as const;
-      return map[size];
-    }, [size]);
+    // Configuration
+    const SIZE_CONFIG = {
+      small: { width: 32, height: 32, borderRadius: 16, iconSize: 16 },
+      medium: { width: 40, height: 40, borderRadius: 20, iconSize: 20 },
+      large: { width: 48, height: 48, borderRadius: 24, iconSize: 24 },
+    } as const;
 
-    // 🎯 Alignment מאופטם עם useMemo
-    const alignment = React.useMemo(() => {
-      const map = {
-        center: "center",
-        start: "flex-start",
-        end: "flex-end",
-      } as const;
-      return map[position];
-    }, [position]);
+    const config = SIZE_CONFIG[size];
 
-    // 🎯 Haptic feedback handler
+    // Alignment
+    const ALIGNMENT_MAP = {
+      center: "center",
+      start: "flex-start",
+      end: "flex-end",
+    } as const;
+
+    const alignment = ALIGNMENT_MAP[position];
+
+    // Haptic feedback
     const triggerHapticFeedback = useCallback(() => {
-      if (haptic && !disabled && !loading) {
-        const feedbackTypes = {
-          light: Haptics.ImpactFeedbackStyle.Light,
-          medium: Haptics.ImpactFeedbackStyle.Medium,
-          heavy: Haptics.ImpactFeedbackStyle.Heavy,
-        };
-        Haptics.impactAsync(feedbackTypes[hapticType]);
-      }
+      if (!haptic || disabled || loading) return;
+
+      const feedbackTypes = {
+        light: Haptics.ImpactFeedbackStyle.Light,
+        medium: Haptics.ImpactFeedbackStyle.Medium,
+        heavy: Haptics.ImpactFeedbackStyle.Heavy,
+      };
+
+      Haptics.impactAsync(feedbackTypes[hapticType]);
     }, [haptic, disabled, loading, hapticType]);
 
-    // 🎯 Enhanced press handler עם haptic feedback
+    // Press handlers
     const handlePress = useCallback(() => {
       if (disabled || loading) return;
       triggerHapticFeedback();
       onPress();
     }, [disabled, loading, triggerHapticFeedback, onPress]);
 
-    // 🎯 Enhanced long press handler
     const handleLongPress = useCallback(() => {
       if (disabled || loading || !onLongPress) return;
       triggerHapticFeedback();
       onLongPress();
     }, [disabled, loading, onLongPress, triggerHapticFeedback]);
 
-    // 🎯 Enhanced hitSlop למובייל (20px במקום 8-12)
-    const hitSlopValue = React.useMemo(() => {
-      const baseHitSlop = 20; // משופר לחוויית mobile טובה יותר
-      return {
-        top: baseHitSlop,
-        bottom: baseHitSlop,
-        left: baseHitSlop,
-        right: baseHitSlop,
-      };
-    }, []);
+    // Enhanced hitSlop למובייל
+    const hitSlopValue = { top: 20, bottom: 20, left: 20, right: 20 };
 
-    const variantStyle = (() => {
+    const variantStyle = useMemo((): ViewStyle => {
       switch (variant) {
         case "outline":
           return {
@@ -157,18 +142,18 @@ export const CloseButton: React.FC<CloseButtonProps> = React.memo(
             shadowOpacity: 0.15,
             shadowRadius: 4,
             elevation: 3,
-          } as ViewStyle;
+          };
         case "ghost":
           return {
             backgroundColor: `${theme.colors.surface}60`,
             borderWidth: 0,
             shadowOpacity: 0.08,
             elevation: 2,
-          } as ViewStyle;
+          };
         default:
-          return {} as ViewStyle; // solid (default styles apply)
+          return {}; // solid (default styles apply)
       }
-    })();
+    }, [variant]);
 
     const disabledStyle: ViewStyle | undefined = disabled
       ? {
@@ -179,7 +164,7 @@ export const CloseButton: React.FC<CloseButtonProps> = React.memo(
         }
       : undefined;
 
-    // 🎯 Loading and disabled states
+    // Loading and disabled states
     const isInteractive = !disabled && !loading;
 
     return (
@@ -242,7 +227,6 @@ export const CloseButton: React.FC<CloseButtonProps> = React.memo(
   }
 );
 
-// 🎯 Display name לטובת debugging
 CloseButton.displayName = "CloseButton";
 
 const styles = StyleSheet.create({
@@ -250,7 +234,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     justifyContent: "center",
     alignItems: "center",
-    // שיפורי צללים מתקדמים
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -258,9 +241,8 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 1,
     borderColor: `${theme.colors.cardBorder}50`,
-    // שיפורי אינטראקציה
     ...(Platform.OS === "ios" && {
-      shadowPath: undefined, // יאפשר צל טבעי יותר
+      shadowPath: undefined,
     }),
   },
 });

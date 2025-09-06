@@ -1,115 +1,52 @@
 /**
- * @file src/screens/workout/hooks/useRestTimer.ts
- * @description הוק לניהול טיימר מנוחה בין סטים
- * @updated 2025-09-03 Simplified - removed unused features
- *
- * ✅ ACTIVE & SIMPLIFIED: Hook טיימר מנוחה בשימוש פעיל
- * - ActiveWorkoutScreen.tsx: ניהול זמני מנוחה בין סטים
- *
- * @features
- * - ⏱️ טיימר מדויק עם עדכון כל 100ms
- * - 📳 רטט חכם: התחלה, אזהרות וסיום
- * - ➕➖ הוספה/הפחתה דינמית של זמן
- * - 🔄 דילוג על טיימר
- * - 🛡️ הגנה מפני memory leaks
+ * @file useRestTimer.ts
+ * @description טיימר מנוחה פשוט
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { triggerVibration } from "../../../utils";
 
-export interface UseRestTimerReturn {
-  isRestTimerActive: boolean;
-  restTimeRemaining: number;
-  startRestTimer: (duration: number, exerciseName?: string) => void;
-  skipRestTimer: () => void;
-  addRestTime: (seconds: number) => void;
-  subtractRestTime: (seconds: number) => void;
-}
-
-/**
- * Hook לניהול טיימר מנוחה
- */
-export const useRestTimer = (): UseRestTimerReturn => {
+export const useRestTimer = () => {
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
   const [restTimeRemaining, setRestTimeRemaining] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const endTimeRef = useRef<number>(0);
-  const isMountedRef = useRef<boolean>(true);
-  const lastVibrationRef = useRef<number>(0);
+  // נקה טיימר בסגירה
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
-  const completeRestTimer = useCallback(() => {
+  const startRestTimer = useCallback((duration: number) => {
+    // נקה טיימר קודם אם יש
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = null;
     }
-    setIsRestTimerActive(false);
-    setRestTimeRemaining(0);
 
-    triggerVibration("long");
-  }, []);
+    setRestTimeRemaining(duration);
+    setIsRestTimerActive(true);
 
-  useEffect(() => {
-    if (isRestTimerActive) {
-      intervalRef.current = setInterval(() => {
-        if (!isMountedRef.current) {
-          return;
-        }
-
-        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
-
-        if (remaining <= 0) {
-          completeRestTimer();
-        } else {
-          setRestTimeRemaining(remaining);
-
-          if (remaining <= 3 && remaining !== lastVibrationRef.current) {
-            lastVibrationRef.current = remaining;
-            triggerVibration("short");
+    intervalRef.current = setInterval(() => {
+      setRestTimeRemaining((prev) => {
+        if (prev <= 1) {
+          setIsRestTimerActive(false);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
           }
+          return 0;
         }
-      }, 100);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isRestTimerActive, completeRestTimer]);
-
-  // נקיון בסיום component
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+        return prev - 1;
+      });
+    }, 1000);
   }, []);
-
-  const startRestTimer = useCallback(
-    (duration: number, _exerciseName?: string) => {
-      endTimeRef.current = Date.now() + duration * 1000;
-      setRestTimeRemaining(duration);
-      setIsRestTimerActive(true);
-      lastVibrationRef.current = 0;
-
-      triggerVibration("start");
-    },
-    []
-  );
 
   const skipRestTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     setIsRestTimerActive(false);
     setRestTimeRemaining(0);
@@ -117,12 +54,8 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
   const addRestTime = useCallback(
     (seconds: number) => {
-      if (isRestTimerActive && seconds > 0) {
-        endTimeRef.current += seconds * 1000;
-        const newRemaining = Math.ceil(
-          (endTimeRef.current - Date.now()) / 1000
-        );
-        setRestTimeRemaining(Math.max(0, newRemaining));
+      if (isRestTimerActive) {
+        setRestTimeRemaining((prev) => prev + seconds);
       }
     },
     [isRestTimerActive]
@@ -130,19 +63,18 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
   const subtractRestTime = useCallback(
     (seconds: number) => {
-      if (isRestTimerActive && seconds > 0) {
-        endTimeRef.current -= seconds * 1000;
-        const newRemaining = Math.ceil(
-          (endTimeRef.current - Date.now()) / 1000
-        );
-        if (newRemaining <= 0) {
-          completeRestTimer();
-        } else {
-          setRestTimeRemaining(newRemaining);
-        }
+      if (isRestTimerActive) {
+        setRestTimeRemaining((prev) => {
+          const newTime = prev - seconds;
+          if (newTime <= 0) {
+            skipRestTimer();
+            return 0;
+          }
+          return newTime;
+        });
       }
     },
-    [isRestTimerActive, completeRestTimer]
+    [isRestTimerActive, skipRestTimer]
   );
 
   return {

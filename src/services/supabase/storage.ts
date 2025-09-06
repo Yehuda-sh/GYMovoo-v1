@@ -1,24 +1,19 @@
 // Supabase storage URL utilities
 import { getSupabaseProjectUrl, hasSupabaseConfig } from "./client";
 
-export function getPublicStorageBaseUrl(
-  bucket: string = "public"
-): string | null {
+export function getPublicStorageBaseUrl(): string | null {
   if (!hasSupabaseConfig) return null;
 
   const url = getSupabaseProjectUrl();
   if (!url) return null;
 
-  return `${url.replace(/\/+$/, "")}/storage/v1/object/public/${bucket}`;
+  return `${url.replace(/\/+$/, "")}/storage/v1/object/public/public`;
 }
 
-export function buildPublicUrl(
-  path: string,
-  bucket: string = "public"
-): string | null {
+export function buildPublicUrl(path: string): string | null {
   if (!path) return null;
 
-  const base = getPublicStorageBaseUrl(bucket);
+  const base = getPublicStorageBaseUrl();
   if (!base) return null;
 
   const clean = path.replace(/^\/+/, "");
@@ -27,29 +22,26 @@ export function buildPublicUrl(
 
 export function buildUserFileUrl(
   userId: string,
-  fileName: string,
-  bucket: string = "public"
+  fileName: string
 ): string | null {
   if (!userId || !fileName) return null;
-  return buildPublicUrl(`users/${userId}/${fileName}`, bucket);
+  return buildPublicUrl(`users/${userId}/${fileName}`);
 }
 
 export function buildExerciseFileUrl(
   exerciseId: string,
-  fileName: string,
-  bucket: string = "public"
+  fileName: string
 ): string | null {
   if (!exerciseId || !fileName) return null;
-  return buildPublicUrl(`exercises/${exerciseId}/${fileName}`, bucket);
+  return buildPublicUrl(`exercises/${exerciseId}/${fileName}`);
 }
 
 export function buildWorkoutFileUrl(
   workoutId: string,
-  fileName: string,
-  bucket: string = "public"
+  fileName: string
 ): string | null {
   if (!workoutId || !fileName) return null;
-  return buildPublicUrl(`workouts/${workoutId}/${fileName}`, bucket);
+  return buildPublicUrl(`workouts/${workoutId}/${fileName}`);
 }
 
 export function extractFilePath(fullUrl: string): string | null {
@@ -60,7 +52,7 @@ export function extractFilePath(fullUrl: string): string | null {
     const pathMatch = url.pathname.match(
       /\/storage\/v1\/object\/public\/[^/]+\/(.+)/
     );
-    return pathMatch ? pathMatch[1] : null;
+    return pathMatch?.[1] || null;
   } catch {
     return null;
   }

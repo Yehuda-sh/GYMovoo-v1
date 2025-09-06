@@ -1,3 +1,8 @@
+/**
+ * @file Exercises List Component
+ * @description רשימה וירטואלית לתרגילי אימון
+ */
+
 import React, { useCallback } from "react";
 import { FlatList, StyleSheet, ListRenderItem, View } from "react-native";
 import ExerciseRow from "./ExerciseRow";
@@ -23,9 +28,6 @@ interface ExercisesListProps {
   onStartRest: (duration: number, exerciseName: string) => void;
 }
 
-/**
- * רשימה וירטואלית לתרגילי אימון
- */
 const ExercisesList: React.FC<ExercisesListProps> = React.memo(
   ({
     exercises,
@@ -37,7 +39,7 @@ const ExercisesList: React.FC<ExercisesListProps> = React.memo(
     onRemoveExercise,
     onStartRest,
   }) => {
-    const keyExtractor = useCallback((item: WorkoutExercise) => item.id, []);
+    const keyExtractor = (item: WorkoutExercise) => item.id;
 
     const renderItem: ListRenderItem<WorkoutExercise> = useCallback(
       ({ item, index }) => (

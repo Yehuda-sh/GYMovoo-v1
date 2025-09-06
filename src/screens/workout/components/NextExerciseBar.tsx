@@ -1,58 +1,11 @@
-// cspell:ignore גרדיאנט, מינימליסטי, כדורים, דמבל, מוטיבציה
 /**
  * @file src/screens/workout/components/NextExerciseBar.tsx
- * @description רכיב קומפקטי המציג את התרגיל הבא עם 5 variants מגוונים - רכיב עשיר ומתקדם
- * @description English: Compact component displaying the next exercise with 5 diverse variants - Rich and advanced component
+ * @description Compact component displaying the next exercise in workout flow
  *
- * ✅ ACTIVE & MULTI-VARIANT: רכיב עשיר עם 5 עיצובים שונים ואנימציות מתקדמות
- * - Rich component with 5 distinct visual variants
- * - Advanced animations with reduced motion support
- * - Complete accessibility and RTL compliance
- * - Haptic feedback integration for better UX
- * - Performance optimized with proper cleanup
- * - Flexible props system for different use cases
- *
- * @variants
- * - gradient: עיצוב גרדיאנט מודרני עם אפקטים ויזואליים
- * - minimal: גרסה מינימליסטי פשוטה ונקייה
- * - floating: תצוגה צפה במרכז המסך
- * - pills: עיצוב כדורי מעוגל ומודרני
- * - default: הסגנון המקורי הסטנדרטי
- *
- * @features
- * - ✅ 5 variants עיצוביים מגוונים למצבים שונים
- * - ✅ אנימציות מתקדמות: slide-in/out + pulse animation
- * - ✅ תמיכה ב-reduced motion לנגישות
- * - ✅ Haptic feedback עם אפשרות להפעלה/כיבוי
- * - ✅ Data validation עם בדיקת תקינות נתונים
- * - ✅ תמיכה מלאה ב-RTL ונגישות
- * - ✅ TestID support לבדיקות אוטומטיות
- * - ✅ LinearGradient אפקטים מתקדמים
- * - ✅ Material icons עם גדלים מותאמים
- * - ✅ Cleanup נכון של אנימציות
- *
- * @performance
- * - useRef למניעת re-renders של animation values
- * - Proper animation cleanup עם useEffect return
- * - Conditional animations based on user preferences
- * - Optimized touch interactions with activeOpacity
- * - Memory efficient animation management
- *
- * @accessibility
- * - Full screen reader support with descriptive labels
- * - AccessibilityRole וקשת accessibility מדויקת
- * - RTL layout עם flexDirection מותאם
- * - Reduced motion support לאנשים עם רגישות
- * - Clear button roles and interaction hints
- *
- * @integrations
- * - triggerVibration: משוב הפטי על פעולות
- * - MaterialCommunityIcons: מערכת אייקונים עשירה
- * - LinearGradient: אפקטי גרדיאנט מתקדמים
- * - theme system: שילוב מושלם עם מערכת העיצוב
- * - NextExerciseBarProps: טיפוסי TypeScript מדויקים
- *
- * @updated 2025-08-25 Enhanced documentation and status for audit completion
+ * Features:
+ * - Clean next exercise display with skip functionality
+ * - RTL support and accessibility compliance
+ * - Simple slide animation for smooth transitions
  */
 
 import React, { useEffect, useRef } from "react";
@@ -64,278 +17,31 @@ import {
   Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../styles/theme";
-import { triggerVibration } from "../../../utils/workoutHelpers";
 import type { NextExerciseBarProps } from "./types";
 
-interface ExtraProps {
-  reducedMotion?: boolean;
-  testID?: string;
-  haptic?: boolean; // enable/disable vibration
-}
-
-export const NextExerciseBar: React.FC<NextExerciseBarProps & ExtraProps> = ({
+export const NextExerciseBar: React.FC<NextExerciseBarProps> = ({
   nextExercise,
   onSkipToNext,
-  variant = "gradient", // ברירת מחדל מהווריאנט הפופולרי ביותר | Most popular variant as default
-  reducedMotion = false,
-  testID = "NextExerciseBar",
-  haptic = true,
 }) => {
   const slideAnim = useRef(new Animated.Value(100)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    // אנימציית כניסה/יציאה מתקדמת | Advanced entry/exit animation
     Animated.spring(slideAnim, {
       toValue: nextExercise ? 0 : 100,
       friction: 10,
       tension: 40,
       useNativeDriver: true,
     }).start();
+  }, [nextExercise, slideAnim]);
 
-    // אנימציית פעימה (מכובה ב-reducedMotion) | Pulse animation (disabled when reducedMotion)
-    if (nextExercise && onSkipToNext && !reducedMotion) {
-      pulseAnimationRef.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 950,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 950,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseAnimationRef.current.start();
-    } else {
-      if (pulseAnimationRef.current) {
-        pulseAnimationRef.current.stop();
-        pulseAnimationRef.current = null;
-      }
-      pulseAnim.setValue(1);
-    }
-
-    // Cleanup נכון של אנימציות למניעת memory leaks
-    return () => {
-      if (pulseAnimationRef.current) {
-        pulseAnimationRef.current.stop();
-        pulseAnimationRef.current = null;
-      }
-    };
-  }, [nextExercise, onSkipToNext, slideAnim, pulseAnim, reducedMotion]);
-
-  // בדיקת תקינות נתונים חשובה | Important data validation
-  if (!nextExercise || !nextExercise.name) {
+  if (!nextExercise?.name) {
     return null;
   }
 
-  // סגנון 1: גרדיאנט מודרני עם אפקטים מתקדמים
-  // Style 1: Modern gradient with advanced effects
-  if (variant === "gradient") {
-    return (
-      <Animated.View
-        style={[
-          styles.containerGradient,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-        testID={testID + "-gradient"}
-        accessibilityRole="summary"
-        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
-      >
-        <LinearGradient
-          colors={[
-            theme.colors.primary + "25", // שקיפות יותר בולטת | More prominent transparency
-            theme.colors.primaryGradientEnd + "25",
-            theme.colors.card + "F0", // רקע כמעט אטום | Almost opaque background
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }} // זווית אלכסונית | Diagonal angle
-          style={styles.gradientBackground}
-        >
-          <View style={styles.contentGradient}>
-            <View style={styles.labelContainerGradient}>
-              <MaterialCommunityIcons
-                name="flash" // אייקון יותר בולט | More prominent icon
-                size={22} // גדול יותר | Larger
-                color={theme.colors.warning}
-              />
-              <Text style={styles.labelGradient}>הבא בתור</Text>
-            </View>
-
-            <Text style={styles.exerciseNameGradient} numberOfLines={2}>
-              {nextExercise.name}
-            </Text>
-
-            {onSkipToNext && (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity
-                  style={styles.skipButtonGradient}
-                  onPress={() => {
-                    if (haptic) triggerVibration(50); // רטט קצר | Short vibration
-                    onSkipToNext?.();
-                  }}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel="עבור לתרגיל הבא"
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.primary,
-                      theme.colors.primaryGradientEnd,
-                      theme.colors.primaryDark || theme.colors.primary, // צבע שלישי | Third color
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }} // זווית אלכסונית | Diagonal angle
-                    style={styles.skipButtonGradientInner}
-                  >
-                    <MaterialCommunityIcons
-                      name="play-circle" // אייקון יותר ברור | Clearer icon
-                      size={24} // גדול יותר | Larger
-                      color="white"
-                    />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-          </View>
-        </LinearGradient>
-      </Animated.View>
-    );
-  }
-
-  // סגנון 2: מינימליסטי פשוט ונקי
-  // Style 2: Minimalist clean and simple
-  if (variant === "minimal") {
-    return (
-      <Animated.View
-        style={[
-          styles.containerMinimal,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-        testID={testID + "-minimal"}
-        accessibilityRole="summary"
-        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
-      >
-        <View style={styles.contentMinimal}>
-          <Text style={styles.exerciseNameMinimal}>{nextExercise.name} ←</Text>
-          {onSkipToNext && (
-            <TouchableOpacity
-              style={styles.skipButtonMinimal}
-              onPress={onSkipToNext}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="דלג לתרגיל הבא"
-            >
-              <Text style={styles.skipTextMinimal}>דלג</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
-    );
-  }
-
-  // סגנון 3: צף במרכז עם card מתקדם
-  // Style 3: Floating center with advanced card
-  if (variant === "floating") {
-    return (
-      <Animated.View
-        style={[
-          styles.containerFloating,
-          {
-            transform: [{ translateY: slideAnim }],
-            opacity: slideAnim.interpolate({
-              inputRange: [0, 100],
-              outputRange: [1, 0],
-            }),
-          },
-        ]}
-        testID={testID + "-floating"}
-        accessibilityRole="summary"
-        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
-      >
-        <View style={styles.floatingCard}>
-          <View style={styles.floatingHeader}>
-            <MaterialCommunityIcons
-              name="target"
-              size={24}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.floatingLabel}>התרגיל הבא</Text>
-          </View>
-          <Text style={styles.floatingExerciseName}>{nextExercise.name}</Text>
-          {onSkipToNext && (
-            <TouchableOpacity
-              style={styles.floatingButton}
-              onPress={onSkipToNext}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="עבור לתרגיל הבא"
-            >
-              <Text style={styles.floatingButtonText}>עבור לתרגיל ←</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
-    );
-  }
-
-  // סגנון 4: כדורים מעוגלים מודרניים (Pills)
-  // Style 4: Modern rounded pills
-  if (variant === "pills") {
-    return (
-      <Animated.View
-        style={[
-          styles.containerPills,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-        testID={testID + "-pills"}
-        accessibilityRole="summary"
-        accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
-      >
-        <View style={styles.contentPills}>
-          <View style={styles.pillsLeft}>
-            <View style={styles.pill}>
-              <MaterialCommunityIcons
-                name="dumbbell"
-                size={16}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.pillText}>{nextExercise.name}</Text>
-            </View>
-          </View>
-
-          {onSkipToNext && (
-            <TouchableOpacity
-              style={styles.pillButton}
-              onPress={onSkipToNext}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="דלג לתרגיל הבא"
-            >
-              <MaterialCommunityIcons
-                name="skip-next"
-                size={20}
-                color={theme.colors.primary}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
-    );
-  }
-
-  // ברירת מחדל - הסגנון המקורי הסטנדרטי
-  // Default - original standard style
   return (
     <Animated.View
       style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
-      testID={testID + "-default"}
       accessibilityRole="summary"
       accessibilityLabel={`התרגיל הבא: ${nextExercise.name}`}
     >
@@ -370,8 +76,6 @@ export const NextExerciseBar: React.FC<NextExerciseBarProps & ExtraProps> = ({
 NextExerciseBar.displayName = "NextExerciseBar";
 
 const styles = StyleSheet.create({
-  // סגנון מקורי
-  // Original style
   container: {
     position: "absolute",
     bottom: 0,
@@ -395,7 +99,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-    marginStart: 8, // שינוי RTL: marginStart במקום marginLeft
+    marginStart: 8,
   },
   label: {
     fontSize: 14,
@@ -421,193 +125,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.primary,
     fontWeight: "bold",
-  },
-
-  // סגנון גרדיאנט
-  // Gradient style
-  containerGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 20,
-    zIndex: 100, // וודא שמעל רכיבים אחרים | Ensure above other components
-  },
-  gradientBackground: {
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    borderWidth: 2, // גבול עבה יותר | Thicker border
-    borderColor: theme.colors.primary + "50", // שקוף יותר | More transparent
-    borderBottomWidth: 0,
-    ...theme.shadows.large,
-    elevation: 8, // צל בולט יותר באנדרואיד | More prominent shadow on Android
-  },
-  contentGradient: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 18, // ריווח גדול יותר | More padding
-    paddingHorizontal: 24,
-  },
-  labelContainerGradient: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8, // רווח גדול יותר | More gap
-  },
-  labelGradient: {
-    fontSize: 14, // גודל גדול יותר | Larger font
-    color: theme.colors.primary, // צבע בולט יותר | More prominent color
-    fontWeight: "600", // משקל גדול יותר | Heavier weight
-  },
-  exerciseNameGradient: {
-    flex: 1,
-    fontSize: 17, // קצת קטן יותר לאיזון | Slightly smaller for balance
-    fontWeight: "bold",
-    color: theme.colors.text,
-    textAlign: "center",
-    marginHorizontal: 12,
-  },
-  skipButtonGradient: {
-    borderRadius: theme.radius.xl,
-    overflow: "hidden",
-    borderWidth: 2, // גבול לכפתור | Border for button
-    borderColor: theme.colors.primary + "30",
-    ...theme.shadows.medium, // צל לכפתור | Shadow for button
-  },
-  skipButtonGradientInner: {
-    paddingHorizontal: 20, // רחב יותר | Wider
-    paddingVertical: 12, // גבוה יותר | Taller
-    alignItems: "center",
-    minWidth: 60, // רוחב מינימלי | Minimum width
-  },
-
-  // סגנון מינימליסטי
-  // Minimalist style
-  containerMinimal: {
-    position: "absolute",
-    bottom: theme.spacing.lg,
-    left: theme.spacing.lg,
-    right: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.small,
-  },
-  contentMinimal: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: theme.spacing.md,
-  },
-  exerciseNameMinimal: {
-    fontSize: 15,
-    color: theme.colors.text,
-    flex: 1,
-  },
-  skipButtonMinimal: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-  },
-  skipTextMinimal: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    textDecorationLine: "underline",
-  },
-
-  // סגנון צף
-  // Floating style
-  containerFloating: {
-    position: "absolute",
-    bottom: 80,
-    left: 40,
-    right: 40,
-  },
-  floatingCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.lg,
-    ...theme.shadows.large,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  floatingHeader: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  floatingLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  floatingExerciseName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  floatingButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    alignItems: "center",
-  },
-  floatingButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  // סגנון Pills
-  // Pills style
-  containerPills: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-  },
-  contentPills: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  pillsLeft: {
-    flex: 1,
-  },
-  pill: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    ...theme.shadows.medium,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  pillText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-    flex: 1,
-  },
-  pillButton: {
-    backgroundColor: theme.colors.card,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    ...theme.shadows.medium,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
   },
 });

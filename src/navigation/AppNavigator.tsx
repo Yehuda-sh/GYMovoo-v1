@@ -1,270 +1,108 @@
-/**
- * @file AppNavigator.tsx
- * @brief ניווט ראשי מתקדם עם RTL ואופטימיזציות ביצועים
- * @brief Advanced main navigation with RTL and performance optimizations
- * @dependencies React Navigation v6, Screen components, Type definitions
- * @performance Optimized with freezeOnBlur and improved animations
- * @accessibility Full RTL support, gesture optimization, screen reader support
- * @version 3.0.0 - Enhanced with performance optimizations and better RTL
- * @updated 2025-08-15 Added comprehensive performance optimizations
- */
-
-import React, { memo, useMemo } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import {
-  createStackNavigator,
-  StackCardStyleInterpolator,
-} from "@react-navigation/stack";
+import { createStackNavigator } from "@react-navigation/stack";
 
-// ניווט תחתון מוטמן // Bottom navigation optimized
 import BottomNavigation from "./BottomNavigation";
-
-// טיפוסי ניווט מתקדמים // Advanced navigation types
 import { RootStackParamList } from "./types";
 
-// 🎨 מסכי Onboarding ו-Auth
+// Auth screens
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import TermsScreen from "../screens/auth/TermsScreen";
 
-// 🧠 שאלון חכם מתקדם עם AI
+// Questionnaire
 import UnifiedQuestionnaireScreen from "../screens/questionnaire/UnifiedQuestionnaireScreen";
 
-// 🛠️ מסך פיתוח (development only)
+// Developer screen
 import DeveloperScreen from "../screens/developer/DeveloperScreen";
 
-// 💪 מסכי אימון
+// Workout screens
 import WorkoutPlanScreen from "../screens/workout/WorkoutPlansScreen";
 import ActiveWorkoutScreen from "../screens/workout/ActiveWorkoutScreen";
 
-// 📋 מסכים נוספים
+// Additional screens
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
 import ProgressScreen from "../screens/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
 
-// 🏪 Zustand Store
 import { useUserStore } from "../stores/userStore";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-// 🚀 אופטימיזציה: אנימציית RTL מותאמת מראש
-const rtlCardStyleInterpolator: StackCardStyleInterpolator = ({
-  current,
-  layouts,
-}) => ({
-  cardStyle: {
-    transform: [
-      {
-        translateX: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [layouts.screen.width, 0],
-        }),
-      },
-    ],
-  },
-});
+export default function AppNavigator() {
+  const { user, getCompletionStatus } = useUserStore();
 
-/**
- * @component AppNavigator
- * @description ניווט ראשי מותאם לביצועים עם RTL ואופטימיזציות + בדיקת משתמש מחובר
- * @performance ביצועים משופרים עם freezeOnBlur ואופטימיזציות אנימציה
- * @accessibility תמיכה מלאה בנגישות ו-RTL
- * @returns {JSX.Element} רכיב ניווט מותאם וחכם
- */
-export default memo(function AppNavigator() {
-  // 🔍 בדיקת מצב משתמש להחלטה על מסך התחלתי
-  const { user } = useUserStore();
-  const getCompletionStatus = useUserStore(
-    (state) => state.getCompletionStatus
-  );
-
-  // 🚀 פונקציית עזר ללוג דיבוג מאורגן
-  const logDebugInfo = (message: string, data?: Record<string, unknown>) => {
-    if (__DEV__) {
-      console.warn(`🔍 ${message}`, data || "");
-    }
+  // Determine initial screen based on user state
+  const getInitialRoute = () => {
+    if (!user) return "Welcome";
+    
+    const completion = getCompletionStatus();
+    return completion.isFullySetup ? "MainApp" : "Questionnaire";
   };
 
-  // 🚀 חישוב מסך התחלתי עם אופטימיזציה
-  const initialRouteName = useMemo(() => {
-    // 🚨 DEBUG MODE: דילוג ישירות לאפליקציה לבדיקת הניווט
-    logDebugInfo("Debug Check:", {
-      debugVar: process.env.EXPO_PUBLIC_DEBUG_SKIP_AUTH,
-      hasUser: !!user,
-      userEmail: user?.email,
-    });
-
-    if (!user) {
-      logDebugInfo("No user found, going to Welcome");
-      return "Welcome"; // אין משתמש - מסך ברוכים הבאים
-    }
-
-    const completion = getCompletionStatus();
-    if (completion.isFullySetup) {
-      logDebugInfo("User fully setup, going to MainApp");
-      return "MainApp"; // משתמש עם שאלון מושלם - ישר לאפליקציה
-    }
-
-    logDebugInfo("User not fully setup, going to Questionnaire");
-    return "Questionnaire"; // משתמש ללא שאלון - למסך השאלון
-  }, [user, getCompletionStatus]);
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={initialRouteName}
+        initialRouteName={getInitialRoute()}
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
-          gestureDirection: "horizontal-inverted", // תמיכה מתקדמת ב-RTL
-          animationTypeForReplace: "push",
-          detachPreviousScreen: false,
-          // 🚀 שיפורי ביצועים מתקדמים
-          freezeOnBlur: true, // חיסכון זיכרון
-          // 🎨 שיפורי אנימציה עבור RTL
-          cardStyleInterpolator: rtlCardStyleInterpolator,
         }}
       >
-        {/* 🔐 מסכי התחברות ורישום עם אבטחה מתקדמת */}
+        {/* Auth screens */}
         <Stack.Screen
           name="Welcome"
           component={WelcomeScreen}
-          options={{
-            gestureEnabled: false, // מונע יציאה מהמסך הראשון
-            animationTypeForReplace: "pop",
-            // 🎯 אופטימיזציה למסך פתיחה
-            freezeOnBlur: false,
-          }}
+          options={{ gestureEnabled: false }}
         />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{
-            // 🔒 אבטחה מתקדמת למסך התחברות
-            gestureDirection: "horizontal-inverted",
-          }}
-        />
+        <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
 
-        {/* 🧠 שאלון חכם מתקדם עם AI ואינסייטים */}
+        {/* Questionnaire */}
         <Stack.Screen
           name="Questionnaire"
           component={UnifiedQuestionnaireScreen}
-          options={{
-            headerShown: false,
-            gestureEnabled: false, // השבת gesture למניעת יציאה בטעות
-            presentation: "card",
-            // 🎯 אופטימיזציה לשאלון
-            freezeOnBlur: true,
-          }}
+          options={{ gestureEnabled: false }}
         />
 
-        {/* 💪 מסך תוכנית אימון חכמה עם AI */}
-        <Stack.Screen
-          name="WorkoutPlan"
-          component={WorkoutPlanScreen}
-          options={{
-            // 🚀 ביצועים משופרים
-            freezeOnBlur: true,
-          }}
-        />
+        {/* Workout */}
+        <Stack.Screen name="WorkoutPlan" component={WorkoutPlanScreen} />
 
-        {/* 📱 אפליקציה ראשית עם Bottom Tabs - ניווט מתקדם */}
+        {/* Main app */}
         <Stack.Screen
           name="MainApp"
           component={BottomNavigation}
-          options={{
-            gestureEnabled: false, // מונע יציאה מהאפליקציה הראשית
-            // 🎯 אופטימיזציה לאפליקציה הראשית
-            freezeOnBlur: false,
-          }}
+          options={{ gestureEnabled: false }}
         />
 
-        {/* 💪 מסך אימון פעיל מוטמן */}
+        {/* Active workout */}
         <Stack.Screen
           name="ActiveWorkout"
           component={ActiveWorkoutScreen}
-          options={{
-            gestureEnabled: false, // מונע יציאה בטעות מאימון פעיל
-            cardStyle: {
-              backgroundColor: "transparent",
-            },
-            freezeOnBlur: false, // שמור אימון פעיל בזיכרון
-          }}
+          options={{ gestureEnabled: false }}
         />
 
-        {/* 📋 מסך רשימת תרגילים מוטמן */}
+        {/* Exercise screens */}
         <Stack.Screen
           name="ExerciseList"
           component={ExerciseListScreen}
-          options={{
-            presentation: "modal",
-            gestureDirection: "vertical",
-            cardStyle: {
-              backgroundColor: "rgba(0,0,0,0.5)",
-            },
-            freezeOnBlur: true,
-          }}
+          options={{ presentation: "modal" }}
         />
+        <Stack.Screen name="ExerciseDetails" component={ExerciseDetailsScreen} />
+        <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
 
-        {/* 🔔 מסך התראות מוטמן */}
-        <Stack.Screen
-          name="Notifications"
-          component={NotificationsScreen}
-          options={{
-            freezeOnBlur: true,
-          }}
-        />
+        {/* Additional screens */}
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Progress" component={ProgressScreen} />
 
-        {/* 📊 מסך התקדמות מוטמן */}
-        <Stack.Screen
-          name="Progress"
-          component={ProgressScreen}
-          options={{
-            cardStyle: {
-              backgroundColor: "rgba(248, 250, 252, 1)",
-            },
-            freezeOnBlur: true,
-          }}
-        />
-
-        {/* 🔍 מסך פרטי תרגיל מוטמן */}
-        <Stack.Screen
-          name="ExerciseDetails"
-          component={ExerciseDetailsScreen}
-          options={{
-            presentation: "card",
-            cardStyle: {
-              backgroundColor: "rgba(248, 250, 252, 1)",
-            },
-            freezeOnBlur: true,
-          }}
-        />
-
-        {/* 📚 מסך ספריית תרגילים מוטמן */}
-        <Stack.Screen
-          name="ExercisesScreen"
-          component={ExercisesScreen}
-          options={{
-            freezeOnBlur: true,
-          }}
-        />
-
-        {/* 🛠️ מסך פיתוח (development only) */}
+        {/* Developer screen (development only) */}
         {__DEV__ && (
-          <Stack.Screen
-            name="DeveloperScreen"
-            component={DeveloperScreen}
-            options={{
-              headerShown: false,
-              freezeOnBlur: true,
-            }}
-          />
+          <Stack.Screen name="DeveloperScreen" component={DeveloperScreen} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
-});
+}

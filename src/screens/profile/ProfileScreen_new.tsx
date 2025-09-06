@@ -183,7 +183,7 @@ const ProfileScreen: React.FC = () => {
       updateUser({ name: editedName.trim() });
       setShowNameModal(false);
       setNameError(null);
-    } catch {
+    } catch (_error) {
       setNameError("שגיאה בשמירה");
     } finally {
       setLoading(false);

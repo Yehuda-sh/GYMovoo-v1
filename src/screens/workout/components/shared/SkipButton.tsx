@@ -1,13 +1,9 @@
 /**
  * @file src/screens/workout/components/shared/SkipButton.tsx
- * @brief כפתור דילוג / פעולה קצרה לשימוש חוזר (מניעת כפילויות)
- * @features
- * - מצב loading + disabled
- * - תמיכה ברטט (haptic)
- * - reducedMotion (השבתת אנימציות חיצוניות)
- * - טיפוס אייקון בטוח
+ * @brief כפתור דילוג / פעולה קצרה לשימוש חוזר
+ * @features מצב loading + disabled, תמיכה ברטט, reducedMotion
  */
-import React, { useMemo, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   TouchableOpacity,
   Animated,
@@ -57,20 +53,17 @@ export const SkipButton: React.FC<SkipButtonProps> = React.memo(
     testID,
     reducedMotion = false,
   }) => {
-    const animatedStyle = useMemo(() => {
-      if (!pulseAnimation || reducedMotion) return undefined;
-      return { transform: [{ scale: pulseAnimation }] };
-    }, [pulseAnimation, reducedMotion]);
+    const animatedStyle =
+      !pulseAnimation || reducedMotion
+        ? undefined
+        : { transform: [{ scale: pulseAnimation }] };
 
-    const mergedContainerStyle = useMemo(
-      () => [
-        styles.container,
-        disabled && styles.disabled,
-        loading && styles.loading,
-        style,
-      ],
-      [disabled, loading, style]
-    );
+    const containerStyle = [
+      styles.container,
+      disabled && styles.disabled,
+      loading && styles.loading,
+      style,
+    ];
 
     const handlePress = useCallback(() => {
       if (disabled || loading) return;
@@ -87,12 +80,12 @@ export const SkipButton: React.FC<SkipButtonProps> = React.memo(
     return (
       <Animated.View style={animatedStyle} testID={testID || "SkipButton"}>
         <TouchableOpacity
-          style={mergedContainerStyle}
+          style={containerStyle}
           onPress={handlePress}
           onLongPress={handleLongPress}
           activeOpacity={0.6}
           hitSlop={12}
-          testID={testID ? `${testID}-touchable` : "SkipButtonTouchable"}
+          testID={`${testID || "SkipButton"}-touchable`}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityRole="button"
@@ -129,7 +122,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 2,
     borderColor: `${theme.colors.primary}40`,
-    // שיפורי צללים מתקדמים
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,

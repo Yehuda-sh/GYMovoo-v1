@@ -85,7 +85,7 @@ const WelcomeScreen = () => {
                 <Text style={styles.featureText}>מעקב התקדמות</Text>
               </View>
             </View>
-            
+
             <View style={styles.featureRow}>
               <View style={styles.feature}>
                 <MaterialCommunityIcons
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xl * 2,
     alignItems: "center",
   },
-  
+
   // Logo Section
   logoSection: {
     alignItems: "center",

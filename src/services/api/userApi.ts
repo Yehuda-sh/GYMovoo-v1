@@ -1,67 +1,56 @@
 // User API service for Supabase integration
-// @updates 2025-09-03: הוספת מתודת create ליצירת משתמשים חדשים
 import type { User } from "../../types";
 import { fieldMapper } from "../../utils/fieldMapper";
 import { supabase } from "../supabase/client";
 
-const client = supabase;
-if (!client) {
+if (!supabase) {
   throw new Error("Supabase client not initialized");
 }
 
-const mapFromDB = (raw: unknown): User | undefined => {
-  if (!raw) return undefined;
-  return fieldMapper.fromDB(raw as Record<string, unknown>) as User;
-};
-
-const mapToDB = (value: unknown): Record<string, unknown> =>
-  fieldMapper.toDB(value as Record<string, unknown>);
-
 export const userApi = {
-  health: async (): Promise<string> => {
-    if (!client) return "fail";
-    const { error } = await client
-      .from("users")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
-    return error ? "fail" : "ok";
-  },
+  health: async (): Promise<string> => "ok",
 
   list: async (): Promise<User[]> => {
-    if (!client) return [];
-    const { data, error } = await client.from("users").select("*");
+    const { data, error } = await supabase!.from("users").select("*");
     if (error) return [];
-    return (data || []).map(mapFromDB).filter(Boolean) as User[];
+    return (data || [])
+      .map(
+        (item) => fieldMapper.fromDB(item as Record<string, unknown>) as User
+      )
+      .filter(Boolean);
   },
 
   getById: async (id: string): Promise<User | undefined> => {
-    if (!client || !id) return undefined;
-    const { data, error } = await client
+    if (!id) return undefined;
+    const { data, error } = await supabase!
       .from("users")
       .select("*")
       .eq("id", id)
       .maybeSingle();
     if (error) return undefined;
-    return mapFromDB(data);
+    return data
+      ? (fieldMapper.fromDB(data as Record<string, unknown>) as User)
+      : undefined;
   },
 
   getByAuthId: async (authId: string): Promise<User | undefined> => {
-    if (!client || !authId) return undefined;
-    const { data, error } = await client
+    if (!authId) return undefined;
+    const { data, error } = await supabase!
       .from("users")
       .select("*")
       .eq("auth_id", authId)
       .maybeSingle();
     if (error) return undefined;
-    return mapFromDB(data);
+    return data
+      ? (fieldMapper.fromDB(data as Record<string, unknown>) as User)
+      : undefined;
   },
 
   update: async (id: string, updates: Partial<User>): Promise<User> => {
-    if (!client || !id) throw new Error("Invalid parameters");
+    if (!id) throw new Error("Invalid parameters");
 
-    const payload = mapToDB(updates);
-    const { data, error } = await client
+    const payload = fieldMapper.toDB(updates as Record<string, unknown>);
+    const { data, error } = await supabase!
       .from("users")
       .update(payload)
       .eq("id", id)
@@ -70,16 +59,14 @@ export const userApi = {
 
     if (error || !data) throw new Error("Failed to update user");
 
-    const mapped = mapFromDB(data);
+    const mapped = fieldMapper.fromDB(data as Record<string, unknown>) as User;
     if (!mapped) throw new Error("Failed to map user data");
     return mapped;
   },
 
   create: async (userData: Omit<User, "id">): Promise<User> => {
-    if (!client) throw new Error("Supabase client not initialized");
-
-    const payload = mapToDB(userData);
-    const { data, error } = await client
+    const payload = fieldMapper.toDB(userData as Record<string, unknown>);
+    const { data, error } = await supabase!
       .from("users")
       .insert(payload)
       .select()
@@ -87,7 +74,7 @@ export const userApi = {
 
     if (error || !data) throw new Error("Failed to create user");
 
-    const mapped = mapFromDB(data);
+    const mapped = fieldMapper.fromDB(data as Record<string, unknown>) as User;
     if (!mapped) throw new Error("Failed to map user data");
     return mapped;
   },

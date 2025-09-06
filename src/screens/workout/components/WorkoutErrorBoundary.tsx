@@ -1,7 +1,11 @@
 /**
  * @file src/screens/workout/components/WorkoutErrorBoundary.tsx
- * @brief Error Boundary for Workout Components
- * @updated August 2025 - Enhanced error handling with recovery options
+ * @description Error boundary component for workout screens
+ *
+ * Features:
+ * - Catches and displays errors in workout components
+ * - Retry functionality to recover from errors
+ * - Debug information in development mode
  */
 
 import React, { Component, ReactNode } from "react";
@@ -11,14 +15,11 @@ import { theme } from "../../../styles/theme";
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
-  errorInfo?: React.ErrorInfo;
 }
 
 class WorkoutErrorBoundary extends Component<Props, State> {
@@ -32,34 +33,22 @@ class WorkoutErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.setState({ errorInfo });
-
-    // Log error to console
     console.error("🚨 WorkoutErrorBoundary caught an error:", error);
     console.error("📋 Error info:", errorInfo);
-
-    // Call custom error handler if provided
-    this.props.onError?.(error, errorInfo);
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false });
   };
 
   override render() {
     if (this.state.hasError) {
-      // Use custom fallback if provided
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
-      // Default error UI
       return (
         <View style={styles.container}>
           <View style={styles.content}>
             <MaterialCommunityIcons
               name="alert-circle"
-              size={64}
+              size={48}
               color={theme.colors.error}
               style={styles.icon}
             />
@@ -67,37 +56,24 @@ class WorkoutErrorBoundary extends Component<Props, State> {
             <Text style={styles.title}>אופס! משהו השתבש</Text>
 
             <Text style={styles.message}>
-              נתקלנו בבעיה טכנית במסך האימון.{"\n"}
-              אנא נסה שוב או חזור למסך הקודם.
+              נתקלנו בבעיה במסך האימון.{"\n"}
+              אנא נסה שוב.
             </Text>
 
             {__DEV__ && this.state.error && (
               <View style={styles.debugInfo}>
-                <Text style={styles.debugTitle}>Debug Info:</Text>
+                <Text style={styles.debugTitle}>שגיאה:</Text>
                 <Text style={styles.debugText}>{this.state.error.message}</Text>
-                {this.state.errorInfo && (
-                  <Text style={styles.debugText}>
-                    {this.state.errorInfo.componentStack}
-                  </Text>
-                )}
               </View>
             )}
 
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={[styles.button, styles.retryButton]}
-                onPress={this.handleRetry}
-                accessibilityLabel="נסה שוב"
-                accessibilityHint="לנסות לטעון את המסך מחדש"
-              >
-                <MaterialCommunityIcons
-                  name="refresh"
-                  size={20}
-                  color={theme.colors.background}
-                />
-                <Text style={styles.retryButtonText}>נסה שוב</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={this.handleRetry}
+            >
+              <MaterialCommunityIcons name="refresh" size={20} color="white" />
+              <Text style={styles.retryButtonText}>נסה שוב</Text>
+            </TouchableOpacity>
           </View>
         </View>
       );
@@ -154,25 +130,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontFamily: "monospace",
   },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  button: {
+
+  retryButton: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
+    marginTop: 16,
   },
   retryButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.background,
+    color: "white",
   },
 });
 

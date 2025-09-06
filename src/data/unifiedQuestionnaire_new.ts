@@ -48,26 +48,58 @@ export interface QuestionnaireResults {
 // ================== אפשרויות השאלון ==================
 
 const BODYWEIGHT_OPTIONS: QuestionOption[] = [
-  { id: "bodyweight_only", label: "רק משקל גוף", description: "אין חפצים נוספים" },
-  { id: "mat_available", label: "מזרון/שטיח", description: "לתרגילי רצפה נוחים" },
-  { id: "chair_available", label: "כיסא יציב", description: "לתרגילי דחיפה וכוח" },
+  {
+    id: "bodyweight_only",
+    label: "רק משקל גוף",
+    description: "אין חפצים נוספים",
+  },
+  {
+    id: "mat_available",
+    label: "מזרון/שטיח",
+    description: "לתרגילי רצפה נוחים",
+  },
+  {
+    id: "chair_available",
+    label: "כיסא יציב",
+    description: "לתרגילי דחיפה וכוח",
+  },
   { id: "wall_space", label: "קיר פנוי", description: "לתרגילי קיר ומתיחות" },
-  { id: "stairs_available", label: "מדרגות", description: "לאימוני קרדיו וכוח רגליים" },
-  { id: "water_bottles", label: "בקבוקי מים מלאים", description: "כמשקולות קלות" },
+  {
+    id: "stairs_available",
+    label: "מדרגות",
+    description: "לאימוני קרדיו וכוח רגליים",
+  },
+  {
+    id: "water_bottles",
+    label: "בקבוקי מים מלאים",
+    description: "כמשקולות קלות",
+  },
 ];
 
 const HOME_EQUIPMENT_OPTIONS: QuestionOption[] = [
   { id: "dumbbells", label: "משקולות יד", description: "מגוון משקלים" },
-  { id: "resistance_bands", label: "רצועות התנגדות", description: "עמידות שונות" },
+  {
+    id: "resistance_bands",
+    label: "רצועות התנגדות",
+    description: "עמידות שונות",
+  },
   { id: "kettlebell", label: "קטלבל", description: "אימון פונקציונלי" },
   { id: "yoga_mat", label: "מזרון יוגה", description: "לתרגילי רצפה" },
   { id: "pullup_bar", label: "מתקן מתח", description: "למשיכות ותליות" },
-  { id: "exercise_ball", label: "כדור פיטנס", description: "ליציבות וכוח ליבה" },
+  {
+    id: "exercise_ball",
+    label: "כדור פיטנס",
+    description: "ליציבות וכוח ליבה",
+  },
   { id: "trx", label: "רצועות TRX", description: "אימון השעיה" },
 ];
 
 const GYM_EQUIPMENT_OPTIONS: QuestionOption[] = [
-  { id: "free_weights", label: "משקולות חופשיות", description: "משקולות יד ומוטות" },
+  {
+    id: "free_weights",
+    label: "משקולות חופשיות",
+    description: "משקולות יד ומוטות",
+  },
   { id: "cable_machine", label: "מכונת כבלים", description: "תרגילים מגוונים" },
   { id: "squat_rack", label: "מתקן סקוואט", description: "לתרגילי רגליים" },
   { id: "bench_press", label: "ספסל דחיפה", description: "לתרגילי חזה" },
@@ -100,7 +132,11 @@ export const UNIFIED_QUESTIONS: Question[] = [
     options: [
       { id: "male", label: "זכר", description: "תוכנית מותאמת לגברים" },
       { id: "female", label: "נקבה", description: "תוכנית מותאמת לנשים" },
-      { id: "prefer_not_to_say", label: "מעדיף/ה לא לציין", description: "תוכנית כללית" },
+      {
+        id: "prefer_not_to_say",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
     ],
   },
   {
@@ -112,7 +148,11 @@ export const UNIFIED_QUESTIONS: Question[] = [
     icon: "🎂",
     type: "single",
     options: [
-      { id: "under_18", label: "מתחת ל-18", description: "אימונים מותאמים לצעירים" },
+      {
+        id: "under_18",
+        label: "מתחת ל-18",
+        description: "אימונים מותאמים לצעירים",
+      },
       { id: "18_25", label: "18-25", description: "אימונים אנרגטיים" },
       { id: "26_35", label: "26-35", description: "איזון בין עצימות למניעה" },
       { id: "36_50", label: "36-50", description: "דגש על מניעת פציעות" },
@@ -136,7 +176,11 @@ export const UNIFIED_QUESTIONS: Question[] = [
       { id: "81_90", label: '81-90 ק"ג', description: "משקל גבוה" },
       { id: "91_100", label: '91-100 ק"ג', description: "משקל גבוה יותר" },
       { id: "over_100", label: 'מעל 100 ק"ג', description: "משקל כבד" },
-      { id: "prefer_not_to_say_weight", label: "מעדיף/ה לא לציין", description: "תוכנית כללית" },
+      {
+        id: "prefer_not_to_say_weight",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
     ],
   },
   {
@@ -154,7 +198,11 @@ export const UNIFIED_QUESTIONS: Question[] = [
       { id: "171_180", label: '171-180 ס"מ', description: "גובה בינוני-גבוה" },
       { id: "181_190", label: '181-190 ס"מ', description: "גובה גבוה" },
       { id: "over_190", label: 'מעל 190 ס"מ', description: "גובה גבוה מאוד" },
-      { id: "prefer_not_to_say_height", label: "מעדיף/ה לא לציין", description: "תוכנית כללית" },
+      {
+        id: "prefer_not_to_say_height",
+        label: "מעדיף/ה לא לציין",
+        description: "תוכנית כללית",
+      },
     ],
   },
   {
@@ -166,10 +214,26 @@ export const UNIFIED_QUESTIONS: Question[] = [
     icon: "🎯",
     type: "single",
     options: [
-      { id: "lose_weight", label: "ירידה במשקל", description: "שריפת שומן ויצירת גירעון קלורי" },
-      { id: "build_muscle", label: "בניית שריר", description: "הגדלת מסת שריר וכוח" },
-      { id: "general_fitness", label: "כושר כללי", description: "שיפור בריאות וכושר" },
-      { id: "athletic_performance", label: "ביצועים ספורטיביים", description: "שיפור כוח, מהירות וסיבולת" },
+      {
+        id: "lose_weight",
+        label: "ירידה במשקל",
+        description: "שריפת שומן ויצירת גירעון קלורי",
+      },
+      {
+        id: "build_muscle",
+        label: "בניית שריר",
+        description: "הגדלת מסת שריר וכוח",
+      },
+      {
+        id: "general_fitness",
+        label: "כושר כללי",
+        description: "שיפור בריאות וכושר",
+      },
+      {
+        id: "athletic_performance",
+        label: "ביצועים ספורטיביים",
+        description: "שיפור כוח, מהירות וסיבולת",
+      },
     ],
   },
   {
@@ -182,7 +246,11 @@ export const UNIFIED_QUESTIONS: Question[] = [
     type: "single",
     options: [
       { id: "beginner", label: "מתחיל", description: "פחות מ-6 חודשים ניסיון" },
-      { id: "intermediate", label: "בינוני", description: "6 חודשים עד 2 שנים" },
+      {
+        id: "intermediate",
+        label: "בינוני",
+        description: "6 חודשים עד 2 שנים",
+      },
       { id: "advanced", label: "מתקדם", description: "יותר מ-2 שנים ניסיון" },
     ],
   },
@@ -195,10 +263,26 @@ export const UNIFIED_QUESTIONS: Question[] = [
     icon: "📅",
     type: "single",
     options: [
-      { id: "2_days", label: "2 ימים בשבוע", description: "אימונים קצרים ויעילים" },
-      { id: "3_days", label: "3 ימים בשבוע", description: "איזון בין אימון למנוחה" },
-      { id: "4_days", label: "4 ימים בשבוע", description: "אימונים מגוונים ומתקדמים" },
-      { id: "5_days", label: "5+ ימים בשבוע", description: "אימונים אינטנסיביים" },
+      {
+        id: "2_days",
+        label: "2 ימים בשבוע",
+        description: "אימונים קצרים ויעילים",
+      },
+      {
+        id: "3_days",
+        label: "3 ימים בשבוע",
+        description: "איזון בין אימון למנוחה",
+      },
+      {
+        id: "4_days",
+        label: "4 ימים בשבוע",
+        description: "אימונים מגוונים ומתקדמים",
+      },
+      {
+        id: "5_days",
+        label: "5+ ימים בשבוע",
+        description: "אימונים אינטנסיביים",
+      },
     ],
   },
   {
@@ -210,10 +294,22 @@ export const UNIFIED_QUESTIONS: Question[] = [
     icon: "⏱️",
     type: "single",
     options: [
-      { id: "15_30_min", label: "15-30 דקות", description: "אימונים קצרים ואינטנסיביים" },
-      { id: "30_45_min", label: "30-45 דקות", description: "אימונים סטנדרטיים" },
+      {
+        id: "15_30_min",
+        label: "15-30 דקות",
+        description: "אימונים קצרים ואינטנסיביים",
+      },
+      {
+        id: "30_45_min",
+        label: "30-45 דקות",
+        description: "אימונים סטנדרטיים",
+      },
       { id: "45_60_min", label: "45-60 דקות", description: "אימונים מקיפים" },
-      { id: "60_plus_min", label: "יותר מ-60 דקות", description: "אימונים ארוכים ומפורטים" },
+      {
+        id: "60_plus_min",
+        label: "יותר מ-60 דקות",
+        description: "אימונים ארוכים ומפורטים",
+      },
     ],
   },
   {
@@ -225,8 +321,16 @@ export const UNIFIED_QUESTIONS: Question[] = [
     icon: "🏠",
     type: "single",
     options: [
-      { id: "home_bodyweight", label: "בית - משקל גוף", description: "אימונים ביתיים ללא ציוד מיוחד" },
-      { id: "home_equipment", label: "בית - עם ציוד", description: "יש לי ציוד ביתי לאימונים" },
+      {
+        id: "home_bodyweight",
+        label: "בית - משקל גוף",
+        description: "אימונים ביתיים ללא ציוד מיוחד",
+      },
+      {
+        id: "home_equipment",
+        label: "בית - עם ציוד",
+        description: "יש לי ציוד ביתי לאימונים",
+      },
       { id: "gym", label: "חדר כושר", description: "גישה לחדר כושר מצויד" },
       { id: "mixed", label: "משולב", description: "שילוב של בית וחדר כושר" },
     ],
@@ -302,15 +406,28 @@ export class UnifiedQuestionnaireManager {
       ? workoutLocationAnswer.answer[0]?.id
       : workoutLocationAnswer.answer.id;
 
-    if (question.id === "bodyweight_equipment" && location !== "home_bodyweight") return true;
-    if (question.id === "home_equipment" && location !== "home_equipment") return true;
-    if (question.id === "gym_equipment" && location !== "gym" && location !== "mixed") return true;
+    if (
+      question.id === "bodyweight_equipment" &&
+      location !== "home_bodyweight"
+    )
+      return true;
+    if (question.id === "home_equipment" && location !== "home_equipment")
+      return true;
+    if (
+      question.id === "gym_equipment" &&
+      location !== "gym" &&
+      location !== "mixed"
+    )
+      return true;
 
     return false;
   }
 
   // ענה על שאלה
-  answerQuestion(questionId: string, answer: QuestionOption | QuestionOption[]): void {
+  answerQuestion(
+    questionId: string,
+    answer: QuestionOption | QuestionOption[]
+  ): void {
     const questionAnswer: QuestionnaireAnswer = {
       questionId,
       answer,
@@ -346,7 +463,9 @@ export class UnifiedQuestionnaireManager {
   // קבל התקדמות
   getProgress(): number {
     const totalRelevantQuestions = this.getTotalRelevantQuestions();
-    return totalRelevantQuestions > 0 ? (this.answers.size / totalRelevantQuestions) * 100 : 0;
+    return totalRelevantQuestions > 0
+      ? (this.answers.size / totalRelevantQuestions) * 100
+      : 0;
   }
 
   // קבל מספר השאלות הרלוונטיות
@@ -367,7 +486,7 @@ export class UnifiedQuestionnaireManager {
 
   // קבל שאלה לפי ID
   getQuestionById(questionId: string): Question | null {
-    return this.questions.find(q => q.id === questionId) || null;
+    return this.questions.find((q) => q.id === questionId) || null;
   }
 
   // קבל תוצאות מלאות
@@ -382,8 +501,10 @@ export class UnifiedQuestionnaireManager {
 
   // בדוק אם השאלון הושלם
   isCompleted(): boolean {
-    return this.currentQuestionIndex >= this.questions.length - 1 && 
-           this.answers.size >= this.getTotalRelevantQuestions();
+    return (
+      this.currentQuestionIndex >= this.questions.length - 1 &&
+      this.answers.size >= this.getTotalRelevantQuestions()
+    );
   }
 
   // איפוס השאלון
@@ -404,7 +525,7 @@ export class UnifiedQuestionnaireManager {
     const getAnswerIds = (questionId: string): string[] => {
       const ans = this.answers.get(questionId)?.answer;
       if (!ans) return [];
-      return Array.isArray(ans) ? ans.map(o => o.id) : [ans.id];
+      return Array.isArray(ans) ? ans.map((o) => o.id) : [ans.id];
     };
 
     const normalizeEquipment = (): string[] => {
@@ -415,13 +536,16 @@ export class UnifiedQuestionnaireManager {
 
       const result = new Set<string>();
 
-      if (location === "home_bodyweight" || (homeIds.length === 0 && gymIds.length === 0)) {
+      if (
+        location === "home_bodyweight" ||
+        (homeIds.length === 0 && gymIds.length === 0)
+      ) {
         result.add("none");
       }
 
       // מיפוי פשוט של ציוד
       const allEquipmentIds = [...bodyweightIds, ...homeIds, ...gymIds];
-      allEquipmentIds.forEach(id => {
+      allEquipmentIds.forEach((id) => {
         if (getEquipmentById(id)) {
           result.add(id);
         } else {
@@ -442,7 +566,12 @@ export class UnifiedQuestionnaireManager {
       const ageId = getAnswerId("age");
       if (!ageId) return undefined;
       const ageMap: Record<string, number> = {
-        under_18: 16, "18_25": 22, "26_35": 30, "36_50": 43, "51_65": 58, over_65: 70,
+        under_18: 16,
+        "18_25": 22,
+        "26_35": 30,
+        "36_50": 43,
+        "51_65": 58,
+        over_65: 70,
       };
       return ageMap[ageId];
     };
@@ -451,7 +580,13 @@ export class UnifiedQuestionnaireManager {
       const weightId = getAnswerId("weight");
       if (!weightId) return undefined;
       const weightMap: Record<string, number> = {
-        under_50: 45, "50_60": 55, "61_70": 65, "71_80": 75, "81_90": 85, "91_100": 95, over_100: 105,
+        under_50: 45,
+        "50_60": 55,
+        "61_70": 65,
+        "71_80": 75,
+        "81_90": 85,
+        "91_100": 95,
+        over_100: 105,
       };
       return weightMap[weightId];
     };
@@ -460,24 +595,43 @@ export class UnifiedQuestionnaireManager {
       const heightId = getAnswerId("height");
       if (!heightId) return undefined;
       const heightMap: Record<string, number> = {
-        under_150: 145, "150_160": 155, "161_170": 165, "171_180": 175, "181_190": 185, over_190: 195,
+        under_150: 145,
+        "150_160": 155,
+        "161_170": 165,
+        "171_180": 175,
+        "181_190": 185,
+        over_190: 195,
       };
       return heightMap[heightId];
     };
 
     return {
       answers: {
-        gender: getAnswerId("gender") as "male" | "female" | "other" | undefined,
+        gender: getAnswerId("gender") as
+          | "male"
+          | "female"
+          | "other"
+          | undefined,
         age: parseAge(),
         weight: parseWeight(),
         height: parseHeight(),
-        fitnessLevel: getAnswerId("experience_level") as "beginner" | "intermediate" | "advanced" | undefined,
-        goals: getAnswerId("fitness_goal") ? [getAnswerId("fitness_goal")!] : [],
+        fitnessLevel: getAnswerId("experience_level") as
+          | "beginner"
+          | "intermediate"
+          | "advanced"
+          | undefined,
+        goals: getAnswerId("fitness_goal")
+          ? [getAnswerId("fitness_goal")!]
+          : [],
         equipment: normalizeEquipment(),
-        availability: getAnswerId("availability") ? [getAnswerId("availability")!] : [],
+        availability: getAnswerId("availability")
+          ? [getAnswerId("availability")!]
+          : [],
         sessionDuration: getAnswerId("session_duration"),
         workoutLocation: getAnswerId("workout_location"),
-        nutrition: getAnswerId("diet_preferences") ? [getAnswerId("diet_preferences")!] : [],
+        nutrition: getAnswerId("diet_preferences")
+          ? [getAnswerId("diet_preferences")!]
+          : [],
       },
       metadata: {
         completedAt: new Date().toISOString(),

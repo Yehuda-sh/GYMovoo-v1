@@ -38,7 +38,6 @@ export { default as TouchableButton } from "./ui/TouchableButton"; // כפתור
 export { default as FloatingActionButton } from "./workout/FloatingActionButton"; // כפתור צף עם workout mode ו-haptic feedback ⚡💪
 export { default as NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא עם performance tracking ו-enlarged hitSlop ⚡💪
 export { BlurOverlay } from "./BlurOverlay"; // רכיב ערפול עם workout context ו-haptic feedback ⚡💪
-export { default as WorkoutPlanManager } from "./WorkoutPlanManager"; // מנהל תוכניות אימון עם haptic feedback ו-performance tracking ⚡💪
 
 // ===============================================
 // 🎮 Gamification & Marketing - גיימיפיקציה ושיווק
@@ -86,9 +85,9 @@ export { default as WorkoutPlansScreen } from "../screens/workout/WorkoutPlansSc
 // 🔥 רכיבים עם אופטימיזציות מלאות:
 // • UI: UniversalButton, UniversalCard
 // • Common: UniversalModal (4 סוגים + useModalManager), StatCard (4 variants + grid)
-// • Workout: FloatingActionButton, NextWorkoutCard, BlurOverlay, WorkoutPlanManager
+// • Workout: FloatingActionButton, NextWorkoutCard, BlurOverlay
 // • Gamification: AvatarEvolution (5 רמות התפתחות + אנימציות מתקדמות)
 // • Marketing: AdManager (התאמה חכמה לסוג מנוי + ConfirmationModal)
 // • Screens: WelcomeScreen (TouchableButton מדורג), MainScreen (דשבורד עם 4 כפתורים), WorkoutPlansScreen (AI + haptic feedback)
 //
-// Total: 21 components | Fitness Optimized: 14 | With Haptic: 12 | Performance Tracked: 10 | With Gamification: 1
+// Total: 20 components | Fitness Optimized: 13 | With Haptic: 11 | Performance Tracked: 9 | With Gamification: 1
