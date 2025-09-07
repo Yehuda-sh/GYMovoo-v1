@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
+import { formatMinutesToTime } from "../../../utils/workoutHelpers";
 
 interface Exercise {
   id?: string;
@@ -75,11 +76,7 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
   const duration = workout.duration || 0;
 
   const formatDuration = (minutes: number): string => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hrs > 0
-      ? `${hrs}:${mins.toString().padStart(2, "0")}`
-      : `${mins} דק'`;
+    return formatMinutesToTime(minutes);
   };
 
   const handleShare = async () => {

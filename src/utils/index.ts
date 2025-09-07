@@ -2,6 +2,9 @@
  * Central exports for GYMovoo utility functions
  */
 
+// Date utilities
+export * from "./dateHelpers";
+
 // Gender adaptation utilities
 export * from "./genderAdaptation";
 

@@ -61,16 +61,12 @@ const AVAILABILITY_MAP = new Map<string, number>([
 ]);
 
 /** מפת דפוסי יום אימון */
+// Legacy pattern map (kept for backwards compatibility/reference only). Prefer using extractWorkoutDayNumber()
 const WORKOUT_DAY_PATTERNS = new Map<string, number>([
-  ["1", 2],
   ["יום 1", 2],
-  ["2", 3],
   ["יום 2", 3],
-  ["3", 4],
   ["יום 3", 4],
-  ["4", 5],
   ["יום 4", 5],
-  ["5", 1],
   ["יום 5", 1],
 ]);
 
@@ -146,7 +142,8 @@ const CACHE_TTL = 300000; // 5 minutes
  */
 function getUserCacheKey(user: User | null): string | null {
   if (!user) return null;
-  return user.id || user.email || `user_${Date.now()}`;
+  // Only stable identifiers should be used for cache keys. Avoid time-based fallbacks that break cache hits.
+  return user.id || user.email || null;
 }
 
 /**
@@ -156,6 +153,45 @@ function getUserCacheKey(user: User | null): string | null {
  */
 function isCacheValid(timestamp: number): boolean {
   return Date.now() - timestamp < CACHE_TTL;
+}
+
+/**
+ * Unified error logger for this module
+ */
+function logError(context: string, error: unknown) {
+  console.error(`[mainScreenUtils:${context}]`, error);
+}
+
+/**
+ * Start of the week (Sunday by default)
+ */
+function startOfWeek(date: Date, weekStartsOn: 0 | 1 = 0): Date {
+  const d = new Date(date);
+  const day = d.getDay(); // 0..6 (Sun..Sat)
+  const diff = (day - weekStartsOn + 7) % 7; // how many days since week start
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+
+/**
+ * Extracts a "day number" from a workout label. Supports formats like "יום 3" or plain numbers.
+ */
+function extractWorkoutDayNumber(label: string): number | null {
+  if (!label) return null;
+  // Prefer explicit Hebrew pattern "יום <n>"
+  const heb = label.match(/יום\s*(\d+)/);
+  if (heb && heb[1]) {
+    const n = parseInt(heb[1], 10);
+    return Number.isFinite(n) ? n : null;
+  }
+  // Fallback: find a standalone 1-5 token (avoid matching parts of 10, 12, etc.)
+  const token = label.match(/(?:^|\D)([1-5])(?:\D|$)/);
+  if (token && token[1]) {
+    const n = parseInt(token[1], 10);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
 // ===============================================
@@ -198,7 +234,7 @@ export const calculateAvailableTrainingDays = (user: User | null): number => {
 
     return 3; // Default
   } catch (error) {
-    console.error("Error calculating available training days:", error);
+    logError("calculateAvailableTrainingDays", error);
     return 3;
   }
 };
@@ -219,20 +255,22 @@ export const getNextRecommendedDay = (
     const lastWorkout = workouts[workouts.length - 1];
     const lastWorkoutType = lastWorkout?.type || lastWorkout?.workoutName || "";
 
-    // Use pattern matching for better performance
+    const day = extractWorkoutDayNumber(lastWorkoutType);
+    if (day && day >= 1 && day <= 5) {
+      const next = day + 1;
+      return next > availableDays ? 1 : next;
+    }
+
+    // Legacy fallback for any remaining patterns
     for (const [pattern, nextDay] of WORKOUT_DAY_PATTERNS) {
       if (lastWorkoutType.includes(pattern)) {
-        // Special logic for cycling through available days
-        if (nextDay > availableDays) {
-          return 1; // Cycle back to day 1
-        }
-        return nextDay;
+        return nextDay > availableDays ? 1 : nextDay;
       }
     }
 
     return 1; // Default fallback
   } catch (error) {
-    console.error("Error calculating next recommended day:", error);
+    logError("getNextRecommendedDay", error);
     return 1;
   }
 };
@@ -297,7 +335,7 @@ export const extractPersonalDataFromUser = (
 
     return extractedData;
   } catch (error) {
-    console.error("Error extracting personal data from user:", error);
+    logError("extractPersonalDataFromUser", error);
     return { ...DEFAULT_PERSONAL_DATA };
   }
 };
@@ -349,7 +387,7 @@ export const getTimeBasedGreeting = (
 
     return baseGreeting;
   } catch (error) {
-    console.error("Error generating time-based greeting:", error);
+    logError("getTimeBasedGreeting", error);
     return "שלום";
   }
 };
@@ -404,18 +442,22 @@ export const calculateUserProgress = (
       weeklyGoalProgress
     );
 
-    // Get next recommended workout
-    const nextRecommendedWorkout = 1; // Simplified for now
+    // Next recommended workout is context-dependent (requires workout labels). Keep 1 as conservative default.
+    const nextRecommendedWorkout = 1;
 
-    const progress: UserProgress = {
+    const progressBase = {
       totalWorkouts,
       currentStreak,
       longestStreak,
       weeklyGoalProgress,
-      lastWorkoutDate: getLastWorkoutDate(workouts),
       nextRecommendedWorkout,
       motivationalLevel,
-    };
+    } satisfies Omit<UserProgress, "lastWorkoutDate">;
+
+    const lastDate = getLastWorkoutDate(workouts);
+    const progress: UserProgress = lastDate
+      ? { ...progressBase, lastWorkoutDate: lastDate }
+      : { ...progressBase };
 
     // Cache the result
     if (cacheKey) {
@@ -427,7 +469,7 @@ export const calculateUserProgress = (
 
     return progress;
   } catch (error) {
-    console.error("Error calculating user progress:", error);
+    logError("calculateUserProgress", error);
     return {
       totalWorkouts: 0,
       currentStreak: 0,
@@ -509,7 +551,7 @@ export const generateUserInsights = (
 
     return insights;
   } catch (error) {
-    console.error("Error generating user insights:", error);
+    logError("generateUserInsights", error);
     return {
       weeklyAnalysis: "המשך בעבודה הטובה!",
       strengths: [],
@@ -571,7 +613,7 @@ export const getMotivationalMessage = (
 
     return "זמן לאימון! 💪";
   } catch (error) {
-    console.error("Error generating motivational message:", error);
+    logError("getMotivationalMessage", error);
     return "בואו נאמן! 💪";
   }
 };
@@ -592,11 +634,10 @@ function calculateWorkoutStreaks(
   longestStreak: number;
 } {
   try {
+    type CompletedWorkout = { date: string; completed: true };
     const completedWorkouts = workouts
-      .filter((w) => w.completed && w.date)
-      .sort(
-        (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()
-      );
+      .filter((w): w is CompletedWorkout => Boolean(w.completed && w.date))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     if (completedWorkouts.length === 0) {
       return { currentStreak: 0, longestStreak: 0 };
@@ -608,19 +649,27 @@ function calculateWorkoutStreaks(
 
     // Calculate current streak from most recent workout
     const today = new Date();
-    const lastWorkoutDate = new Date(completedWorkouts[0].date!);
+    const mostRecent = completedWorkouts[0];
+    if (!mostRecent) {
+      return { currentStreak: 0, longestStreak: 0 };
+    }
+    const lastWorkoutDate = new Date(mostRecent.date);
     const daysDiff = Math.floor(
       (today.getTime() - lastWorkoutDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysDiff <= 2) {
+    // Allow up to 2 rest days between today and the most recent workout
+    if (daysDiff <= 3) {
       // Allow for rest days
       currentStreak = 1;
 
       // Count consecutive days (with flexibility for rest days)
       for (let i = 1; i < completedWorkouts.length; i++) {
-        const current = new Date(completedWorkouts[i - 1].date!);
-        const previous = new Date(completedWorkouts[i].date!);
+        const currItem = completedWorkouts[i - 1];
+        const prevItem = completedWorkouts[i];
+        if (!currItem || !prevItem) break;
+        const current = new Date(currItem.date);
+        const previous = new Date(prevItem.date);
         const diff = Math.floor(
           (current.getTime() - previous.getTime()) / (1000 * 60 * 60 * 24)
         );
@@ -636,8 +685,11 @@ function calculateWorkoutStreaks(
 
     // Calculate longest streak
     for (let i = 1; i < completedWorkouts.length; i++) {
-      const current = new Date(completedWorkouts[i - 1].date!);
-      const previous = new Date(completedWorkouts[i].date!);
+      const currItem = completedWorkouts[i - 1];
+      const prevItem = completedWorkouts[i];
+      if (!currItem || !prevItem) break;
+      const current = new Date(currItem.date);
+      const previous = new Date(prevItem.date);
       const diff = Math.floor(
         (current.getTime() - previous.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -654,7 +706,7 @@ function calculateWorkoutStreaks(
 
     return { currentStreak, longestStreak };
   } catch (error) {
-    console.error("Error calculating workout streaks:", error);
+    logError("calculateWorkoutStreaks", error);
     return { currentStreak: 0, longestStreak: 0 };
   }
 }
@@ -671,8 +723,7 @@ function calculateWeeklyProgress(
 ): number {
   try {
     const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+    const weekStart = startOfWeek(today, 0); // Start of week (Sunday)
 
     const thisWeekWorkouts = workouts.filter((w) => {
       if (!w.date || !w.completed) return false;
@@ -683,7 +734,7 @@ function calculateWeeklyProgress(
     const progress = (thisWeekWorkouts.length / availableDays) * 100;
     return Math.min(progress, 100);
   } catch (error) {
-    console.error("Error calculating weekly progress:", error);
+    logError("calculateWeeklyProgress", error);
     return 0;
   }
 }
@@ -712,15 +763,16 @@ function getLastWorkoutDate(
   workouts: Array<{ date?: string; completed?: boolean }>
 ): string | undefined {
   try {
+    type CompletedWorkout = { date: string; completed: true };
     const completedWorkouts = workouts
-      .filter((w) => w.completed && w.date)
-      .sort(
-        (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()
-      );
+      .filter((w): w is CompletedWorkout => Boolean(w.completed && w.date))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    return completedWorkouts[0]?.date;
+    if (completedWorkouts.length === 0) return undefined;
+    const first = completedWorkouts[0];
+    return first ? first.date : undefined;
   } catch (error) {
-    console.error("Error getting last workout date:", error);
+    logError("getLastWorkoutDate", error);
     return undefined;
   }
 }
@@ -781,7 +833,7 @@ function generatePersonalizedRecommendations(
 
     return recommendations;
   } catch (error) {
-    console.error("Error generating personalized recommendations:", error);
+    logError("generatePersonalizedRecommendations", error);
     return ["המשך לאמן בקביעות"];
   }
 }
@@ -807,7 +859,7 @@ function getNextMilestone(progress: UserProgress): string {
 
     return "המשך להתפתח ולהתחזק!";
   } catch (error) {
-    console.error("Error getting next milestone:", error);
+    logError("getNextMilestone", error);
     return "האימון הבא";
   }
 }
@@ -862,8 +914,7 @@ export function isUserActiveThisWeek(
 ): boolean {
   try {
     const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    const weekStart = startOfWeek(today, 0);
 
     return workouts.some((w) => {
       if (!w.date || !w.completed) return false;
@@ -871,7 +922,7 @@ export function isUserActiveThisWeek(
       return workoutDate >= weekStart && workoutDate <= today;
     });
   } catch (error) {
-    console.error("Error checking if user is active this week:", error);
+    logError("isUserActiveThisWeek", error);
     return false;
   }
 }

@@ -215,21 +215,6 @@ export const getEquipmentText = (equipment: string): string => {
 };
 
 /**
- * Helper function to format duration
- * פונקציית עזר לעיצוב משך זמן
- */
-export const formatDuration = (minutes: number): string => {
-  if (minutes < 60) {
-    return `${minutes} דקות`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes > 0
-    ? `${hours}:${remainingMinutes.toString().padStart(2, "0")} שעות`
-    : `${hours} שעות`;
-};
-
-/**
  * Helper function to format calories
  * פונקציית עזר לעיצוב קלוריות
  */

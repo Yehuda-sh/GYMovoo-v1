@@ -186,7 +186,7 @@ export class WorkoutDataService {
    */
   private static selectBasicExercises(
     workoutName: string,
-    equipment: string[]
+    _equipment: string[]
   ): ExerciseTemplate[] {
     const targetMuscles = this.getTargetMusclesForDay(workoutName);
 

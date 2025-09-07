@@ -34,13 +34,6 @@ export const formatWorkoutTime = (
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 };
 
-/**
- * @deprecated שימוש ב-formatWorkoutTime(seconds, true) במקום
- */
-export const formatWorkoutTimeExtended = (seconds: number): string => {
-  return formatWorkoutTime(seconds, true);
-};
-
 // ===============================================
 // 📳 Vibration Patterns - דפוסי רטט
 // ===============================================
@@ -204,27 +197,4 @@ export const getRecommendedRestTime = (
 // 🔧 Legacy Functions - פונקציות מורשת
 // ===============================================
 
-/**
- * @deprecated העבר לformatMinutesToTime לתוצאות טובות יותר
- */
-export const minutesToHours = (minutes: number): number => {
-  if (typeof minutes !== "number" || isNaN(minutes) || minutes < 0) return 0;
-  return Math.floor(minutes / 60);
-};
-
-/**
- * @deprecated העבר לworkout-agnostic date utility
- */
-export const formatDateHebrew = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "תאריך לא תקין";
-    return date.toLocaleDateString("he-IL", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "תאריך לא תקין";
-  }
-};
+// Legacy functions removed - use formatMinutesToTime and formatters.ts instead

@@ -307,8 +307,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
         questionnaireService.hasCompletedQuestionnaire(),
       ]);
 
-    setUserGoal(goal);
-    setUserExperience(experience);
+    setUserGoal(goal || "");
+    setUserExperience(experience || "");
     setAvailableEquipment(equipment);
     setPreferredDuration(duration);
     setHasCompletedQuestionnaire(completed);

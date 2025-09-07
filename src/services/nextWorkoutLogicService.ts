@@ -4,6 +4,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import workoutFacadeService from "./workout/workoutFacadeService";
+import { daysSinceLastWorkout } from "../utils/dateHelpers";
 
 const WORKOUT_CYCLE_KEY = "workout_cycle_state";
 
@@ -46,14 +47,14 @@ class NextWorkoutLogicService {
       }
 
       const cycleState = await this.getCurrentCycleState(weeklyPlan);
-      const daysSinceLastWorkout = this.calculateDaysSinceLastWorkout(
+      const daysSinceLastWorkoutCount = daysSinceLastWorkout(
         cycleState.lastWorkoutDate
       );
 
       return this.determineNextWorkout(
         weeklyPlan,
         cycleState,
-        daysSinceLastWorkout
+        daysSinceLastWorkoutCount
       );
     } catch (error) {
       console.error("NextWorkoutLogic error:", error);
@@ -245,29 +246,6 @@ class NextWorkoutLogicService {
         programStartDate: new Date().toISOString(),
         weeklyPlan: [...(weeklyPlan ?? [])],
       };
-    }
-  }
-
-  private calculateDaysSinceLastWorkout(lastWorkoutDate: string): number {
-    if (!lastWorkoutDate || lastWorkoutDate === "") {
-      return 999;
-    }
-
-    try {
-      const lastDate = new Date(lastWorkoutDate);
-      const today = new Date();
-
-      if (isNaN(lastDate.getTime())) {
-        return 999;
-      }
-
-      const timeDiff = today.getTime() - lastDate.getTime();
-      const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-
-      return Math.max(0, daysDiff);
-    } catch (error) {
-      console.error("Error calculating days since last workout:", error);
-      return 999;
     }
   }
 
