@@ -12,6 +12,7 @@
 // ===============================================
 // בסיסיים ונפוצים לשימוש חוזר / Basic and reusable components
 
+export { default as AppButton } from "./common/AppButton"; // רכיב כפתור אחיד לכל האפליקציה
 export { default as BackButton } from "./common/BackButton"; // 3 variants - כפתור חזרה עם תמיכה RTL
 export { default as LoadingSpinner } from "./common/LoadingSpinner"; // 4 variants - מחוון טעינה מתקדם
 export { default as EmptyState } from "./common/EmptyState"; // 3 variants - מצב ריק עם אנימציות

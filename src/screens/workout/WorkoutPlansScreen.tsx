@@ -18,6 +18,7 @@ import { UniversalModal } from "../../components/common/UniversalModal";
 import EmptyState from "../../components/common/EmptyState";
 import UniversalCard from "../../components/ui/UniversalCard";
 import { questionnaireService } from "../../services/questionnaireService";
+import AppButton from "../../components/common/AppButton";
 
 interface WorkoutPlanScreenProps {
   route?: {
@@ -181,12 +182,15 @@ export default function WorkoutPlansScreen({
                 📅 {currentWorkoutPlan.frequency} פעמים בשבוע
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.startButton}
+            <AppButton
+              title="התחל אימון"
+              variant="workout"
+              size="large"
+              fullWidth
               onPress={handleStartWorkout}
-            >
-              <Text style={styles.startButtonText}>התחל אימון</Text>
-            </TouchableOpacity>
+              accessibilityLabel="התחל אימון חדש"
+              accessibilityHint="לחץ כדי להתחיל אימון לפי התוכנית הנבחרת"
+            />
           </UniversalCard>
         ) : (
           <EmptyState
@@ -198,19 +202,25 @@ export default function WorkoutPlansScreen({
         )}
 
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
+          <AppButton
+            title="צור תוכנית בסיסית"
+            variant="secondary"
+            size="medium"
+            fullWidth
             onPress={() => generatePlan("basic")}
-          >
-            <Text style={styles.actionButtonText}>צור תוכנית בסיסית</Text>
-          </TouchableOpacity>
+            accessibilityLabel="צור תוכנית אימון בסיסית"
+            accessibilityHint="לחץ כדי ליצור תוכנית אימון בסיסית"
+          />
           {canAccessAI && (
-            <TouchableOpacity
-              style={styles.actionButton}
+            <AppButton
+              title="צור תוכנית AI"
+              variant="primary"
+              size="medium"
+              fullWidth
               onPress={() => generatePlan("smart")}
-            >
-              <Text style={styles.actionButtonText}>צור תוכנית AI</Text>
-            </TouchableOpacity>
+              accessibilityLabel="צור תוכנית אימון חכמה"
+              accessibilityHint="לחץ כדי ליצור תוכנית אימון מותאמת אישית באמצעות בינה מלאכותית"
+            />
           )}
         </View>
       </ScrollView>
@@ -320,35 +330,8 @@ const styles = {
     paddingVertical: 6,
     borderRadius: 16,
   },
-  startButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center" as const,
-    marginTop: 8,
-  },
-  startButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600" as const,
-  },
   actionsContainer: {
-    flexDirection: "row" as const,
     gap: 12,
     marginTop: 24,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center" as const,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  actionButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: "500" as const,
   },
 };

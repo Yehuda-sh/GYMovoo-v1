@@ -28,6 +28,7 @@ import workoutFacadeService from "../../services/workout/workoutFacadeService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
 import { DayButtonGrid } from "../../components/common/DayButton";
+import AppButton from "../../components/common/AppButton";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import EmptyState from "../../components/common/EmptyState";
 import {
@@ -84,101 +85,32 @@ interface WorkoutHistoryItem {
   rating?: number;
 }
 
-/** @description Calculate available training days from user data */
+/** @description Calculate available training days from user data - SIMPLIFIED */
 const calculateAvailableTrainingDays = (user: User | null): number => {
   if (!user) return 3;
 
-  // Try to extract from new smart questionnaire
-  const smartAnswers = user.smartquestionnairedata?.answers as
-    | { availability?: string | string[] }
-    | undefined;
+  // מקור יחיד: תשובות השאלון החכם
+  const smartAnswers = user.smartquestionnairedata?.answers;
   if (smartAnswers?.availability) {
     const availability = Array.isArray(smartAnswers.availability)
       ? smartAnswers.availability[0]
       : smartAnswers.availability;
-    switch (availability) {
-      case "2_days":
-        return 2;
-      case "3_days":
-        return 3;
-      case "4_days":
-        return 4;
-      case "5_days":
-        return 5;
-      default:
-        return 3;
+
+    // בדיקת טיפוס והמרה
+    if (typeof availability === "string") {
+      const daysMap: Record<string, number> = {
+        "2_days": 2,
+        "3_days": 3,
+        "4_days": 4,
+        "5_days": 5,
+        "5_plus_days": 5,
+      };
+
+      return daysMap[availability] || 3;
     }
   }
 
-  // Try to extract from training stats
-  if (user.trainingstats?.preferredWorkoutDays) {
-    const days =
-      typeof user.trainingstats.preferredWorkoutDays === "number"
-        ? user.trainingstats.preferredWorkoutDays
-        : parseInt(String(user.trainingstats.preferredWorkoutDays), 10);
-    if (days >= 2 && days <= 5) return days;
-  }
-
-  // Try to extract from legacy questionnaire data
-  if (user.questionnairedata?.answers) {
-    const answers = user.questionnairedata.answers as Record<string, unknown>;
-    const frequency = answers.frequency;
-    if (typeof frequency === "string") {
-      switch (frequency) {
-        case "2_days":
-          return 2;
-        case "3_days":
-          return 3;
-        case "4_days":
-          return 4;
-        case "5_days":
-          return 5;
-        default:
-          return 3;
-      }
-    }
-  }
-
-  // Try to extract from old questionnaire
-  if (user.questionnaire) {
-    const questionnaireValues = Object.values(user.questionnaire);
-    for (const value of questionnaireValues) {
-      if (typeof value === "string") {
-        if (
-          value.includes("2") &&
-          (value.includes("times") || value.includes("פעמים"))
-        )
-          return 2;
-        if (
-          value.includes("3") &&
-          (value.includes("times") || value.includes("פעמים"))
-        )
-          return 3;
-        if (
-          value.includes("4") &&
-          (value.includes("times") || value.includes("פעמים"))
-        )
-          return 4;
-        if (
-          value.includes("5") &&
-          (value.includes("times") || value.includes("פעמים"))
-        )
-          return 5;
-      }
-    }
-  }
-
-  // Fallback - try to extract from scientific profile
-  const availableDays = user.scientificprofile?.available_days;
-  if (
-    typeof availableDays === "number" &&
-    availableDays >= 2 &&
-    availableDays <= 5
-  ) {
-    return availableDays;
-  }
-
-  return 3; // Default
+  return 3; // ברירת מחדל
 };
 
 /** @description Calculate next recommended workout day */
@@ -341,11 +273,12 @@ function MainScreen() {
   useEffect(() => {
     const completion = getCompletionStatus?.();
     if (!completion) return;
+
+    // תיקון: else if במקום if כפול - מניעת redirect כפול
     if (!completion.hasSmartQuestionnaire) {
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       return;
-    }
-    if (!completion.hasBasicInfo) {
+    } else if (!completion.hasBasicInfo) {
       navigation.reset({ index: 0, routes: [{ name: "Register" }] });
       return;
     }
@@ -615,19 +548,14 @@ function MainScreen() {
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
+            <AppButton
+              title={MAIN_SCREEN_TEXTS.ACTIONS.TRY_AGAIN}
+              variant="primary"
+              size="small"
               onPress={onRefresh}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              accessible={true}
-              accessibilityRole="button"
               accessibilityLabel="נסה שוב"
               accessibilityHint="לחץ כדי לרענן ולנסות לטעון מחדש"
-            >
-              <Text style={styles.retryButtonText}>
-                {MAIN_SCREEN_TEXTS.ACTIONS.TRY_AGAIN}
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         )}
 
@@ -1072,24 +1000,16 @@ function MainScreen() {
               )}
             </View>
 
-            <TouchableOpacity
-              style={styles.viewAllButton}
+            <AppButton
+              title={MAIN_SCREEN_TEXTS.ACTIONS.VIEW_ALL_HISTORY}
+              variant="ghost"
+              size="small"
+              icon="chevron-left"
+              iconPosition="right"
               onPress={handleHistoryPress}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY}
               accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.VIEW_HISTORY_HINT}
-              accessibilityRole="button"
-            >
-              <Text style={styles.viewAllText}>
-                {MAIN_SCREEN_TEXTS.ACTIONS.VIEW_ALL_HISTORY}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={20}
-                color={theme.colors.primary}
-                accessibilityElementsHidden={true}
-              />
-            </TouchableOpacity>
+            />
           </Animated.View>
         </ScrollView>
       </View>
@@ -1331,22 +1251,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginRight: 4,
   },
-  viewAllButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
-    minHeight: 44,
-  },
-  viewAllText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.primary,
-    fontWeight: "600",
-    marginRight: theme.spacing.xs,
-    writingDirection: "rtl",
-  },
 
   // Scientific stats section // קטע הסטטיסטיקות המדעיות
   scientificStatsSection: {
@@ -1407,20 +1311,6 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     textAlign: "center",
     marginBottom: theme.spacing.sm,
-    writingDirection: "rtl",
-  },
-  retryButton: {
-    backgroundColor: theme.colors.error,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.lg,
-    // 📱 44px Minimum Touch Target Validation for Fitness Mobile
-    minHeight: 44,
-    paddingVertical: Math.max(theme.spacing.sm, 12), // מבטיח גובה של לפחות 44px
-  },
-  retryButtonText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.surface,
-    fontWeight: "600",
     writingDirection: "rtl",
   },
   loadingOverlay: {

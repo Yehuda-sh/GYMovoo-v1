@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme";
 import { formatMinutesToTime } from "../../../utils/workoutHelpers";
+import AppButton from "../../../components/common/AppButton";
 
 interface Exercise {
   id?: string;
@@ -228,10 +229,17 @@ export const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({
 
           {/* כפתורי פעולה */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.primaryButton} onPress={onSave}>
-              <MaterialCommunityIcons name="check" size={20} color="white" />
-              <Text style={styles.primaryButtonText}>סיים אימון</Text>
-            </TouchableOpacity>
+            <AppButton
+              title="סיים אימון"
+              variant="success"
+              size="large"
+              icon="check"
+              iconPosition="left"
+              onPress={onSave}
+              fullWidth
+              accessibilityLabel="סיים אימון ושמור תוצאות"
+              accessibilityHint="לחץ כדי לסיים את האימון ולשמור את התוצאות"
+            />
           </View>
         </ScrollView>
       </View>
@@ -402,20 +410,6 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     gap: theme.spacing.md,
-  },
-  primaryButton: {
-    backgroundColor: theme.colors.primary,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.md,
-    borderRadius: 12,
-    gap: theme.spacing.sm,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "white",
   },
 });
 

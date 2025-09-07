@@ -7,7 +7,7 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
-import UniversalButton from "../../components/ui/UniversalButton";
+import AppButton from "../../components/common/AppButton";
 import TouchableButton from "../../components/ui/TouchableButton";
 import { RootStackParamList } from "../../navigation/types";
 
@@ -85,7 +85,7 @@ const WelcomeScreen = () => {
                 <Text style={styles.featureText}>מעקב התקדמות</Text>
               </View>
             </View>
-            
+
             <View style={styles.featureRow}>
               <View style={styles.feature}>
                 <MaterialCommunityIcons
@@ -114,12 +114,12 @@ const WelcomeScreen = () => {
               </Text>
             </View>
 
-            <UniversalButton
+            <AppButton
               title="התחל עכשיו"
               onPress={handleStartJourney}
-              variant="gradient"
+              variant="primary"
               size="large"
-              icon="arrow-forward"
+              icon="chevron-right"
               iconPosition="right"
               fullWidth
               accessibilityLabel="התחל המסע"
@@ -143,6 +143,19 @@ const WelcomeScreen = () => {
               />
               <Text style={styles.loginButtonText}>כבר יש לי חשבון</Text>
             </TouchableButton>
+
+            {/* כפתור נוסף לכניסה מהירה */}
+            <AppButton
+              title="כניסה מהירה"
+              onPress={handleLoginNavigation}
+              variant="outline"
+              size="medium"
+              icon="login"
+              iconPosition="left"
+              fullWidth
+              style={{ marginTop: theme.spacing.sm }}
+              accessibilityLabel="כניסה מהירה למשתמש קיים"
+            />
           </View>
         </ScrollView>
 
@@ -177,7 +190,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xl * 2,
     alignItems: "center",
   },
-  
+
   // Logo Section
   logoSection: {
     alignItems: "center",

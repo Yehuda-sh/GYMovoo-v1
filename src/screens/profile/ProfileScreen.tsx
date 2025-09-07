@@ -25,6 +25,7 @@ import { theme } from "../../styles/theme";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import AppButton from "../../components/common/AppButton";
 import { useUserStore } from "../../stores/userStore";
 import { useQuestionnaireStatus } from "../../hooks/useQuestionnaireStatus";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
@@ -491,16 +492,17 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <MaterialCommunityIcons
-            name="logout"
-            size={20}
-            color={theme.colors.error}
-          />
-          <Text style={styles.logoutText}>
-            {PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
-          </Text>
-        </TouchableOpacity>
+        <AppButton
+          title={PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
+          variant="danger"
+          size="medium"
+          icon="logout"
+          iconPosition="left"
+          onPress={handleLogout}
+          style={styles.logoutButton}
+          accessibilityLabel="התנתק מהמערכת"
+          accessibilityHint="לחץ כדי להתנתק מהחשבון שלך"
+        />
       </ScrollView>
 
       {/* Avatar Modal */}
@@ -930,19 +932,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     marginHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.error + "20",
-    borderRadius: 12,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  logoutText: {
-    color: theme.colors.error,
-    fontSize: 16,
-    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,

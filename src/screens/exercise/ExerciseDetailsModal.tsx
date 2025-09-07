@@ -186,7 +186,7 @@ const ExerciseDetailsModal = React.memo<Props>(({ exercise, onClose }) => {
         accessibilityLabel="Exercise Details Modal"
       >
         <Pressable
-          onPress={() => {}}
+          onPress={undefined}
           style={styles.flexOne}
           accessibilityLabel="תוכן מודל פרטי תרגיל"
           accessibilityRole="none"

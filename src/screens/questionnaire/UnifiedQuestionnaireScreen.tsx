@@ -65,7 +65,9 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(async () => {
         try {
-          await userApi.update(user.id!, { smartquestionnairedata: data });
+          if (user?.id) {
+            await userApi.update(user.id, { smartquestionnairedata: data });
+          }
         } catch (e) {
           console.warn("Server sync failed", e);
         }
@@ -90,6 +92,31 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
     }
   }, [user, navigation]);
+
+  // Timeout בטיחות - מניעת תקיעות בשאלון
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (currentQuestion && selectedOptions.length > 0 && !isLoading) {
+      // אם יש תשובה אבל השאלון לא מתקדם במשך 60 שניות
+      timeoutId = setTimeout(() => {
+        console.warn("⚠️ Questionnaire timeout - auto advancing");
+        // נקרא לפונקציה ישירות במקום להשתמש ב-handleNext
+        if (manager.isCompleted()) {
+          completeQuestionnaire();
+        } else {
+          manager.nextQuestion();
+          loadCurrentQuestion();
+        }
+      }, 60000); // 60 שניות
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  });
 
   // Load current question
   const loadCurrentQuestion = useCallback(() => {
@@ -288,7 +315,14 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
   // Handle next question
   const handleNext = async () => {
-    if (!currentQuestion || selectedOptions.length === 0) return;
+    console.log(`📋 handleNext called`);
+    console.log(`📝 Selected options:`, selectedOptions);
+
+    if (!currentQuestion || selectedOptions.length === 0) {
+      console.warn("❌ No question or no selected options");
+      alert("אנא בחר תשובה לפני המשך");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -296,20 +330,48 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
         selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
       if (answer) {
         manager.answerQuestion(currentQuestion.id, answer);
+        console.log(
+          `✅ Answer saved for question ${currentQuestion.id}:`,
+          answer
+        );
       }
 
       // Sync to server
       const smartData = manager.toSmartQuestionnaireData();
       scheduleServerSync(smartData);
 
-      if (manager.isCompleted()) {
+      const isCompleted = manager.isCompleted();
+      console.log("🎯 Checking completion:", {
+        isCompleted,
+        currentIndex: manager.getCurrentQuestion()?.id,
+        answersCount: manager.getAllAnswers().length,
+      });
+
+      if (isCompleted) {
+        console.log(
+          "🎯 Questionnaire completed - calling completeQuestionnaire"
+        );
         await completeQuestionnaire();
       } else {
+        console.log("➡️ Moving to next question");
+        console.log(
+          "📊 Before nextQuestion - current question:",
+          manager.getCurrentQuestion()?.id
+        );
         manager.nextQuestion();
+        console.log(
+          "📊 After nextQuestion - current question:",
+          manager.getCurrentQuestion()?.id
+        );
         loadCurrentQuestion();
+        console.log(
+          "📊 After loadCurrentQuestion - selected options:",
+          selectedOptions.length
+        );
       }
     } catch (error) {
-      console.warn("Error handling next", error);
+      console.error("❌ Error handling next", error);
+      alert("אירעה שגיאה. אנא נסה שוב.");
     } finally {
       setIsLoading(false);
     }
@@ -317,19 +379,29 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
   // Complete questionnaire
   const completeQuestionnaire = async () => {
+    console.log("🎯 completeQuestionnaire started");
     try {
       const smartData = manager.toSmartQuestionnaireData();
+      console.log(
+        "📊 Smart data generated:",
+        Object.keys(smartData.answers).length,
+        "answers"
+      );
+
       setSmartQuestionnaireData(smartData);
+      console.log("✅ Data saved to store");
 
       // Save to AsyncStorage for Register screen
       await AsyncStorage.setItem(
         "smart_questionnaire_results",
         JSON.stringify(smartData)
       );
+      console.log("✅ Data saved to AsyncStorage");
 
       setShowCompletionCard(true);
+      console.log("✅ Completion card shown");
     } catch (error) {
-      console.warn("Error completing questionnaire", error);
+      console.error("❌ Error completing questionnaire", error);
       setConfirmationModal({
         visible: true,
         title: "שגיאה",
@@ -530,23 +602,37 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.completionButton}
                 onPress={async () => {
+                  console.log("🎯 Completion button pressed");
                   try {
                     const smartData = manager.toSmartQuestionnaireData();
                     await AsyncStorage.setItem(
                       "smart_questionnaire_results",
                       JSON.stringify(smartData)
                     );
-                    navigation.reset({
-                      index: 0,
-                      routes: [
-                        {
-                          name: "Register",
-                          params: { fromQuestionnaire: true },
-                        },
-                      ],
-                    });
+                    console.log("✅ Final save completed");
+
+                    // בדיקה אם יש משתמש מחובר
+                    if (user?.id) {
+                      console.log("👤 User logged in - going to Main");
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Main" }],
+                      });
+                    } else {
+                      console.log("👤 No user - going to Register");
+                      navigation.reset({
+                        index: 0,
+                        routes: [
+                          {
+                            name: "Register",
+                            params: { fromQuestionnaire: true },
+                          },
+                        ],
+                      });
+                    }
                   } catch (error) {
-                    console.warn("Error saving results", error);
+                    console.error("❌ Error saving results", error);
+                    alert("שגיאה בשמירה. אנא נסה שוב.");
                   }
                 }}
               >
