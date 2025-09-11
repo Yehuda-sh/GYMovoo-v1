@@ -30,20 +30,23 @@ import { RootStackParamList } from "./types";
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { user, getCompletionStatus } = useUserStore();
+  const { user, getCompletionStatus, hydrated, hasSeenWelcome } =
+    useUserStore();
 
-  // Determine initial screen based on user state
-  const getInitialRoute = () => {
-    if (!user) return "Welcome";
+  if (!hydrated) {
+    return null; // TODO: ניתן להוסיף Splash מותאם
+  }
 
+  const initialRoute: keyof RootStackParamList = (() => {
+    if (!user) return hasSeenWelcome ? "Auth" : "Welcome";
     const completion = getCompletionStatus();
     return completion.isFullySetup ? "MainApp" : "Questionnaire";
-  };
+  })();
 
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={getInitialRoute()}
+        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,

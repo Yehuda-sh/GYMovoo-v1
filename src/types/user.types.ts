@@ -19,7 +19,7 @@ export interface User {
   genderprofile?: GenderProfile;
   preferences?: UserPreferences;
   workoutplans?: WorkoutPlans;
-  customDemoUser?: Record<string, unknown>;
+  customDemoUser?: Record<string, unknown>; // made optional to allow clearing via omission
   hasQuestionnaire?: boolean;
 }
 
@@ -60,8 +60,8 @@ export interface QuestionnaireAnswers {
 export interface QuestionnaireData {
   answers?: QuestionnaireAnswers;
   metadata?: {
-    completedAt: string;
-    version: string;
+    completedAt?: string;
+    version?: string;
   };
 }
 
@@ -99,10 +99,15 @@ export interface WorkoutHistoryItem {
   exercises?: Array<{
     id?: string;
     name?: string;
+    // Extended optional exercise metadata (added for MainScreen stats safety)
+    category?: string;
+    primaryMuscles?: string[];
+    equipment?: string | string[];
     sets?: Array<{
       reps?: number;
       weight?: number;
       completed?: boolean;
+      id?: string; // added for referencing set id safely
     }>;
   }>;
   stats?: {
@@ -146,11 +151,17 @@ export interface UserSubscription {
   type?: "free" | "premium" | "trial";
   isActive?: boolean;
   hasCompletedTrial?: boolean;
+  startDate?: string;
+  endDate?: string;
+  registrationDate?: string;
+  trialDaysRemaining?: number;
+  lastTrialCheck?: string;
   [key: string]: unknown;
 }
 
 export interface GenderProfile {
   selectedGender?: "male" | "female" | "other";
+  adaptedWorkoutNames?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -159,6 +170,20 @@ export interface UserPreferences {
 }
 
 export interface WorkoutPlans {
+  basicPlan?: WorkoutPlan;
+  smartPlan?: WorkoutPlan;
+  additionalPlan?: WorkoutPlan;
+  lastUpdated?: string;
+  [key: string]: unknown;
+}
+
+// Minimal workout plan shape for compatibility
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  description?: string;
+  difficulty?: string;
+  days?: number;
   [key: string]: unknown;
 }
 

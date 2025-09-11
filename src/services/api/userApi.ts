@@ -38,11 +38,6 @@ export const userApi = {
       ? (fieldMapper.fromDB(data as Record<string, unknown>) as User)
       : undefined;
   },
-    if (error) return undefined;
-    return data
-      ? (fieldMapper.fromDB(data as Record<string, unknown>) as User)
-      : undefined;
-  },
 
   getByAuthId: async (authId: string): Promise<User | undefined> => {
     if (!authId) return undefined;
@@ -132,7 +127,7 @@ export const userApi = {
               ),
           };
 
-          const basicResult = await supabase
+          const basicResult = await getSupabase()
             .from("users")
             .insert(basicPayload)
             .select()
@@ -157,7 +152,7 @@ export const userApi = {
                 has_questionnaire: userData.hasQuestionnaire ? true : false,
               };
 
-              const idResult = await supabase
+              const idResult = await getSupabase()
                 .from("users")
                 .insert(idOnlyPayload)
                 .select()

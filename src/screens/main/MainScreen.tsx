@@ -386,13 +386,8 @@ function MainScreen() {
       scientificProfile: undefined, // user?.scientificprofile - field doesn't exist in User type
       activityHistory: user?.activityHistory,
       currentStats: user?.trainingStats, // ✅ תיקון: השתמש ב-trainingStats במקום trainingstats
-      aiRecommendations: user?.aiRecommendations,
     }),
-    [
-      user?.activityHistory,
-      user?.trainingStats, // ✅ תיקון: עדכון גם כאן
-      user?.aiRecommendations,
-    ]
+    [user]
   );
 
   /** @description נתוני סטטיסטיקה מעובדים לתצוגה / Processed statistics for display */
@@ -416,36 +411,40 @@ function MainScreen() {
     [profileData, advancedStats]
   );
 
-  // סטטיסטיקות מהאימון האחרון
-  // @ts-nocheck - השגיאות יטופלו בגרסה הבאה עם סכמה של טיפוסים מתאימה
+  // סטטיסטיקות מהאימון האחרון (ממופה בבטיחות טיפוסים)
   const lastWorkoutStats = useMemo(() => {
-    const workouts = profileData.activityHistory?.workouts || [];
-    if (!workouts.length) return null;
+    const workouts = profileData.activityHistory?.workouts;
+    if (!Array.isArray(workouts) || workouts.length === 0) return null;
+    const last = workouts[0];
+    if (!last || !Array.isArray(last.exercises) || last.exercises.length === 0)
+      return null;
 
-    const lastWorkout = workouts[0];
-    if (!lastWorkout?.exercises) return null;
-
-    // המרה לפורמט הנדרש
-    const formattedExercises = lastWorkout.exercises.map((exercise) => ({
-      id: exercise.id || "unknown",
-      name: exercise.name || "Unknown Exercise",
-      category: exercise.category || "Unknown",
-      primaryMuscles: exercise.primaryMuscles || ["Unknown"],
-      equipment: Array.isArray(exercise.equipment)
-        ? exercise.equipment[0] || "Unknown"
-        : exercise.equipment || "Unknown",
-      sets: (exercise.sets || []).map((set, setIndex) => ({
-        id: set.id || `set-${setIndex}`,
-        type: "working" as const,
-        targetReps: set.reps || 0,
-        actualReps: set.completed ? set.reps || 0 : 0,
-        targetWeight: set.weight || 0,
-        actualWeight: set.completed ? set.weight || 0 : 0,
-        completed: set.completed || false,
-        isPR: false,
-        timeToComplete: 0,
-      })),
-    }));
+    const formattedExercises = last.exercises.map((ex, exIdx) => {
+      const equipment = Array.isArray(ex.equipment)
+        ? ex.equipment[0]
+        : ex.equipment;
+      const sets = Array.isArray(ex.sets)
+        ? ex.sets.map((s, sIdx) => ({
+            id: s.id || `set-${exIdx}-${sIdx}`,
+            type: "working" as const,
+            targetReps: s.reps || 0,
+            actualReps: s.completed ? s.reps || 0 : 0,
+            targetWeight: s.weight || 0,
+            actualWeight: s.completed ? s.weight || 0 : 0,
+            completed: !!s.completed,
+            isPR: false,
+            timeToComplete: 0,
+          }))
+        : [];
+      return {
+        id: ex.id || `ex-${exIdx}`,
+        name: ex.name || "Unknown Exercise",
+        category: ex.category || "Unknown",
+        primaryMuscles: ex.primaryMuscles || ["Unknown"],
+        equipment: equipment || "Unknown",
+        sets,
+      };
+    });
 
     return calculateWorkoutStats(formattedExercises);
   }, [profileData.activityHistory?.workouts]);
@@ -695,18 +694,7 @@ function MainScreen() {
                   </Text>
                 </View>
 
-                {profileData.aiRecommendations?.quickTip && (
-                  <View style={styles.aiTipContainer}>
-                    <MaterialCommunityIcons
-                      name="lightbulb"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.aiTipText}>
-                      {profileData.aiRecommendations.quickTip || ""}
-                    </Text>
-                  </View>
-                )}
+                {/* Removed aiRecommendations quick tip (property no longer on profileData) */}
 
                 {/* תובנות מתקדמות מ-WorkoutFacadeService */}
                 {advancedStats?.insights &&
@@ -1188,21 +1176,6 @@ const styles = StyleSheet.create({
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.primary,
     fontWeight: "600",
-    writingDirection: "rtl",
-  },
-  aiTipContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-start",
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-  },
-  aiTipText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    color: theme.colors.text,
-    lineHeight: 20,
-    marginEnd: theme.spacing.xs,
-    flex: 1,
     writingDirection: "rtl",
   },
 

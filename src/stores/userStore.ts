@@ -46,16 +46,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  User,
-  QuestionnaireData,
-  QuestionnaireAnswers,
-} from "../types/user.types";
+import { User, QuestionnaireData } from "../types/user.types";
 import { WorkoutPlan } from "../screens/workout/types/workout.types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
-import { extractSmartAnswers } from "../utils/questionnaireUtils";
+// import { extractSmartAnswers } from "../utils/questionnaireUtils"; // no longer needed after merge refactor
 import { logger } from "../utils/logger";
 import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipmentCatalog";
 
@@ -134,6 +130,11 @@ interface UserStore {
   // מצב המשתמש
   // User state
   user: User | null;
+  // האם הטעינה מהאחסון הושלמה
+  // Has persisted state finished hydrating
+  hydrated: boolean;
+  // האם המשתמש כבר ראה את מסך ה- Welcome בעבר
+  hasSeenWelcome: boolean;
 
   // 🚫 מניעת עדכונים תכופים מדי
   lastSubscriptionUpdate: number;
@@ -230,6 +231,10 @@ interface UserStore {
   // Server sync helpers
   refreshFromServer: () => Promise<void>;
   scheduleServerSync: (reason?: string) => void;
+  // פעולה פנימית לעדכון דגל הידרציה
+  setHydrated?: () => void;
+  // סימון שהמשתמש ראה את מסך ה-Welcome
+  markWelcomeSeen: () => void;
 }
 
 // =======================================
@@ -240,8 +245,12 @@ export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       user: null,
+      hydrated: false,
+      hasSeenWelcome: false,
       // 🚫 מניעת עדכונים תכופים מדי
       lastSubscriptionUpdate: 0,
+      setHydrated: () => set({ hydrated: true }),
+      markWelcomeSeen: () => set({ hasSeenWelcome: true }),
 
       // Stubs for server sync (replaced below after store creation)
       refreshFromServer: async () => {},
@@ -374,86 +383,103 @@ export const useUserStore = create<UserStore>()(
           const state = get();
           if (state.user?.email) {
             // עדכון משתמש קיים
-            set((state) => ({
-              user: {
-                ...state.user!,
-                questionnaireData: data,
-                // עדכון העדפות בהתאם לתשובות
-                preferences: {
-                  ...state.user?.preferences,
-                  gender:
-                    data.answers && typeof data.answers.gender === "string"
-                      ? data.answers.gender
-                      : undefined,
-                  rtlPreference: true, // תמיד נכון לעברית
-                },
-                // עדכון נתוני אימון
-                trainingStats: {
-                  ...state.user?.trainingStats,
-                  // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
-                  preferredWorkoutDays: (() => {
-                    const arr = data.answers?.availability;
-                    if (Array.isArray(arr) && arr.length > 0) {
-                      const token = arr[0];
-                      if (typeof token === "string" && /_days$/.test(token)) {
-                        const splitResult = token.split("_", 1)[0];
-                        if (splitResult) {
-                          const n = parseInt(splitResult, 10);
-                          if (!isNaN(n) && n >= 1 && n <= 7) {
-                            // המרה למערך של ימי השבוע
-                            const days = [
-                              "sunday",
-                              "monday",
-                              "tuesday",
-                              "wednesday",
-                              "thursday",
-                              "friday",
-                              "saturday",
-                            ];
-                            return days.slice(0, n);
-                          }
-                        }
+            set((st) => {
+              if (!st.user) return st; // nothing to do
+              const current = st.user;
+              const availability = data.answers?.availability;
+              const preferredWorkoutDays = (() => {
+                if (Array.isArray(availability) && availability.length > 0) {
+                  const token = availability[0];
+                  if (typeof token === "string" && /_days$/.test(token)) {
+                    const splitResult = token.split("_", 1)[0];
+                    if (splitResult) {
+                      const n = parseInt(splitResult, 10);
+                      if (!isNaN(n) && n >= 1 && n <= 7) {
+                        const days = [
+                          "sunday",
+                          "monday",
+                          "tuesday",
+                          "wednesday",
+                          "thursday",
+                          "friday",
+                          "saturday",
+                        ];
+                        return days.slice(0, n);
                       }
-                      return arr.map((item) =>
-                        typeof item === "string" ? item : String(item)
-                      ); // fallback: מערך של strings
                     }
-                    return ["monday", "wednesday", "friday"]; // ברירת מחדל
-                  })(),
-                  selectedEquipment: (() => {
-                    if (
-                      data.answers &&
-                      Array.isArray(data.answers.equipment) &&
-                      data.answers.equipment.length
-                    )
-                      return normalizeEquipment(data.answers.equipment);
-                    const extendedAnswers =
-                      data.answers as ExtendedQuestionnaireAnswers;
-                    const ge = extendedAnswers.gym_equipment;
-                    if (Array.isArray(ge) && ge.length) {
-                      const mapped = ge
-                        .map((g) =>
-                          typeof g === "string" ? g : g.id || g.label
-                        )
-                        .filter(Boolean) as string[];
-                      if (mapped.length) return normalizeEquipment(mapped);
-                    }
-                    return [];
-                  })(),
-                  fitnessGoals:
-                    data.answers && Array.isArray(data.answers.goals)
-                      ? data.answers.goals
-                      : data.answers && typeof data.answers.goals === "string"
-                        ? [data.answers.goals]
-                        : [],
-                  currentFitnessLevel:
-                    data.answers &&
-                    typeof data.answers.fitnessLevel === "string"
-                      ? data.answers.fitnessLevel
-                      : undefined,
+                  }
+                  return availability.map((item) =>
+                    typeof item === "string" ? item : String(item)
+                  );
+                }
+                return (
+                  current.trainingStats?.preferredWorkoutDays || [
+                    "monday",
+                    "wednesday",
+                    "friday",
+                  ]
+                );
+              })();
+
+              const selectedEquipment = (() => {
+                if (
+                  data.answers &&
+                  Array.isArray(data.answers.equipment) &&
+                  data.answers.equipment.length
+                )
+                  return normalizeEquipment(data.answers.equipment);
+                const extendedAnswers =
+                  data.answers as ExtendedQuestionnaireAnswers;
+                const ge = extendedAnswers?.gym_equipment;
+                if (Array.isArray(ge) && ge.length) {
+                  const mapped = ge
+                    .map((g) => (typeof g === "string" ? g : g.id || g.label))
+                    .filter(Boolean) as string[];
+                  if (mapped.length) return normalizeEquipment(mapped);
+                }
+                return current.trainingStats?.selectedEquipment || [];
+              })();
+
+              const rawGoals = data.answers?.goals as unknown;
+              const fitnessGoals: string[] = Array.isArray(rawGoals)
+                ? (rawGoals.filter(Boolean) as string[])
+                : typeof rawGoals === "string" && rawGoals
+                  ? [String(rawGoals).trim()]
+                  : current.trainingStats?.fitnessGoals || [];
+
+              const currentFitnessLevel =
+                (data.answers && data.answers.fitnessLevel) ||
+                current.trainingStats?.currentFitnessLevel;
+
+              return {
+                user: {
+                  ...current,
+                  questionnaireData: data,
+                  preferences: {
+                    ...current.preferences,
+                    gender:
+                      data.answers && typeof data.answers.gender === "string"
+                        ? data.answers.gender
+                        : current.preferences?.gender,
+                    rtlPreference: true,
+                  },
+                  trainingStats: {
+                    ...(current.trainingStats || {}),
+                    preferredWorkoutDays: (preferredWorkoutDays || []).filter(
+                      (d): d is string => typeof d === "string"
+                    ),
+                    selectedEquipment: selectedEquipment || [],
+                    fitnessGoals: fitnessGoals,
+                    currentFitnessLevel:
+                      (typeof currentFitnessLevel === "string" &&
+                      currentFitnessLevel
+                        ? currentFitnessLevel
+                        : current.trainingStats?.currentFitnessLevel) ||
+                      "beginner",
+                  },
                 },
-              },
-            }));
+              } as Partial<UserStore>;
+            });
           }
 
           // שמירה ב-AsyncStorage
@@ -528,28 +554,27 @@ export const useUserStore = create<UserStore>()(
       // עדכון חלקי של נתוני השאלון החכם
       // Partial update of smart questionnaire data
       updateSmartQuestionnaireData: (updates) => {
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                questionnaireData: state.user.questionnaireData
-                  ? {
-                      ...state.user.questionnaireData,
-                      ...updates,
-                      // מיזוג בטוח של answers ללא גישה ישירה במקומות אחרים בקוד
-                      answers: {
-                        ...(extractSmartAnswers(state.user) || {}),
-                        ...(updates.answers || {}),
-                      } as QuestionnaireAnswers,
-                      metadata: {
-                        ...state.user.questionnaireData.metadata,
-                        ...updates.metadata,
-                      },
-                    }
-                  : undefined,
-              }
-            : null,
-        }));
+        set((state) => {
+          if (!state.user) return state;
+          const existing = state.user.questionnaireData || {
+            answers: {},
+            metadata: {},
+          };
+          const merged: QuestionnaireData = {
+            answers: {
+              ...(existing.answers || {}),
+              ...(updates.answers || {}),
+            },
+            metadata: {
+              ...(existing.metadata || {}),
+              ...(updates.metadata || {}),
+            },
+          };
+          return {
+            ...state,
+            user: { ...state.user, questionnaireData: merged },
+          };
+        });
         get().scheduleServerSync("updateSmartQuestionnaireData");
       },
 
@@ -633,10 +658,19 @@ export const useUserStore = create<UserStore>()(
         const state = get();
         const genderProfile = state.user?.genderprofile;
 
-        if (genderProfile?.adaptedWorkoutNames?.[originalName]) {
-          return genderProfile.adaptedWorkoutNames[originalName];
+        if (
+          genderProfile?.adaptedWorkoutNames &&
+          typeof genderProfile.adaptedWorkoutNames === "object"
+        ) {
+          const map = genderProfile.adaptedWorkoutNames as Record<
+            string,
+            string
+          >;
+          if (Object.prototype.hasOwnProperty.call(map, originalName)) {
+            const val = map[originalName];
+            if (typeof val === "string" && val.trim()) return val;
+          }
         }
-
         return originalName;
       },
 
@@ -663,51 +697,59 @@ export const useUserStore = create<UserStore>()(
       // עדכון העדפות אימון
       // Update training preferences
       updateTrainingPreferences: (prefs) => {
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                trainingStats: {
-                  ...state.user.trainingStats,
-                  preferredWorkoutDays: prefs.workoutDays
-                    ? Array.from(
-                        { length: prefs.workoutDays },
-                        (_, i) =>
-                          [
-                            "sunday",
-                            "monday",
-                            "tuesday",
-                            "wednesday",
-                            "thursday",
-                            "friday",
-                            "saturday",
-                          ][i % 7]
-                      )
-                    : undefined,
-                  selectedEquipment: normalizeEquipment(prefs.equipment),
-                  fitnessGoals: prefs.goals,
-                  currentFitnessLevel: prefs.fitnessLevel,
-                },
-              }
-            : null,
-        }));
+        set((state) => {
+          if (!state.user) return state;
+          const base = state.user.trainingStats || {};
+          const preferredWorkoutDays = prefs.workoutDays
+            ? Array.from(
+                { length: prefs.workoutDays },
+                (_, i) =>
+                  [
+                    "sunday",
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                  ][i % 7]
+              )
+            : base.preferredWorkoutDays || [];
+          const normalizedEquip =
+            normalizeEquipment(prefs.equipment) || base.selectedEquipment || [];
+          return {
+            ...state,
+            user: {
+              ...state.user,
+              trainingStats: {
+                ...base,
+                preferredWorkoutDays: preferredWorkoutDays.filter(
+                  (d): d is string => typeof d === "string"
+                ),
+                selectedEquipment: normalizedEquip,
+                fitnessGoals: (prefs.goals || base.fitnessGoals || []).filter(
+                  Boolean
+                ) as string[],
+                currentFitnessLevel:
+                  prefs.fitnessLevel || base.currentFitnessLevel || "beginner",
+              },
+            },
+          } as Partial<UserStore>;
+        });
         get().scheduleServerSync("updateTrainingPreferences");
       },
 
       // עדכון סטטיסטיקות אימון
       // Update training statistics
       updateTrainingStats: (stats) => {
-        set((state) => ({
-          user: state.user
-            ? {
-                ...state.user,
-                trainingstats: {
-                  ...state.user.trainingstats,
-                  ...stats,
-                },
-              }
-            : null,
-        }));
+        set((state) => {
+          if (!state.user) return state;
+          const base = state.user.trainingStats || {};
+          return {
+            ...state,
+            user: { ...state.user, trainingStats: { ...base, ...stats } },
+          };
+        });
         get().scheduleServerSync("updateTrainingStats");
       },
 
@@ -978,11 +1020,12 @@ export const useUserStore = create<UserStore>()(
       },
 
       clearCustomDemoUser: () => {
-        set((state) => ({
-          user: state.user
-            ? { ...state.user, customDemoUser: undefined }
-            : null,
-        }));
+        set((state) => {
+          if (!state.user) return state;
+          const clone: Record<string, unknown> = { ...state.user };
+          delete clone.customDemoUser;
+          return { user: clone as User };
+        });
         logger.info("DemoUser", "Custom demo user cleared");
         get().scheduleServerSync("clearCustomDemoUser");
       },
@@ -1063,19 +1106,24 @@ export const useUserStore = create<UserStore>()(
             return;
           }
 
-          set((state) => ({
-            user: state.user
-              ? {
-                  ...state.user,
-                  subscription: {
-                    ...state.user.subscription,
-                    ...updates,
-                    lastTrialCheck: new Date().toISOString(),
-                  } as User["subscription"],
-                }
-              : null,
-            lastSubscriptionUpdate: now, // 🚫 עדכון timestamp
-          }));
+          set((state) => {
+            if (!state.user) return state;
+            const baseSub = state.user.subscription || {
+              type: "free",
+              isActive: false,
+            };
+            return {
+              user: {
+                ...state.user,
+                subscription: {
+                  ...baseSub,
+                  ...updates,
+                  lastTrialCheck: new Date().toISOString(),
+                },
+              },
+              lastSubscriptionUpdate: now,
+            } as Partial<UserStore>;
+          });
           get().scheduleServerSync("updateSubscription");
 
           // ✅ הפחתת לוגים - רק ב-dev mode
@@ -1116,7 +1164,11 @@ export const useUserStore = create<UserStore>()(
         }
 
         const nowDate = new Date();
-        const registrationDate = new Date(subscription.registrationDate);
+        const registrationDate = new Date(
+          subscription.registrationDate ||
+            subscription.startDate ||
+            new Date().toISOString()
+        );
         const daysSinceRegistration = Math.floor(
           (nowDate.getTime() - registrationDate.getTime()) /
             (1000 * 60 * 60 * 24)
@@ -1174,7 +1226,11 @@ export const useUserStore = create<UserStore>()(
         // חישוב ישיר ללא קריאה ל-checkTrialStatus למניעת לולאה
         if (subscription.type === "trial") {
           const now = new Date();
-          const registrationDate = new Date(subscription.registrationDate);
+          const registrationDate = new Date(
+            subscription.registrationDate ||
+              subscription.startDate ||
+              new Date().toISOString()
+          );
           const daysSinceRegistration = Math.floor(
             (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
           );
@@ -1188,7 +1244,6 @@ export const useUserStore = create<UserStore>()(
       startPremiumSubscription: () => {
         get().updateSubscription({
           type: "premium",
-          endDate: undefined, // אין תאריך סיום לפרימיום
           isActive: true,
         });
       },
@@ -1249,18 +1304,23 @@ export const useUserStore = create<UserStore>()(
       // ===========================================
       getAccessibleWorkoutPlan: () => {
         const state = get();
-        const plans = state.user?.workoutplans;
+        const plans = state.user?.workoutplans as unknown as
+          | {
+              basicPlan?: { id: string; name: string } & Record<
+                string,
+                unknown
+              >;
+              smartPlan?: { id: string; name: string } & Record<
+                string,
+                unknown
+              >;
+            }
+          | undefined;
         const canAccessPremium = get().canAccessPremiumFeatures();
-
         if (!plans) return null;
-
-        // אם יש גישה לפרימיום והתוכנית החכמה קיימת
-        if (canAccessPremium && plans.smartPlan) {
-          return plans.smartPlan;
-        }
-
-        // אחרת תחזיר את התוכנית הבסיסית
-        return plans.basicPlan || null;
+        if (canAccessPremium && plans.smartPlan)
+          return plans.smartPlan as unknown as WorkoutPlan | null;
+        return (plans.basicPlan as unknown as WorkoutPlan) || null;
       },
 
       // ===========================================
@@ -1276,13 +1336,20 @@ export const useUserStore = create<UserStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       // אל תשמור פונקציות
       // Don't save functions
-      partialize: (state) => ({ user: state.user }),
+      // שמירת חלק מהמצב בלבד: משתמש ודגל מסך פתיחה
+      partialize: (state) => ({
+        user: state.user,
+        hasSeenWelcome: state.hasSeenWelcome,
+      }),
       // טעינה אוטומטית בהפעלה
       // Auto-load on startup
       onRehydrateStorage: () => (state) => {
         logger.debug("Store", "User store rehydrated", {
           hasUser: !!state?.user?.email,
         });
+
+        // סימון שההידרציה הסתיימה
+        useUserStore.setState({ hydrated: true });
 
         // מצב פיתוח: ניקוי אוטומטי בכל כניסה חדשה (מושבת זמנית)
         // Development mode: Auto-clear on every fresh start (temporarily disabled)
@@ -1355,7 +1422,9 @@ export const useUserEquipment = () => {
     user?.trainingStats?.selectedEquipment ||
     [];
 
-  return normalizeEquipment(equipment);
+  return Array.isArray(equipment)
+    ? normalizeEquipment(equipment as string[])
+    : [];
 };
 
 // useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
@@ -1430,10 +1499,14 @@ useUserStore.setState((prev) => ({
       if (u.id.startsWith("demo_")) return;
       const serverUser = await userApi.getById(u.id);
       // שמירה על שדות לוקליים שלא קיימים בשרת (אם יש)
-      useUserStore.setState((curr) => ({
-        ...curr,
-        user: { ...serverUser, customDemoUser: curr.user?.customDemoUser },
-      }));
+      useUserStore.setState((curr) => {
+        const base: Record<string, unknown> = {
+          ...(serverUser as Record<string, unknown>),
+        };
+        const demo = curr.user?.customDemoUser;
+        if (demo) base.customDemoUser = demo; // only attach if exists
+        return { ...curr, user: base as User };
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       logger.warn("ServerSync", "userStore.refreshFromServer error", {
