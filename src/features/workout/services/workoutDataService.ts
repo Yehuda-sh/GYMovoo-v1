@@ -12,16 +12,16 @@
  * @used_by WorkoutPlansScreen, services/index.ts
  */
 
-import { useUserStore } from "../stores/userStore";
-import { Exercise } from "../data/exercises/types";
-import { MuscleGroup } from "../constants/exercise";
-import { allExercises } from "../data/exercises";
+import { useUserStore } from "../../../stores/userStore";
+import { Exercise } from "../../../data/exercises/types";
+import { MuscleGroup } from "../../../constants/exercise";
+import { allExercises } from "../../../data/exercises";
 import {
   WorkoutPlan,
   WorkoutTemplate,
-  ExerciseTemplate,
-} from "../screens/workout/types/workout.types";
-import { questionnaireService } from "../features/questionnaire/services/questionnaireService";
+} from "../../../core/types/workout.types";
+import { ExerciseTemplate } from "../../../core/types/workout.types";
+import { questionnaireService } from "../../questionnaire/services/questionnaireService";
 
 // טיפוס עבור metadata של תוכנית אימון
 interface WorkoutMetadata {

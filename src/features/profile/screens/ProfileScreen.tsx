@@ -21,22 +21,22 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
-import { theme } from "../../styles/theme";
-import { RootStackParamList } from "../../navigation/types";
-import BackButton from "../../components/common/BackButton";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
-import AppButton from "../../components/common/AppButton";
-import { useUserStore } from "../../stores/userStore";
-import { useQuestionnaireStatus } from "../../features/questionnaire/hooks";
-import DefaultAvatar from "../../components/common/DefaultAvatar";
-import { ALL_EQUIPMENT } from "../../data/equipmentData";
-import { User } from "../../types";
-import { userApi } from "../../services/api/userApi";
-import { PROFILE_SCREEN_TEXTS } from "../../constants/profileScreenTexts";
+import { theme } from "../../../core/theme";
+import { RootStackParamList } from "../../../navigation/types";
+import BackButton from "../../../shared/components/common/BackButton";
+import ConfirmationModal from "../../../shared/components/common/ConfirmationModal";
+import AppButton from "../../../shared/components/common/AppButton";
+import { useUserStore } from "../../../stores/userStore";
+import { useQuestionnaireStatus } from "../../questionnaire/hooks";
+import DefaultAvatar from "../../../shared/components/common/DefaultAvatar";
+import { ALL_EQUIPMENT } from "../../../data/equipmentData";
+import { User } from "../../../types";
+import { userApi } from "../../../services/api/userApi";
+import { PROFILE_SCREEN_TEXTS } from "../../../constants/profileScreenTexts";
 import {
   calculateAchievements,
   type Achievement,
-} from "../../constants/achievementsConfig";
+} from "../../../constants/achievementsConfig";
 
 const PRESET_AVATARS = [
   "💪",
