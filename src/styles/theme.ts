@@ -304,14 +304,14 @@ export const getContrastTextColor = (bg: string): string => {
       : colors.card;
   const parse = (h: string) => {
     if (h.length === 4) {
-      const r = parseInt(h[1] + h[1], 16);
-      const g = parseInt(h[2] + h[2], 16);
-      const b = parseInt(h[3] + h[3], 16);
+      const r = parseInt((h[1] || "0") + (h[1] || "0"), 16);
+      const g = parseInt((h[2] || "0") + (h[2] || "0"), 16);
+      const b = parseInt((h[3] || "0") + (h[3] || "0"), 16);
       return { r, g, b };
     }
-    const r = parseInt(h.slice(1, 3), 16);
-    const g = parseInt(h.slice(3, 5), 16);
-    const b = parseInt(h.slice(5, 7), 16);
+    const r = parseInt(h.slice(1, 3) || "00", 16);
+    const g = parseInt(h.slice(3, 5) || "00", 16);
+    const b = parseInt(h.slice(5, 7) || "00", 16);
     return { r, g, b };
   };
   const { r, g, b } = parse(hex);

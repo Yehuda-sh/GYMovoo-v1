@@ -48,10 +48,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   User,
-  SmartQuestionnaireData,
-  WorkoutPlan,
+  QuestionnaireData,
   QuestionnaireAnswers,
-} from "../types";
+} from "../types/user.types";
+import { WorkoutPlan } from "../screens/workout/types/workout.types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
@@ -152,11 +152,9 @@ interface UserStore {
 
   // פעולות שאלון חכם חדשות
   // New smart questionnaire actions
-  setSmartQuestionnaireData: (data: SmartQuestionnaireData) => void;
-  updateSmartQuestionnaireData: (
-    updates: Partial<SmartQuestionnaireData>
-  ) => void;
-  getSmartQuestionnaireAnswers: () => SmartQuestionnaireData["answers"] | null;
+  setSmartQuestionnaireData: (data: QuestionnaireData) => void;
+  updateSmartQuestionnaireData: (updates: Partial<QuestionnaireData>) => void;
+  getSmartQuestionnaireAnswers: () => QuestionnaireData["answers"] | null;
   resetSmartQuestionnaire: () => void;
 
   // פעולות התאמת מגדר
@@ -177,7 +175,7 @@ interface UserStore {
 
   // פעולות סטטיסטיקות מורחבות
   // Extended statistics actions
-  updateTrainingStats: (stats: Partial<User["trainingstats"]>) => void;
+  updateTrainingStats: (stats: Partial<User["trainingStats"]>) => void;
 
   // Accessibility support
   getAccessibilityLabel: (
@@ -254,7 +252,7 @@ export const useUserStore = create<UserStore>()(
       setUser: async (user) => {
         try {
           // If user doesn't have questionnaire data but there are saved results, load them
-          if (user && !user.smartquestionnairedata) {
+          if (user && !user.questionnaireData) {
             try {
               const savedResults = await AsyncStorage.getItem(
                 StorageKeys.SMART_QUESTIONNAIRE_RESULTS
@@ -263,7 +261,7 @@ export const useUserStore = create<UserStore>()(
                 const smartData = JSON.parse(savedResults);
                 user = {
                   ...user,
-                  smartquestionnairedata: smartData,
+                  questionnaireData: smartData,
                   hasQuestionnaire: true,
                 };
                 logger.debug(
@@ -285,7 +283,7 @@ export const useUserStore = create<UserStore>()(
           get().scheduleServerSync("setUser");
           logger.debug("UserStore", "User set successfully", {
             hasUser: !!user,
-            hasQuestionnaire: !!user?.smartquestionnairedata,
+            hasQuestionnaire: !!user?.questionnaireData,
           });
         } catch (error) {
           logger.error("UserStore", "Error setting user", error);
@@ -379,38 +377,41 @@ export const useUserStore = create<UserStore>()(
             set((state) => ({
               user: {
                 ...state.user!,
-                smartquestionnairedata: data,
+                questionnaireData: data,
                 // עדכון העדפות בהתאם לתשובות
                 preferences: {
                   ...state.user?.preferences,
                   gender:
-                    typeof data.answers.gender === "string"
+                    data.answers && typeof data.answers.gender === "string"
                       ? data.answers.gender
                       : undefined,
                   rtlPreference: true, // תמיד נכון לעברית
                 },
                 // עדכון נתוני אימון
-                trainingstats: {
-                  ...state.user?.trainingstats,
+                trainingStats: {
+                  ...state.user?.trainingStats,
                   // תמיכה במבנה availability חדש: מערך עם מזהי '2_days','3_days' וכו'
                   preferredWorkoutDays: (() => {
-                    const arr = data.answers.availability;
+                    const arr = data.answers?.availability;
                     if (Array.isArray(arr) && arr.length > 0) {
                       const token = arr[0];
                       if (typeof token === "string" && /_days$/.test(token)) {
-                        const n = parseInt(token.split("_", 1)[0], 10);
-                        if (!isNaN(n) && n >= 1 && n <= 7) {
-                          // המרה למערך של ימי השבוע
-                          const days = [
-                            "sunday",
-                            "monday",
-                            "tuesday",
-                            "wednesday",
-                            "thursday",
-                            "friday",
-                            "saturday",
-                          ];
-                          return days.slice(0, n);
+                        const splitResult = token.split("_", 1)[0];
+                        if (splitResult) {
+                          const n = parseInt(splitResult, 10);
+                          if (!isNaN(n) && n >= 1 && n <= 7) {
+                            // המרה למערך של ימי השבוע
+                            const days = [
+                              "sunday",
+                              "monday",
+                              "tuesday",
+                              "wednesday",
+                              "thursday",
+                              "friday",
+                              "saturday",
+                            ];
+                            return days.slice(0, n);
+                          }
                         }
                       }
                       return arr.map((item) =>
@@ -421,6 +422,7 @@ export const useUserStore = create<UserStore>()(
                   })(),
                   selectedEquipment: (() => {
                     if (
+                      data.answers &&
                       Array.isArray(data.answers.equipment) &&
                       data.answers.equipment.length
                     )
@@ -438,12 +440,14 @@ export const useUserStore = create<UserStore>()(
                     }
                     return [];
                   })(),
-                  fitnessGoals: Array.isArray(data.answers.goals)
-                    ? data.answers.goals
-                    : typeof data.answers.goals === "string"
-                      ? [data.answers.goals]
-                      : [],
+                  fitnessGoals:
+                    data.answers && Array.isArray(data.answers.goals)
+                      ? data.answers.goals
+                      : data.answers && typeof data.answers.goals === "string"
+                        ? [data.answers.goals]
+                        : [],
                   currentFitnessLevel:
+                    data.answers &&
                     typeof data.answers.fitnessLevel === "string"
                       ? data.answers.fitnessLevel
                       : undefined,
@@ -465,7 +469,11 @@ export const useUserStore = create<UserStore>()(
             );
 
           // שמירת העדפת מגדר בנפרד
-          if (data.answers.gender && typeof data.answers.gender === "string") {
+          if (
+            data.answers &&
+            data.answers.gender &&
+            typeof data.answers.gender === "string"
+          ) {
             AsyncStorage.setItem(
               StorageKeys.USER_GENDER_PREFERENCE,
               data.answers.gender
@@ -475,7 +483,7 @@ export const useUserStore = create<UserStore>()(
           }
 
           // שמירת ציוד נבחר
-          if (Array.isArray(data.answers.equipment)) {
+          if (data.answers && Array.isArray(data.answers.equipment)) {
             AsyncStorage.setItem(
               StorageKeys.SELECTED_EQUIPMENT,
               JSON.stringify(normalizeEquipment(data.answers.equipment))
@@ -501,7 +509,7 @@ export const useUserStore = create<UserStore>()(
               set((state) => ({
                 user: {
                   ...(state.user || {}),
-                  smartquestionnairedata: data,
+                  questionnaireData: data,
                 },
               }));
             } else {
@@ -524,9 +532,9 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                smartquestionnairedata: state.user.smartquestionnairedata
+                questionnaireData: state.user.questionnaireData
                   ? {
-                      ...state.user.smartquestionnairedata,
+                      ...state.user.questionnaireData,
                       ...updates,
                       // מיזוג בטוח של answers ללא גישה ישירה במקומות אחרים בקוד
                       answers: {
@@ -534,7 +542,7 @@ export const useUserStore = create<UserStore>()(
                         ...(updates.answers || {}),
                       } as QuestionnaireAnswers,
                       metadata: {
-                        ...state.user.smartquestionnairedata.metadata,
+                        ...state.user.questionnaireData.metadata,
                         ...updates.metadata,
                       },
                     }
@@ -549,7 +557,7 @@ export const useUserStore = create<UserStore>()(
       // Get smart questionnaire answers
       getSmartQuestionnaireAnswers: () => {
         const state = get();
-        return state.user?.smartquestionnairedata?.answers || null;
+        return state.user?.questionnaireData?.answers || null;
       },
 
       // איפוס השאלון החכם
@@ -659,8 +667,8 @@ export const useUserStore = create<UserStore>()(
           user: state.user
             ? {
                 ...state.user,
-                trainingstats: {
-                  ...state.user.trainingstats,
+                trainingStats: {
+                  ...state.user.trainingStats,
                   preferredWorkoutDays: prefs.workoutDays
                     ? Array.from(
                         { length: prefs.workoutDays },
@@ -742,7 +750,7 @@ export const useUserStore = create<UserStore>()(
           }
           case "questionnaire": {
             const hasQuestionnaire = !!(
-              user?.smartquestionnairedata || user?.questionnaire
+              user?.questionnaireData || user?.hasQuestionnaire
             );
             return hasQuestionnaire ? "שאלון הושלם" : "שאלון לא הושלם";
           }
@@ -825,16 +833,13 @@ export const useUserStore = create<UserStore>()(
         }
 
         // Check data consistency
-        if (
-          user.smartquestionnairedata &&
-          !user.smartquestionnairedata.answers
-        ) {
+        if (user.questionnaireData && !user.questionnaireData.answers) {
           issues.push("Smart questionnaire data missing answers");
         }
 
         if (
-          user.trainingstats?.selectedEquipment &&
-          !Array.isArray(user.trainingstats.selectedEquipment)
+          user.trainingStats?.selectedEquipment &&
+          !Array.isArray(user.trainingStats.selectedEquipment)
         ) {
           issues.push("Training stats equipment data malformed");
         }
@@ -860,7 +865,7 @@ export const useUserStore = create<UserStore>()(
 
           // בדיקות בסיסיות
           const hasBasicInfo = !!(user.id || user.email || user.name);
-          const hasSmartQuestionnaire = !!user.smartquestionnairedata?.answers;
+          const hasSmartQuestionnaire = !!user.questionnaireData?.answers;
 
           const consistencyCheck = get().validateUserConsistency();
 
@@ -879,11 +884,27 @@ export const useUserStore = create<UserStore>()(
         const state = get();
         const user = state.user;
 
-        // בדיקה מדויקת יותר של השלמת השאלון - רק אם יש completedAt או hasQuestionnaire
-        const hasSmartQuestionnaire =
-          !!user?.smartquestionnairedata?.metadata?.completedAt ||
-          !!user?.questionnairedata?.completedAt ||
-          !!user?.hasQuestionnaire;
+        console.log(
+          "Checking completion status with user data:",
+          JSON.stringify(
+            {
+              hasQuestionnaire: user?.hasQuestionnaire,
+              hasCompletedAt: !!user?.questionnaireData?.metadata?.completedAt,
+              hasQuestionnaireData: !!user?.questionnaireData,
+              hasBasicInfo: !!(user?.id || user?.email || user?.name),
+            },
+            null,
+            2
+          )
+        );
+
+        // בדיקה מדויקת יותר של השלמת השאלון - אם יש השדה hasQuestionnaire או completedAt או עצם קיום נתוני שאלון
+        const hasSmartQuestionnaire = !!(
+          user?.hasQuestionnaire ||
+          user?.questionnaireData?.metadata?.completedAt ||
+          (user?.questionnaireData &&
+            Object.keys(user.questionnaireData).length > 0)
+        );
 
         // אם יש שאלון מושלם, המשתמש נחשב כמוכן גם בלי נתונים בסיסיים (עבור זרימת Questionnaire->Register)
         // אבל אם יש ID, אז צריך גם נתונים בסיסיים
@@ -1312,7 +1333,7 @@ export const useUserStore = create<UserStore>()(
 // Re-export types from central location
 export type {
   User,
-  SmartQuestionnaireData,
+  QuestionnaireData,
   LegacyQuestionnaireData,
 } from "../types";
 
@@ -1331,7 +1352,7 @@ export const useUserEquipment = () => {
   // Try to get equipment from multiple possible sources
   const equipment =
     user?.customDemoUser?.equipment ||
-    user?.trainingstats?.selectedEquipment ||
+    user?.trainingStats?.selectedEquipment ||
     [];
 
   return normalizeEquipment(equipment);
@@ -1339,9 +1360,7 @@ export const useUserEquipment = () => {
 
 // useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
 export const useQuestionnaireCompleted = () =>
-  useUserStore(
-    (state) => state.user?.smartquestionnairedata?.answers !== undefined
-  );
+  useUserStore((state) => state.user?.questionnaireData?.answers !== undefined);
 
 // Hook לגישה למשתמש דמו מותאם
 export const useCustomDemoUser = () =>
@@ -1381,7 +1400,7 @@ export const useAuthState = () => {
     logout,
     clearAllData,
     hasBasicInfo: !!(user?.id || user?.email || user?.name),
-    hasQuestionnaire: !!user?.smartquestionnairedata,
+    hasQuestionnaire: !!user?.questionnaireData,
   };
 };
 

@@ -21,7 +21,7 @@ import {
   WorkoutTemplate,
   ExerciseTemplate,
 } from "../screens/workout/types/workout.types";
-import { questionnaireService } from "./questionnaireService";
+import { questionnaireService } from "../features/questionnaire/services/questionnaireService";
 
 // טיפוס עבור metadata של תוכנית אימון
 interface WorkoutMetadata {
@@ -57,17 +57,19 @@ export class WorkoutDataService {
       }
 
       // 2. אם אין, נסה מה-store החדש
-      if (user?.questionnairedata?.metadata) {
+      if (user?.questionnaireData?.metadata) {
         return {
           source: "store_new",
-          data: user.questionnairedata.metadata,
+          data: user.questionnaireData.metadata,
           isComplete: true,
         };
       }
 
       // 3. אם אין, נסה להמיר מהפורמט הישן
-      if (user?.questionnaire) {
-        const converted = this.convertOldFormat(user.questionnaire);
+      if (user?.hasQuestionnaire && user?.questionnaireData?.answers) {
+        const converted = this.convertOldFormat(
+          user.questionnaireData.answers as { [key: number]: string | string[] }
+        );
         return {
           source: "store_old_converted",
           data: converted,

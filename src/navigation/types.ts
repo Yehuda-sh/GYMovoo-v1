@@ -1,12 +1,24 @@
 import { WorkoutExercise } from "../screens/workout/types/workout.types";
+import { AuthStackParamList } from "../features/auth";
+import { QuestionnaireStackParamList } from "../features/questionnaire";
 
 export type RootStackParamList = {
   // Auth screens
   Welcome: undefined;
+  Auth:
+    | undefined
+    | {
+        screen?: keyof AuthStackParamList;
+        params?: {
+          fromQuestionnaire?: boolean;
+        };
+      };
   Login: {
     google?: boolean;
   };
-  Register: undefined;
+  Register: {
+    fromQuestionnaire?: boolean;
+  };
   Terms: {
     source?: keyof RootStackParamList;
   };

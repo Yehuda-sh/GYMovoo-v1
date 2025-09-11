@@ -31,7 +31,7 @@ import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { fakeGoogleSignIn } from "../../services/authService";
-import type { User } from "../../services/authService";
+import type { User } from "../../types/user.types";
 import { useUserStore } from "../../stores/userStore";
 import type { RootStackParamList } from "../../navigation/types";
 import {
@@ -151,7 +151,7 @@ const LoginScreen = () => {
   const handleSuccessfulLogin = (user: User) => {
     useUserStore.getState().setUser(user);
 
-    const hasQuestionnaire = !!(user?.questionnaire || user?.questionnaireData);
+    const hasQuestionnaire = !!user?.questionnaireData;
     routeAfterLogin(hasQuestionnaire);
   };
 
@@ -171,13 +171,20 @@ const LoginScreen = () => {
           email === TEST_CREDENTIALS.EMAIL &&
           password === TEST_CREDENTIALS.PASSWORD
         ) {
-          const user = {
+          const user: User = {
+            id: TEST_CREDENTIALS.USER_ID,
             email: email.trim(),
             name: "משתמש לדוגמה",
-            id: TEST_CREDENTIALS.USER_ID,
             avatar: "",
             provider: "manual" as const,
-            metadata: {},
+            metadata: {
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+              appVersion: "1.0.0",
+              platform: Platform.OS as "ios" | "android",
+            },
+            // אפשר להוסיף questionnaireData ריק או לא להוסיף בכלל
+            // questionnaireData: undefined,
           };
 
           // שמירת אימייל אם נבחר "זכור אותי"

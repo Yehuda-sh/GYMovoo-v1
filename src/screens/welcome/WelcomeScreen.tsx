@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,6 +16,11 @@ const WelcomeScreen = () => {
   const { user, getCompletionStatus } = useUserStore();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage] = useState("");
+
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(50))[0];
+  const scaleAnim = useState(new Animated.Value(0.9))[0];
 
   // Navigate authenticated users
   useEffect(() => {
@@ -34,16 +39,54 @@ const WelcomeScreen = () => {
     return () => clearTimeout(timer);
   }, [user, getCompletionStatus, navigation]);
 
+  // Start animations on mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const handleStartJourney = () => {
     navigation.navigate("Questionnaire", {});
   };
 
   const handleLoginNavigation = () => {
-    navigation.navigate("Login", {});
+    // עבור למודול האימות החדש במקום מסך ההתחברות הישן
+    // הערה: "Login" הוא מסך בתוך AuthNavigator
+    navigation.navigate("Auth", { screen: "Login" });
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Dev button - only in development mode */}
+      {__DEV__ && (
+        <TouchableButton
+          style={styles.devButton}
+          onPress={() => navigation.navigate("DeveloperScreen")}
+          accessibilityLabel="כניסה למסך פיתוח"
+        >
+          <MaterialCommunityIcons
+            name="tools"
+            size={22}
+            color={theme.colors.primary}
+          />
+        </TouchableButton>
+      )}
       <LinearGradient
         colors={[theme.colors.background, theme.colors.backgroundAlt]}
         style={styles.gradient}
@@ -52,8 +95,13 @@ const WelcomeScreen = () => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {/* App Logo & Title */}
-          <View style={styles.logoSection}>
+          {/* App Logo & Title with animation */}
+          <Animated.View
+            style={[
+              styles.logoSection,
+              { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+            ]}
+          >
             <View style={styles.logoWrapper}>
               <MaterialCommunityIcons
                 name="weight-lifter"
@@ -63,10 +111,15 @@ const WelcomeScreen = () => {
             </View>
             <Text style={styles.appName}>GYMovoo</Text>
             <Text style={styles.tagline}>האימון המושלם שלך מתחיל כאן</Text>
-          </View>
+          </Animated.View>
 
-          {/* Features */}
-          <View style={styles.featuresSection}>
+          {/* Features with slide animation */}
+          <Animated.View
+            style={[
+              styles.featuresSection,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+            ]}
+          >
             <View style={styles.featureRow}>
               <View style={styles.feature}>
                 <MaterialCommunityIcons
@@ -104,7 +157,7 @@ const WelcomeScreen = () => {
                 <Text style={styles.featureText}>קהילה תומכת</Text>
               </View>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Action Buttons */}
           <View style={styles.buttonsSection}>
@@ -178,6 +231,16 @@ const WelcomeScreen = () => {
 export default WelcomeScreen;
 
 const styles = StyleSheet.create({
+  devButton: {
+    position: "absolute",
+    top: 18,
+    right: 18,
+    backgroundColor: "#fff8",
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 100,
+    elevation: 10,
+  },
   container: {
     flex: 1,
   },

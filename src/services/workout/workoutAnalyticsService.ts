@@ -1,4 +1,4 @@
-import { WorkoutHistoryItem } from "../../screens/workout/types/workout.types";
+import { WorkoutHistoryItem } from "../../types/user.types";
 import { PersonalData } from "../../utils/personalDataUtils";
 
 class WorkoutAnalyticsService {

@@ -1,9 +1,8 @@
 import {
   WorkoutWithFeedback,
   WorkoutData,
-  PersonalRecord,
-  WorkoutHistoryItem,
 } from "../../screens/workout/types/workout.types";
+import { PersonalRecord, WorkoutHistoryItem } from "../../types/user.types";
 import { PersonalData } from "../../utils/personalDataUtils";
 import { workoutStorageService } from "./workoutStorageService";
 import workoutAnalyticsService from "./workoutAnalyticsService";

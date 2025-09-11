@@ -118,7 +118,7 @@ const PROTECTED_KEYS = [
   "subscription",
   "workoutplans",
   "questionnaire",
-  "smartquestionnairedata",
+  "questionnaireData",
 ] as const;
 
 // ===============================================

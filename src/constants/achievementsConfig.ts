@@ -8,7 +8,8 @@
 
 import type { ComponentProps } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { User, Workout } from "../types";
+import type { User } from "../types";
+import type { WorkoutHistoryItem } from "../types/user.types";
 import { PROFILE_SCREEN_TEXTS } from "./profileScreenTexts";
 import { getAchievementColor } from "./profileScreenColors";
 
@@ -510,7 +511,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
  * Achievement interface with computed properties
  * ממשק הישג עם מאפיינים מחושבים
  */
-export interface Achievement {
+export interface AchievementDisplay {
   id: number;
   title: string;
   description: string;
@@ -526,13 +527,13 @@ export interface Achievement {
  * Calculate user's current streak from workout history
  * חישוב הרצף הנוכחי של המשתמש מהיסטוריית האימונים
  */
-const calculateStreak = (workouts: Workout[]): number => {
+const calculateStreak = (workouts: WorkoutHistoryItem[]): number => {
   if (!workouts || workouts.length === 0) return 0;
 
   const sortedWorkouts = [...workouts]
     .map((workout) => ({
       ...workout,
-      workoutDate: workout.date || new Date(workout.completedAt || ""),
+      workoutDate: new Date(workout.date),
     }))
     .filter((workout) => !isNaN(workout.workoutDate.getTime()))
     .sort((a, b) => b.workoutDate.getTime() - a.workoutDate.getTime());
@@ -585,9 +586,9 @@ const calculateStreak = (workouts: Workout[]): number => {
  * Calculate total workout time in minutes
  * חישוב זמן אימון כולל בדקות
  */
-const calculateTotalTime = (workouts: Workout[]): number => {
+const calculateTotalTime = (workouts: WorkoutHistoryItem[]): number => {
   // Normalize duration to minutes. If value looks like seconds (> threshold), convert to minutes.
-  return workouts.reduce((sum: number, workout: Workout) => {
+  return workouts.reduce((sum: number, workout: WorkoutHistoryItem) => {
     const raw = workout.duration;
     if (raw == null) return sum + WORKOUT_CONSTANTS.DEFAULT_DURATION_MINUTES;
     const minutes =
@@ -602,7 +603,7 @@ const calculateTotalTime = (workouts: Workout[]): number => {
  * Calculate average rating from workouts
  * חישוב דירוג ממוצע מאימונים
  */
-const calculateAverageRating = (workouts: Workout[]): number => {
+const calculateAverageRating = (workouts: WorkoutHistoryItem[]): number => {
   const ratedWorkouts = workouts.filter((w) => w.rating && w.rating > 0);
   if (ratedWorkouts.length === 0) return 0;
 
@@ -617,7 +618,7 @@ const calculateAverageRating = (workouts: Workout[]): number => {
  * Count perfect ratings (5 stars)
  * ספירת דירוגים מושלמים (5 כוכבים)
  */
-const countPerfectRatings = (workouts: Workout[]): number => {
+const countPerfectRatings = (workouts: WorkoutHistoryItem[]): number => {
   return workouts.filter((w) => w.rating === 5).length;
 };
 
@@ -639,11 +640,14 @@ const calculateDaysSinceRegistration = (user: User): number | null => {
  * Count workouts by time of day
  * ספירת אימונים לפי שעות היום
  */
-const countWorkoutsByTime = (workouts: Workout[], timeType: string): number => {
+const countWorkoutsByTime = (
+  workouts: WorkoutHistoryItem[],
+  timeType: string
+): number => {
   const { TIME_RANGES } = WORKOUT_CONSTANTS;
 
   return workouts.filter((workout) => {
-    const workoutDate = workout.date || new Date(workout.completedAt || "");
+    const workoutDate = new Date(workout.date);
     if (isNaN(workoutDate.getTime())) return false;
     const hour = workoutDate.getHours();
     const dayOfWeek = workoutDate.getDay();
@@ -673,13 +677,14 @@ const checkRequirement = (
 ): { met: boolean; progress: number } => {
   if (!user) return { met: false, progress: 0 };
 
-  const workouts = user.activityhistory?.workouts || [];
+  const workouts = user.activityHistory?.workouts || [];
 
   switch (requirement.type) {
     case "questionnaire": {
       // Consider either legacy questionnaire or the new smartQuestionnaireData presence
       const hasLegacy =
-        !!user.questionnaire && Object.keys(user.questionnaire).length > 0;
+        !!user.questionnaireData &&
+        Object.keys(user.questionnaireData).length > 0;
       const hasSmart = !!(
         user as User & {
           smartQuestionnaireData?: { answers?: Record<string, unknown> };
@@ -766,18 +771,20 @@ const checkRequirement = (
  * Calculate all achievements for a user
  * חישוב כל ההישגים עבור משתמש
  */
-export const calculateAchievements = (user: User | null): Achievement[] => {
+export const calculateAchievements = (
+  user: User | null
+): AchievementDisplay[] => {
   // Helper: check data availability for requirement
   const hasDataForRequirement = (
     u: User | null,
     req: AchievementConfig["requirement"]
   ): boolean => {
     if (!u) return false;
-    const workouts = u.activityhistory?.workouts;
+    const workouts = u.activityHistory?.workouts;
     switch (req.type) {
       case "questionnaire": {
         const hasLegacy =
-          !!u.questionnaire && Object.keys(u.questionnaire).length > 0;
+          !!u.questionnaireData && Object.keys(u.questionnaireData).length > 0;
         const hasSmart = !!(
           u as User & {
             smartQuestionnaireData?: { answers?: Record<string, unknown> };
@@ -835,9 +842,9 @@ export const calculateAchievements = (user: User | null): Achievement[] => {
  * קבלת הישגים לפי קטגוריה
  */
 export const getAchievementsByCategory = (
-  achievements: Achievement[],
+  achievements: AchievementDisplay[],
   category: AchievementCategory
-): Achievement[] => {
+): AchievementDisplay[] => {
   return achievements.filter(
     (achievement) => achievement.category === category
   );
@@ -847,7 +854,9 @@ export const getAchievementsByCategory = (
  * Get unlocked achievements count
  * קבלת מספר הישגים פתוחים
  */
-export const getUnlockedCount = (achievements: Achievement[]): number => {
+export const getUnlockedCount = (
+  achievements: AchievementDisplay[]
+): number => {
   return achievements.filter((achievement) => achievement.unlocked).length;
 };
 
@@ -856,8 +865,8 @@ export const getUnlockedCount = (achievements: Achievement[]): number => {
  * קבלת ההישג הבא לפתיחה
  */
 export const getNextAchievement = (
-  achievements: Achievement[]
-): Achievement | null => {
+  achievements: AchievementDisplay[]
+): AchievementDisplay | null => {
   const lockedAchievements = achievements
     .filter((achievement) => !achievement.unlocked)
     .sort((a, b) => (b.progress || 0) - (a.progress || 0));

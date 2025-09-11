@@ -231,34 +231,9 @@ export interface PreviousPerformance {
   };
 }
 
-// שיא אישי
-// Personal record
-export interface PersonalRecord {
-  exerciseName: string;
-  type: "weight" | "volume" | "reps"; // סוג השיא
-  value: number;
-  previousValue: number;
-  date: ISODateString;
-  improvement: number; // שיפור באחוזים או בערך מוחלט
-}
-
 // נתוני אימון היסטוריים
-// Historical workout data
-export interface WorkoutHistoryItem {
-  id: string;
-  type?: string;
-  workoutName?: string;
-  date?: ISODateString;
-  completedAt?: ISODateString;
-  startTime?: ISODateString;
-  duration?: number;
-  icon?: string;
-  rating?: number;
-  feedback?: {
-    rating?: number;
-  };
-  [key: string]: unknown; // Allow additional properties
-}
+// Historical workout data - מעודכן למבנה זהה לקובץ user.types.ts
+// ראה הגדרה ב-src/types/user.types.ts
 
 // סיכום אימון
 // Workout summary

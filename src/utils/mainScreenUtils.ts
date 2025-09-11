@@ -3,7 +3,7 @@
  * @description יוטיליטיז מתקדמים למסך הראשי - Advanced Main Screen Utilities
  */
 
-import type { User } from "../types";
+import type { User } from "../types/user.types";
 
 // ===============================================
 // 📊 Types & Interfaces - טיפוסים וממשקים
@@ -208,7 +208,7 @@ export const calculateAvailableTrainingDays = (user: User | null): number => {
 
   try {
     // Check smart questionnaire first
-    const smartAnswers = user.smartquestionnairedata?.answers as
+    const smartAnswers = user.questionnaireData?.answers as
       | { availability?: string | string[] }
       | undefined;
 
@@ -223,7 +223,7 @@ export const calculateAvailableTrainingDays = (user: User | null): number => {
     }
 
     // Check training stats
-    const preferredDays = user.trainingstats?.preferredWorkoutDays;
+    const preferredDays = user.trainingStats?.preferredWorkoutDays;
     if (preferredDays) {
       const days =
         typeof preferredDays === "number"
@@ -295,11 +295,11 @@ export const extractPersonalDataFromUser = (
       }
     }
 
-    if (!user.smartquestionnairedata?.answers) {
+    if (!user.questionnaireData?.answers) {
       return { ...DEFAULT_PERSONAL_DATA };
     }
 
-    const answers = user.smartquestionnairedata.answers;
+    const answers = user.questionnaireData.answers;
 
     const extractedData: ExtractedPersonalData = {
       age: answers.age?.toString() || DEFAULT_PERSONAL_DATA.age,

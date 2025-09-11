@@ -19,7 +19,7 @@ export { isQuickLoginAvailable, tryQuickLogin } from "./auth/quickLoginService";
 // 🏋️ Core Workout Services
 // שירותי אימון ליבה
 // =======================================
-export * from "./questionnaireService";
+export * from "../features/questionnaire/services/questionnaireService";
 export { WorkoutDataService } from "./workoutDataService";
 export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
 export type {

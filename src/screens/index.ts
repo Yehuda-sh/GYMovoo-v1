@@ -9,4 +9,3 @@ export { default as ActiveWorkoutScreen } from "./workout/ActiveWorkoutScreen";
 export { default as WelcomeScreen } from "./welcome/WelcomeScreen";
 export { default as LoginScreen } from "./auth/LoginScreen";
 export { default as RegisterScreen } from "./auth/RegisterScreen";
-export { default as UnifiedQuestionnaireScreen } from "./questionnaire/UnifiedQuestionnaireScreen";

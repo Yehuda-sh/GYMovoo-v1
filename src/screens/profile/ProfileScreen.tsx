@@ -27,7 +27,7 @@ import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import AppButton from "../../components/common/AppButton";
 import { useUserStore } from "../../stores/userStore";
-import { useQuestionnaireStatus } from "../../hooks/useQuestionnaireStatus";
+import { useQuestionnaireStatus } from "../../features/questionnaire/hooks";
 import DefaultAvatar from "../../components/common/DefaultAvatar";
 import { ALL_EQUIPMENT } from "../../data/equipmentData";
 import { User } from "../../types";
@@ -109,7 +109,7 @@ const ProfileScreen: React.FC = () => {
 
   // Equipment extraction - simplified
   const extractUserEquipment = (user: User | null) => {
-    if (!user?.smartquestionnairedata) return [];
+    if (!user?.questionnaireData) return [];
 
     // Simplified equipment extraction
     return ALL_EQUIPMENT.slice(0, 3); // Show first 3 equipment items as example

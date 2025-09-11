@@ -8,9 +8,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { logger } from "../utils/logger";
-import { questionnaireService } from "../services/questionnaireService";
+import {
+  questionnaireService,
+  WorkoutRecommendation,
+  QuestionnaireData,
+} from "../features/questionnaire/services/questionnaireService";
 import { fieldMapper } from "../utils/fieldMapper";
-import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
 import { useUserStore } from "../stores/userStore";
 import {
   scoreFrequency,
@@ -26,8 +29,23 @@ import {
   SmartWorkoutPlan,
 } from "./userPreferencesHelpers";
 
+// מגדיר ממשק תאימות בין QuestionnaireData החדש לטיפוס QuestionnaireMetadata הישן
+// לשימוש זמני בלבד עד שנעדכן את כל הקוד
+interface QuestionnaireDataCompatibility extends QuestionnaireData {
+  // שדות מטיפוס ישן
+  goal?: string | string[];
+  experience?: string;
+  frequency?: string;
+  location?: string;
+  home_equipment?: string[];
+  gym_equipment?: string[];
+  age?: string;
+  gender?: string;
+  [key: string]: unknown;
+}
+
 // ממשק פשוט לתוצאות חכמות
-export interface SmartUserPreferences extends QuestionnaireMetadata {
+export interface SmartUserPreferences extends QuestionnaireDataCompatibility {
   personalityProfile:
     | "מתחיל זהיר"
     | "נחוש להצליח"
@@ -146,7 +164,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   // פונקציה לחישוב אלגוריתם חכם מנתוני שאלון
   const calculateSmartAnalysis = useCallback(
     (
-      rawData: QuestionnaireMetadata,
+      rawData: QuestionnaireDataCompatibility,
       personalData?: {
         gender?: string;
         age?: string;
@@ -158,8 +176,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       // חישוב ציון מוטיבציה (1-10)
       let motivationLevel = 5;
       if (
-        rawData.goal?.includes("שריפת שומן") ||
-        rawData.goal?.includes("בניית שריר")
+        (Array.isArray(rawData.goal) && rawData.goal.includes("שריפת שומן")) ||
+        (Array.isArray(rawData.goal) && rawData.goal.includes("בניית שריר"))
       ) {
         motivationLevel += 2;
       }
@@ -181,7 +199,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       }
 
       // חישוב ציון עקביות
-      const consistencyScore = scoreFrequency(rawData.frequency);
+      const consistencyScore = scoreFrequency(rawData.frequency as string);
 
       // חישוב מוכנות ציוד
       const equipmentCount =
@@ -345,12 +363,19 @@ export function useUserPreferences(): UseUserPreferencesReturn {
 
       // טען נתונים בסיסיים
       const preferencesData = await questionnaireService.getUserPreferences();
-      let rawPreferences: QuestionnaireMetadata | null = preferencesData;
+      let rawPreferences: QuestionnaireDataCompatibility | null =
+        preferencesData as QuestionnaireDataCompatibility;
       const currentSystemType: typeof systemType = "legacy";
 
       // אם אין נתונים, נסה מהסטור הישן
-      if (!rawPreferences && user?.questionnaire) {
-        rawPreferences = convertOldStoreFormat(user.questionnaire as unknown[]);
+      if (
+        !rawPreferences &&
+        user?.hasQuestionnaire &&
+        user?.questionnaireData?.answers
+      ) {
+        rawPreferences = convertOldStoreFormat(
+          user.questionnaireData.answers as unknown as unknown[]
+        );
         logger.warn("Data conversion", "Converted from legacy store format");
       }
 
@@ -427,7 +452,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           await questionnaireService.getUserPreferences();
         if (basicPreferences) {
           const fallbackPreferences = calculateSmartAnalysis(
-            basicPreferences,
+            basicPreferences as QuestionnaireDataCompatibility,
             null
           );
           setPreferences(fallbackPreferences);
@@ -450,12 +475,17 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   // פונקציות המרה
   const convertOldStoreFormat = (
     questionnaire: unknown[]
-  ): QuestionnaireMetadata => {
-    return {
+  ): QuestionnaireDataCompatibility => {
+    const result: Record<string, unknown> = {
       age: typeof questionnaire[0] === "string" ? questionnaire[0] : undefined,
       gender:
         typeof questionnaire[1] === "string" ? questionnaire[1] : undefined,
-      goal: typeof questionnaire[2] === "string" ? questionnaire[2] : undefined,
+      goal:
+        typeof questionnaire[2] === "string"
+          ? questionnaire[2]
+          : Array.isArray(questionnaire[2])
+            ? (questionnaire[2] as string[])
+            : "",
       experience:
         typeof questionnaire[3] === "string" ? questionnaire[3] : undefined,
       frequency:
@@ -471,7 +501,18 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           : [],
       home_equipment: Array.isArray(questionnaire[8]) ? questionnaire[8] : [],
       gym_equipment: [],
+      answers: {
+        fitness_goal:
+          typeof questionnaire[2] === "string"
+            ? questionnaire[2]
+            : Array.isArray(questionnaire[2])
+              ? (questionnaire[2] as string[])
+              : "",
+        experience_level:
+          typeof questionnaire[3] === "string" ? questionnaire[3] : undefined,
+      },
     };
+    return result as QuestionnaireDataCompatibility;
   };
 
   /**

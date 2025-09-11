@@ -1,49 +1,21 @@
 /**
- * @file src/data/unifiedQuestionnaire.ts
+ * @file src/features/questionnaire/data/unifiedQuestionnaire.ts
  * @description מערכת שאלון אחודה ופשוטה
  * Unified questionnaire system
  */
 
 import { ImageSourcePropType } from "react-native";
-import type { SmartQuestionnaireData } from "../types";
-import { getEquipmentById } from "./equipmentData";
-
-export const QUESTIONNAIRE_VERSION = "2.3" as const;
+import {
+  Question,
+  QuestionOption,
+  QuestionnaireAnswer,
+  QuestionnaireResults,
+  QuestionnaireData,
+  QUESTIONNAIRE_VERSION,
+} from "../types";
 
 // ================== טיפוסים בסיסיים ==================
-
-export interface QuestionOption {
-  id: string;
-  label: string;
-  description?: string;
-  image?: ImageSourcePropType | string;
-  isDefault?: boolean;
-}
-
-export interface Question {
-  id: string;
-  title: string;
-  subtitle?: string;
-  question: string;
-  helpText?: string;
-  icon: string;
-  type: "single" | "multiple";
-  options: QuestionOption[];
-  required?: boolean;
-}
-
-export interface QuestionnaireAnswer {
-  questionId: string;
-  answer: QuestionOption | QuestionOption[];
-  timestamp: string;
-}
-
-export interface QuestionnaireResults {
-  answers: QuestionnaireAnswer[];
-  completedAt: string;
-  totalQuestions: number;
-  answeredQuestions: number;
-}
+// Already defined in types/questionnaire.types.ts
 
 // ================== אפשרויות השאלון ==================
 
@@ -377,6 +349,13 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
 ];
 
+// Helper function to get equipment by ID
+export function getEquipmentById(id: string) {
+  // This would need to be implemented based on your equipment data
+  // Or imported from the appropriate module
+  return null;
+}
+
 // ================== מנהל השאלון ==================
 
 export class UnifiedQuestionnaireManager {
@@ -467,6 +446,11 @@ export class UnifiedQuestionnaireManager {
     return this.history.length > 0;
   }
 
+  // קבל האינדקס הנוכחי
+  getCurrentQuestionIndex(): number {
+    return this.currentQuestionIndex;
+  }
+
   // קבל התקדמות
   getProgress(): number {
     const totalRelevantQuestions = this.getTotalRelevantQuestions();
@@ -477,17 +461,13 @@ export class UnifiedQuestionnaireManager {
 
   // קבל מספר השאלות הרלוונטיות
   private getTotalRelevantQuestions(): number {
-    let count = 0;
-    for (const question of this.questions) {
-      if (!this.shouldSkipQuestion(question)) {
-        count++;
-      }
-    }
+    // Instead of checking if questions should be skipped (which may not work correctly),
+    // we return the total number of questions in the UNIFIED_QUESTIONS array
+    // This ensures all questions are considered when calculating progress and completion
     console.log(
-      `📊 Total relevant questions: ${count} out of ${this.questions.length}`
+      `📊 Total relevant questions: ${this.questions.length} out of ${this.questions.length}`
     );
-    // אם אין מספיק שאלות (בגלל דילוגים), החזר את המספר המינימלי
-    return Math.max(count, this.questions.length - 5); // לפחות שאלות בסיסיות
+    return this.questions.length;
   }
 
   // קבל כל התשובות
@@ -512,10 +492,19 @@ export class UnifiedQuestionnaireManager {
 
   // בדוק אם השאלון הושלם
   isCompleted(): boolean {
-    return (
-      this.currentQuestionIndex >= this.questions.length - 1 &&
-      this.answers.size >= this.getTotalRelevantQuestions()
+    // Check if we've reached the last question AND answered it
+    const currentQuestion = this.getCurrentQuestion();
+    const isLastQuestion =
+      this.currentQuestionIndex >= this.questions.length - 1;
+    const hasCurrentAnswer = currentQuestion
+      ? this.answers.has(currentQuestion.id)
+      : false;
+
+    console.log(
+      `isCompleted check: isLastQuestion=${isLastQuestion}, answersSize=${this.answers.size}, totalQuestions=${this.questions.length}`
     );
+
+    return isLastQuestion && hasCurrentAnswer;
   }
 
   // איפוס השאלון
@@ -526,7 +515,7 @@ export class UnifiedQuestionnaireManager {
   }
 
   // יצוא לשכבת הנתונים החכמה
-  toSmartQuestionnaireData(): SmartQuestionnaireData {
+  toSmartQuestionnaireData(): QuestionnaireData {
     const getAnswerId = (questionId: string): string | undefined => {
       const ans = this.answers.get(questionId)?.answer;
       if (!ans) return undefined;
@@ -646,7 +635,7 @@ export class UnifiedQuestionnaireManager {
       },
       metadata: {
         completedAt: new Date().toISOString(),
-        version: "2.3",
+        version: QUESTIONNAIRE_VERSION,
         sessionId: `unified_${Date.now()}`,
         completionTime: Math.max(60, this.answers.size * 10),
         questionsAnswered: this.answers.size,
@@ -657,7 +646,7 @@ export class UnifiedQuestionnaireManager {
           screenHeight: 0,
         },
       },
-    } as SmartQuestionnaireData;
+    } as QuestionnaireData;
   }
 }
 

@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  View,
+  StyleSheet,
+  Text,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -7,6 +14,7 @@ import { theme } from "../../styles/theme";
 import BackButton from "../../components/common/BackButton";
 import { UniversalButton } from "../../components/ui/UniversalButton";
 import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService";
+import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
 
 interface WorkoutSet {
   id: string;
@@ -15,12 +23,7 @@ interface WorkoutSet {
   completed: boolean;
 }
 
-interface WorkoutExercise {
-  id: string;
-  name: string;
-  sets: WorkoutSet[];
-  muscleGroup?: string;
-}
+import { WorkoutExercise } from "./types/workout.types";
 
 interface ExerciseItemProps {
   exercise: WorkoutExercise;
@@ -29,57 +32,77 @@ interface ExerciseItemProps {
   onDeleteSet: (exerciseId: string, setId: string) => void;
 }
 
-const ExerciseItem: React.FC<ExerciseItemProps> = ({ 
-  exercise, 
-  onCompleteSet, 
-  onAddSet, 
-  onDeleteSet 
+const ExerciseItem: React.FC<ExerciseItemProps> = ({
+  exercise,
+  onCompleteSet,
+  onAddSet,
+  onDeleteSet,
 }) => {
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <Text style={styles.exerciseName}>{exercise.name}</Text>
-        <Text style={styles.muscleGroup}>{exercise.muscleGroup}</Text>
+        <Text style={styles.muscleGroup}>
+          {exercise.primaryMuscles?.[0] || "לא צוין"}
+        </Text>
       </View>
 
-      {exercise.sets.map((set, index) => (
+      {exercise.sets?.map((set, index) => (
         <View key={set.id} style={styles.setRow}>
           <Text style={styles.setNumber}>{index + 1}</Text>
-          
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>משקל</Text>
-            <Text style={styles.inputValue}>{set.weight} ק"ג</Text>
+            <Text style={styles.inputValue}>{(set as any).weight} ק"ג</Text>
           </View>
-          
+
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>חזרות</Text>
-            <Text style={styles.inputValue}>{set.reps}</Text>
+            <Text style={styles.inputValue}>{(set as any).reps}</Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.completeButton, set.completed && styles.completedButton]}
+            style={[
+              styles.completeButton,
+              set.completed && styles.completedButton,
+            ]}
             onPress={() => onCompleteSet(exercise.id, set.id)}
           >
             <MaterialCommunityIcons
               name={set.completed ? "check-circle" : "circle-outline"}
               size={24}
-              color={set.completed ? theme.colors.success : theme.colors.textSecondary}
+              color={
+                set.completed
+                  ? theme.colors.success
+                  : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
 
-          {exercise.sets.length > 1 && (
+          {exercise.sets?.length || 0 > 1 && (
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => onDeleteSet(exercise.id, set.id)}
             >
-              <MaterialCommunityIcons name="delete" size={20} color={theme.colors.error} />
+              <MaterialCommunityIcons
+                name="delete"
+                size={20}
+                color={theme.colors.error}
+              />
             </TouchableOpacity>
           )}
         </View>
       ))}
 
-      <TouchableOpacity style={styles.addSetButton} onPress={() => onAddSet(exercise.id)}>
-        <MaterialCommunityIcons name="plus" size={20} color={theme.colors.primary} />
+      <TouchableOpacity
+        style={styles.addSetButton}
+        onPress={() => onAddSet(exercise.id)}
+      >
+        <MaterialCommunityIcons
+          name="plus"
+          size={20}
+          color={theme.colors.primary}
+        />
         <Text style={styles.addSetText}>הוסף סט</Text>
       </TouchableOpacity>
     </View>
@@ -90,22 +113,52 @@ const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { workoutData, pendingExercise } = (route.params as {
-    workoutData?: any;
-    pendingExercise?: any;
-  }) || {};
+  const { workoutData, pendingExercise } =
+    (route.params as {
+      workoutData?: any;
+      pendingExercise?: any;
+    }) || {};
 
   // State management
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(workoutData?.exercises || []);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(
+    workoutData?.exercises || []
+  );
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // סטטיסטיקות בזמן אמת
+  const liveStats = useMemo(() => {
+    if (!exercises?.length) return null;
+
+    // יצירת פורמט תואם לפונקציה
+    const formattedExercises = exercises.map((exercise) => ({
+      id: exercise.id,
+      name: exercise.name,
+      category: exercise.category || "Unknown",
+      primaryMuscles: [exercise.category || "Unknown"],
+      equipment: "Unknown",
+      sets: (exercise.sets || []).map((set) => ({
+        id: set.id,
+        type: "working" as const,
+        targetReps: (set as any).reps,
+        actualReps: set.completed ? (set as any).reps : 0,
+        targetWeight: (set as any).weight,
+        actualWeight: set.completed ? (set as any).weight : 0,
+        completed: set.completed,
+        isPR: false,
+        timeToComplete: 0,
+      })),
+    }));
+
+    return calculateWorkoutStats(formattedExercises);
+  }, [exercises]);
 
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning) {
       interval = setInterval(() => {
-        setWorkoutTime(prev => prev + 1);
+        setWorkoutTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -126,7 +179,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         sets: [{ id: `${Date.now()}`, weight: 0, reps: 0, completed: false }],
         muscleGroup: pendingExercise.muscleGroup,
       };
-      setExercises(prev => [...prev, newExercise]);
+      setExercises((prev) => [...prev, newExercise]);
     }
   }, [pendingExercise]);
 
@@ -134,34 +187,45 @@ const ActiveWorkoutScreen: React.FC = () => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Calculate stats
-  const completedSets = exercises.reduce((total, ex) => 
-    total + ex.sets.filter(set => set.completed).length, 0
+  const completedSets = exercises.reduce(
+    (total, ex) => total + ex.sets.filter((set) => set.completed).length,
+    0
   );
   const totalSets = exercises.reduce((total, ex) => total + ex.sets.length, 0);
-  const totalVolume = exercises.reduce((total, ex) => 
-    total + ex.sets.filter(set => set.completed).reduce((vol, set) => vol + (set.weight * set.reps), 0), 0
+  const totalVolume = exercises.reduce(
+    (total, ex) =>
+      total +
+      ex.sets
+        .filter((set) => set.completed)
+        .reduce((vol, set) => vol + (set as any).weight * (set as any).reps, 0),
+    0
   );
 
   // Set management
   const handleCompleteSet = (exerciseId: string, setId: string) => {
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId 
-        ? { ...ex, sets: ex.sets.map(set => 
-            set.id === setId ? { ...set, completed: !set.completed } : set
-          )}
-        : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? {
+              ...ex,
+              sets: ex.sets.map((set) =>
+                set.id === setId ? { ...set, completed: !set.completed } : set
+              ),
+            }
+          : ex
+      )
+    );
   };
 
   const handleAddSet = (exerciseId: string) => {
-    const exercise = exercises.find(ex => ex.id === exerciseId);
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
     if (!exercise) return;
 
-    const lastSet = exercise.sets[exercise.sets.length - 1];
+    const lastSet = exercise.sets[exercise.sets?.length || 0 - 1];
     const newSet: WorkoutSet = {
       id: `${Date.now()}`,
       weight: lastSet?.weight || 0,
@@ -169,23 +233,27 @@ const ActiveWorkoutScreen: React.FC = () => {
       completed: false,
     };
 
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId ? { ...ex, sets: [...ex.sets, newSet] } : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId ? { ...ex, sets: [...ex.sets, newSet] } : ex
+      )
+    );
   };
 
   const handleDeleteSet = (exerciseId: string, setId: string) => {
-    const exercise = exercises.find(ex => ex.id === exerciseId);
-    if (!exercise || exercise.sets.length <= 1) {
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
+    if (!exercise || exercise.sets?.length || 0 <= 1) {
       Alert.alert("שגיאה", "חייב להיות לפחות סט אחד בתרגיל");
       return;
     }
 
-    setExercises(prev => prev.map(ex => 
-      ex.id === exerciseId 
-        ? { ...ex, sets: ex.sets.filter(set => set.id !== setId) }
-        : ex
-    ));
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? { ...ex, sets: ex.sets.filter((set) => set.id !== setId) }
+          : ex
+      )
+    );
   };
 
   const handleAddExercise = () => {
@@ -197,7 +265,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           ...selectedExercise,
           sets: [{ id: `${Date.now()}`, weight: 0, reps: 0, completed: false }],
         };
-        setExercises(prev => [...prev, newExercise]);
+        setExercises((prev) => [...prev, newExercise]);
         navigation.goBack();
       },
     });
@@ -234,7 +302,11 @@ const ActiveWorkoutScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <BackButton />
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="dumbbell" size={80} color={theme.colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="dumbbell"
+            size={80}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.emptyText}>אין תרגילים באימון</Text>
           <UniversalButton
             title="הוסף תרגיל"
@@ -253,7 +325,9 @@ const ActiveWorkoutScreen: React.FC = () => {
       <View style={styles.header}>
         <BackButton />
         <View style={styles.headerCenter}>
-          <Text style={styles.workoutTitle}>{workoutData?.name || "אימון פעיל"}</Text>
+          <Text style={styles.workoutTitle}>
+            {workoutData?.name || "אימון פעיל"}
+          </Text>
           <Text style={styles.workoutTime}>{formatTime(workoutTime)}</Text>
         </View>
         <TouchableOpacity
@@ -268,25 +342,40 @@ const ActiveWorkoutScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{completedSets}</Text>
-          <Text style={styles.statLabel}>סטים</Text>
+      {/* Live Stats Bar */}
+      {liveStats && (
+        <View style={styles.liveStatsBar}>
+          <View style={styles.liveStatItem}>
+            <Text style={styles.liveStatLabel}>סטים</Text>
+            <Text style={styles.liveStatValue}>
+              {liveStats.completedSets}/{liveStats.totalSets}
+            </Text>
+          </View>
+          <View style={styles.liveStatItem}>
+            <Text style={styles.liveStatLabel}>נפח</Text>
+            <Text style={styles.liveStatValue}>
+              {Math.round(liveStats.totalVolume)}kg
+            </Text>
+          </View>
+          <View style={styles.liveStatItem}>
+            <Text style={styles.liveStatLabel}>חזרות</Text>
+            <Text style={styles.liveStatValue}>{liveStats.totalReps}</Text>
+          </View>
+          <View style={styles.liveStatItem}>
+            <Text style={styles.liveStatLabel}>התקדמות</Text>
+            <Text style={styles.liveStatValue}>
+              {liveStats.progressPercentage}%
+            </Text>
+          </View>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{totalVolume}</Text>
-          <Text style={styles.statLabel}>ק"ג</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{exercises.length}</Text>
-          <Text style={styles.statLabel}>תרגילים</Text>
-        </View>
-      </View>
+      )}
 
       {/* Exercises */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {exercises.map(exercise => (
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {exercises.map((exercise) => (
           <ExerciseItem
             key={exercise.id}
             exercise={exercise}
@@ -348,28 +437,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.primary + "20",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    backgroundColor: theme.colors.card,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
-    marginVertical: theme.spacing.sm,
-    borderRadius: theme.radius.lg,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
   },
   scrollView: {
     flex: 1,
@@ -479,6 +546,29 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: theme.spacing.lg,
+  },
+  liveStatsBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: theme.colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  liveStatItem: {
+    alignItems: "center",
+  },
+  liveStatLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: "400",
+  },
+  liveStatValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "bold",
+    marginTop: 2,
   },
 });
 

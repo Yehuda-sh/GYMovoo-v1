@@ -11,13 +11,13 @@ import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp } from "@react-navigation/native";
 import { theme } from "../../styles/theme";
 import { useUserStore } from "../../stores/userStore";
-import type { WorkoutPlan } from "../../types/index";
+import type { WorkoutPlan } from "./types/workout.types";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import { UniversalModal } from "../../components/common/UniversalModal";
 import EmptyState from "../../components/common/EmptyState";
 import UniversalCard from "../../components/ui/UniversalCard";
-import { questionnaireService } from "../../services/questionnaireService";
+import { questionnaireService } from "../../features/questionnaire/services/questionnaireService";
 import AppButton from "../../components/common/AppButton";
 
 interface WorkoutPlanScreenProps {

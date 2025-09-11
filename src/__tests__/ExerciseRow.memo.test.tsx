@@ -17,7 +17,7 @@ jest.mock("../screens/workout/components/ExerciseCard/index", () => {
 
   let renderCount = 0;
 
-  const MockExerciseCard = (props: any) => {
+  const MockExerciseCard = (props: { exercise: { name: string } }) => {
     renderCount++;
     return (
       <View testID="exercise-card">

@@ -3,10 +3,8 @@
  */
 
 import { User } from "../../stores/userStore";
-import {
-  WorkoutWithFeedback,
-  WorkoutHistoryItem,
-} from "../../screens/workout/types/workout.types";
+import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
+import { WorkoutHistoryItem } from "../../types/user.types";
 import { workoutStorageService } from "../workout/workoutStorageService";
 import { logger } from "../../utils/logger";
 

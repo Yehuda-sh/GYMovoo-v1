@@ -34,22 +34,6 @@ export interface WorkoutDay {
   };
 }
 
-export interface WorkoutPlan {
-  id: string;
-  type: "basic" | "smart" | "ai_premium";
-  name: string;
-  description: string;
-  workouts: WorkoutDay[];
-  createdAt: string;
-  metadata: {
-    totalDuration: number;
-    weeklyVolume: number;
-    muscleGroupsCovered: string[];
-    progressionStrategy: "fixed" | "linear" | "adaptive";
-    subscriptionLevel: "free" | "trial" | "premium";
-  };
-}
-
 export interface ProgressiveOverloadSuggestion {
   exerciseId: string;
   currentWeight?: number;

@@ -46,6 +46,11 @@ export const EQUIPMENT_ICON_MAP: Record<string, string> = {
   squat_rack: "gate",
   preacher_curl: "chair-school",
 
+  // Home equipment additions
+  water_bottles: "bottle-water",
+  chair: "chair-rolling",
+  wall: "wall",
+
   // Default
   default: "help-circle-outline",
 };
@@ -80,6 +85,11 @@ export const EQUIPMENT_HEBREW_NAMES: Record<string, string> = {
   bench_press: "ספסל",
   squat_rack: "מתקן סקוואט",
   preacher_curl: "ספסל כיפופים",
+
+  // Home equipment additions
+  water_bottles: "בקבוקי מים",
+  chair: "כיסא",
+  wall: "קיר",
 };
 
 /**
@@ -95,7 +105,11 @@ function normalizeEquipmentName(equipment: string): string {
  */
 export function getEquipmentIcon(equipment: string): string {
   const normalized = normalizeEquipmentName(equipment);
-  return EQUIPMENT_ICON_MAP[normalized] || EQUIPMENT_ICON_MAP.default;
+  return (
+    EQUIPMENT_ICON_MAP[normalized] ||
+    EQUIPMENT_ICON_MAP.default ||
+    "exercise-default"
+  );
 }
 
 /**

@@ -2,6 +2,7 @@ import {
   extractSmartAnswers,
   getPersonalDataFromUser,
 } from "../questionnaireUtils";
+import type { User } from "../../types";
 
 describe("questionnaireUtils", () => {
   describe("extractSmartAnswers", () => {
@@ -11,9 +12,9 @@ describe("questionnaireUtils", () => {
     });
 
     test("extracts answers from both camelCase and lowercase", () => {
-      const user1 = { smartQuestionnaireData: { answers: { gender: "male" } } };
+      const user1 = { questionnaireData: { answers: { gender: "male" } } };
       const user2 = {
-        smartquestionnairedata: { answers: { gender: "female" } },
+        questionnaireData: { answers: { gender: "female" } },
       };
 
       expect(extractSmartAnswers(user1)?.gender).toBe("male");
@@ -23,8 +24,8 @@ describe("questionnaireUtils", () => {
 
   describe("getPersonalDataFromUser", () => {
     test("maps user data to ranges", () => {
-      const user: any = {
-        smartquestionnairedata: {
+      const user: Partial<User> = {
+        questionnaireData: {
           answers: {
             gender: "male",
             age: 30,
@@ -35,7 +36,7 @@ describe("questionnaireUtils", () => {
         },
       };
 
-      const result = getPersonalDataFromUser(user);
+      const result = getPersonalDataFromUser(user as User);
       expect(result).toEqual({
         gender: "male",
         age: "25_34",
@@ -47,11 +48,11 @@ describe("questionnaireUtils", () => {
 
     test("returns undefined for invalid data", () => {
       expect(
-        getPersonalDataFromUser({ smartquestionnairedata: {} } as any)
+        getPersonalDataFromUser({ questionnaireData: {} } as any)
       ).toBeUndefined();
       expect(
         getPersonalDataFromUser({
-          smartquestionnairedata: {
+          questionnaireData: {
             answers: {
               gender: "invalid" as any,
               age: 30,

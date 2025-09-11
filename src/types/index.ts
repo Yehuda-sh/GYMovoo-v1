@@ -4,11 +4,52 @@
  * @brief Main types for GYMovoo fitness app
  */
 
+// Workout Plan import for compatibility
+import { WorkoutPlan as BaseWorkoutPlan } from "../screens/workout/types/workout.types";
+
 // Navigation types
 export * from "../navigation/types";
 
-// Workout types
-export * from "../screens/workout/types/workout.types";
+// Workout types - ייצוא מפורש למניעת כפילויות
+export {
+  // Core workout types
+  WorkoutData,
+  WorkoutExercise as WorkoutExerciseType,
+  WorkoutTemplate,
+  ExerciseTemplate,
+  Set,
+
+  // Progress & Analytics
+  ProgressData,
+  PerformanceData,
+  WorkoutStatistics as WorkoutStatsType,
+
+  // Feedback & History
+  WorkoutWithFeedback,
+  WorkoutFeedback,
+  WorkoutStats,
+  PreviousPerformance,
+  WorkoutSummary,
+  NextWorkoutInsights,
+
+  // Type aliases
+  ISODateString,
+} from "../screens/workout/types/workout.types";
+
+// User types - ייצוא סלקטיבי למניעת כפילויות
+export {
+  User,
+  QuestionnaireData,
+  QuestionnaireAnswers,
+  TrainingStats,
+  ActivityHistory,
+  UserMetadata,
+  UserCompletionStatus,
+  UserProgress,
+  Achievement,
+  // PersonalRecord - לא מייצאים מכאן אם יש כפילות
+  // WorkoutHistoryItem - לא מייצאים מכאן אם יש כפילות
+} from "./user.types";
 
 // =======================================
 // 🏋️ Core Workout Types
@@ -57,21 +98,10 @@ export interface Workout {
 }
 
 // =======================================
-// 📋 Questionnaire Types
+// 📋 Questionnaire Types (Legacy - for backward compatibility)
 // =======================================
 
-export interface QuestionnaireAnswers {
-  [key: string]: string | number | boolean | string[];
-}
-
-export interface SmartQuestionnaireData {
-  answers: QuestionnaireAnswers;
-  metadata: {
-    completedAt: string;
-    version: string;
-  };
-}
-
+// השתמש ב-QuestionnaireData מ-user.types.ts במקום
 export interface Questionnaire {
   age?: string;
   gender?: string;
@@ -84,18 +114,26 @@ export interface Questionnaire {
   healthStatus?: string;
   experienceLevel?: string;
   weeklyAvailability?: string;
-  [key: string]: any; // For additional dynamic fields
+  [key: string]: unknown; // For additional dynamic fields
 }
 
 export interface QuestionnaireMetadata {
   completedAt?: string;
   version?: string;
   source?: "legacy" | "smart" | "updated";
-  [key: string]: any;
+
+  // Common questionnaire fields
+  goal?: string | string[];
+  experience?: string;
+  health_conditions?: string[];
+  home_equipment?: string[];
+  gym_equipment?: string[];
+
+  [key: string]: unknown;
 }
 
 export interface DynamicQuestion {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface LegacyQuestionnaireData {
@@ -104,7 +142,7 @@ export interface LegacyQuestionnaireData {
   fitnessLevel?: string;
   goals?: string[];
   equipment?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // =======================================
@@ -131,120 +169,27 @@ export interface PushNotification {
 }
 
 // =======================================
-// 🏆 Achievement Types
+// 👤 Profile Types (נוספים ל-User)
 // =======================================
-
-export interface Achievement {
-  id: number;
-  title: string;
-  description: string;
-  icon: string;
-  category: string;
-  unlocked: boolean;
-  progress?: number;
-  unlockedAt?: string;
-}
-
-export interface AchievementProgress {
-  achievementId: number;
-  currentValue: number;
-  targetValue: number;
-  percentage: number;
-  lastUpdated: string;
-}
-
-// =======================================
-// 👤 User Types
-// =======================================
-
-export interface UserProfile {
-  id?: string;
-  name?: string;
-  email?: string;
-  age?: number;
-  height?: number;
-  weight?: number;
-  fitnessLevel?: string;
-  goals?: string[];
-  equipment?: string[];
-}
 
 export interface GenderProfile {
   selectedGender?: string;
-  [key: string]: any;
+  [key: string]: unknown; // שינוי מ-any ל-unknown
 }
 
 export interface Subscription {
   type?: string;
   isActive?: boolean;
   hasCompletedTrial?: boolean;
-  [key: string]: any;
-}
-
-export interface ActivityHistory {
-  workouts?: Workout[];
-  weeklyProgress?: number;
-  [key: string]: any;
+  [key: string]: unknown; // שינוי מ-any ל-unknown
 }
 
 export interface WorkoutPlans {
-  basicPlan?: WorkoutPlan;
-  smartPlan?: WorkoutPlan;
+  basicPlan?: BaseWorkoutPlan; // שימוש ב-BaseWorkoutPlan
+  smartPlan?: BaseWorkoutPlan; // שימוש ב-BaseWorkoutPlan
   planPreference?: string;
   lastUpdated?: string;
-  [key: string]: any;
-}
-
-export interface User {
-  id?: string;
-  name?: string;
-  email?: string;
-  avatar?: string;
-  provider?: string; // Added for authentication provider (Google, email, etc.)
-
-  // Questionnaire data
-  smartquestionnairedata?: SmartQuestionnaireData;
-  hasQuestionnaire?: boolean;
-  questionnaire?: Questionnaire;
-  questionnairedata?: LegacyQuestionnaireData;
-
-  // User preferences
-  preferences?: {
-    theme?: "light" | "dark" | "system";
-    language?: "he" | "en";
-    notifications?: boolean;
-    soundEnabled?: boolean;
-    hapticFeedback?: boolean;
-    units?: "metric" | "imperial";
-  };
-
-  // User profiles and subscriptions
-  genderprofile?: GenderProfile;
-  subscription?: Subscription;
-  activityhistory?: ActivityHistory;
-  scientificprofile?: any;
-  airecommendations?: any;
-  workoutplans?: WorkoutPlans;
-  customDemoUser?: any;
-
-  // Training stats
-  trainingstats?: {
-    totalWorkouts?: number;
-    totalMinutes?: number;
-    currentStreak?: number;
-    favoriteExercises?: string[];
-    selectedEquipment?: string[];
-    preferredWorkoutDays?: string[];
-    currentFitnessLevel?: string;
-    fitnessGoals?: string[];
-    streak?: number;
-    totalDurationMinutes?: number;
-    totalHours?: number;
-    xp?: number;
-    level?: number;
-    totalVolume?: number;
-    lastWorkoutDate?: string;
-  };
+  [key: string]: unknown; // שינוי מ-any ל-unknown
 }
 
 // =======================================
@@ -288,37 +233,30 @@ export interface WorkoutRecommendation {
   exercises?: WorkoutExercise[];
 }
 
-export interface WorkoutPlan {
+// הגדרה מורחבת של WorkoutPlan - טיפוס נפרד לשימוש באפליקציה
+export interface ExtendedWorkoutPlan {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   type?: "basic" | "smart" | "premium";
   workouts?: WorkoutRecommendation[];
-  exercises?: WorkoutExercise[];
-  duration?: number;
   estimatedDuration?: number;
-  frequency?: number;
-  requiresSubscription?: boolean;
   difficulty?: "beginner" | "intermediate" | "advanced";
-  targetMuscles?: string[];
+  frequency: number;
+  requiresSubscription?: boolean;
   features?: WorkoutPlanFeatures;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  isActive?: boolean;
 }
 
+// הוספת הגדרת WorkoutPlanFeatures אם חסר
 export interface WorkoutPlanFeatures {
-  periodization?: boolean;
-  progressiveOverload?: boolean;
-  deloadWeeks?: boolean;
-  customExercises?: boolean;
-  aiOptimization?: boolean;
-  nutritionIntegration?: boolean;
-  personalizedWorkouts?: boolean;
-  equipmentOptimization?: boolean;
-  progressTracking?: boolean;
-  aiRecommendations?: boolean;
-  customSchedule?: boolean;
+  hasVideoGuides?: boolean;
+  hasProgressTracking?: boolean;
+  hasCustomization?: boolean;
+  hasNutritionPlan?: boolean;
+  [key: string]: unknown;
 }
 
 // =======================================

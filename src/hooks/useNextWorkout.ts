@@ -19,7 +19,10 @@ export interface UseNextWorkoutReturn {
   isLoading: boolean;
   error: string | null;
   refreshRecommendation: () => Promise<void>;
-  markWorkoutCompleted: (workoutIndex: number, workoutName: string) => Promise<void>;
+  markWorkoutCompleted: (
+    workoutIndex: number,
+    workoutName: string
+  ) => Promise<void>;
   cycleStats: {
     currentWeek: number;
     totalWorkouts: number;
@@ -33,7 +36,8 @@ export interface UseNextWorkoutReturn {
  */
 export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const { user } = useUserStore();
-  const [nextWorkout, setNextWorkout] = useState<NextWorkoutRecommendation | null>(null);
+  const [nextWorkout, setNextWorkout] =
+    useState<NextWorkoutRecommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cycleStats, setCycleStats] = useState<{
@@ -62,16 +66,16 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     const smartAnswers = fieldMapper.getSmartAnswers(user) as {
       availability?: string[] | string;
     } | null;
-    
+
     if (smartAnswers?.availability) {
       const availability = smartAnswers.availability;
       const freq = Array.isArray(availability) ? availability[0] : availability;
-      
+
       // מיפוי פשוט
-      if (freq?.includes('2')) return 2;
-      if (freq?.includes('3')) return 3;
-      if (freq?.includes('4')) return 4;
-      if (freq?.includes('5')) return 5;
+      if (freq?.includes("2")) return 2;
+      if (freq?.includes("3")) return 3;
+      if (freq?.includes("4")) return 4;
+      if (freq?.includes("5")) return 5;
     }
 
     // ברירת מחדל
@@ -103,17 +107,20 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       setIsLoading(true);
       setError(null);
 
-      const recommendation = await nextWorkoutLogicService.getNextWorkoutRecommendation(
-        weeklyPlan || ["אימון מלא"], 
-        personalData || undefined
-      );
+      const recommendation =
+        await nextWorkoutLogicService.getNextWorkoutRecommendation(
+          weeklyPlan || ["אימון מלא"],
+          personalData as any // Temporary workaround for type mismatch
+        );
 
       setNextWorkout(recommendation);
-      
+
       // נסיון לקבל סטטיסטיקות אם הפונקציה קיימת
       try {
-        if ('getCycleStatistics' in nextWorkoutLogicService && 
-            typeof nextWorkoutLogicService.getCycleStatistics === 'function') {
+        if (
+          "getCycleStatistics" in nextWorkoutLogicService &&
+          typeof nextWorkoutLogicService.getCycleStatistics === "function"
+        ) {
           const stats = await nextWorkoutLogicService.getCycleStatistics();
           setCycleStats(stats);
         }
@@ -121,9 +128,10 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         // לא קריטי אם לא מצליח לקבל סטטיסטיקות
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "שגיאה בקבלת המלצת אימון";
+      const errorMessage =
+        err instanceof Error ? err.message : "שגיאה בקבלת המלצת אימון";
       setError(errorMessage);
-      
+
       // fallback - המלצה בסיסית
       const fallbackRecommendation = {
         workoutName: (weeklyPlan && weeklyPlan[0]) || "אימון מלא",
@@ -143,10 +151,14 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
   const markWorkoutCompleted = useCallback(
     async (workoutIndex: number, workoutName: string) => {
       try {
-        await nextWorkoutLogicService.updateWorkoutCompleted(workoutIndex, workoutName);
+        await nextWorkoutLogicService.updateWorkoutCompleted(
+          workoutIndex,
+          workoutName
+        );
         await refreshRecommendation();
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "שגיאה בסימון אימון";
+        const errorMessage =
+          err instanceof Error ? err.message : "שגיאה בסימון אימון";
         setError(`שגיאה בסימון אימון: ${errorMessage}`);
       }
     },

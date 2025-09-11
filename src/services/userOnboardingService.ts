@@ -3,9 +3,9 @@
  * מבטיח שכל משתמש חדש יקבל הגדרה מלאה אוטומטית
  */
 
-import type { SmartQuestionnaireData } from "../types";
+import type { QuestionnaireData } from "../types/user.types";
 import { userApi } from "./api/userApi";
-import { questionnaireService } from "./questionnaireService";
+import { questionnaireService } from "../features/questionnaire/services/questionnaireService";
 
 export interface UserOnboardingResult {
   success: boolean;
@@ -36,29 +36,29 @@ export const completeUserOnboarding = async (
   try {
     // 1. קבלת נתוני המשתמש הנוכחיים מהשרת
     const userData = await userApi.getById(userId);
-    if (!userData?.smartquestionnairedata) {
+    if (!userData?.questionnaireData) {
       throw new Error(
         "User has no questionnaire data - onboarding cannot proceed"
       );
     }
 
-    const smartData = userData.smartquestionnairedata as SmartQuestionnaireData;
+    const questionnaireData = userData.questionnaireData as QuestionnaireData;
     console.warn("📋 User questionnaire data retrieved:", {
-      fitness_goal: smartData.answers?.fitnessLevel,
-      workout_location: smartData.answers?.workoutLocation,
-      experience_level: smartData.answers?.fitnessLevel,
+      fitness_goal: questionnaireData.answers?.fitness_goal,
+      workout_location: questionnaireData.answers?.workout_location,
+      experience_level: questionnaireData.answers?.experience_level,
     });
 
     // 2. וידוא שהציוד מוגדר כראוי לפי מיקום האימון
-    const workoutLocation = smartData.answers?.workoutLocation;
+    const workoutLocation = questionnaireData.answers?.workout_location;
     let equipmentAssigned: string[] = [];
 
     // Use equipment from answers if available
     if (
-      smartData.answers?.equipment &&
-      Array.isArray(smartData.answers.equipment)
+      questionnaireData.answers?.equipment &&
+      Array.isArray(questionnaireData.answers.equipment)
     ) {
-      equipmentAssigned = [...smartData.answers.equipment];
+      equipmentAssigned = [...questionnaireData.answers.equipment];
     }
 
     result.equipmentAssigned = Array.from(new Set(equipmentAssigned)); // Remove duplicates
@@ -111,8 +111,9 @@ export const completeUserOnboarding = async (
     // 5. וידוא התקנה תקינה
     const validationChecks = {
       hasQuestionnaire: !!(
-        smartData.answers?.fitnessLevel ||
-        (Array.isArray(smartData.answers?.goals) && smartData.answers.goals[0])
+        questionnaireData.answers?.experience_level ||
+        (Array.isArray(questionnaireData.answers?.goals) &&
+          questionnaireData.answers.goals[0])
       ),
       hasEquipment: result.equipmentAssigned.length > 0,
       hasWorkoutPlans: result.workoutPlansGenerated > 0,
@@ -156,22 +157,22 @@ export const validateUserSetup = async (userId: string): Promise<boolean> => {
     const userData = await userApi.getById(userId);
     if (!userData) return false;
 
-    const smartData = userData.smartquestionnairedata as SmartQuestionnaireData;
-    if (!smartData) return false;
+    const questionnaireData = userData.questionnaireData as QuestionnaireData;
+    if (!questionnaireData) return false;
 
     // בדיקה שיש נתוני שאלון בסיסיים
     const hasBasicData = !!(
-      smartData.answers?.fitnessLevel &&
-      smartData.answers?.workoutLocation &&
-      Array.isArray(smartData.answers?.equipment) &&
-      smartData.answers?.equipment.length
+      questionnaireData.answers?.experience_level &&
+      questionnaireData.answers?.workout_location &&
+      Array.isArray(questionnaireData.answers?.equipment) &&
+      questionnaireData.answers?.equipment.length
     );
 
     // בדיקה שיש ציוד מתאים למיקום
     const hasEquipment = !!(
-      Array.isArray(smartData.answers?.equipment) &&
-      smartData.answers?.equipment.length &&
-      smartData.answers?.workoutLocation
+      Array.isArray(questionnaireData.answers?.equipment) &&
+      questionnaireData.answers?.equipment.length &&
+      questionnaireData.answers?.workout_location
     );
 
     return hasBasicData && hasEquipment;

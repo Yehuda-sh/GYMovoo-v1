@@ -1,14 +1,14 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-// Auth screens
-import WelcomeScreen from "../screens/welcome/WelcomeScreen";
-import LoginScreen from "../screens/auth/LoginScreen";
-import RegisterScreen from "../screens/auth/RegisterScreen";
-import TermsScreen from "../screens/auth/TermsScreen";
+// Auth Navigator - מודול אימות חדש
+import { AuthNavigator } from "../features/auth";
 
-// Questionnaire
-import UnifiedQuestionnaireScreen from "../screens/questionnaire/UnifiedQuestionnaireScreen";
+// Questionnaire Navigator - מודול שאלון חדש
+import { QuestionnaireNavigator } from "../features/questionnaire";
+
+// Welcome screen
+import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 
 // Developer screen
 import DeveloperScreen from "../screens/developer/DeveloperScreen";
@@ -35,7 +35,7 @@ export default function AppNavigator() {
   // Determine initial screen based on user state
   const getInitialRoute = () => {
     if (!user) return "Welcome";
-    
+
     const completion = getCompletionStatus();
     return completion.isFullySetup ? "MainApp" : "Questionnaire";
   };
@@ -55,16 +55,34 @@ export default function AppNavigator() {
           component={WelcomeScreen}
           options={{ gestureEnabled: false }}
         />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Terms" component={TermsScreen} />
 
-        {/* Questionnaire */}
+        {/* מודול אימות חדש - השתמש בו לכל צרכי האימות */}
         <Stack.Screen
-          name="Questionnaire"
-          component={UnifiedQuestionnaireScreen}
+          name="Auth"
+          component={AuthNavigator}
           options={{ gestureEnabled: false }}
         />
+
+        {/* מסכי אימות ישנים - לא בשימוש יותר, יוסרו בעתיד 
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} />
+        */}
+
+        {/* Questionnaire - מודול שאלון חדש */}
+        <Stack.Screen
+          name="Questionnaire"
+          component={QuestionnaireNavigator}
+          options={{ gestureEnabled: false }}
+        />
+
+        {/* מסך שאלון ישן - לא בשימוש יותר
+        <Stack.Screen
+          name="OldQuestionnaire"
+          component={null} // הוסר מהקוד
+          options={{ gestureEnabled: false }}
+        />
+        */}
 
         {/* Workout */}
         <Stack.Screen name="WorkoutPlan" component={WorkoutPlanScreen} />
@@ -89,7 +107,10 @@ export default function AppNavigator() {
           component={ExerciseListScreen}
           options={{ presentation: "modal" }}
         />
-        <Stack.Screen name="ExerciseDetails" component={ExerciseDetailsScreen} />
+        <Stack.Screen
+          name="ExerciseDetails"
+          component={ExerciseDetailsScreen}
+        />
         <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
 
         {/* Additional screens */}

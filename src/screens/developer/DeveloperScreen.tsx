@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { userApi } from "../../services/api/userApi";
 import { useUserStore } from "../../stores/userStore";
 import { theme } from "../../styles/theme";
-import { User } from "../../types";
+import { User } from "../../types/user.types";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
@@ -74,97 +74,39 @@ export default function DeveloperScreen() {
 
       // Check if user has questionnaire
       const hasQuestionnaire = !!(
-        selectedUser.smartquestionnairedata?.answers &&
-        Object.keys(selectedUser.smartquestionnairedata.answers).length > 5
+        selectedUser.questionnaireData?.answers &&
+        Object.keys(selectedUser.questionnaireData.answers).length > 0
       );
 
+      // Store in AsyncStorage
+      await AsyncStorage.setItem("currentUser", JSON.stringify(selectedUser));
+
+      // Navigate to appropriate screen
       if (hasQuestionnaire) {
-        showConfirmationModal("הצלחה", `התחברת כ-${selectedUser.name}`, () =>
-          navigation.navigate("MainApp")
-        );
+        navigation.navigate("MainApp");
       } else {
-        showConfirmationModal(
-          "התחברות בהצלחה",
-          `התחברת כ-${selectedUser.name}. מעבר לשאלון.`,
-          () => navigation.navigate("Questionnaire", {})
-        );
+        navigation.navigate("Welcome");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Error setting user:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Create demo user
-  const createDemoUser = async () => {
-    try {
-      setLoading(true);
-      const testUser = {
-        name: `Demo User ${Date.now()}`,
-        email: `demo${Date.now()}@test.com`,
-        smartquestionnairedata: {
-          answers: {
-            gender: "male" as const,
-            age: 30,
-            fitnessLevel: "beginner" as const,
-            goals: ["build_muscle"],
-            equipment: ["dumbbells"],
-            availability: ["3_days"],
-          },
-          metadata: {
-            completedAt: new Date().toISOString(),
-            version: "1.0",
-          },
-        },
-      };
-
-      await userApi.create(testUser);
-      showConfirmationModal("הצלחה", "משתמש דמו נוצר בהצלחה", () => {});
-      await loadUsers();
-    } catch (error) {
-      console.error("Error creating demo user:", error);
-      showConfirmationModal("שגיאה", "לא ניתן ליצור משתמש דמו", () => {});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create user without questionnaire
-  const createUserWithoutQuestionnaire = async () => {
-    try {
-      setLoading(true);
-      const testUser = {
-        name: `User No Quest ${Date.now()}`,
-        email: `noquest${Date.now()}@test.com`,
-      };
-
-      await userApi.create(testUser);
-      showConfirmationModal("הצלחה", "משתמש ללא שאלון נוצר בהצלחה", () => {});
-      await loadUsers();
-    } catch (error) {
-      console.error("Error creating user:", error);
-      showConfirmationModal("שגיאה", "לא ניתן ליצור משתמש", () => {});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset all data
-  const resetAllData = async () => {
+  // Delete user
+  const deleteUser = async (userId: string) => {
     showConfirmationModal(
-      "איפוס נתונים",
-      "האם למחוק את כל הנתונים?",
+      "מחיקת משתמש",
+      "האם אתה בטוח שברצונך למחוק את המשתמש?",
       async () => {
         try {
           setLoading(true);
-          setUser(null);
-          const allKeys = await AsyncStorage.getAllKeys();
-          await AsyncStorage.multiRemove(allKeys);
-          showConfirmationModal("הצלחה", "כל הנתונים נמחקו", () => {});
+          // Since there's no delete API, we'll just refresh the list
+          console.log("Delete user:", userId);
+          await loadUsers(); // Refresh the list
         } catch (error) {
-          console.error("Reset error:", error);
-          showConfirmationModal("שגיאה", "לא ניתן לאפס נתונים", () => {});
+          console.error("Error deleting user:", error);
         } finally {
           setLoading(false);
         }
@@ -172,15 +114,219 @@ export default function DeveloperScreen() {
     );
   };
 
+  // Create realistic user with workout history
+  const createRealisticUser = async () => {
+    const israeliNames = [
+      "דוד כהן",
+      "רחל לוי",
+      "יוסי ישראל",
+      "נועה שמואל",
+      "אבי בן דוד",
+      "מיכל גולדברג",
+      "דני רוזן",
+      "תמר אברהם",
+      "עמית גרינברג",
+      "שירה כץ",
+      "רון פרידמן",
+      "ליאת מלכה",
+      "יונתן שפירא",
+      "מור אדלר",
+      "אורי ברק",
+    ];
+
+    const randomName =
+      israeliNames[Math.floor(Math.random() * israeliNames.length)] ||
+      "משתמש חדש";
+    const [firstName, lastName] = randomName.split(" ");
+
+    // Options that match the actual questionnaire
+    const genderOptions = ["male", "female"];
+    const ageOptions = ["18_25", "26_35", "36_50", "51_65"];
+    const weightOptions = ["60_69", "70_79", "80_89", "90_99"];
+    const heightOptions = ["161_170", "171_180", "181_190"];
+    const fitnessGoals = [
+      "lose_weight",
+      "build_muscle",
+      "general_fitness",
+      "athletic_performance",
+    ];
+    const experienceLevels = ["beginner", "intermediate", "advanced"];
+    const workoutLocations = [
+      "home_bodyweight",
+      "home_equipment",
+      "gym",
+      "mixed",
+    ];
+    const availabilityOptions = [
+      "2_days",
+      "3_days",
+      "4_days",
+      "5_days",
+      "6_days",
+    ];
+    const durationOptions = [
+      "15_30_min",
+      "30_45_min",
+      "45_60_min",
+      "60_plus_min",
+    ];
+    const dietOptions = ["none_diet", "vegetarian", "vegan", "keto", "paleo"];
+
+    // Equipment options based on location
+    const getEquipmentForLocation = (location: string): string[] => {
+      switch (location) {
+        case "home_bodyweight":
+          return ["yoga_mat", "water_bottles"];
+        case "home_equipment":
+          return ["dumbbells", "resistance_bands", "yoga_mat"];
+        case "gym":
+          return ["free_weights", "machines", "cardio_equipment"];
+        case "mixed":
+          return ["dumbbells", "yoga_mat", "free_weights"];
+        default:
+          return ["yoga_mat"];
+      }
+    };
+
+    const selectedLocation =
+      workoutLocations[Math.floor(Math.random() * workoutLocations.length)] ||
+      "home_bodyweight";
+    const equipment = getEquipmentForLocation(selectedLocation);
+
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      email: `${(firstName || "user").toLowerCase()}.${(lastName || "test").toLowerCase()}@email.com`,
+      name: randomName,
+      questionnaireData: {
+        answers: {
+          // Personal Info
+          gender:
+            genderOptions[Math.floor(Math.random() * genderOptions.length)] ||
+            "male",
+          age:
+            ageOptions[Math.floor(Math.random() * ageOptions.length)] ||
+            "26_35",
+          weight:
+            weightOptions[Math.floor(Math.random() * weightOptions.length)] ||
+            "70_79",
+          height:
+            heightOptions[Math.floor(Math.random() * heightOptions.length)] ||
+            "171_180",
+
+          // Fitness Goals & Experience
+          fitness_goal:
+            fitnessGoals[Math.floor(Math.random() * fitnessGoals.length)] ||
+            "general_fitness",
+          experience_level:
+            experienceLevels[
+              Math.floor(Math.random() * experienceLevels.length)
+            ] || "beginner",
+
+          // Workout Preferences
+          workout_location: selectedLocation,
+          availability:
+            availabilityOptions[
+              Math.floor(Math.random() * availabilityOptions.length)
+            ] || "3_days",
+          workout_duration:
+            durationOptions[
+              Math.floor(Math.random() * durationOptions.length)
+            ] || "30_45_min",
+
+          // Equipment (based on location)
+          bodyweight_equipment:
+            selectedLocation === "home_bodyweight"
+              ? ["yoga_mat", "water_bottles"]
+              : [],
+          home_equipment:
+            selectedLocation === "home_equipment" ? equipment : [],
+          gym_equipment:
+            selectedLocation === "gym" || selectedLocation === "mixed"
+              ? equipment
+              : [],
+
+          // Diet & Health
+          diet_preferences:
+            dietOptions[Math.floor(Math.random() * dietOptions.length)] ||
+            "none_diet",
+          health_conditions: [],
+
+          // Additional data for completeness
+          goals: [
+            fitnessGoals[Math.floor(Math.random() * fitnessGoals.length)] ||
+              "general_fitness",
+          ],
+          equipment: equipment,
+          fitnessLevel:
+            experienceLevels[
+              Math.floor(Math.random() * experienceLevels.length)
+            ] || "beginner",
+        },
+        metadata: {
+          completedAt: new Date().toISOString(),
+          version: "1.0",
+        },
+      },
+    };
+
+    try {
+      setLoading(true);
+      const createdUser = await userApi.create(newUser);
+      console.log("Created realistic user:", createdUser);
+      await loadUsers(); // Refresh the list
+    } catch (error) {
+      console.error("Error creating realistic user:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderUserItem = (userData: User) => (
+    <View key={userData.id} style={styles.userItem}>
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>{userData.name}</Text>
+        <Text style={styles.userEmail}>{userData.email}</Text>
+        <Text style={styles.userDetails}>
+          {userData.questionnaireData?.answers ? " יש שאלון" : " אין שאלון"}
+        </Text>
+      </View>
+      <View style={styles.userActions}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.loginButton]}
+          onPress={() => loginAsUser(userData)}
+          disabled={loading}
+        >
+          <Ionicons name="log-in" size={20} color={theme.colors.white} />
+          <Text style={styles.actionButtonText}>כניסה</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={() => deleteUser(userData.id || "")}
+          disabled={loading}
+        >
+          <Ionicons name="trash" size={20} color={theme.colors.white} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  if (loading && users.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <BackButton />
+          <Text style={styles.title}>מסך מפתח</Text>
+        </View>
+        <LoadingSpinner />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>מסך פיתוח</Text>
-        <TouchableOpacity onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color={theme.colors.primary} />
-        </TouchableOpacity>
+        <Text style={styles.title}>מסך מפתח</Text>
       </View>
 
       <ScrollView
@@ -189,132 +335,59 @@ export default function DeveloperScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* System Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>מידע מערכת</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>משתמש נוכחי:</Text>
-            <Text style={styles.infoValue}>{user?.name || "אין משתמש"}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ניהול משתמשים</Text>
+            <Text style={styles.userCount}>({users.length} משתמשים)</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>כמות משתמשים:</Text>
-            <Text style={styles.infoValue}>{users.length}</Text>
-          </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>פעולות מהירות</Text>
-
+          {/* Create Realistic User Button */}
           <TouchableOpacity
-            style={styles.actionButton}
-            onPress={createDemoUser}
+            style={[styles.createUserButton]}
+            onPress={createRealisticUser}
+            disabled={loading}
           >
-            <Ionicons
-              name="person-add"
-              size={20}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.actionText}>יצירת משתמש דמו</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={createUserWithoutQuestionnaire}
-          >
-            <Ionicons name="person" size={20} color={theme.colors.secondary} />
-            <Text style={styles.actionText}>משתמש ללא שאלון</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButton} onPress={resetAllData}>
-            <Ionicons name="trash" size={20} color={theme.colors.error} />
-            <Text style={[styles.actionText, { color: theme.colors.error }]}>
-              איפוס נתונים
+            <Ionicons name="person-add" size={20} color={theme.colors.white} />
+            <Text style={styles.createUserButtonText}>
+              צור משתמש עם היסטוריה
             </Text>
           </TouchableOpacity>
+
+          {user && (
+            <View style={styles.currentUserInfo}>
+              <Text style={styles.currentUserTitle}>משתמש נוכחי:</Text>
+              <Text style={styles.currentUserName}>{user.name}</Text>
+              <Text style={styles.currentUserEmail}>{user.email}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Users List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            רשימת משתמשים ({users.length})
-          </Text>
-
-          {users.map((userItem) => {
-            const hasQuestionnaire = !!(
-              userItem.smartquestionnairedata?.answers &&
-              Object.keys(userItem.smartquestionnairedata.answers).length > 5
-            );
-
-            return (
-              <TouchableOpacity
-                key={userItem.id}
-                style={styles.userItem}
-                onPress={() => loginAsUser(userItem)}
-              >
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{userItem.name}</Text>
-                  <Text style={styles.userEmail}>{userItem.email}</Text>
-
-                  <View style={styles.userTags}>
-                    {userItem.name?.includes("Demo") && (
-                      <Text style={styles.demoTag}>דמו</Text>
-                    )}
-                    <Text
-                      style={[
-                        styles.questionnaireTag,
-                        {
-                          backgroundColor: hasQuestionnaire
-                            ? theme.colors.success + "20"
-                            : theme.colors.error + "20",
-                          color: hasQuestionnaire
-                            ? theme.colors.success
-                            : theme.colors.error,
-                        },
-                      ]}
-                    >
-                      {hasQuestionnaire ? "שאלון מלא" : "דרוש שאלון"}
-                    </Text>
-                  </View>
-                </View>
-
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            );
-          })}
-
-          {users.length === 0 && !loading && (
-            <Text style={styles.emptyText}>אין משתמשים</Text>
+          <Text style={styles.sectionTitle}>רשימת משתמשים</Text>
+          {users.length === 0 ? (
+            <Text style={styles.emptyText}>אין משתמשים במערכת</Text>
+          ) : (
+            users.map(renderUserItem)
           )}
         </View>
       </ScrollView>
 
-      {/* Loading Overlay */}
-      {loading && (
+      {loading && users.length > 0 && (
         <View style={styles.loadingOverlay}>
-          <View style={styles.loadingContainer}>
-            <LoadingSpinner size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>טוען...</Text>
-          </View>
+          <LoadingSpinner />
         </View>
       )}
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         visible={showModal}
         title={modalConfig.title}
         message={modalConfig.message}
-        onClose={() => setShowModal(false)}
         onConfirm={() => {
-          setShowModal(false);
           modalConfig.onConfirm();
+          setShowModal(false);
         }}
-        confirmText="אישור"
-        cancelText="ביטול"
+        onCancel={() => setShowModal(false)}
+        onClose={() => setShowModal(false)}
       />
     </SafeAreaView>
   );
@@ -328,114 +401,137 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.cardBorder,
+    borderBottomColor: theme.colors.border,
   },
-  headerTitle: {
+  title: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "bold",
     color: theme.colors.text,
+    marginLeft: theme.spacing.md,
   },
   content: {
     flex: 1,
+    padding: theme.spacing.lg,
   },
   section: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    marginBottom: theme.spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "bold",
     color: theme.colors.text,
-    marginBottom: 12,
-    textAlign: "right",
   },
-  infoRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
+  userCount: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.sm,
+  },
+  createUserButton: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: 12,
+    marginBottom: theme.spacing.lg,
   },
-  infoLabel: {
+  createUserButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: theme.spacing.sm,
+  },
+  currentUserInfo: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: 12,
+    marginBottom: theme.spacing.lg,
+  },
+  currentUserTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  currentUserName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+  },
+  currentUserEmail: {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  actionButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: 8,
-    gap: 12,
-  },
-  actionText: {
-    fontSize: 16,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
   userItem: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: 12,
+    marginBottom: theme.spacing.md,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   userInfo: {
     flex: 1,
-    alignItems: "flex-end",
   },
   userName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "right",
+    marginBottom: theme.spacing.xs,
   },
   userEmail: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    textAlign: "right",
+    marginBottom: theme.spacing.xs,
   },
-  userTags: {
+  userDetails: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginBottom: theme.spacing.xs,
+  },
+  userActions: {
     flexDirection: "row",
-    gap: 4,
-    marginTop: 4,
-    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
-  demoTag: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "20",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: 8,
+    gap: theme.spacing.xs,
   },
-  questionnaireTag: {
-    fontSize: 12,
-    fontWeight: "600",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  loginButton: {
+    backgroundColor: theme.colors.success,
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.error,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  actionButtonText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    fontWeight: "500",
   },
   emptyText: {
     textAlign: "center",
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     fontSize: 16,
-    paddingVertical: 20,
+    marginTop: theme.spacing.xl,
   },
   loadingOverlay: {
     position: "absolute",
@@ -443,19 +539,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  loadingContainer: {
-    backgroundColor: theme.colors.card,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  loadingText: {
-    color: theme.colors.text,
-    fontSize: 16,
-    marginTop: 10,
   },
 });

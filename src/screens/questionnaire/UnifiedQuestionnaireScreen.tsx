@@ -26,7 +26,7 @@ import {
 import { useUserStore } from "../../stores/userStore";
 import { userApi } from "../../services/api/userApi";
 import { theme } from "../../styles/theme";
-import type { SmartQuestionnaireData } from "../../types";
+import type { QuestionnaireData } from "../../types";
 import type { RootStackParamList } from "../../navigation/types";
 
 const UnifiedQuestionnaireScreen: React.FC = () => {
@@ -60,13 +60,13 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
   // Server sync with debouncing
   const scheduleServerSync = useCallback(
-    (data: SmartQuestionnaireData) => {
+    (data: QuestionnaireData) => {
       if (!user?.id) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(async () => {
         try {
           if (user?.id) {
-            await userApi.update(user.id, { smartquestionnairedata: data });
+            await userApi.update(user.id, { questionnaireData: data });
           }
         } catch (e) {
           console.warn("Server sync failed", e);
@@ -88,7 +88,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
 
   // Guard - redirect if questionnaire already completed
   useEffect(() => {
-    if (user?.id && user?.hasQuestionnaire && user?.smartquestionnairedata) {
+    if (user?.id && user?.hasQuestionnaire && user?.questionnaireData) {
       navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
     }
   }, [user, navigation]);
@@ -384,7 +384,7 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
       const smartData = manager.toSmartQuestionnaireData();
       console.log(
         "📊 Smart data generated:",
-        Object.keys(smartData.answers).length,
+        Object.keys(smartData.answers || {}).length,
         "answers"
       );
 
@@ -620,15 +620,38 @@ const UnifiedQuestionnaireScreen: React.FC = () => {
                       });
                     } else {
                       console.log("👤 No user - going to Register");
-                      navigation.reset({
-                        index: 0,
-                        routes: [
-                          {
-                            name: "Register",
-                            params: { fromQuestionnaire: true },
-                          },
-                        ],
-                      });
+                      // Be more explicit about which Register screen to use
+                      // Use the old RegisterScreen which handles fromQuestionnaire correctly
+                      console.log(
+                        "🔍 DEBUG - Before navigation from UnifiedQuestionnaireScreen"
+                      );
+                      console.log("🔍 User in store:", user);
+
+                      // First, make sure the questionnaire data is saved in AsyncStorage
+                      const smartData = manager.toSmartQuestionnaireData();
+                      await AsyncStorage.setItem(
+                        "smart_questionnaire_results",
+                        JSON.stringify(smartData)
+                      );
+
+                      // Force navigation directly to the NEW RegisterScreen in the Auth module
+                      setTimeout(() => {
+                        navigation.reset({
+                          index: 0,
+                          routes: [
+                            {
+                              name: "Auth", // Navigate to the Auth navigator
+                              params: {
+                                screen: "Register",
+                                params: { fromQuestionnaire: true },
+                              },
+                            },
+                          ],
+                        });
+                        console.log(
+                          "✅ Navigation reset called to Auth/Register with fromQuestionnaire=true"
+                        );
+                      }, 300);
                     }
                   } catch (error) {
                     console.error("❌ Error saving results", error);

@@ -10,10 +10,8 @@ import { workoutApi } from "../api/workoutApi";
 import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
 import { StorageKeys } from "../../constants/StorageKeys";
-import {
-  WorkoutWithFeedback,
-  WorkoutHistoryItem,
-} from "../../screens/workout/types/workout.types";
+import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
+import { WorkoutHistoryItem } from "../../types/user.types";
 
 class WorkoutStorageService {
   private readonly SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 ימים במילישניות
@@ -145,7 +143,7 @@ class WorkoutStorageService {
     const history = await this.getHistory();
     return history.map((item) => ({
       id: item.id,
-      workoutName: item.workout.name,
+      name: item.workout.name, // Changed from workoutName to name to match interface
       date: item.feedback.completedAt,
       duration: item.stats.duration,
       rating: item.feedback.difficulty,

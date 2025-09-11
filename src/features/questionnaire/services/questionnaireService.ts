@@ -1,18 +1,48 @@
 /**
- * @file src/services/questionnaireService.ts
- * @description שירות מקיף לניהול נתוני השאלון ובחירת אימונים מותאמים אישית
+ * @file src/features/questionnaire/services/questionnaireService.ts
+ * @description  async getUserPr  async getUserPreferences(): Promise<QuestionnaireData | null> {
+    try {
+      // Priority 1: Check for new user data in userStore
+      const user = useUserStore.getState().user;
+
+      // Enhanced questionnaire data processing with legacy support
+      if (user?.hasQuestionnaire && user?.questionnaireData) {
+        const fullMetadata: QuestionnaireData = {
+          ...user.questionnaireData,
+          metadata: {
+            ...user.questionnaireData.metadata,
+            completedAt:
+              user.questionnaireData?.metadata?.completedAt ||
+              new Date().toISOString(),
+            version:
+              user.questionnaireData?.metadata?.version ||
+              "smart-questionnaire-v1",
+          }
+        };e<QuestionnaireData | null> {
+    try {
+      // Priority 1: Check for new user data in userStore
+      const user = useUserStore.getState().user;
+
+      // Enhanced questionnaire data processing with legacy support
+      if (user?.hasQuestionnaire && user?.questionnaireData) {
+        const fullMetadata: QuestionnaireData = {
+          ...user.questionnaireData,
+          metadata: {
+            ...user.questionnaireData.metadata,
+            completedAt:
+              user.questionnaireData?.metadata?.completedAt ||
+              new Date().toISOString(),
+            version:
+              user.questionnaireData?.metadata?.version ||
+              "smart-questionnaire-v1",
+          }
+        };נתוני השאלון ובחירת אימונים מותאמים אישית
  * English: Comprehensive service for questionnaire data management and personalized workout selection
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUserStore } from "../stores/userStore";
-import {
-  QuestionnaireMetadata,
-  WorkoutRecommendation,
-  WorkoutExercise,
-  WorkoutPlan,
-} from "../types";
-import { getPersonalizedRestTimes } from "../screens/workout/utils/workoutConstants";
+import { useUserStore } from "../../../stores/userStore";
+import { QuestionnaireData, QuestionnaireAnswers } from "../types";
 
 // =======================================
 // 🔑 Enhanced Storage Configuration
@@ -24,7 +54,55 @@ const STORAGE_KEYS = {
 } as const;
 
 // ✅ Import PersonalData from central utils
-import { PersonalData } from "../utils/personalDataUtils";
+import { PersonalData } from "../../../utils/personalDataUtils";
+
+// Define workout recommendation type
+export interface WorkoutRecommendation {
+  id: string;
+  name: string;
+  description: string;
+  type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number;
+  equipment: string[];
+  targetMuscles: string[];
+  estimatedCalories: number;
+  exercises?: WorkoutExercise[];
+  restTime?: number;
+  sets?: number;
+  reps?: number;
+}
+
+// Define workout exercise type
+export interface WorkoutExercise {
+  id: string;
+  name: string;
+  equipment: string;
+  sets: Array<{
+    id: string;
+    reps: number;
+    weight: number;
+    duration: number;
+    restTime: number;
+    completed: boolean;
+  }>;
+  targetMuscles: string[];
+  instructions: string[];
+  restTime: number;
+  difficulty: "beginner" | "intermediate" | "advanced";
+}
+
+// Define workout plan type
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  workouts: WorkoutRecommendation[];
+  type: string;
+  isActive: boolean;
+}
 
 // =======================================
 // 🧠 Enhanced Questionnaire Service
@@ -39,18 +117,24 @@ class QuestionnaireService {
    * Enhanced user preferences retrieval with multi-source data merging
    * קבלת העדפות משתמש משופרת עם מיזוג נתונים ממקורות מרובים
    */
-  async getUserPreferences(): Promise<QuestionnaireMetadata | null> {
+  async getUserPreferences(): Promise<QuestionnaireData | null> {
     try {
       // Priority 1: Check for new user data in userStore
       const user = useUserStore.getState().user;
 
       // Enhanced questionnaire data processing with legacy support
-      if (user?.questionnaire) {
-        const fullMetadata: QuestionnaireMetadata = {
-          ...user.questionnaire,
-          completedAt:
-            user.questionnairedata?.completedAt || new Date().toISOString(),
-          version: user.questionnairedata?.version || "smart-questionnaire-v1",
+      if (user?.hasQuestionnaire && user?.questionnaireData) {
+        const fullMetadata: QuestionnaireData = {
+          ...user.questionnaireData,
+          metadata: {
+            ...user.questionnaireData.metadata,
+            completedAt:
+              user.questionnaireData?.metadata?.completedAt ||
+              new Date().toISOString(),
+            version:
+              user.questionnaireData?.metadata?.version ||
+              "smart-questionnaire-v1",
+          },
         };
 
         console.warn(
@@ -60,14 +144,14 @@ class QuestionnaireService {
         return fullMetadata;
       }
 
-      // Priority 2: Check for enhanced questionnairedata
-      if (user?.questionnairedata) {
+      // Priority 2: Check for enhanced questionnaireData
+      if (user?.questionnaireData) {
         console.warn(
-          "✅ QuestionnaireService: Found questionnairedata in userStore, merging..."
+          "✅ QuestionnaireService: Found questionnaireData in userStore, merging..."
         );
 
-        const fullMetadata: QuestionnaireMetadata = {
-          ...user.questionnairedata,
+        const fullMetadata: QuestionnaireData = {
+          ...user.questionnaireData,
         };
 
         return fullMetadata;
@@ -79,7 +163,7 @@ class QuestionnaireService {
       );
 
       if (storedData) {
-        const parsedData = JSON.parse(storedData) as QuestionnaireMetadata;
+        const parsedData = JSON.parse(storedData) as QuestionnaireData;
         console.warn(
           "✅ QuestionnaireService: Found legacy data in AsyncStorage"
         );
@@ -98,7 +182,7 @@ class QuestionnaireService {
    * שמירת נתוני השאלון
    * Save questionnaire data
    */
-  async saveQuestionnaireData(data: QuestionnaireMetadata): Promise<void> {
+  async saveQuestionnaireData(data: QuestionnaireData): Promise<void> {
     try {
       await AsyncStorage.setItem(
         STORAGE_KEYS.QUESTIONNAIRE_METADATA,
@@ -116,10 +200,11 @@ class QuestionnaireService {
    */
   async getAvailableEquipment(): Promise<string[]> {
     const prefs = await this.getUserPreferences();
+    if (!prefs || !prefs.answers) return [];
 
     // Primary equipment field check
-    const primaryEquipment = prefs?.equipment || [];
-    const homeEquipment = prefs?.home_equipment || [];
+    const primaryEquipment = prefs.answers.equipment || [];
+    const homeEquipment = prefs.answers.home_equipment || [];
 
     // Enhanced questionnaire data processing with legacy support
     const dynamicEquipment = prefs
@@ -184,27 +269,29 @@ class QuestionnaireService {
    * Extract equipment from questionnaire data
    */
   private static extractEquipmentFromQuestionnaire(
-    prefs: QuestionnaireMetadata
+    prefs: QuestionnaireData
   ): string[] {
+    if (!prefs.answers) return [];
+
     const extracted: string[] = [];
 
     // Extract from workout_location
     if (
-      prefs.workout_location === "בבית" ||
-      prefs.workout_location === "home"
+      prefs.answers.workout_location === "בבית" ||
+      prefs.answers.workout_location === "home"
     ) {
       extracted.push("bodyweight", "yoga_mat");
     } else if (
-      prefs.workout_location === "חדר כושר" ||
-      prefs.workout_location === "gym"
+      prefs.answers.workout_location === "חדר כושר" ||
+      prefs.answers.workout_location === "gym"
     ) {
       extracted.push("dumbbells", "barbell", "cable_machine", "treadmill");
     }
 
     // Extract from fitness_goal
     if (
-      prefs.fitness_goal?.includes("בניית שריר") ||
-      prefs.fitness_goal?.includes("muscle")
+      prefs.answers.fitness_goal?.includes("בניית שריר") ||
+      prefs.answers.fitness_goal?.includes("muscle")
     ) {
       extracted.push("dumbbells", "barbell");
     }
@@ -218,7 +305,9 @@ class QuestionnaireService {
    */
   async getPreferredDuration(): Promise<number> {
     const prefs = await this.getUserPreferences();
-    const duration = prefs?.workout_duration;
+    if (!prefs || !prefs.answers) return 30;
+
+    const duration = prefs.answers.workout_duration;
 
     if (typeof duration === "string") {
       const parsed = parseInt(duration);
@@ -234,12 +323,13 @@ class QuestionnaireService {
    */
   async hasCompletedQuestionnaire(): Promise<boolean> {
     const prefs = await this.getUserPreferences();
-    const hasCompleted = prefs !== null && prefs.completedAt !== undefined;
+    const hasCompleted =
+      prefs !== null && prefs.metadata?.completedAt !== undefined;
 
     console.warn("Questionnaire completion status:", {
       prefs,
       hasCompleted,
-      completedAt: prefs?.completedAt,
+      completedAt: prefs?.metadata?.completedAt,
     });
 
     return hasCompleted;
@@ -257,7 +347,7 @@ class QuestionnaireService {
     type: string,
     duration: number,
     equipment: string[],
-    prefs: QuestionnaireMetadata,
+    prefs: QuestionnaireData,
     personalData?: PersonalData
   ): WorkoutRecommendation {
     const baseWorkout = {
@@ -275,9 +365,12 @@ class QuestionnaireService {
       targetMuscles: this.getTargetMuscles(type),
       exercises: this.generateSmartExercisesForWorkout(type, equipment, 1),
       estimatedCalories: this.calculateEstimatedCalories(duration, type),
-      restTime: getPersonalizedRestTimes(prefs.experience || "מתחיל"),
+      restTime: 60, // Default rest time in seconds
       sets: this.calculateSets(type, duration),
-      reps: this.calculateReps(type, prefs.experience || "מתחיל"),
+      reps: this.calculateReps(
+        type,
+        prefs.answers?.experience_level || "מתחיל"
+      ),
     };
 
     return baseWorkout;
@@ -338,9 +431,11 @@ class QuestionnaireService {
    * חישוב קושי בהתאם לנסיון
    */
   private calculateDifficulty(
-    prefs: QuestionnaireMetadata
+    prefs: QuestionnaireData
   ): "beginner" | "intermediate" | "advanced" {
-    const experience = prefs.experience || "מתחיל";
+    if (!prefs.answers) return "beginner";
+
+    const experience = prefs.answers.experience_level || "מתחיל";
 
     if (experience === "מתחיל" || experience === "beginner") {
       return "beginner";
@@ -460,7 +555,7 @@ class QuestionnaireService {
    * Create advanced workout recommendations
    */
   async createAdvancedWorkoutRecommendations(
-    prefs: QuestionnaireMetadata,
+    prefs: QuestionnaireData,
     equipment: string[],
     duration: number,
     personalData?: PersonalData
@@ -506,7 +601,15 @@ class QuestionnaireService {
    */
   async getUserGoal(): Promise<string | null> {
     const prefs = await this.getUserPreferences();
-    return prefs?.fitness_goal || null;
+    if (!prefs?.answers?.fitness_goal) return null;
+
+    // Handle both string and array types
+    const goal = prefs.answers.fitness_goal;
+    if (Array.isArray(goal)) {
+      return goal.length > 0 ? goal[0] || null : null;
+    }
+
+    return goal || null;
   }
 
   /**
@@ -515,7 +618,7 @@ class QuestionnaireService {
    */
   async getUserExperience(): Promise<string | null> {
     const prefs = await this.getUserPreferences();
-    return prefs?.experience || null;
+    return prefs?.answers?.experience_level || null;
   }
 
   /**
@@ -568,7 +671,6 @@ class QuestionnaireService {
         equipment,
         duration
       ),
-      targetMuscles: ["כל הגוף"],
       type: "smart",
       isActive: true,
     };
@@ -613,4 +715,4 @@ export { QuestionnaireService };
  * Type-safe utility exports for external modules
  * יצואים של כלי עזר בטוחי טיפוס למודולים חיצוניים
  */
-export type { QuestionnaireMetadata, WorkoutRecommendation, PersonalData };
+export type { QuestionnaireData, QuestionnaireAnswers, PersonalData };

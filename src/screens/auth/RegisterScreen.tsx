@@ -25,7 +25,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { useUserStore } from "../../stores/userStore";
 import { validateEmail } from "../../utils/authValidation";
 import type { RootStackParamList } from "../../navigation/types";
-import type { User, SmartQuestionnaireData } from "../../types";
+import type { User, QuestionnaireData } from "../../types/user.types";
 
 const STRINGS = {
   errors: {
@@ -69,6 +69,11 @@ export default function RegisterScreen() {
   const fromQuestionnaire = (route.params as { fromQuestionnaire?: boolean })
     ?.fromQuestionnaire;
 
+  console.log(
+    `💡 RegisterScreen initialized with fromQuestionnaire=${fromQuestionnaire}`
+  );
+  console.log(`💡 Route params:`, route.params);
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +85,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [questionnaireData, setQuestionnaireData] =
-    useState<SmartQuestionnaireData | null>(null);
+    useState<QuestionnaireData | null>(null);
 
   // Critical: Check for saved questionnaire results
   const checkQuestionnaireData = async () => {
@@ -89,7 +94,7 @@ export default function RegisterScreen() {
         "smart_questionnaire_results"
       );
       if (savedResults) {
-        const data = JSON.parse(savedResults) as SmartQuestionnaireData;
+        const data = JSON.parse(savedResults) as QuestionnaireData;
         setQuestionnaireData(data);
         return true;
       }
@@ -103,18 +108,38 @@ export default function RegisterScreen() {
   // Guard: Redirect if no questionnaire data
   useEffect(() => {
     const validateAccess = async () => {
+      console.log(
+        `💡 RegisterScreen - validateAccess - fromQuestionnaire: ${fromQuestionnaire}`
+      );
+
+      // בדיקה זו גורמת לנו להיכנס למסך ה-Welcome במקום Register
+      // אנחנו מדלגים עליה כדי לאפשר כניסה למסך ההרשמה בכל מקרה
+      /*
       if (!fromQuestionnaire) {
         // If not coming from questionnaire, user shouldn't be here
+        console.log("❌ Not coming from questionnaire, redirecting to Welcome");
         navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
         return;
       }
+      */
 
       const hasQuestionnaireData = await checkQuestionnaireData();
+      console.log(
+        `💡 RegisterScreen - validateAccess - hasQuestionnaireData: ${hasQuestionnaireData}`
+      );
+
+      // אם אין נתוני שאלון, אפשר לנסות להתקדם בכל זאת
+      // לא נפנה למסך השאלון מכיוון שזה עלול ליצור לולאה אינסופית
+      /*
       if (!hasQuestionnaireData) {
         // No questionnaire data - redirect to questionnaire
+        console.log("❌ No questionnaire data, redirecting to Questionnaire");
         navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
         return;
       }
+      */
+
+      console.log("✅ Access validated successfully");
     };
 
     validateAccess();
@@ -195,7 +220,7 @@ export default function RegisterScreen() {
 
       // Load questionnaire results if coming from questionnaire
       if (fromQuestionnaire && questionnaireData) {
-        newUser.smartquestionnairedata = questionnaireData;
+        newUser.questionnaireData = questionnaireData;
         newUser.hasQuestionnaire = true;
       } else if (fromQuestionnaire) {
         // Fallback: try to load from AsyncStorage
@@ -205,7 +230,7 @@ export default function RegisterScreen() {
           );
           if (savedResults) {
             const smartData = JSON.parse(savedResults);
-            newUser.smartquestionnairedata = smartData;
+            newUser.questionnaireData = smartData;
             newUser.hasQuestionnaire = true;
           }
         } catch (error) {
@@ -219,9 +244,15 @@ export default function RegisterScreen() {
       // Navigate based on where we came from
       if (fromQuestionnaire) {
         // If coming from questionnaire completion, go to main app
+        console.log(
+          "🚀 Navigating to MainApp from RegisterScreen (fromQuestionnaire=true)"
+        );
         navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       } else {
         // Normal registration flow - go to questionnaire
+        console.log(
+          "🚀 Navigating to Questionnaire from RegisterScreen (fromQuestionnaire=false)"
+        );
         navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       }
     } catch (error) {

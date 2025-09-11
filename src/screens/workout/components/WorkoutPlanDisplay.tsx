@@ -8,11 +8,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { theme } from "../../../styles/theme";
 import EmptyState from "../../../components/common/EmptyState";
 import UniversalCard from "../../../components/ui/UniversalCard";
-import type { WorkoutPlan, WorkoutRecommendation } from "../../../types/index";
+import type { WorkoutPlan, WorkoutTemplate } from "../types/workout.types";
 
 interface WorkoutPlanDisplayProps {
   workoutPlan: WorkoutPlan;
-  onStartWorkout: (workout: WorkoutRecommendation, index: number) => void;
+  onStartWorkout: (workout: WorkoutTemplate, index: number) => void;
   isLoading?: boolean;
 }
 
@@ -48,11 +48,11 @@ const WorkoutPlanDisplay: React.FC<WorkoutPlanDisplayProps> = ({
       </View>
 
       <View style={styles.listContent}>
-        {workoutPlan.workouts.map((workout, index) => (
+        {workoutPlan.workouts?.map((workout, index: number) => (
           <UniversalCard
             key={`${workout.id}-${index}`}
             title={workout.name}
-            subtitle={`${workout.duration} דקות`}
+            subtitle={`${workout.estimatedDuration} דקות`}
             variant="workout"
             footer={
               <TouchableOpacity
@@ -69,7 +69,10 @@ const WorkoutPlanDisplay: React.FC<WorkoutPlanDisplayProps> = ({
               </TouchableOpacity>
             }
           >
-            <Text style={styles.workoutDescription}>{workout.description}</Text>
+            <Text style={styles.workoutDescription}>
+              {workout.targetMuscles.join(", ")} -{" "}
+              {workout.equipment.join(", ")}
+            </Text>
 
             {workout.exercises && workout.exercises.length > 0 && (
               <View style={styles.exercisesSection}>
@@ -78,17 +81,16 @@ const WorkoutPlanDisplay: React.FC<WorkoutPlanDisplayProps> = ({
                 </Text>
                 {workout.exercises
                   .slice(0, 3)
-                  .map((exercise, exerciseIndex) => (
-                    <View key={exercise.id} style={styles.exerciseItem}>
+                  .map((exercise, exerciseIndex: number) => (
+                    <View key={exercise.exerciseId} style={styles.exerciseItem}>
                       <Text style={styles.exerciseName}>
-                        {exerciseIndex + 1}. {exercise.name}
+                        {exerciseIndex + 1}. {exercise.exerciseId}
                       </Text>
                       <Text style={styles.exerciseDetails}>
-                        {exercise.sets?.length || 0} סטים
-                        {exercise.sets?.[0]?.reps &&
-                          ` • ${exercise.sets[0].reps} חזרות`}
-                        {exercise.sets?.[0]?.duration &&
-                          ` • ${exercise.sets[0].duration} שניות`}
+                        {exercise.sets} סטים
+                        {exercise.reps && ` • ${exercise.reps} חזרות`}
+                        {exercise.restTime &&
+                          ` • ${exercise.restTime} שניות מנוחה`}
                       </Text>
                     </View>
                   ))}

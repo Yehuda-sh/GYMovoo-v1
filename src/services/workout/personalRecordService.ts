@@ -4,9 +4,9 @@ import type {
   WorkoutData,
   WorkoutExercise,
   Set,
-  PersonalRecord,
   PreviousPerformance,
 } from "../../screens/workout/types/workout.types";
+import type { PersonalRecord } from "../../types/user.types";
 
 // PersonalRecords type based on PreviousPerformance.personalRecords
 type PersonalRecords = PreviousPerformance["personalRecords"];

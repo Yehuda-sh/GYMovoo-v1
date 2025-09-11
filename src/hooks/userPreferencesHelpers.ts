@@ -3,7 +3,8 @@
  * @description פונקציות עזר פשוטות להעדפות משתמש
  * @updated 2025-09-03 פישוט וניקוי קוד מיותר - הסרת AI ו-Cache מיותרים
  */
-import { QuestionnaireMetadata, WorkoutRecommendation } from "../types";
+import { WorkoutRecommendation } from "../types";
+import { QuestionnaireData } from "../features/questionnaire/types";
 
 // ============================================
 // BASIC INTERFACES - ממשקים בסיסיים בלבד
@@ -17,6 +18,51 @@ export interface SmartWorkoutPlan {
   motivationalBoost: string;
   generatedAt: string;
 }
+
+// Adapter function to maintain backward compatibility
+interface LegacyQuestionnaireStructure {
+  // Common fields
+  age?: string | number | undefined;
+  gender?: string | undefined;
+  goal?: string | string[] | undefined;
+  experience?: string | undefined;
+  frequency?: string | string[] | undefined;
+  duration?: string | undefined;
+  location?: string | undefined;
+  equipment?: string[] | undefined;
+  health_conditions?: string[] | undefined;
+  home_equipment?: string[] | undefined;
+  gym_equipment?: string[] | undefined;
+  completedAt?: string | undefined;
+  version?: string | undefined;
+  [key: string]: unknown;
+}
+
+const adaptQuestionnaireData = (
+  data: QuestionnaireData
+): LegacyQuestionnaireStructure => {
+  if (!data || !data.answers) return {};
+
+  const answers = data.answers;
+
+  return {
+    // Map new structure to old expected structure
+    age: answers.age,
+    gender: answers.gender,
+    goal: answers.fitness_goal || answers.goals,
+    experience: answers.experience_level || answers.fitnessLevel,
+    frequency: answers.availability,
+    duration: answers.workout_duration || answers.sessionDuration,
+    location: answers.workout_location || answers.workoutLocation,
+    equipment: answers.equipment,
+    health_conditions: answers.health_conditions,
+    home_equipment: answers.home_equipment,
+    gym_equipment: answers.gym_equipment,
+    completedAt: data.metadata?.completedAt,
+    version: data.metadata?.version,
+    ...answers, // Include all other properties from answers
+  };
+};
 
 // ============================================
 // BASIC UTILITY FUNCTIONS - פונקציות עזר בסיסיות
@@ -49,37 +95,57 @@ export const scoreFrequency = (freq?: string): number => {
   return FREQUENCY_SCORES[freq] ?? 3;
 };
 
-export const calculateDataQuality = (data: QuestionnaireMetadata): number => {
+export const calculateDataQuality = (data: QuestionnaireData): number => {
+  const adaptedData = adaptQuestionnaireData(data);
   let score = 0;
-  if (data.age) score += WEIGHTS.age;
-  if (data.gender) score += WEIGHTS.gender;
-  if (data.goal) score += WEIGHTS.goal;
-  if (data.experience) score += WEIGHTS.experience;
-  if (data.frequency) score += WEIGHTS.frequency;
-  if (data.duration) score += WEIGHTS.duration;
-  if (data.location) score += WEIGHTS.location;
+  if (adaptedData.age) score += WEIGHTS.age;
+  if (adaptedData.gender) score += WEIGHTS.gender;
+  if (adaptedData.goal) score += WEIGHTS.goal;
+  if (adaptedData.experience) score += WEIGHTS.experience;
+  if (adaptedData.frequency) score += WEIGHTS.frequency;
+  if (adaptedData.duration) score += WEIGHTS.duration;
+  if (adaptedData.location) score += WEIGHTS.location;
   return Math.min(10, score);
 };
 
-export const generateFocusAreas = (data: QuestionnaireMetadata): string[] => {
+export const generateFocusAreas = (data: QuestionnaireData): string[] => {
+  const adaptedData = adaptQuestionnaireData(data);
   const areas: string[] = [];
-  if (data.goal?.includes("שריפת שומן")) areas.push("קרדיו");
-  if (data.goal?.includes("בניית שריר")) areas.push("כוח");
-  if (data.experience === "מתחיל") areas.push("טכניקה");
-  if (data.health_conditions?.length) areas.push("בטיחות");
+  if (
+    Array.isArray(adaptedData.goal) &&
+    adaptedData.goal.includes("שריפת שומן")
+  )
+    areas.push("קרדיו");
+  if (
+    Array.isArray(adaptedData.goal) &&
+    adaptedData.goal.includes("בניית שריר")
+  )
+    areas.push("כוח");
+  if (adaptedData.experience === "מתחיל") areas.push("טכניקה");
+  if (adaptedData.health_conditions?.length) areas.push("בטיחות");
   return areas.length ? areas : ["כושר כללי"];
 };
 
 export const generateWarningFlags = (
-  data: QuestionnaireMetadata,
+  data: QuestionnaireData,
   motivation: number,
   consistency: number
 ): string[] => {
+  const adaptedData = adaptQuestionnaireData(data);
   const warnings: string[] = [];
   if (motivation < 4) warnings.push("מוטיבציה נמוכה");
   if (consistency < 4) warnings.push("תדירות נמוכה");
-  if (data.health_conditions?.length) warnings.push("מצב בריאותי");
-  if (!data.home_equipment?.length && !data.gym_equipment?.length) {
+  if (
+    Array.isArray(adaptedData.health_conditions) &&
+    adaptedData.health_conditions.length
+  )
+    warnings.push("מצב בריאותי");
+  if (
+    (!Array.isArray(adaptedData.home_equipment) ||
+      !adaptedData.home_equipment.length) &&
+    (!Array.isArray(adaptedData.gym_equipment) ||
+      !adaptedData.gym_equipment.length)
+  ) {
     warnings.push("ציוד מוגבל");
   }
   return warnings;
@@ -115,7 +181,7 @@ export const createSmartWorkoutPlan = (
  * חישוב איכות נתונים משופר עם נתונים אישיים
  */
 export const calculateEnhancedDataQuality = (
-  data: QuestionnaireMetadata,
+  data: QuestionnaireData,
   personalData?: {
     gender?: string;
     age?: string;
@@ -138,7 +204,7 @@ export const calculateEnhancedDataQuality = (
  * יצירת תחומי התמקדות מותאמים אישית
  */
 export const generatePersonalizedFocusAreas = (
-  data: QuestionnaireMetadata,
+  data: QuestionnaireData,
   personalData?: {
     gender?: string;
     age?: string;
@@ -146,13 +212,26 @@ export const generatePersonalizedFocusAreas = (
     height?: string;
   }
 ): string[] => {
+  const adaptedData = adaptQuestionnaireData(data);
   const areas: string[] = [];
 
   // תחומי התמקדות לפי מטרות בסיסיות
-  if (data.goal?.includes("שריפת שומן")) areas.push("קרדיו");
-  if (data.goal?.includes("בניית שריר")) areas.push("כוח");
-  if (data.experience === "מתחיל") areas.push("טכניקה");
-  if (data.health_conditions?.length) areas.push("בטיחות");
+  if (
+    Array.isArray(adaptedData.goal) &&
+    adaptedData.goal.includes("שריפת שומן")
+  )
+    areas.push("קרדיו");
+  if (
+    Array.isArray(adaptedData.goal) &&
+    adaptedData.goal.includes("בניית שריר")
+  )
+    areas.push("כוח");
+  if (adaptedData.experience === "מתחיל") areas.push("טכניקה");
+  if (
+    Array.isArray(adaptedData.health_conditions) &&
+    adaptedData.health_conditions.length
+  )
+    areas.push("בטיחות");
 
   // התאמות לפי נתונים אישיים
   if (personalData?.age) {

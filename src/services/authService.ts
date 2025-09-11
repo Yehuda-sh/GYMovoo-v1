@@ -18,32 +18,9 @@
 // טיפוסי TypeScript
 // =======================================
 
-/**
- * User object structure for authentication
- * מבנה אובייקט משתמש לאימות
- */
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  provider: "google" | "manual";
-  avatar?: string;
-  // Dev-only legacy questionnaire fields (לא בשימוש בפרודקשן)
-  questionnaire?: string[];
-  questionnaireData?: {
-    answers: string[];
-    completedAt: string;
-    version: string;
-    metadata?: Record<string, unknown>;
-  };
-  metadata: {
-    createdAt: string;
-    isRandom: boolean;
-    sessionId: string;
-  };
-  // סימון משתמש דמו בהתאם להנחיות Demo
-  isDemo?: true;
-}
+import { User } from "../types/user.types";
+
+// User type is now imported from user.types.ts - removed duplicate interface
 
 // =======================================
 // 🎯 Core Data Generation Lists
@@ -165,11 +142,13 @@ const USER_CONFIG = {
  * @rtl Compatible with Hebrew names and RTL display
  */
 const generateRandomUser = (): User => {
-  // Enhanced random selection with better distribution
   const firstName =
-    ISRAELI_NAMES.first[Math.floor(Math.random() * ISRAELI_NAMES.first.length)];
+    ISRAELI_NAMES.first[
+      Math.floor(Math.random() * ISRAELI_NAMES.first.length)
+    ] || "משתמש";
   const lastName =
-    ISRAELI_NAMES.last[Math.floor(Math.random() * ISRAELI_NAMES.last.length)];
+    ISRAELI_NAMES.last[Math.floor(Math.random() * ISRAELI_NAMES.last.length)] ||
+    "ברירת מחדל";
   const domain =
     USER_CONFIG.emailDomains[
       Math.floor(Math.random() * USER_CONFIG.emailDomains.length)
@@ -177,12 +156,10 @@ const generateRandomUser = (): User => {
   const timestamp = Date.now();
   const randomSuffix = Math.floor(Math.random() * 9999);
 
-  // Professional email generation with timestamp for uniqueness
   const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${randomSuffix}@${domain}`;
   const fullName = `${firstName} ${lastName}`;
   const userId = `google_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Enhanced avatar generation with Google-compatible colors
   const bgColor =
     USER_CONFIG.avatarColors[
       Math.floor(Math.random() * USER_CONFIG.avatarColors.length)
@@ -192,14 +169,14 @@ const generateRandomUser = (): User => {
     id: userId,
     email: email,
     name: fullName,
-    provider: "google",
+    provider: "google" as const, // תואם לטיפוס החדש
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=${bgColor}&color=fff&size=200&font-size=0.45`,
     metadata: {
       createdAt: new Date().toISOString(),
-      isRandom: true,
-      sessionId: `session_${timestamp}`,
+      lastLogin: new Date().toISOString(),
+      appVersion: "1.0.0",
+      platform: "web" as const, // או לזהות את הפלטפורמה האמיתית
     },
-    isDemo: true,
   };
 };
 
@@ -250,10 +227,7 @@ export const fakeGoogleRegister = async (): Promise<User> => {
   const randomUser = generateRandomUser();
 
   // Registration users also start without questionnaire
-  return {
-    ...randomUser,
-    questionnaire: undefined,
-  };
+  return randomUser;
 };
 
 /**
