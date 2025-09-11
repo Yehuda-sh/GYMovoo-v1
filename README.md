@@ -40,13 +40,11 @@ npx expo start
 
 ## 🛠️ טכנולוגיות
 
-- **React Native** + **Expo** - פיתוח חוצה פלטפורמות
-- **TypeScript** - בטיחות וטיפוסים
-- **Feature-based Architecture** - ארגון הקוד לפי תכונות עסקיות
-- **Zustand** - ניהול מצב
-- **Supabase** - מסד נתונים ואימות
-- **React Navigation** - ניווט בין מסכים
-- **AsyncStorage** - שמירה מקומית
+- **Core:** React Native, Expo, TypeScript
+- **State Management:** Zustand
+- **Backend:** Supabase (Database, Auth)
+- **Navigation:** React Navigation
+- **Storage:** AsyncStorage
 
 ## 📱 מסכים עיקריים
 
@@ -60,15 +58,21 @@ npx expo start
 ## 🔧 פיתוח
 
 ```bash
-# פיתוח
-npm start              # הפעלת שרת פיתוח Expo
-npm run android        # הרצה על Android
-npm run ios           # הרצה על iOS
-npm test              # הרצת בדיקות
+# הפעלת שרת פיתוח
+npm start
+
+# הרצה על סימולטורים
+npm run android
+npm run ios
+
+# בדיקות
+npm test
+npm test:watch
 
 # איכות קוד
-npm run lint          # בדיקת ESLint
-npx tsc --noEmit     # בדיקת TypeScript
+npm run lint
+npm run lint:fix
+npm run type-check
 ```
 
 ## 📄 רישיון
