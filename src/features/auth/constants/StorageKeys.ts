@@ -20,7 +20,6 @@ export const StorageKeys = {
 
   // העדפות משתמש
   USER_PREFERENCES: "user_preferences",
-  PUSH_NOTIFICATIONS: "push_notifications",
   MEASUREMENT_SYSTEM: "measurement_system",
 
   // הסכמות

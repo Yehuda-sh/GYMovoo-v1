@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 
 interface DefaultAvatarProps {
   name?: string;

@@ -20,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "../../../styles/theme";
+import { theme } from "../../../core/theme";
 import { LoginForm } from "../components/LoginForm";
 import { AuthStackParamList } from "../navigation/AuthNavigator";
 
@@ -38,12 +38,6 @@ export const LoginScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  // מעבר למסך הבית אחרי התחברות מוצלחת
-  const handleLoginSuccess = useCallback(() => {
-    // נשתמש ב-hook האימות כדי לנווט לדף הראשי
-    // בינתיים רק סוגרים את הודעת ההצלחה
-  }, []);
-
   // מעבר למסך שכחתי סיסמה
   const handleForgotPassword = useCallback(() => {
     navigation.navigate("ForgotPassword");
@@ -51,7 +45,7 @@ export const LoginScreen: React.FC = () => {
 
   // מעבר למסך הרשמה
   const handleRegister = useCallback(() => {
-    navigation.navigate("Register");
+    navigation.navigate("Register", {});
   }, [navigation]);
 
   return (
@@ -78,7 +72,7 @@ export const LoginScreen: React.FC = () => {
           {/* כותרת וסמל */}
           <View style={styles.headerContainer}>
             <Image
-              source={require("../../../../assets/barbell.png")}
+              source={{ uri: "../../../../assets/barbell.png" }}
               style={styles.logo}
             />
             <Text style={styles.title}>התחברות</Text>
@@ -90,7 +84,7 @@ export const LoginScreen: React.FC = () => {
           {/* טופס התחברות */}
           <View style={styles.formContainer}>
             <LoginForm
-              onLoginSuccess={handleLoginSuccess}
+              onLoginSuccess={() => {}}
               onForgotPassword={handleForgotPassword}
               onRegisterPress={handleRegister}
             />

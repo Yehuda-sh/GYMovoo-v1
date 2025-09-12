@@ -40,7 +40,6 @@ flowchart TD
     end
 
     subgraph "Additional Screens"
-        Profile --> Notifications
         Profile --> Progress
         Main --> Progress
     end

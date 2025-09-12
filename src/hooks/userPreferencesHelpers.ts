@@ -3,8 +3,20 @@
  * @description פונקציות עזר פשוטות להעדפות משתמש
  * @updated 2025-09-03 פישוט וניקוי קוד מיותר - הסרת AI ו-Cache מיותרים
  */
-import { WorkoutRecommendation } from "../types";
 import { QuestionnaireData } from "../features/questionnaire/types";
+
+// Basic interface for workout recommendations
+interface WorkoutRecommendation {
+  id: string;
+  name: string;
+  type: string;
+  duration: number;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    reps: number;
+  }>;
+}
 
 // ============================================
 // BASIC INTERFACES - ממשקים בסיסיים בלבד

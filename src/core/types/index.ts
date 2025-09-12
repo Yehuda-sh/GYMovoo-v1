@@ -6,14 +6,26 @@
 // ייצוא מטיפוסי משתמש
 export * from "./user.types";
 
-// ייצוא מטיפוסי שאלון
-export * from "./questionnaire.types";
+// ייצוא סלקטיבי מטיפוסי שאלון (למניעת כפילויות)
+export { WeeklySchedule, HealthInformation } from "./questionnaire.types";
 
-// ייצוא מטיפוסי אימון
-export * from "./workout.types";
+// ייצוא סלקטיבי מטיפוסי אימון (למניעת כפילויות)
+export {
+  WorkoutExercise,
+  WorkoutData,
+  WorkoutTemplate,
+  ExerciseTemplate,
+  Set,
+  ProgressData,
+  PerformanceData,
+  WorkoutStatistics,
+  WorkoutWithFeedback,
+  WorkoutFeedback,
+  WorkoutStats,
+  PreviousPerformance,
+  NextWorkoutInsights,
+  ISODateString,
+} from "./workout.types";
 
 // ייצוא מטיפוסי תרגיל
 export * from "./exercise.types";
-
-// ייצוא מטיפוסי ציוד (למעט ExperienceLevel שמיובא מ-user.types)
-export * from "./equipment.types";

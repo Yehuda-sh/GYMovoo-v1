@@ -9,9 +9,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../styles/theme";
-import { useNextWorkout } from "../../hooks/useNextWorkout";
-import { WorkoutPlan } from "../../screens/workout/types/workout.types";
+import { theme } from "../../core/theme";
+import { useNextWorkout } from "../../features/workout/hooks/useNextWorkout";
+import { WorkoutPlan } from "../../core/types/workout.types";
 import FloatingActionButton from "./FloatingActionButton";
 
 interface NextWorkoutCardProps {

@@ -31,12 +31,12 @@
  * @enhancements_2025-09-01
  * - ✅ שיפור type safety עם ExtendedQuestionnaireAnswers
  * - ✅ החלפה של eslint-disable ב-gym_equipment עם טיפוס מוגדר
- * - ✅ שמירה על eslint-disable מוצדק ב-setCustomDemoUser
  * - ✅ תיעוד משופר וסידור קוד
  * - ✅ הוספת קבועים מרכזיים (CONSTANTS) למניעת קוד קשיח
  * - ✅ פונקציית עזר לניתוח ימי אימון (parseWorkoutDaysFromFrequency)
  * - ✅ החלפת ערכי ברירת מחדל קשיחים עם קבועים
  * - ✅ שיפור קריאות הקוד והתחזוקה
+ * - ✅ הסרת פונקציונליות demo user לא רלוונטית
  *
  * @dependencies zustand, AsyncStorage, types/index, logger
  * @usage Used throughout application for user state management
@@ -46,8 +46,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, QuestionnaireData } from "../types/user.types";
-import { WorkoutPlan } from "../screens/workout/types/workout.types";
+import { User, QuestionnaireData, WorkoutPlan } from "../core/types/user.types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
@@ -55,18 +54,38 @@ import { fieldMapper } from "../utils/fieldMapper";
 import { logger } from "../utils/logger";
 import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipmentCatalog";
 
-// Import new helper files
-import { USER_STORE_CONSTANTS } from "./userStoreConstants";
-import { clearAllStorageData } from "./userStoreHelpers";
-import {
-  updateUserWithDemoData,
-  createNewUserWithDemoData,
-} from "./userStoreDemoUtils";
+// Import constants
+import { USER_STORE_CONSTANTS } from "../constants/userStoreConstants";
 
 // ==============================
 // קבועים - כמו הגדרות קבועות שלא משתנות
 // ==============================
 const CONSTANTS = USER_STORE_CONSTANTS;
+
+// =======================================
+// 🎯 Internal Helper Functions
+// פונקציות עזר פנימיות
+// =======================================
+
+/**
+ * Safely clears all AsyncStorage data with logging
+ * Used for complete data reset operations
+ */
+const clearAllStorageData = async (context: string): Promise<void> => {
+  try {
+    logger.info("Storage", `${context} - Starting complete data clear`);
+
+    const allKeys = await AsyncStorage.getAllKeys();
+    logger.debug("Storage", `Found ${allKeys.length} keys in AsyncStorage`);
+
+    await AsyncStorage.multiRemove(allKeys);
+
+    logger.info("Storage", `${context} - Data clear completed successfully`);
+  } catch (error) {
+    logger.error("Storage", `${context} - Error clearing data`, error);
+    throw error;
+  }
+};
 
 // ==============================
 // אופטימיזציה לביצועים - שמירה בזיכרון של חישובים
@@ -222,11 +241,6 @@ interface UserStore {
   shouldBlurPremiumContent: () => boolean;
 
   // פעולות משתמש דמו מותאם
-  // Custom demo user actions
-  setCustomDemoUser: (demoUser: User["customDemoUser"]) => void;
-  getCustomDemoUser: () => User["customDemoUser"] | null;
-  clearCustomDemoUser: () => void;
-
   // סנכרון שרת
   // Server sync helpers
   refreshFromServer: () => Promise<void>;
@@ -981,55 +995,6 @@ export const useUserStore = create<UserStore>()(
         set({ user: null });
       },
 
-      // 🎯 פעולות משתמש דמו מותאם
-      // Custom demo user actions
-      setCustomDemoUser: (demoUser) => {
-        if (!demoUser) return;
-
-        const qd = (demoUser as Record<string, unknown>).questionnaireData as
-          | Record<string, unknown>
-          | undefined;
-
-        set((state) => {
-          if (state.user) {
-            // Update existing user with demo data
-            return {
-              user: updateUserWithDemoData(
-                state.user as Record<string, unknown>,
-                demoUser,
-                qd
-              ) as unknown as User,
-            };
-          } else {
-            // Create new user with demo data
-            return {
-              user: createNewUserWithDemoData(demoUser, qd) as unknown as User,
-            };
-          }
-        });
-
-        logger.info("DemoUser", "Custom demo user saved", {
-          name: demoUser?.name,
-        });
-        get().scheduleServerSync("setCustomDemoUser");
-      },
-
-      getCustomDemoUser: () => {
-        const user = get().user;
-        return user?.customDemoUser || null;
-      },
-
-      clearCustomDemoUser: () => {
-        set((state) => {
-          if (!state.user) return state;
-          const clone: Record<string, unknown> = { ...state.user };
-          delete clone.customDemoUser;
-          return { user: clone as User };
-        });
-        logger.info("DemoUser", "Custom demo user cleared");
-        get().scheduleServerSync("clearCustomDemoUser");
-      },
-
       // פונקציה לניקוי מלא לפיתוח (ללא התנתקות)
       // Complete data clearing for development (without logout)
       clearDataForFreshStart: async () => {
@@ -1398,11 +1363,7 @@ export const useUserStore = create<UserStore>()(
 // =======================================
 
 // Re-export types from central location
-export type {
-  User,
-  QuestionnaireData,
-  LegacyQuestionnaireData,
-} from "../types";
+export type { User, QuestionnaireData } from "../core/types/user.types";
 
 // =======================================
 // 🎣 Hooks נוחים - כמו כלי עזר לשימוש בקומפוננטים
@@ -1417,10 +1378,7 @@ export const useUserEquipment = () => {
   const user = useUserStore((state) => state.user);
 
   // Try to get equipment from multiple possible sources
-  const equipment =
-    user?.customDemoUser?.equipment ||
-    user?.trainingStats?.selectedEquipment ||
-    [];
+  const equipment = user?.trainingStats?.selectedEquipment || [];
 
   return Array.isArray(equipment)
     ? normalizeEquipment(equipment as string[])
@@ -1430,10 +1388,6 @@ export const useUserEquipment = () => {
 // useUserPreferences moved to hooks/useUserPreferences.ts for advanced smart features
 export const useQuestionnaireCompleted = () =>
   useUserStore((state) => state.user?.questionnaireData?.answers !== undefined);
-
-// Hook לגישה למשתמש דמו מותאם
-export const useCustomDemoUser = () =>
-  useUserStore((state) => state.user?.customDemoUser);
 
 // Hook לניקוי מהיר במצב פיתוח
 // Quick clear hook for development mode
@@ -1503,8 +1457,6 @@ useUserStore.setState((prev) => ({
         const base: Record<string, unknown> = {
           ...(serverUser as Record<string, unknown>),
         };
-        const demo = curr.user?.customDemoUser;
-        if (demo) base.customDemoUser = demo; // only attach if exists
         return { ...curr, user: base as User };
       });
     } catch (e: unknown) {

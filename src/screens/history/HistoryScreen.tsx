@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { EmptyState } from "../../components";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import { dataManager } from "../../services/core";
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";

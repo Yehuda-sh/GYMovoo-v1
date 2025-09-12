@@ -28,17 +28,3 @@ export const logger = {
     console.error(`❌ [${category}] ${message}`, error || "");
   },
 };
-
-/**
- * Workout-specific logger for backward compatibility
- */
-export const workoutLogger = {
-  info: (message: string, data?: unknown) =>
-    logger.info("Workout", message, data),
-  error: (message: string, error?: unknown) =>
-    logger.error("Workout", message, error),
-  warn: (message: string, data?: unknown) =>
-    logger.warn("Workout", message, data),
-  debug: (message: string, data?: unknown) =>
-    logger.debug("Workout", message, data),
-};

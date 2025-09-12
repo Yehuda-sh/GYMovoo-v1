@@ -4,161 +4,210 @@
  * @description הגדרות טיפוס מרכזיות למשתמש וכל המידע הקשור אליו
  */
 
-/**
- * ספקי אימות נתמכים
- */
-export type AuthProvider = "google" | "manual";
+// ========== Main User Interface ==========
+export interface User {
+  id?: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+  provider?: "google" | "manual" | "apple";
+  questionnaireData?: QuestionnaireData;
+  trainingStats?: TrainingStats;
+  activityHistory?: ActivityHistory;
+  metadata?: UserMetadata;
+  subscription?: UserSubscription;
+  genderprofile?: GenderProfile;
+  preferences?: UserPreferences;
+  workoutplans?: WorkoutPlans;
+  hasQuestionnaire?: boolean;
+}
 
-/**
- * מטרות אימון אפשריות
- */
-export type TrainingGoal =
-  | "muscle"
-  | "strength"
-  | "weight_loss"
-  | "endurance"
-  | "health";
+// ========== Questionnaire Types ==========
+export interface QuestionnaireAnswers {
+  // Personal Info
+  gender?: string;
+  age?: string | number;
+  weight?: string | number;
+  height?: string | number;
 
-/**
- * רמות ניסיון
- */
+  // Fitness Profile
+  fitness_goal?: string | string[];
+  experience_level?: string;
+  fitnessLevel?: string;
+  goals?: string[];
+
+  // Workout Preferences
+  workout_location?: string;
+  availability?: string | string[];
+  workout_duration?: string;
+  equipment?: string[];
+
+  // Equipment specific fields
+  bodyweight_equipment?: string[];
+  home_equipment?: string[];
+  gym_equipment?: string[];
+
+  // Additional
+  diet_preferences?: string | string[];
+  health_conditions?: string[];
+  nutrition?: string[];
+}
+
+export interface QuestionnaireData {
+  answers?: QuestionnaireAnswers;
+  metadata?: {
+    completedAt?: string;
+    version?: string;
+  };
+}
+
+// ========== Training Statistics ==========
+export interface TrainingStats {
+  totalWorkouts?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  totalVolume?: number;
+  averageRating?: number;
+  preferredWorkoutDays?: string[];
+  lastWorkoutDate?: string;
+  weeklyAverage?: number;
+  monthlyWorkouts?: number;
+  selectedEquipment?: string[];
+  currentFitnessLevel?: string;
+  fitnessGoals?: string[];
+}
+
+// ========== Activity History ==========
+export interface ActivityHistory {
+  workouts?: WorkoutHistoryItem[];
+  weeklyProgress?: number;
+  achievements?: Achievement[];
+  personalRecords?: PersonalRecord[];
+}
+
+// ========== Supporting Types ==========
+export interface WorkoutHistoryItem {
+  id: string;
+  name: string;
+  date: string | Date;
+  duration: number; // in seconds
+  rating?: number;
+  exercises?: Array<{
+    id?: string;
+    name?: string;
+    category?: string;
+    primaryMuscles?: string[];
+    equipment?: string | string[];
+    sets?: Array<{
+      reps?: number;
+      weight?: number;
+      completed?: boolean;
+      id?: string;
+    }>;
+  }>;
+  stats?: {
+    totalVolume?: number;
+    totalReps?: number;
+    caloriesBurned?: number;
+  };
+  completedAt?: string | Date;
+  type?: string;
+  workoutName?: string;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description?: string;
+  unlockedAt?: string;
+  progress?: number;
+}
+
+export interface PersonalRecord {
+  exerciseName: string;
+  value: number;
+  unit: string;
+  date: string;
+  type?: "weight" | "reps" | "volume";
+}
+
+export interface UserMetadata {
+  createdAt: string;
+  lastLogin?: string;
+  appVersion?: string;
+  platform?: "ios" | "android" | "web";
+  deviceId?: string;
+  lastSyncAt?: string;
+}
+
+// ========== Additional Compatibility Types ==========
+export interface UserSubscription {
+  type?: "free" | "premium" | "trial";
+  isActive?: boolean;
+  hasCompletedTrial?: boolean;
+  startDate?: string;
+  endDate?: string;
+  registrationDate?: string;
+  trialDaysRemaining?: number;
+  lastTrialCheck?: string;
+}
+
+export interface GenderProfile {
+  selectedGender?: "male" | "female" | "other";
+  adaptedWorkoutNames?: Record<string, string>;
+}
+
+export interface UserPreferences {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // Temporary flexible interface
+}
+
+export interface WorkoutPlans {
+  basicPlan?: WorkoutPlan;
+  smartPlan?: WorkoutPlan;
+  additionalPlan?: WorkoutPlan;
+  lastUpdated?: string;
+}
+
+// Minimal workout plan shape for compatibility
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  description?: string;
+  difficulty?: string;
+  days?: number;
+}
+
+// ========== Questionnaire Supporting Types ==========
+export type DietType =
+  | "none_diet"
+  | "vegetarian"
+  | "vegan"
+  | "keto"
+  | "paleo"
+  | "other_meal";
+
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 
-/**
- * סוגי דיאטה
- */
-export type DietType = "none" | "vegetarian" | "vegan" | "keto" | "paleo";
+export type TrainingGoal =
+  | "weight_loss"
+  | "muscle_gain"
+  | "endurance"
+  | "strength"
+  | "general_fitness";
 
-/**
- * סוגי מנוי
- */
-export type SubscriptionType = "free" | "premium" | "trial";
-
-/**
- * תכונות מנוי
- */
-export type SubscriptionFeature =
-  | "customWorkouts"
-  | "cloudSync"
-  | "advancedStats"
-  | "videoGuides";
-
-/**
- * מדידת משקל או מידות גוף עם תאריך
- */
-export interface BodyMeasurementRecord {
-  /** ערך המדידה */
-  value: number;
-  /** תאריך המדידה */
-  date: Date;
-  /** הערות נוספות */
-  notes?: string;
-}
-
-/**
- * מידע על מנוי
- */
-export interface Subscription {
-  /** סוג המנוי */
-  type: SubscriptionType;
-  /** תאריך התחלה */
-  startDate: Date;
-  /** תאריך סיום (אם יש) */
-  endDate?: Date;
-  /** האם המנוי פעיל */
-  active: boolean;
-  /** תכונות הזמינות במנוי */
-  features: SubscriptionFeature[];
-}
-
-/**
- * מידע מטא-דאטה על המשתמש
- */
-export interface UserMetadata {
-  /** תאריך הרשמה */
-  registrationDate: Date;
-  /** תאריך התחברות אחרון */
-  lastLoginDate: Date;
-  /** גרסת האפליקציה האחרונה שנוצרה */
-  appVersion?: string;
-}
-
-/**
- * מדידות גוף של המשתמש
- */
-export interface BodyMeasurements {
-  /** היסטוריית מדידות משקל */
-  weight: BodyMeasurementRecord[];
-  /** גובה המשתמש */
-  height?: number;
-  /** מדידות חזה */
-  chest?: BodyMeasurementRecord[];
-  /** מדידות מותן */
-  waist?: BodyMeasurementRecord[];
-  /** מדידות זרועות */
-  arms?: BodyMeasurementRecord[];
-  /** מדידות רגליים */
-  legs?: BodyMeasurementRecord[];
-}
-
-/**
- * הישג אימון
- */
-export interface Achievement {
-  /** מזהה ההישג */
-  id: string;
-  /** שם ההישג */
-  name: string;
-  /** תיאור ההישג */
-  description: string;
-  /** תאריך השגה */
-  achievedDate: Date;
-  /** אייקון ההישג */
-  icon?: string;
-}
-
-/**
- * ממשק משתמש מרכזי
- * @interface User
- */
-export interface User {
-  /** מזהה ייחודי למשתמש */
-  id: string;
-  /** כתובת אימייל */
-  email: string;
-  /** שם המשתמש */
-  name: string;
-  /** ספק האימות - כרגע תמיכה בגוגל ואימות ידני */
-  provider: AuthProvider;
-  /** URL לתמונת פרופיל */
-  avatar?: string;
-
-  /** האם המשתמש השלים שאלון */
+// ========== Helper Types ==========
+export type UserCompletionStatus = {
+  hasUser: boolean;
   hasQuestionnaire: boolean;
-  /** נתוני השאלון של המשתמש - כל התשובות המלאות */
-  questionnaireData?: QuestionnaireData;
+  hasName: boolean;
+  isFullySetup: boolean;
+};
 
-  /** סטטיסטיקות אימון מצטברות */
-  trainingStats: TrainingStats;
-  /** היסטוריית אימונים מלאה עם פרטים */
-  activityHistory: WorkoutHistory[];
-
-  /** פרטי מנוי - קובע אילו תכונות זמינות */
-  subscription: Subscription;
-
-  /** מטא-דאטה - תאריכי הרשמה וכניסה אחרונה */
-  metadata: UserMetadata;
-
-  /** מדידות גוף כולל היסטוריה */
-  bodyMeasurements: BodyMeasurements;
-
-  /** מטרות אימון - מבוססות על נתוני השאלון */
-  trainingGoals: TrainingGoal[];
-
-  /** הישגים שהושגו */
-  achievements: Achievement[];
-}
-
-// הייבוא מותנה בכך שהקבצים האחרים כבר קיימים - צריך לפצל את התלויות
-import { QuestionnaireData } from "./questionnaire.types";
-import { TrainingStats, WorkoutHistory } from "./workout.types";
+export type UserProgress = {
+  totalWorkouts: number;
+  currentStreak: number;
+  weeklyProgress: number;
+  level?: number;
+  experience?: number;
+};

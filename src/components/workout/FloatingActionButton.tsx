@@ -10,7 +10,7 @@ import { useRef, useEffect, useMemo, useCallback } from "react";
 import { TouchableOpacity, Animated, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { isRTL } from "../../utils/rtlHelpers";
 
 interface FloatingActionButtonProps {

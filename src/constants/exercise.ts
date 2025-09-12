@@ -59,15 +59,13 @@ export const EQUIPMENT_TYPES = [
   "kettlebell",
   "resistance_bands",
   "cable_machine",
-  "smith_machine",
-  "leg_press",
-  "treadmill",
-  "bike",
-  "rowing_machine",
   "pullup_bar",
   "bench",
   "foam_roller",
   "yoga_mat",
+  "treadmill",
+  "bike",
+  "rowing_machine",
 ] as const;
 export type EquipmentType = (typeof EQUIPMENT_TYPES)[number];
 
@@ -193,126 +191,4 @@ export const getRecommendedRepRange = (goal: TrainingGoal) => {
     sports_performance: REP_RANGES.GENERAL,
   };
   return goalMap[goal] || REP_RANGES.GENERAL;
-};
-
-// Enhanced utility functions for workout planning
-export const getRestTimeRecommendation = (
-  goal: TrainingGoal,
-  difficulty: ExerciseDifficulty
-): { min: number; max: number } => {
-  let baseRest: { min: number; max: number } = REST_TIMES.GENERAL;
-
-  switch (goal) {
-    case "strength":
-      baseRest = REST_TIMES.STRENGTH;
-      break;
-    case "hypertrophy":
-    case "muscle_gain":
-      baseRest = REST_TIMES.HYPERTROPHY;
-      break;
-    case "endurance":
-    case "weight_loss":
-      baseRest = REST_TIMES.ENDURANCE;
-      break;
-  }
-
-  // Adjust for difficulty level
-  const multiplier =
-    difficulty === "beginner" ? 0.8 : difficulty === "advanced" ? 1.2 : 1.0;
-
-  return {
-    min: Math.round(baseRest.min * multiplier),
-    max: Math.round(baseRest.max * multiplier),
-  };
-};
-
-export const getWorkoutFrequencyRecommendation = (
-  difficulty: ExerciseDifficulty,
-  goal: TrainingGoal
-) => {
-  const baseFrequency =
-    WORKOUT_FREQUENCIES[
-      difficulty.toUpperCase() as keyof typeof WORKOUT_FREQUENCIES
-    ];
-
-  // Adjust based on goal
-  if (goal === "rehabilitation") {
-    return { min: 2, max: 3, optimal: 3 };
-  }
-
-  return baseFrequency;
-};
-
-export const getCompatibleExercises = (
-  availableEquipment: EquipmentType[],
-  targetMuscles: MuscleGroup[],
-  _category?: ExerciseCategory
-): EquipmentType[] => {
-  // This would be expanded with actual exercise database
-  // For now, return equipment that could target the muscles
-  const muscleEquipmentMap: Record<MuscleGroup, EquipmentType[]> = {
-    chest: ["bodyweight", "dumbbells", "barbell", "cable_machine", "bench"],
-    back: ["bodyweight", "dumbbells", "barbell", "cable_machine", "pullup_bar"],
-    shoulders: ["bodyweight", "dumbbells", "barbell", "cable_machine"],
-    biceps: ["bodyweight", "dumbbells", "barbell", "cable_machine"],
-    triceps: ["bodyweight", "dumbbells", "barbell", "cable_machine"],
-    forearms: ["bodyweight", "dumbbells", "barbell"],
-    core: ["bodyweight", "foam_roller", "yoga_mat"],
-    quadriceps: [
-      "bodyweight",
-      "dumbbells",
-      "barbell",
-      "leg_press",
-      "smith_machine",
-    ],
-    hamstrings: ["bodyweight", "dumbbells", "barbell", "leg_press"],
-    glutes: ["bodyweight", "dumbbells", "barbell", "cable_machine"],
-    calves: ["bodyweight", "dumbbells", "barbell", "smith_machine"],
-    hips: ["bodyweight", "foam_roller", "yoga_mat"],
-    neck: ["bodyweight"],
-  };
-
-  const compatibleEquipment = new Set<EquipmentType>();
-
-  targetMuscles.forEach((muscle) => {
-    const equipmentForMuscle = muscleEquipmentMap[muscle] || [];
-    equipmentForMuscle.forEach((equipment) => {
-      if (availableEquipment.includes(equipment)) {
-        compatibleEquipment.add(equipment);
-      }
-    });
-  });
-
-  return Array.from(compatibleEquipment);
-};
-
-export const calculateWorkoutIntensity = (
-  weight: number,
-  maxWeight: number,
-  reps: number
-): IntensityLevel => {
-  const percentage = (weight / maxWeight) * 100;
-
-  // Adjust intensity based on reps performed
-  const adjustedPercentage = percentage * (1 + (reps - 8) * 0.02); // Slight adjustment for rep count
-
-  if (adjustedPercentage < 60) return "light";
-  if (adjustedPercentage < 75) return "moderate";
-  if (adjustedPercentage < 90) return "heavy";
-  return "very_heavy";
-};
-
-export const getProgressionRecommendation = (
-  currentLevel: ExerciseDifficulty,
-  goal: TrainingGoal
-): ProgressionPattern => {
-  if (currentLevel === "beginner") {
-    return goal === "strength" ? "linear_progression" : "double_progression";
-  }
-
-  if (currentLevel === "intermediate") {
-    return "wave_loading";
-  }
-
-  return "periodization";
 };

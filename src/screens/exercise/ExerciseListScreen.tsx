@@ -17,7 +17,7 @@ import {
 import { useRoute, useNavigation } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { Exercise, getRandomExercises } from "../../data/exercises";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
@@ -32,7 +32,9 @@ const ExerciseListScreen: React.FC = () => {
 
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -162,26 +164,36 @@ const ExerciseListScreen: React.FC = () => {
           </View>
         )}
       </View>
-      
+
       <View style={styles.exerciseDetails}>
         <Text style={styles.exerciseName}>{item.nameLocalized.he}</Text>
-        
+
         <View style={styles.exerciseInfo}>
           <Text style={styles.exerciseCategory}>{item.category}</Text>
-          <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) + "22" }]}>
-            <Text style={[styles.difficultyText, { color: getDifficultyColor(item.difficulty) }]}>
+          <View
+            style={[
+              styles.difficultyBadge,
+              { backgroundColor: getDifficultyColor(item.difficulty) + "22" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.difficultyText,
+                { color: getDifficultyColor(item.difficulty) },
+              ]}
+            >
               {getDifficultyLabel(item.difficulty)}
             </Text>
           </View>
         </View>
-        
+
         {item.primaryMuscles.length > 0 && (
           <Text style={styles.musclesText} numberOfLines={1}>
             שרירים: {item.primaryMuscles.slice(0, 3).join(", ")}
             {item.primaryMuscles.length > 3 && " ועוד"}
           </Text>
         )}
-        
+
         <Text style={styles.equipmentText} numberOfLines={1}>
           ציוד: {item.equipment === "none" ? "ללא" : item.equipment}
         </Text>
@@ -206,14 +218,17 @@ const ExerciseListScreen: React.FC = () => {
               styles.filterChip,
               difficultyFilter === option.value && styles.filterChipActive,
             ]}
-            onPress={() => setDifficultyFilter(option.value as typeof difficultyFilter)}
+            onPress={() =>
+              setDifficultyFilter(option.value as typeof difficultyFilter)
+            }
             accessibilityRole="button"
             accessibilityLabel={`סינון ${option.label}`}
           >
             <Text
               style={[
                 styles.filterChipText,
-                difficultyFilter === option.value && styles.filterChipTextActive,
+                difficultyFilter === option.value &&
+                  styles.filterChipTextActive,
               ]}
             >
               {option.label}

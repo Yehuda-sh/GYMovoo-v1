@@ -8,8 +8,8 @@
 
 import type { ComponentProps } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { User } from "../types";
-import type { WorkoutHistoryItem } from "../types/user.types";
+import type { User } from "../core/types";
+import type { WorkoutHistoryItem } from "../core/types/user.types";
 import { PROFILE_SCREEN_TEXTS } from "./profileScreenTexts";
 import { getAchievementColor } from "./profileScreenColors";
 
@@ -444,30 +444,6 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     },
     priority: 62,
   },
-  {
-    id: 24,
-    titleKey: "EARLY_BIRD",
-    category: AchievementCategory.SPECIAL,
-    icon: "bird",
-    requirement: {
-      type: "timeOfDay",
-      value: "morning",
-    },
-    priority: 63,
-  },
-  {
-    id: 25,
-    titleKey: "DEDICATED_TRAINER",
-    category: AchievementCategory.SPECIAL,
-    icon: "account-hard-hat",
-    requirement: {
-      type: "workoutCount",
-      value: 5,
-      condition: "gte",
-    },
-    priority: 64,
-  },
-
   // 🏆 Challenge achievements / הישגי אתגר
   {
     id: 26,
@@ -480,18 +456,6 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
       condition: "gte",
     },
     priority: 70,
-  },
-  {
-    id: 27,
-    titleKey: "CENTURY_CLUB",
-    category: AchievementCategory.CHALLENGE,
-    icon: "numeric-10",
-    requirement: {
-      type: "workoutCount",
-      value: 100,
-      condition: "gte",
-    },
-    priority: 71,
   },
   {
     id: 28,

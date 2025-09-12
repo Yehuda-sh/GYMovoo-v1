@@ -18,7 +18,7 @@ import {
   TextStyle,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import LoadingSpinner from "./LoadingSpinner";
 
 // ===============================================

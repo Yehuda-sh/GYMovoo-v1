@@ -16,11 +16,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "../../../styles/theme";
+import { theme } from "../../../core/theme";
 import { RegisterForm } from "../components/RegisterForm";
 import { AuthStackParamList } from "../navigation/AuthNavigator";
 
@@ -30,43 +30,22 @@ type RegisterScreenNavigationProp = StackNavigationProp<
   "Register"
 >;
 
-type RegisterScreenRouteProp = RouteProp<AuthStackParamList, "Register">;
-
 export const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
-  const route = useRoute<RegisterScreenRouteProp>();
-
-  // Check if coming from questionnaire
-  const fromQuestionnaire = route.params?.fromQuestionnaire;
-  console.log(
-    `🔍 New RegisterScreen - fromQuestionnaire: ${fromQuestionnaire}`
-  );
 
   // חזרה למסך הקודם
   const handleGoBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
-  // מעבר למסך הבית אחרי הרשמה מוצלחת
+  // מעבר למסך השאלון אחרי הרשמה מוצלחת
   const handleRegisterSuccess = useCallback(() => {
-    console.log(
-      `🔍 handleRegisterSuccess called - fromQuestionnaire: ${fromQuestionnaire}`
-    );
-
-    if (fromQuestionnaire) {
-      // If coming from questionnaire, navigate to main app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "MainApp" as any }],
-      });
-    } else {
-      // Otherwise, navigate to questionnaire
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Questionnaire" as any }],
-      });
-    }
-  }, [navigation, fromQuestionnaire]);
+    // Navigate to questionnaire - will be handled by app navigator
+    (navigation as any).reset({
+      index: 0,
+      routes: [{ name: "Questionnaire" }],
+    });
+  }, [navigation]);
 
   // מעבר למסך התחברות
   const handleLoginPress = useCallback(() => {
@@ -107,7 +86,7 @@ export const RegisterScreen: React.FC = () => {
           {/* כותרת וסמל */}
           <View style={styles.headerContainer}>
             <Image
-              source={require("../../../../assets/barbell.png")}
+              source={{ uri: "../../../../assets/barbell.png" }}
               style={styles.logo}
             />
             <Text style={styles.title}>הרשמה</Text>

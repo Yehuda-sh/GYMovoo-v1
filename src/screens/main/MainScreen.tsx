@@ -20,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import workoutFacadeService from "../../services/workout/workoutFacadeService";
@@ -40,8 +40,8 @@ import {
   formatWeeklyProgress,
   formatProgressRatio,
 } from "../../utils/formatters";
-import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
-import type { User } from "../../types/user.types";
+import { calculateWorkoutStats } from "../../features/workout/utils";
+import type { User } from "../../core/types/user.types";
 import { WelcomeHeader, QuickStatsCard } from "./components";
 import { getNextRecommendedDay } from "./utils/dataProcessors";
 

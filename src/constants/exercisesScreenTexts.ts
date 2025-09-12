@@ -113,12 +113,16 @@ export const EXERCISES_SCREEN_TEXTS = {
   EQUIPMENT_TYPES: {
     DUMBBELLS: "משקולות יד",
     BARBELL: "משקולת מקל",
-    CABLE_MACHINE: "מכונת כבלים",
     BENCH: "ספסל",
     PULLUP_BAR: "מתח למשיכות",
     RESISTANCE_BANDS: "רצועות התנגדות",
     BODYWEIGHT: "משקל גוף",
-    MACHINE: "מכונה",
+    KETTLEBELL: "קטלבל",
+    TREADMILL: "הליכון",
+    BIKE: "אופני כושר",
+    ROWING_MACHINE: "חתירה",
+    FOAM_ROLLER: "גליל קצף",
+    YOGA_MAT: "מזרן יוגה",
     OTHER: "אחר",
   },
 
@@ -202,41 +206,21 @@ export const getEquipmentText = (equipment: string): string => {
   const equipmentMap = {
     dumbbells: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.DUMBBELLS,
     barbell: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.BARBELL,
-    cable_machine: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.CABLE_MACHINE,
     bench: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.BENCH,
     pullup_bar: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.PULLUP_BAR,
     resistance_bands: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.RESISTANCE_BANDS,
     bodyweight: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.BODYWEIGHT,
-    machine: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.MACHINE,
+    kettlebell: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.KETTLEBELL,
+    treadmill: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.TREADMILL,
+    bike: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.BIKE,
+    rowing_machine: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.ROWING_MACHINE,
+    foam_roller: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.FOAM_ROLLER,
+    yoga_mat: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.YOGA_MAT,
     other: EXERCISES_SCREEN_TEXTS.EQUIPMENT_TYPES.OTHER,
   } as const;
 
   return equipmentMap[equipment as keyof typeof equipmentMap] || equipment;
 };
-
-/**
- * Helper function to format calories
- * פונקציית עזר לעיצוב קלוריות
- */
-export const formatCalories = (calories: number): string => {
-  return `${calories} קלוריות`;
-};
-
-/**
- * Dynamic statistics calculation based on loaded data
- * חישוב סטטיסטיקות דינמי על בסיס נתונים נטענים
- */
-export const generateExerciseStats = (
-  musclesCount: number
-): {
-  exercisesCount: string;
-  muscleGroupsCount: string;
-  averageRating: string;
-} => ({
-  exercisesCount: "150+",
-  muscleGroupsCount: musclesCount.toString(),
-  averageRating: "4.8",
-});
 
 /**
  * Helper function to get muscle group by ID

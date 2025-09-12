@@ -13,7 +13,11 @@ export type QuickLoginResult =
   | { ok: true; userId: string }
   | {
       ok: false;
-      reason: "NO_SESSION" | "REFRESH_FAILED" | "FETCH_USER_FAILED";
+      reason:
+        | "NO_SESSION"
+        | "REFRESH_FAILED"
+        | "FETCH_USER_FAILED"
+        | "UNKNOWN_ERROR";
     };
 
 export const isQuickLoginAvailable = async (): Promise<boolean> => {
@@ -24,7 +28,9 @@ export const isQuickLoginAvailable = async (): Promise<boolean> => {
 export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
   try {
     // Check if user explicitly logged out
-    const userLoggedOut = await AsyncStorage.getItem("user_logged_out");
+    const userLoggedOut = await AsyncStorage.getItem(
+      StorageKeys.USER_LOGGED_OUT
+    );
     if (userLoggedOut === "true") return { ok: false, reason: "NO_SESSION" };
 
     // Get current session
@@ -68,7 +74,7 @@ export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
 
     // Clear logout flag and save cache
     try {
-      await AsyncStorage.removeItem("user_logged_out");
+      await AsyncStorage.removeItem(StorageKeys.USER_LOGGED_OUT);
       if (user.id)
         await AsyncStorage.setItem(StorageKeys.LAST_USER_ID, user.id);
       if (user.email)
@@ -78,7 +84,8 @@ export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
     }
 
     return { ok: true, userId: user.id };
-  } catch {
-    return { ok: false, reason: "NO_SESSION" };
+  } catch (error) {
+    console.error("Quick login failed with unexpected error:", error);
+    return { ok: false, reason: "UNKNOWN_ERROR" };
   }
 };

@@ -3,9 +3,9 @@
  * @description יוטיליטיס לעיבוד נתונים במסך הראשי
  */
 
-import type { User } from "../../../types";
-import type { WorkoutHistoryItem } from "../../../types/user.types";
-import type { WorkoutExercise, Set } from "../../workout/types/workout.types";
+import type { User } from "../../../core/types/user.types";
+import type { WorkoutHistoryItem } from "../../../core/types/user.types";
+import type { WorkoutExercise, Set } from "../../../core/types/workout.types";
 
 /**
  * המרת סט תרגיל מהפורמט הישן לחדש

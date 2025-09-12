@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { logger } from "../../utils/logger";
 import { getDayWorkoutType } from "../../constants/mainScreenTexts";
 

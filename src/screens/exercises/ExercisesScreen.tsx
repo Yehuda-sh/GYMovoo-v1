@@ -17,7 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import {

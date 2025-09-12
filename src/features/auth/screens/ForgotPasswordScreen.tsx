@@ -20,9 +20,8 @@ import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
-import { theme } from "../../../styles/theme";
+import { theme } from "../../../core/theme";
 import { AuthStackParamList } from "../navigation/AuthNavigator";
 
 // טיפוס לניווט
@@ -36,7 +35,6 @@ export const ForgotPasswordScreen: React.FC = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState(false);
 
   // חזרה למסך הקודם
   const handleGoBack = useCallback(() => {
@@ -45,7 +43,6 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   // שליחת הוראות איפוס סיסמה
   const handleSendResetInstructions = useCallback(async () => {
-    // ניקוי שגיאות קודמות
     setError(null);
 
     // בדיקה בסיסית שהוזן אימייל
@@ -54,25 +51,26 @@ export const ForgotPasswordScreen: React.FC = () => {
       return;
     }
 
-    // סימולציית שליחת הוראות איפוס
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setLoading(false);
 
-    // סימולציית הצלחה
-    setEmailSent(true);
-
-    // הודעת הצלחה
-    Alert.alert(
-      "הוראות נשלחו",
-      `הוראות לאיפוס הסיסמה נשלחו לכתובת ${email}. יש לבדוק את תיבת הדואר הנכנס ולעקוב אחר ההוראות.`,
-      [{ text: "הבנתי", style: "default" }]
-    );
-  }, [email]);
+    // סימולציה פשוטה
+    setTimeout(() => {
+      setLoading(false);
+      Alert.alert(
+        "הוראות נשלחו",
+        `הוראות לאיפוס הסיסמה נשלחו לכתובת ${email}`,
+        [
+          {
+            text: "הבנתי",
+            onPress: () => navigation.navigate("Login"),
+          },
+        ]
+      );
+    }, 1000);
+  }, [email, navigation]);
 
   // מעבר למסך התחברות
   const handleBackToLogin = useCallback(() => {
-    // @ts-expect-error - נתעלם מבעיית טיפוסים כרגע
     navigation.navigate("Login");
   }, [navigation]);
 
@@ -131,7 +129,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                   if (error) setError(null);
                 }}
                 textAlign="right"
-                editable={!loading && !emailSent}
+                editable={!loading}
               />
             </View>
             {error && <Text style={styles.errorText}>{error}</Text>}
@@ -139,33 +137,18 @@ export const ForgotPasswordScreen: React.FC = () => {
 
           {/* כפתור שליחה */}
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (loading || emailSent) && styles.buttonDisabled,
-            ]}
+            style={[styles.sendButton, loading && styles.buttonDisabled]}
             onPress={handleSendResetInstructions}
-            disabled={loading || emailSent}
+            disabled={loading}
           >
-            <LinearGradient
-              colors={[theme.colors.primary, `${theme.colors.primary}DD`]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientButton}
-            >
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#fff" />
-                  <Text style={styles.buttonText}>שולח הוראות...</Text>
-                </View>
-              ) : emailSent ? (
-                <View style={styles.loadingContainer}>
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>הוראות נשלחו</Text>
-                </View>
-              ) : (
-                <Text style={styles.buttonText}>שלח הוראות לאיפוס</Text>
-              )}
-            </LinearGradient>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.buttonText}>שולח הוראות...</Text>
+              </View>
+            ) : (
+              <Text style={styles.buttonText}>שלח הוראות לאיפוס</Text>
+            )}
           </TouchableOpacity>
 
           {/* חזרה למסך התחברות */}
@@ -259,18 +242,16 @@ const styles = StyleSheet.create({
     marginEnd: 4,
   },
   sendButton: {
+    backgroundColor: theme.colors.primary,
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
     borderRadius: theme.radius.xl,
-    overflow: "hidden",
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  gradientButton: {
     paddingVertical: 18,
     alignItems: "center",
     minHeight: 56,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",

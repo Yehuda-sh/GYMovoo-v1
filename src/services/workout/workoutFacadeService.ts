@@ -1,13 +1,16 @@
 import {
   WorkoutWithFeedback,
   WorkoutData,
-} from "../../screens/workout/types/workout.types";
-import { PersonalRecord, WorkoutHistoryItem } from "../../types/user.types";
+} from "../../core/types/workout.types";
+import {
+  PersonalRecord,
+  WorkoutHistoryItem,
+} from "../../core/types/user.types";
 import { PersonalData } from "../../utils/personalDataUtils";
 import { workoutStorageService } from "./workoutStorageService";
-import workoutAnalyticsService from "./workoutAnalyticsService";
-import personalRecordService from "./personalRecordService";
-import type { AdvancedMetrics } from "./workoutAnalyticsService";
+import workoutAnalyticsService from "../../features/workout/services/workoutAnalyticsService";
+import { personalRecordService } from "../index";
+import type { AdvancedMetrics } from "../../features/workout/services/workoutAnalyticsService";
 
 class WorkoutFacadeService {
   // Storage Methods
@@ -33,24 +36,20 @@ class WorkoutFacadeService {
   // Analytics Methods
   async getPersonalizedAnalytics(
     history: WorkoutHistoryItem[],
-    personalData: PersonalData
+    _personalData: PersonalData
   ): Promise<string[]> {
     try {
       return await workoutAnalyticsService.getPersonalizedWorkoutAnalytics(
-        history,
-        personalData
+        history
       );
     } catch {
       return ["אירעה שגיאה בניתוח האימונים."];
     }
   }
 
-  getAdvancedMetrics(
-    history: WorkoutHistoryItem[],
-    personalData: PersonalData
-  ): AdvancedMetrics {
+  getAdvancedMetrics(history: WorkoutHistoryItem[]): AdvancedMetrics {
     try {
-      return workoutAnalyticsService.getAdvancedMetrics(history, personalData);
+      return workoutAnalyticsService.getAdvancedMetrics(history);
     } catch {
       return {
         averageIntensity: 0,

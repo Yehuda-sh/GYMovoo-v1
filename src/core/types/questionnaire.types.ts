@@ -52,8 +52,6 @@ export interface WeeklySchedule {
  * העדפות משתמש
  */
 export interface UserPreferences {
-  /** העדפות הודעות */
-  notifications: boolean;
   /** זמני תזכורת מועדפים */
   reminderTime?: string;
   /** תצוגת מידות - מטרי/אימפריאלי */

@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import AppButton from "../../components/common/AppButton";

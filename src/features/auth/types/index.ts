@@ -14,7 +14,6 @@ export interface User {
   createdAt: string;
   preferences?: {
     theme: string;
-    notifications: boolean;
   };
 }
 
@@ -92,7 +91,6 @@ export interface UserPreferences {
   email?: string;
   theme?: string;
   language?: string;
-  notifications?: boolean;
   [key: string]: unknown;
 }
 

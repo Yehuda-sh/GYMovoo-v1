@@ -14,13 +14,12 @@ import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import DeveloperScreen from "../screens/developer/DeveloperScreen";
 
 // Workout screens
-import WorkoutPlanScreen from "../features/workout/screens/old_workout_screens/WorkoutPlansScreen";
-import ActiveWorkoutScreen from "../features/workout/screens/old_workout_screens/ActiveWorkoutScreen";
+import WorkoutPlanScreen from "../features/workout/screens/workout_screens/WorkoutPlansScreen";
+import ActiveWorkoutScreen from "../features/workout/screens/workout_screens/ActiveWorkoutScreen";
 
 // Additional screens
 import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
-import NotificationsScreen from "../screens/notifications/NotificationsScreen";
-import ProgressScreen from "../features/progress/screens/ProgressScreen";
+import ProgressScreen from "../features/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
 import { useUserStore } from "../stores/userStore";
@@ -117,7 +116,6 @@ export default function AppNavigator() {
         <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
 
         {/* Additional screens */}
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Progress" component={ProgressScreen} />
 
         {/* Developer screen (development only) */}

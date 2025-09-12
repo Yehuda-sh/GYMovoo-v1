@@ -31,7 +31,6 @@ Stack Navigator
 │   ├── ExerciseDetails
 │   └── ExercisesScreen
 └── Additional screens
-    ├── Notifications
     └── Progress
 ```
 
@@ -81,7 +80,7 @@ The typical user journey follows this path:
 - User information and avatar
 - Level and XP progress
 - Achievements and badges
-- Settings (notifications)
+- Settings
 - Logout functionality
 
 ### 3. WorkoutPlansScreen

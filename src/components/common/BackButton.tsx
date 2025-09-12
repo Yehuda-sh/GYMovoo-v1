@@ -12,7 +12,7 @@ import { Pressable, StyleProp, ViewStyle } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import { logger } from "../../utils/logger";
 import LoadingSpinner from "./LoadingSpinner";
 

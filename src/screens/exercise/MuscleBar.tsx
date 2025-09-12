@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 
 const DEBUG = process.env.EXPO_PUBLIC_DEBUG_MUSCLE_BAR === "1";
 const dlog = (m: string, data?: unknown) => {

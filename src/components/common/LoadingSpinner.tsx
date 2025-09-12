@@ -16,7 +16,7 @@ import {
   ViewStyle,
   Animated,
 } from "react-native";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 
 interface LoadingSpinnerProps {
   // 🎨 מאפיינים בסיסיים // Basic properties

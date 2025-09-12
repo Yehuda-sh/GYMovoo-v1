@@ -12,16 +12,12 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { theme } from "../../../styles/theme";
-import { userApi } from "../../../services/api/userApi";
+import { theme } from "../../../core/theme";
+import { useAuth } from "../hooks/useAuth";
 import type { RegisterCredentials } from "../types";
-import { useUserStore } from "../../../stores/userStore";
 
 interface RegisterFormProps {
   onRegisterSuccess: () => void;
@@ -54,71 +50,10 @@ const STRINGS = {
     emailInvalid: "כתובת אימייל לא תקינה",
     passwordRequired: "נא להזין סיסמה",
     passwordTooShort: "הסיסמה חייבת להכיל לפחות 6 תווים",
-    passwordNoNumber: "הסיסמה חייבת להכיל לפחות ספרה אחת",
-    passwordNoUppercase: "הסיסמה חייבת להכיל לפחות אות גדולה אחת",
-    passwordNoSpecial: "הסיסמה חייבת להכיל לפחות תו מיוחד אחד",
     confirmPasswordRequired: "נא לאשר את הסיסמה",
     passwordsMismatch: "הסיסמאות אינן תואמות",
     termsRequired: "יש לאשר את תנאי השימוש כדי להירשם",
   },
-};
-
-// הוק מוק זמני עד שנשלים את useAuth
-const useRegister = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  // פונקציית הרשמה מדמה
-  const register = async (data: RegisterCredentials) => {
-    setLoading(true);
-    console.log("הרשמה עם:", data);
-
-    // סימולציית עיכוב ברשת
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // אימות נתונים בסיסי
-    const errors: Record<string, string> = {};
-
-    if (!data.name || data.name.trim().length < 2) {
-      errors.name = STRINGS.errors.nameRequired;
-    }
-
-    if (!data.email || !data.email.includes("@")) {
-      errors.email = STRINGS.errors.emailInvalid;
-    }
-
-    if (!data.password || data.password.length < 6) {
-      errors.password = STRINGS.errors.passwordTooShort;
-    }
-
-    if (data.password !== data.confirmPassword) {
-      errors.confirmPassword = STRINGS.errors.passwordsMismatch;
-    }
-
-    if (!data.agreeToTerms) {
-      errors.agreeToTerms = STRINGS.errors.termsRequired;
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      setLoading(false);
-      return false;
-    }
-
-    // סימולציית הרשמה מוצלחת
-    setLoading(false);
-    return true;
-  };
-
-  return {
-    register,
-    loading,
-    error,
-    setError,
-    fieldErrors,
-    setFieldErrors,
-  };
 };
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
@@ -134,186 +69,61 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [autoFillCounter, setAutoFillCounter] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // גישה ל-Store של המשתמש
-  const { setUser } = useUserStore();
-
-  // פונקציה למילוי אוטומטי של הטופס עם נתונים רנדומליים
-  const fillWithRandomData = () => {
-    const counter = autoFillCounter + 1;
-    setAutoFillCounter(counter);
-
-    // שמות רנדומליים באנגלית
-    const randomNames = [
-      "John Smith",
-      "Emma Johnson",
-      "Michael Brown",
-      "Sarah Davis",
-      "James Wilson",
-      "Lisa Taylor",
-      "Robert Miller",
-      "Jennifer Moore",
-      "David Anderson",
-      "Michelle Thomas",
-    ];
-
-    // דומיינים רנדומליים לאימייל
-    const randomDomains = [
-      "gmail.com",
-      "outlook.com",
-      "yahoo.com",
-      "hotmail.com",
-      "icloud.com",
-      "example.com",
-      "mail.com",
-    ];
-
-    // בחירת שם רנדומלי
-    const index = counter % randomNames.length;
-    const randomName: string = randomNames[index] || "John Doe";
-
-    // יצירת אימייל רנדומלי - מחליף רווחים בנקודה ומשתמש באות ראשונה של שם משפחה
-    const nameParts = randomName.split(" ");
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts[1] || "";
-    const namePart =
-      firstName.toLowerCase() + "." + lastName.toLowerCase().charAt(0);
-    const domain =
-      randomDomains[counter % randomDomains.length] || "example.com";
-    const randomEmail = `${namePart}${counter}@${domain}`;
-
-    // סיסמה קבועה פשוטה
-    const randomPassword = "12345678";
-
-    // עדכון השדות
-    setName(randomName);
-    setEmail(randomEmail);
-    setPassword(randomPassword);
-    setConfirmPassword(randomPassword);
-    setAgreeToTerms(true);
-  };
-
-  const { register, loading, error, setError, fieldErrors, setFieldErrors } =
-    useRegister();
+  const { register, isLoading } = useAuth();
 
   // ניקוי שגיאות בעת שינוי קלט
   useEffect(() => {
-    if (error) setError(null);
     if (Object.keys(fieldErrors).length > 0) setFieldErrors({});
-  }, [
-    name,
-    email,
-    password,
-    confirmPassword,
-    agreeToTerms,
-    setError,
-    error,
-    fieldErrors,
-    setFieldErrors,
-  ]);
-
-  // הצגת תנאי שימוש
-  const handleViewTerms = () => {
-    Alert.alert(
-      "תנאי שימוש",
-      "תנאי השימוש באפליקציה הם... (כאן יוצגו תנאי השימוש המלאים)",
-      [{ text: "הבנתי", style: "default" }]
-    );
-  };
+  }, [name, email, password, confirmPassword, agreeToTerms, fieldErrors]);
 
   // טיפול בהרשמה
   const handleRegister = async () => {
-    const credentials: RegisterCredentials = {
-      name,
-      email,
-      password,
-      confirmPassword,
-      agreeToTerms,
-    };
+    // ניקוי שגיאות קודמות
+    setFieldErrors({});
 
-    const success = await register(credentials);
-    if (success) {
-      console.log(
-        "🔍 RegisterForm - Registration successful, calling onRegisterSuccess"
-      );
-      // עדכון ה-store של משתמש חדש
-      const newUser: Record<string, unknown> = {
-        email,
+    // אימות בסיסי
+    const errors: Record<string, string> = {};
+
+    if (!name || name.trim().length < 2) {
+      errors.name = STRINGS.errors.nameRequired;
+    }
+
+    if (!email || !email.includes("@")) {
+      errors.email = STRINGS.errors.emailInvalid;
+    }
+
+    if (!password || password.length < 6) {
+      errors.password = STRINGS.errors.passwordTooShort;
+    }
+
+    if (password !== confirmPassword) {
+      errors.confirmPassword = STRINGS.errors.passwordsMismatch;
+    }
+
+    if (!agreeToTerms) {
+      errors.agreeToTerms = STRINGS.errors.termsRequired;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    try {
+      const credentials: RegisterCredentials = {
         name,
-        id: `user_${Date.now()}`,
-        provider: "manual",
+        email,
+        password,
+        confirmPassword,
+        agreeToTerms,
       };
 
-      // טיפול בנתוני שאלון אם יש
-      try {
-        // בדיקה אם יש נתוני שאלון ב-AsyncStorage
-        const savedResults = await AsyncStorage.getItem(
-          "smart_questionnaire_results"
-        );
-        if (savedResults) {
-          console.log("🔍 Found questionnaire data in AsyncStorage");
-          const smartData = JSON.parse(savedResults);
-          // הוסף את נתוני השאלון למשתמש
-          newUser.questionnaireData = smartData;
-          // סמן את המשתמש כמי שהשלים את השאלון
-          newUser.hasQuestionnaire = true;
-        }
-
-        // שמירת המשתמש ב-AsyncStorage
-        await AsyncStorage.setItem("user", JSON.stringify(newUser));
-
-        // סנכרון עם השרת
-        try {
-          console.log("🔄 Syncing user data with server...");
-
-          // להדפיס את המידע שאנחנו שולחים לשרת
-          // שליחת גם ID מקומי כדי לפתור את בעיית ה-NOT NULL בשרת
-          const userData = {
-            id: newUser.id, // שליחת ה-ID שיצרנו
-            name: newUser.name,
-            email: newUser.email,
-            provider: newUser.provider || "manual",
-            // העברת נתוני השאלון אם קיימים
-            questionnaireData: newUser.questionnaireData,
-            hasQuestionnaire: newUser.hasQuestionnaire,
-          };
-          console.log(
-            "User data being sent to server:",
-            JSON.stringify(userData, null, 2)
-          );
-
-          // יצירת משתמש חדש בשרת - שימוש בטיפוס User שמוגדר בפרויקט
-          const serverUser = await userApi.create(userData);
-
-          console.log("✅ User created in server with ID:", serverUser.id);
-
-          // עדכון ה-id המקומי עם ה-id מהשרת
-          newUser.id = serverUser.id;
-          await AsyncStorage.setItem("user", JSON.stringify(newUser));
-        } catch (serverError) {
-          console.error("❌ Server sync failed:", serverError);
-          // הצג פרטים נוספים על השגיאה
-          if (serverError instanceof Error) {
-            console.error("Error message:", serverError.message);
-            console.error("Error stack:", serverError.stack);
-          }
-          // ממשיכים בתהליך גם אם נכשל הסנכרון עם השרת
-        }
-
-        // שמירת המשתמש במאגר מרכזי
-        console.log("🔑 Saving user to central store:", {
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-          hasQuestionnaire: newUser.hasQuestionnaire,
-        });
-        setUser(newUser);
-      } catch (error) {
-        console.error("Error handling questionnaire data:", error);
-      }
-
+      await register(credentials);
       onRegisterSuccess();
+    } catch (error) {
+      console.error("Registration failed:", error);
     }
   };
 
@@ -339,7 +149,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={name}
             onChangeText={setName}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.name && (
@@ -368,7 +178,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={email}
             onChangeText={setEmail}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.email && (
@@ -386,7 +196,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         >
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
-            disabled={loading}
+            disabled={isLoading}
             style={styles.passwordToggle}
           >
             <Ionicons
@@ -405,7 +215,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={password}
             onChangeText={setPassword}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.password && (
@@ -423,7 +233,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         >
           <TouchableOpacity
             onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            disabled={loading}
+            disabled={isLoading}
             style={styles.passwordToggle}
           >
             <Ionicons
@@ -442,7 +252,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.confirmPassword && (
@@ -478,11 +288,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               true: theme.colors.primary,
             }}
             thumbColor={agreeToTerms ? theme.colors.primary : "#f4f3f4"}
-            disabled={loading}
+            disabled={isLoading}
           />
         </View>
 
-        <TouchableOpacity onPress={handleViewTerms} disabled={loading}>
+        <TouchableOpacity disabled={isLoading}>
           <Text style={styles.viewTermsText}>{STRINGS.ui.viewTerms}</Text>
         </TouchableOpacity>
 
@@ -492,48 +302,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       </View>
 
       {/* הודעת שגיאה */}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      {/* כפתור למילוי אוטומטי - רק במצב פיתוח */}
-      {__DEV__ && (
-        <TouchableOpacity
-          style={styles.autoFillButton}
-          onPress={fillWithRandomData}
-          disabled={loading}
-        >
-          <Text style={styles.autoFillButtonText}>מילוי אוטומטי 🧙‍♂️</Text>
-        </TouchableOpacity>
-      )}
-
       {/* כפתור הרשמה */}
       <TouchableOpacity
-        style={[styles.registerButton, loading && styles.buttonDisabled]}
+        style={[styles.registerButton, isLoading && styles.buttonDisabled]}
         onPress={handleRegister}
-        disabled={loading}
+        disabled={isLoading}
       >
-        <LinearGradient
-          colors={[theme.colors.primary, `${theme.colors.primary}DD`]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
-        >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#fff" />
-              <Text style={styles.buttonText}>
-                {STRINGS.buttons.registering}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.buttonText}>{STRINGS.buttons.register}</Text>
-          )}
-        </LinearGradient>
+        {isLoading ? (
+          <View style={styles.isLoadingContainer}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.buttonText}>{STRINGS.buttons.registering}</Text>
+          </View>
+        ) : (
+          <Text style={styles.buttonText}>{STRINGS.buttons.register}</Text>
+        )}
       </TouchableOpacity>
 
       {/* קישור להתחברות */}
       <View style={styles.linkRow}>
         <Text style={styles.linkText}>{STRINGS.ui.alreadyHaveAccount}</Text>
-        <TouchableOpacity onPress={onLoginPress} disabled={loading}>
+        <TouchableOpacity onPress={onLoginPress} disabled={isLoading}>
           <Text style={styles.loginLink}>{STRINGS.ui.loginNow}</Text>
         </TouchableOpacity>
       </View>
@@ -617,27 +405,6 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     textAlign: "right",
   },
-  errorText: {
-    color: theme.colors.error,
-    textAlign: "center",
-    marginBottom: theme.spacing.md,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  autoFillButton: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: theme.radius.xl,
-    padding: 12,
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  autoFillButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "600",
-  },
   registerButton: {
     marginVertical: theme.spacing.lg,
     borderRadius: theme.radius.xl,
@@ -646,17 +413,12 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7,
   },
-  gradientButton: {
-    paddingVertical: 18,
-    alignItems: "center",
-    minHeight: 56,
-  },
   buttonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
   },
-  loadingContainer: {
+  isLoadingContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,

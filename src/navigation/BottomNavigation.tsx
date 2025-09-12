@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../styles/theme";
+import { theme } from "../core/theme";
 import {
   MainScreen,
   WorkoutPlansScreen,

@@ -22,6 +22,7 @@ import {
 } from "../../../core/types/workout.types";
 import { ExerciseTemplate } from "../../../core/types/workout.types";
 import { questionnaireService } from "../../questionnaire/services/questionnaireService";
+import { WORKOUT_DAYS } from "../constants/workoutConstants";
 
 // טיפוס עבור metadata של תוכנית אימון
 interface WorkoutMetadata {
@@ -223,16 +224,9 @@ export class WorkoutDataService {
    * קבלת שמות אימונים לפי מספר ימים
    */
   private static getWorkoutNames(days: number): string[] {
-    const WORKOUT_DAYS = {
-      1: ["אימון מלא"],
-      2: ["פלג גוף עליון", "פלג גוף תחתון"],
-      3: ["דחיפה", "משיכה", "רגליים"],
-      4: ["חזה + טריצפס", "גב + ביצפס", "רגליים", "כתפיים"],
-      5: ["חזה", "גב", "רגליים", "כתפיים", "ידיים"],
-      6: ["חזה", "גב", "רגליים", "כתפיים", "ידיים", "בטן"],
-    };
-
-    return WORKOUT_DAYS[days as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3];
+    return [
+      ...(WORKOUT_DAYS[days as keyof typeof WORKOUT_DAYS] || WORKOUT_DAYS[3]),
+    ];
   }
 
   /**

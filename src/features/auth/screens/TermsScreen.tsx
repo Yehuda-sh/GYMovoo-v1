@@ -16,7 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "../../../styles/theme";
+import { theme } from "../../../core/theme";
 
 // טיפוסים
 interface TermsScreenParams {

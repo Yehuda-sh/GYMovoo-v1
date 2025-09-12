@@ -1,7 +1,7 @@
 /**
  * @file App.tsx
  * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo
- * @updated 2025-09-06
+ * @updated 2025-09-11
  */
 
 import React from "react";
@@ -24,7 +24,6 @@ initializeRTL();
  * רכיב האפליקציה הראשי
  */
 export default function App(): React.JSX.Element {
-  // אתחול האפליקציה (ניקוי storage, טעינת נתונים וכו')
   useAppInitialization();
 
   return (

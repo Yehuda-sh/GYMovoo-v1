@@ -14,48 +14,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
-import { theme } from "../../../styles/theme";
-// import { useAuth } from "../hooks/useAuth";
+import { theme } from "../../../core/theme";
+import { useAuth } from "../hooks/useAuth";
 import type { LoginCredentials } from "../types";
-
-// מאחר שההוק עדיין לא מוכן לחלוטין, נשתמש בהוק מוק
-const useAuth = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const login = async (credentials: LoginCredentials) => {
-    setLoading(true);
-    console.log("התחברות עם:", credentials);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setLoading(false);
-    return true;
-  };
-
-  const googleLogin = async () => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setLoading(false);
-    return true;
-  };
-
-  const loadSavedCredentials = async () => {
-    return "example@gmail.com";
-  };
-
-  return {
-    login,
-    googleLogin,
-    loading,
-    error,
-    setError,
-    fieldErrors,
-    setFieldErrors,
-    loadSavedCredentials,
-  };
-};
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -73,11 +35,8 @@ const STRINGS = {
     login: "התחבר",
     loggingIn: "מתחבר...",
     forgotPassword: "שכחתי סיסמה",
-    googleLogin: "התחבר עם Google",
-    googleLoading: "מתחבר עם Google...",
   },
   ui: {
-    or: "או",
     rememberMe: "זכור אותי",
     noAccount: "אין לך חשבון עדיין?",
     registerNow: "הרשם עכשיו",
@@ -93,55 +52,35 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const {
-    login,
-    googleLogin,
-    loading,
-    error,
-    setError,
-    fieldErrors,
-    setFieldErrors,
-    loadSavedCredentials,
-  } = useAuth();
-
-  // טעינת אימייל שמור אם קיים
-  useEffect(() => {
-    const loadEmail = async () => {
-      const savedEmail = await loadSavedCredentials();
-      if (savedEmail) {
-        setEmail(savedEmail);
-        setRememberMe(true);
-      }
-    };
-    loadEmail();
-  }, [loadSavedCredentials]);
+  const { login, isLoading } = useAuth();
 
   // ניקוי שגיאות בעת שינוי קלט
   useEffect(() => {
-    if (error) setError(null);
-    if (Object.keys(fieldErrors).length > 0) setFieldErrors({});
-  }, [email, password, setError, error, fieldErrors, setFieldErrors]);
-
-  // טיפול בהתחברות רגילה
-  const handleLogin = async () => {
-    const credentials: LoginCredentials = {
-      email,
-      password,
-      rememberMe,
-    };
-
-    const success = await login(credentials);
-    if (success) {
-      onLoginSuccess();
+    if (Object.keys(fieldErrors).length > 0) {
+      setFieldErrors({});
     }
-  };
+    if (error) {
+      setError(null);
+    }
+  }, [email, password, fieldErrors, error]);
 
-  // טיפול בהתחברות עם גוגל
-  const handleGoogleLogin = async () => {
-    const success = await googleLogin();
-    if (success) {
+  // טיפול בהתחברות
+  const handleLogin = async () => {
+    try {
+      const credentials: LoginCredentials = {
+        email,
+        password,
+        rememberMe,
+      };
+
+      await login(credentials, rememberMe);
       onLoginSuccess();
+    } catch (loginError) {
+      setError("שגיאה בהתחברות");
+      console.error("Login failed:", loginError);
     }
   };
 
@@ -168,7 +107,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             value={email}
             onChangeText={setEmail}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.email && (
@@ -186,7 +125,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         >
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
-            disabled={loading}
+            disabled={isLoading}
             style={styles.passwordToggle}
           >
             <Ionicons
@@ -205,7 +144,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             value={password}
             onChangeText={setPassword}
             textAlign="right"
-            editable={!loading}
+            editable={!isLoading}
           />
         </View>
         {fieldErrors.password && (
@@ -225,12 +164,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               true: theme.colors.primary,
             }}
             thumbColor={rememberMe ? theme.colors.primary : "#f4f3f4"}
-            disabled={loading}
+            disabled={isLoading}
           />
         </View>
         <TouchableOpacity
           onPress={onForgotPassword}
-          disabled={loading}
+          disabled={isLoading}
           style={styles.forgotPasswordLink}
         >
           <Text style={styles.forgotPasswordText}>
@@ -244,52 +183,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
       {/* כפתור התחברות */}
       <TouchableOpacity
-        style={[styles.loginButton, loading && styles.buttonDisabled]}
+        style={[
+          styles.loginButton,
+          isLoading && styles.buttonDisabled,
+          styles.loginButtonBackground,
+        ]}
         onPress={handleLogin}
-        disabled={loading}
+        disabled={isLoading}
       >
-        <LinearGradient
-          colors={[theme.colors.primary, `${theme.colors.primary}DD`]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientButton}
-        >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#fff" />
-              <Text style={styles.buttonText}>{STRINGS.buttons.loggingIn}</Text>
-            </View>
-          ) : (
-            <Text style={styles.buttonText}>{STRINGS.buttons.login}</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* מפריד */}
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>{STRINGS.ui.or}</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      {/* כפתור התחברות עם גוגל */}
-      <TouchableOpacity
-        style={[styles.googleButton, loading && styles.googleButtonDisabled]}
-        onPress={handleGoogleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.googleButtonText}>
-          {loading
-            ? STRINGS.buttons.googleLoading
-            : STRINGS.buttons.googleLogin}
-        </Text>
-        <Ionicons name="logo-google" size={20} color="#4285F4" />
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.buttonText}>{STRINGS.buttons.loggingIn}</Text>
+          </View>
+        ) : (
+          <Text style={styles.buttonText}>{STRINGS.buttons.login}</Text>
+        )}
       </TouchableOpacity>
 
       {/* קישור להרשמה */}
       <View style={styles.linkRow}>
         <Text style={styles.linkText}>{STRINGS.ui.noAccount}</Text>
-        <TouchableOpacity onPress={onRegisterPress} disabled={loading}>
+        <TouchableOpacity onPress={onRegisterPress} disabled={isLoading}>
           <Text style={styles.registerLink}>{STRINGS.ui.registerNow}</Text>
         </TouchableOpacity>
       </View>
@@ -373,13 +288,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xl,
     overflow: "hidden",
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  gradientButton: {
+  loginButtonBackground: {
+    backgroundColor: theme.colors.primary,
     paddingVertical: 18,
     alignItems: "center",
     minHeight: 56,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",
@@ -390,42 +306,6 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.divider,
-  },
-  dividerText: {
-    color: theme.colors.textSecondary,
-    paddingHorizontal: theme.spacing.md,
-    fontSize: 14,
-  },
-  googleButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.xl,
-    paddingVertical: 18,
-    justifyContent: "center",
-    marginBottom: theme.spacing.lg,
-    gap: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder + "40",
-    minHeight: 56,
-  },
-  googleButtonDisabled: {
-    opacity: 0.7,
-  },
-  googleButtonText: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: "600",
   },
   linkRow: {
     flexDirection: "row-reverse",

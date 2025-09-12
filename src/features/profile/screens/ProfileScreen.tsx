@@ -23,19 +23,18 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
 import { theme } from "../../../core/theme";
 import { RootStackParamList } from "../../../navigation/types";
-import BackButton from "../../../shared/components/common/BackButton";
-import ConfirmationModal from "../../../shared/components/common/ConfirmationModal";
-import AppButton from "../../../shared/components/common/AppButton";
+import BackButton from "../../../components/common/BackButton";
+import ConfirmationModal from "../../../components/common/ConfirmationModal";
+import AppButton from "../../../components/common/AppButton";
 import { useUserStore } from "../../../stores/userStore";
 import { useQuestionnaireStatus } from "../../questionnaire/hooks";
-import DefaultAvatar from "../../../shared/components/common/DefaultAvatar";
-import { ALL_EQUIPMENT } from "../../../data/equipmentData";
-import { User } from "../../../types";
+import DefaultAvatar from "../../../components/common/DefaultAvatar";
+import { User } from "../../../core/types";
 import { userApi } from "../../../services/api/userApi";
 import { PROFILE_SCREEN_TEXTS } from "../../../constants/profileScreenTexts";
 import {
   calculateAchievements,
-  type Achievement,
+  type AchievementDisplay,
 } from "../../../constants/achievementsConfig";
 
 const PRESET_AVATARS = [
@@ -111,8 +110,12 @@ const ProfileScreen: React.FC = () => {
   const extractUserEquipment = (user: User | null) => {
     if (!user?.questionnaireData) return [];
 
-    // Simplified equipment extraction
-    return ALL_EQUIPMENT.slice(0, 3); // Show first 3 equipment items as example
+    // Simple example equipment items
+    return [
+      { id: "none", label: "ללא ציוד" },
+      { id: "dumbbells", label: "דמבלים" },
+      { id: "resistance_bands", label: "גומיות התנגדות" },
+    ];
   };
 
   // Handlers
@@ -407,19 +410,11 @@ const ProfileScreen: React.FC = () => {
               {allEquipment.map((equipment) => (
                 <View key={equipment?.id} style={styles.equipmentItem}>
                   <View style={styles.equipmentImageContainer}>
-                    {equipment?.image ? (
-                      <Image
-                        source={equipment.image}
-                        style={styles.equipmentImage}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <MaterialCommunityIcons
-                        name="dumbbell"
-                        size={28}
-                        color={theme.colors.primary}
-                      />
-                    )}
+                    <MaterialCommunityIcons
+                      name="dumbbell"
+                      size={28}
+                      color={theme.colors.primary}
+                    />
                   </View>
                   <Text style={styles.equipmentLabel}>{equipment?.label}</Text>
                 </View>
@@ -434,7 +429,7 @@ const ProfileScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>הישגים</Text>
           </View>
           <View style={styles.achievementsGrid}>
-            {achievements.slice(0, 6).map((achievement: Achievement) => (
+            {achievements.slice(0, 6).map((achievement: AchievementDisplay) => (
               <View key={achievement.id} style={styles.achievementCard}>
                 <View style={styles.achievementIconContainer}>
                   <MaterialCommunityIcons
@@ -861,10 +856,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.sm,
-  },
-  equipmentImage: {
-    width: 40,
-    height: 40,
   },
   equipmentLabel: {
     fontSize: 12,

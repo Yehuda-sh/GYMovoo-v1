@@ -10,8 +10,8 @@ import { workoutApi } from "../api/workoutApi";
 import { useUserStore } from "../../stores/userStore";
 import { logger } from "../../utils/logger";
 import { StorageKeys } from "../../constants/StorageKeys";
-import { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
-import { WorkoutHistoryItem } from "../../types/user.types";
+import { WorkoutWithFeedback } from "../../core/types/workout.types";
+import { WorkoutHistoryItem } from "../../core/types/user.types";
 
 class WorkoutStorageService {
   private readonly SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 ימים במילישניות

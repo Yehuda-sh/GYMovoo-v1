@@ -19,7 +19,7 @@ import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuestionnaire } from "../hooks";
 import { RootStackParamList } from "../../../navigation/types";
-import { theme } from "../../../styles/theme";
+import { theme } from "../../../core/theme";
 import { QuestionOption } from "../types";
 import { useUserStore } from "../../../stores/userStore";
 

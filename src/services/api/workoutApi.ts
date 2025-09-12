@@ -1,5 +1,5 @@
 // Workout history API for Supabase users.activityhistory JSONB field
-import type { WorkoutWithFeedback } from "../../screens/workout/types/workout.types";
+import type { WorkoutWithFeedback } from "../../core/types/workout.types";
 import { supabase } from "../supabase/client";
 
 if (!supabase) {
@@ -10,7 +10,9 @@ export const workoutApi = {
   listByUser: async (userId: string): Promise<WorkoutWithFeedback[]> => {
     if (!userId) return [];
 
-    const { data, error } = await supabase!
+    if (!supabase) throw new Error("Supabase client not initialized");
+
+    const { data, error } = await supabase
       .from("users")
       .select("activityhistory")
       .eq("id", userId)
@@ -32,7 +34,9 @@ export const workoutApi = {
     const currentHistory = await workoutApi.listByUser(userId);
     const updatedHistory = [...currentHistory, newWorkout];
 
-    const { error } = await supabase!
+    if (!supabase) throw new Error("Supabase client not initialized");
+
+    const { error } = await supabase
       .from("users")
       .update({
         activityhistory: { workouts: updatedHistory },
@@ -52,7 +56,9 @@ export const workoutApi = {
     const currentHistory = await workoutApi.listByUser(userId);
     const updatedHistory = currentHistory.filter((w) => w.id !== workoutId);
 
-    const { error } = await supabase!
+    if (!supabase) throw new Error("Supabase client not initialized");
+
+    const { error } = await supabase
       .from("users")
       .update({
         activityhistory: { workouts: updatedHistory },

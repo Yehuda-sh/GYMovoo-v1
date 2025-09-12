@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Exercise } from "../../data/exercises";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 

@@ -14,7 +14,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { theme } from "../../styles/theme";
+import { theme } from "../../core/theme";
 import BackButton from "../../components/common/BackButton";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatEquipmentList } from "../../utils/formatters";
@@ -32,8 +32,14 @@ interface ExerciseDetailsScreenParams {
   };
 }
 
-type ExerciseDetailsNavigationProp = StackNavigationProp<RootStackParamList, "ExerciseDetails">;
-type ExerciseDetailsRouteProp = RouteProp<RootStackParamList, "ExerciseDetails">;
+type ExerciseDetailsNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "ExerciseDetails"
+>;
+type ExerciseDetailsRouteProp = RouteProp<
+  RootStackParamList,
+  "ExerciseDetails"
+>;
 
 const ExerciseDetailsScreen: React.FC = () => {
   const navigation = useNavigation<ExerciseDetailsNavigationProp>();
@@ -55,28 +61,33 @@ const ExerciseDetailsScreen: React.FC = () => {
       muscleGroup: muscleGroup,
       equipment: equipmentDisplay,
       difficulty: exerciseData?.difficulty || "בינוני",
-      instructions: Array.isArray(exerciseData?.instructions) && exerciseData.instructions.length > 0
-        ? exerciseData.instructions
-        : [
-            "עמוד בתנוחה יציבה",
-            "בצע את התנועה באיטיות",
-            "חזור למצב המוצא",
-            "חזור על התנועה",
-          ],
-      benefits: Array.isArray(exerciseData?.benefits) && exerciseData.benefits.length > 0
-        ? exerciseData.benefits
-        : [
-            "חיזוק קבוצת השרירים הראשית",
-            "שיפור כוח ויציבות",
-            "פיתוח מסת שריר",
-          ],
-      tips: Array.isArray(exerciseData?.tips) && exerciseData.tips.length > 0
-        ? exerciseData.tips
-        : [
-            "שמור על נשימה סדירה",
-            "התמקד בטכניקה נכונה",
-            "התקדם הדרגתית במשקל",
-          ],
+      instructions:
+        Array.isArray(exerciseData?.instructions) &&
+        exerciseData.instructions.length > 0
+          ? exerciseData.instructions
+          : [
+              "עמוד בתנוחה יציבה",
+              "בצע את התנועה באיטיות",
+              "חזור למצב המוצא",
+              "חזור על התנועה",
+            ],
+      benefits:
+        Array.isArray(exerciseData?.benefits) &&
+        exerciseData.benefits.length > 0
+          ? exerciseData.benefits
+          : [
+              "חיזוק קבוצת השרירים הראשית",
+              "שיפור כוח ויציבות",
+              "פיתוח מסת שריר",
+            ],
+      tips:
+        Array.isArray(exerciseData?.tips) && exerciseData.tips.length > 0
+          ? exerciseData.tips
+          : [
+              "שמור על נשימה סדירה",
+              "התמקד בטכניקה נכונה",
+              "התקדם הדרגתית במשקל",
+            ],
     };
   };
 
@@ -136,7 +147,9 @@ const ExerciseDetailsScreen: React.FC = () => {
         <BackButton />
         <View style={styles.headerInfo}>
           <Text style={styles.exerciseTitle}>{exerciseDetails.name}</Text>
-          <Text style={styles.muscleGroupText}>{exerciseDetails.muscleGroup}</Text>
+          <Text style={styles.muscleGroupText}>
+            {exerciseDetails.muscleGroup}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
@@ -192,12 +205,14 @@ const ExerciseDetailsScreen: React.FC = () => {
         {/* הוראות ביצוע */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>הוראות ביצוע</Text>
-          {exerciseDetails.instructions.map((instruction: string, index: number) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.listNumber}>{index + 1}</Text>
-              <Text style={styles.listText}>{instruction}</Text>
-            </View>
-          ))}
+          {exerciseDetails.instructions.map(
+            (instruction: string, index: number) => (
+              <View key={index} style={styles.listItem}>
+                <Text style={styles.listNumber}>{index + 1}</Text>
+                <Text style={styles.listText}>{instruction}</Text>
+              </View>
+            )
+          )}
         </View>
 
         {/* יתרונות התרגיל */}

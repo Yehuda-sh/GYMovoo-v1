@@ -1,5 +1,5 @@
 // User API service for Supabase integration
-import type { User } from "../../types";
+import type { User } from "../../core/types/user.types";
 import { fieldMapper } from "../../utils/fieldMapper";
 import { supabase } from "../supabase/client";
 

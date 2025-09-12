@@ -5,14 +5,14 @@
  *              Provides unified access to authentication, workout, data management,
  *              and specialized services throughout the application.
  * @status ACTIVE - Critical export hub maintaining all service imports
- * @updated 2025-09-01 - Added userOnboardingService export, updated documentation
+ * @updated 2025-01-08 - Removed unused userOnboardingService, updated documentation
  */
 
 // =======================================
 // 🔐 Authentication Services
 // שירותי אימות ואבטחה
 // =======================================
-export * from "./authService";
+// Note: Auth services moved to features/auth/services/
 export { isQuickLoginAvailable, tryQuickLogin } from "./auth/quickLoginService";
 
 // =======================================
@@ -20,12 +20,12 @@ export { isQuickLoginAvailable, tryQuickLogin } from "./auth/quickLoginService";
 // שירותי אימון ליבה
 // =======================================
 export * from "../features/questionnaire/services/questionnaireService";
-export { WorkoutDataService } from "./workoutDataService";
-export { nextWorkoutLogicService } from "./nextWorkoutLogicService";
+export { WorkoutDataService } from "../features/workout/services/workoutDataService";
+export { nextWorkoutLogicService } from "../features/workout/services/nextWorkoutLogicService";
 export type {
   WorkoutCycleState,
   NextWorkoutRecommendation,
-} from "./nextWorkoutLogicService";
+} from "../features/workout/services/nextWorkoutLogicService";
 
 // =======================================
 // 📊 API Clients
@@ -39,26 +39,19 @@ export { workoutApi } from "./api/workoutApi";
 // שירותי אימון מתמחים
 // =======================================
 export { default as workoutFacadeService } from "./workout/workoutFacadeService";
-export { default as personalRecordService } from "./workout/personalRecordService";
-export { progressiveOverloadService } from "./workout/ProgressiveOverloadService";
+export { default as personalRecordService } from "../features/workout/services/personalRecordService";
 
 // =======================================
 // 💾 Data Services
 // שירותי נתונים
 // =======================================
-export { localDataService } from "./localDataService";
+// אין localDataService - שירות DEV שהוסר
 
 // =======================================
 // 🔌 Database & Storage Services
 // שירותי בסיס נתונים ואחסון
 // =======================================
-export {
-  supabase,
-  hasSupabaseConfig,
-  getSupabaseProjectUrl,
-  getPublicStorageBaseUrl,
-  buildPublicUrl,
-} from "./supabase";
+export { supabase, hasSupabaseConfig, getSupabaseProjectUrl } from "./supabase";
 export type { SupabaseClient } from "./supabase";
 
 // =======================================
@@ -74,18 +67,11 @@ export type { AppDataCache } from "./core";
 // =======================================
 
 // =======================================
-// 🚀 User Onboarding Services
-// שירותי הקמת משתמשים
-// =======================================
-export { completeUserOnboarding } from "./userOnboardingService";
-export type { UserOnboardingResult } from "./userOnboardingService";
-
-// =======================================
 // 🌟 Service Summary
 // סיכום שירותים
 // =======================================
 // Demo services are now integrated in UnifiedQuestionnaireManager
 // and userStore customDemoUser functions - no separate service needed
-// Total Active Services: 18 | All deprecated/missing services removed
-// Last validated: 2025-09-01 | Core services fully modernized and complete
-// Added: QuickLogin authentication + Supabase storage + PersonalRecord analytics + ProgressiveOverloadService + UserOnboardingService
+// Total Active Services: 15 | All deprecated/missing services removed
+// Last validated: 2025-01-08 | Core services fully modernized and complete
+// Added: QuickLogin authentication + Supabase storage + PersonalRecord analytics
