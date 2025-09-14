@@ -20,13 +20,6 @@ export type RootStackParamList = {
   };
 
   // Workout screens
-  WorkoutPlan: {
-    regenerate?: boolean;
-    autoStart?: boolean;
-    returnFromWorkout?: boolean;
-    completedWorkoutId?: string;
-    preSelectedDay?: number;
-  };
   ActiveWorkout: {
     workoutData: {
       name: string;
@@ -88,4 +81,5 @@ export type RootStackParamList = {
   };
   History: undefined;
   Profile: undefined;
+  QuickWorkout: undefined;
 };

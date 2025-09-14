@@ -80,8 +80,8 @@ export interface QuestionnaireAnswers {
 export interface QuestionnaireData {
   answers?: QuestionnaireAnswers;
   metadata?: {
-    completedAt: string;
-    version: string;
+    completedAt?: string;
+    version?: string;
     sessionId?: string;
     completionTime?: number;
     questionsAnswered?: number;

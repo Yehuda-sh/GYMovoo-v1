@@ -16,7 +16,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "../../../core/theme";
-import { useAuth } from "../hooks/useAuth";
 import type { LoginCredentials } from "../types";
 
 interface LoginFormProps {
@@ -55,7 +54,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
-  const { login, isLoading } = useAuth();
+  // Note: Using placeholder login function - replace with real auth when available
+  const [isLoading, setIsLoading] = useState(false);
+
+  const login = async (
+    _credentials: LoginCredentials,
+    _rememberMe: boolean = false
+  ) => {
+    setIsLoading(true);
+    // TODO: Implement real authentication here
+    // For now, just simulate success after delay
+    setTimeout(() => {
+      setIsLoading(false);
+      onLoginSuccess();
+    }, 1000);
+  };
 
   // ניקוי שגיאות בעת שינוי קלט
   useEffect(() => {

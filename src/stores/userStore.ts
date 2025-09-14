@@ -46,11 +46,11 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, QuestionnaireData, WorkoutPlan } from "../core/types/user.types";
+import { User, WorkoutPlan } from "../core/types/user.types";
+import type { QuestionnaireData } from "../features/questionnaire/types";
 import { userApi } from "../services/api/userApi";
 import { StorageKeys } from "../constants/StorageKeys";
 import { fieldMapper } from "../utils/fieldMapper";
-// import { extractSmartAnswers } from "../utils/questionnaireUtils"; // no longer needed after merge refactor
 import { logger } from "../utils/logger";
 import { normalizeEquipment as normalizeEquipmentCatalog } from "../utils/equipmentCatalog";
 
@@ -1363,7 +1363,8 @@ export const useUserStore = create<UserStore>()(
 // =======================================
 
 // Re-export types from central location
-export type { User, QuestionnaireData } from "../core/types/user.types";
+export type { User } from "../core/types/user.types";
+export type { QuestionnaireData } from "../features/questionnaire/types";
 
 // =======================================
 // 🎣 Hooks נוחים - כמו כלי עזר לשימוש בקומפוננטים

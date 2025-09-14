@@ -29,7 +29,7 @@ This document outlines our implementation strategy for the GYMovoo app refactori
 
 - Move and refactor auth-related screens
 - Extract LoginForm and RegisterForm components
-- Create useAuth hook to centralize auth logic
+- DEPRECATED: useAuth hook removed - now using central userStore instead
 - Implement comprehensive tests
 
 ### 2.2 Questionnaire Feature

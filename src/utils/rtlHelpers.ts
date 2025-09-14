@@ -25,12 +25,9 @@ let _cachedIsRTL: boolean | null = null;
 /**
  * מצב RTL מרכזי עם caching לביצועים
  */
-export const isRTL = (() => {
+export const isRTL = (): boolean => {
   if (_cachedIsRTL === null) {
     _cachedIsRTL = I18nManager.isRTL;
   }
   return _cachedIsRTL;
-})();
-
-// אתחול אוטומטי של RTL
-initializeRTL();
+};

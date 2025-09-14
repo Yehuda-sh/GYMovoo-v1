@@ -6,8 +6,7 @@
 // ייצוא מטיפוסי משתמש
 export * from "./user.types";
 
-// ייצוא סלקטיבי מטיפוסי שאלון (למניעת כפילויות)
-export { WeeklySchedule, HealthInformation } from "./questionnaire.types";
+// questionnaire.types.ts removed - duplicated types that were not in use
 
 // ייצוא סלקטיבי מטיפוסי אימון (למניעת כפילויות)
 export {

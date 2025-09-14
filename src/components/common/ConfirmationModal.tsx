@@ -15,12 +15,7 @@ import * as Haptics from "expo-haptics";
 import { theme } from "../../core/theme";
 import { logger } from "../../utils/logger";
 
-type ConfirmationModalVariant =
-  | "default"
-  | "error"
-  | "success"
-  | "warning"
-  | "info";
+type ConfirmationModalVariant = "default" | "error";
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -83,12 +78,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
       switch (variant) {
         case "error":
           return "alert-circle";
-        case "success":
-          return "checkmark-circle";
-        case "warning":
-          return "warning";
-        case "info":
-          return "information-circle";
         default:
           return "help-circle";
       }
@@ -101,21 +90,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
           return {
             icon: theme.colors.error,
             confirm: theme.colors.error,
-          };
-        case "success":
-          return {
-            icon: theme.colors.success,
-            confirm: theme.colors.success,
-          };
-        case "warning":
-          return {
-            icon: theme.colors.warning,
-            confirm: theme.colors.warning,
-          };
-        case "info":
-          return {
-            icon: theme.colors.info,
-            confirm: theme.colors.info,
           };
         default:
           return {
@@ -191,9 +165,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
                 accessibilityHint={
                   destructive || variant === "error"
                     ? "זהירות! פעולה זו אינה הפיכה"
-                    : variant === "warning"
-                      ? "אישור פעולה עם אזהרה"
-                      : "לחץ כדי לאשר את הפעולה"
+                    : "לחץ כדי לאשר את הפעולה"
                 }
               >
                 <Text style={styles.buttonText}>{confirmText}</Text>
@@ -215,7 +187,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonContainer: {
-    flexDirection: theme.isRTL ? "row-reverse" : "row",
+    flexDirection: theme.isRTL() ? "row-reverse" : "row",
     width: "100%",
     gap: theme.spacing.lg,
     paddingTop: theme.spacing.sm,

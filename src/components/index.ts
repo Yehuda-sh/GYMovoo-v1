@@ -21,14 +21,13 @@ export { default as DefaultAvatar } from "./common/DefaultAvatar"; // אווטר
 export { default as ConfirmationModal } from "./common/ConfirmationModal"; // חלון אישור RTL-friendly
 export { UniversalModal } from "./common/UniversalModal"; // מודל אחיד עם 4 סוגים ו-useModalManager ⭐
 export { default as StatCard, StatCardGrid } from "./common/StatCard"; // כרטיס סטטיסטיקה עם 4 variants + grid ⭐
-export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום עם 4 variants + grid
+export { default as DayButton, DayButtonGrid } from "./common/DayButton"; // כפתור יום מיועל עם default variant + grid
 
 // ===============================================
 // 🎨 UI Components - רכיבי ממשק משתמש (מותאמים לכושר)
 // ===============================================
 // רכיבי ממשק מתקדמים עם אופטימיזציות כושר מובייל / Advanced UI components with fitness mobile optimizations
 
-export { default as UniversalButton } from "./ui/UniversalButton"; // כפתור אוניברסלי עם workout variant ו-44px validation ⭐⚡
 export { default as UniversalCard } from "./ui/UniversalCard"; // כרטיס פשוט עם title ו-children - 54 שורות (הופחת מ-446) ⭐
 export { default as TouchableButton } from "./ui/TouchableButton"; // כפתור מגע חוצה פלטפורמות עם משוב נטיבי ו-44px validation ⭐⚡
 
@@ -37,8 +36,7 @@ export { default as TouchableButton } from "./ui/TouchableButton"; // כפתור
 // ===============================================
 // רכיבים מיוחדים לאימונים עם haptic feedback ואופטימיזציות ביצועים / Specialized workout components with haptic feedback and performance optimizations
 
-export { default as FloatingActionButton } from "./workout/FloatingActionButton"; // כפתור צף עם workout mode ו-haptic feedback ⚡💪
-export { default as NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא עם performance tracking ו-enlarged hitSlop ⚡💪
+export { default as NextWorkoutCard } from "./workout/NextWorkoutCard"; // כרטיס האימון הבא פשוט ואפקטיבי ⚡
 
 // ===============================================
 //  Screen Components - רכיבי מסכים מותאמים לכושר
@@ -60,7 +58,7 @@ export { default as MainScreen } from "../screens/main/MainScreen"; // דשבו�
 // • עם Performance Tracking: 7 🚀 (לאחר הסרת רכיבים עם performance tracking מיותר)
 // • עם React.memo: 7 ⭐ (לאחר ניקוי רכיבים מיותרים)
 // • עם 44px Validation: 8 ♿ (כולל כפתורי התוכניות ו-tabs)
-// • עם Workout Variants: 2 🏋️ (FloatingActionButton, NextWorkoutCard)
+// • עם Workout Variants: 1 🏋️ (NextWorkoutCard)
 // • עם Enlarged HitSlop: 6 📱 (אזור מגע מוגדל לכל פעולות האימון)
 // • עם Gamification: 0 🎮 (הוסרו רכיבים שלא היו בשימוש)
 // • עם Ad Management: 0 📱 (הוסר AdManager שלא היה בשימוש)
@@ -75,9 +73,9 @@ export { default as MainScreen } from "../screens/main/MainScreen"; // דשבו�
 // ✅ Graduated Feedback - משוב מישושי מדורג לפי סוג הפעולה
 //
 // 🔥 רכיבים עם אופטימיזציות מלאות:
-// • UI: UniversalButton, UniversalCard
+// • UI: UniversalCard (יש AppButton להחלפת UniversalButton)
 // • Common: UniversalModal (4 סוגים + useModalManager), StatCard (4 variants + grid)
-// • Workout: FloatingActionButton, NextWorkoutCard
+// • Workout: NextWorkoutCard
 // • Screens: WelcomeScreen (TouchableButton מדורג), MainScreen (דשבורד עם 4 כפתורים)
 //
-// Total: 17 components | Fitness Optimized: 10 | With Haptic: 8 | Performance Tracked: 7 | With Gamification: 0
+// Total: 16 components | Fitness Optimized: 9 | With Haptic: 7 | Performance Tracked: 6 | With Gamification: 0

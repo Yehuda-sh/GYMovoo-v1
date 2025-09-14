@@ -1,12 +1,12 @@
 /**
  * @file src/components/common/DayButton.tsx
- * @brief רכיב כפתור יום משותף עם תמיכה בעיצובים שונים
- * @brief Shared day button component with support for different designs
+ * @brief רכיב כפתור יום משותף עם תמיכה בעיצוב default
+ * @brief Shared day button component with default design support
  * @features תמיכה RTL, נגישות, אנימציות, מצבי בחירה, טקסט מותאם אישית, haptic feedback
  * @features RTL support, accessibility, animations, selection states, custom text, haptic feedback
- * @version 2.1.1 - Performance optimizations, improved accessibility, useRef cleanup
+ * @version 2.2.0 - Simplified variants (only default), optimized for actual usage
  * @created 2025-08-06
- * @updated 2025-09-04 שיפורי ביצועים, נגישות משופרת, ניקוי useRef
+ * @updated 2025-09-13 פשוט variants (רק default), מותאם לשימוש בפועל
  */
 
 import React, { useCallback, useMemo, useRef } from "react";
@@ -24,6 +24,7 @@ import * as Haptics from "expo-haptics";
 import { theme } from "../../core/theme";
 import { logger } from "../../utils/logger";
 import { getDayWorkoutType } from "../../constants/mainScreenTexts";
+import { isRTL } from "../../utils/rtlHelpers";
 
 // ===============================================
 // 🔧 Type Definitions - הגדרות טיפוסים
@@ -59,10 +60,10 @@ interface DayButtonProps {
   textStyle?: TextStyle;
 
   /** @description גודל הכפתור / Button size */
-  size?: "small" | "medium" | "large";
+  size?: "medium";
 
   /** @description סוג הכפתור / Button variant */
-  variant?: "default" | "compact" | "grid" | "workout-plan";
+  variant?: "default";
 
   // נגישות / Accessibility
   accessibilityLabel?: string;
@@ -278,7 +279,7 @@ const DayButton: React.FC<DayButtonProps> = React.memo(
         {icon && (
           <MaterialCommunityIcons
             name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
-            size={variant === "compact" ? 20 : 24}
+            size={24}
             color={
               disabled
                 ? theme.colors.textTertiary
@@ -338,41 +339,10 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
 
-  compact: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: 60,
-  },
-
-  grid: {
-    flex: 1,
-    aspectRatio: 1,
-    maxWidth: "48%",
-    marginBottom: theme.spacing.sm,
-  },
-
-  "workout-plan": {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    minWidth: 80,
-    alignItems: "center",
-  },
-
   // Size styles // סטיילי גדלים
-  smallSize: {
-    padding: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-  },
-
   mediumSize: {
     padding: theme.spacing.md,
     borderRadius: theme.radius.lg,
-  },
-
-  largeSize: {
-    padding: theme.spacing.lg,
-    borderRadius: theme.radius.xl,
   },
 
   // State styles // סטיילי מצבים
@@ -398,19 +368,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  smallText: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-
   mediumText: {
     fontSize: 18,
     lineHeight: 24,
-  },
-
-  largeText: {
-    fontSize: 22,
-    lineHeight: 28,
   },
 
   selectedText: {
@@ -429,19 +389,9 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  smallSubtitle: {
-    fontSize: 10,
-    lineHeight: 14,
-  },
-
   mediumSubtitle: {
     fontSize: 13,
     lineHeight: 18,
-  },
-
-  largeSubtitle: {
-    fontSize: 15,
-    lineHeight: 20,
   },
 
   selectedSubtitle: {
@@ -457,8 +407,8 @@ export const DayButtonGrid: React.FC<{
   days: number[];
   selectedDay?: number;
   onDayPress: (day: number) => void;
-  variant?: "default" | "compact" | "grid";
-  size?: "small" | "medium" | "large";
+  variant?: "default";
+  size?: "medium";
   style?: ViewStyle;
   testID?: string;
   accessibilityLabel?: string;
@@ -479,16 +429,13 @@ export const DayButtonGrid: React.FC<{
       (): ViewStyle =>
         StyleSheet.flatten([
           {
-            flexDirection: theme.isRTL ? "row-reverse" : "row",
+            flexDirection: isRTL() ? "row-reverse" : "row",
             justifyContent: "space-between",
             gap: theme.spacing.sm,
           },
-          variant === "grid" && {
-            flexWrap: "wrap",
-          },
           style,
         ]),
-      [variant, style]
+      [style]
     );
 
     // Accessibility for grid container

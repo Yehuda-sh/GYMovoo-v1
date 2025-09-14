@@ -6,7 +6,6 @@
  * ✅ PRODUCTION-READY: Unified button with consistent design and behavior
  * - גודל מינימלי 44x44 לנגישות
  * - אנימציות לחיצה מותאמות
- * - מניעת לחיצות כפולות
  * - טיפול במצב loading
  * - תמיכה בוואריאנטים מרובים
  * - נגישות מלאה
@@ -14,7 +13,6 @@
  *
  * @features
  * - ✅ גודל מינימלי 44x44px
- * - ✅ מניעת לחיצות כפולות
  * - ✅ אנימציות לחיצה
  * - ✅ מצב loading
  * - ✅ וואריאנטים מרובים
@@ -23,7 +21,7 @@
  * - ✅ RTL support
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -84,8 +82,6 @@ export interface AppButtonProps {
   // Enhanced Features
   haptic?: boolean;
   hapticType?: "light" | "medium" | "heavy";
-  preventDoublePress?: boolean;
-  doublePressDelay?: number;
 }
 
 // =======================================
@@ -95,8 +91,6 @@ export interface AppButtonProps {
 const BUTTON_CONSTANTS = {
   MIN_HEIGHT: 44, // iOS HIG minimum touch target
   MIN_WIDTH: 44,
-  DOUBLE_PRESS_DELAY: 500, // ms
-  ANIMATION_DURATION: 150,
   BORDER_RADIUS: 12,
   HIT_SLOP: { top: 8, bottom: 8, left: 8, right: 8 },
 } as const;
@@ -155,14 +149,12 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
     testID,
     haptic = true,
     hapticType = "light",
-    preventDoublePress = true,
-    doublePressDelay = BUTTON_CONSTANTS.DOUBLE_PRESS_DELAY,
   }) => {
     // =======================================
     // 🔄 State Management
     // =======================================
 
-    const [lastPressTime, setLastPressTime] = useState(0);
+    // Removed lastPressTime state as double press prevention was removed
 
     // =======================================
     // 🎨 Style Calculations
@@ -338,29 +330,12 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
     const handlePress = useCallback(() => {
       if (disabled || loading) return;
 
-      // Double press prevention
-      if (preventDoublePress) {
-        const now = Date.now();
-        if (now - lastPressTime < doublePressDelay) {
-          return;
-        }
-        setLastPressTime(now);
-      }
-
       // Trigger haptic feedback
       triggerHapticFeedback();
 
       // Execute onPress
       onPress();
-    }, [
-      disabled,
-      loading,
-      preventDoublePress,
-      lastPressTime,
-      doublePressDelay,
-      triggerHapticFeedback,
-      onPress,
-    ]);
+    }, [disabled, loading, triggerHapticFeedback, onPress]);
 
     // =======================================
     // 🎯 Content Rendering

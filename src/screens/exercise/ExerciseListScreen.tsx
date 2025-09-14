@@ -22,7 +22,6 @@ import { Exercise, getRandomExercises } from "../../data/exercises";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import type { RootStackParamList } from "../../navigation/types";
-import ExerciseDetailsModal from "./ExerciseDetailsModal";
 
 const ExerciseListScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -32,9 +31,6 @@ const ExerciseListScreen: React.FC = () => {
 
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -112,7 +108,18 @@ const ExerciseListScreen: React.FC = () => {
         onSelectExercise(workoutExercise);
         navigation.goBack();
       } else {
-        setSelectedExercise(exercise);
+        // Navigate to ExerciseDetails screen
+        navigation.navigate("ExerciseDetails", {
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          muscleGroup: exercise.primaryMuscles[0] || exercise.category,
+          exerciseData: {
+            equipment: exercise.equipment,
+            difficulty: exercise.difficulty,
+            instructions: exercise.instructions?.he || [],
+            tips: exercise.tips?.he || [],
+          },
+        });
       }
     },
     [mode, onSelectExercise, navigation]
@@ -307,14 +314,6 @@ const ExerciseListScreen: React.FC = () => {
           )
         }
       />
-
-      {/* Modal פרטי תרגיל */}
-      {selectedExercise && (
-        <ExerciseDetailsModal
-          exercise={selectedExercise}
-          onClose={() => setSelectedExercise(null)}
-        />
-      )}
     </SafeAreaView>
   );
 };

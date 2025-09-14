@@ -4,6 +4,8 @@
  * @description הגדרות טיפוס מרכזיות למשתמש וכל המידע הקשור אליו
  */
 
+import type { QuestionnaireData } from "../../features/questionnaire/types";
+
 // ========== Main User Interface ==========
 export interface User {
   id?: string;
@@ -53,13 +55,7 @@ export interface QuestionnaireAnswers {
   nutrition?: string[];
 }
 
-export interface QuestionnaireData {
-  answers?: QuestionnaireAnswers;
-  metadata?: {
-    completedAt?: string;
-    version?: string;
-  };
-}
+// QuestionnaireData moved to features/questionnaire/types/questionnaire.types.ts
 
 // ========== Training Statistics ==========
 export interface TrainingStats {

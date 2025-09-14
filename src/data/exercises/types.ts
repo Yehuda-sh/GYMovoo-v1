@@ -4,11 +4,10 @@
  * Shared types for exercises
  */
 
-import {
-  ExerciseCategory,
-  ExerciseDifficulty,
-  MuscleGroup,
-} from "../../constants/exercise";
+import { ExerciseDifficulty, MuscleGroup } from "../../constants/exercise";
+
+// Category type moved here since not used elsewhere
+export type ExerciseCategory = "strength" | "cardio" | "flexibility" | "core";
 
 export interface Exercise {
   id: string;

@@ -14,7 +14,6 @@ import WelcomeScreen from "../screens/welcome/WelcomeScreen";
 import DeveloperScreen from "../screens/developer/DeveloperScreen";
 
 // Workout screens
-import WorkoutPlanScreen from "../features/workout/screens/workout_screens/WorkoutPlansScreen";
 import ActiveWorkoutScreen from "../features/workout/screens/workout_screens/ActiveWorkoutScreen";
 
 // Additional screens
@@ -85,9 +84,6 @@ export default function AppNavigator() {
           options={{ gestureEnabled: false }}
         />
         */}
-
-        {/* Workout */}
-        <Stack.Screen name="WorkoutPlan" component={WorkoutPlanScreen} />
 
         {/* Main app */}
         <Stack.Screen

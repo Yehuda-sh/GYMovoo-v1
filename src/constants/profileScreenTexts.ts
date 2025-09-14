@@ -2,10 +2,10 @@
  * @file src/constants/profileScreenTexts.ts
  * @brief קבועי טקסט למסך הפרופיל - פושט ומיועל
  * @brief Profile screen text constants - simplified and optimized
- * @notes טקסטים בסיסיים למסך פרופיל והישגים בלבד
- * @notes Basic texts for profile screen and achievements only
- * @version 2.0.0 - Drastically simplified, removed unused code
- * @updated 2025-09-11 פישוט דרמטי והסרת קוד לא בשימוש
+ * @notes טקסטים בסיסיים למסך פרופיל והישגים בלבד - הוסרו הישגים מיותרים
+ * @notes Basic texts for profile screen and achievements only - removed unused achievements
+ * @version 3.0.0 - Removed unused achievements: QUESTIONNAIRE_COMPLETE, EARLY_BIRD, DEDICATED_TRAINER, CENTURY_CLUB
+ * @updated 2025-09-13 הסרת הישגים מיותרים והמשך פישוט
  */
 
 export const PROFILE_SCREEN_TEXTS = {
@@ -33,10 +33,6 @@ export const PROFILE_SCREEN_TEXTS = {
     ENTHUSIASTIC_BEGINNER: {
       title: "ברוך הבא ל‑GYMovoo",
       description: "השלמת את ההרשמה והשאלון",
-    },
-    QUESTIONNAIRE_COMPLETE: {
-      title: "השלמת שאלון",
-      description: "מילאת את השאלון המדעי בהצלחה",
     },
 
     // הישגי רצף / Streak achievements
@@ -164,21 +160,9 @@ export const PROFILE_SCREEN_TEXTS = {
       title: "מאסטר דירוג",
       description: "25 דירוגים של 5 כוכבים",
     },
-    EARLY_BIRD: {
-      title: "ציפור מוקדמת",
-      description: "אימונים מוקדמים בבוקר",
-    },
-    DEDICATED_TRAINER: {
-      title: "מאמן מסור",
-      description: "5 אימונים מושלמים",
-    },
     SPEED_DEMON: {
       title: "שד מהירות",
       description: "50 שעות של אימונים",
-    },
-    CENTURY_CLUB: {
-      title: "מועדון המאה",
-      description: "100 אימונים מושלמים",
     },
     PERFECTIONIST: {
       title: "פרפקציוניסט",

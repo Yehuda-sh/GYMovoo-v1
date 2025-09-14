@@ -11,7 +11,7 @@ export const PROGRESS_SCREEN_TEXTS = {
   // Headers and main titles / כותרות ראשיות
   HEADERS: {
     MAIN_TITLE: "מסך התקדמות",
-    SUBTITLE: "הנתונים שלך נשמרים ונמצאים ב-WorkoutHistoryService",
+    SUBTITLE: "עקוב אחרי ההתקדמות שלך לאורך זמן",
   },
 
   // Information content / תוכן מידע
@@ -34,14 +34,7 @@ export const PROGRESS_SCREEN_TEXTS = {
   // Accessibility labels / תוויות נגישות
   A11Y: {
     MAIN_ICON: "אייקון מסך התקדמות",
-    BACK_BUTTON: "חזור למסך הקודם",
     INFO_BOX: "מידע על נתוני התקדמות זמינים",
-  },
-
-  // Console and debugging / קונסול ודיבוג
-  CONSOLE: {
-    SCREEN_LOADED: "📊 ProgressScreen - מסך התקדמות נטען בהצלחה",
-    NAVIGATION_BACK: "📊 ProgressScreen - חזרה למסך הקודם",
   },
 } as const;
 

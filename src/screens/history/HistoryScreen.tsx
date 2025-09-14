@@ -9,6 +9,10 @@ import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import { dataManager } from "../../services/core";
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+import {
+  getDifficultyStars,
+  getFeelingEmoji,
+} from "../../features/workout/utils/workoutHelpers";
 
 interface WorkoutItem {
   id: string;
@@ -97,21 +101,6 @@ const HistoryScreen: React.FC = () => {
     } catch {
       return "";
     }
-  };
-
-  const getDifficultyStars = (difficulty: number) => {
-    return "★".repeat(Math.max(1, Math.min(5, Math.round(difficulty))));
-  };
-
-  const getFeelingEmoji = (feeling: string) => {
-    const feelings: { [key: string]: string } = {
-      great: "😊",
-      good: "🙂",
-      okay: "😐",
-      tired: "😴",
-      hard: "😅",
-    };
-    return feelings[feeling] || "🙂";
   };
 
   const renderWorkoutItem = ({ item }: { item: WorkoutItem }) => {

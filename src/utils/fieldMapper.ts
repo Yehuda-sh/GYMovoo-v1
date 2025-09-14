@@ -2,7 +2,7 @@
  * Simple field mapping utilities for user data
  */
 
-import type { QuestionnaireData } from "../core/types/user.types";
+import type { QuestionnaireData } from "../features/questionnaire/types";
 
 /**
  * Extract smart questionnaire answers from user data

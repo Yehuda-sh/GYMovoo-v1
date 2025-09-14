@@ -275,11 +275,11 @@ export const a11y = {
 export const rtl = {
   // מחזיר ערך על בסיס כיוון
   // Returns a value based on RTL direction
-  switch: <T>(rtlValue: T, ltrValue: T): T => (isRTL ? rtlValue : ltrValue),
+  switch: <T>(rtlValue: T, ltrValue: T): T => (isRTL() ? rtlValue : ltrValue),
   // מחזיר style של קצה (left/right) לפי כיוון
   edge: (value: number = spacing.lg) => ({
-    left: isRTL ? undefined : value,
-    right: isRTL ? value : undefined,
+    left: isRTL() ? undefined : value,
+    right: isRTL() ? value : undefined,
   }),
 } as const;
 
@@ -310,10 +310,10 @@ export const getContrastTextColor = (bg: string): string => {
 
 // --- Icon Directions (For RTL) ---
 export const icons = {
-  chevron: isRTL ? "chevron-right" : "chevron-left",
-  arrow: isRTL ? "arrow-right" : "arrow-left",
-  arrowDropdown: isRTL ? "caret-down" : "caret-down",
-  menu: isRTL ? "menu" : "menu",
+  chevron: isRTL() ? "chevron-right" : "chevron-left",
+  arrow: isRTL() ? "arrow-right" : "arrow-left",
+  arrowDropdown: isRTL() ? "caret-down" : "caret-down",
+  menu: isRTL() ? "menu" : "menu",
 };
 
 // --- Component Styles (Centralized) ---
@@ -338,7 +338,7 @@ export const components = {
     transform: [{ translateY: -12 }],
   },
   exerciseCard: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
@@ -368,7 +368,7 @@ export const components = {
     justifyContent: "center" as const,
   },
   actionButton: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center" as const,
     backgroundColor: colors.card,
     paddingStart: spacing.md,
@@ -394,8 +394,8 @@ export const components = {
     borderColor: colors.cardBorder,
     color: colors.text,
     fontSize: 16,
-    textAlign: isRTL ? "right" : "left",
-    writingDirection: isRTL ? "rtl" : "ltr",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     height: 56,
     ...shadows.small,
   },
@@ -445,7 +445,7 @@ export const components = {
     ...shadows.large,
   },
   modalHeader: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
     marginBottom: spacing.lg,
@@ -455,7 +455,7 @@ export const components = {
     paddingEnd: spacing.xl,
     paddingTop: Platform.OS === "ios" ? 60 : 50,
     paddingBottom: spacing.md,
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
   },
@@ -500,15 +500,15 @@ export const components = {
     borderRadius: radius.lg,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
   },
 
   // כפתור צף ראשי - Enhanced floating button
   floatingButton: {
     position: "absolute" as const,
     bottom: spacing.xl,
-    right: isRTL ? undefined : spacing.xl,
-    left: isRTL ? spacing.xl : undefined,
+    right: isRTL() ? undefined : spacing.xl,
+    left: isRTL() ? spacing.xl : undefined,
     backgroundColor: colors.primary,
     width: 56,
     height: 56,
@@ -547,8 +547,8 @@ export const components = {
   backButton: {
     position: "absolute" as const,
     top: Platform.OS === "ios" ? 50 : 40,
-    left: isRTL ? spacing.md : undefined,
-    right: isRTL ? undefined : spacing.md,
+    left: isRTL() ? spacing.md : undefined,
+    right: isRTL() ? undefined : spacing.md,
     backgroundColor: colors.card + "CC",
     borderRadius: 24,
     width: 42,
@@ -600,8 +600,8 @@ export const components = {
       ? {
           position: "absolute" as const,
           top: Platform.OS === "ios" ? 50 : 40,
-          left: isRTL ? spacing.md : undefined,
-          right: isRTL ? undefined : spacing.md,
+          left: isRTL() ? spacing.md : undefined,
+          right: isRTL() ? undefined : spacing.md,
         }
       : {};
 
@@ -643,7 +643,7 @@ export const components = {
   },
 
   chipButton: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center" as const,
     backgroundColor: colors.backgroundElevated,
     paddingHorizontal: spacing.md,
@@ -669,7 +669,7 @@ export const components = {
   },
 
   listItem: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center" as const,
     backgroundColor: colors.card,
     paddingHorizontal: spacing.lg,
@@ -781,7 +781,7 @@ export const theme = {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center" as const,
     ...shadows.large,
   },

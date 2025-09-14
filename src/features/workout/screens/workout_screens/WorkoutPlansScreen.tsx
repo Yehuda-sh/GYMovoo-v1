@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   RefreshControl,
   TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp } from "@react-navigation/native";
@@ -17,25 +18,14 @@ import type {
 } from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
 import BackButton from "../../../../components/common/BackButton";
-import { UniversalModal } from "../../../../components/common/UniversalModal";
+import ConfirmationModal from "../../../../components/common/ConfirmationModal";
 import EmptyState from "../../../../components/common/EmptyState";
 import UniversalCard from "../../../../components/ui/UniversalCard";
 import { questionnaireService } from "../../../questionnaire/services/questionnaireService";
 import AppButton from "../../../../components/common/AppButton";
 import { logger } from "../../../../utils/logger";
 
-interface WorkoutPlanScreenProps {
-  route?: {
-    params?: {
-      regenerate?: boolean;
-      autoStart?: boolean;
-    };
-  };
-}
-
-export default function WorkoutPlansScreen({
-  route: _route,
-}: WorkoutPlanScreenProps): React.ReactElement {
+export default function WorkoutPlansScreen(): React.ReactElement {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useUserStore((state) => state.user);
 
@@ -72,10 +62,21 @@ export default function WorkoutPlansScreen({
         return;
       }
 
-      const plan =
+      const plans =
         type === "smart"
           ? await questionnaireService.generateSmartWorkoutPlan()
           : await questionnaireService.generateBasicWorkoutPlan();
+
+      // Take the first plan from the array
+      const plan = plans.length > 0 ? plans[0] : null;
+
+      if (!plan) {
+        showMessage(
+          "שגיאה",
+          `לא הצלחנו ליצור תוכנית ${type === "smart" ? "AI" : "בסיסית"}`
+        );
+        return;
+      }
 
       setWorkoutPlans((prev) => ({ ...prev, [type]: plan }));
       showMessage(
@@ -170,7 +171,7 @@ export default function WorkoutPlansScreen({
         </View>
 
         {currentWorkoutPlan ? (
-          <UniversalCard title={currentWorkoutPlan.name} variant="workout">
+          <UniversalCard title={currentWorkoutPlan.name}>
             <Text style={styles.planDescription}>
               {currentWorkoutPlan.description}
             </Text>
@@ -228,32 +229,34 @@ export default function WorkoutPlansScreen({
         </View>
       </ScrollView>
 
-      <UniversalModal
+      <ConfirmationModal
         visible={showModal}
-        type="info"
         title={modalConfig.title}
         message={modalConfig.message}
         onClose={() => setShowModal(false)}
+        onConfirm={() => setShowModal(false)}
+        singleButton={true}
+        variant="default"
       />
     </SafeAreaView>
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   loadingText: {
     fontSize: 16,
     color: theme.colors.text,
-    textAlign: "center" as const,
+    textAlign: "center",
     marginTop: 10,
   },
   scrollView: {
@@ -264,31 +267,31 @@ const styles = {
   },
   header: {
     marginBottom: 24,
-    alignItems: "center" as const,
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold" as const,
+    fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center" as const,
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-    textAlign: "center" as const,
+    textAlign: "center",
   },
   selectorContainer: {
     marginBottom: 24,
   },
   selectorTitle: {
     fontSize: 18,
-    fontWeight: "600" as const,
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 12,
   },
   selectorButtons: {
-    flexDirection: "row" as const,
+    flexDirection: "row",
     gap: 12,
   },
   selectorButton: {
@@ -296,7 +299,7 @@ const styles = {
     padding: 16,
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    alignItems: "center" as const,
+    alignItems: "center",
     borderWidth: 2,
     borderColor: "transparent",
   },
@@ -310,7 +313,7 @@ const styles = {
   },
   selectorButtonText: {
     fontSize: 16,
-    fontWeight: "500" as const,
+    fontWeight: "500",
     color: theme.colors.text,
   },
   planDescription: {
@@ -320,8 +323,8 @@ const styles = {
     marginBottom: 16,
   },
   planStats: {
-    flexDirection: "row" as const,
-    flexWrap: "wrap" as const,
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 16,
   },
@@ -337,4 +340,4 @@ const styles = {
     gap: 12,
     marginTop: 24,
   },
-};
+});

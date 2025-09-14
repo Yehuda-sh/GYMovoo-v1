@@ -82,7 +82,7 @@ features/auth/
 │   ├── WelcomeScreen.tsx
 │   └── TermsScreen.tsx
 ├── hooks/
-│   └── useAuth.ts
+│   └── [REMOVED] useAuth.ts - replaced with central userStore
 └── types/
     └── index.ts
 ```

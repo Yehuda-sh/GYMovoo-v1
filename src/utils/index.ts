@@ -17,9 +17,6 @@ export { logger } from "./logger";
 // Personal data utilities
 export * from "./personalDataUtils";
 
-// Questionnaire utilities
-export * from "./questionnaireUtils";
-
 // Equipment utilities
 export * from "./equipmentCatalog";
 

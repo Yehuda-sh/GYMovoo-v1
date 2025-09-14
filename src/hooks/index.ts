@@ -26,7 +26,7 @@ export { useAppInitialization } from "./useAppInitialization";
 // ================================
 
 // Next workout planning with AI recommendations
-export { useNextWorkout } from "./useNextWorkout";
+export { useNextWorkout } from "../features/workout/hooks/useNextWorkout";
 
 // ================================
 // ♿ ACCESSIBILITY HOOKS
@@ -50,7 +50,7 @@ export * from "./userPreferencesHelpers";
 // ================================
 
 // Workout management types
-export type { UseNextWorkoutReturn } from "./useNextWorkout";
+export type { UseNextWorkoutReturn } from "../features/workout/hooks/useNextWorkout";
 
 // User preferences types
 export type {

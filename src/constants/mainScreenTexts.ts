@@ -36,14 +36,6 @@ export const MAIN_SCREEN_TEXTS = {
     DAYS: "ימים",
   },
 
-  // Fitness levels // רמות כושר
-  FITNESS_LEVELS: {
-    BEGINNER: "מתחיל",
-    INTERMEDIATE: "בינוני",
-    ADVANCED: "מתקדם",
-    EXPERT: "מומחה",
-  },
-
   // Section titles // כותרות קטעים
   SECTIONS: {
     SCIENTIFIC_DATA: "הנתונים המדעיים שלך",
@@ -65,7 +57,6 @@ export const MAIN_SCREEN_TEXTS = {
     SHOULDERS_CORE: "כתפיים + ליבה",
     STRENGTH: "אימון כח",
     GENERAL: "אימון כללי",
-    WELCOME_PROGRAM: "ברוכים הבאים! התחלת תוכנית האימונים",
   },
 
   // Action buttons // כפתורי פעולה
@@ -73,17 +64,7 @@ export const MAIN_SCREEN_TEXTS = {
     START_QUICK_WORKOUT: "התחל אימון מהיר",
     VIEW_ALL_HISTORY: "צפה בכל ההיסטוריה",
     TRY_AGAIN: "נסה שוב",
-    WEEK: "שבוע",
     WORKOUTS: "אימונים",
-    ACHIEVEMENT: "הישג",
-    CONTINUE: "המשך",
-    PAUSE: "השהה",
-    STOP: "עצור",
-    SAVE: "שמור",
-    CANCEL: "ביטול",
-    EDIT: "ערוך",
-    DELETE: "מחק",
-    SHARE: "שתף",
   },
 
   // Loading and error states // מצבי טעינה ושגיאה
@@ -93,36 +74,17 @@ export const MAIN_SCREEN_TEXTS = {
     DATA_LOAD_ERROR: "שגיאה בטעינת נתונים",
     NO_RECENT_WORKOUTS: "אין לך עדיין אימונים אחרונים",
     START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
-    NETWORK_ERROR: "שגיאת רשת - בדוק חיבור אינטרנט",
-    SERVER_ERROR: "שגיאת שרת - נסה שוב מאוחר יותר",
-    NO_DATA_AVAILABLE: "אין נתונים זמינים",
   },
 
   // DEMO_WORKOUTS הוסר – אין דמו מצד לקוח
 
-  // Progress displays // תצוגות התקדמות
-  PROGRESS: {
-    PERCENTAGE: "%",
-    MINUTES: "דקות",
-    DAYS_WEEK: "ימים בשבוע",
-    PER_WEEK: "בשבוע",
-    HOURS: "שעות",
-    KG: "ק״ג",
-    LBS: "ליברות",
-    CALORIES: "קלוריות",
-  },
-
   // Accessibility labels // תוויות נגישות
   A11Y: {
     PROFILE_BUTTON: "כפתור פרופיל משתמש",
-    PROFILE_HINT: "לחץ לצפייה ועריכת הפרופיל האישי",
     QUICK_WORKOUT: "התחל אימון מהיר",
     QUICK_WORKOUT_HINT: "לחץ להתחלת אימון מהיר מותאם אישית",
     VIEW_HISTORY: "צפה בכל ההיסטוריה",
     VIEW_HISTORY_HINT: "לחץ לצפייה בהיסטוריית האימונים המלאה",
-    DAY_WORKOUT: (day: number) => `יום ${day} אימון`,
-    DAY_WORKOUT_HINT: (day: number, type: string) =>
-      `לחץ להתחלת אימון יום ${day} - ${type}`,
   },
 } as const;
 

@@ -17,9 +17,7 @@ export { TermsScreen } from "./screens/TermsScreen";
 export { AuthNavigator } from "./navigation/AuthNavigator";
 export type { AuthStackParamList } from "./navigation/AuthNavigator";
 
-// ייצוא hooks
-export { useAuth } from "./hooks/useAuth";
-export { useAuthStore } from "./hooks/useAuth";
+// hooks removed - use userStore from ../../stores/userStore instead
 
 // ייצוא טיפוסים
 export * from "./types";

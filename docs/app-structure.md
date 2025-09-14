@@ -1,6 +1,6 @@
 # GYMovoo App Structure Analysis
 
-This document provides an analysis of the current application structure and flow to guide our refactoring efforts.
+This document provides an updated analysis of the current application structure after recent cleanup and optimization efforts.
 
 ## Navigation Structure
 
@@ -69,31 +69,30 @@ The typical user journey follows this path:
 ### 1. MainScreen (Home)
 
 - Welcome header with personalized greeting
-- Scientific stats section
-- Day selection for workouts
+- Quick stats section
+- Next workout recommendation (NextWorkoutCard - simplified)
 - Quick workout button
 - Stats section showing user progress
-- Recent workouts section
 
 ### 2. ProfileScreen
 
 - User information and avatar
-- Level and XP progress
-- Achievements and badges
-- Settings
+- Settings and preferences
+- Simplified profile management
 - Logout functionality
 
 ### 3. WorkoutPlansScreen
 
-- AI-generated workout plans
-- Workout selection
+- Workout plan selection
 - Plan details
+- Uses ConfirmationModal for workout actions
 
 ### 4. HistoryScreen
 
 - Past workout records
 - Performance metrics
-- Progress visualization
+- NextWorkoutCard integration for next workout recommendations
+- Simplified data display
 
 ### 5. QuickWorkout (ActiveWorkoutScreen)
 
@@ -114,7 +113,7 @@ The app uses Zustand for state management:
 
 ### useUserPreferences Hook
 
-- Complex hook for detailed user preferences
+- Hook for detailed user preferences
 - Handles workout recommendations
 - Manages equipment selection
 - Processes questionnaire data into smart insights
@@ -138,35 +137,80 @@ The app uses Zustand for state management:
 
 ## Key Components and Services
 
+### Core Services
+
 - **workoutFacadeService**: Central service for workout functionality
 - **questionnaireService**: Handles questionnaire data
 - **userApi**: Interface for user data operations
 - **AsyncStorage**: Local persistence for all user data
 
-## Potential Refactoring Areas
+### Key Components (Simplified and Optimized)
 
-1. **MainScreen**: Very large component with many responsibilities
-2. **useUserPreferences**: Complex hook managing too many concerns
-3. **userStore**: Contains both auth logic and user data management
-4. **Questionnaire flow**: Could be simplified and modularized
+- **NextWorkoutCard**: Simplified workout recommendation component (160 lines vs 570+ previously)
+- **ConfirmationModal**: Unified modal for confirmations and actions
+- **AppButton**: Optimized button component with essential features only
+- **DayButton**: Simplified day selection component
+
+## Recent Cleanup and Optimizations
+
+### Removed Components and Files:
+
+1. **historyHelpers.ts**: DELETED (516 lines) - unused utility functions
+2. **scripts/ directory**: DELETED (1,100+ lines) - build and fix scripts moved to package.json
+3. **FloatingActionButton**: DELETED (100+ lines) - replaced with simple TouchableOpacity
+4. **Duplicate NextWorkoutCard**: DELETED from main/components (162 lines) - redundant implementation
+
+### Simplified Components:
+
+1. **NextWorkoutCard**: Reduced from 570 to 160 lines (77% reduction)
+2. **AppButton**: Optimized by removing unused features (~30 lines saved)
+3. **DayButton**: Simplified by removing unused variants (~100 lines saved)
+4. **ConfirmationModal**: Fixed TypeScript errors, removed unused variants (~75 lines saved)
+5. **profileScreenColors**: Dramatically simplified (48 lines saved, 40% reduction)
+6. **profileScreenTexts**: Removed unused achievements (28 lines saved)
+
+### Total Code Reduction: ~2,000+ lines removed
+
+## Current File Structure (Post-Cleanup)
+
+```
+src/
+├── components/
+│   ├── ui/ (essential UI components)
+│   ├── common/ (shared components)
+│   └── workout/
+│       └── NextWorkoutCard.tsx (simplified)
+├── constants/ (simplified constants)
+├── features/ (feature-based organization)
+├── screens/ (main app screens)
+└── core/ (types, services, theme)
+```
 
 ## Feature-Based Organization
 
-For our feature-based architecture, we can organize around these core features:
+Current features organized cleanly:
 
 1. **Auth** - Login, Register, Welcome
-2. **Questionnaire** - User onboarding
-3. **Home** - Main dashboard
+2. **Questionnaire** - User onboarding (simplified)
+3. **Home** - Main dashboard (optimized)
 4. **Workouts** - Planning, execution, and tracking
 5. **Exercises** - Database and details
-6. **History** - Past workouts and achievements
+6. **History** - Past workouts and achievements (simplified)
 7. **Profile** - User settings and information
 8. **Progress** - Analytics and metrics
 
-Each feature will contain its own:
+Each feature contains its own:
 
-- Components
-- Hooks
-- Types
-- Services
-- State management
+- Components (simplified and optimized)
+- Hooks (essential functionality only)
+- Types (cleaned up)
+- Services (core functionality)
+- State management (streamlined)
+
+## Benefits of Recent Cleanup
+
+1. **Performance**: Reduced bundle size by ~2,000 lines
+2. **Maintainability**: Simplified components easier to debug and modify
+3. **Consistency**: Unified patterns across components
+4. **Type Safety**: Fixed TypeScript errors and improved type definitions
+5. **Code Quality**: Removed redundant code and unused features

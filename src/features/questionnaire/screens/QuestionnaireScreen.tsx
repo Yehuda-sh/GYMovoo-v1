@@ -22,50 +22,7 @@ import { RootStackParamList } from "../../../navigation/types";
 import { theme } from "../../../core/theme";
 import { QuestionOption } from "../types";
 import { useUserStore } from "../../../stores/userStore";
-
-// Import or define ConfirmationModal
-const ConfirmationModal = ({
-  visible,
-  title,
-  message,
-  onConfirm,
-  onCancel,
-  confirmText,
-  cancelText,
-}: {
-  visible: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-}) => {
-  // This is a simplified version - implement the actual modal as needed
-  if (!visible) return null;
-
-  return (
-    <View style={styles.modalContainer}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>{title}</Text>
-        <Text style={styles.modalMessage}>{message}</Text>
-        <View style={styles.modalButtons}>
-          {onCancel && (
-            <TouchableOpacity style={styles.modalButton} onPress={onCancel}>
-              <Text style={styles.buttonText}>{cancelText || "ביטול"}</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.modalButton, styles.confirmButton]}
-            onPress={onConfirm}
-          >
-            <Text style={styles.buttonText}>{confirmText || "אישור"}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-};
+import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const QuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -83,7 +40,6 @@ const QuestionnaireScreen: React.FC = () => {
     handleNext,
     handlePrevious,
     completeQuestionnaire,
-    resetQuestionnaire,
   } = useQuestionnaire();
 
   // State for the confirmation modal
@@ -376,7 +332,12 @@ const QuestionnaireScreen: React.FC = () => {
         </View>
 
         {/* Confirmation Modal */}
-        <ConfirmationModal {...confirmationModal} />
+        <ConfirmationModal
+          {...confirmationModal}
+          onClose={() =>
+            setConfirmationModal((prev) => ({ ...prev, visible: false }))
+          }
+        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -539,55 +500,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     textAlign: "center",
     marginBottom: 24,
-  },
-  modalContainer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 24,
-    width: "80%",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
-    color: "#000",
-  },
-  modalMessage: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: "center",
-    color: "#333",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  modalButton: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#eee",
-    minWidth: 100,
-    alignItems: "center",
-  },
-  confirmButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
   },
 });
 

@@ -14,6 +14,7 @@ import {
   TouchableOpacityProps,
 } from "react-native";
 import { theme } from "../../core/theme";
+import { isRTL } from "../../utils/rtlHelpers";
 
 interface UniversalButtonProps extends TouchableOpacityProps {
   title: string;
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.button.fontSize,
     fontWeight: "600",
     textAlign: "center",
-    writingDirection: theme.isRTL ? "rtl" : "ltr",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 });
 

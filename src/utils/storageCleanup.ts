@@ -98,15 +98,8 @@ export class StorageCleanup {
         // Skip protected keys
         if (isProtectedKey(key)) continue;
 
-        // Remove temporary and cache data
-        if (
-          key.includes("temp_") ||
-          key.includes("_temp") ||
-          key.includes("cache_") ||
-          key.includes("_cache") ||
-          key.includes("debug_") ||
-          key.includes("test_")
-        ) {
+        // Remove temporary and cache data using existing patterns
+        if (CLEANUP_PATTERNS.some((pattern) => key.includes(pattern))) {
           keysToRemove.push(key);
         }
       }
