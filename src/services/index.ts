@@ -20,7 +20,6 @@ export { isQuickLoginAvailable, tryQuickLogin } from "./auth/quickLoginService";
 // שירותי אימון ליבה
 // =======================================
 export * from "../features/questionnaire/services/questionnaireService";
-export { WorkoutDataService } from "../features/workout/services/workoutDataService";
 export { nextWorkoutLogicService } from "../features/workout/services/nextWorkoutLogicService";
 export type {
   WorkoutCycleState,

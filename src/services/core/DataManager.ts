@@ -5,7 +5,7 @@
 import { User } from "../../stores/userStore";
 import { WorkoutWithFeedback } from "../../core/types/workout.types";
 import { WorkoutHistoryItem } from "../../core/types/user.types";
-import { workoutStorageService } from "../workout/workoutStorageService";
+import workoutFacadeService from "../workout/workoutFacadeService";
 import { logger } from "../../utils/logger";
 
 export interface AppDataCache {
@@ -26,10 +26,10 @@ class DataManagerService {
     try {
       logger.info("DataManager", "Initialization started", { userId: user.id });
 
-      const workoutHistory = await workoutStorageService
+      const workoutHistory = await workoutFacadeService
         .getHistory()
         .catch(() => []);
-      const historyList = await workoutStorageService
+      const historyList = await workoutFacadeService
         .getHistoryForList()
         .catch(() => []);
 

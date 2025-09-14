@@ -41,6 +41,7 @@ export const RegisterScreen: React.FC = () => {
   // מעבר למסך השאלון אחרי הרשמה מוצלחת
   const handleRegisterSuccess = useCallback(() => {
     // Navigate to questionnaire - will be handled by app navigator
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).reset({
       index: 0,
       routes: [{ name: "Questionnaire" }],

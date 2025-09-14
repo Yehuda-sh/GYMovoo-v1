@@ -34,10 +34,12 @@ export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
     if (userLoggedOut === "true") return { ok: false, reason: "NO_SESSION" };
 
     // Get current session
+    if (!supabase) return { ok: false, reason: "NO_SESSION" };
+
     const {
       data: { session },
       error: sessionError,
-    } = await supabase!.auth.getSession();
+    } = await supabase.auth.getSession();
     if (sessionError || !session?.user?.id)
       return { ok: false, reason: "NO_SESSION" };
 
@@ -52,7 +54,7 @@ export const tryQuickLogin = async (): Promise<QuickLoginResult> => {
 
       // Try to refresh session
       const { data: refreshData, error: refreshError } =
-        await supabase!.auth.refreshSession({
+        await supabase.auth.refreshSession({
           refresh_token: session.refresh_token,
         });
 

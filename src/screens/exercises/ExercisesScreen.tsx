@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import { theme } from "../../core/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
@@ -68,109 +69,111 @@ const ExercisesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <BackButton />
+      <ErrorBoundary fallbackMessage="שגיאה בטעינת מסך התרגילים">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <BackButton />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <MaterialCommunityIcons
-            name="dumbbell"
-            size={80}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.title}>
-            {filterTitle || EXERCISES_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
-          </Text>
-          <Text style={styles.subtitle}>
-            {selectedMuscleGroup
-              ? `תרגילים מותאמים לקבוצת השרירים ${selectedMuscleGroup}`
-              : EXERCISES_SCREEN_TEXTS.HEADERS.SUBTITLE}
-          </Text>
-        </View>
-
-        {/* כפתור צפייה בכל התרגילים */}
-        <View style={styles.quickAccessSection}>
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={handleViewAllExercises}
-            activeOpacity={0.8}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="צפה בכל התרגילים"
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
-              style={styles.viewAllGradient}
-            >
-              <MaterialCommunityIcons
-                name="view-list"
-                size={24}
-                color="#FFFFFF"
-              />
-              <Text style={styles.viewAllText}>צפה בכל התרגילים</Text>
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={16}
-                color="#FFFFFF"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* קבוצות שרירים */}
-        <View style={styles.muscleGroupsSection}>
-          <Text style={styles.sectionTitle}>קבוצות שרירים</Text>
-          <Text style={styles.sectionDescription}>
-            בחר קבוצת שרירים לצפייה בתרגילים ספציפיים
-          </Text>
-
-          <View style={styles.muscleGrid}>
-            {EXERCISES_MUSCLE_GROUPS.map((group) => {
-              const color = getMuscleGroupColor(theme, group.id);
-              return (
-                <TouchableOpacity
-                  key={group.id}
-                  style={styles.muscleCard}
-                  onPress={() => handleMuscleGroupPress(group.id)}
-                  activeOpacity={0.8}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`קבוצת שרירי ${group.name}`}
-                  accessibilityHint={`לחץ כדי לצפות בתרגילים עבור ${group.name}`}
-                >
-                  <View
-                    style={[
-                      styles.muscleIconContainer,
-                      { backgroundColor: color + "20" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={group.icon}
-                      size={32}
-                      color={color}
-                    />
-                  </View>
-                  <Text style={styles.muscleTitle}>{group.name}</Text>
-                  <Text style={styles.muscleDescription}>
-                    {group.description}
-                  </Text>
-
-                  <View style={styles.muscleArrow}>
-                    <MaterialCommunityIcons
-                      name="chevron-left"
-                      size={16}
-                      color={theme.colors.textSecondary}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Header */}
+          <View style={styles.header}>
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={80}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.title}>
+              {filterTitle || EXERCISES_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
+            </Text>
+            <Text style={styles.subtitle}>
+              {selectedMuscleGroup
+                ? `תרגילים מותאמים לקבוצת השרירים ${selectedMuscleGroup}`
+                : EXERCISES_SCREEN_TEXTS.HEADERS.SUBTITLE}
+            </Text>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* כפתור צפייה בכל התרגילים */}
+          <View style={styles.quickAccessSection}>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={handleViewAllExercises}
+              activeOpacity={0.8}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="צפה בכל התרגילים"
+            >
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+                style={styles.viewAllGradient}
+              >
+                <MaterialCommunityIcons
+                  name="view-list"
+                  size={24}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.viewAllText}>צפה בכל התרגילים</Text>
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={16}
+                  color="#FFFFFF"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* קבוצות שרירים */}
+          <View style={styles.muscleGroupsSection}>
+            <Text style={styles.sectionTitle}>קבוצות שרירים</Text>
+            <Text style={styles.sectionDescription}>
+              בחר קבוצת שרירים לצפייה בתרגילים ספציפיים
+            </Text>
+
+            <View style={styles.muscleGrid}>
+              {EXERCISES_MUSCLE_GROUPS.map((group) => {
+                const color = getMuscleGroupColor(theme, group.id);
+                return (
+                  <TouchableOpacity
+                    key={group.id}
+                    style={styles.muscleCard}
+                    onPress={() => handleMuscleGroupPress(group.id)}
+                    activeOpacity={0.8}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`קבוצת שרירי ${group.name}`}
+                    accessibilityHint={`לחץ כדי לצפות בתרגילים עבור ${group.name}`}
+                  >
+                    <View
+                      style={[
+                        styles.muscleIconContainer,
+                        { backgroundColor: color + "20" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={group.icon}
+                        size={32}
+                        color={color}
+                      />
+                    </View>
+                    <Text style={styles.muscleTitle}>{group.name}</Text>
+                    <Text style={styles.muscleDescription}>
+                      {group.description}
+                    </Text>
+
+                    <View style={styles.muscleArrow}>
+                      <MaterialCommunityIcons
+                        name="chevron-left"
+                        size={16}
+                        color={theme.colors.textSecondary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+      </ErrorBoundary>
     </SafeAreaView>
   );
 };

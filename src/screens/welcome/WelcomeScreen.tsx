@@ -59,7 +59,7 @@ const WelcomeScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim, slideAnim]);
 
   const handleStartJourney = () => {
     navigation.navigate("Questionnaire", {});

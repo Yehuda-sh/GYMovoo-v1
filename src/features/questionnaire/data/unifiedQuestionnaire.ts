@@ -4,7 +4,6 @@
  * Unified questionnaire system
  */
 
-import { ImageSourcePropType } from "react-native";
 import {
   Question,
   QuestionOption,
@@ -350,7 +349,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
 ];
 
 // Helper function to get equipment by ID
-export function getEquipmentById(id: string) {
+export function getEquipmentById(_id: string) {
   // This would need to be implemented based on your equipment data
   // Or imported from the appropriate module
   return null;
@@ -435,8 +434,11 @@ export class UnifiedQuestionnaireManager {
   // חזור לשאלה הקודמת
   previousQuestion(): boolean {
     if (this.history.length > 0) {
-      this.currentQuestionIndex = this.history.pop()!;
-      return true;
+      const lastIndex = this.history.pop();
+      if (lastIndex !== undefined) {
+        this.currentQuestionIndex = lastIndex;
+        return true;
+      }
     }
     return false;
   }
@@ -621,16 +623,16 @@ export class UnifiedQuestionnaireManager {
           | "advanced"
           | undefined,
         goals: getAnswerId("fitness_goal")
-          ? [getAnswerId("fitness_goal")!]
+          ? [getAnswerId("fitness_goal") as string]
           : [],
         equipment: normalizeEquipment(),
         availability: getAnswerId("availability")
-          ? [getAnswerId("availability")!]
+          ? [getAnswerId("availability") as string]
           : [],
         sessionDuration: getAnswerId("session_duration"),
         workoutLocation: getAnswerId("workout_location"),
         nutrition: getAnswerId("diet_preferences")
-          ? [getAnswerId("diet_preferences")!]
+          ? [getAnswerId("diet_preferences") as string]
           : [],
       },
       metadata: {

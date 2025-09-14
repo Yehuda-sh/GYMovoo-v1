@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { EmptyState } from "../../components";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import { dataManager } from "../../services/core";
@@ -40,7 +41,7 @@ const HistoryScreen: React.FC = () => {
   const { user } = useUserStore();
   const navigation = useNavigation();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       if (!user) return;
 
@@ -56,7 +57,7 @@ const HistoryScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const onRefresh = async () => {
     if (!user) return;
@@ -76,7 +77,7 @@ const HistoryScreen: React.FC = () => {
     if (user?.id) {
       loadData();
     }
-  }, [user?.id]);
+  }, [user?.id, loadData]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -228,6 +229,7 @@ const HistoryScreen: React.FC = () => {
         {/* Next Workout */}
         <NextWorkoutCard
           onStartWorkout={(workoutName, workoutIndex) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (navigation as any).navigate("WorkoutPlans", {
               autoStart: true,
               requestedWorkoutName: workoutName,
@@ -275,17 +277,19 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={workouts}
-        renderItem={renderWorkoutItem}
-        keyExtractor={(item, index) => item?.id || `workout_${index}`}
-        ListHeaderComponent={renderHeader}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      />
+      <ErrorBoundary fallbackMessage="שגיאה בטעינת היסטוריית האימונים">
+        <FlatList
+          data={workouts}
+          renderItem={renderWorkoutItem}
+          keyExtractor={(item, index) => item?.id || `workout_${index}`}
+          ListHeaderComponent={renderHeader}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      </ErrorBoundary>
     </SafeAreaView>
   );
 };

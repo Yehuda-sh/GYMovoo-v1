@@ -203,7 +203,12 @@ export function filterQuietExercises(exercises: Exercise[]): Exercise[] {
     );
   }
 
-  return exercises.filter((ex) => quietExercisesCache!.has(ex.id));
+  return exercises.filter((ex) => {
+    if (quietExercisesCache) {
+      return quietExercisesCache.has(ex.id);
+    }
+    return false;
+  });
 }
 
 /**
@@ -306,7 +311,11 @@ export function smartFilter(
     filtered = FilterCache.getOrCreate(
       FilterCache.spaceRequirement,
       cacheKey,
-      () => filterBySpaceRequirement(filtered, options.maxSpace!)
+      () =>
+        filterBySpaceRequirement(
+          filtered,
+          options.maxSpace || SPACE_REQUIREMENTS.MEDIUM
+        )
     );
   }
 

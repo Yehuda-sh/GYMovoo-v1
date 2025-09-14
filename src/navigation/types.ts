@@ -1,6 +1,28 @@
 import { WorkoutExercise } from "../core/types/workout.types";
 import { AuthStackParamList } from "../features/auth";
 
+interface WorkoutSummaryData {
+  workoutName: string;
+  totalDuration: number;
+  exercises: Array<{
+    id: string;
+    name: string;
+    sets: Array<{
+      reps: number;
+      weight?: number;
+      completed: boolean;
+    }>;
+    restTime?: number;
+  }>;
+  totalSets: number;
+  totalReps: number;
+  totalVolume: number;
+  personalRecords: string[];
+  completedAt: string;
+  difficulty?: number;
+  feeling?: string;
+}
+
 export type RootStackParamList = {
   // Auth screens
   Welcome: undefined;
@@ -20,6 +42,9 @@ export type RootStackParamList = {
   };
 
   // Workout screens
+  WorkoutSummary: {
+    workoutData: WorkoutSummaryData;
+  };
   ActiveWorkout: {
     workoutData: {
       name: string;

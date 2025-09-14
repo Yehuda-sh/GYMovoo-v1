@@ -3,6 +3,7 @@
  */
 
 import type { QuestionnaireData } from "../features/questionnaire/types";
+import { logger } from "./logger";
 
 /**
  * Extract smart questionnaire answers from user data
@@ -33,7 +34,8 @@ export const mapToDatabase = (
 
   // If questionnaireData exists but hasQuestionnaire isn't explicitly set, set it to true
   if (hasQuestionnaireData && !hasExplicitQuestionnaire) {
-    console.log(
+    logger.info(
+      "FieldMapper",
       "Auto-setting hasQuestionnaire to true based on questionnaireData"
     );
     mapped["has_questionnaire"] = true;
@@ -43,16 +45,16 @@ export const mapToDatabase = (
     // מיפוי שמות שדות מיוחדים
     if (key === "hasQuestionnaire") {
       mapped["has_questionnaire"] = value;
-      console.log(`Mapped '${key}' -> 'has_questionnaire'`);
+      logger.debug("FieldMapper", `Mapped '${key}' -> 'has_questionnaire'`);
     } else if (key === "questionnaireData") {
       // המר אובייקט ל-JSON אם צריך
       mapped["questionnaire_data"] =
         typeof value === "string" ? value : JSON.stringify(value);
-      console.log(`Mapped '${key}' -> 'questionnaire_data'`);
+      logger.debug("FieldMapper", `Mapped '${key}' -> 'questionnaire_data'`);
     } else if (key === "activityHistory") {
       mapped["activity_history"] =
         typeof value === "string" ? value : JSON.stringify(value);
-      console.log(`Mapped '${key}' -> 'activity_history'`);
+      logger.debug("FieldMapper", `Mapped '${key}' -> 'activity_history'`);
     }
     // השתמש בשם השדה כמו שהוא לרוב השדות
     else {
@@ -60,7 +62,7 @@ export const mapToDatabase = (
     }
   }
 
-  console.log("Mapped to database:", mapped);
+  logger.debug("FieldMapper", "Mapped to database", mapped);
   return mapped;
 };
 
@@ -83,7 +85,10 @@ export const mapFromDatabase = (
         typeof questData === "string"
           ? JSON.parse(questData as string)
           : questData;
-      console.log(`Mapped 'questionnaire_data' -> 'questionnaireData'`);
+      logger.debug(
+        "FieldMapper",
+        `Mapped 'questionnaire_data' -> 'questionnaireData'`
+      );
     } catch (e) {
       console.error("Error parsing questionnaire_data:", e);
       mapped.questionnaireData = data.questionnaire_data;
@@ -94,7 +99,10 @@ export const mapFromDatabase = (
 
   if ("has_questionnaire" in data) {
     mapped.hasQuestionnaire = Boolean(data.has_questionnaire);
-    console.log(`Mapped 'has_questionnaire' -> 'hasQuestionnaire'`);
+    logger.debug(
+      "FieldMapper",
+      `Mapped 'has_questionnaire' -> 'hasQuestionnaire'`
+    );
     delete mapped.has_questionnaire;
   }
 
@@ -106,7 +114,10 @@ export const mapFromDatabase = (
         typeof histData === "string"
           ? JSON.parse(histData as string)
           : histData;
-      console.log(`Mapped 'activity_history' -> 'activityHistory'`);
+      logger.debug(
+        "FieldMapper",
+        `Mapped 'activity_history' -> 'activityHistory'`
+      );
     } catch (e) {
       console.error("Error parsing activity_history:", e);
       mapped.activityHistory = data.activity_history;

@@ -940,19 +940,12 @@ export const useUserStore = create<UserStore>()(
         const state = get();
         const user = state.user;
 
-        console.log(
-          "Checking completion status with user data:",
-          JSON.stringify(
-            {
-              hasQuestionnaire: user?.hasQuestionnaire,
-              hasCompletedAt: !!user?.questionnaireData?.metadata?.completedAt,
-              hasQuestionnaireData: !!user?.questionnaireData,
-              hasBasicInfo: !!(user?.id || user?.email || user?.name),
-            },
-            null,
-            2
-          )
-        );
+        logger.info("UserStore", "Checking completion status with user data", {
+          hasQuestionnaire: user?.hasQuestionnaire,
+          hasCompletedAt: !!user?.questionnaireData?.metadata?.completedAt,
+          hasQuestionnaireData: !!user?.questionnaireData,
+          hasBasicInfo: !!(user?.id || user?.email || user?.name),
+        });
 
         // בדיקה מדויקת יותר של השלמת השאלון - אם יש השדה hasQuestionnaire או completedAt או עצם קיום נתוני שאלון
         const hasSmartQuestionnaire = !!(

@@ -3,12 +3,11 @@
  * @description ניווט למסכי אימות והרשמה
  */
 
-import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
-import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
+import { ForgotPasswordScreen } from "../../../screens/auth/ForgotPasswordScreen";
 import { TermsScreen } from "../screens/TermsScreen";
 
 // טיפוס פרמטרים לניווט

@@ -23,12 +23,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
+import { logger } from "../../utils/logger";
 import workoutFacadeService from "../../services/workout/workoutFacadeService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
 import { DayButtonGrid } from "../../components/common/DayButton";
 import AppButton from "../../components/common/AppButton";
 import EmptyState from "../../components/common/EmptyState";
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
@@ -223,7 +225,7 @@ function MainScreen() {
     const completion = getCompletionStatus?.();
     if (!completion) return;
 
-    console.log("🔍 MainScreen - Completion status check:", {
+    logger.info("MainScreen", "Completion status check", {
       hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
       hasBasicInfo: completion.hasBasicInfo,
       isFullySetup: completion.isFullySetup,
@@ -237,15 +239,17 @@ function MainScreen() {
 
     // תיקון: else if במקום if כפול - מניעת redirect כפול
     if (!completion.hasSmartQuestionnaire) {
-      console.log(
-        "🔄 MainScreen - Redirecting to Questionnaire due to missing questionnaire data"
+      logger.info(
+        "MainScreen",
+        "Redirecting to Questionnaire due to missing questionnaire data"
       );
       navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
       return;
     } else if (!completion.hasBasicInfo) {
       // עדכון: ניווט למסך הרשמה דרך navigator האימות
-      console.log(
-        "🔄 MainScreen - Redirecting to Auth/Register due to missing basic info"
+      logger.info(
+        "MainScreen",
+        "Redirecting to Auth/Register due to missing basic info"
       );
       navigation.reset({
         index: 0,
@@ -637,53 +641,57 @@ function MainScreen() {
               </Text>
 
               {/* Quick Stats Card - אימון אחרון */}
-              {lastWorkoutStats && (
-                <QuickStatsCard
-                  totalExercises={lastWorkoutStats.totalExercises}
-                  totalReps={lastWorkoutStats.totalReps}
-                  totalVolume={lastWorkoutStats.totalVolume}
-                  personalRecords={lastWorkoutStats.personalRecords}
-                  onPress={() => navigation.navigate("History")}
-                />
-              )}
+              <ErrorBoundary fallbackMessage="שגיאה בטעינת סטטיסטיקות האימון האחרון">
+                {lastWorkoutStats && (
+                  <QuickStatsCard
+                    totalExercises={lastWorkoutStats.totalExercises}
+                    totalReps={lastWorkoutStats.totalReps}
+                    totalVolume={lastWorkoutStats.totalVolume}
+                    personalRecords={lastWorkoutStats.personalRecords}
+                    onPress={() => navigation.navigate("History")}
+                  />
+                )}
+              </ErrorBoundary>
 
-              <StatCardGrid testID="scientific-stats-grid">
-                <StatCard
-                  variant="scientific"
-                  icon="trophy"
-                  iconColor={theme.colors.primary}
-                  value={stats.totalWorkouts}
-                  label={MAIN_SCREEN_TEXTS.STATS.WORKOUTS_COMPLETED}
-                  testID="workouts-completed-card"
-                />
+              <ErrorBoundary fallbackMessage="שגיאה בטעינת הסטטיסטיקות הכלליות">
+                <StatCardGrid testID="scientific-stats-grid">
+                  <StatCard
+                    variant="scientific"
+                    icon="trophy"
+                    iconColor={theme.colors.primary}
+                    value={stats.totalWorkouts}
+                    label={MAIN_SCREEN_TEXTS.STATS.WORKOUTS_COMPLETED}
+                    testID="workouts-completed-card"
+                  />
 
-                <StatCard
-                  variant="scientific"
-                  icon="fire"
-                  iconColor={theme.colors.warning}
-                  value={stats.currentStreak}
-                  label={MAIN_SCREEN_TEXTS.STATS.STREAK_DAYS}
-                  testID="streak-days-card"
-                />
+                  <StatCard
+                    variant="scientific"
+                    icon="fire"
+                    iconColor={theme.colors.warning}
+                    value={stats.currentStreak}
+                    label={MAIN_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                    testID="streak-days-card"
+                  />
 
-                <StatCard
-                  variant="scientific"
-                  icon="weight-lifter"
-                  iconColor={theme.colors.success}
-                  value={formatLargeNumber(stats.totalVolume) || "0"}
-                  label={MAIN_SCREEN_TEXTS.STATS.TOTAL_VOLUME}
-                  testID="total-volume-card"
-                />
+                  <StatCard
+                    variant="scientific"
+                    icon="weight-lifter"
+                    iconColor={theme.colors.success}
+                    value={formatLargeNumber(stats.totalVolume) || "0"}
+                    label={MAIN_SCREEN_TEXTS.STATS.TOTAL_VOLUME}
+                    testID="total-volume-card"
+                  />
 
-                <StatCard
-                  variant="scientific"
-                  icon="star"
-                  iconColor={theme.colors.warning}
-                  value={formatRating(stats.averageRating) || "4.0"}
-                  label={MAIN_SCREEN_TEXTS.STATS.AVERAGE_RATING}
-                  testID="average-rating-card"
-                />
-              </StatCardGrid>
+                  <StatCard
+                    variant="scientific"
+                    icon="star"
+                    iconColor={theme.colors.warning}
+                    value={formatRating(stats.averageRating) || "4.0"}
+                    label={MAIN_SCREEN_TEXTS.STATS.AVERAGE_RATING}
+                    testID="average-rating-card"
+                  />
+                </StatCardGrid>
+              </ErrorBoundary>
 
               {/* רמת כושר */}
               <View style={styles.aiInsightCard}>
@@ -697,28 +705,30 @@ function MainScreen() {
                 {/* Removed aiRecommendations quick tip (property no longer on profileData) */}
 
                 {/* תובנות מתקדמות מ-WorkoutFacadeService */}
-                {advancedStats?.insights &&
-                  advancedStats.insights.length > 0 && (
-                    <View style={styles.advancedInsightsContainer}>
-                      <Text style={styles.advancedInsightsTitle}>
-                        📊 תובנות אימון מתקדמות
-                      </Text>
-                      {advancedStats.insights
-                        .slice(0, 2)
-                        .map((insight, index) => (
-                          <View key={index} style={styles.insightItem}>
-                            <MaterialCommunityIcons
-                              name="chart-line"
-                              size={14}
-                              color={theme.colors.success}
-                            />
-                            <Text style={styles.insightText}>
-                              {insight || ""}
-                            </Text>
-                          </View>
-                        ))}
-                    </View>
-                  )}
+                <ErrorBoundary fallbackMessage="שגיאה בטעינת תובנות מתקדמות">
+                  {advancedStats?.insights &&
+                    advancedStats.insights.length > 0 && (
+                      <View style={styles.advancedInsightsContainer}>
+                        <Text style={styles.advancedInsightsTitle}>
+                          📊 תובנות אימון מתקדמות
+                        </Text>
+                        {advancedStats.insights
+                          .slice(0, 2)
+                          .map((insight, index) => (
+                            <View key={index} style={styles.insightItem}>
+                              <MaterialCommunityIcons
+                                name="chart-line"
+                                size={14}
+                                color={theme.colors.success}
+                              />
+                              <Text style={styles.insightText}>
+                                {insight || ""}
+                              </Text>
+                            </View>
+                          ))}
+                      </View>
+                    )}
+                </ErrorBoundary>
               </View>
             </Animated.View>
           )}

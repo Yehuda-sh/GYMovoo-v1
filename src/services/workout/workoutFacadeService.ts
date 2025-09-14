@@ -9,7 +9,7 @@ import {
 import { PersonalData } from "../../utils/personalDataUtils";
 import { workoutStorageService } from "./workoutStorageService";
 import workoutAnalyticsService from "../../features/workout/services/workoutAnalyticsService";
-import { personalRecordService } from "../index";
+import personalRecordService from "../../features/workout/services/personalRecordService";
 import type { AdvancedMetrics } from "../../features/workout/services/workoutAnalyticsService";
 
 class WorkoutFacadeService {

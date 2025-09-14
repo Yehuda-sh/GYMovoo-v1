@@ -3,22 +3,17 @@
  * @description Custom hook for managing the questionnaire state and actions
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "../../../stores/userStore";
 import { UnifiedQuestionnaireManager } from "../data";
-import {
-  QuestionnaireData,
-  Question,
-  QuestionOption,
-  QuestionnaireAnswer,
-} from "../types";
+import { Question, QuestionOption, QuestionnaireAnswer } from "../types";
 
 // Storage key constant
 const DRAFT_STORAGE_KEY = "questionnaire_draft";
 
 export const useQuestionnaire = () => {
-  const { user, setSmartQuestionnaireData } = useUserStore();
+  const { setSmartQuestionnaireData } = useUserStore();
 
   const [manager] = useState(() => new UnifiedQuestionnaireManager());
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -55,31 +50,9 @@ export const useQuestionnaire = () => {
     }
   }, [manager]);
 
-  // Initialize questionnaire
-  useEffect(() => {
-    loadCurrentQuestion();
-
-    // Check for saved progress
-    const checkSavedProgress = async () => {
-      try {
-        const savedProgress = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
-        if (savedProgress && !hasRestoredProgress) {
-          const progressData = JSON.parse(savedProgress);
-          if (progressData.answers && progressData.answers.length > 0) {
-            restoreProgress(progressData);
-          }
-        }
-      } catch (error) {
-        console.warn("Error checking saved progress", error);
-      }
-    };
-
-    checkSavedProgress();
-  }, [loadCurrentQuestion, hasRestoredProgress]);
-
   // Restore progress from saved data
   const restoreProgress = useCallback(
-    (progressData: { answers: any[] }) => {
+    (progressData: { answers: QuestionnaireAnswer[] }) => {
       try {
         if (!progressData.answers || !Array.isArray(progressData.answers)) {
           return;
@@ -116,6 +89,28 @@ export const useQuestionnaire = () => {
     },
     [manager, loadCurrentQuestion]
   );
+
+  // Initialize questionnaire
+  useEffect(() => {
+    loadCurrentQuestion();
+
+    // Check for saved progress
+    const checkSavedProgress = async () => {
+      try {
+        const savedProgress = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
+        if (savedProgress && !hasRestoredProgress) {
+          const progressData = JSON.parse(savedProgress);
+          if (progressData.answers && progressData.answers.length > 0) {
+            restoreProgress(progressData);
+          }
+        }
+      } catch (error) {
+        console.warn("Error checking saved progress", error);
+      }
+    };
+
+    checkSavedProgress();
+  }, [loadCurrentQuestion, hasRestoredProgress, restoreProgress]);
 
   // Handle answer selection
   const handleSelectOption = useCallback(

@@ -130,3 +130,30 @@ export const formatEquipmentList = (equipment: string[]): string => {
     ? translatedEquipment.join(", ")
     : "משקל גוף";
 };
+
+/**
+ * Format duration in minutes to readable string
+ */
+export const formatDuration = (minutes: number): string => {
+  if (minutes < 60) {
+    return `${Math.round(minutes)} דקות`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = Math.round(minutes % 60);
+
+  if (remainingMinutes === 0) {
+    return `${hours} שע'`;
+  }
+  return `${hours}:${remainingMinutes.toString().padStart(2, "0")} שע'`;
+};
+
+/**
+ * Format weight with proper units
+ */
+export const formatWeight = (weight: number): string => {
+  if (!weight || isNaN(weight)) return "0 ק״ג";
+  if (weight >= 1000) {
+    return `${(weight / 1000).toFixed(1)} טון`;
+  }
+  return `${weight.toFixed(1)} ק״ג`;
+};
