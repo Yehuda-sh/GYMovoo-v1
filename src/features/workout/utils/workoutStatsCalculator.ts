@@ -20,7 +20,7 @@ export interface WorkoutStats {
 }
 
 // ===============================================
-// 🧮 Helper Functions - מאופטמות
+// 🧮 Helper Functions
 // ===============================================
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -95,7 +95,7 @@ function calculateExerciseStats(sets: Set[]) {
 }
 
 /**
- * חישוב סטטיסטיקות אימון מקיפות - מאופטם
+ * חישוב סטטיסטיקות אימון מקיפות
  */
 export function calculateWorkoutStats(
   exercises: WorkoutExercise[]
@@ -119,7 +119,7 @@ export function calculateWorkoutStats(
   const totalExercises = exercises.length;
   let totalSets = 0;
 
-  // שימוש ב-reduce לביצועים טובים יותר
+  // שימוש ב-reduce לביצועים טובים
   const aggregatedStats = exercises.reduce(
     (acc, exercise) => {
       if (!exercise.sets?.length) return acc;

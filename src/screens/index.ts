@@ -7,4 +7,3 @@ export { default as ActiveWorkoutScreen } from "../features/workout/screens/work
 
 // Authentication & onboarding screens
 export { default as WelcomeScreen } from "./welcome/WelcomeScreen";
-// Note: RegisterScreen moved to features/auth/screens/ and is exported from features/auth/index.ts

@@ -39,7 +39,6 @@ const STRINGS = {
   },
   ui: {
     agreeToTerms: "אני מסכים/ה לתנאי השימוש",
-    viewTerms: "הצג תנאי שימוש",
     alreadyHaveAccount: "כבר יש לך חשבון?",
     loginNow: "התחבר עכשיו",
   },
@@ -70,15 +69,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Note: Using placeholder register function - replace with real auth when available
+  // Note: Demo registration - replace with real auth service when available
   const [isLoading, setIsLoading] = useState(false);
 
   const register = async (_userData: RegisterCredentials) => {
     setIsLoading(true);
-    // TODO: Implement real registration here
-    // For now, just simulate success after delay
+    // TODO: Connect to real registration service
+    // Currently simulates registration for demo purposes
     setTimeout(() => {
       setIsLoading(false);
+      // For demo: proceed to questionnaire
       onRegisterSuccess();
     }, 1000);
   };
@@ -302,16 +302,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           />
         </View>
 
-        <TouchableOpacity disabled={isLoading}>
-          <Text style={styles.viewTermsText}>{STRINGS.ui.viewTerms}</Text>
-        </TouchableOpacity>
-
         {fieldErrors.agreeToTerms && (
           <Text style={styles.fieldError}>{fieldErrors.agreeToTerms}</Text>
         )}
       </View>
 
-      {/* הודעת שגיאה */}
       {/* כפתור הרשמה */}
       <TouchableOpacity
         style={[styles.registerButton, isLoading && styles.buttonDisabled]}
@@ -408,12 +403,6 @@ const styles = StyleSheet.create({
   },
   termsError: {
     color: theme.colors.error,
-  },
-  viewTermsText: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    marginTop: theme.spacing.xs,
-    textAlign: "right",
   },
   registerButton: {
     marginVertical: theme.spacing.lg,

@@ -86,8 +86,6 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     return WORKOUT_PLANS[frequency] || WORKOUT_PLANS[3];
   }, [workoutPlan, getFrequency]);
 
-  // המרת נתונים אישיים לפורמט הנדרש - REMOVED (לא נמצא בשימוש)
-
   // רענון המלצת האימון הבא
   const refreshRecommendation = useCallback(async () => {
     try {
@@ -101,7 +99,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
       setNextWorkout(recommendation);
 
-      // נסיון לקבל סטטיסטיקות אם הפונקציה קיימת
+      // נסיון לקבל סטטיסטיקות
       try {
         if (
           "getCycleStatistics" in nextWorkoutLogicService &&
@@ -111,7 +109,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
           setCycleStats(stats);
         }
       } catch {
-        // לא קריטי אם לא מצליח לקבל סטטיסטיקות
+        // לא קריטי אם לא מצליח
       }
     } catch (err) {
       const errorMessage =
@@ -135,12 +133,9 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
   // סימון אימון כהושלם
   const markWorkoutCompleted = useCallback(
-    async (workoutIndex: number, workoutName: string) => {
+    async (workoutIndex: number) => {
       try {
-        await nextWorkoutLogicService.updateWorkoutCompleted(
-          workoutIndex,
-          workoutName
-        );
+        await nextWorkoutLogicService.updateWorkoutCompleted(workoutIndex);
         await refreshRecommendation();
       } catch (err) {
         const errorMessage =

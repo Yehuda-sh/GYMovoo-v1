@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../core/theme";
+import { logger } from "../../utils/logger";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -32,7 +33,11 @@ export class ErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    logger.error("ErrorBoundary", "Component error caught", {
+      error: error.message,
+      stack: error.stack,
+      errorInfo,
+    });
   }
 
   handleRetry = () => {

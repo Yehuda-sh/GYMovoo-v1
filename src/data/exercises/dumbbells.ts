@@ -200,12 +200,19 @@ export const dumbbellExercises: Exercise[] = [
     equipment: "dumbbells",
     difficulty: "intermediate",
     instructions: {
-      he: ["שב או עמוד", "משקולות בגובה כתפיים", "דחוף מעלה", "הורד בשליטה"],
+      he: [
+        "שב על ספסל או עמוד זקוף",
+        "החזק משקולות בגובה הכתפיים, כפות ידיים פנויות קדימה",
+        "דחוף את המשקולות ישר מעלה עד זרועות ישרות",
+        "הורד בשליטה חזרה לגובה הכתפיים",
+        "חזור על התנועה",
+      ],
       en: [
-        "Sit or stand",
-        "Dumbbells at shoulder height",
-        "Press overhead",
-        "Lower with control",
+        "Sit on bench or stand upright",
+        "Hold dumbbells at shoulder level, palms forward",
+        "Press dumbbells straight up until arms extended",
+        "Lower with control back to shoulder height",
+        "Repeat movement",
       ],
     },
     tips: { he: ["אל תנעל מרפקים"], en: ["Don't lock elbows"] },
@@ -231,8 +238,20 @@ export const dumbbellExercises: Exercise[] = [
     equipment: "dumbbells",
     difficulty: "beginner",
     instructions: {
-      he: ["עמוד זקוף", "הרם משקולות לצדדים עד גובה כתפיים", "הורד לאט"],
-      en: ["Stand tall", "Raise dumbbells to shoulder height", "Lower slowly"],
+      he: [
+        "עמוד זקוף עם משקולת קלה בכל יד",
+        "הרם את המשקולות לצדדים עד לגובה הכתפיים",
+        "המרפקים מעט כפופים לאורך התנועה",
+        "הורד בשליטה חזרה לצדי הגוף",
+        "חזור על התנועה בקצב איטי",
+      ],
+      en: [
+        "Stand upright with light dumbbell in each hand",
+        "Raise dumbbells to the sides until shoulder height",
+        "Keep elbows slightly bent throughout movement",
+        "Lower with control back to sides of body",
+        "Repeat movement at slow pace",
+      ],
     },
     tips: { he: ["מרפקים מעט כפופים"], en: ["Slight bend in elbows"] },
     safetyNotes: { he: ["אל תמשוך בגב"], en: ["Don't swing body"] },
@@ -257,8 +276,20 @@ export const dumbbellExercises: Exercise[] = [
     equipment: "dumbbells",
     difficulty: "beginner",
     instructions: {
-      he: ["מרפקים צמודים", "כופף עד התכווצות", "הורד בשליטה"],
-      en: ["Elbows tucked", "Curl to contraction", "Lower under control"],
+      he: [
+        "עמוד זקוף עם משקולת בכל יד לצדי הגוף",
+        "שמור על המרפקים צמודים לגוף",
+        "כופף את הזרועות והעלה את המשקולות לכיוון הכתפיים",
+        "התכווץ בחלק העליון של התנועה",
+        "הורד בשליטה חזרה למצב ההתחלה",
+      ],
+      en: [
+        "Stand upright with dumbbell in each hand at sides",
+        "Keep elbows tucked close to body",
+        "Curl dumbbells up toward shoulders",
+        "Contract at top of movement",
+        "Lower under control back to starting position",
+      ],
     },
     tips: { he: ["הימנע מתנופה"], en: ["Avoid momentum"] },
     safetyNotes: { he: ["משקל מתאים"], en: ["Choose proper weight"] },
@@ -460,5 +491,3 @@ export const dumbbellExercises: Exercise[] = [
     noiseLevel: "silent",
   },
 ];
-
-export default dumbbellExercises;

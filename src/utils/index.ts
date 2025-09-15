@@ -1,27 +1,23 @@
 /**
- * Central exports for GYMovoo utility functions
+ * @file src/utils/index.ts
+ * @description Central exports for GYMovoo utility functions
+ * @note Currently all imports are direct - this file serves as documentation and potential future convenience
  */
 
-// Date utilities
+// Date utilities - used by nextWorkoutLogicService
 export * from "./dateHelpers";
 
-// RTL and localization helpers
+// RTL and localization helpers - used by theme, buttons, components
 export * from "./rtlHelpers";
 
-// Storage management
+// Storage management - used by useAppInitialization
 export * from "./storageCleanup";
 
-// Logger utilities
+// Logger utilities - used by userStore, useAppInitialization
 export { logger } from "./logger";
 
-// Personal data utilities
-export * from "./personalDataUtils";
-
-// Equipment utilities
-export * from "./equipmentCatalog";
-
-// Formatters
+// Formatters - used by screens and components
 export * from "./formatters";
 
-// Field mapping
+// Field mapping for database operations - used by stores, services, hooks
 export * from "./fieldMapper";

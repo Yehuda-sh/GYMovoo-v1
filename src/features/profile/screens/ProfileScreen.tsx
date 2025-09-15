@@ -1,5 +1,5 @@
 /**
- * @file src/screens/profile/ProfileScreen.tsx
+ * @file src/features/profile/screens/ProfileScreen.tsx
  * @brief מסך פרופיל משתמש
  */
 

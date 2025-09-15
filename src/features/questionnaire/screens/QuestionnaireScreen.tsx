@@ -22,6 +22,7 @@ import { RootStackParamList } from "../../../navigation/types";
 import { theme } from "../../../core/theme";
 import { QuestionOption } from "../types";
 import { useUserStore } from "../../../stores/userStore";
+import { logger } from "../../../utils/logger";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const QuestionnaireScreen: React.FC = () => {
@@ -103,8 +104,9 @@ const QuestionnaireScreen: React.FC = () => {
       const { user } = useUserStore.getState();
       const hasUser = !!(user?.id || user?.email || user?.name);
 
-      console.log(
-        `✅ Questionnaire completed successfully, navigating to ${hasUser ? "MainApp" : "Register screen"}`
+      logger.info(
+        "QuestionnaireScreen",
+        `Questionnaire completed successfully, navigating to ${hasUser ? "MainApp" : "Register screen"}`
       );
 
       // Navigate after short delay
@@ -118,8 +120,9 @@ const QuestionnaireScreen: React.FC = () => {
             });
           } else {
             // ניווט למסך רישום דרך navigator האימות
-            console.log(
-              "📱 Navigating to Register via Auth navigator with fromQuestionnaire=true"
+            logger.info(
+              "QuestionnaireScreen",
+              "Navigating to Register via Auth navigator with fromQuestionnaire=true"
             );
             navigation.reset({
               index: 0,
@@ -306,10 +309,16 @@ const QuestionnaireScreen: React.FC = () => {
             onPress={() => {
               if (currentQuestion && selectedOptions.length > 0) {
                 if (isCompleted) {
-                  console.log("📱 Button pressed - Starting completion flow");
+                  logger.info(
+                    "QuestionnaireScreen",
+                    "Button pressed - Starting completion flow"
+                  );
                   handleCompletion();
                 } else {
-                  console.log("📱 Button pressed - Moving to next question");
+                  logger.info(
+                    "QuestionnaireScreen",
+                    "Button pressed - Moving to next question"
+                  );
                   handleNext();
                 }
               }

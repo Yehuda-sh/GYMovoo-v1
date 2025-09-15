@@ -1,7 +1,6 @@
 /**
  * @file WorkoutSummaryScreen.tsx
- * @description מסך סיכום אימון - מציג פרטי סט, זמנים ומדדים בסיום אימון
- * @created 2025-09-11
+ * @description מסך סיכום אימון מותאם - מציג סטטיסטיקות ושמירה פשוטה
  */
 
 import React, { useState, useEffect } from "react";
@@ -18,36 +17,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { WorkoutSummaryData } from "../../../../navigation/types";
 
-import { theme } from "../../core/theme";
-import { ErrorBoundary } from "../../components/common/ErrorBoundary";
-import AppButton from "../../components/common/AppButton";
-import { formatDuration, formatWeight } from "../../utils/formatters";
-import workoutFacadeService from "../../services/workout/workoutFacadeService";
-
-interface Exercise {
-  id: string;
-  name: string;
-  sets: Array<{
-    reps: number;
-    weight?: number;
-    completed: boolean;
-  }>;
-  restTime?: number;
-}
-
-interface WorkoutSummaryData {
-  workoutName: string;
-  totalDuration: number; // in minutes
-  exercises: Exercise[];
-  totalSets: number;
-  totalReps: number;
-  totalVolume: number; // weight * reps
-  personalRecords: string[];
-  completedAt: string;
-  difficulty?: number; // 1-5
-  feeling?: string;
-}
+import { theme } from "../../../../core/theme";
+import { ErrorBoundary } from "../../../../components/common/ErrorBoundary";
+import AppButton from "../../../../components/common/AppButton";
+import { formatDuration, formatWeight } from "../../../../utils/formatters";
+import workoutFacadeService from "../../../../services/workout/workoutFacadeService";
 
 interface RouteParams {
   workoutData: WorkoutSummaryData;
@@ -59,37 +35,22 @@ const WorkoutSummaryScreen: React.FC = () => {
   const { workoutData } = route.params as RouteParams;
 
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
 
   useEffect(() => {
-    // הנפשות כניסה
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 100,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // אנימציה פשוטה של כניסה
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
 
     // הפעלת רטט הצלחה
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [fadeAnim, slideAnim, scaleAnim]);
+  }, [fadeAnim]);
 
   const handleSaveWorkout = async () => {
     try {
-      // שמירת האימון דרך workoutFacadeService
+      // שמירת האימון עם נתונים בסיסיים בלבד
       await workoutFacadeService.saveWorkout({
         id: `workout_${Date.now()}`,
         workout: {
@@ -103,18 +64,18 @@ const WorkoutSummaryScreen: React.FC = () => {
           exercises: workoutData.exercises.map((exercise) => ({
             id: exercise.id,
             name: exercise.name,
-            category: "strength", // default category
-            primaryMuscles: ["chest"], // default primary muscles
-            equipment: "dumbbells", // default equipment
-            sets: exercise.sets.map((set) => ({
-              id: `set_${Date.now()}_${Math.random()}`,
+            category: "strength",
+            primaryMuscles: ["general"],
+            equipment: "free_weights",
+            sets: exercise.sets.map((set, index) => ({
+              id: `set_${Date.now()}_${index}`,
               type: "working" as const,
               targetReps: set.reps,
               targetWeight: set.weight || 0,
               actualReps: set.reps,
               actualWeight: set.weight || 0,
               completed: set.completed,
-              restTime: exercise.restTime || 60, // default 60 seconds
+              restTime: exercise.restTime || 60,
             })),
           })),
         },
@@ -134,11 +95,12 @@ const WorkoutSummaryScreen: React.FC = () => {
         },
       });
 
-      // מעבר למסך הראשי עם הודעת הצלחה
-      navigation.navigate("Main" as never);
+      // מעבר למסך הראשי
+      navigation.goBack();
     } catch (error) {
       console.error("Error saving workout:", error);
-      // TODO: הצגת הודעת שגיאה למשתמש
+      // נמשיך למסך הראשי גם במקרה של שגיאה
+      navigation.goBack();
     }
   };
 
@@ -159,7 +121,9 @@ const WorkoutSummaryScreen: React.FC = () => {
     </View>
   );
 
-  const ExerciseCard: React.FC<{ exercise: Exercise }> = ({ exercise }) => (
+  const ExerciseCard: React.FC<{
+    exercise: WorkoutSummaryData["exercises"][0];
+  }> = ({ exercise }) => (
     <View style={styles.exerciseCard}>
       <Text style={styles.exerciseName}>{exercise.name}</Text>
       <View style={styles.setsContainer}>
@@ -193,15 +157,7 @@ const WorkoutSummaryScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* כותרת עם מעגל הצלחה */}
-          <Animated.View
-            style={[
-              styles.header,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-              },
-            ]}
-          >
+          <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
             <LinearGradient
               colors={[theme.colors.success, theme.colors.primary]}
               style={styles.successCircle}
@@ -216,15 +172,7 @@ const WorkoutSummaryScreen: React.FC = () => {
           </Animated.View>
 
           {/* סטטיסטיקות מרכזיות */}
-          <Animated.View
-            style={[
-              styles.statsContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
+          <Animated.View style={[styles.statsContainer, { opacity: fadeAnim }]}>
             <StatCard
               icon="dumbbell"
               label="תרגילים"
@@ -254,13 +202,7 @@ const WorkoutSummaryScreen: React.FC = () => {
           {/* שיאים אישיים */}
           {workoutData.personalRecords.length > 0 && (
             <Animated.View
-              style={[
-                styles.recordsContainer,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
+              style={[styles.recordsContainer, { opacity: fadeAnim }]}
             >
               <Text style={styles.recordsTitle}>🏆 שיאים אישיים חדשים!</Text>
               {workoutData.personalRecords.map((record, index) => (
@@ -278,13 +220,7 @@ const WorkoutSummaryScreen: React.FC = () => {
 
           {/* פירוט תרגילים */}
           <Animated.View
-            style={[
-              styles.exercisesSection,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            style={[styles.exercisesSection, { opacity: fadeAnim }]}
           >
             <Text style={styles.sectionTitle}>פירוט תרגילים</Text>
             {workoutData.exercises.map((exercise, index) => (
@@ -294,15 +230,7 @@ const WorkoutSummaryScreen: React.FC = () => {
         </ScrollView>
 
         {/* כפתורי פעולה */}
-        <Animated.View
-          style={[
-            styles.actionButtons,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+        <Animated.View style={[styles.actionButtons, { opacity: fadeAnim }]}>
           <AppButton
             title="שמור אימון"
             variant="primary"
@@ -312,7 +240,7 @@ const WorkoutSummaryScreen: React.FC = () => {
           />
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => navigation.navigate("Main" as never)}
+            onPress={() => navigation.goBack()}
           >
             <Text style={styles.skipText}>דלג ועבור למסך הראשי</Text>
           </TouchableOpacity>

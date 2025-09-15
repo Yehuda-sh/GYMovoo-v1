@@ -1,9 +1,7 @@
 /**
  * @file src/components/ui/UniversalCard.tsx
- * @brief כרטיס אוניברסלי עם אפשרויות עיצוב מגוונות משופר + אופטימיזציה לכושר מובייל
+ * @brief כרטיס אוניברסלי פשוט עם title ו-children
  * @dependencies theme, React.memo
- * @notes תומך ב-workout variant בלבד
- * @version 5.0 - Simplified version with only used features
  */
 
 import React from "react";
@@ -45,9 +43,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     writingDirection: "rtl",
   },
-  content: {
-    // Content container
-  },
+  content: {},
 });
 
 export default UniversalCard;

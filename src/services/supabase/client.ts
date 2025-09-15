@@ -36,14 +36,3 @@ export const supabase: SupabaseClient | null = hasSupabaseConfig
       },
     })
   : null;
-
-/**
- * Get Supabase project URL if available
- */
-export const getSupabaseProjectUrl = (): string | null =>
-  hasSupabaseConfig ? SUPABASE_URL : null;
-
-/**
- * Check if Supabase client is ready for use
- */
-export const isSupabaseReady = (): boolean => supabase !== null;

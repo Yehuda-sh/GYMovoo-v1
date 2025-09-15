@@ -62,26 +62,3 @@ export const useQuestionnaireStatus = (): QuestionnaireStatus => {
     };
   }, [user]);
 };
-
-/**
- * Hook פשוט לבדיקה מהירה של השלמת השאלון
- */
-export const useIsQuestionnaireComplete = (): boolean => {
-  const { isComplete } = useQuestionnaireStatus();
-  return isComplete;
-};
-
-/**
- * Hook לקבלת פרטי המשתמש עם בדיקת תקינות
- */
-export const useUserWithQuestionnaire = () => {
-  const user = useUserStore((state) => state.user);
-  const status = useQuestionnaireStatus();
-
-  if (!user) return null;
-
-  return {
-    ...user,
-    questionnaireStatus: status,
-  };
-};

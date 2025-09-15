@@ -15,11 +15,9 @@ import DeveloperScreen from "../screens/developer/DeveloperScreen";
 
 // Workout screens
 import ActiveWorkoutScreen from "../features/workout/screens/workout_screens/ActiveWorkoutScreen";
-import WorkoutSummaryScreen from "../screens/workout/WorkoutSummaryScreen";
+import WorkoutSummaryScreen from "../features/workout/screens/workout_screens/WorkoutSummaryScreen";
 
 // Additional screens
-import ExerciseListScreen from "../screens/exercise/ExerciseListScreen";
-import ProgressScreen from "../features/progress/ProgressScreen";
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
 import { useUserStore } from "../stores/userStore";
@@ -33,7 +31,7 @@ export default function AppNavigator() {
     useUserStore();
 
   if (!hydrated) {
-    return null; // TODO: ניתן להוסיף Splash מותאם
+    return null;
   }
 
   const initialRoute: keyof RootStackParamList = (() => {
@@ -110,7 +108,7 @@ export default function AppNavigator() {
         {/* Exercise screens */}
         <Stack.Screen
           name="ExerciseList"
-          component={ExerciseListScreen}
+          component={ExercisesScreen}
           options={{ presentation: "modal" }}
         />
         <Stack.Screen
@@ -118,9 +116,6 @@ export default function AppNavigator() {
           component={ExerciseDetailsScreen}
         />
         <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
-
-        {/* Additional screens */}
-        <Stack.Screen name="Progress" component={ProgressScreen} />
 
         {/* Developer screen (development only) */}
         {__DEV__ && (

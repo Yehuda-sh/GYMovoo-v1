@@ -43,9 +43,8 @@ import {
   formatProgressRatio,
 } from "../../utils/formatters";
 import { calculateWorkoutStats } from "../../features/workout/utils";
-import type { User } from "../../core/types/user.types";
+import type { User, WorkoutHistoryItem } from "../../core/types/user.types";
 import { WelcomeHeader, QuickStatsCard } from "./components";
-import { getNextRecommendedDay } from "./utils/dataProcessors";
 
 // Helper functions
 const formatRating = (rating: number): string => {
@@ -94,67 +93,43 @@ const calculateAvailableTrainingDays = (user: User | null): number => {
   return 3; // ברירת מחדל
 };
 
-/** @description Extract personal data from user for analytics */
-const extractPersonalDataFromUser = (user: User | null) => {
-  if (!user) {
-    return {
-      age: "unknown" as const,
-      gender: "male" as const,
-      availability: "3_days" as const,
-      goals: "general_fitness" as const,
-      fitnessLevel: "beginner" as const,
-      weight: "70",
-      height: "170",
-    };
+/**
+ * Calculate next recommended training day
+ */
+const getNextRecommendedDay = (
+  workouts: WorkoutHistoryItem[],
+  availableDays: number
+): number => {
+  if (workouts.length === 0) return 1;
+
+  const lastWorkout = workouts[workouts.length - 1];
+  const lastWorkoutType = lastWorkout?.name || "";
+
+  if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
+    return 2;
+  } else if (
+    lastWorkoutType.includes("2") ||
+    lastWorkoutType.includes("יום 2")
+  ) {
+    return availableDays >= 3 ? 3 : 1;
+  } else if (
+    lastWorkoutType.includes("3") ||
+    lastWorkoutType.includes("יום 3")
+  ) {
+    return availableDays >= 4 ? 4 : 1;
+  } else if (
+    lastWorkoutType.includes("4") ||
+    lastWorkoutType.includes("יום 4")
+  ) {
+    return availableDays >= 5 ? 5 : 1;
+  } else if (
+    lastWorkoutType.includes("5") ||
+    lastWorkoutType.includes("יום 5")
+  ) {
+    return 1;
   }
 
-  // Extract gender
-  const gender = (
-    user.questionnaireData?.answers?.gender === "female" ? "female" : "male"
-  ) as "male" | "female";
-
-  // Extract age
-  const age = user.questionnaireData?.answers?.age?.toString() || "unknown";
-
-  // Extract availability
-  const availability = (
-    Array.isArray(user.questionnaireData?.answers?.availability)
-      ? user.questionnaireData.answers.availability[0] || "3_days"
-      : "3_days"
-  ) as "2_days" | "3_days" | "4_days" | "5_days";
-
-  // Extract goals
-  const goalsArray = Array.isArray(user.questionnaireData?.answers?.goals)
-    ? user.questionnaireData.answers.goals
-    : [];
-
-  const goals =
-    goalsArray.length > 0
-      ? (goalsArray[0] as
-          | "weight_loss"
-          | "muscle_gain"
-          | "endurance"
-          | "strength"
-          | "general_fitness")
-      : ("general_fitness" as const);
-
-  // Extract fitness level
-  const fitnessLevel = (user.questionnaireData?.answers?.fitnessLevel ||
-    "beginner") as "beginner" | "intermediate" | "advanced";
-
-  // Use default values for weight and height since they're not in ScientificProfile
-  const weight = "70";
-  const height = "170";
-
-  return {
-    age,
-    gender,
-    availability,
-    goals,
-    fitnessLevel,
-    weight,
-    height,
-  };
+  return 1;
 };
 
 // Types
@@ -272,11 +247,8 @@ function MainScreen() {
 
     try {
       const historyItems = await workoutFacadeService.getHistoryForList();
-      const personalData = extractPersonalDataFromUser(user);
-      const insights = await workoutFacadeService.getPersonalizedAnalytics(
-        historyItems,
-        personalData
-      );
+      const insights =
+        await workoutFacadeService.getPersonalizedAnalytics(historyItems);
 
       // חישוב סטטיסטיקות מההיסטוריה
       const totalWorkouts = historyItems.length;
@@ -311,7 +283,7 @@ function MainScreen() {
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
     if (renderTime > 100) {
-      console.warn(`רינדור איטי: ${renderTime.toFixed(2)}ms`);
+      logger.warn("MainScreen", `רינדור איטי: ${renderTime.toFixed(2)}ms`);
     }
   }, [renderStartTime]);
 
@@ -742,14 +714,7 @@ function MainScreen() {
                 transform: [{ translateY: slideAnim }],
               },
             ]}
-          >
-            {/* Remove NextWorkoutCard for now as it requires workoutPlan prop */}
-            {/* TODO: Implement NextWorkoutCard with proper workoutPlan data */}
-            {/* <NextWorkoutCard
-              workoutPlan={undefined}
-              onStartWorkout={handleStartWorkout}
-            /> */}
-          </Animated.View>
+          ></Animated.View>
 
           {/* בחירת יום אימון עם המלצה דינמית */}
           <Animated.View
@@ -783,7 +748,6 @@ function MainScreen() {
             <DayButtonGrid
               days={daysToShow}
               onDayPress={handleDayWorkout}
-              variant="default"
               testID="day-selection-grid"
             />
 

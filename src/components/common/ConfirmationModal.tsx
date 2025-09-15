@@ -1,11 +1,7 @@
 /**
  * @file src/components/common/ConfirmationModal.tsx
- * @brief מודל אישור פעולות עם תמיכה מלאה ב-RTL ונגישות
+ * @brief מודל אישור פעולות פשוט עם תמיכה ב-RTL ונגישות
  * @dependencies React Native Modal, Ionicons, theme, Haptics
- * @notes תומך במצב destructive, variants, כפתור יחיד, אייקונים אוטומטיים ונגישות מלאה
- * @version 2.1 - Added React.memo, haptic feedback, logging, useCallback
- * @recurring_errors וודא accessibility labels, RTL בכפתורים, theme colors
- * @updated 2025-09-01 הוספת React.memo, haptic feedback, logging ו-useCallback
  */
 
 import React, { useCallback } from "react";
@@ -26,157 +22,132 @@ interface ConfirmationModalProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
-  iconColor?: string;
-  confirmButtonColor?: string;
-  cancelButtonColor?: string;
-  destructive?: boolean;
-  /** סוג המודל - משפיע על אייקון וצבעים ברירת מחדל */
   variant?: ConfirmationModalVariant;
-  /** האם להציג רק כפתור אישור (עבור הודעות מידע/שגיאה) */
   singleButton?: boolean;
 }
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
-  ({
-    visible,
-    onClose,
-    onConfirm,
-    onCancel,
-    title,
-    message,
-    confirmText = "אישור",
-    cancelText = "ביטול",
-    icon,
-    iconColor,
-    confirmButtonColor,
-    cancelButtonColor,
-    destructive = false,
-    variant = "default",
-    singleButton = false,
-  }) => {
-    const handleConfirm = useCallback(() => {
-      logger.debug("ConfirmationModal", `Confirm button pressed: ${title}`, {
-        variant,
-      });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      onConfirm();
-      onClose();
-    }, [onConfirm, onClose, title, variant]);
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+  visible,
+  onClose,
+  onConfirm,
+  onCancel,
+  title,
+  message,
+  confirmText = "אישור",
+  cancelText = "ביטול",
+  variant = "default",
+  singleButton = false,
+}) => {
+  const handleConfirm = useCallback(() => {
+    logger.debug("ConfirmationModal", `Confirm button pressed: ${title}`, {
+      variant,
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onConfirm();
+    onClose();
+  }, [onConfirm, onClose, title, variant]);
 
-    const handleCancel = useCallback(() => {
-      logger.debug("ConfirmationModal", `Cancel button pressed: ${title}`);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      if (onCancel) {
-        onCancel();
-      }
-      onClose();
-    }, [onCancel, onClose, title]);
+  const handleCancel = useCallback(() => {
+    logger.debug("ConfirmationModal", `Cancel button pressed: ${title}`);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onCancel) {
+      onCancel();
+    }
+    onClose();
+  }, [onCancel, onClose, title]);
 
-    // אייקונים ברירת מחדל לפי variant
-    const getDefaultIcon = (): keyof typeof Ionicons.glyphMap => {
-      switch (variant) {
-        case "error":
-          return "alert-circle";
-        default:
-          return "help-circle";
-      }
-    };
+  const getIcon = (): keyof typeof Ionicons.glyphMap => {
+    switch (variant) {
+      case "error":
+        return "alert-circle";
+      default:
+        return "help-circle";
+    }
+  };
 
-    // צבעים ברירת מחדל לפי variant
-    const getDefaultColors = () => {
-      switch (variant) {
-        case "error":
-          return {
-            icon: theme.colors.error,
-            confirm: theme.colors.error,
-          };
-        default:
-          return {
-            icon: destructive ? theme.colors.error : theme.colors.primary,
-            confirm: destructive ? theme.colors.error : theme.colors.primary,
-          };
-      }
-    };
+  const getIconColor = () => {
+    switch (variant) {
+      case "error":
+        return theme.colors.error;
+      default:
+        return theme.colors.primary;
+    }
+  };
 
-    const defaultColors = getDefaultColors();
-    const displayIcon = icon || getDefaultIcon();
-    const displayIconColor = iconColor || defaultColors.icon;
-    const displayConfirmColor = confirmButtonColor || defaultColors.confirm;
+  const getConfirmButtonColor = () => {
+    switch (variant) {
+      case "error":
+        return theme.colors.error;
+      default:
+        return theme.colors.primary;
+    }
+  };
 
-    return (
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={onClose}
-        accessibilityViewIsModal={true}
-      >
-        <View style={theme.getModalOverlayStyle("center")}>
-          <View
-            style={[theme.getModalContentStyle("center"), styles.modalContent]}
-            accessibilityRole="alert"
-            accessibilityLabel={`דיאלוג אישור: ${title}`}
-          >
-            {(icon || variant !== "default") && (
-              <View style={{ marginBottom: theme.spacing.lg }}>
-                <Ionicons
-                  name={displayIcon}
-                  size={48}
-                  color={displayIconColor}
-                />
-              </View>
-            )}
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      accessibilityViewIsModal={true}
+    >
+      <View style={theme.getModalOverlayStyle("center")}>
+        <View
+          style={[theme.getModalContentStyle("center"), styles.modalContent]}
+          accessibilityRole="alert"
+          accessibilityLabel={`דיאלוג אישור: ${title}`}
+        >
+          <View style={{ marginBottom: theme.spacing.lg }}>
+            <Ionicons name={getIcon()} size={48} color={getIconColor()} />
+          </View>
 
-            <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title}>{title}</Text>
 
-            {message && <Text style={styles.message}>{message}</Text>}
+          {message && <Text style={styles.message}>{message}</Text>}
 
-            <View style={styles.buttonContainer}>
-              {!singleButton && (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    {
-                      backgroundColor:
-                        cancelButtonColor || theme.colors.surface,
-                    },
-                  ]}
-                  onPress={handleCancel}
-                  accessibilityRole="button"
-                  accessibilityLabel={`כפתור ${cancelText}`}
-                  accessibilityHint="לחץ כדי לבטל את הפעולה"
-                >
-                  <Text style={[styles.buttonText, styles.cancelButtonText]}>
-                    {cancelText}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
+          <View style={styles.buttonContainer}>
+            {!singleButton && (
               <TouchableOpacity
                 style={[
                   styles.button,
-                  singleButton && styles.singleButton,
-                  { backgroundColor: displayConfirmColor },
+                  {
+                    backgroundColor: theme.colors.surface,
+                  },
                 ]}
-                onPress={handleConfirm}
+                onPress={handleCancel}
                 accessibilityRole="button"
-                accessibilityLabel={`כפתור ${confirmText}`}
-                accessibilityHint={
-                  destructive || variant === "error"
-                    ? "זהירות! פעולה זו אינה הפיכה"
-                    : "לחץ כדי לאשר את הפעולה"
-                }
+                accessibilityLabel={`כפתור ${cancelText}`}
+                accessibilityHint="לחץ כדי לבטל את הפעולה"
               >
-                <Text style={styles.buttonText}>{confirmText}</Text>
+                <Text style={[styles.buttonText, styles.cancelButtonText]}>
+                  {cancelText}
+                </Text>
               </TouchableOpacity>
-            </View>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                singleButton && styles.singleButton,
+                { backgroundColor: getConfirmButtonColor() },
+              ]}
+              onPress={handleConfirm}
+              accessibilityRole="button"
+              accessibilityLabel={`כפתור ${confirmText}`}
+              accessibilityHint={
+                variant === "error"
+                  ? "זהירות! פעולה זו אינה הפיכה"
+                  : "לחץ כדי לאשר את הפעולה"
+              }
+            >
+              <Text style={styles.buttonText}>{confirmText}</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    );
-  }
-);
+      </View>
+    </Modal>
+  );
+};
 
 ConfirmationModal.displayName = "ConfirmationModal";
 

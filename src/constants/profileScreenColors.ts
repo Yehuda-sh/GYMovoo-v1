@@ -1,68 +1,70 @@
 /**
- * @file src/constants/profileScreenColors.ts
- * @brief צבעי הישגים למסך הפרופיל - פושט ומיועל
- * @brief Achievement colors for profile screen - simplified and optimized
- * @notes צבעים בסיסיים להישגים בלבד - מיפוי ישיר ללא קבוצות מיותרות
- * @notes Basic colors for achievements only - direct mapping without unnecessary groups
- * @version 4.0.0 - Dramatically simplified, removed nested structure
- * @updated 2025-09-13 פישוט דרמטי והסרת מבנה מקונן
+ * @file profileScreenColors.ts
+ * @brief Achievement colors for profile screen
  */
 
 import { theme } from "../core/theme";
 
 /**
  * Get achievement color by achievement ID
- * קבלת צבע הישג לפי מזהה
  */
 export const getAchievementColor = (
   achievementId: number,
   isUnlocked: boolean = true
 ): string => {
-  // If locked, return muted color / אם נעול, החזר צבע עמום
+  // If locked, return muted color
   if (!isUnlocked) {
     return theme.colors.textSecondary;
   }
 
-  // Direct mapping of achievement IDs to colors / מיפוי ישיר של מזהי הישגים לצבעים
+  // Direct mapping of achievement IDs to colors
   const colorMap: { [key: number]: string } = {
-    // Basic achievements / הישגים בסיסיים
-    1: theme.colors.primary, // הישג ראשון
-    2: theme.colors.success, // השלמת שאלון
+    // Basic achievements
+    1: theme.colors.primary, // ENTHUSIASTIC_BEGINNER
+    2: theme.colors.success, // FIRST_WORKOUT
 
-    // Streak achievements / הישגי רצף
-    3: "#FF6347", // רצף שבועי
-    4: "#FF4500", // רצף דו-שבועי
-    5: "#DC143C", // רצף חודשי
+    // Streak achievements
+    3: "#FF6347", // WEEKLY_STREAK
+    4: "#FF4500", // BIWEEKLY_STREAK
+    5: "#DC143C", // MONTHLY_STREAK
+    31: "#8B0000", // STREAK_MASTER
+    32: "#FF1493", // UNSTOPPABLE
 
-    // Medal achievements / הישגי מדליות
-    6: "#CD7F32", // ברונזה
-    7: "#C0C0C0", // כסף
-    8: "#FFD700", // זהב
-    9: "#9932CC", // יהלום
+    // Quantity achievements
+    6: "#CD7F32", // TEN_WORKOUTS
+    7: "#C0C0C0", // TWENTY_FIVE_WORKOUTS
+    8: "#FFD700", // FIFTY_WORKOUTS
+    9: "#9932CC", // HUNDRED_WORKOUTS
+    29: "#4B0082", // WORKOUT_VETERAN
+    30: "#FF8C00", // LEGENDARY_TRAINER
 
-    // Time achievements / הישגי זמן
-    10: "#1E90FF", // שעה של כושר
-    11: "#0080FF", // 10 שעות
-    12: "#FF69B4", // מרתון כושר
+    // Time achievements
+    10: "#1E90FF", // ONE_HOUR_FITNESS
+    11: "#0080FF", // TEN_HOURS_TRAINING
+    12: "#FF69B4", // FITNESS_MARATHON
+    21: "#00CED1", // QUARTER_CENTURY
 
-    // Loyalty achievements / הישגי נאמנות
-    13: "#32CD32", // שבוע עם GYMovoo
-    14: "#228B22", // חודש עם GYMovoo
-    15: "#8B4513", // ותיק GYMovoo
+    // Loyalty achievements
+    13: "#32CD32", // WEEK_WITH_GYMOVOO
+    14: "#228B22", // MONTH_WITH_GYMOVOO
+    15: "#8B4513", // VETERAN_GYMOVOO
+    33: "#9370DB", // LOYAL_MEMBER
+    34: "#FFD700", // YEAR_WITH_GYMOVOO
 
-    // Performance achievements / הישגי ביצועים
-    16: "#FF8C00", // מדרג מעולה
-    17: "#FF1493", // מושלם
+    // Performance achievements
+    16: "#FF8C00", // EXCELLENT_RATER
+    17: "#FF1493", // PERFECT
+    22: "#32CD32", // CONSISTENT_TRAINER
+    23: "#9932CC", // MASTER_RATER
 
-    // Special achievements / הישגים מיוחדים
-    18: "#4B0082", // לוחם סוף השבוע
-    19: "#FFA500", // חובב בוקר
-    20: "#483D8B", // ינשוף לילה
+    // Special achievements
+    18: "#4B0082", // WEEKEND_WARRIOR
+    19: "#FFA500", // MORNING_PERSON
+    20: "#483D8B", // NIGHT_OWL
 
-    // Challenge achievements / הישגי אתגר
-    21: "#FF6B35", // אתגר ראשון
-    22: "#8B0000", // מאסטר אתגרים
-    23: "#9370DB", // אתגר חברתי
+    // Challenge achievements
+    26: "#FF6B35", // SPEED_DEMON
+    28: "#8B0000", // PERFECTIONIST
   };
 
   return colorMap[achievementId] || theme.colors.primary;

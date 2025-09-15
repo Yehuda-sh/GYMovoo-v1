@@ -4,8 +4,6 @@
  * @brief Profile screen text constants - simplified and optimized
  * @notes טקסטים בסיסיים למסך פרופיל והישגים בלבד - הוסרו הישגים מיותרים
  * @notes Basic texts for profile screen and achievements only - removed unused achievements
- * @version 3.0.0 - Removed unused achievements: QUESTIONNAIRE_COMPLETE, EARLY_BIRD, DEDICATED_TRAINER, CENTURY_CLUB
- * @updated 2025-09-13 הסרת הישגים מיותרים והמשך פישוט
  */
 
 export const PROFILE_SCREEN_TEXTS = {
@@ -119,7 +117,7 @@ export const PROFILE_SCREEN_TEXTS = {
       description: "10 אימונים בשעות הערב",
     },
 
-    // הישגים חדשים / New achievements
+    // הישגים מתקדמים / Advanced achievements
     FIRST_WORKOUT: {
       title: "אימון ראשון",
       description: "השלמת האימון הראשון",

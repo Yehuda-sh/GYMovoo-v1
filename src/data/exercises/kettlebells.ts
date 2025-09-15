@@ -1,6 +1,6 @@
 /**
  * @file kettlebells.ts
- * @description תרגילי כדורי אימון (קטלבלס)
+ * @description תרגילי קטלבל
  * Kettlebell exercises
  */
 
@@ -9,9 +9,9 @@ import { Exercise } from "./types";
 export const kettlebellExercises: Exercise[] = [
   {
     id: "kettlebell_swing_1",
-    name: "נדנוד כדור אימון",
+    name: "נדנוד קטלבל",
     nameLocalized: {
-      he: "נדנוד כדור אימון",
+      he: "נדנוד קטלבל",
       en: "Kettlebell Swing",
     },
     category: "strength",
@@ -22,9 +22,9 @@ export const kettlebellExercises: Exercise[] = [
     instructions: {
       he: [
         "עמוד עם רגליים פתוחות ברוחב הכתפיים",
-        "אחז בכדור האימון בשתי ידיים מול הגוף",
-        "התחל בכפיפת ירכיים ושלח את הכדור אחורה בין הרגליים",
-        "הפעל כוח עם הירכיים ושלח את הכדור למעלה עד גובה הכתפיים",
+        "אחז בקטלבל בשתי ידיים מול הגוף",
+        "התחל בכפיפת ירכיים ושלח את הקטלבל אחורה בין הרגליים",
+        "הפעל כוח עם הירכיים ושלח את הקטלבל למעלה עד גובה הכתפיים",
         "שלוט בירידה וחזור לתנועה",
       ],
       en: [
@@ -39,7 +39,7 @@ export const kettlebellExercises: Exercise[] = [
       he: [
         "התנועה צריכה לבוא מהירכיים, לא מהכתפיים",
         "שמור על גב ישר לאורך כל התנועה",
-        "התנשם החוצה כשדוחף את הכדור מעלה",
+        "התנשם החוצה כשדוחף את הקטלבל מעלה",
       ],
       en: [
         "Movement should come from hips, not shoulders",
@@ -72,9 +72,9 @@ export const kettlebellExercises: Exercise[] = [
   },
   {
     id: "kettlebell_goblet_squat_1",
-    name: "גביע כדור אימון",
+    name: "כפיפה עם קטלבל",
     nameLocalized: {
-      he: "גביע כדור אימון",
+      he: "כפיפה עם קטלבל",
       en: "Kettlebell Goblet Squat",
     },
     category: "strength",
@@ -84,7 +84,7 @@ export const kettlebellExercises: Exercise[] = [
     difficulty: "beginner",
     instructions: {
       he: [
-        "אחז בכדור האימון קרוב לחזה עם שתי ידיים",
+        "אחז בקטלבל קרוב לחזה עם שתי ידיים",
         "עמוד עם רגליים ברוחב הכתפיים",
         "רד לכפיפה עמוקה עם שמירה על גב ישר",
         "עלה חזרה לעמדת התחלה בכוח",
@@ -133,9 +133,9 @@ export const kettlebellExercises: Exercise[] = [
   },
   {
     id: "kettlebell_turkish_getup_1",
-    name: "קימה טורקית עם כדור אימון",
+    name: "קימה טורקית עם קטלבל",
     nameLocalized: {
-      he: "קימה טורקית עם כדור אימון",
+      he: "קימה טורקית עם קטלבל",
       en: "Turkish Get-Up",
     },
     category: "strength",
@@ -145,10 +145,10 @@ export const kettlebellExercises: Exercise[] = [
     difficulty: "advanced",
     instructions: {
       he: [
-        "התחל שכוב על הגב עם כדור האימון ביד ימין",
+        "התחל שכוב על הגב עם הקטלבל ביד ימין",
         "כופף את הרגל הימנית ושלח יד שמאל הצידה",
         "התגלגל אל הצד השמאלי ותמוך על המרפק",
-        "המשך לעמוד בהדרגה תוך שמירה על הכדור למעלה",
+        "המשך לעמוד בהדרגה תוך שמירה על הקטלבל למעלה",
         "חזור באותו דרך להתחלה",
       ],
       en: [
@@ -162,7 +162,7 @@ export const kettlebellExercises: Exercise[] = [
     tips: {
       he: [
         "תרגיל מורכב - התחל ללא משקל",
-        "שמור מבט על הכדור לאורך כל התנועה",
+        "שמור מבט על הקטלבל לאורך כל התנועה",
         "עבוד לאט ובשליטה",
       ],
       en: [
@@ -196,9 +196,9 @@ export const kettlebellExercises: Exercise[] = [
   },
   {
     id: "kettlebell_snatch_1",
-    name: "חטיפה עם כדור אימון",
+    name: "חטיפה עם קטלבל",
     nameLocalized: {
-      he: "חטיפה עם כדור אימון",
+      he: "חטיפה עם קטלבל",
       en: "Kettlebell Snatch",
     },
     category: "strength",
@@ -209,9 +209,9 @@ export const kettlebellExercises: Exercise[] = [
     instructions: {
       he: [
         "עמוד עם רגליים ברוחב הכתפיים",
-        "אחז בכדור האימון ביד אחת",
-        "התחל עם נדנוד ואז משוך את הכדור מעלה בתנועה רציפה",
-        "סובב את פרק היד ותפוס את הכדור מעל הראש",
+        "אחז בקטלבל ביד אחת",
+        "התחל עם נדנוד ואז משוך את הקטלבל מעלה בתנועה רציפה",
+        "סובב את פרק היד ותפוס את הקטלבל מעל הראש",
         "הורד בשליטה",
       ],
       en: [

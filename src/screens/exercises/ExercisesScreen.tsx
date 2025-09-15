@@ -22,10 +22,9 @@ import { theme } from "../../core/theme";
 import type { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import {
-  EXERCISES_SCREEN_TEXTS,
   EXERCISES_MUSCLE_GROUPS,
   getMuscleGroupColor,
-} from "../../constants/exercisesScreenTexts";
+} from "../../constants/muscleGroups";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -83,13 +82,11 @@ const ExercisesScreen: React.FC = () => {
               size={80}
               color={theme.colors.primary}
             />
-            <Text style={styles.title}>
-              {filterTitle || EXERCISES_SCREEN_TEXTS.HEADERS.MAIN_TITLE}
-            </Text>
+            <Text style={styles.title}>{filterTitle || "ספריית תרגילים"}</Text>
             <Text style={styles.subtitle}>
               {selectedMuscleGroup
                 ? `תרגילים מותאמים לקבוצת השרירים ${selectedMuscleGroup}`
-                : EXERCISES_SCREEN_TEXTS.HEADERS.SUBTITLE}
+                : "גלה מאות תרגילים מותאמים לכל רמה"}
             </Text>
           </View>
 

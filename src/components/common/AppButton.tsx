@@ -23,7 +23,6 @@
 
 import React, { useCallback, useMemo } from "react";
 import {
-  TouchableOpacity,
   Text,
   StyleSheet,
   ViewStyle,
@@ -31,7 +30,6 @@ import {
   ActivityIndicator,
   View,
   Pressable,
-  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -47,7 +45,6 @@ export type ButtonVariant =
   | "outline"
   | "ghost"
   | "danger"
-  | "success"
   | "workout"
   | "minimal";
 
@@ -93,6 +90,7 @@ const BUTTON_CONSTANTS = {
   MIN_WIDTH: 44,
   BORDER_RADIUS: 12,
   HIT_SLOP: { top: 8, bottom: 8, left: 8, right: 8 },
+  ICON_MARGIN: 8,
 } as const;
 
 const SIZE_CONFIG = {
@@ -150,12 +148,6 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
     haptic = true,
     hapticType = "light",
   }) => {
-    // =======================================
-    // 🔄 State Management
-    // =======================================
-
-    // Removed lastPressTime state as double press prevention was removed
-
     // =======================================
     // 🎨 Style Calculations
     // =======================================
@@ -223,18 +215,6 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
             container: {
               ...baseStyles.container,
               backgroundColor: theme.colors.error,
-            },
-            text: {
-              ...baseStyles.text,
-              color: theme.colors.white,
-            },
-          };
-
-        case "success":
-          return {
-            container: {
-              ...baseStyles.container,
-              backgroundColor: theme.colors.success,
             },
             text: {
               ...baseStyles.text,
@@ -353,8 +333,12 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
               disabled ? theme.colors.textSecondary : variantStyles.text.color
             }
             style={[
-              iconPosition === "left" && { marginRight: 8 },
-              iconPosition === "right" && { marginLeft: 8 },
+              iconPosition === "left" && {
+                marginRight: BUTTON_CONSTANTS.ICON_MARGIN,
+              },
+              iconPosition === "right" && {
+                marginLeft: BUTTON_CONSTANTS.ICON_MARGIN,
+              },
             ]}
           />
         );
@@ -369,7 +353,7 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
             <ActivityIndicator
               size="small"
               color={variantStyles.text.color}
-              style={{ marginRight: title ? 8 : 0 }}
+              style={{ marginRight: title ? BUTTON_CONSTANTS.ICON_MARGIN : 0 }}
             />
             {title && (
               <Text style={finalTextStyle} numberOfLines={1}>
@@ -392,19 +376,19 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
     }, [loading, variantStyles.text.color, title, finalTextStyle, renderIcon]);
 
     // =======================================
-    // 🎯 Component Selection
+    // 🎯 Render
     // =======================================
 
-    const ButtonComponent =
-      Platform.OS === "ios" ? Pressable : TouchableOpacity;
-
     return (
-      <ButtonComponent
-        style={[containerStyle, style]}
+      <Pressable
+        style={({ pressed }) => [
+          containerStyle,
+          pressed && !disabled && !loading && styles.pressed,
+          style,
+        ]}
         onPress={handlePress}
         disabled={disabled || loading}
         hitSlop={BUTTON_CONSTANTS.HIT_SLOP}
-        activeOpacity={0.8}
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || title}
@@ -414,16 +398,9 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
           busy: loading,
         }}
         testID={testID || `app-button-${variant}-${size}`}
-        {...(Platform.OS === "ios" && {
-          style: ({ pressed }: { pressed: boolean }) => [
-            containerStyle,
-            pressed && !disabled && !loading && styles.pressed,
-            style,
-          ],
-        })}
       >
         {renderContent}
-      </ButtonComponent>
+      </Pressable>
     );
   }
 );

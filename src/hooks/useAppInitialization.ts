@@ -1,18 +1,16 @@
 /**
  * @file src/hooks/useAppInitialization.ts
- * @description Hook למניהת אתחול האפליקציה
+ * @description Hook לניהול אתחול האפליקציה
  */
 
 import { useEffect, useRef } from "react";
 import { useUserStore } from "../stores/userStore";
-import { dataManager } from "../services/core";
 import { StorageCleanup } from "../utils/storageCleanup";
 import { logger } from "../utils/logger";
 
 export const useAppInitialization = () => {
   const { user } = useUserStore();
   const initializedUserIdRef = useRef<string | null>(null);
-  const isInitializingRef = useRef(false);
   const didRefreshRef = useRef(false);
 
   // ניקוי אחסון בהפעלה ראשונה
@@ -35,7 +33,7 @@ export const useAppInitialization = () => {
     initStorageCleanup();
   }, []);
 
-  // אתחול מנהל נתונים
+  // אתחול משתמש
   useEffect(() => {
     const initData = async (): Promise<void> => {
       if (!user?.id) {
@@ -48,42 +46,21 @@ export const useAppInitialization = () => {
       }
 
       // אם כבר מאותחל עבור המשתמש הזה
-      if (initializedUserIdRef.current === user.id && dataManager.isReady()) {
-        return;
-      }
-
-      // הימנע מהרצות מקבילות
-      if (isInitializingRef.current) {
+      if (initializedUserIdRef.current === user.id) {
         return;
       }
 
       try {
-        // רענון מהשרת (פעם אחת לכל משתמש)
-        if (!didRefreshRef.current) {
-          await useUserStore.getState().refreshFromServer();
-          didRefreshRef.current = true;
-          logger.info("App", "User data refreshed from server", {
-            userId: user.id,
-          });
-        }
-      } catch (error) {
-        logger.warn("App", "Server refresh failed", error);
-      }
+        // רענון מהשרת הוסר - נעבוד עם נתונים מקומיים
+        logger.info("App", "App initialized for user (local data)", {
+          userId: user.id,
+        });
 
-      try {
-        // בדיקה נוספת אחרי הרענון
-        if (dataManager.isReady() && initializedUserIdRef.current === user.id) {
-          return;
-        }
-
-        isInitializingRef.current = true;
-        await dataManager.initialize(user);
+        // סיום אתחול
         initializedUserIdRef.current = user.id;
-        logger.info("App", "Data manager initialized", { userId: user.id });
       } catch (error) {
-        logger.error("App", "Data manager initialization failed", error);
-      } finally {
-        isInitializingRef.current = false;
+        logger.warn("App", "Initialization failed", error);
+        initializedUserIdRef.current = user.id;
       }
     };
 

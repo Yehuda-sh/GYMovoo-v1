@@ -1,7 +1,7 @@
 import { WorkoutExercise } from "../core/types/workout.types";
 import { AuthStackParamList } from "../features/auth";
 
-interface WorkoutSummaryData {
+export interface WorkoutSummaryData {
   workoutName: string;
   totalDuration: number;
   exercises: Array<{
@@ -87,11 +87,6 @@ export type RootStackParamList = {
 
   // Main app
   MainApp: undefined;
-
-  // Additional screens
-  Progress: {
-    timeRange?: "7d" | "30d" | "90d" | "all";
-  };
 
   // Bottom navigation screens
   Main: undefined;

@@ -6,16 +6,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
 import AppButton from "../../components/common/AppButton";
-import TouchableButton from "../../components/ui/TouchableButton";
 import { RootStackParamList } from "../../navigation/types";
 
 const WelcomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, getCompletionStatus } = useUserStore();
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage] = useState("");
 
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -75,17 +71,14 @@ const WelcomeScreen = () => {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Dev button - only in development mode */}
       {__DEV__ && (
-        <TouchableButton
+        <AppButton
+          variant="ghost"
+          title=""
           style={styles.devButton}
           onPress={() => navigation.navigate("DeveloperScreen")}
           accessibilityLabel="כניסה למסך פיתוח"
-        >
-          <MaterialCommunityIcons
-            name="tools"
-            size={22}
-            color={theme.colors.primary}
-          />
-        </TouchableButton>
+          icon="tools"
+        />
       )}
       <LinearGradient
         colors={[theme.colors.background, theme.colors.backgroundAlt]}
@@ -184,45 +177,16 @@ const WelcomeScreen = () => {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableButton
+            <AppButton
+              variant="outline"
+              title="כבר יש לי חשבון"
               style={styles.loginButton}
               onPress={handleLoginNavigation}
               accessibilityLabel="כבר יש לי חשבון"
-            >
-              <MaterialCommunityIcons
-                name="account-check"
-                size={20}
-                color={theme.colors.secondary}
-              />
-              <Text style={styles.loginButtonText}>כבר יש לי חשבון</Text>
-            </TouchableButton>
-
-            {/* כפתור נוסף לכניסה מהירה */}
-            <AppButton
-              title="כניסה מהירה"
-              onPress={handleLoginNavigation}
-              variant="outline"
-              size="medium"
-              icon="login"
-              iconPosition="left"
-              fullWidth
-              style={{ marginTop: theme.spacing.sm }}
-              accessibilityLabel="כניסה מהירה למשתמש קיים"
+              icon="account-check"
             />
           </View>
         </ScrollView>
-
-        {/* Error Modal */}
-        <ConfirmationModal
-          visible={showErrorModal}
-          onClose={() => setShowErrorModal(false)}
-          onConfirm={() => setShowErrorModal(false)}
-          title="שגיאה"
-          message={errorMessage}
-          variant="error"
-          singleButton={true}
-          confirmText="אישור"
-        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -364,10 +328,5 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 50,
     gap: theme.spacing.xs,
-  },
-  loginButtonText: {
-    fontSize: 16,
-    color: theme.colors.secondary,
-    fontWeight: "600",
   },
 });

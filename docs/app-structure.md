@@ -109,12 +109,7 @@ The app uses Zustand for state management:
 - Handles user authentication state
 - Manages questionnaire data
 - Tracks subscription status
-- Handles user preferences at a basic level
-
-### useUserPreferences Hook
-
-- Hook for detailed user preferences
-- Handles workout recommendations
+- Handles user preferences and workout recommendations
 - Manages equipment selection
 - Processes questionnaire data into smart insights
 
@@ -126,7 +121,7 @@ The app uses Zustand for state management:
    - Can be synced with server
 
 2. **Preferences**
-   - Managed through `useUserPreferences` hook
+   - Managed directly in `userStore`
    - Derives from questionnaire data
    - Creates personalized workout recommendations
 
@@ -146,7 +141,7 @@ The app uses Zustand for state management:
 
 ### Key Components (Simplified and Optimized)
 
-- **NextWorkoutCard**: Simplified workout recommendation component (160 lines vs 570+ previously)
+- **NextWorkoutCard**: Simplified workout recommendation component (156 lines)
 - **ConfirmationModal**: Unified modal for confirmations and actions
 - **AppButton**: Optimized button component with essential features only
 - **DayButton**: Simplified day selection component
@@ -159,17 +154,20 @@ The app uses Zustand for state management:
 2. **scripts/ directory**: DELETED (1,100+ lines) - build and fix scripts moved to package.json
 3. **FloatingActionButton**: DELETED (100+ lines) - replaced with simple TouchableOpacity
 4. **Duplicate NextWorkoutCard**: DELETED from main/components (162 lines) - redundant implementation
+5. **components/index.ts**: DELETED (80 lines) - unused export hub with outdated information
+6. **components/workout/types.ts**: DELETED (137 lines) - unused type definitions
+7. **detailed-refactoring-plan.md**: DELETED (374 lines) - outdated planning document
 
 ### Simplified Components:
 
-1. **NextWorkoutCard**: Reduced from 570 to 160 lines (77% reduction)
+1. **NextWorkoutCard**: Reduced from 570+ to 156 lines (73% reduction)
 2. **AppButton**: Optimized by removing unused features (~30 lines saved)
 3. **DayButton**: Simplified by removing unused variants (~100 lines saved)
 4. **ConfirmationModal**: Fixed TypeScript errors, removed unused variants (~75 lines saved)
 5. **profileScreenColors**: Dramatically simplified (48 lines saved, 40% reduction)
 6. **profileScreenTexts**: Removed unused achievements (28 lines saved)
 
-### Total Code Reduction: ~2,000+ lines removed
+### Total Code Reduction: ~2,600+ lines removed
 
 ## Current File Structure (Post-Cleanup)
 
@@ -209,8 +207,9 @@ Each feature contains its own:
 
 ## Benefits of Recent Cleanup
 
-1. **Performance**: Reduced bundle size by ~2,000 lines
+1. **Performance**: Reduced bundle size by ~2,600 lines
 2. **Maintainability**: Simplified components easier to debug and modify
 3. **Consistency**: Unified patterns across components
 4. **Type Safety**: Fixed TypeScript errors and improved type definitions
 5. **Code Quality**: Removed redundant code and unused features
+6. **Documentation**: Updated docs to reflect actual implementation

@@ -16,6 +16,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "../../../core/theme";
+import { supabase } from "../../../services/supabase/client";
+import { useUserStore } from "../../../stores/userStore";
+import { userApi } from "../../../services/api/userApi";
+import { logger } from "../../../utils/logger";
 import type { LoginCredentials } from "../types";
 
 interface LoginFormProps {
@@ -53,21 +57,63 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [rememberMe, setRememberMe] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
-
-  // Note: Using placeholder login function - replace with real auth when available
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (
-    _credentials: LoginCredentials,
-    _rememberMe: boolean = false
-  ) => {
+  const { setUser } = useUserStore();
+
+  // טיפול בהתחברות באמצעות Supabase
+  const login = async (credentials: LoginCredentials) => {
+    if (!supabase) {
+      throw new Error("שירות ההתחברות לא זמין");
+    }
+
     setIsLoading(true);
-    // TODO: Implement real authentication here
-    // For now, just simulate success after delay
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // התחברות באמצעות Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        {
+          email: credentials.email,
+          password: credentials.password,
+        }
+      );
+
+      if (authError) {
+        logger.error("Login", "Authentication failed", authError);
+        throw new Error(authError.message);
+      }
+
+      if (!data.user) {
+        throw new Error("נתונים לא תקינים מהשרת");
+      }
+
+      // שליפת נתוני המשתמש מהמסד נתונים
+      const userData = await userApi.getById(data.user.id);
+      if (userData) {
+        await setUser(userData);
+        logger.info("Login", "User login successful", { userId: data.user.id });
+      } else {
+        logger.warn("Login", "User data not found, creating minimal user", {
+          userId: data.user.id,
+        });
+        // יצירת משתמש בסיסי אם לא נמצא במסד הנתונים
+        const basicUser = {
+          id: data.user.id,
+          email: data.user.email || credentials.email,
+          display_name: data.user.email?.split("@")[0] || "משתמש",
+          created_at: new Date().toISOString(),
+        };
+        await setUser(basicUser);
+      }
+
       onLoginSuccess();
-    }, 1000);
+    } catch (loginError) {
+      logger.error("Login", "Login process failed", loginError);
+      const errorMessage =
+        loginError instanceof Error ? loginError.message : "שגיאה בהתחברות";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ניקוי שגיאות בעת שינוי קלט
@@ -89,11 +135,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         rememberMe,
       };
 
-      await login(credentials, rememberMe);
-      onLoginSuccess();
+      await login(credentials);
     } catch (loginError) {
       setError("שגיאה בהתחברות");
-      console.error("Login failed:", loginError);
+      logger.error("Login", "Login failed", loginError);
     }
   };
 

@@ -1,9 +1,7 @@
 /**
- * @file src/constants/achievementsConfig.ts
- * @brief קונפיגורציה מרכזית למערכת הישגים - הגדרות, כללים וחישובים
- * @brief Centralized achievements system configuration - definitions, rules and calculations
- * @notes מערכת הישגים דינמית, חישובים מדעיים, תמיכה RTL
- * @notes Dynamic achievements system, scientific calculations, RTL support
+ * @file achievementsConfig.ts
+ * @brief קונפיגורציה מרכזית למערכת הישגים
+ * @brief Centralized achievements system configuration
  */
 
 import type { ComponentProps } from "react";
@@ -14,16 +12,14 @@ import { PROFILE_SCREEN_TEXTS } from "./profileScreenTexts";
 import { getAchievementColor } from "./profileScreenColors";
 
 /**
- * Material Community Icon name type for type safety
- * טיפוס לשם אייקון מ-Material Community עבור בטיחות טיפוסים
+ * Material Community Icon name type
  */
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >["name"];
 
 /**
- * Achievement categories for organization
- * קטגוריות הישגים לארגון
+ * Achievement categories
  */
 export enum AchievementCategory {
   BASIC = "basic",
@@ -38,7 +34,6 @@ export enum AchievementCategory {
 
 /**
  * Achievement configuration interface
- * ממשק קונפיגורציית הישג
  */
 export interface AchievementConfig {
   id: number;
@@ -58,12 +53,11 @@ export interface AchievementConfig {
     value: number | string;
     condition?: "gte" | "eq" | "lte";
   };
-  priority: number; // עדיפות הצגה / Display priority
+  priority: number; // Display priority
 }
 
 /**
  * Constants for calculations
- * קבועים לחישובים
  */
 const WORKOUT_CONSTANTS = {
   DEFAULT_DURATION_MINUTES: 45,
@@ -84,10 +78,9 @@ const WORKOUT_CONSTANTS = {
 
 /**
  * Achievement definitions configuration
- * קונפיגורציית הגדרות הישגים
  */
 export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
-  // 🎯 Basic achievements / הישגים בסיסיים
+  // 🎯 Basic achievements
   {
     id: 1,
     titleKey: "ENTHUSIASTIC_BEGINNER",
@@ -112,7 +105,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 2,
   },
 
-  // 🔥 Streak achievements / הישגי רצף
+  // 🔥 Streak achievements
   {
     id: 3,
     titleKey: "WEEKLY_STREAK",
@@ -174,7 +167,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 14,
   },
 
-  // 💪 Quantity achievements / הישגי כמות
+  // 💪 Quantity achievements
   {
     id: 6,
     titleKey: "TEN_WORKOUTS",
@@ -248,7 +241,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 25,
   },
 
-  // ⏰ Time achievements / הישגי זמן
+  // ⏰ Time achievements
   {
     id: 10,
     titleKey: "ONE_HOUR_FITNESS",
@@ -298,7 +291,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 33,
   },
 
-  // 📅 Loyalty achievements / הישגי נאמנות
+  // 📅 Loyalty achievements
   {
     id: 13,
     titleKey: "WEEK_WITH_GYMOVOO",
@@ -360,7 +353,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 44,
   },
 
-  // 🎯 Performance achievements / הישגי ביצועים
+  // 🎯 Performance achievements
   {
     id: 16,
     titleKey: "EXCELLENT_RATER",
@@ -410,7 +403,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     priority: 53,
   },
 
-  // 💯 Special achievements / הישגים מיוחדים
+  // 💯 Special achievements
   {
     id: 18,
     titleKey: "WEEKEND_WARRIOR",
@@ -444,7 +437,7 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
     },
     priority: 62,
   },
-  // 🏆 Challenge achievements / הישגי אתגר
+  // 🏆 Challenge achievements
   {
     id: 26,
     titleKey: "SPEED_DEMON",
@@ -473,7 +466,6 @@ export const ACHIEVEMENTS_CONFIG: ReadonlyArray<AchievementConfig> = [
 
 /**
  * Achievement interface with computed properties
- * ממשק הישג עם מאפיינים מחושבים
  */
 export interface AchievementDisplay {
   id: number;
@@ -484,12 +476,11 @@ export interface AchievementDisplay {
   unlocked: boolean;
   category: AchievementCategory;
   priority: number;
-  progress?: number; // אחוז התקדמות / Progress percentage
+  progress?: number; // Progress percentage
 }
 
 /**
  * Calculate user's current streak from workout history
- * חישוב הרצף הנוכחי של המשתמש מהיסטוריית האימונים
  */
 const calculateStreak = (workouts: WorkoutHistoryItem[]): number => {
   if (!workouts || workouts.length === 0) return 0;
@@ -548,7 +539,6 @@ const calculateStreak = (workouts: WorkoutHistoryItem[]): number => {
 
 /**
  * Calculate total workout time in minutes
- * חישוב זמן אימון כולל בדקות
  */
 const calculateTotalTime = (workouts: WorkoutHistoryItem[]): number => {
   // Normalize duration to minutes. If value looks like seconds (> threshold), convert to minutes.
@@ -565,7 +555,6 @@ const calculateTotalTime = (workouts: WorkoutHistoryItem[]): number => {
 
 /**
  * Calculate average rating from workouts
- * חישוב דירוג ממוצע מאימונים
  */
 const calculateAverageRating = (workouts: WorkoutHistoryItem[]): number => {
   const ratedWorkouts = workouts.filter((w) => w.rating && w.rating > 0);
@@ -580,7 +569,6 @@ const calculateAverageRating = (workouts: WorkoutHistoryItem[]): number => {
 
 /**
  * Count perfect ratings (5 stars)
- * ספירת דירוגים מושלמים (5 כוכבים)
  */
 const countPerfectRatings = (workouts: WorkoutHistoryItem[]): number => {
   return workouts.filter((w) => w.rating === 5).length;
@@ -588,7 +576,6 @@ const countPerfectRatings = (workouts: WorkoutHistoryItem[]): number => {
 
 /**
  * Calculate days since registration
- * חישוב ימים מאז הרשמה
  */
 const calculateDaysSinceRegistration = (user: User): number | null => {
   // Require actual creation date; no fallback to avoid false positives
@@ -602,7 +589,6 @@ const calculateDaysSinceRegistration = (user: User): number | null => {
 
 /**
  * Count workouts by time of day
- * ספירת אימונים לפי שעות היום
  */
 const countWorkoutsByTime = (
   workouts: WorkoutHistoryItem[],
@@ -633,7 +619,6 @@ const countWorkoutsByTime = (
 
 /**
  * Check if achievement requirement is met
- * בדיקה אם דרישת ההישג מתקיימת
  */
 const checkRequirement = (
   user: User | null,
@@ -733,7 +718,6 @@ const checkRequirement = (
 
 /**
  * Calculate all achievements for a user
- * חישוב כל ההישגים עבור משתמש
  */
 export const calculateAchievements = (
   user: User | null
@@ -803,7 +787,6 @@ export const calculateAchievements = (
 
 /**
  * Get achievements by category
- * קבלת הישגים לפי קטגוריה
  */
 export const getAchievementsByCategory = (
   achievements: AchievementDisplay[],
@@ -816,7 +799,6 @@ export const getAchievementsByCategory = (
 
 /**
  * Get unlocked achievements count
- * קבלת מספר הישגים פתוחים
  */
 export const getUnlockedCount = (
   achievements: AchievementDisplay[]
@@ -826,7 +808,6 @@ export const getUnlockedCount = (
 
 /**
  * Get next achievement to unlock
- * קבלת ההישג הבא לפתיחה
  */
 export const getNextAchievement = (
   achievements: AchievementDisplay[]

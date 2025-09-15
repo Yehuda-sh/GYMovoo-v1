@@ -5,17 +5,13 @@ import {
   ScrollView,
   SafeAreaView,
   RefreshControl,
-  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp } from "@react-navigation/native";
 import { theme } from "../../../../core/theme";
 import { useUserStore } from "../../../../stores/userStore";
-import type {
-  WorkoutPlan,
-  WorkoutExercise,
-} from "../../../../core/types/workout.types";
+import type { WorkoutExercise } from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
 import BackButton from "../../../../components/common/BackButton";
 import ConfirmationModal from "../../../../components/common/ConfirmationModal";
@@ -29,27 +25,20 @@ export default function WorkoutPlansScreen(): React.ReactElement {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useUserStore((state) => state.user);
 
-  const [selectedPlanType, setSelectedPlanType] = useState<"basic" | "smart">(
-    "basic"
-  );
-  const [workoutPlans, setWorkoutPlans] = useState<{
-    basic: WorkoutPlan | null;
-    smart: WorkoutPlan | null;
-  }>({ basic: null, smart: null });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [workoutPlan, setWorkoutPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: "", message: "" });
 
-  const currentWorkoutPlan = workoutPlans[selectedPlanType];
-  const canAccessAI =
-    user?.subscription?.isActive || !user?.subscription?.hasCompletedTrial;
+  const currentWorkoutPlan = workoutPlan;
 
   const showMessage = (title: string, message: string) => {
     setModalConfig({ title, message });
     setShowModal(true);
   };
 
-  const generatePlan = async (type: "basic" | "smart") => {
+  const generatePlan = async () => {
     try {
       setLoading(true);
       if (!user) {
@@ -57,38 +46,21 @@ export default function WorkoutPlansScreen(): React.ReactElement {
         return;
       }
 
-      if (type === "smart" && !canAccessAI) {
-        showMessage("גישה מוגבלת", "תכונות AI זמינות רק למנויים");
-        return;
-      }
-
-      const plans =
-        type === "smart"
-          ? await questionnaireService.generateSmartWorkoutPlan()
-          : await questionnaireService.generateBasicWorkoutPlan();
+      const plans = await questionnaireService.generateSmartWorkoutPlan();
 
       // Take the first plan from the array
       const plan = plans.length > 0 ? plans[0] : null;
 
       if (!plan) {
-        showMessage(
-          "שגיאה",
-          `לא הצלחנו ליצור תוכנית ${type === "smart" ? "AI" : "בסיסית"}`
-        );
+        showMessage("שגיאה", "לא הצלחנו ליצור תוכנית אימון");
         return;
       }
 
-      setWorkoutPlans((prev) => ({ ...prev, [type]: plan }));
-      showMessage(
-        "תוכנית נוצרה!",
-        `תוכנית ${type === "smart" ? "חכמה" : "בסיסית"} נוצרה בהצלחה`
-      );
+      setWorkoutPlan(plan);
+      showMessage("תוכנית נוצרה!", "תוכנית אימון נוצרה בהצלחה");
     } catch (err) {
       logger.error("WorkoutPlansScreen", "Error generating plan", err);
-      showMessage(
-        "שגיאה",
-        `לא הצלחנו ליצור תוכנית ${type === "smart" ? "AI" : "בסיסית"}`
-      );
+      showMessage("שגיאה", "לא הצלחנו ליצור תוכנית אימון");
     } finally {
       setLoading(false);
     }
@@ -112,18 +84,14 @@ export default function WorkoutPlansScreen(): React.ReactElement {
   };
 
   const handleRefresh = async () => {
-    await generatePlan(selectedPlanType);
+    await generatePlan();
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>
-            {selectedPlanType === "smart"
-              ? "יוצר תוכנית AI..."
-              : "יוצר תוכנית בסיסית..."}
-          </Text>
+          <Text style={styles.loadingText}>יוצר תוכנית אימון...</Text>
         </View>
       </SafeAreaView>
     );
@@ -141,33 +109,7 @@ export default function WorkoutPlansScreen(): React.ReactElement {
       >
         <View style={styles.header}>
           <Text style={styles.title}>תוכניות אימון</Text>
-          <Text style={styles.subtitle}>בחר תוכנית ותתחיל להתאמן עוד היום</Text>
-        </View>
-
-        <View style={styles.selectorContainer}>
-          <Text style={styles.selectorTitle}>סוג תוכנית:</Text>
-          <View style={styles.selectorButtons}>
-            <TouchableOpacity
-              style={[
-                styles.selectorButton,
-                selectedPlanType === "basic" && styles.selectorButtonActive,
-              ]}
-              onPress={() => setSelectedPlanType("basic")}
-            >
-              <Text style={styles.selectorButtonText}>בסיסית</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.selectorButton,
-                selectedPlanType === "smart" && styles.selectorButtonActive,
-                !canAccessAI && styles.selectorButtonDisabled,
-              ]}
-              onPress={() => canAccessAI && setSelectedPlanType("smart")}
-              disabled={!canAccessAI}
-            >
-              <Text style={styles.selectorButtonText}>חכמה (AI)</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.subtitle}>צור תוכנית אימון מותאמת אישית</Text>
         </View>
 
         {currentWorkoutPlan ? (
@@ -207,25 +149,14 @@ export default function WorkoutPlansScreen(): React.ReactElement {
 
         <View style={styles.actionsContainer}>
           <AppButton
-            title="צור תוכנית בסיסית"
-            variant="secondary"
+            title="צור תוכנית אימון"
+            variant="primary"
             size="medium"
             fullWidth
-            onPress={() => generatePlan("basic")}
-            accessibilityLabel="צור תוכנית אימון בסיסית"
-            accessibilityHint="לחץ כדי ליצור תוכנית אימון בסיסית"
+            onPress={() => generatePlan()}
+            accessibilityLabel="צור תוכנית אימון"
+            accessibilityHint="לחץ כדי ליצור תוכנית אימון מותאמת אישית"
           />
-          {canAccessAI && (
-            <AppButton
-              title="צור תוכנית AI"
-              variant="primary"
-              size="medium"
-              fullWidth
-              onPress={() => generatePlan("smart")}
-              accessibilityLabel="צור תוכנית אימון חכמה"
-              accessibilityHint="לחץ כדי ליצור תוכנית אימון מותאמת אישית באמצעות בינה מלאכותית"
-            />
-          )}
         </View>
       </ScrollView>
 
@@ -280,41 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: "center",
-  },
-  selectorContainer: {
-    marginBottom: 24,
-  },
-  selectorTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: 12,
-  },
-  selectorButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  selectorButton: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  selectorButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  selectorButtonDisabled: {
-    backgroundColor: theme.colors.surface,
-    opacity: 0.6,
-  },
-  selectorButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: theme.colors.text,
   },
   planDescription: {
     fontSize: 14,

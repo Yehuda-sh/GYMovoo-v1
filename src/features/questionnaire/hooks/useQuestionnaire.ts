@@ -8,8 +8,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "../../../stores/userStore";
 import { UnifiedQuestionnaireManager } from "../data";
 import { Question, QuestionOption, QuestionnaireAnswer } from "../types";
+import { logger } from "../../../utils/logger";
 
-// Storage key constant
+// Storage key constant for questionnaire draft data
 const DRAFT_STORAGE_KEY = "questionnaire_draft";
 
 export const useQuestionnaire = () => {
@@ -46,7 +47,7 @@ export const useQuestionnaire = () => {
         setProgress(manager.getProgress());
       }
     } catch (error) {
-      console.warn("Error loading question", error);
+      logger.error("useQuestionnaire", "Error loading question", error);
     }
   }, [manager]);
 
@@ -82,9 +83,12 @@ export const useQuestionnaire = () => {
         loadCurrentQuestion();
         setHasRestoredProgress(true);
 
-        console.log("Successfully restored questionnaire progress");
+        logger.info(
+          "useQuestionnaire",
+          "Successfully restored questionnaire progress"
+        );
       } catch (error) {
-        console.warn("Error restoring progress", error);
+        logger.error("useQuestionnaire", "Error restoring progress", error);
       }
     },
     [manager, loadCurrentQuestion]
@@ -105,7 +109,11 @@ export const useQuestionnaire = () => {
           }
         }
       } catch (error) {
-        console.warn("Error checking saved progress", error);
+        logger.error(
+          "useQuestionnaire",
+          "Error checking saved progress",
+          error
+        );
       }
     };
 
@@ -137,30 +145,26 @@ export const useQuestionnaire = () => {
   const completeQuestionnaire = useCallback(async () => {
     setIsLoading(true);
     try {
-      console.log("🏁 Starting questionnaire completion...");
-
-      // Log the current state of the questionnaire
-      console.log(
-        `🧮 Current question index: ${manager.getCurrentQuestionIndex()}`
-      );
-      console.log(`📝 Total answers: ${manager.getAllAnswers().length}`);
-      console.log(`✓ isCompleted: ${manager.isCompleted()}`);
+      logger.info("useQuestionnaire", "Starting questionnaire completion");
 
       // Generate the smart questionnaire data
       const smartData = manager.toSmartQuestionnaireData();
-      console.log("📊 Generated smart questionnaire data");
+      logger.info("useQuestionnaire", "Generated smart questionnaire data");
 
       // Update user store
       setSmartQuestionnaireData(smartData);
-      console.log("💾 Saved questionnaire data to user store");
+      logger.info("useQuestionnaire", "Saved questionnaire data to user store");
 
       // Clean up
       await AsyncStorage.removeItem(DRAFT_STORAGE_KEY);
-      console.log("🧹 Removed questionnaire draft from storage");
+      logger.info(
+        "useQuestionnaire",
+        "Removed questionnaire draft from storage"
+      );
 
       return smartData;
     } catch (error) {
-      console.warn("❌ Error completing questionnaire", error);
+      logger.error("useQuestionnaire", "Error completing questionnaire", error);
       return null;
     } finally {
       setIsLoading(false);
@@ -193,7 +197,7 @@ export const useQuestionnaire = () => {
           };
           await AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
         } catch (error) {
-          console.warn("Error saving draft", error);
+          logger.error("useQuestionnaire", "Error saving draft", error);
         }
       };
 
@@ -208,7 +212,7 @@ export const useQuestionnaire = () => {
         loadCurrentQuestion();
       }
     } catch (error) {
-      console.warn("Error moving to next question", error);
+      logger.error("useQuestionnaire", "Error moving to next question", error);
     }
   }, [
     currentQuestion,
@@ -234,7 +238,7 @@ export const useQuestionnaire = () => {
       loadCurrentQuestion();
       setHasRestoredProgress(false);
     } catch (error) {
-      console.warn("Error resetting questionnaire", error);
+      logger.error("useQuestionnaire", "Error resetting questionnaire", error);
     }
   }, [manager, loadCurrentQuestion]);
 
@@ -244,7 +248,11 @@ export const useQuestionnaire = () => {
       const savedProgress = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
       return !!savedProgress;
     } catch (error) {
-      console.warn("Error checking for saved progress", error);
+      logger.error(
+        "useQuestionnaire",
+        "Error checking for saved progress",
+        error
+      );
       return false;
     }
   }, []);

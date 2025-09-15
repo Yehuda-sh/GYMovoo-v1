@@ -1,9 +1,8 @@
 /**
- * @file exercisesScreenTexts.ts
- * @brief Essential text constants for Exercises Screen
+ * @file muscleGroups.ts
+ * @brief Muscle groups configuration for Exercises Screen UI
  */
 
-// Muscle groups configuration - used in ExercisesScreen
 export const EXERCISES_MUSCLE_GROUPS = [
   {
     id: "chest",
@@ -45,23 +44,17 @@ export const EXERCISES_MUSCLE_GROUPS = [
 
 export type ExercisesMuscleGroup = (typeof EXERCISES_MUSCLE_GROUPS)[number];
 
-/**
- * Get muscle group color from theme
- */
-type ThemeColorLike = {
-  colors: {
-    primary: string;
-    success: string;
-    error: string;
-    warning: string;
-    info: string;
-    accent: string;
-    [key: string]: unknown;
-  };
-};
-
 export const getMuscleGroupColor = (
-  theme: ThemeColorLike,
+  theme: {
+    colors: {
+      primary: string;
+      success: string;
+      error: string;
+      warning: string;
+      info: string;
+      accent: string;
+    };
+  },
   groupId: string
 ): string => {
   const colorMap = {

@@ -263,10 +263,7 @@ class NextWorkoutLogicService {
     };
   }
 
-  async updateWorkoutCompleted(
-    workoutIndex: number,
-    _workoutName: string
-  ): Promise<void> {
+  async updateWorkoutCompleted(workoutIndex: number): Promise<void> {
     try {
       const currentState = await this.getCurrentCycleState();
       const planLength = Math.max(1, currentState.weeklyPlan.length);

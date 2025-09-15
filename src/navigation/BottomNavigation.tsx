@@ -6,7 +6,6 @@ import {
   WorkoutPlansScreen,
   HistoryScreen,
   ProfileScreen,
-  ActiveWorkoutScreen,
 } from "../screens";
 
 const Tab = createBottomTabNavigator();
@@ -32,26 +31,14 @@ export default function BottomNavigation() {
         },
       }}
     >
-      {/* Profile */}
+      {/* Main/Home */}
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Main"
+        component={MainScreen}
         options={{
-          title: "פרופיל",
+          title: "בית",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* History */}
-      <Tab.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{
-          title: "היסטוריה",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart" size={size} color={color} />
+            <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
@@ -68,26 +55,26 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* Quick Workout */}
+      {/* History */}
       <Tab.Screen
-        name="QuickWorkout"
-        component={ActiveWorkoutScreen}
+        name="History"
+        component={HistoryScreen}
         options={{
-          title: "אימון",
+          title: "היסטוריה",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="fitness" size={size} color={color} />
+            <Ionicons name="bar-chart" size={size} color={color} />
           ),
         }}
       />
 
-      {/* Main/Home */}
+      {/* Profile */}
       <Tab.Screen
-        name="Main"
-        component={MainScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
-          title: "בית",
+          title: "פרופיל",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

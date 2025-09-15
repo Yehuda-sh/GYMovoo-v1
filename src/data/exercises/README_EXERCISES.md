@@ -4,14 +4,14 @@
 
 ## ✅ עקרונות
 
-- Single Source of Truth: תרגילים מפוזרים לפי קטגוריות בקבצים (bodyweight / dumbbells / cardio / flexibility / resistanceBands / machines).
+- Single Source of Truth: תרגילים מפוזרים לפי קטגוריות בקבצים (bodyweight / dumbbells / cardio / flexibility / resistanceBands / kettlebells / trx / water_weights).
 - `index.ts` מאחד הכל + פונקציות סינון (אל תיצור איחוד חדש).
 - אל תשכפל לוגיקת סינון – השתמש ב-`exerciseFilters`.
 - שמות exports אינם תמיד זהים לשם הקובץ (ראה חריגים בהמשך).
 
 ## 🔁 זרימת הוספת תרגיל חדש
 
-1. בחר קובץ קטגוריה נכון (לדוגמה: תרגיל מכונה → `machines.ts`).
+1. בחר קובץ קטגוריה נכון (לדוגמה: תרגיל TRX → `trx.ts`).
 2. `id` ייחודי בפורמט: `<equipment|bodyweight|machine|cardio>_<english_snake_case>_<increment>`.
 
 - דוגמאות: `dumbbells_overhead_press_2`, `leg_press_machine_1`, `mountain_climbers_2`.
@@ -92,7 +92,7 @@
 
 - `dumbbells.ts` → `dumbbellExercises`
 - `resistanceBands.ts` → `resistanceBandExercises`
-- `machines.ts` → `machineExercises`
+- `water_weights.ts` → `waterWeightExercises`
 
 בעת שינוי שמות – לעדכן גם את לוגיקת המיפוי בסקריפט הולידציה.
 

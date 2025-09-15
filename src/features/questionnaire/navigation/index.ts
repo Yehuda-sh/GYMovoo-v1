@@ -4,4 +4,3 @@
  */
 
 export { default as QuestionnaireNavigator } from "./QuestionnaireNavigator";
-export * from "./QuestionnaireNavigator";

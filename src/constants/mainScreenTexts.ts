@@ -1,29 +1,18 @@
 /**
- * @file src/constants/mainScreenTexts.ts
- * @brief טקסטים קבועים למסך הראשי - MainScreen
+ * @file mainScreenTexts.ts
  * @brief Constant texts for MainScreen
- * @features טקסטים מרוכזים, תמיכה RTL, דו-לשוני
- * @features Centralized texts, RTL support, bilingual
- * @version 1.2.0 - Simplified and cleaned up unnecessary components
- * @created 2025-08-06
- * @updated 2025-09-11 - הסרת חלקים מיותרים, פישוט קובץ
  */
 
-// ===============================================
-// 🌍 Main Screen Texts - טקסטים מסך ראשי
-// ===============================================
-
 export const MAIN_SCREEN_TEXTS = {
-  // Welcome section // קטע ברוכים הבאים
+  // Welcome section
   WELCOME: {
     GOOD_MORNING: "בוקר טוב,",
     GOOD_AFTERNOON: "צהריים טובים,",
     GOOD_EVENING: "ערב טוב,",
     READY_TO_WORKOUT: "מוכן לאימון?",
-    // DEMO_USER הוסר – אין דמו מצד לקוח
   },
 
-  // Statistics labels // תוויות סטטיסטיקות
+  // Statistics labels
   STATS: {
     WORKOUTS_COMPLETED: "אימונים הושלמו",
     STREAK_DAYS: "ימי רצף",
@@ -36,21 +25,18 @@ export const MAIN_SCREEN_TEXTS = {
     DAYS: "ימים",
   },
 
-  // Section titles // כותרות קטעים
+  // Section titles
   SECTIONS: {
     SCIENTIFIC_DATA: "הנתונים המדעיים שלך",
-    NEXT_WORKOUT: "האימון הבא שלך",
     YOUR_STATUS: "הסטטוס שלך",
     RECENT_WORKOUTS: "אימונים אחרונים",
     SELECT_DAY: "בחר יום אימון ספציפי",
     SELECT_DAY_RECOMMENDED: (day: number) =>
       `בחר יום אימון ספציפי - מומלץ יום ${day}`,
-    QUESTIONNAIRE_DETAILS: "הפרטים שלך מהשאלון המדעי",
   },
 
-  // Workout types // סוגי אימונים
+  // Workout types
   WORKOUT_TYPES: {
-    CHEST: "חזה",
     CHEST_TRICEPS: "חזה + טריצפס",
     BACK_BICEPS: "גב + ביצפס",
     LEGS: "רגליים",
@@ -59,7 +45,7 @@ export const MAIN_SCREEN_TEXTS = {
     GENERAL: "אימון כללי",
   },
 
-  // Action buttons // כפתורי פעולה
+  // Action buttons
   ACTIONS: {
     START_QUICK_WORKOUT: "התחל אימון מהיר",
     VIEW_ALL_HISTORY: "צפה בכל ההיסטוריה",
@@ -67,7 +53,7 @@ export const MAIN_SCREEN_TEXTS = {
     WORKOUTS: "אימונים",
   },
 
-  // Loading and error states // מצבי טעינה ושגיאה
+  // Loading and error states
   STATUS: {
     LOADING_DATA: "טוען נתונים...",
     NO_USER_FOUND: "לא נמצא משתמש פעיל",
@@ -76,9 +62,7 @@ export const MAIN_SCREEN_TEXTS = {
     START_FIRST_WORKOUT: "התחל את האימון הראשון שלך כדי לראות היסטוריה כאן",
   },
 
-  // DEMO_WORKOUTS הוסר – אין דמו מצד לקוח
-
-  // Accessibility labels // תוויות נגישות
+  // Accessibility labels
   A11Y: {
     PROFILE_BUTTON: "כפתור פרופיל משתמש",
     QUICK_WORKOUT: "התחל אימון מהיר",
@@ -88,13 +72,8 @@ export const MAIN_SCREEN_TEXTS = {
   },
 } as const;
 
-// ===============================================
-// 🎯 Helper Functions - פונקציות עזר
-// ===============================================
-
 /**
  * Get greeting based on time of day
- * קבלת ברכה לפי שעה ביום
  */
 export const getTimeBasedGreeting = (): string => {
   const hour = new Date().getHours();
@@ -110,7 +89,6 @@ export const getTimeBasedGreeting = (): string => {
 
 /**
  * Get workout type name for day
- * קבלת שם סוג אימון ליום
  */
 export const getDayWorkoutType = (dayNum: number): string => {
   const types = {

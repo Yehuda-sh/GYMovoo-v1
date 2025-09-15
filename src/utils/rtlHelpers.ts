@@ -1,33 +1,29 @@
 /**
  * @file src/utils/rtlHelpers.ts
- * @description עזרי RTL בסיסיים לממשק עברי
+ * @description עזרי RTL חיוניים לממשק עברי - בשימוש כבד ברחבי האפליקציה
  */
 
 import { I18nManager } from "react-native";
+import { logger } from "./logger";
 
 /**
  * אתחול RTL פשוט
  */
-export const initializeRTL = (): boolean => {
+export const initializeRTL = (): void => {
   try {
     I18nManager.allowRTL(true);
     I18nManager.forceRTL(true);
-    return I18nManager.isRTL;
+    logger.info("RTL", "RTL initialized successfully", {
+      isRTL: I18nManager.isRTL,
+    });
   } catch (error) {
-    console.warn("RTL initialization failed:", error);
-    return false;
+    logger.error("RTL", "RTL initialization failed", error);
   }
 };
 
-// Cache RTL state for performance
-let _cachedIsRTL: boolean | null = null;
-
 /**
- * מצב RTL מרכזי עם caching לביצועים
+ * מצב RTL מרכזי - פשוט ויעיל
  */
 export const isRTL = (): boolean => {
-  if (_cachedIsRTL === null) {
-    _cachedIsRTL = I18nManager.isRTL;
-  }
-  return _cachedIsRTL;
+  return I18nManager.isRTL;
 };

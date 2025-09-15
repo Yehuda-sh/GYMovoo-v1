@@ -46,27 +46,33 @@ export const ForgotPasswordScreen: React.FC = () => {
     setError(null);
 
     // בדיקה בסיסית שהוזן אימייל
-    if (!email || !email.includes("@")) {
+    if (!email || !email.includes("@") || email.length < 5) {
       setError("נא להזין כתובת אימייל תקינה");
       return;
     }
 
     setLoading(true);
 
-    // סימולציה פשוטה
-    setTimeout(() => {
+    try {
+      // TODO: יש להחליף לשירות אמיתי של איפוס סיסמה
+      // כרגע מציג הודעת מידע בלבד
+      setTimeout(() => {
+        setLoading(false);
+        Alert.alert(
+          "פיצ'ר בפיתוח",
+          "איפוס סיסמה יהיה זמין בגרסה הבאה. אנא צור קשר עם התמיכה.",
+          [
+            {
+              text: "הבנתי",
+              onPress: () => navigation.navigate("Login"),
+            },
+          ]
+        );
+      }, 800);
+    } catch {
       setLoading(false);
-      Alert.alert(
-        "הוראות נשלחו",
-        `הוראות לאיפוס הסיסמה נשלחו לכתובת ${email}`,
-        [
-          {
-            text: "הבנתי",
-            onPress: () => navigation.navigate("Login"),
-          },
-        ]
-      );
-    }, 1000);
+      setError("שגיאה בשליחת הוראות איפוס. אנא נסה שוב.");
+    }
   }, [email, navigation]);
 
   // מעבר למסך התחברות
@@ -101,7 +107,7 @@ export const ForgotPasswordScreen: React.FC = () => {
           />
           <Text style={styles.title}>שחזור סיסמה</Text>
           <Text style={styles.subtitle}>
-            הזן את כתובת האימייל שלך ואנו נשלח לך הוראות לאיפוס הסיסמה
+            פיצ'ר איפוס סיסמה בפיתוח. לבינתיים אנא צור קשר עם התמיכה
           </Text>
         </View>
 
@@ -147,7 +153,7 @@ export const ForgotPasswordScreen: React.FC = () => {
                 <Text style={styles.buttonText}>שולח הוראות...</Text>
               </View>
             ) : (
-              <Text style={styles.buttonText}>שלח הוראות לאיפוס</Text>
+              <Text style={styles.buttonText}>צור קשר לאיפוס סיסמה</Text>
             )}
           </TouchableOpacity>
 

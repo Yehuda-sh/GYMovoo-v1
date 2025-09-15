@@ -82,31 +82,10 @@ export interface WorkoutPlan {
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number; // משך משוער בדקות
   frequency: number; // פעמים בשבוע
-  workouts: WorkoutTemplate[];
+  workouts: WorkoutData[];
   createdAt: ISODateString;
   updatedAt: ISODateString;
   tags?: string[];
-}
-
-// תבנית אימון
-// Workout template
-export interface WorkoutTemplate {
-  id: string;
-  name: string;
-  exercises: ExerciseTemplate[];
-  estimatedDuration: number;
-  targetMuscles: string[];
-  equipment: string[]; // מערך ציוד נדרש; עבור משקל גוף השתמש ב-"bodyweight" בלבד (לא "none"); ערכים חוקיים לפי unifiedQuestionnaire
-}
-
-// תבנית תרגיל
-// Exercise template
-export interface ExerciseTemplate {
-  exerciseId: string;
-  sets: number;
-  reps: string; // יכול להיות טווח כמו "8-12"
-  restTime: number;
-  notes?: string;
 }
 
 // === PROGRESS TRACKING & ANALYTICS ===
@@ -244,14 +223,4 @@ export interface WorkoutSummary {
   totalReps: number;
   completedExercises: number;
   workoutName: string;
-}
-
-// תובנות לאימון הבא
-// Next workout insights
-export interface NextWorkoutInsights {
-  suggestedDuration: number;
-  suggestedIntensity: "low" | "moderate" | "high";
-  recoveryRecommendation: string;
-  focusAreas: string[];
-  expectedCalorieBurn: number;
 }

@@ -1,6 +1,3 @@
-// Fixed: Using proper Set type from core/types instead of local WorkoutSet
-// All type issues resolved, no more any casting needed
-
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
@@ -11,7 +8,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+} from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../core/theme";
 import BackButton from "../../../../components/common/BackButton";
@@ -20,6 +21,7 @@ import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService"
 import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
 
 import { WorkoutExercise, Set } from "../../../../core/types/workout.types";
+import { RootStackParamList } from "../../../../navigation/types";
 
 interface ExerciseItemProps {
   exercise: WorkoutExercise;
@@ -125,10 +127,19 @@ interface RouteParams {
 }
 
 const ActiveWorkoutScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
 
   const { workoutData, pendingExercise } = (route.params as RouteParams) || {};
+
+  // Helper function to create default set
+  const createDefaultSet = (): Set => ({
+    id: `${Date.now()}`,
+    type: "working",
+    targetWeight: 0,
+    targetReps: 0,
+    completed: false,
+  });
 
   // State management
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
@@ -146,8 +157,8 @@ const ActiveWorkoutScreen: React.FC = () => {
       id: exercise.id,
       name: exercise.name,
       category: exercise.category || "Unknown",
-      primaryMuscles: [exercise.category || "Unknown"],
-      equipment: "Unknown",
+      primaryMuscles: exercise.primaryMuscles || ["Unknown"],
+      equipment: exercise.equipment || "Unknown",
       sets: (exercise.sets || []).map((set) => ({
         id: set.id,
         type: set.type || ("working" as const),
@@ -192,15 +203,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           pendingExercise.muscleGroup || "Unknown",
         ],
         equipment: pendingExercise.equipment || "bodyweight",
-        sets: [
-          {
-            id: `${Date.now()}`,
-            type: "working",
-            targetWeight: 0,
-            targetReps: 0,
-            completed: false,
-          },
-        ],
+        sets: [createDefaultSet()],
       };
       setExercises((prev) => [...prev, newExercise]);
     }
@@ -213,30 +216,10 @@ const ActiveWorkoutScreen: React.FC = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Calculate stats
-  const completedSets = exercises.reduce(
-    (total, ex) =>
-      total + (ex.sets || []).filter((set) => set.completed).length,
-    0
-  );
-  const totalSets = exercises.reduce(
-    (total, ex) => total + (ex.sets || []).length,
-    0
-  );
-  const totalVolume = exercises.reduce(
-    (total, ex) =>
-      total +
-      (ex.sets || [])
-        .filter((set) => set.completed)
-        .reduce(
-          (vol, set) =>
-            vol +
-            (set.actualWeight || set.targetWeight || 0) *
-              (set.actualReps || set.targetReps || 0),
-          0
-        ),
-    0
-  );
+  // Get stats from liveStats to avoid duplication
+  const completedSets = liveStats?.completedSets || 0;
+  const totalSets = liveStats?.totalSets || 0;
+  const totalVolume = liveStats?.totalVolume || 0;
 
   // Set management
   const handleCompleteSet = (exerciseId: string, setId: string) => {
@@ -260,11 +243,9 @@ const ActiveWorkoutScreen: React.FC = () => {
 
     const lastSet = exercise.sets[exercise.sets.length - 1];
     const newSet: Set = {
-      id: `${Date.now()}`,
-      type: "working",
+      ...createDefaultSet(),
       targetWeight: lastSet?.actualWeight || lastSet?.targetWeight || 0,
       targetReps: lastSet?.actualReps || lastSet?.targetReps || 0,
-      completed: false,
     };
 
     setExercises((prev) =>
@@ -293,22 +274,13 @@ const ActiveWorkoutScreen: React.FC = () => {
   };
 
   const handleAddExercise = () => {
-    // @ts-expect-error - Navigation type needs to be properly typed
     navigation.navigate("ExerciseList", {
       fromScreen: "ActiveWorkout",
       mode: "selection",
       onSelectExercise: (selectedExercise: WorkoutExercise) => {
         const newExercise: WorkoutExercise = {
           ...selectedExercise,
-          sets: [
-            {
-              id: `${Date.now()}`,
-              type: "working",
-              targetWeight: 0,
-              targetReps: 0,
-              completed: false,
-            },
-          ],
+          sets: [createDefaultSet()],
         };
         setExercises((prev) => [...prev, newExercise]);
         navigation.goBack();
@@ -331,10 +303,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           text: "סיים",
           style: "destructive",
           onPress: async () => {
-            await nextWorkoutLogicService.updateWorkoutCompleted(
-              0,
-              workoutData?.name || "אימון"
-            );
+            await nextWorkoutLogicService.updateWorkoutCompleted(0);
             navigation.goBack();
           },
         },

@@ -13,9 +13,6 @@ import {
   QUESTIONNAIRE_VERSION,
 } from "../types";
 
-// ================== טיפוסים בסיסיים ==================
-// Already defined in types/questionnaire.types.ts
-
 // ================== אפשרויות השאלון ==================
 
 const BODYWEIGHT_OPTIONS: QuestionOption[] = [
@@ -349,10 +346,13 @@ export const UNIFIED_QUESTIONS: Question[] = [
 ];
 
 // Helper function to get equipment by ID
-export function getEquipmentById(_id: string) {
-  // This would need to be implemented based on your equipment data
-  // Or imported from the appropriate module
-  return null;
+export function getEquipmentById(id: string) {
+  const allEquipment = [
+    ...BODYWEIGHT_OPTIONS,
+    ...HOME_EQUIPMENT_OPTIONS,
+    ...GYM_EQUIPMENT_OPTIONS,
+  ];
+  return allEquipment.find((equipment) => equipment.id === id) || null;
 }
 
 // ================== מנהל השאלון ==================
@@ -416,18 +416,11 @@ export class UnifiedQuestionnaireManager {
 
   // עבור לשאלה הבאה
   nextQuestion(): boolean {
-    console.log(
-      `🔍 nextQuestion called - currentIndex: ${this.currentQuestionIndex}, totalQuestions: ${this.questions.length}`
-    );
     if (this.currentQuestionIndex < this.questions.length - 1) {
       this.history.push(this.currentQuestionIndex);
       this.currentQuestionIndex++;
-      console.log(
-        `✅ Moving to index ${this.currentQuestionIndex} - question: ${this.questions[this.currentQuestionIndex]?.id}`
-      );
       return true;
     }
-    console.log(`❌ Cannot move - at last question or beyond`);
     return false;
   }
 
@@ -463,12 +456,8 @@ export class UnifiedQuestionnaireManager {
 
   // קבל מספר השאלות הרלוונטיות
   private getTotalRelevantQuestions(): number {
-    // Instead of checking if questions should be skipped (which may not work correctly),
-    // we return the total number of questions in the UNIFIED_QUESTIONS array
+    // Return the total number of questions in the UNIFIED_QUESTIONS array
     // This ensures all questions are considered when calculating progress and completion
-    console.log(
-      `📊 Total relevant questions: ${this.questions.length} out of ${this.questions.length}`
-    );
     return this.questions.length;
   }
 
@@ -501,10 +490,6 @@ export class UnifiedQuestionnaireManager {
     const hasCurrentAnswer = currentQuestion
       ? this.answers.has(currentQuestion.id)
       : false;
-
-    console.log(
-      `isCompleted check: isLastQuestion=${isLastQuestion}, answersSize=${this.answers.size}, totalQuestions=${this.questions.length}`
-    );
 
     return isLastQuestion && hasCurrentAnswer;
   }

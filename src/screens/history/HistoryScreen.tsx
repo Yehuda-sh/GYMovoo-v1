@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { EmptyState } from "../../components";
+import EmptyState from "../../components/common/EmptyState";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
-import { dataManager } from "../../services/core";
+import workoutFacadeService from "../../services/workout/workoutFacadeService";
 import NextWorkoutCard from "../../components/workout/NextWorkoutCard";
+import { logger } from "../../utils/logger";
 import {
   getDifficultyStars,
   getFeelingEmoji,
@@ -45,14 +46,10 @@ const HistoryScreen: React.FC = () => {
     try {
       if (!user) return;
 
-      if (!dataManager.isReady()) {
-        await dataManager.initialize(user);
-      }
-
-      const history = dataManager.getWorkoutHistory() || [];
+      const history = await workoutFacadeService.getHistory();
       setWorkouts(history);
     } catch (error) {
-      console.warn("Failed to load workout history:", error);
+      logger.warn("HistoryScreen", "Failed to load workout history", error);
       setWorkouts([]);
     } finally {
       setLoading(false);
@@ -64,10 +61,9 @@ const HistoryScreen: React.FC = () => {
 
     setRefreshing(true);
     try {
-      await dataManager.refresh(user);
       await loadData();
     } catch (error) {
-      console.warn("Refresh failed:", error);
+      logger.warn("HistoryScreen", "Refresh failed", error);
     } finally {
       setRefreshing(false);
     }

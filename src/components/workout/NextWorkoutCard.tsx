@@ -4,16 +4,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../core/theme";
 import { useNextWorkout } from "../../features/workout/hooks/useNextWorkout";
-import { WorkoutPlan } from "../../core/types/workout.types";
 
 interface NextWorkoutCardProps {
   onStartWorkout: (workoutName: string, workoutIndex: number) => void;
-  workoutPlan?: WorkoutPlan;
 }
 
 export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
-  ({ onStartWorkout, workoutPlan }) => {
-    const { nextWorkout, isLoading, error } = useNextWorkout(workoutPlan);
+  ({ onStartWorkout }) => {
+    const { nextWorkout, isLoading, error } = useNextWorkout();
 
     const defaultWorkout = {
       workoutName: "דחיפה",
@@ -30,9 +28,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
             colors={[theme.colors.error + "20", theme.colors.error + "10"]}
             style={styles.gradient}
           >
-            <Text style={[styles.errorText, styles.rtlText]}>
-              שגיאה בטעינת האימון הבא
-            </Text>
+            <Text style={styles.errorText}>שגיאה בטעינת האימון הבא</Text>
           </LinearGradient>
         </View>
       );
@@ -51,9 +47,7 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
                 size={24}
                 color={theme.colors.primary}
               />
-              <Text style={[styles.loadingText, styles.rtlText]}>
-                מחשב אימון הבא...
-              </Text>
+              <Text style={styles.loadingText}>מחשב אימון הבא...</Text>
             </View>
           </LinearGradient>
         </View>
@@ -72,16 +66,12 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = React.memo(
               size={20}
               color={theme.colors.primary}
             />
-            <Text style={[styles.title, styles.rtlText]}>האימון הבא שלך</Text>
+            <Text style={[styles.title]}>האימון הבא שלך</Text>
           </View>
 
-          <Text style={[styles.workoutName, styles.rtlText]}>
-            {currentWorkout.workoutName}
-          </Text>
+          <Text style={[styles.workoutName]}>{currentWorkout.workoutName}</Text>
 
-          <Text style={[styles.reason, styles.rtlText]}>
-            {currentWorkout.reason}
-          </Text>
+          <Text style={[styles.reason]}>{currentWorkout.reason}</Text>
 
           <TouchableOpacity
             style={styles.startButton}
@@ -173,9 +163,6 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontSize: theme.typography.body.fontSize,
     paddingVertical: theme.spacing.xl,
-  },
-  rtlText: {
-    writingDirection: "rtl",
   },
 });
 

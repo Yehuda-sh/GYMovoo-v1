@@ -17,7 +17,6 @@ import { theme } from "../../core/theme";
 import { User } from "../../core/types/user.types";
 import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 export default function DeveloperScreen() {
@@ -26,23 +25,7 @@ export default function DeveloperScreen() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalConfig, setModalConfig] = useState({
-    title: "",
-    message: "",
-    onConfirm: () => {},
-  });
 
-  // Show confirmation modal
-  const showConfirmationModal = useCallback(
-    (title: string, message: string, onConfirm: () => void) => {
-      setModalConfig({ title, message, onConfirm });
-      setShowModal(true);
-    },
-    []
-  );
-
-  // Load users list
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,29 +42,24 @@ export default function DeveloperScreen() {
     loadUsers();
   }, [loadUsers]);
 
-  // Refresh data
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadUsers();
     setRefreshing(false);
   }, [loadUsers]);
 
-  // Login as selected user
   const loginAsUser = async (selectedUser: User) => {
     try {
       setLoading(true);
       setUser(selectedUser);
 
-      // Check if user has questionnaire
       const hasQuestionnaire = !!(
         selectedUser.questionnaireData?.answers &&
         Object.keys(selectedUser.questionnaireData.answers).length > 0
       );
 
-      // Store in AsyncStorage
       await AsyncStorage.setItem("currentUser", JSON.stringify(selectedUser));
 
-      // Navigate to appropriate screen
       if (hasQuestionnaire) {
         navigation.navigate("MainApp");
       } else {
@@ -94,173 +72,19 @@ export default function DeveloperScreen() {
     }
   };
 
-  // Delete user
-  const deleteUser = async (userId: string) => {
-    showConfirmationModal(
-      "מחיקת משתמש",
-      "האם אתה בטוח שברצונך למחוק את המשתמש?",
-      async () => {
-        try {
-          setLoading(true);
-          // Since there's no delete API, we'll just refresh the list
-          console.log("Delete user:", userId);
-          await loadUsers(); // Refresh the list
-        } catch (error) {
-          console.error("Error deleting user:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    );
-  };
-
-  // Create realistic user with workout history
-  const createRealisticUser = async () => {
-    const israeliNames = [
-      "דוד כהן",
-      "רחל לוי",
-      "יוסי ישראל",
-      "נועה שמואל",
-      "אבי בן דוד",
-      "מיכל גולדברג",
-      "דני רוזן",
-      "תמר אברהם",
-      "עמית גרינברג",
-      "שירה כץ",
-      "רון פרידמן",
-      "ליאת מלכה",
-      "יונתן שפירא",
-      "מור אדלר",
-      "אורי ברק",
-    ];
-
-    const randomName =
-      israeliNames[Math.floor(Math.random() * israeliNames.length)] ||
-      "משתמש חדש";
-    const [firstName, lastName] = randomName.split(" ");
-
-    // Options that match the actual questionnaire
-    const genderOptions = ["male", "female"];
-    const ageOptions = ["18_25", "26_35", "36_50", "51_65"];
-    const weightOptions = ["60_69", "70_79", "80_89", "90_99"];
-    const heightOptions = ["161_170", "171_180", "181_190"];
-    const fitnessGoals = [
-      "lose_weight",
-      "build_muscle",
-      "general_fitness",
-      "athletic_performance",
-    ];
-    const experienceLevels = ["beginner", "intermediate", "advanced"];
-    const workoutLocations = [
-      "home_bodyweight",
-      "home_equipment",
-      "gym",
-      "mixed",
-    ];
-    const availabilityOptions = [
-      "2_days",
-      "3_days",
-      "4_days",
-      "5_days",
-      "6_days",
-    ];
-    const durationOptions = [
-      "15_30_min",
-      "30_45_min",
-      "45_60_min",
-      "60_plus_min",
-    ];
-    const dietOptions = ["none_diet", "vegetarian", "vegan", "keto", "paleo"];
-
-    // Equipment options based on location
-    const getEquipmentForLocation = (location: string): string[] => {
-      switch (location) {
-        case "home_bodyweight":
-          return ["yoga_mat", "water_bottles"];
-        case "home_equipment":
-          return ["dumbbells", "resistance_bands", "yoga_mat"];
-        case "gym":
-          return ["free_weights", "machines", "cardio_equipment"];
-        case "mixed":
-          return ["dumbbells", "yoga_mat", "free_weights"];
-        default:
-          return ["yoga_mat"];
-      }
-    };
-
-    const selectedLocation =
-      workoutLocations[Math.floor(Math.random() * workoutLocations.length)] ||
-      "home_bodyweight";
-    const equipment = getEquipmentForLocation(selectedLocation);
-
-    const newUser: User = {
+  const createTestUser = async () => {
+    const testUser: User = {
       id: `user_${Date.now()}`,
-      email: `${(firstName || "user").toLowerCase()}.${(lastName || "test").toLowerCase()}@email.com`,
-      name: randomName,
+      email: `test.user.${Date.now()}@example.com`,
+      name: `משתמש בדיקה ${new Date().toLocaleTimeString("he-IL")}`,
       questionnaireData: {
         answers: {
-          // Personal Info
-          gender:
-            genderOptions[Math.floor(Math.random() * genderOptions.length)] ||
-            "male",
-          age:
-            ageOptions[Math.floor(Math.random() * ageOptions.length)] ||
-            "26_35",
-          weight:
-            weightOptions[Math.floor(Math.random() * weightOptions.length)] ||
-            "70_79",
-          height:
-            heightOptions[Math.floor(Math.random() * heightOptions.length)] ||
-            "171_180",
-
-          // Fitness Goals & Experience
-          fitness_goal:
-            fitnessGoals[Math.floor(Math.random() * fitnessGoals.length)] ||
-            "general_fitness",
-          experience_level:
-            experienceLevels[
-              Math.floor(Math.random() * experienceLevels.length)
-            ] || "beginner",
-
-          // Workout Preferences
-          workout_location: selectedLocation,
-          availability:
-            availabilityOptions[
-              Math.floor(Math.random() * availabilityOptions.length)
-            ] || "3_days",
-          workout_duration:
-            durationOptions[
-              Math.floor(Math.random() * durationOptions.length)
-            ] || "30_45_min",
-
-          // Equipment (based on location)
-          bodyweight_equipment:
-            selectedLocation === "home_bodyweight"
-              ? ["yoga_mat", "water_bottles"]
-              : [],
-          home_equipment:
-            selectedLocation === "home_equipment" ? equipment : [],
-          gym_equipment:
-            selectedLocation === "gym" || selectedLocation === "mixed"
-              ? equipment
-              : [],
-
-          // Diet & Health
-          diet_preferences:
-            dietOptions[Math.floor(Math.random() * dietOptions.length)] ||
-            "none_diet",
-          health_conditions: [],
-
-          // Additional data for completeness
-          goals: [
-            fitnessGoals[Math.floor(Math.random() * fitnessGoals.length)] ||
-              "general_fitness",
-          ],
-          equipment: equipment,
-          fitnessLevel:
-            experienceLevels[
-              Math.floor(Math.random() * experienceLevels.length)
-            ] || "beginner",
+          gender: "male",
+          age: "26_35",
+          fitness_goal: "general_fitness",
+          experience_level: "beginner",
+          workout_location: "home_bodyweight",
+          availability: "3_days",
         },
         metadata: {
           completedAt: new Date().toISOString(),
@@ -271,44 +95,15 @@ export default function DeveloperScreen() {
 
     try {
       setLoading(true);
-      const createdUser = await userApi.create(newUser);
-      console.log("Created realistic user:", createdUser);
-      await loadUsers(); // Refresh the list
+      const createdUser = await userApi.create(testUser);
+      console.log("Created test user:", createdUser);
+      await loadUsers();
     } catch (error) {
-      console.error("Error creating realistic user:", error);
+      console.error("Error creating test user:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const renderUserItem = (userData: User) => (
-    <View key={userData.id} style={styles.userItem}>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{userData.name}</Text>
-        <Text style={styles.userEmail}>{userData.email}</Text>
-        <Text style={styles.userDetails}>
-          {userData.questionnaireData?.answers ? " יש שאלון" : " אין שאלון"}
-        </Text>
-      </View>
-      <View style={styles.userActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.loginButton]}
-          onPress={() => loginAsUser(userData)}
-          disabled={loading}
-        >
-          <Ionicons name="log-in" size={20} color={theme.colors.white} />
-          <Text style={styles.actionButtonText}>כניסה</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteUser(userData.id || "")}
-          disabled={loading}
-        >
-          <Ionicons name="trash" size={20} color={theme.colors.white} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   if (loading && users.length === 0) {
     return (
@@ -341,20 +136,17 @@ export default function DeveloperScreen() {
             <Text style={styles.userCount}>({users.length} משתמשים)</Text>
           </View>
 
-          {/* Create Realistic User Button */}
           <TouchableOpacity
-            style={[styles.createUserButton]}
-            onPress={createRealisticUser}
+            style={styles.createButton}
+            onPress={createTestUser}
             disabled={loading}
           >
             <Ionicons name="person-add" size={20} color={theme.colors.white} />
-            <Text style={styles.createUserButtonText}>
-              צור משתמש עם היסטוריה
-            </Text>
+            <Text style={styles.buttonText}>צור משתמש בדיקה</Text>
           </TouchableOpacity>
 
           {user && (
-            <View style={styles.currentUserInfo}>
+            <View style={styles.currentUser}>
               <Text style={styles.currentUserTitle}>משתמש נוכחי:</Text>
               <Text style={styles.currentUserName}>{user.name}</Text>
               <Text style={styles.currentUserEmail}>{user.email}</Text>
@@ -367,7 +159,31 @@ export default function DeveloperScreen() {
           {users.length === 0 ? (
             <Text style={styles.emptyText}>אין משתמשים במערכת</Text>
           ) : (
-            users.map(renderUserItem)
+            users.map((userData) => (
+              <View key={userData.id} style={styles.userItem}>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{userData.name}</Text>
+                  <Text style={styles.userEmail}>{userData.email}</Text>
+                  <Text style={styles.userDetails}>
+                    {userData.questionnaireData?.answers
+                      ? "יש שאלון"
+                      : "אין שאלון"}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={() => loginAsUser(userData)}
+                  disabled={loading}
+                >
+                  <Ionicons
+                    name="log-in"
+                    size={20}
+                    color={theme.colors.white}
+                  />
+                  <Text style={styles.buttonText}>כניסה</Text>
+                </TouchableOpacity>
+              </View>
+            ))
           )}
         </View>
       </ScrollView>
@@ -377,18 +193,6 @@ export default function DeveloperScreen() {
           <LoadingSpinner />
         </View>
       )}
-
-      <ConfirmationModal
-        visible={showModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        onConfirm={() => {
-          modalConfig.onConfirm();
-          setShowModal(false);
-        }}
-        onCancel={() => setShowModal(false)}
-        onClose={() => setShowModal(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -403,6 +207,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
@@ -414,7 +219,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
   },
   section: {
     marginBottom: theme.spacing.xl,
@@ -426,7 +232,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: theme.colors.text,
   },
   userCount: {
@@ -434,23 +240,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginLeft: theme.spacing.sm,
   },
-  createUserButton: {
+  createButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     borderRadius: 12,
     marginBottom: theme.spacing.lg,
+    gap: theme.spacing.sm,
   },
-  createUserButtonText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: theme.spacing.sm,
-  },
-  currentUserInfo: {
+  currentUser: {
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.md,
     borderRadius: 12,
@@ -482,6 +282,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    alignItems: "center",
   },
   userInfo: {
     flex: 1,
@@ -500,29 +301,17 @@ const styles = StyleSheet.create({
   userDetails: {
     fontSize: 12,
     color: theme.colors.textTertiary,
-    marginBottom: theme.spacing.xs,
   },
-  userActions: {
+  loginButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: theme.colors.success,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     borderRadius: 8,
     gap: theme.spacing.xs,
   },
-  loginButton: {
-    backgroundColor: theme.colors.success,
-  },
-  deleteButton: {
-    backgroundColor: theme.colors.error,
-    paddingHorizontal: theme.spacing.sm,
-  },
-  actionButtonText: {
+  buttonText: {
     color: theme.colors.white,
     fontSize: 14,
     fontWeight: "500",

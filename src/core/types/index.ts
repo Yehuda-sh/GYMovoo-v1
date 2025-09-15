@@ -6,14 +6,10 @@
 // ייצוא מטיפוסי משתמש
 export * from "./user.types";
 
-// questionnaire.types.ts removed - duplicated types that were not in use
-
-// ייצוא סלקטיבי מטיפוסי אימון (למניעת כפילויות)
+// ייצוא סלקטיבי מטיפוסי אימון (רק טיפוסים בשימוש פעיל)
 export {
   WorkoutExercise,
   WorkoutData,
-  WorkoutTemplate,
-  ExerciseTemplate,
   Set,
   ProgressData,
   PerformanceData,
@@ -22,9 +18,5 @@ export {
   WorkoutFeedback,
   WorkoutStats,
   PreviousPerformance,
-  NextWorkoutInsights,
   ISODateString,
 } from "./workout.types";
-
-// ייצוא מטיפוסי תרגיל
-export * from "./exercise.types";

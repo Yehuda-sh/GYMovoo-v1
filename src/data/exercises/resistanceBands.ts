@@ -1,7 +1,11 @@
 /**
  * @file resistanceBands.ts
- * @description תרגילי גומי התנגדות
- * Resistance band exercises
+ * @description תרגילי גומי התנגדות מעודכנים ונקיים
+ * Resistance band exercises - updated and cleaned
+ *
+ * @updated 2025-09-14 - Removed duplicates, improved data consistency
+ * @exercises 10 high-quality resistance band exercises
+ * @features Complete instructions, tips, safety notes for each exercise
  */
 
 import { Exercise } from "./types";
@@ -64,48 +68,53 @@ export const resistanceBandExercises: Exercise[] = [
     spaceRequired: "medium",
     noiseLevel: "silent",
   },
-
-  {
-    id: "band_row_standing_1",
-    name: "חתירת גומיה עמידה",
-    nameLocalized: { he: "חתירת גומיה עמידה", en: "Standing Band Row" },
-    category: "strength",
-    primaryMuscles: ["back"],
-    secondaryMuscles: ["biceps", "shoulders"],
-    equipment: "resistance_bands",
-    difficulty: "beginner",
-    instructions: {
-      he: ["עגן גומיה קדימה", "משוך מרפקים לאחור"],
-      en: ["Anchor band in front", "Pull elbows back"],
-    },
-    tips: { he: ["שחיטת שכמות"], en: ["Squeeze shoulder blades"] },
-    safetyNotes: { he: ["בדוק עגינה"], en: ["Check anchor security"] },
-    media: {
-      image: "exercises/band_row_standing.jpg",
-      video: "",
-      thumbnail: "exercises/band_row_standing_thumb.jpg",
-    },
-    homeCompatible: true,
-    gymPreferred: true,
-    outdoorSuitable: true,
-    spaceRequired: "small",
-    noiseLevel: "silent",
-  },
   {
     id: "band_chest_press_1",
-    name: "לחיצת חזה גומיה",
-    nameLocalized: { he: "לחיצת חזה גומיה", en: "Band Chest Press" },
+    name: "לחיצת חזה עם גומי התנגדות",
+    nameLocalized: { he: "לחיצת חזה עם גומי התנגדות", en: "Band Chest Press" },
     category: "strength",
     primaryMuscles: ["chest"],
     secondaryMuscles: ["triceps", "shoulders"],
     equipment: "resistance_bands",
     difficulty: "beginner",
     instructions: {
-      he: ["עגן מאחור", "דחיפה קדימה"],
-      en: ["Anchor behind", "Press forward"],
+      he: [
+        "עגן את הגומי מאחוריך בגובה החזה",
+        "אחוז בקצות הגומי ועמוד יציב",
+        "דחוף את הידיים קדימה עד לישור מלא",
+        "חזור בשליטה לעמדת ההתחלה",
+      ],
+      en: [
+        "Anchor band behind you at chest height",
+        "Hold band ends and stand stable",
+        "Press hands forward to full extension",
+        "Return with control to starting position",
+      ],
     },
-    tips: { he: ["שמור שורש כף יד ניטרלי"], en: ["Neutral wrists"] },
-    safetyNotes: { he: ["בדוק שחיקה"], en: ["Inspect band wear"] },
+    tips: {
+      he: [
+        "שמור על פרקי ידיים ניטרליים",
+        "הימנע מנעילת מרפקים מלאה",
+        "שליטה בתנועת החזרה",
+      ],
+      en: [
+        "Keep wrists neutral",
+        "Avoid full elbow lockout",
+        "Control the return movement",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "בדוק שחיקה בגומי לפני שימוש",
+        "ודא עיגון יציב ובטוח",
+        "התחל עם התנגדות קלה",
+      ],
+      en: [
+        "Inspect band wear before use",
+        "Ensure stable and secure anchor",
+        "Start with light resistance",
+      ],
+    },
     media: {
       image: "exercises/band_chest_press.jpg",
       video: "",
@@ -119,19 +128,50 @@ export const resistanceBandExercises: Exercise[] = [
   },
   {
     id: "band_overhead_press_1",
-    name: "לחיצת כתפיים גומיה",
-    nameLocalized: { he: "לחיצת כתפיים גומיה", en: "Band Overhead Press" },
+    name: "לחיצת כתפיים עם גומי התנגדות",
+    nameLocalized: {
+      he: "לחיצת כתפיים עם גומי התנגדות",
+      en: "Band Overhead Press",
+    },
     category: "strength",
     primaryMuscles: ["shoulders"],
     secondaryMuscles: ["triceps", "core"],
     equipment: "resistance_bands",
     difficulty: "intermediate",
     instructions: {
-      he: ["עמוד על גומיה", "דחוף מעלה"],
-      en: ["Stand on band", "Press overhead"],
+      he: [
+        "עמוד על הגומי ברגליים ברוחב כתפיים",
+        "אחוז בקצות הגומי בגובה כתפיים",
+        "דחוף ידיים מעלה עד לישור מלא",
+        "חזור בשליטה לגובה כתפיים",
+      ],
+      en: [
+        "Stand on band with feet shoulder-width apart",
+        "Hold band ends at shoulder height",
+        "Press hands overhead to full extension",
+        "Return with control to shoulder height",
+      ],
     },
-    tips: { he: ["הימנע מקשת יתר"], en: ["Avoid over-arching"] },
-    safetyNotes: { he: ["בדוק יציבות"], en: ["Check footing"] },
+    tips: {
+      he: ["הימנע מקשת יתר בגב", "שמור על core מופעל", "תנועה ישרה מעלה ומטה"],
+      en: [
+        "Avoid over-arching back",
+        "Keep core engaged",
+        "Straight up and down movement",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "בדוק יציבות העמידה על הגומי",
+        "לא לנעול מרפקים בחוזקה",
+        "התחל עם התנגדות קלה",
+      ],
+      en: [
+        "Check footing stability on band",
+        "Don't lock elbows hard",
+        "Start with light resistance",
+      ],
+    },
     media: {
       image: "exercises/band_overhead_press.jpg",
       video: "",
@@ -145,19 +185,54 @@ export const resistanceBandExercises: Exercise[] = [
   },
   {
     id: "band_triceps_extension_1",
-    name: "פשיטת טרייספס גומיה",
-    nameLocalized: { he: "פשיטת טרייספס גומיה", en: "Band Triceps Extension" },
+    name: "פשיטת טרייספס עם גומי התנגדות",
+    nameLocalized: {
+      he: "פשיטת טרייספס עם גומי התנגדות",
+      en: "Band Triceps Extension",
+    },
     category: "strength",
     primaryMuscles: ["triceps"],
     secondaryMuscles: ["shoulders"],
     equipment: "resistance_bands",
     difficulty: "beginner",
     instructions: {
-      he: ["עגן למעלה", "יישור מרפקים למטה"],
-      en: ["Anchor high", "Extend elbows down"],
+      he: [
+        "עגן את הגומי למעלה (דלת או מתקן)",
+        "אחוז בקצות הגומי עם כפות ידיים כלפי מטה",
+        "יישר את המרפקים למטה עד לישור מלא",
+        "חזור בשליטה לעמדת ההתחלה",
+      ],
+      en: [
+        "Anchor band high (door or equipment)",
+        "Hold band ends with palms facing down",
+        "Extend elbows down to full extension",
+        "Return with control to starting position",
+      ],
     },
-    tips: { he: ["מרפקים צמודים"], en: ["Elbows tucked"] },
-    safetyNotes: { he: ["לא לנעול"], en: ["Don't hyperextend"] },
+    tips: {
+      he: [
+        "שמור על מרפקים צמודים לגוף",
+        "רק המרפקים זזים, לא הכתפיים",
+        "מתח מלא בטרייספס בתחתית",
+      ],
+      en: [
+        "Keep elbows tucked to body",
+        "Only elbows move, not shoulders",
+        "Full triceps contraction at bottom",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "לא לנעול מרפקים בחוזקה",
+        "שליטה בתנועת החזרה",
+        "בדוק עיגון בטוח למעלה",
+      ],
+      en: [
+        "Don't hyperextend elbows",
+        "Control the return movement",
+        "Check secure high anchor",
+      ],
+    },
     media: {
       image: "exercises/band_triceps_extension.jpg",
       video: "",
@@ -171,19 +246,54 @@ export const resistanceBandExercises: Exercise[] = [
   },
   {
     id: "band_biceps_curl_1",
-    name: "כפיפת זרועות גומיה",
-    nameLocalized: { he: "כפיפת זרועות גומיה", en: "Band Biceps Curl" },
+    name: "כפיפת זרועות עם גומי התנגדות",
+    nameLocalized: {
+      he: "כפיפת זרועות עם גומי התנגדות",
+      en: "Band Biceps Curl",
+    },
     category: "strength",
     primaryMuscles: ["biceps"],
     secondaryMuscles: ["forearms"],
     equipment: "resistance_bands",
     difficulty: "beginner",
     instructions: {
-      he: ["עמוד על גומיה", "כפוף מרפק"],
-      en: ["Stand on band", "Curl elbows"],
+      he: [
+        "עמוד על הגומי ברגליים ברוחב כתפיים",
+        "אחוז בקצות הגומי עם כפות ידיים כלפי מעלה",
+        "כופף את המרפקים למעלה עד הכתפיים",
+        "חזור בשליטה לעמדת זרועות ישרות",
+      ],
+      en: [
+        "Stand on band with feet shoulder-width apart",
+        "Hold band ends with palms facing up",
+        "Curl elbows up toward shoulders",
+        "Return with control to straight arms",
+      ],
     },
-    tips: { he: ["הימנע מתנופה"], en: ["Avoid swinging"] },
-    safetyNotes: { he: ["בדוק שחיקה"], en: ["Inspect for tears"] },
+    tips: {
+      he: [
+        "הימנע מתנופה עם הגוף",
+        "רק המרפקים זזים",
+        "מתח מלא בביצפס בחלק העליון",
+      ],
+      en: [
+        "Avoid swinging with body",
+        "Only elbows move",
+        "Full biceps contraction at top",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "בדוק שחיקה בגומי לפני שימוש",
+        "ודא עמידה יציבה על הגומי",
+        "שליטה בתנועת החזרה",
+      ],
+      en: [
+        "Inspect for tears before use",
+        "Ensure stable footing on band",
+        "Control the lowering movement",
+      ],
+    },
     media: {
       image: "exercises/band_biceps_curl.jpg",
       video: "",
@@ -197,19 +307,51 @@ export const resistanceBandExercises: Exercise[] = [
   },
   {
     id: "band_squat_1",
-    name: "סקווט גומיה",
-    nameLocalized: { he: "סקווט גומיה", en: "Band Squat" },
+    name: "סקווט עם גומי התנגדות",
+    nameLocalized: { he: "סקווט עם גומי התנגדות", en: "Band Squat" },
     category: "strength",
     primaryMuscles: ["quadriceps", "glutes"],
     secondaryMuscles: ["hamstrings", "core"],
     equipment: "resistance_bands",
     difficulty: "beginner",
     instructions: {
-      he: ["גומיה סביב ירכיים", "רד ועלה"],
-      en: ["Band above knees", "Squat down and up"],
+      he: [
+        "הכנס גומי לולאה מעל לברכיים",
+        "עמוד עם רגליים ברוחב כתפיים",
+        "רד לסקווט תוך דחיפת ברכיים החוצה",
+        "עלה חזרה תוך שמירה על מתח בגומי",
+      ],
+      en: [
+        "Place loop band above knees",
+        "Stand with feet shoulder-width apart",
+        "Squat down while pushing knees out",
+        "Rise back up maintaining band tension",
+      ],
     },
-    tips: { he: ["דחוף ברכיים החוצה"], en: ["Push knees out"] },
-    safetyNotes: { he: ["שמור עקבים על הרצפה"], en: ["Keep heels planted"] },
+    tips: {
+      he: [
+        "דחוף ברכיים החוצה נגד הגומי",
+        "שמור על חזה זקוף ועיניים קדימה",
+        "עקבים צמודים לרצפה",
+      ],
+      en: [
+        "Push knees out against band",
+        "Keep chest up and eyes forward",
+        "Keep heels planted on floor",
+      ],
+    },
+    safetyNotes: {
+      he: [
+        "שמור עקבים על הרצפה",
+        "ברכיים עוקבות אחר כיוון אצבעות",
+        "התחל עם התנגדות קלה",
+      ],
+      en: [
+        "Keep heels planted",
+        "Knees track over toes",
+        "Start with light resistance",
+      ],
+    },
     media: {
       image: "exercises/band_squat.jpg",
       video: "",
@@ -321,68 +463,6 @@ export const resistanceBandExercises: Exercise[] = [
     },
     homeCompatible: true,
     gymPreferred: true,
-    outdoorSuitable: true,
-    spaceRequired: "small",
-    noiseLevel: "silent",
-  },
-
-  {
-    id: "resistance_band_squat_1",
-    name: "כיפופי ברכיים עם גומי התנגדות",
-    nameLocalized: {
-      he: "כיפופי ברכיים עם גומי התנגדות",
-      en: "Resistance Band Squat",
-    },
-    category: "strength",
-    primaryMuscles: ["quadriceps", "glutes"],
-    secondaryMuscles: ["hamstrings", "core"],
-    equipment: "resistance_bands",
-    difficulty: "beginner",
-    instructions: {
-      he: [
-        "עמוד על הגומי עם רגליים ברוחב כתפיים",
-        "אחוז בקצות הגומי בגובה כתפיים",
-        "רד לכיפוף ברכיים בזמן שמחזיק התנגדות",
-        "עלה חזרה למעלה נגד התנגדות הגומי",
-      ],
-      en: [
-        "Stand on band with feet shoulder-width apart",
-        "Hold band ends at shoulder height",
-        "Squat down while maintaining resistance",
-        "Rise back up against band resistance",
-      ],
-    },
-    tips: {
-      he: [
-        "שמור על מתח קבוע בגומי",
-        "ברכיים עוקבות אחר אצבעות הרגליים",
-        "גב ישר ואל תרכין קדימה",
-      ],
-      en: [
-        "Maintain constant tension in band",
-        "Knees track over toes",
-        "Keep back straight, don't lean forward",
-      ],
-    },
-    safetyNotes: {
-      he: [
-        "ודא שהגומי לא יחליק מתחת לרגליים",
-        "בדוק איכות הגומי לפני שימוש",
-        "התחל עם התנגדות קלה",
-      ],
-      en: [
-        "Ensure band won't slip under feet",
-        "Check band quality before use",
-        "Start with light resistance",
-      ],
-    },
-    media: {
-      image: "exercises/resistance_band_squat.jpg",
-      video: "exercises/resistance_band_squat.mp4",
-      thumbnail: "exercises/resistance_band_squat_thumb.jpg",
-    },
-    homeCompatible: true,
-    gymPreferred: false,
     outdoorSuitable: true,
     spaceRequired: "small",
     noiseLevel: "silent",

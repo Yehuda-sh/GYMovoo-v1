@@ -79,13 +79,11 @@ npm run type-check
 
 - [מבנה האפליקציה](docs/app-structure.md) - סקירה מפורטת של הארכיטקטורה
 - [זרימת נתונים](docs/app-flow-diagrams.md) - דיאגרמות ניווט ומשתמש
-- [תכנית ארכיטקטורה](docs/architecture-plan.md) - תכנון פיתוח מתקדם
 - [ניתוח רכיבים](docs/component-analysis.md) - סקירת רכיבי UI
-- [אסטרטגיית מימוש](docs/implementation-strategy.md) - הנחיות פיתוח
 
 ## 📄 רישיון
 
-MIT License - ראה [LICENSE](LICENSE) לפרטים.
+MIT License
 
 ## 📞 יצירת קשר
 

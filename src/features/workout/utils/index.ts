@@ -4,5 +4,4 @@
  */
 
 export * from "./workoutStatsCalculator";
-export * from "./workoutSafetyUtils";
 export * from "./workoutHelpers";

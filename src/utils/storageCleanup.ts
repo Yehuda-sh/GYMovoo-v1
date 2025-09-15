@@ -1,23 +1,34 @@
 /**
  * @file src/utils/storageCleanup.ts
- * @description יוטיליטי בסיסי לניקוי storage
+ * @description יוטיליטי מעודכן לניקוי AsyncStorage - מותאם לפרויקט הנוכחי
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logger } from "./logger";
+import { StorageKeys } from "../constants/StorageKeys";
 
 /**
- * Keys חשובים שאסור למחוק
+ * Keys מוגנים - על בסיס StorageKeys בפועל
  */
 const PROTECTED_KEYS = [
-  "user",
-  "userStore",
-  "settings",
-  "preferences",
-  "subscription",
-  "workoutplans",
-  "questionnaire",
-  "questionnaireData",
+  // Core user data
+  "user-storage", // Zustand user store
+  StorageKeys.USER_GENDER_PREFERENCE,
+  StorageKeys.USER_PERSISTENCE,
+  StorageKeys.LAST_USER_ID,
+  StorageKeys.LAST_EMAIL,
+
+  // Questionnaire data
+  StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+  StorageKeys.QUESTIONNAIRE_METADATA,
+  StorageKeys.SELECTED_EQUIPMENT,
+  StorageKeys.GENDER_ADAPTATION_DATA,
+
+  // Workout data
+  StorageKeys.WORKOUT_HISTORY,
+
+  // Auth state
+  StorageKeys.USER_LOGGED_OUT,
 ] as const;
 
 /**
@@ -38,8 +49,15 @@ const CLEANUP_PATTERNS = [
  */
 const isProtectedKey = (key: string): boolean => {
   return PROTECTED_KEYS.some(
-    (protectedKey) => key.includes(protectedKey) || key.startsWith(protectedKey)
+    (protectedKey) => key === protectedKey || key.includes(protectedKey)
   );
+};
+
+/**
+ * בדיקה אם key הוא זמני לפי דפוסים ידועים
+ */
+const isTemporaryKey = (key: string): boolean => {
+  return CLEANUP_PATTERNS.some((pattern) => key.includes(pattern));
 };
 
 export class StorageCleanup {
@@ -49,36 +67,29 @@ export class StorageCleanup {
   static async isStorageFull(): Promise<boolean> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      // Simple check - if more than 500 keys, consider it full
-      return keys.length > 500;
+      // Simple heuristic - if more than 100 keys, consider cleanup needed
+      return keys.length > 100;
     } catch {
-      return true; // Assume full on error
+      return true; // Assume cleanup needed on error
     }
   }
 
   /**
-   * ניקוי נתונים ישנים בסיסי
+   * ניקוי נתונים זמניים וישנים
    */
   static async cleanOldData(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const keysToRemove: string[] = [];
-
-      for (const key of keys) {
-        // Skip protected keys
-        if (isProtectedKey(key)) continue;
-
-        // Remove keys matching cleanup patterns
-        if (CLEANUP_PATTERNS.some((pattern) => key.includes(pattern))) {
-          keysToRemove.push(key);
-        }
-      }
+      const keysToRemove = keys.filter(
+        (key) => !isProtectedKey(key) && isTemporaryKey(key)
+      );
 
       if (keysToRemove.length > 0) {
         await AsyncStorage.multiRemove(keysToRemove);
         logger.info(
           "StorageCleanup",
-          `Cleaned ${keysToRemove.length} old data items`
+          `Cleaned ${keysToRemove.length} temporary data items`,
+          { cleanedKeys: keysToRemove }
         );
       }
     } catch (error) {
@@ -87,33 +98,11 @@ export class StorageCleanup {
   }
 
   /**
-   * ניקוי חירום - הסרת נתונים לא חיוניים
+   * ניקוי חירום - אותה לוגיקה כמו cleanOldData
+   * (נשמר לתאימות עם useAppInitialization)
    */
   static async emergencyCleanup(): Promise<void> {
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      const keysToRemove: string[] = [];
-
-      for (const key of keys) {
-        // Skip protected keys
-        if (isProtectedKey(key)) continue;
-
-        // Remove temporary and cache data using existing patterns
-        if (CLEANUP_PATTERNS.some((pattern) => key.includes(pattern))) {
-          keysToRemove.push(key);
-        }
-      }
-
-      if (keysToRemove.length > 0) {
-        await AsyncStorage.multiRemove(keysToRemove);
-        logger.info(
-          "StorageCleanup",
-          `Emergency cleanup removed ${keysToRemove.length} items`
-        );
-      }
-    } catch (error) {
-      logger.error("StorageCleanup", "Error in emergency cleanup", error);
-    }
+    return this.cleanOldData();
   }
 }
 

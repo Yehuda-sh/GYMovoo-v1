@@ -1,7 +1,6 @@
 /**
  * @file App.tsx
  * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo
- * @updated 2025-09-11
  */
 
 import React from "react";
@@ -11,7 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ErrorBoundary } from "./src/components/common/ErrorBoundary";
-import { useAppInitialization } from "./src/hooks";
+import { useAppInitialization } from "./src/hooks/useAppInitialization";
 import { initializeRTL } from "./src/utils/rtlHelpers";
 
 import "react-native-reanimated";

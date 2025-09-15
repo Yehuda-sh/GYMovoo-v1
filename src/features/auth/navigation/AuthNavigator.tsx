@@ -7,7 +7,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
-import { ForgotPasswordScreen } from "../../../screens/auth/ForgotPasswordScreen";
+import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { TermsScreen } from "../screens/TermsScreen";
 
 // טיפוס פרמטרים לניווט
