@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../core/theme";
 import { RegisterForm } from "../components/RegisterForm";
 import { AuthStackParamList } from "../navigation/AuthNavigator";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // טיפוס לניווט
 type RegisterScreenNavigationProp = StackNavigationProp<
@@ -38,14 +39,42 @@ export const RegisterScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  // מעבר למסך השאלון אחרי הרשמה מוצלחת
-  const handleRegisterSuccess = useCallback(() => {
-    // Navigate to questionnaire - will be handled by app navigator
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (navigation as any).reset({
-      index: 0,
-      routes: [{ name: "Questionnaire" }],
-    });
+  // מעבר למסך הנכון אחרי הרשמה מוצלחת
+  const handleRegisterSuccess = useCallback(async () => {
+    try {
+      // בדיקה ישירה אם יש שאלון שנשמר ב-AsyncStorage
+      const savedQuestionnaire = await AsyncStorage.getItem(
+        "smart_questionnaire_results"
+      );
+      const hasCompletedQuestionnaire = !!(
+        savedQuestionnaire &&
+        JSON.parse(savedQuestionnaire)?.metadata?.completedAt
+      );
+
+      if (hasCompletedQuestionnaire) {
+        // השאלון הושלם - עבור ישירות למסך הראשי
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigation as any).reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        // השאלון לא הושלם - עבור לשאלון
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigation as any).reset({
+          index: 0,
+          routes: [{ name: "Questionnaire" }],
+        });
+      }
+    } catch (error) {
+      // במקרה של שגיאה, עבור לשאלון כברירת מחדל
+      console.error("Error checking questionnaire completion:", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (navigation as any).reset({
+        index: 0,
+        routes: [{ name: "Questionnaire" }],
+      });
+    }
   }, [navigation]);
 
   // מעבר למסך התחברות

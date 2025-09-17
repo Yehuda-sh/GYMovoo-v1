@@ -36,20 +36,22 @@ export const useQuestionnaireStatus = (): QuestionnaireStatus => {
     if (hasData && user.questionnaireData?.answers) {
       // Check if essential fields exist in answers
       const answers = user.questionnaireData.answers;
+
+      // Helper function to check if field has valid value (string or non-empty array)
+      const hasValidValue = (field: string | string[] | undefined): boolean => {
+        if (!field) return false;
+        if (Array.isArray(field)) return field.length > 0;
+        return typeof field === "string" && field.trim().length > 0;
+      };
+
       isComplete =
         !!answers.gender &&
         !!answers.weight &&
         !!answers.height &&
-        !!answers.goals &&
-        Array.isArray(answers.goals) &&
-        answers.goals.length > 0 &&
-        !!answers.availability &&
-        Array.isArray(answers.availability) &&
-        answers.availability.length > 0 &&
+        hasValidValue(answers.goals || answers.fitness_goal) && // Allow both field names
+        hasValidValue(answers.availability) &&
         !!answers.workout_duration &&
-        !!answers.equipment &&
-        Array.isArray(answers.equipment) &&
-        answers.equipment.length > 0;
+        hasValidValue(answers.equipment);
     }
 
     return {

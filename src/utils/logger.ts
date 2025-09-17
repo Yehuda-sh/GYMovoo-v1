@@ -10,21 +10,37 @@ const IS_DEV = __DEV__ || process.env.NODE_ENV === "development";
 export const logger = {
   debug: (category: string, message: string, data?: unknown) => {
     if (IS_DEV) {
-      console.log(`🔍 [${category}] ${message}`, data);
+      if (data !== undefined) {
+        console.log(`🔍 [${category}] ${message}`, data);
+      } else {
+        console.log(`🔍 [${category}] ${message}`);
+      }
     }
   },
 
   info: (category: string, message: string, data?: unknown) => {
     if (IS_DEV) {
-      console.info(`ℹ️ [${category}] ${message}`, data);
+      if (data !== undefined) {
+        console.info(`ℹ️ [${category}] ${message}`, data);
+      } else {
+        console.info(`ℹ️ [${category}] ${message}`);
+      }
     }
   },
 
   warn: (category: string, message: string, data?: unknown) => {
-    console.warn(`⚠️ [${category}] ${message}`, data);
+    if (data !== undefined) {
+      console.warn(`⚠️ [${category}] ${message}`, data);
+    } else {
+      console.warn(`⚠️ [${category}] ${message}`);
+    }
   },
 
   error: (category: string, message: string, error?: unknown) => {
-    console.error(`❌ [${category}] ${message}`, error);
+    if (error !== undefined) {
+      console.error(`❌ [${category}] ${message}`, error);
+    } else {
+      console.error(`❌ [${category}] ${message}`);
+    }
   },
 };

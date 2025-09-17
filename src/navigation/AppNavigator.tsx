@@ -20,15 +20,22 @@ import WorkoutSummaryScreen from "../features/workout/screens/workout_screens/Wo
 // Additional screens
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
+import { PersonalInfoScreen } from "../features/profile/screens/PersonalInfoScreen";
 import { useUserStore } from "../stores/userStore";
 import BottomNavigation from "./BottomNavigation";
 import { RootStackParamList } from "./types";
+import { logger } from "../utils/logger";
+import React from "react";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const { user, getCompletionStatus, hydrated, hasSeenWelcome } =
     useUserStore();
+
+  React.useEffect(() => {
+    logger.info("AppNavigator", "🎯 Component mounted/updated");
+  }, []);
 
   if (!hydrated) {
     return null;
@@ -37,9 +44,35 @@ export default function AppNavigator() {
   const initialRoute: keyof RootStackParamList = (() => {
     if (!user) return hasSeenWelcome ? "Auth" : "Welcome";
     const completion = getCompletionStatus();
-    return completion.isFullySetup ? "MainApp" : "Questionnaire";
-  })();
 
+    // DEBUG: לוג לבדיקה
+    console.log("🔍 [AppNavigator] Navigation decision:", {
+      hasUser: !!user,
+      hasBasicInfo: completion.hasBasicInfo,
+      hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
+      isFullySetup: completion.isFullySetup,
+      userHasEmail: !!user?.email,
+      userHasId: !!user?.id,
+      userHasName: !!user?.name,
+    });
+
+    // אם המשתמש הושלם לחלוטין - מסך ראשי
+    if (completion.isFullySetup) return "MainApp";
+
+    // אם יש שאלון אבל אין פרטים בסיסיים - רישום
+    if (completion.hasSmartQuestionnaire && !completion.hasBasicInfo) {
+      console.log(
+        "🔍 [AppNavigator] Going to Auth - has questionnaire but no basic info"
+      );
+      return "Auth";
+    }
+
+    // אם אין שאלון - שאלון
+    console.log(
+      "🔍 [AppNavigator] Going to Questionnaire - no questionnaire found"
+    );
+    return "Questionnaire";
+  })();
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -116,6 +149,16 @@ export default function AppNavigator() {
           component={ExerciseDetailsScreen}
         />
         <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
+
+        {/* Personal Info screen */}
+        <Stack.Screen
+          name="PersonalInfo"
+          component={PersonalInfoScreen}
+          options={{
+            title: "מידע אישי",
+            headerShown: false,
+          }}
+        />
 
         {/* Developer screen (development only) */}
         {__DEV__ && (

@@ -5,6 +5,7 @@
  */
 
 import { useUserStore } from "../../../stores/userStore";
+import { WorkoutPlanGenerator } from "../../../services/workout/WorkoutPlanGenerator";
 
 // Define workout recommendation type
 export interface WorkoutRecommendation {
@@ -52,6 +53,8 @@ export interface WorkoutPlan {
   workouts: WorkoutRecommendation[];
   type: string;
   isActive: boolean;
+  frequency?: string;
+  tags?: string[];
 }
 
 /**
@@ -65,16 +68,158 @@ class QuestionnaireService {
    */
   async generateSmartWorkoutPlan(): Promise<WorkoutPlan[]> {
     try {
-      // Create a basic workout plan
+      console.log("🔄 questionnaireService.generateSmartWorkoutPlan called");
+
+      const user = useUserStore.getState().user;
+      console.log("👤 User from store:", user?.id);
+
+      if (!user?.questionnaireData?.answers) {
+        console.log("❌ No questionnaire data found, using default answers");
+        console.log("📝 Creating default questionnaire answers for demo...");
+
+        // Create default questionnaire answers for testing
+        const defaultAnswers = {
+          gender: "male",
+          age: 25,
+          weight: 75,
+          height: 180,
+          fitness_goal: "general_fitness",
+          experience_level: "beginner",
+          availability: 3,
+          workout_duration: "45",
+          workout_location: "home_bodyweight",
+          equipment_available: ["bodyweight", "yoga_mat"],
+        };
+
+        console.log("🔧 Using default answers:", defaultAnswers);
+
+        // Use default answers instead of throwing error
+        const generator = new WorkoutPlanGenerator(defaultAnswers);
+        const generatedPlan = generator.generateWorkoutPlan();
+        console.log("📋 Generated plan with defaults:", generatedPlan);
+
+        // Convert the generated plan to the expected format
+        const plan: WorkoutPlan = {
+          id: generatedPlan.id,
+          name: generatedPlan.name + " (ברירת מחדל)",
+          description:
+            generatedPlan.description +
+            " - תוכנית זו נוצרה עם הגדרות ברירת מחדל",
+          duration: generatedPlan.estimatedTimePerSession,
+          difficulty: generatedPlan.difficultyLevel as
+            | "beginner"
+            | "intermediate"
+            | "advanced",
+          workouts: generatedPlan.weeklySchedule.map((day) => ({
+            id: `workout-${day.dayNumber}`,
+            name: day.dayName,
+            description: day.focus,
+            type: "strength" as const,
+            difficulty: generatedPlan.difficultyLevel as
+              | "beginner"
+              | "intermediate"
+              | "advanced",
+            duration: day.estimatedDuration,
+            equipment: generatedPlan.equipmentRequired,
+            targetMuscles: [day.focus],
+            estimatedCalories: Math.round(day.totalCaloriesBurn || 0),
+            exercises: day.exercises.map((exercise) => ({
+              id: exercise.id,
+              name: exercise.name,
+              equipment: exercise.equipment,
+              sets: Array.from({ length: exercise.sets }, (_, i) => ({
+                id: `set-${i + 1}`,
+                reps: 10,
+                weight: 0,
+                duration: 30,
+                restTime: exercise.restTime,
+                completed: false,
+              })),
+              targetMuscles: exercise.targetMuscles,
+              instructions: [exercise.name],
+              restTime: exercise.restTime,
+              difficulty: exercise.difficulty as
+                | "beginner"
+                | "intermediate"
+                | "advanced",
+            })),
+            restTime: 60,
+            sets: 3,
+            reps: 12,
+          })),
+          type: "smart",
+          isActive: true,
+          frequency: `${generatedPlan.daysPerWeek} פעמים בשבוע`,
+          tags: [generatedPlan.targetFitnessGoal],
+        };
+
+        console.log("✅ Plan created with defaults:", plan);
+        return [plan];
+      }
+
+      console.log("📝 Questionnaire answers:", user.questionnaireData.answers);
+
+      // Use the new WorkoutPlanGenerator
+      console.log("🏗️ Creating WorkoutPlanGenerator...");
+      const generator = new WorkoutPlanGenerator(
+        user.questionnaireData.answers
+      );
+
+      console.log("⚡ Generating workout plan...");
+      const generatedPlan = generator.generateWorkoutPlan();
+      console.log("📋 Generated plan:", generatedPlan);
+
+      // Convert the generated plan to the expected format
       const plan: WorkoutPlan = {
-        id: `plan-${Date.now()}`,
-        name: "תוכנית אימונים מותאמת",
-        description: "תוכנית אימונים מותאמת לצרכים האישיים שלך",
-        duration: 7, // 7 days
-        difficulty: this.getUserDifficulty(),
-        workouts: this.createBasicWorkouts(),
+        id: generatedPlan.id,
+        name: generatedPlan.name,
+        description: generatedPlan.description,
+        duration: generatedPlan.estimatedTimePerSession,
+        difficulty: generatedPlan.difficultyLevel as
+          | "beginner"
+          | "intermediate"
+          | "advanced",
+        workouts: generatedPlan.weeklySchedule.map((day) => ({
+          id: `workout-${day.dayNumber}`,
+          name: day.dayName,
+          description: day.focus,
+          type: "strength" as const,
+          difficulty: generatedPlan.difficultyLevel as
+            | "beginner"
+            | "intermediate"
+            | "advanced",
+          duration: day.estimatedDuration,
+          equipment: generatedPlan.equipmentRequired,
+          targetMuscles: [day.focus],
+          estimatedCalories: Math.round(day.totalCaloriesBurn || 0),
+          exercises: day.exercises.map((exercise) => ({
+            id: exercise.id,
+            name: exercise.name,
+            equipment: exercise.equipment,
+            sets: Array.from({ length: exercise.sets }, (_, i) => ({
+              id: `set-${i + 1}`,
+              reps: 10, // Default to 10 reps
+              weight: 0,
+              duration: 30,
+              restTime: exercise.restTime,
+              completed: false,
+            })),
+            targetMuscles: exercise.targetMuscles,
+            instructions: [exercise.name],
+            restTime: exercise.restTime,
+            difficulty: exercise.difficulty as
+              | "beginner"
+              | "intermediate"
+              | "advanced",
+          })),
+          restTime: 60,
+          sets: 3,
+          reps: 12,
+        })),
         type: "smart",
         isActive: true,
+        frequency: `${generatedPlan.daysPerWeek} פעמים בשבוע`,
+        tags: [generatedPlan.targetFitnessGoal],
       };
 
       return [plan];
@@ -82,81 +227,6 @@ class QuestionnaireService {
       console.error("Error generating smart workout plan:", error);
       return [];
     }
-  }
-
-  /**
-   * Get user difficulty level based on questionnaire data
-   */
-  private getUserDifficulty(): "beginner" | "intermediate" | "advanced" {
-    const user = useUserStore.getState().user;
-    const experience = user?.questionnaireData?.answers?.experience_level;
-
-    if (experience === "מתחיל" || experience === "beginner") {
-      return "beginner";
-    } else if (experience === "בינוני" || experience === "intermediate") {
-      return "intermediate";
-    } else {
-      return "advanced";
-    }
-  }
-
-  /**
-   * Create basic workout recommendations
-   */
-  private createBasicWorkouts(): WorkoutRecommendation[] {
-    const workouts: WorkoutRecommendation[] = [
-      {
-        id: "strength-workout",
-        name: "אימון כוח",
-        description: "אימון כוח לבניית שריר וחיזוק הגוף",
-        type: "strength",
-        difficulty: this.getUserDifficulty(),
-        duration: 45,
-        equipment: ["dumbbells", "bodyweight"],
-        targetMuscles: ["חזה", "גב", "רגליים"],
-        estimatedCalories: 300,
-        restTime: 60,
-        sets: 3,
-        reps: 12,
-        exercises: [
-          {
-            id: "1",
-            name: "שכיבות סמיכה",
-            equipment: "bodyweight",
-            sets: [
-              {
-                id: "1",
-                reps: 10,
-                weight: 0,
-                duration: 0,
-                restTime: 60,
-                completed: false,
-              },
-            ],
-            targetMuscles: ["חזה", "כתפיים"],
-            instructions: ["בצע שכיבות סמיכה נכונות", "שמור על גב ישר"],
-            restTime: 60,
-            difficulty: "beginner",
-          },
-        ],
-      },
-      {
-        id: "cardio-workout",
-        name: "אימון אירובי",
-        description: "אימון אירובי לשריפת קלוריות ושיפור סיבולת",
-        type: "cardio",
-        difficulty: this.getUserDifficulty(),
-        duration: 30,
-        equipment: ["bodyweight"],
-        targetMuscles: ["לב", "ריאות"],
-        estimatedCalories: 250,
-        restTime: 30,
-        sets: 1,
-        reps: 20,
-      },
-    ];
-
-    return workouts;
   }
 }
 

@@ -43,6 +43,12 @@ const QuestionnaireScreen: React.FC = () => {
     completeQuestionnaire,
   } = useQuestionnaire();
 
+  // Check if this is the last question (progress is 1 = 100%)
+  // OR if this is the actual last non-skipped question
+  const isLastQuestion =
+    progress === 1 ||
+    (currentQuestion && currentQuestion.id === "diet_preferences");
+
   // State for the confirmation modal
   const [confirmationModal, setConfirmationModal] = useState<{
     visible: boolean;
@@ -96,73 +102,73 @@ const QuestionnaireScreen: React.FC = () => {
 
   // Handle completion
   const handleCompletion = async () => {
+    logger.info("QuestionnaireScreen", "🎯 Starting handleCompletion");
     setShowCompletionCard(true);
-    const result = await completeQuestionnaire();
 
-    if (result) {
-      // Check user status to determine next screen
-      const { user } = useUserStore.getState();
-      const hasUser = !!(user?.id || user?.email || user?.name);
+    // Check user status BEFORE completing questionnaire to avoid navigation conflicts
+    const { user } = useUserStore.getState();
+    const hasUser = !!(user?.id || user?.email || user?.name);
 
+    logger.info("QuestionnaireScreen", "🎯 Navigation decision:", {
+      user: {
+        id: user?.id,
+        email: user?.email,
+        name: user?.name,
+        hasUser: hasUser,
+      },
+    });
+
+    logger.info(
+      "QuestionnaireScreen",
+      `Questionnaire completed successfully, navigating to ${hasUser ? "MainApp" : "Register screen"}`
+    );
+
+    // Navigate FIRST to avoid AppNavigator conflicts
+    try {
+      if (hasUser) {
+        // If user is logged in, go to MainApp
+        logger.info("QuestionnaireScreen", "🎯 Navigating to MainApp");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        // ניווט למסך רישום דרך navigator האימות
+        logger.info(
+          "QuestionnaireScreen",
+          "🎯 Navigating to Register via Auth navigator with fromQuestionnaire=true"
+        );
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Auth",
+              params: {
+                screen: "Register",
+                params: { fromQuestionnaire: true },
+              },
+            },
+          ],
+        });
+      }
+
+      // THEN complete the questionnaire (this will update the store but we're already navigating)
+      await completeQuestionnaire();
       logger.info(
         "QuestionnaireScreen",
-        `Questionnaire completed successfully, navigating to ${hasUser ? "MainApp" : "Register screen"}`
+        "🎯 Questionnaire data saved after navigation"
       );
-
-      // Navigate after short delay
-      setTimeout(() => {
-        try {
-          if (hasUser) {
-            // If user is logged in, go to MainApp
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "MainApp" }],
-            });
-          } else {
-            // ניווט למסך רישום דרך navigator האימות
-            logger.info(
-              "QuestionnaireScreen",
-              "Navigating to Register via Auth navigator with fromQuestionnaire=true"
-            );
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: "Auth",
-                  params: {
-                    screen: "Register",
-                    params: { fromQuestionnaire: true },
-                  },
-                },
-              ],
-            });
-          }
-        } catch (error) {
-          console.error("Navigation error:", error);
-          // Fallback navigation if the reset fails
-          if (hasUser) {
-            navigation.navigate("MainApp");
-          } else {
-            navigation.navigate("Auth", {
-              screen: "Register",
-              params: { fromQuestionnaire: true },
-            });
-          }
-        }
-      }, 2000);
-    } else {
-      // Handle error
-      setShowCompletionCard(false);
-      setConfirmationModal({
-        visible: true,
-        title: "שגיאה",
-        message: "אירעה שגיאה בשמירת השאלון. נסה שנית.",
-        confirmText: "נסה שוב",
-        onConfirm: () => {
-          setConfirmationModal((prev) => ({ ...prev, visible: false }));
-          handleCompletion();
-        },
-      });
+    } catch (error) {
+      logger.error("QuestionnaireScreen", "Navigation error:", error);
+      // Fallback navigation if the reset fails
+      if (hasUser) {
+        navigation.navigate("MainApp");
+      } else {
+        navigation.navigate("Auth", {
+          screen: "Register",
+          params: { fromQuestionnaire: true },
+        });
+      }
     }
   };
 
@@ -308,10 +314,18 @@ const QuestionnaireScreen: React.FC = () => {
             ]}
             onPress={() => {
               if (currentQuestion && selectedOptions.length > 0) {
-                if (isCompleted) {
+                logger.info("QuestionnaireScreen", "🎯 Button click debug:", {
+                  isCompleted,
+                  isLastQuestion,
+                  progress,
+                  currentQuestion: currentQuestion?.id,
+                  selectedOptionsCount: selectedOptions.length,
+                });
+
+                if (isLastQuestion) {
                   logger.info(
                     "QuestionnaireScreen",
-                    "Button pressed - Starting completion flow"
+                    "🎯 Button pressed - Starting completion flow (last question)"
                   );
                   handleCompletion();
                 } else {
@@ -328,11 +342,11 @@ const QuestionnaireScreen: React.FC = () => {
             }
           >
             <Text style={styles.nextButtonText}>
-              {isLoading ? "טוען..." : isCompleted ? "סיים שאלון" : "המשך"}
+              {isLoading ? "טוען..." : isLastQuestion ? "סיים שאלון" : "המשך"}
             </Text>
             {!isLoading && (
               <Ionicons
-                name={isCompleted ? "checkmark-circle" : "arrow-forward"}
+                name={isLastQuestion ? "checkmark-circle" : "arrow-forward"}
                 size={24}
                 color="#fff"
               />

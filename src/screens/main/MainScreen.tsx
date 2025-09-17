@@ -35,6 +35,12 @@ import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
 } from "../../constants/mainScreenTexts";
+import { AIRecommendationEngine } from "./utils/aiRecommendationEngine";
+import { WearableIntegration } from "./utils/wearableIntegration";
+import type {
+  AIRecommendation,
+  WearableData,
+} from "./types/aiRecommendations.types";
 import {
   formatLargeNumber,
   formatWorkoutDate,
@@ -174,7 +180,7 @@ interface MinimalWorkout {
  */
 function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user, getCompletionStatus } = useUserStore();
+  const { user } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,11 +198,32 @@ function MainScreen() {
     currentStreak: number;
   } | null>(null);
 
+  // AI והמלצות state
+  const [aiRecommendations, setAiRecommendations] = useState<
+    AIRecommendation[]
+  >([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Wearable integration state
+  const [wearableData, setWearableData] = useState<WearableData | null>(null);
+  const [wearableConnected, setWearableConnected] = useState(false);
+
   // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => Date.now(), []);
 
-  // Guard: enforce strict onboarding flow
+  // AppNavigator handles routing logic - no need for completion check here
+  // This was causing redirect loops when coming from questionnaire completion
+  /*
+  // Guard: enforce strict onboarding flow - ONLY on initial load
   useEffect(() => {
+    // Skip completion check if we're already in MainApp via navigation
+    // AppNavigator handles the routing logic properly
+    const navigation = require('@react-navigation/native').useNavigation;
+    if (navigation.current?.canGoBack?.()) {
+      logger.info("MainScreen", "Skipping completion check - not initial load");
+      return;
+    }
+
     const completion = getCompletionStatus?.();
     if (!completion) return;
 
@@ -240,6 +267,51 @@ function MainScreen() {
       return;
     }
   }, [user, navigation, getCompletionStatus]);
+  */
+
+  // טעינת המלצות AI
+  const loadAIRecommendations = useCallback(
+    async (historyItems: WorkoutHistoryItem[]) => {
+      try {
+        setAiLoading(true);
+        const aiEngine = new AIRecommendationEngine();
+        const recommendations =
+          await aiEngine.generateRecommendations(historyItems);
+        setAiRecommendations(recommendations);
+        logger.info("MainScreen", `נטענו ${recommendations.length} המלצות AI`);
+      } catch (error) {
+        logger.error("MainScreen", "שגיאה בטעינת המלצות AI", error);
+        setAiRecommendations([]);
+      } finally {
+        setAiLoading(false);
+      }
+    },
+    []
+  );
+
+  // התחברות ל-wearables
+  const connectToWearables = useCallback(async () => {
+    try {
+      const wearableIntegration = WearableIntegration.getInstance();
+      const hasPermission = await wearableIntegration.requestPermissions();
+
+      if (hasPermission) {
+        setWearableConnected(true);
+        const healthData = await wearableIntegration.getHealthData();
+        setWearableData(healthData);
+        logger.info("MainScreen", "התחברות ל-wearables הצליחה", {
+          steps: healthData?.steps?.count || 0,
+          heartRate: healthData?.heartRate?.current || 0,
+        });
+      } else {
+        logger.warn("MainScreen", "לא ניתנו הרשאות ל-wearables");
+        setWearableConnected(false);
+      }
+    } catch (error) {
+      logger.error("MainScreen", "שגיאה בהתחברות ל-wearables", error);
+      setWearableConnected(false);
+    }
+  }, []);
 
   // טעינת נתונים מתקדמים
   const loadAdvancedData = useCallback(async () => {
@@ -254,23 +326,36 @@ function MainScreen() {
       const totalWorkouts = historyItems.length;
       const currentStreak = historyItems.slice(0, 7).length; // פשוט
 
+      // חישוב דירוג ממוצע אמיתי מההיסטוריה
+      const averageDifficulty =
+        historyItems.length > 0
+          ? historyItems.reduce((sum, item) => sum + (item.rating || 0), 0) /
+            historyItems.length
+          : 0;
+
       setAdvancedStats({
         insights,
         genderStats: {
           total: {
             totalWorkouts,
             currentStreak,
-            averageDifficulty: 4.0,
+            averageDifficulty,
             workoutStreak: currentStreak,
           },
         },
         totalWorkouts,
         currentStreak,
       });
+
+      // טעינת המלצות AI
+      await loadAIRecommendations(historyItems);
+
+      // התחברות ל-wearables
+      await connectToWearables();
     } catch (error) {
       console.error("שגיאה בטעינת נתונים:", error);
     }
-  }, [user]);
+  }, [user, loadAIRecommendations, connectToWearables]);
 
   useEffect(() => {
     // ✅ הוספת delay למניעת קריאות מיותרות
@@ -379,12 +464,23 @@ function MainScreen() {
         0,
       totalVolume: profileData.currentStats?.totalVolume || 0,
       averageRating:
-        advancedStats?.genderStats?.total?.averageDifficulty || 4.0, // ✅ תיקון: השתמש בערך ברירת מחדל
+        advancedStats?.genderStats?.total?.averageDifficulty ||
+        user?.trainingStats?.averageRating ||
+        0, // השתמש ב-0 במקום 4.0 קשיח
       fitnessLevel:
         // @ts-expect-error - נתיב לא קיים
-        profileData.scientificProfile?.fitnessTests?.overallLevel || "beginner",
+        profileData.scientificProfile?.fitnessTests?.overallLevel ||
+        user?.questionnaireData?.answers?.experience_level ||
+        user?.trainingStats?.currentFitnessLevel ||
+        "beginner",
     }),
-    [profileData, advancedStats]
+    [
+      profileData,
+      advancedStats,
+      user?.trainingStats?.averageRating,
+      user?.questionnaireData?.answers?.experience_level,
+      user?.trainingStats?.currentFitnessLevel,
+    ]
   );
 
   // סטטיסטיקות מהאימון האחרון (ממופה בבטיחות טיפוסים)
@@ -443,7 +539,7 @@ function MainScreen() {
           ? new Date(workout.date)
           : workout.date
         )?.toISOString() || new Date().toISOString(),
-      rating: 4.0,
+      rating: workout.rating || 0, // השתמש ב-rating אמיתי מהאימון
     }));
 
     // @ts-expect-error - התאמה בין טיפוסים שונים
@@ -704,6 +800,146 @@ function MainScreen() {
               </View>
             </Animated.View>
           )}
+
+          {/* AI המלצות ו-Wearables */}
+          <Animated.View
+            style={[
+              styles.aiWearableSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>🤖 המלצות חכמות ובריאות</Text>
+
+            {/* Wearable Connection Status */}
+            {wearableConnected && wearableData && (
+              <View style={styles.wearableCard}>
+                <View style={styles.wearableHeader}>
+                  <MaterialCommunityIcons
+                    name="watch"
+                    size={20}
+                    color={theme.colors.success}
+                  />
+                  <Text style={styles.wearableTitle}>נתוני בריאות</Text>
+                  <View style={styles.connectedBadge}>
+                    <Text style={styles.connectedText}>מחובר</Text>
+                  </View>
+                </View>
+                <View style={styles.healthDataGrid}>
+                  <View style={styles.healthDataItem}>
+                    <MaterialCommunityIcons
+                      name="walk"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.healthDataValue}>
+                      {wearableData.steps?.count || 0}
+                    </Text>
+                    <Text style={styles.healthDataLabel}>צעדים</Text>
+                  </View>
+                  <View style={styles.healthDataItem}>
+                    <MaterialCommunityIcons
+                      name="heart"
+                      size={16}
+                      color={theme.colors.error}
+                    />
+                    <Text style={styles.healthDataValue}>
+                      {wearableData.heartRate?.current || 0}
+                    </Text>
+                    <Text style={styles.healthDataLabel}>דופק</Text>
+                  </View>
+                  <View style={styles.healthDataItem}>
+                    <MaterialCommunityIcons
+                      name="sleep"
+                      size={16}
+                      color={theme.colors.warning}
+                    />
+                    <Text style={styles.healthDataValue}>
+                      {Math.round(wearableData.sleep?.duration || 0)}h
+                    </Text>
+                    <Text style={styles.healthDataLabel}>שינה</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* AI Recommendations */}
+            {aiLoading ? (
+              <View style={styles.aiLoadingContainer}>
+                <MaterialCommunityIcons
+                  name="robot"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.aiLoadingText}>מכין המלצות אישיות...</Text>
+              </View>
+            ) : (
+              aiRecommendations.length > 0 && (
+                <View style={styles.aiRecommendationsContainer}>
+                  {aiRecommendations.slice(0, 2).map((recommendation) => (
+                    <View
+                      key={recommendation.id}
+                      style={styles.recommendationCard}
+                    >
+                      <View style={styles.recommendationHeader}>
+                        <MaterialCommunityIcons
+                          name={
+                            recommendation.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                          }
+                          size={20}
+                          color={recommendation.color}
+                        />
+                        <Text style={styles.recommendationTitle}>
+                          {recommendation.title}
+                        </Text>
+                        <View
+                          style={[
+                            styles.priorityBadge,
+                            {
+                              backgroundColor:
+                                recommendation.priority === "high"
+                                  ? theme.colors.error + "20"
+                                  : recommendation.priority === "medium"
+                                    ? theme.colors.warning + "20"
+                                    : theme.colors.success + "20",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.priorityText,
+                              {
+                                color:
+                                  recommendation.priority === "high"
+                                    ? theme.colors.error
+                                    : recommendation.priority === "medium"
+                                      ? theme.colors.warning
+                                      : theme.colors.success,
+                              },
+                            ]}
+                          >
+                            {recommendation.priority === "high"
+                              ? "חשוב"
+                              : recommendation.priority === "medium"
+                                ? "בינוני"
+                                : "נמוך"}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.recommendationDescription}>
+                        {recommendation.description}
+                      </Text>
+                      <Text style={styles.recommendationAction}>
+                        💡 {recommendation.action}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            )}
+          </Animated.View>
 
           {/* המלצת אימון הבא */}
           <Animated.View
@@ -1267,6 +1503,129 @@ const styles = StyleSheet.create({
   nextWorkoutSection: {
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.md,
+  },
+
+  // AI & Wearables section styles
+  aiWearableSection: {
+    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+  },
+
+  // Wearable card styles
+  wearableCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.small,
+    borderWidth: 1,
+    borderColor: theme.colors.success + "20",
+  },
+  wearableHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  wearableTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginEnd: theme.spacing.sm,
+    flex: 1,
+    writingDirection: "rtl",
+  },
+  connectedBadge: {
+    backgroundColor: theme.colors.success + "20",
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+  },
+  connectedText: {
+    fontSize: 12,
+    color: theme.colors.success,
+    fontWeight: "600",
+  },
+  healthDataGrid: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+  },
+  healthDataItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  healthDataValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginVertical: 4,
+  },
+  healthDataLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    writingDirection: "rtl",
+  },
+
+  // AI recommendations styles
+  aiLoadingContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    ...theme.shadows.small,
+  },
+  aiLoadingText: {
+    marginEnd: theme.spacing.sm,
+    fontSize: 14,
+    color: theme.colors.text,
+    writingDirection: "rtl",
+  },
+  aiRecommendationsContainer: {
+    gap: theme.spacing.sm,
+  },
+  recommendationCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
+    ...theme.shadows.small,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.primary,
+  },
+  recommendationHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginBottom: theme.spacing.xs,
+  },
+  recommendationTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginEnd: theme.spacing.sm,
+    flex: 1,
+    writingDirection: "rtl",
+  },
+  priorityBadge: {
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+  },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  recommendationDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: theme.spacing.xs,
+    writingDirection: "rtl",
+  },
+  recommendationAction: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: "500",
+    writingDirection: "rtl",
   },
 });
 

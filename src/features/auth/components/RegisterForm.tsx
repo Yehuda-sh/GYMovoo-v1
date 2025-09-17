@@ -16,7 +16,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "../../../core/theme";
+import { useUserStore } from "../../../stores/userStore";
 import type { RegisterCredentials } from "../types";
+import { saveQuestionnaireToCloud } from "../utils/saveQuestionnaireToCloud";
 
 interface RegisterFormProps {
   onRegisterSuccess: () => void;
@@ -71,16 +73,50 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   // Note: Demo registration - replace with real auth service when available
   const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useUserStore();
 
-  const register = async (_userData: RegisterCredentials) => {
+  const register = async (userData: RegisterCredentials) => {
     setIsLoading(true);
-    // TODO: Connect to real registration service
-    // Currently simulates registration for demo purposes
-    setTimeout(() => {
+    try {
+      // TODO: Connect to real registration service
+      // Currently simulates registration for demo purposes
+
+      // יצירת משתמש זמני
+      const newUserId = Date.now().toString();
+      const newUser = {
+        id: newUserId,
+        name: userData.name,
+        email: userData.email,
+        provider: "manual" as const,
+      };
+
+      // שמירת המשתמש ב-store
+      setUser(newUser);
+
+      // הדמיית זמן הרשמה
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // שמירת השאלון בענן (אם קיים)
+      try {
+        const cloudSaveSuccess = await saveQuestionnaireToCloud(newUserId);
+        if (cloudSaveSuccess) {
+          console.log("✅ Questionnaire backed up to cloud successfully");
+        } else {
+          console.warn(
+            "⚠️ Questionnaire backup to cloud failed, but registration continues"
+          );
+        }
+      } catch (cloudError) {
+        console.warn("⚠️ Cloud backup failed:", cloudError);
+        // ממשיכים עם ההרשמה גם אם הגיבוי נכשל
+      }
+
       setIsLoading(false);
-      // For demo: proceed to questionnaire
       onRegisterSuccess();
-    }, 1000);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
   };
 
   // ניקוי שגיאות בעת שינוי קלט

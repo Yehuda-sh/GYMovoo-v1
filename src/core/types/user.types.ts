@@ -6,6 +6,46 @@
 
 import type { QuestionnaireData } from "../../features/questionnaire/types";
 
+// ========== Personal Information Interface ==========
+export interface PersonalInfo {
+  // Body measurements
+  weight?: number; // kg
+  height?: number; // cm
+  bodyFat?: number; // percentage
+  muscleMass?: number; // kg
+
+  // Body measurements - circumferences
+  chest?: number; // cm
+  waist?: number; // cm
+  hips?: number; // cm
+  bicep?: number; // cm
+  thigh?: number; // cm
+
+  // Lifestyle
+  workStyle?: "sitting" | "standing" | "mixed" | "active";
+  dailySteps?: number;
+  sleepHours?: number;
+  stressLevel?: "low" | "medium" | "high";
+
+  // Health
+  injuries?: string[];
+  medications?: string[];
+  allergies?: string[];
+
+  // Training preferences
+  preferredTrainingTime?: "morning" | "afternoon" | "evening" | "night";
+  warmupDuration?: number; // minutes
+  cooldownDuration?: number; // minutes
+  restBetweenSets?: number; // seconds
+
+  // Goals
+  targetWeight?: number;
+  targetBodyFat?: number;
+  specificGoals?: string[];
+
+  lastUpdated?: string;
+}
+
 // ========== Main User Interface ==========
 export interface User {
   id?: string;
@@ -14,6 +54,7 @@ export interface User {
   avatar?: string;
   provider?: "google" | "manual" | "apple";
   questionnaireData?: QuestionnaireData;
+  personalInfo?: PersonalInfo;
   trainingStats?: TrainingStats;
   activityHistory?: ActivityHistory;
   metadata?: UserMetadata;
@@ -22,40 +63,11 @@ export interface User {
   preferences?: UserPreferences;
   workoutplans?: WorkoutPlans;
   hasQuestionnaire?: boolean;
+  bmiHistory?: BMIBMRHistory[];
+  lastBMICalculation?: BMIBMRResults & { date: string };
 }
 
-// ========== Questionnaire Types ==========
-export interface QuestionnaireAnswers {
-  // Personal Info
-  gender?: string;
-  age?: string | number;
-  weight?: string | number;
-  height?: string | number;
-
-  // Fitness Profile
-  fitness_goal?: string | string[];
-  experience_level?: string;
-  fitnessLevel?: string;
-  goals?: string[];
-
-  // Workout Preferences
-  workout_location?: string;
-  availability?: string | string[];
-  workout_duration?: string;
-  equipment?: string[];
-
-  // Equipment specific fields
-  bodyweight_equipment?: string[];
-  home_equipment?: string[];
-  gym_equipment?: string[];
-
-  // Additional
-  diet_preferences?: string | string[];
-  health_conditions?: string[];
-  nutrition?: string[];
-}
-
-// QuestionnaireData moved to features/questionnaire/types/questionnaire.types.ts
+// QuestionnaireAnswers is now imported from questionnaire types
 
 // ========== Training Statistics ==========
 export interface TrainingStats {
@@ -125,6 +137,22 @@ export interface PersonalRecord {
   unit: string;
   date: string;
   type?: "weight" | "reps" | "volume";
+}
+
+// ========== BMI/BMR Related Types ==========
+export interface BMIBMRHistory {
+  date: string;
+  weight: number;
+  bmi: number;
+  bmr: number;
+}
+
+export interface BMIBMRResults {
+  bmi: number;
+  bmiCategory: string;
+  bmr: number;
+  tdee: number;
+  idealWeight: { min: number; max: number };
 }
 
 export interface UserMetadata {

@@ -101,6 +101,16 @@ export const useUserStore = create<UserStore>()(
       setSmartQuestionnaireData: (data) => {
         try {
           const state = get();
+
+          // תמיד שמור את הנתונים ב-AsyncStorage
+          AsyncStorage.setItem(
+            StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+            JSON.stringify(data)
+          ).catch((err) =>
+            logger.error("Store", "Error saving questionnaire", err)
+          );
+
+          // אם יש משתמש עם email, עדכן גם את ה-state
           if (state.user?.email) {
             set((st) => {
               if (!st.user) return st;
@@ -112,14 +122,15 @@ export const useUserStore = create<UserStore>()(
                 },
               };
             });
+          } else {
+            // גם אם אין משתמש רשום, צור משתמש זמני עם נתוני השאלון
+            set({
+              user: {
+                questionnaireData: data,
+                hasQuestionnaire: true,
+              },
+            });
           }
-
-          AsyncStorage.setItem(
-            StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
-            JSON.stringify(data)
-          ).catch((err) =>
-            logger.error("Store", "Error saving questionnaire", err)
-          );
         } catch (error) {
           logger.error(
             "Store",
@@ -138,8 +149,10 @@ export const useUserStore = create<UserStore>()(
         set((state) => {
           if (!state.user) return { user: null };
           const {
-            questionnaireData,
-            hasQuestionnaire,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            questionnaireData: _questionnaireData,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            hasQuestionnaire: _hasQuestionnaire,
             ...userWithoutQuestionnaire
           } = state.user;
           return {

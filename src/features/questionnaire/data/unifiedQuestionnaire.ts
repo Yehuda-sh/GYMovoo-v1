@@ -619,6 +619,10 @@ export class UnifiedQuestionnaireManager {
         nutrition: getAnswerId("diet_preferences")
           ? [getAnswerId("diet_preferences") as string]
           : [],
+        // הוספת השדות החדשים לתאימות עם המערכת החדשה
+        bodyweight_equipment: getAnswerIds("bodyweight_equipment"),
+        home_equipment: getAnswerIds("home_equipment"),
+        gym_equipment: getAnswerIds("gym_equipment"),
       },
       metadata: {
         completedAt: new Date().toISOString(),

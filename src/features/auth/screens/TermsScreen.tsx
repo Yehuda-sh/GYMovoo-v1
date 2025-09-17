@@ -23,9 +23,16 @@ interface TermsScreenParams {
   type?: "terms" | "privacy";
 }
 
+// גרסאות ותאריכי עדכון
+const TERMS_VERSION = "1.0.0";
+const TERMS_LAST_UPDATED = "15 בספטמבר 2025";
+const PRIVACY_VERSION = "1.0.0";
+const PRIVACY_LAST_UPDATED = "15 בספטמבר 2025";
+
 // תוכן תנאי השימוש
 const TERMS_CONTENT = `
 ## תנאי שימוש GYMovoo
+**גרסה ${TERMS_VERSION} | עודכן לאחרונה: ${TERMS_LAST_UPDATED}**
 
 ברוכים הבאים לאפליקציית GYMovoo לניהול אימונים ועקיבה אחר התקדמות.
 
@@ -51,6 +58,7 @@ const TERMS_CONTENT = `
 // תוכן מדיניות הפרטיות
 const PRIVACY_CONTENT = `
 ## מדיניות פרטיות GYMovoo
+**גרסה ${PRIVACY_VERSION} | עודכן לאחרונה: ${PRIVACY_LAST_UPDATED}**
 
 מדיניות זו מסבירה כיצד אנו מטפלים במידע האישי שלך באפליקציית GYMovoo.
 
@@ -156,6 +164,19 @@ export const TermsScreen: React.FC = () => {
           contentContainerStyle={styles.contentInner}
           showsVerticalScrollIndicator={true}
         >
+          {/* מידע על הגרסה ותאריך העדכון */}
+          <View style={styles.versionInfo}>
+            <Text style={styles.versionText}>
+              גרסה {contentType === "terms" ? TERMS_VERSION : PRIVACY_VERSION}
+            </Text>
+            <Text style={styles.updateText}>
+              עודכן:{" "}
+              {contentType === "terms"
+                ? TERMS_LAST_UPDATED
+                : PRIVACY_LAST_UPDATED}
+            </Text>
+          </View>
+
           {renderFormattedContent()}
         </ScrollView>
       </View>
@@ -229,5 +250,23 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: theme.spacing.xs,
+  },
+  versionInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+  },
+  versionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  updateText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });

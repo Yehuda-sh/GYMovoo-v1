@@ -58,10 +58,9 @@ export interface QuestionnaireAnswers {
   // Workout Preferences
   workout_location?: string;
   availability?: string | string[];
-  workout_duration?: string;
+  workout_duration?: string; // זה השדה המקורי
+  session_duration?: string; // כפילות - לא נעשה בו שימוש
   equipment?: string[];
-  sessionDuration?: string;
-  workoutLocation?: string;
 
   // Equipment specific fields
   bodyweight_equipment?: string[];

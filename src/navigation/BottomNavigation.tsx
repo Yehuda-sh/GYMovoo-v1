@@ -31,26 +31,14 @@ export default function BottomNavigation() {
         },
       }}
     >
-      {/* Main/Home */}
+      {/* Profile */}
       <Tab.Screen
-        name="Main"
-        component={MainScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
-          title: "בית",
+          title: "פרופיל",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Workout Plans */}
-      <Tab.Screen
-        name="WorkoutPlans"
-        component={WorkoutPlansScreen}
-        options={{
-          title: "תוכניות",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="brain" size={size} color={color} />
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />
@@ -67,14 +55,26 @@ export default function BottomNavigation() {
         }}
       />
 
-      {/* Profile */}
+      {/* Workout Plans */}
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="WorkoutPlans"
+        component={WorkoutPlansScreen}
         options={{
-          title: "פרופיל",
+          title: "תוכניות",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <MaterialCommunityIcons name="brain" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Main/Home */}
+      <Tab.Screen
+        name="Main"
+        component={MainScreen}
+        options={{
+          title: "בית",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />

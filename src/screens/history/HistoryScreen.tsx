@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import EmptyState from "../../components/common/EmptyState";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
+import WorkoutAnalytics from "../../components/analytics/WorkoutAnalytics";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
 import workoutFacadeService from "../../services/workout/workoutFacadeService";
@@ -39,6 +47,7 @@ const HistoryScreen: React.FC = () => {
   const [workouts, setWorkouts] = useState<WorkoutItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"history" | "analytics">("history");
   const { user } = useUserStore();
   const navigation = useNavigation();
 
@@ -247,6 +256,62 @@ const HistoryScreen: React.FC = () => {
     );
   };
 
+  const renderViewSelector = () => (
+    <View style={styles.viewSelector}>
+      <TouchableOpacity
+        style={[
+          styles.viewButton,
+          viewMode === "history" && styles.viewButtonActive,
+        ]}
+        onPress={() => setViewMode("history")}
+      >
+        <MaterialCommunityIcons
+          name="history"
+          size={20}
+          color={
+            viewMode === "history"
+              ? theme.colors.primary
+              : theme.colors.textSecondary
+          }
+        />
+        <Text
+          style={[
+            styles.viewButtonText,
+            viewMode === "history" && styles.viewButtonTextActive,
+          ]}
+        >
+          היסטוריה
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.viewButton,
+          viewMode === "analytics" && styles.viewButtonActive,
+        ]}
+        onPress={() => setViewMode("analytics")}
+      >
+        <MaterialCommunityIcons
+          name="chart-line"
+          size={20}
+          color={
+            viewMode === "analytics"
+              ? theme.colors.primary
+              : theme.colors.textSecondary
+          }
+        />
+        <Text
+          style={[
+            styles.viewButtonText,
+            viewMode === "analytics" && styles.viewButtonTextActive,
+          ]}
+        >
+          ניתוחים
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -260,13 +325,21 @@ const HistoryScreen: React.FC = () => {
   if (workouts.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.emptyContainer}>
-          <EmptyState
-            icon="time-outline"
-            title="אין היסטוריית אימונים"
-            description="התחל להתאמן כדי לראות את ההיסטוריה שלך כאן"
-          />
-        </View>
+        <ErrorBoundary fallbackMessage="שגיאה בטעינת היסטוריית האימונים">
+          {renderViewSelector()}
+
+          {viewMode === "history" ? (
+            <View style={styles.emptyContainer}>
+              <EmptyState
+                icon="time-outline"
+                title="אין היסטוריית אימונים"
+                description="התחל להתאמן כדי לראות את ההיסטוריה שלך כאן"
+              />
+            </View>
+          ) : (
+            <WorkoutAnalytics />
+          )}
+        </ErrorBoundary>
       </SafeAreaView>
     );
   }
@@ -274,17 +347,23 @@ const HistoryScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ErrorBoundary fallbackMessage="שגיאה בטעינת היסטוריית האימונים">
-        <FlatList
-          data={workouts}
-          renderItem={renderWorkoutItem}
-          keyExtractor={(item, index) => item?.id || `workout_${index}`}
-          ListHeaderComponent={renderHeader}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
+        {renderViewSelector()}
+
+        {viewMode === "history" ? (
+          <FlatList
+            data={workouts}
+            renderItem={renderWorkoutItem}
+            keyExtractor={(item, index) => item?.id || `workout_${index}`}
+            ListHeaderComponent={renderHeader}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
+        ) : (
+          <WorkoutAnalytics />
+        )}
       </ErrorBoundary>
     </SafeAreaView>
   );
@@ -440,6 +519,36 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontStyle: "italic",
     textAlign: "right",
+  },
+  // View selector styles
+  viewSelector: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xs,
+    margin: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  viewButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    gap: theme.spacing.sm,
+  },
+  viewButtonActive: {
+    backgroundColor: theme.colors.primary + "20",
+  },
+  viewButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+  viewButtonTextActive: {
+    color: theme.colors.primary,
   },
 });
 

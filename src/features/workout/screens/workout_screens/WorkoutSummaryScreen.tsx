@@ -24,6 +24,7 @@ import { ErrorBoundary } from "../../../../components/common/ErrorBoundary";
 import AppButton from "../../../../components/common/AppButton";
 import { formatDuration, formatWeight } from "../../../../utils/formatters";
 import workoutFacadeService from "../../../../services/workout/workoutFacadeService";
+import { useUserStore } from "../../../../stores/userStore";
 
 interface RouteParams {
   workoutData: WorkoutSummaryData;
@@ -33,8 +34,53 @@ const WorkoutSummaryScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { workoutData } = route.params as RouteParams;
+  const { user, updateUser } = useUserStore();
 
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  // פונקציה לחישוב רצף פשוט (מניח שהאימון החדש הוא מהיום)
+  const calculateNewStreak = async (): Promise<number> => {
+    try {
+      const history = await workoutFacadeService.getHistoryForList();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // אם אין היסטוריה, זה האימון הראשון
+      if (history.length === 0) return 1;
+
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // מיון לפי תאריך (החדש ביותר קודם)
+      const sortedHistory = history.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      // מונה רצף
+      let streak = 1; // האימון הנוכחי
+      let checkDate = new Date(yesterday);
+
+      for (const workout of sortedHistory) {
+        const workoutDate = new Date(workout.date);
+        workoutDate.setHours(0, 0, 0, 0);
+
+        // אם האימון הוא מהיום שאנחנו בודקים
+        if (workoutDate.getTime() === checkDate.getTime()) {
+          streak++;
+          checkDate = new Date(checkDate);
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else if (workoutDate.getTime() < checkDate.getTime()) {
+          // אם יש פער של יותר מיום אחד, הרצף נגמר
+          break;
+        }
+      }
+
+      return streak;
+    } catch (error) {
+      console.error("Error calculating streak:", error);
+      return 1; // ברירת מחדל
+    }
+  };
 
   useEffect(() => {
     // אנימציה פשוטה של כניסה
@@ -94,6 +140,34 @@ const WorkoutSummaryScreen: React.FC = () => {
           personalRecords: workoutData.personalRecords.length,
         },
       });
+
+      // עדכון סטטיסטיקות המשתמש
+      if (user) {
+        const currentStats = user.trainingStats || {};
+        const newTotalWorkouts = (currentStats.totalWorkouts || 0) + 1;
+
+        // חישוב דירוג ממוצע חדש
+        const currentAverage = currentStats.averageRating || 0;
+        const currentTotal = currentStats.totalWorkouts || 0;
+        const newAverageRating =
+          currentTotal > 0
+            ? (currentAverage * currentTotal + (workoutData.difficulty || 3)) /
+              newTotalWorkouts
+            : workoutData.difficulty || 3;
+
+        // חישוב רצף חדש
+        const newStreak = await calculateNewStreak();
+
+        updateUser({
+          trainingStats: {
+            ...currentStats,
+            totalWorkouts: newTotalWorkouts,
+            currentStreak: newStreak,
+            averageRating: newAverageRating,
+            lastWorkoutDate: new Date().toISOString(),
+          },
+        });
+      }
 
       // מעבר למסך הראשי
       navigation.goBack();

@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -28,6 +29,12 @@ interface ExerciseItemProps {
   onCompleteSet: (exerciseId: string, setId: string) => void;
   onAddSet: (exerciseId: string) => void;
   onDeleteSet: (exerciseId: string, setId: string) => void;
+  onUpdateSet: (
+    exerciseId: string,
+    setId: string,
+    field: "weight" | "reps",
+    value: number
+  ) => void;
 }
 
 const ExerciseItem: React.FC<ExerciseItemProps> = ({
@@ -35,7 +42,30 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
   onCompleteSet,
   onAddSet,
   onDeleteSet,
+  onUpdateSet,
 }) => {
+  // פונקציה לקבלת רמז למשקל לפי סוג ציוד
+  const getWeightHint = (equipment?: string): string => {
+    switch (equipment) {
+      case "dumbbells":
+        return '💡 המלצה: התחל עם 3-5 ק"ג לכל דמבל';
+      case "barbell":
+        return '💡 המלצה: התחל עם מוט ריק (20 ק"ג)';
+      case "kettlebell":
+        return '💡 המלצה: התחל עם 8-12 ק"ג';
+      case "resistance_bands":
+        return "💡 התחל עם התנגדות קלה/בינונית";
+      case "bodyweight":
+        return "ℹ️ תרגיל משקל גוף - אין צורך במשקל נוסף";
+      case "cable_machine":
+        return '💡 המלצה: התחל עם 10-15 ק"ג';
+      case "smith_machine":
+        return '💡 המלצה: התחל עם מוט ריק (20 ק"ג)';
+      default:
+        return "💡 התחל עם משקל קל והתקדם בהדרגה";
+    }
+  };
+
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
@@ -43,44 +73,14 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
         <Text style={styles.muscleGroup}>
           {exercise.primaryMuscles?.[0] || "לא צוין"}
         </Text>
+        <Text style={styles.weightHint}>
+          {getWeightHint(exercise.equipment)}
+        </Text>
       </View>
 
       {exercise.sets?.map((set, index) => (
         <View key={set.id} style={styles.setRow}>
-          <Text style={styles.setNumber}>{index + 1}</Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>משקל</Text>
-            <Text style={styles.inputValue}>
-              {set.actualWeight || set.targetWeight || 0} ק"ג
-            </Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>חזרות</Text>
-            <Text style={styles.inputValue}>
-              {set.actualReps || set.targetReps || 0}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.completeButton,
-              set.completed && styles.completedButton,
-            ]}
-            onPress={() => onCompleteSet(exercise.id, set.id)}
-          >
-            <MaterialCommunityIcons
-              name={set.completed ? "check-circle" : "circle-outline"}
-              size={24}
-              color={
-                set.completed
-                  ? theme.colors.success
-                  : theme.colors.textSecondary
-              }
-            />
-          </TouchableOpacity>
-
+          {/* כפתור מחיקה - צד שמאל */}
           {(exercise.sets?.length || 0) > 1 && (
             <TouchableOpacity
               style={styles.deleteButton}
@@ -93,6 +93,74 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
               />
             </TouchableOpacity>
           )}
+
+          {/* אזור מרכזי עם כל השאר */}
+          <View style={styles.setContent}>
+            {/* כפתור השלמה */}
+            <TouchableOpacity
+              style={[
+                styles.completeButton,
+                set.completed && styles.completedButton,
+              ]}
+              onPress={() => onCompleteSet(exercise.id, set.id)}
+            >
+              <MaterialCommunityIcons
+                name={set.completed ? "check-circle" : "circle-outline"}
+                size={24}
+                color={
+                  set.completed
+                    ? theme.colors.success
+                    : theme.colors.textSecondary
+                }
+              />
+            </TouchableOpacity>
+
+            {/* מספר סט */}
+            <Text style={styles.setNumber}>{index + 1}</Text>
+
+            {/* שדות עריכה - חזרות */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>חזרות</Text>
+              <TextInput
+                style={styles.inputField}
+                value={(set.actualReps || set.targetReps || 0).toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 0;
+                  onUpdateSet(exercise.id, set.id, "reps", value);
+                }}
+                keyboardType="numeric"
+                textAlign="center"
+                selectTextOnFocus
+              />
+            </View>
+
+            {/* שדות עריכה - משקל */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>משקל</Text>
+              <TextInput
+                style={styles.inputField}
+                value={(set.actualWeight || set.targetWeight || 0).toString()}
+                onChangeText={(text) => {
+                  const value = parseFloat(text) || 0;
+                  onUpdateSet(exercise.id, set.id, "weight", value);
+                }}
+                keyboardType="numeric"
+                textAlign="center"
+                selectTextOnFocus
+              />
+            </View>
+
+            {/* נפח הסט (חזרות × משקל) */}
+            <View style={styles.volumeContainer}>
+              <Text style={styles.volumeLabel}>נפח</Text>
+              <Text style={styles.volumeValue}>
+                {(
+                  (set.actualReps || set.targetReps || 0) *
+                  (set.actualWeight || set.targetWeight || 0)
+                ).toFixed(0)}
+              </Text>
+            </View>
+          </View>
         </View>
       ))}
 
@@ -132,14 +200,43 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   const { workoutData, pendingExercise } = (route.params as RouteParams) || {};
 
-  // Helper function to create default set
-  const createDefaultSet = (): Set => ({
-    id: `${Date.now()}`,
-    type: "working",
-    targetWeight: 0,
-    targetReps: 0,
-    completed: false,
-  });
+  // Helper function to create default set with suggested weights
+  const createDefaultSet = (equipment?: string): Set => {
+    let suggestedWeight = 0;
+    let suggestedReps = 12;
+
+    // הצעות משקל לפי סוג הציוד
+    switch (equipment) {
+      case "dumbbells":
+        suggestedWeight = 5; // 5 ק"ג לכל דמבל
+        break;
+      case "barbell":
+        suggestedWeight = 20; // מוט ריק
+        break;
+      case "kettlebell":
+        suggestedWeight = 8; // קטל בל בסיסי
+        break;
+      case "resistance_bands":
+        suggestedWeight = 0; // בלי משקל
+        suggestedReps = 15; // יותר חזרות
+        break;
+      case "bodyweight":
+        suggestedWeight = 0; // משקל גוף
+        suggestedReps = 10; // פחות חזרות לתרגילי משקל גוף
+        break;
+      default:
+        suggestedWeight = 5; // ברירת מחדל
+        break;
+    }
+
+    return {
+      id: `${Date.now()}`,
+      type: "working",
+      targetWeight: suggestedWeight,
+      targetReps: suggestedReps,
+      completed: false,
+    };
+  };
 
   // State management
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
@@ -203,7 +300,7 @@ const ActiveWorkoutScreen: React.FC = () => {
           pendingExercise.muscleGroup || "Unknown",
         ],
         equipment: pendingExercise.equipment || "bodyweight",
-        sets: [createDefaultSet()],
+        sets: [createDefaultSet(pendingExercise.equipment || "bodyweight")],
       };
       setExercises((prev) => [...prev, newExercise]);
     }
@@ -242,10 +339,16 @@ const ActiveWorkoutScreen: React.FC = () => {
     if (!exercise || !exercise.sets) return;
 
     const lastSet = exercise.sets[exercise.sets.length - 1];
+    const defaultSet = createDefaultSet(exercise.equipment);
+
     const newSet: Set = {
-      ...createDefaultSet(),
-      targetWeight: lastSet?.actualWeight || lastSet?.targetWeight || 0,
-      targetReps: lastSet?.actualReps || lastSet?.targetReps || 0,
+      ...defaultSet,
+      targetWeight:
+        lastSet?.actualWeight ||
+        lastSet?.targetWeight ||
+        defaultSet.targetWeight,
+      targetReps:
+        lastSet?.actualReps || lastSet?.targetReps || defaultSet.targetReps,
     };
 
     setExercises((prev) =>
@@ -273,6 +376,33 @@ const ActiveWorkoutScreen: React.FC = () => {
     );
   };
 
+  const handleUpdateSet = (
+    exerciseId: string,
+    setId: string,
+    field: "weight" | "reps",
+    value: number
+  ) => {
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? {
+              ...ex,
+              sets: (ex.sets || []).map((set) =>
+                set.id === setId
+                  ? {
+                      ...set,
+                      ...(field === "weight"
+                        ? { actualWeight: value, targetWeight: value }
+                        : { actualReps: value, targetReps: value }),
+                    }
+                  : set
+              ),
+            }
+          : ex
+      )
+    );
+  };
+
   const handleAddExercise = () => {
     navigation.navigate("ExerciseList", {
       fromScreen: "ActiveWorkout",
@@ -280,7 +410,7 @@ const ActiveWorkoutScreen: React.FC = () => {
       onSelectExercise: (selectedExercise: WorkoutExercise) => {
         const newExercise: WorkoutExercise = {
           ...selectedExercise,
-          sets: [createDefaultSet()],
+          sets: [createDefaultSet(selectedExercise.equipment)],
         };
         setExercises((prev) => [...prev, newExercise]);
         navigation.goBack();
@@ -303,8 +433,35 @@ const ActiveWorkoutScreen: React.FC = () => {
           text: "סיים",
           style: "destructive",
           onPress: async () => {
+            // יצירת נתוני סיכום אימון
+            const workoutSummaryData = {
+              workoutName: workoutData?.name || "אימון פעיל",
+              exercises: exercises.map((exercise) => ({
+                id: exercise.id,
+                name: exercise.name,
+                sets: (exercise.sets || []).map((set) => ({
+                  reps: set.actualReps || set.targetReps || 0,
+                  weight: set.actualWeight || set.targetWeight || 0,
+                  completed: set.completed,
+                })),
+                restTime: 60, // ברירת מחדל
+              })),
+              totalDuration: Math.floor(workoutTime / 60), // המרה לדקות
+              totalSets: liveStats?.totalSets || 0,
+              totalReps: liveStats?.totalReps || 0,
+              totalVolume: liveStats?.totalVolume || 0,
+              personalRecords: [], // לעת עתה ריק
+              completedAt: new Date().toISOString(),
+              difficulty: 3, // ברירת מחדל
+            };
+
+            // עדכון שהאימון הושלם
             await nextWorkoutLogicService.updateWorkoutCompleted(0);
-            navigation.goBack();
+
+            // מעבר למסך סיכום
+            navigation.navigate("WorkoutSummary", {
+              workoutData: workoutSummaryData,
+            });
           },
         },
       ]
@@ -389,6 +546,18 @@ const ActiveWorkoutScreen: React.FC = () => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        {/* הנחיות למתחילים */}
+        <View style={styles.beginnerTipsContainer}>
+          <Text style={styles.beginnerTipsTitle}>
+            💪 טיפים לאימון בטוח ויעיל
+          </Text>
+          <Text style={styles.beginnerTipsText}>
+            • התחל עם משקלים קלים יותר ותתקדם בהדרגה{"\n"}• הקפד על ביצוע נכון
+            לפני הוספת משקל{"\n"}• נוח 30-60 שניות בין סטים{"\n"}• הקשב לגופך
+            ועצור אם אתה מרגיש כאב
+          </Text>
+        </View>
+
         {exercises.map((exercise) => (
           <ExerciseItem
             key={exercise.id}
@@ -396,6 +565,7 @@ const ActiveWorkoutScreen: React.FC = () => {
             onCompleteSet={handleCompleteSet}
             onAddSet={handleAddSet}
             onDeleteSet={handleDeleteSet}
+            onUpdateSet={handleUpdateSet}
           />
         ))}
       </ScrollView>
@@ -467,23 +637,33 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     paddingBottom: theme.spacing.sm,
     marginBottom: theme.spacing.md,
+    alignItems: "flex-end", // יישור לימין לטקסט עברי
   },
   exerciseName: {
     fontSize: 16,
     fontWeight: "bold",
     color: theme.colors.text,
+    textAlign: "right", // יישור טקסט לימין
   },
   muscleGroup: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 4,
+    textAlign: "right", // יישור טקסט לימין
   },
   setRow: {
-    flexDirection: "row",
+    flexDirection: "row", // שורה רגילה
     alignItems: "center",
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border + "30",
+    justifyContent: "space-between", // מפזר בין הקצוות
+  },
+  setContent: {
+    flexDirection: "row-reverse", // RTL למרכז
+    alignItems: "center",
+    flex: 1,
+    marginRight: theme.spacing.sm, // רווח מכפתור המחיקה
   },
   setNumber: {
     width: 30,
@@ -502,10 +682,33 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: 4,
   },
-  inputValue: {
+  inputField: {
     fontSize: 14,
     fontWeight: "bold",
     color: theme.colors.text,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 60,
+    backgroundColor: theme.colors.background,
+  },
+  volumeContainer: {
+    alignItems: "center",
+    marginHorizontal: theme.spacing.sm,
+    minWidth: 50,
+  },
+  volumeLabel: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  volumeValue: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    textAlign: "center",
   },
   completeButton: {
     padding: theme.spacing.sm,
@@ -583,6 +786,31 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontWeight: "bold",
     marginTop: 2,
+  },
+  weightHint: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  beginnerTipsContainer: {
+    backgroundColor: theme.colors.surface,
+    margin: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.primary,
+  },
+  beginnerTipsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  beginnerTipsText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
   },
 });
 

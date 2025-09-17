@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Animated } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Animated,
+  TouchableOpacity,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
@@ -185,6 +192,36 @@ const WelcomeScreen = () => {
               accessibilityLabel="כבר יש לי חשבון"
               icon="account-check"
             />
+
+            {/* כפתורי רשתות חברתיות */}
+            <View style={styles.socialSection}>
+              <Text style={styles.socialTitle}>או התחבר באמצעות</Text>
+              <View style={styles.socialButtons}>
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.googleButton]}
+                  onPress={() => console.log("Google login - בקרוב")}
+                >
+                  <FontAwesome name="google" size={20} color="#fff" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.facebookButton]}
+                  onPress={() => console.log("Facebook login - בקרוב")}
+                >
+                  <FontAwesome name="facebook" size={20} color="#fff" />
+                  <Text style={styles.socialButtonText}>Facebook</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={() => console.log("Apple login - בקרוב")}
+                >
+                  <FontAwesome name="apple" size={20} color="#fff" />
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </LinearGradient>
@@ -328,5 +365,50 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 50,
     gap: theme.spacing.xs,
+  },
+
+  // Social Login Section
+  socialSection: {
+    marginTop: theme.spacing.xl,
+    paddingTop: theme.spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.divider + "30",
+    width: "100%",
+  },
+  socialTitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
+    fontWeight: "500",
+  },
+  socialButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: theme.spacing.sm,
+  },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    gap: theme.spacing.xs,
+    minWidth: 80,
+    justifyContent: "center",
+  },
+  googleButton: {
+    backgroundColor: "#db4437",
+  },
+  facebookButton: {
+    backgroundColor: "#4267B2",
+  },
+  appleButton: {
+    backgroundColor: "#000",
+  },
+  socialButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

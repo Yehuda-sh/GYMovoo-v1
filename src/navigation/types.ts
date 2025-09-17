@@ -88,6 +88,9 @@ export type RootStackParamList = {
   // Main app
   MainApp: undefined;
 
+  // Profile screens
+  PersonalInfo: undefined;
+
   // Bottom navigation screens
   Main: undefined;
   WorkoutPlans: {
