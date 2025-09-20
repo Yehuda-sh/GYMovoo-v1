@@ -14,6 +14,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
+import { isRTL } from "../../utils/rtlHelpers";
 
 interface AnalyticsData {
   totalWorkouts: number;
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   periodSelector: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     backgroundColor: theme.colors.background,
     borderRadius: 8,
     padding: 4,
@@ -468,14 +469,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   tabSelector: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.sm,
   },
   tabButton: {
     flex: 1,
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: theme.spacing.sm,
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   statsGrid: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.lg,
@@ -535,7 +536,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   chartPlaceholder: {
     height: 120,
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   chartBars: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "flex-end",
     gap: theme.spacing.sm,
     height: 80,
@@ -586,7 +587,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   metricHeader: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
   },
   metricIconContainer: {
@@ -596,7 +597,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: theme.spacing.sm,
+    marginRight: isRTL() ? 0 : theme.spacing.sm,
+    marginLeft: isRTL() ? theme.spacing.sm : 0,
   },
   metricInfo: {
     flex: 1,
@@ -605,10 +607,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 4,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   metricValueRow: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -618,7 +620,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   metricChange: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -634,7 +636,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   insightCard: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: theme.spacing.md,
@@ -642,20 +644,21 @@ const styles = StyleSheet.create({
   },
   insightContent: {
     flex: 1,
-    marginLeft: theme.spacing.sm,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
   },
   insightTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   insightText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     lineHeight: 20,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   recordsContainer: {
     backgroundColor: theme.colors.surface,
@@ -667,13 +670,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   recordsList: {
     gap: theme.spacing.sm,
   },
   recordItem: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     backgroundColor: theme.colors.background,
     borderRadius: 8,
@@ -684,7 +687,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
   },
   recordValue: {
     fontSize: 14,
@@ -695,6 +698,7 @@ const styles = StyleSheet.create({
   recordDate: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+    textAlign: isRTL() ? "right" : "left",
   },
 });
 

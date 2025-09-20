@@ -22,6 +22,8 @@ import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
 import { theme } from "../../../core/theme";
+import { isRTL, wrapBidi } from "../../../utils/rtlHelpers";
+import { UNIFIED_QUESTIONS } from "../../questionnaire/data/unifiedQuestionnaire";
 import { RootStackParamList } from "../../../navigation/types";
 import BackButton from "../../../components/common/BackButton";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
@@ -100,6 +102,67 @@ const ProfileScreen: React.FC = () => {
   const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Mapping function for questionnaire values - using real questionnaire data
+  const getMappedValue = (
+    key: string,
+    value: string | number | undefined
+  ): string => {
+    if (!value) return "לא צוין";
+
+    // מחפש את השאלה הרלוונטית בשאלון
+    const relevantQuestion = UNIFIED_QUESTIONS.find((q) => q.id === key);
+
+    if (relevantQuestion && relevantQuestion.options) {
+      // מחפש את האופציה הרלוונטית
+      const option = relevantQuestion.options.find(
+        (opt) => opt.id === value?.toString()
+      );
+      if (option) {
+        return option.label;
+      }
+    }
+
+    // מיפויים מיוחדים אם לא נמצאו בשאלון
+    const specialMappings: Record<string, Record<string, string>> = {
+      age: {
+        "16": "מתחת ל-18",
+        "22": "18-25",
+        "30": "26-35",
+        "43": "36-50",
+        "58": "51-65",
+        "70": "מעל 65",
+      },
+      weight: {
+        "45": 'מתחת ל-50 ק"ג',
+        "55": '50-60 ק"ג',
+        "65": '61-70 ק"ג',
+        "75": '71-80 ק"ג',
+        "85": '81-90 ק"ג',
+        "95": '91-100 ק"ג',
+        "105": 'מעל 100 ק"ג',
+      },
+      height: {
+        "145": 'מתחת ל-150 ס"מ',
+        "155": '150-160 ס"מ',
+        "165": '161-170 ס"מ',
+        "175": '171-180 ס"מ',
+        "185": '181-190 ס"מ',
+        "195": 'מעל 190 ס"מ',
+      },
+    };
+
+    const specialMapping = specialMappings[key];
+    if (specialMapping) {
+      const mappedValue = specialMapping[value.toString()];
+      if (mappedValue) {
+        return mappedValue;
+      }
+    }
+
+    // אם לא מצאנו התאמה, נחזיר את הערך המקורי
+    return value.toString();
+  };
+
   // Stats calculation - using real user data
   const totalWorkouts = user?.trainingStats?.totalWorkouts || 0;
   const currentStreak = user?.trainingStats?.currentStreak || 0;
@@ -128,7 +191,22 @@ const ProfileScreen: React.FC = () => {
 
   // Equipment extraction - simplified
   const extractUserEquipment = (user: User | null) => {
-    if (!user?.questionnaireData?.answers) return [];
+    // Debug: לוג את מבנה הנתונים
+    console.log("User data:", user);
+    console.log("Questionnaire data:", user?.questionnaireData);
+    console.log("Answers:", user?.questionnaireData?.answers);
+
+    if (!user?.questionnaireData?.answers) {
+      console.log("No questionnaire answers found");
+      // אם אין תשובות, נחזיר לפחות משקל גוף כברירת מחדל
+      return [
+        {
+          id: "bodyweight",
+          label: "משקל גוף",
+          description: "אימונים ללא ציוד",
+        },
+      ];
+    }
 
     const answers = user.questionnaireData.answers;
     const equipment: Array<{
@@ -335,145 +413,67 @@ const ProfileScreen: React.FC = () => {
     if (!user?.questionnaireData?.answers) return [];
 
     const answers = user.questionnaireData.answers;
-    const results: Array<{ icon: string; label: string; value: string }> = [];
+    const results: Array<{
+      icon: string;
+      label: string;
+      value: string;
+      color?: string; // הוספת צבע
+      category?: string; // הוספת קטגוריה
+    }> = [];
 
-    // Map answer IDs to readable Hebrew text
-    const answerMapping: Record<string, Record<string, string>> = {
-      gender: {
-        male: "זכר",
-        female: "נקבה",
-        prefer_not_to_say: "מעדיף/ה לא לציין",
-      },
-      age: {
-        under_18: "מתחת ל-18",
-        "18_25": "18-25",
-        "26_35": "26-35",
-        "36_50": "36-50",
-        "51_65": "51-65",
-        over_65: "מעל 65",
-      },
-      weight: {
-        under_50: 'מתחת ל-50 ק"ג',
-        "50_60": '50-60 ק"ג',
-        "61_70": '61-70 ק"ג',
-        "71_80": '71-80 ק"ג',
-        "81_90": '81-90 ק"ג',
-        "91_100": '91-100 ק"ג',
-        over_100: 'מעל 100 ק"ג',
-        prefer_not_to_say_weight: "מעדיף/ה לא לציין",
-      },
-      height: {
-        under_150: 'מתחת ל-150 ס"מ',
-        "150_160": '150-160 ס"מ',
-        "161_170": '161-170 ס"מ',
-        "171_180": '171-180 ס"מ',
-        "181_190": '181-190 ס"מ',
-        over_190: 'מעל 190 ס"מ',
-        prefer_not_to_say_height: "מעדיף/ה לא לציין",
-      },
-      fitness_goal: {
-        lose_weight: "ירידה במשקל",
-        build_muscle: "בניית שריר",
-        general_fitness: "כושר כללי",
-        athletic_performance: "ביצועים ספורטיביים",
-      },
-      experience_level: {
-        beginner: "מתחיל",
-        intermediate: "בינוני",
-        advanced: "מתקדם",
-      },
-      availability: {
-        "2_days": "2 ימים בשבוע",
-        "3_days": "3 ימים בשבוע",
-        "4_days": "4 ימים בשבוע",
-        "5_days": "5 ימים בשבוע",
-        "6_days": "6 ימים בשבוע",
-        "7_days": "כל יום",
-      },
-      workout_duration: {
-        "15_30_min": "15-30 דקות",
-        "30_45_min": "30-45 דקות",
-        "45_60_min": "45-60 דקות",
-        "60_plus_min": "יותר מ-60 דקות",
-      },
-      workout_location: {
-        home_bodyweight: "בית - משקל גוף",
-        home_equipment: "בית - עם ציוד",
-        gym: "חדר כושר",
-        outdoor: "בחוץ",
-      },
+    // הוספת צבעים לכל קטגוריה
+    const categoryColors = {
+      personal: theme.colors.primary,
+      physical: theme.colors.success,
+      goals: theme.colors.warning,
+      availability: theme.colors.info,
     };
 
-    // Helper function to safely get mapped value - but handle numeric converted values
-    const getMappedValue = (
-      category: string,
-      key: string | number | string[] | undefined
-    ): string => {
-      if (!key) return "";
-
-      // For numeric values (converted by toSmartQuestionnaireData), map back to range
-      if (typeof key === "number") {
-        if (category === "age") {
-          if (key <= 18) return "מתחת ל-18";
-          if (key <= 25) return "18-25";
-          if (key <= 35) return "26-35";
-          if (key <= 50) return "36-50";
-          if (key <= 65) return "51-65";
-          return "מעל 65";
-        }
-        if (category === "weight") {
-          if (key < 50) return 'מתחת ל-50 ק"ג';
-          if (key <= 60) return '50-60 ק"ג';
-          if (key <= 70) return '61-70 ק"ג';
-          if (key <= 80) return '71-80 ק"ג';
-          if (key <= 90) return '81-90 ק"ג';
-          if (key <= 100) return '91-100 ק"ג';
-          return 'מעל 100 ק"ג';
-        }
-        if (category === "height") {
-          if (key < 150) return 'מתחת ל-150 ס"מ';
-          if (key <= 160) return '150-160 ס"מ';
-          if (key <= 170) return '161-170 ס"מ';
-          if (key <= 180) return '171-180 ס"מ';
-          if (key <= 190) return '181-190 ס"מ';
-          return 'מעל 190 ס"מ';
-        }
-      }
-
-      const keyStr = String(key);
-      return answerMapping[category]?.[keyStr] || keyStr;
-    };
-
-    // Add results based on available answers
     if (answers.gender) {
       results.push({
-        icon: "gender-male-female",
+        icon:
+          answers.gender === "male"
+            ? "human-male"
+            : answers.gender === "female"
+              ? "human-female"
+              : "human",
         label: "מין",
         value: getMappedValue("gender", answers.gender),
+        color: categoryColors.personal,
+        category: "personal",
       });
     }
 
     if (answers.age) {
+      // תמיד הצג טווח עבור נתוני השאלון
       results.push({
-        icon: "cake-variant",
-        label: "גיל",
+        icon: "calendar-today",
+        label: "טווח גיל",
         value: getMappedValue("age", answers.age),
+        color: categoryColors.personal,
+        category: "personal",
       });
     }
 
     if (answers.weight) {
+      // תמיד הצג טווח עבור נתוני השאלון
       results.push({
-        icon: "scale-bathroom",
-        label: "משקל",
+        icon: "weight-kilogram",
+        label: "טווח משקל",
         value: getMappedValue("weight", answers.weight),
+        color: categoryColors.physical,
+        category: "physical",
       });
     }
 
     if (answers.height) {
+      // תמיד הצג טווח עבור נתוני השאלון
       results.push({
-        icon: "human-male-height",
-        label: "גובה",
+        icon: "human-male-height-variant",
+        label: "טווח גובה",
         value: getMappedValue("height", answers.height),
+        color: categoryColors.physical,
+        category: "physical",
       });
     }
 
@@ -485,12 +485,16 @@ const ProfileScreen: React.FC = () => {
         icon: "target",
         label: "מטרת כושר",
         value: getMappedValue("fitness_goal", goal),
+        color: categoryColors.goals,
+        category: "goals",
       });
     } else if (Array.isArray(answers.goals) && answers.goals.length > 0) {
       results.push({
         icon: "target",
         label: "מטרת כושר",
         value: getMappedValue("fitness_goal", answers.goals[0]),
+        color: categoryColors.goals,
+        category: "goals",
       });
     }
 
@@ -500,6 +504,8 @@ const ProfileScreen: React.FC = () => {
         icon: "medal",
         label: "רמת ניסיון",
         value: getMappedValue("experience_level", level),
+        color: categoryColors.personal,
+        category: "personal",
       });
     }
 
@@ -512,6 +518,8 @@ const ProfileScreen: React.FC = () => {
           icon: "calendar-week",
           label: "זמינות",
           value: getMappedValue("availability", availabilityValue),
+          color: categoryColors.availability,
+          category: "availability",
         });
       }
     }
@@ -521,6 +529,8 @@ const ProfileScreen: React.FC = () => {
         icon: "clock-outline",
         label: "משך אימון",
         value: getMappedValue("workout_duration", answers.workout_duration),
+        color: categoryColors.physical,
+        category: "physical",
       });
     }
 
@@ -530,7 +540,49 @@ const ProfileScreen: React.FC = () => {
         icon: "map-marker",
         label: "מיקום אימון",
         value: getMappedValue("workout_location", location as string),
+        color: categoryColors.physical,
+        category: "physical",
       });
+    }
+
+    // הוספת נתוני BMI אחרונים אם קיימים - רק אלו מחושבים במחשבון
+    if (user?.lastBMICalculation) {
+      const bmiData = user.lastBMICalculation;
+
+      // הוספת הפרדה ויזואלית
+      results.push({
+        icon: "calculator",
+        label: "--- נתונים מחושבים ---",
+        value: "מהמחשבון",
+        color: theme.colors.info,
+        category: "calculated",
+      });
+
+      results.push({
+        icon: "scale-bathroom",
+        label: "BMI מחושב",
+        value: `${bmiData.bmi} (${bmiData.bmiCategory})`,
+        color: categoryColors.physical,
+        category: "calculated",
+      });
+
+      results.push({
+        icon: "fire",
+        label: "BMR מחושב",
+        value: `${bmiData.bmr} קלוריות`,
+        color: categoryColors.physical,
+        category: "calculated",
+      });
+
+      if (bmiData.tdee) {
+        results.push({
+          icon: "nutrition",
+          label: "TDEE מחושב",
+          value: `${bmiData.tdee} קלוריות יומיות`,
+          color: categoryColors.physical,
+          category: "calculated",
+        });
+      }
     }
 
     return results;
@@ -641,6 +693,38 @@ const ProfileScreen: React.FC = () => {
 
   const allEquipment = extractUserEquipment(user);
 
+  // הוספת מיפוי אייקונים לציוד
+  const getEquipmentIcon = (
+    equipmentId: string
+  ): keyof typeof MaterialCommunityIcons.glyphMap => {
+    const iconMap: Record<
+      string,
+      keyof typeof MaterialCommunityIcons.glyphMap
+    > = {
+      bodyweight: "human-handsup",
+      dumbbells: "dumbbell",
+      resistance_bands: "resistor",
+      kettlebells: "kettlebell",
+      yoga_mat: "yoga",
+      pull_up_bar: "arm-flex",
+      stability_ball: "circle",
+      trx: "weight",
+      barbells: "weight-lifter",
+      cables: "cable-data",
+      squat_rack: "weight",
+      bench_press: "sofa",
+      treadmill: "run",
+      bike: "bike",
+      rowing_machine: "rowing",
+      chair: "chair-rolling",
+      wall: "wall",
+      stairs: "stairs-up",
+      water_bottles: "bottle-wine-outline",
+    };
+
+    return iconMap[equipmentId] || "dumbbell";
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -657,23 +741,8 @@ const ProfileScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {PROFILE_SCREEN_TEXTS.HEADERS.PROFILE_TITLE}
+            {wrapBidi(PROFILE_SCREEN_TEXTS.HEADERS.PROFILE_TITLE)}
           </Text>
-          {!questionnaireStatus.isComplete && (
-            <TouchableOpacity
-              style={styles.headerQuestionnaireButton}
-              onPress={() => navigation.navigate("Questionnaire" as never)}
-            >
-              <MaterialCommunityIcons
-                name="clipboard-list"
-                size={24}
-                color={theme.colors.white}
-              />
-              <Text style={styles.questionnaireTitle}>
-                {PROFILE_SCREEN_TEXTS.ACTIONS.COMPLETE_QUESTIONNAIRE}
-              </Text>
-            </TouchableOpacity>
-          )}
 
           {!hasPersonalInfo && questionnaireStatus.isComplete && (
             <TouchableOpacity
@@ -738,7 +807,9 @@ const ProfileScreen: React.FC = () => {
 
           {/* User Info */}
           <View style={styles.usernameContainer}>
-            <Text style={styles.username}>{user?.name || "אלוף הכושר"}</Text>
+            <Text style={styles.username}>
+              {wrapBidi(user?.name || "אלוף הכושר")}
+            </Text>
             <TouchableOpacity
               style={styles.editNameButton}
               onPress={() => {
@@ -761,117 +832,285 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.userEmail}>
-            {user?.email || "user@gymovoo.com"}
-          </Text>
+          {user?.email && (
+            <Text style={styles.userEmail}>{wrapBidi(user.email)}</Text>
+          )}
 
           {/* Level and XP */}
-          <View style={styles.levelContainer}>
-            <Text style={styles.levelText}>רמה {stats.level}</Text>
-            <View style={styles.xpBar}>
-              <View
-                style={[
-                  styles.xpProgress,
-                  { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
-                ]}
-              />
+          {totalWorkouts > 0 && (
+            <View style={styles.levelContainer}>
+              <Text style={styles.levelText}>
+                {wrapBidi(`רמה ${stats.level}`)}
+              </Text>
+              <View style={styles.xpBar}>
+                <View
+                  style={[
+                    styles.xpProgress,
+                    { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.xpText}>
+                {wrapBidi(`${stats.xp}/${stats.nextLevelXp} XP`)}
+              </Text>
             </View>
-            <Text style={styles.xpText}>
-              {stats.xp}/{stats.nextLevelXp} XP
-            </Text>
-          </View>
+          )}
 
           {/* Badges */}
-          <View style={styles.badgesContainer}>
-            {profileBadges.map((badge) => (
-              <View
-                key={badge.key}
-                style={[styles.badge, { backgroundColor: badge.color + "20" }]}
-              >
-                <Text style={[styles.badgeText, { color: badge.color }]}>
-                  {badge.text}
-                </Text>
-              </View>
-            ))}
-          </View>
+          {(totalWorkouts > 0 || currentStreak > 0) && (
+            <View style={styles.badgesContainer}>
+              {profileBadges
+                .filter((badge) => {
+                  if (badge.key === "level" && totalWorkouts === 0)
+                    return false;
+                  if (badge.key === "workouts" && totalWorkouts === 0)
+                    return false;
+                  if (badge.key === "streak" && currentStreak === 0)
+                    return false;
+                  return true;
+                })
+                .map((badge) => (
+                  <View
+                    key={badge.key}
+                    style={[
+                      styles.badge,
+                      { backgroundColor: badge.color + "20" },
+                    ]}
+                  >
+                    <Text style={[styles.badgeText, { color: badge.color }]}>
+                      {wrapBidi(badge.text)}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          )}
         </View>
 
         {/* Stats */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>
-            {PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS}
-          </Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <MaterialCommunityIcons
-                name="dumbbell"
-                size={24}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.statNumber}>{stats.workouts}</Text>
-              <Text style={styles.statLabel}>
-                {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-              </Text>
-            </View>
-            <View style={styles.statCard}>
-              <MaterialCommunityIcons
-                name="fire"
-                size={24}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.statNumber}>{stats.streak}</Text>
-              <Text style={styles.statLabel}>
-                {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
-              </Text>
-            </View>
-            <View style={styles.statCard}>
-              <MaterialCommunityIcons
-                name="star"
-                size={24}
-                color={theme.colors.success}
-              />
-              <Text style={styles.statNumber}>{stats.rating}</Text>
-              <Text style={styles.statLabel}>דירוג</Text>
+        {(totalWorkouts > 0 || currentStreak > 0 || averageRating > 0) && (
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>
+              {wrapBidi(PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS)}
+            </Text>
+            <View style={styles.statsGrid}>
+              {totalWorkouts > 0 && (
+                <View style={styles.statCard}>
+                  <MaterialCommunityIcons
+                    name="dumbbell"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.statNumber}>
+                    {wrapBidi(String(stats.workouts))}
+                  </Text>
+                  <Text style={styles.statLabel}>
+                    {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                  </Text>
+                </View>
+              )}
+              {currentStreak > 0 && (
+                <View style={styles.statCard}>
+                  <MaterialCommunityIcons
+                    name="fire"
+                    size={24}
+                    color={theme.colors.warning}
+                  />
+                  <Text style={styles.statNumber}>
+                    {wrapBidi(String(stats.streak))}
+                  </Text>
+                  <Text style={styles.statLabel}>
+                    {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                  </Text>
+                </View>
+              )}
+              {averageRating > 0 && (
+                <View style={styles.statCard}>
+                  <MaterialCommunityIcons
+                    name="star"
+                    size={24}
+                    color={theme.colors.success}
+                  />
+                  <Text style={styles.statNumber}>
+                    {wrapBidi(String(stats.rating))}
+                  </Text>
+                  <Text style={styles.statLabel}>דירוג</Text>
+                </View>
+              )}
             </View>
           </View>
-        </View>
+        )}
 
-        {/* BMI/BMR Calculator */}
-        <BMIBMRCalculator />
+        {/* BMI/BMR Calculator - רק אם יש נתונים מדויקים */}
+        {hasPersonalInfo &&
+          user?.personalInfo?.weight &&
+          user?.personalInfo?.height && <BMIBMRCalculator />}
 
-        {/* Achievements Button */}
-        <View style={styles.achievementsSection}>
-          <TouchableOpacity
-            style={styles.achievementsButton}
-            onPress={() => setShowAchievements(true)}
-          >
-            <View style={styles.achievementsButtonContent}>
+        {/* הודעה על הצורך בנתונים מדויקים */}
+        {!hasPersonalInfo && (
+          <View style={styles.bmiPlaceholderSection}>
+            <View style={styles.bmiPlaceholderCard}>
               <MaterialCommunityIcons
-                name="trophy"
-                size={28}
-                color={theme.colors.warning}
-              />
-              <View style={styles.achievementsTextContainer}>
-                <Text style={styles.achievementsTitle}>הישגים</Text>
-                <Text style={styles.achievementsSubtitle}>3 מתוך 8 הושגו</Text>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={24}
+                name="calculator"
+                size={32}
                 color={theme.colors.textSecondary}
               />
+              <Text style={styles.bmiPlaceholderTitle}>
+                {wrapBidi("מחשבון BMI/BMR")}
+              </Text>
+              <Text style={styles.bmiPlaceholderText}>
+                {wrapBidi(
+                  "כדי לקבל חישוב מדויק של BMI ו-BMR, נדרשים נתונים מדויקים של גובה ומשקל"
+                )}
+              </Text>
+              <TouchableOpacity
+                style={styles.bmiPlaceholderButton}
+                onPress={() => navigation.navigate("PersonalInfo" as never)}
+              >
+                <Text style={styles.bmiPlaceholderButtonText}>
+                  {wrapBidi("הוסף נתונים מדויקים")}
+                </Text>
+                <MaterialCommunityIcons
+                  name={isRTL() ? "chevron-left" : "chevron-right"}
+                  size={20}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Achievements Section - Unified */}
+        <View style={styles.achievementsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{wrapBidi("הישגים")}</Text>
+            <TouchableOpacity
+              onPress={() => setShowAchievements(true)}
+              style={styles.viewAllButton}
+            >
+              <Text style={styles.viewAllButtonText}>
+                {wrapBidi("צפה בהכל")}
+              </Text>
+              <MaterialCommunityIcons
+                name={isRTL() ? "chevron-left" : "chevron-right"}
+                size={16}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick stats */}
+          <View style={styles.achievementsQuickStats}>
+            <View style={styles.achievementQuickStat}>
+              <MaterialCommunityIcons
+                name="trophy"
+                size={20}
+                color={theme.colors.warning}
+              />
+              <Text style={styles.achievementQuickStatText}>
+                {wrapBidi(
+                  `${achievements.filter((a) => a.unlocked).length} הושגו`
+                )}
+              </Text>
+            </View>
+            <View style={styles.achievementQuickStat}>
+              <MaterialCommunityIcons
+                name="target"
+                size={20}
+                color={theme.colors.info}
+              />
+              <Text style={styles.achievementQuickStatText}>
+                {wrapBidi(
+                  `${achievements.length - achievements.filter((a) => a.unlocked).length} נותרו`
+                )}
+              </Text>
+            </View>
+          </View>
+
+          {/* Recent/Featured Achievements Grid */}
+          <View style={styles.achievementsGrid}>
+            {achievements
+              .sort((a, b) => {
+                // מיון: הישגים שהושגו לאחרונה קודם, אחר כך הקרובים ביותר
+                if (a.unlocked && !b.unlocked) return -1;
+                if (!a.unlocked && b.unlocked) return 1;
+                return 0;
+              })
+              .slice(0, 6)
+              .map((achievement: AchievementDisplay) => (
+                <TouchableOpacity
+                  key={achievement.id}
+                  style={[
+                    styles.achievementCard,
+                    achievement.unlocked && styles.achievementCardUnlocked,
+                  ]}
+                  onPress={() => setShowAchievements(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.achievementIconContainer}>
+                    <MaterialCommunityIcons
+                      name={achievement.icon}
+                      size={24}
+                      color={
+                        achievement.unlocked
+                          ? achievement.color
+                          : theme.colors.textTertiary
+                      }
+                    />
+                    {!achievement.unlocked && (
+                      <View style={styles.lockIconContainer}>
+                        <MaterialCommunityIcons
+                          name="lock"
+                          size={12}
+                          color={theme.colors.textTertiary}
+                        />
+                      </View>
+                    )}
+                    {achievement.unlocked && (
+                      <View style={styles.checkIconContainer}>
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={16}
+                          color={theme.colors.success}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.achievementTitle,
+                      !achievement.unlocked && styles.achievementTitleLocked,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {wrapBidi(achievement.title)}
+                  </Text>
+                  {achievement.unlocked && (
+                    <View style={styles.achievementUnlockedIndicator}>
+                      <Text style={styles.achievementUnlockedText}>
+                        {wrapBidi("הושג!")}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+          </View>
         </View>
 
         {/* Equipment */}
         <View style={styles.equipmentSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>הציוד שלי</Text>
+            <Text style={styles.sectionTitle}>{wrapBidi("הציוד שלי")}</Text>
             <TouchableOpacity onPress={() => showComingSoon("עריכת ציוד")}>
-              <Text style={styles.editEquipmentText}>ערוך</Text>
+              <Text style={styles.editEquipmentText}>{wrapBidi("ערוך")}</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Debug info */}
+          {__DEV__ && (
+            <Text style={{ color: "red", fontSize: 12, marginBottom: 10 }}>
+              Equipment count: {allEquipment.length}
+            </Text>
+          )}
 
           {allEquipment.length === 0 ? (
             <View style={styles.noEquipmentContainer}>
@@ -880,28 +1119,37 @@ const ProfileScreen: React.FC = () => {
                 size={40}
                 color={theme.colors.textSecondary}
               />
-              <Text style={styles.noEquipmentText}>לא נבחר ציוד</Text>
+              <Text style={styles.noEquipmentText}>
+                {wrapBidi("לא נבחר ציוד")}
+              </Text>
               <Text style={styles.noEquipmentSubtext}>
-                לחץ על 'ערוך' כדי לבחור ציוד
+                {wrapBidi("לחץ על 'ערוך' כדי לבחור ציוד")}
               </Text>
             </View>
           ) : (
             <View style={styles.equipmentGrid}>
               {allEquipment.map((equipment, index) => (
-                <View
-                  key={equipment?.id || index}
-                  style={styles.equipmentGridItem}
-                >
-                  <View style={styles.equipmentImageContainer}>
+                <View key={equipment?.id || index} style={styles.equipmentCard}>
+                  <View
+                    style={[
+                      styles.equipmentIconWrapper,
+                      { backgroundColor: theme.colors.primary + "15" },
+                    ]}
+                  >
                     <MaterialCommunityIcons
-                      name="dumbbell"
-                      size={20}
+                      name={getEquipmentIcon(equipment.id)}
+                      size={28}
                       color={theme.colors.primary}
                     />
                   </View>
-                  <Text style={styles.equipmentLabel} numberOfLines={1}>
-                    {equipment?.label}
+                  <Text style={styles.equipmentName} numberOfLines={1}>
+                    {wrapBidi(equipment?.label)}
                   </Text>
+                  {equipment?.description && (
+                    <Text style={styles.equipmentDescription} numberOfLines={1}>
+                      {wrapBidi(equipment.description)}
+                    </Text>
+                  )}
                 </View>
               ))}
             </View>
@@ -912,16 +1160,40 @@ const ProfileScreen: React.FC = () => {
         {extractQuestionnaireResults(user).length > 0 && (
           <View style={styles.questionnaireSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>תוצאות השאלון</Text>
+              <Text style={styles.sectionTitle}>{wrapBidi("מידע עליי")}</Text>
               <MaterialCommunityIcons
-                name="clipboard-text-outline"
+                name="account-circle-outline"
                 size={20}
                 color={theme.colors.primary}
               />
             </View>
-            <View style={styles.questionnaireGrid}>
+
+            {/* הודעת הסבר על טווחים ונתונים מחושבים */}
+            <View style={styles.questionnaireExplanation}>
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={16}
+                color={theme.colors.textSecondary}
+                style={styles.explanationIcon}
+              />
+              <Text style={styles.questionnaireExplanationText}>
+                {wrapBidi(
+                  "💡 הנתונים מהשאלון מוצגים כטווחים. נתונים מדויקים מוצגים רק לאחר שימוש במחשבון BMI"
+                )}
+              </Text>
+            </View>
+
+            <View>
               {extractQuestionnaireResults(user).map((result, index) => (
-                <View key={index} style={styles.questionnaireItem}>
+                <View
+                  key={index}
+                  style={[
+                    styles.questionnaireItem,
+                    result.category === "calculated" &&
+                      result.label.includes("---") &&
+                      styles.questionnaireSeparator,
+                  ]}
+                >
                   <View style={styles.questionnaireIconContainer}>
                     <MaterialCommunityIcons
                       name={
@@ -932,11 +1204,25 @@ const ProfileScreen: React.FC = () => {
                     />
                   </View>
                   <View style={styles.questionnaireContent}>
-                    <Text style={styles.questionnaireLabel}>
-                      {result.label}
+                    <Text
+                      style={[
+                        styles.questionnaireLabel,
+                        result.category === "calculated" &&
+                          result.label.includes("---") &&
+                          styles.questionnaireSeparatorLabel,
+                      ]}
+                    >
+                      {wrapBidi(result.label)}
                     </Text>
-                    <Text style={styles.questionnaireValue}>
-                      {result.value}
+                    <Text
+                      style={[
+                        styles.questionnaireValue,
+                        result.category === "calculated" &&
+                          result.label.includes("---") &&
+                          styles.questionnaireSeparatorValue,
+                      ]}
+                    >
+                      {wrapBidi(result.value)}
                     </Text>
                   </View>
                 </View>
@@ -944,47 +1230,6 @@ const ProfileScreen: React.FC = () => {
             </View>
           </View>
         )}
-
-        {/* Achievements */}
-        <View style={styles.achievementsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>הישגים</Text>
-          </View>
-          <View style={styles.achievementsGrid}>
-            {achievements.slice(0, 6).map((achievement: AchievementDisplay) => (
-              <View key={achievement.id} style={styles.achievementCard}>
-                <View style={styles.achievementIconContainer}>
-                  <MaterialCommunityIcons
-                    name={achievement.icon}
-                    size={24}
-                    color={
-                      achievement.unlocked
-                        ? achievement.color
-                        : theme.colors.textTertiary
-                    }
-                  />
-                  {!achievement.unlocked && (
-                    <View style={styles.lockIconContainer}>
-                      <MaterialCommunityIcons
-                        name="lock"
-                        size={16}
-                        color={theme.colors.textTertiary}
-                      />
-                    </View>
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.achievementTitle,
-                    !achievement.unlocked && styles.achievementTitleLocked,
-                  ]}
-                >
-                  {achievement.title}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
 
         {/* Settings */}
         <View style={styles.settingsSection}>
@@ -998,10 +1243,10 @@ const ProfileScreen: React.FC = () => {
                 size={24}
                 color={theme.colors.primary}
               />
-              <Text style={styles.settingText}>התראות</Text>
+              <Text style={styles.settingText}>{wrapBidi("התראות")}</Text>
             </View>
             <MaterialCommunityIcons
-              name="chevron-left"
+              name={isRTL() ? "chevron-right" : "chevron-left"}
               size={20}
               color={theme.colors.textSecondary}
             />
@@ -1147,10 +1392,10 @@ const ProfileScreen: React.FC = () => {
       {/* Logout Confirmation */}
       <ConfirmationModal
         visible={showLogoutModal}
-        title="התנתקות"
-        message="האם אתה בטוח שברצונך להתנתק?"
-        confirmText="התנתק"
-        cancelText="ביטול"
+        title={wrapBidi("התנתקות")}
+        message={wrapBidi("האם אתה בטוח שברצונך להתנתק?")}
+        confirmText={wrapBidi("התנתק")}
+        cancelText={wrapBidi("ביטול")}
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
         onClose={() => setShowLogoutModal(false)}
@@ -1188,10 +1433,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   headerQuestionnaireButton: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.md,
@@ -1233,7 +1479,8 @@ const styles = StyleSheet.create({
   editAvatarButton: {
     position: "absolute",
     bottom: -5,
-    right: -5,
+    right: isRTL() ? undefined : -5,
+    left: isRTL() ? -5 : undefined,
     backgroundColor: theme.colors.surface,
     width: 36,
     height: 36,
@@ -1244,7 +1491,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.background,
   },
   usernameContainer: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.xs,
@@ -1253,7 +1500,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   editNameButton: {
     padding: theme.spacing.xs,
@@ -1261,7 +1509,8 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     marginBottom: theme.spacing.md,
   },
   levelContainer: {
@@ -1273,6 +1522,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.primary,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     marginBottom: theme.spacing.xs,
   },
   xpBar: {
@@ -1290,6 +1541,8 @@ const styles = StyleSheet.create({
   xpText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   badgesContainer: {
     flexDirection: "row",
@@ -1315,10 +1568,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   sectionHeader: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row" : "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: theme.spacing.md,
@@ -1344,7 +1598,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   equipmentSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -1364,42 +1619,91 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.sm,
     fontWeight: "600",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   noEquipmentSubtext: {
     fontSize: 14,
     color: theme.colors.textTertiary,
     marginTop: theme.spacing.xs,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   equipmentGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
-  equipmentGridItem: {
-    alignItems: "center",
-    width: "30%", // 3 items per row with gap
-    minWidth: 80,
-  },
-  equipmentImageContainer: {
-    width: 50,
-    height: 50,
+
+  equipmentCard: {
+    width: "31%",
     backgroundColor: theme.colors.surface,
-    borderRadius: 10,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+    // אפקט hover
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  equipmentIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.xs,
   },
-  equipmentLabel: {
-    fontSize: 11,
+
+  equipmentName: {
+    fontSize: 13,
+    fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "center",
-    fontWeight: "500",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
-  achievementsContainer: {
+
+  equipmentDescription: {
+    fontSize: 10,
+    color: theme.colors.textTertiary,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
+    marginTop: 2,
+  },
+
+  achievementsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
+  },
+  viewAllButton: {
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  achievementsQuickStats: {
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    gap: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  achievementQuickStat: {
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+  },
+  achievementQuickStatText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: theme.colors.text,
   },
   achievementsGrid: {
     flexDirection: "row",
@@ -1409,10 +1713,21 @@ const styles = StyleSheet.create({
   achievementCard: {
     width: "30%",
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: theme.spacing.md,
     alignItems: "center",
     position: "relative",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  achievementCardUnlocked: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.success + "10",
   },
   achievementIconContainer: {
     position: "relative",
@@ -1426,14 +1741,37 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 2,
   },
+  checkIconContainer: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 1,
+  },
   achievementTitle: {
     fontSize: 12,
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     fontWeight: "600",
+    lineHeight: 16,
   },
   achievementTitleLocked: {
     color: theme.colors.textTertiary,
+  },
+  achievementUnlockedIndicator: {
+    position: "absolute",
+    bottom: -6,
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  achievementUnlockedText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.white,
   },
   settingsSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -1448,7 +1786,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   settingLeft: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.md,
   },
@@ -1456,6 +1794,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     fontWeight: "500",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   logoutButton: {
     marginHorizontal: theme.spacing.lg,
@@ -1483,14 +1823,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     marginBottom: theme.spacing.md,
   },
   closeButton: {
     padding: theme.spacing.xs,
   },
   uploadOptions: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     gap: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
     justifyContent: "center",
@@ -1503,12 +1844,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   presetsTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    textAlign: "center",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     marginBottom: theme.spacing.md,
   },
   avatarGrid: {
@@ -1539,7 +1883,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
-    textAlign: "right",
+    textAlign: isRTL() ? "left" : "right",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   nameInput: {
     borderWidth: 1,
@@ -1548,7 +1893,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     fontSize: 16,
     color: theme.colors.text,
-    textAlign: "right",
+    textAlign: isRTL() ? "left" : "right",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   nameInputError: {
     borderColor: theme.colors.error,
@@ -1557,55 +1903,13 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontSize: 14,
     marginTop: theme.spacing.xs,
-    textAlign: "right",
-  },
-  // Questionnaire Results Styles
-  questionnaireSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  questionnaireGrid: {
-    gap: theme.spacing.sm,
-  },
-  questionnaireItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
-  },
-  questionnaireIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: theme.spacing.sm,
-  },
-  questionnaireContent: {
-    flex: 1,
-  },
-  questionnaireLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: theme.colors.textSecondary,
-    textAlign: "right",
-    marginBottom: 2,
-  },
-  questionnaireValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    textAlign: "right",
+    textAlign: isRTL() ? "left" : "right",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   nameModalButtons: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   nameModalButton: {
     flex: 1,
@@ -1615,11 +1919,14 @@ const styles = StyleSheet.create({
   },
   nameModalButtonCancel: {
     backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   nameModalButtonSave: {
     backgroundColor: theme.colors.primary,
   },
   nameModalButtonDisabled: {
+    backgroundColor: theme.colors.surface,
     opacity: 0.5,
   },
   nameModalButtonTextCancel: {
@@ -1632,37 +1939,138 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  // Achievement styles
-  achievementsSection: {
+  // Questionnaire Results Styles
+  questionnaireSection: {
     marginHorizontal: theme.spacing.lg,
-    marginVertical: theme.spacing.md,
-  },
-  achievementsButton: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.lg,
     padding: theme.spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  achievementsButtonContent: {
-    flexDirection: "row",
+  questionnaireItem: {
+    flexDirection: isRTL() ? "row" : "row-reverse",
     alignItems: "center",
-    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  achievementsTextContainer: {
+  questionnaireIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + "15",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
+  },
+  questionnaireContent: {
     flex: 1,
+    alignItems: isRTL() ? "flex-start" : "flex-end",
   },
-  achievementsTitle: {
+  questionnaireLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 2,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
+  },
+  questionnaireValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  // BMI Placeholder Styles
+  bmiPlaceholderSection: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  bmiPlaceholderCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: theme.spacing.xl,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderStyle: "dashed",
+  },
+  bmiPlaceholderTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
-  achievementsSubtitle: {
+  bmiPlaceholderText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
+    lineHeight: 20,
+    marginBottom: theme.spacing.lg,
+  },
+  bmiPlaceholderButton: {
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.primary + "10",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: 12,
+    gap: theme.spacing.sm,
+  },
+  bmiPlaceholderButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  // Questionnaire explanation styles
+  questionnaireExplanation: {
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.warning + "10",
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  explanationIcon: {
+    marginRight: isRTL() ? 0 : theme.spacing.xs,
+    marginLeft: isRTL() ? theme.spacing.xs : 0,
+  },
+  questionnaireExplanationText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    flex: 1,
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
+  },
+  // Separator styles for calculated data
+  questionnaireSeparator: {
+    backgroundColor: theme.colors.info + "15",
+    borderLeftWidth: isRTL() ? 0 : 4,
+    borderRightWidth: isRTL() ? 4 : 0,
+    borderLeftColor: isRTL() ? "transparent" : theme.colors.info,
+    borderRightColor: isRTL() ? theme.colors.info : "transparent",
+    marginTop: theme.spacing.md,
+  },
+  questionnaireSeparatorLabel: {
+    fontWeight: "bold",
+    color: theme.colors.info,
+    fontSize: 13,
+  },
+  questionnaireSeparatorValue: {
+    fontWeight: "bold",
+    color: theme.colors.info,
+    fontSize: 12,
   },
 });

@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
   TextInput,
+  Vibration,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -23,6 +24,139 @@ import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
 
 import { WorkoutExercise, Set } from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
+
+interface RestTimerProps {
+  restTime: number;
+  onComplete: () => void;
+  onSkip: () => void;
+  visible: boolean;
+}
+
+const RestTimer: React.FC<RestTimerProps> = ({
+  restTime,
+  onComplete,
+  onSkip,
+  visible,
+}) => {
+  const [timeLeft, setTimeLeft] = useState(restTime);
+
+  // פונקציה להסבר זמן המנוחה
+  const getRestTimeExplanation = (time: number): string => {
+    if (time >= 120) return "זמן מנוחה ארוך לתרגילי כוח 💪";
+    if (time >= 90) return "זמן מנוחה בינוני למשקולות ⚖️";
+    if (time >= 60) return "זמן מנוחה סטנדרטי 🏃‍♂️";
+    if (time >= 45) return "זמן מנוחה קצר למשקל גוף 🤸‍♂️";
+    return "זמן מנוחה מינימלי ⚡";
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      setTimeLeft(restTime);
+      return;
+    }
+
+    if (timeLeft <= 0) {
+      // התראה קולית ורטט כשהטיימר מסתיים
+      Vibration.vibrate([100, 50, 100, 50, 100]);
+      onComplete();
+      return;
+    }
+
+    // רטט קל ב-10 השניות האחרונות
+    if (timeLeft <= 10 && timeLeft > 0) {
+      Vibration.vibrate(50);
+    }
+
+    const timer = setTimeout(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [timeLeft, visible, restTime, onComplete]);
+
+  useEffect(() => {
+    if (visible) {
+      setTimeLeft(restTime);
+    }
+  }, [visible, restTime]);
+
+  if (!visible) return null;
+
+  const progress = ((restTime - timeLeft) / restTime) * 100;
+
+  // צבע דינמי לפי זמן שנותר
+  const getTimerColor = () => {
+    if (timeLeft <= 10) return theme.colors.error; // אדום - זמן אוזל
+    if (timeLeft <= 30) return theme.colors.warning; // כתום - אזהרה
+    return theme.colors.primary; // כחול - רגיל
+  };
+
+  // איקון דינמי
+  const getTimerIcon = () => {
+    if (timeLeft <= 10) return "clock-alert";
+    if (timeLeft <= 30) return "clock-time-four";
+    return "timer-sand";
+  };
+
+  return (
+    <View style={styles.restTimerOverlay}>
+      <View style={styles.restTimerContainer}>
+        <MaterialCommunityIcons
+          name={getTimerIcon()}
+          size={40}
+          color={getTimerColor()}
+        />
+        <Text style={styles.restTimerTitle}>זמן מנוחה</Text>
+        <Text style={styles.restTimerExplanation}>
+          {getRestTimeExplanation(restTime)}
+        </Text>
+        <Text style={[styles.restTimerTime, { color: getTimerColor() }]}>
+          {timeLeft}s
+        </Text>
+
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View
+            style={[
+              styles.progressBar,
+              {
+                width: `${progress}%`,
+                backgroundColor: getTimerColor(),
+              },
+            ]}
+          />
+        </View>
+
+        {timeLeft <= 10 && (
+          <Text style={styles.almostDoneText}>כמעט גמרנו! 💪</Text>
+        )}
+
+        <View style={styles.restTimerButtons}>
+          <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
+            <MaterialCommunityIcons
+              name="skip-next"
+              size={20}
+              color={theme.colors.text}
+            />
+            <Text style={styles.skipButtonText}>דלג</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.addTimeButton}
+            onPress={() => setTimeLeft((prev) => prev + 30)}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.addTimeButtonText}>+30s</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 interface ExerciseItemProps {
   exercise: WorkoutExercise;
@@ -245,6 +379,23 @@ const ActiveWorkoutScreen: React.FC = () => {
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
+  // Rest timer state
+  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [restTime, setRestTime] = useState(60); // זמן מנוחה בשניות
+
+  // פונקציה לחישוב זמן מנוחה לפי סוג תרגיל
+  const calculateRestTime = (exercise: WorkoutExercise): number => {
+    const equipment = exercise.equipment;
+    const primaryMuscle = exercise.primaryMuscles?.[0];
+
+    // זמני מנוחה לפי ציוד וקבוצת שרירים
+    if (equipment === "barbell" || equipment === "squat_rack") return 120; // תרגילי כוח - 2 דקות
+    if (primaryMuscle === "legs" || primaryMuscle === "quadriceps") return 90; // רגליים - 1.5 דקות
+    if (equipment === "bodyweight" || equipment === "resistance_bands")
+      return 45; // תרגילי משקל גוף - 45 שניות
+    return 60; // ברירת מחדל - דקה
+  };
+
   // סטטיסטיקות בזמן אמת
   const liveStats = useMemo(() => {
     if (!exercises?.length) return null;
@@ -320,6 +471,9 @@ const ActiveWorkoutScreen: React.FC = () => {
 
   // Set management
   const handleCompleteSet = (exerciseId: string, setId: string) => {
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
+    const set = exercise?.sets?.find((s) => s.id === setId);
+
     setExercises((prev) =>
       prev.map((ex) =>
         ex.id === exerciseId
@@ -332,6 +486,25 @@ const ActiveWorkoutScreen: React.FC = () => {
           : ex
       )
     );
+
+    // אם הסט הושלם (לא בוטל), בדוק אם צריך טיימר מנוחה
+    if (exercise && set && !set.completed) {
+      const currentSetIndex =
+        exercise.sets?.findIndex((s) => s.id === setId) || 0;
+      const hasMoreSetsInExercise =
+        exercise.sets && currentSetIndex < exercise.sets.length - 1;
+      const currentExerciseIndex = exercises.findIndex(
+        (ex) => ex.id === exerciseId
+      );
+      const hasMoreExercises = currentExerciseIndex < exercises.length - 1;
+
+      // הפעל טיימר רק אם יש עוד סטים או תרגילים
+      if (hasMoreSetsInExercise || hasMoreExercises) {
+        const restDuration = calculateRestTime(exercise);
+        setRestTime(restDuration);
+        setShowRestTimer(true);
+      }
+    }
   };
 
   const handleAddSet = (exerciseId: string) => {
@@ -585,6 +758,14 @@ const ActiveWorkoutScreen: React.FC = () => {
           style={styles.finishButton}
         />
       </View>
+
+      {/* Rest Timer Overlay */}
+      <RestTimer
+        visible={showRestTimer}
+        restTime={restTime}
+        onComplete={() => setShowRestTimer(false)}
+        onSkip={() => setShowRestTimer(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -811,6 +992,104 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     lineHeight: 20,
+  },
+  // Rest Timer Styles
+  restTimerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  restTimerContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
+    alignItems: "center",
+    minWidth: 280,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  restTimerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  restTimerExplanation: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  restTimerTime: {
+    fontSize: 48,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.lg,
+  },
+  progressBarContainer: {
+    width: "100%",
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    marginBottom: theme.spacing.lg,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+  },
+  almostDoneText: {
+    fontSize: 16,
+    color: theme.colors.error,
+    fontWeight: "bold",
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
+  },
+  restTimerButtons: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
+  },
+  skipButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    gap: theme.spacing.sm,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  addTimeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.primary + "20",
+    borderRadius: theme.radius.md,
+    gap: theme.spacing.sm,
+  },
+  addTimeButtonText: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: "500",
   },
 });
 

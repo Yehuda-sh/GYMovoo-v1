@@ -25,6 +25,7 @@ import AppButton from "../../../../components/common/AppButton";
 import { formatDuration, formatWeight } from "../../../../utils/formatters";
 import workoutFacadeService from "../../../../services/workout/workoutFacadeService";
 import { useUserStore } from "../../../../stores/userStore";
+import { isRTL } from "../../../../utils/rtlHelpers";
 
 interface RouteParams {
   workoutData: WorkoutSummaryData;
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   statsContainer: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
@@ -418,15 +419,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   recordItem: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     paddingVertical: theme.spacing.sm,
   },
   recordText: {
     fontSize: 16,
     color: theme.colors.text,
-    marginLeft: theme.spacing.sm,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
     flex: 1,
+    textAlign: isRTL() ? "right" : "left",
   },
   exercisesSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -437,6 +440,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
+    textAlign: isRTL() ? "right" : "left",
   },
   exerciseCard: {
     backgroundColor: "white",
@@ -454,12 +458,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
+    textAlign: isRTL() ? "right" : "left",
   },
   setsContainer: {
     gap: theme.spacing.sm,
   },
   setRow: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 4,
@@ -467,6 +472,7 @@ const styles = StyleSheet.create({
   setText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: isRTL() ? "right" : "left",
   },
   actionButtons: {
     position: "absolute",

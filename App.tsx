@@ -3,6 +3,7 @@
  * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo
  */
 
+import { initializeRTL } from "./src/utils/rtlHelpers";
 import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -11,7 +12,6 @@ import Toast from "react-native-toast-message";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ErrorBoundary } from "./src/components/common/ErrorBoundary";
 import { useAppInitialization } from "./src/hooks/useAppInitialization";
-import { initializeRTL } from "./src/utils/rtlHelpers";
 import { logger } from "./src/utils/logger";
 
 import "react-native-reanimated";

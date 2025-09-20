@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../core/theme";
+import { isRTL } from "../../utils/rtlHelpers";
 
 // Achievement categories and data
 const ACHIEVEMENT_CATEGORIES = [
@@ -402,7 +403,7 @@ const AchievementSystem: React.FC<AchievementSystemProps> = ({
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onClose}>
             <MaterialCommunityIcons
-              name="arrow-right"
+              name={isRTL() ? "arrow-left" : "arrow-right"}
               size={24}
               color={theme.colors.text}
             />
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: theme.spacing.lg,
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   headerStats: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     gap: theme.spacing.lg,
   },
   statItem: {
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   categoryButton: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
@@ -570,7 +571,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary + "20",
   },
   achievementHeader: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "flex-start",
     marginBottom: theme.spacing.md,
   },
@@ -581,19 +582,22 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: theme.spacing.md,
+    marginLeft: isRTL() ? 0 : theme.spacing.md,
+    marginRight: isRTL() ? theme.spacing.md : 0,
   },
   achievementIconUnlocked: {
     backgroundColor: theme.colors.primary + "20",
   },
   achievementInfo: {
     flex: 1,
+    alignItems: isRTL() ? "flex-end" : "flex-start",
   },
   achievementTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
+    textAlign: isRTL() ? "right" : "left",
   },
   achievementTitleUnlocked: {
     color: theme.colors.text,
@@ -602,9 +606,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     lineHeight: 20,
+    textAlign: isRTL() ? "right" : "left",
   },
   achievementReward: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.xs,
   },
@@ -614,7 +619,7 @@ const styles = StyleSheet.create({
     color: theme.colors.warning,
   },
   progressContainer: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.sm,
   },
@@ -661,7 +666,8 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     top: theme.spacing.lg,
-    right: theme.spacing.lg,
+    right: isRTL() ? undefined : theme.spacing.lg,
+    left: isRTL() ? theme.spacing.lg : undefined,
     zIndex: 1,
   },
   detailIcon: {
@@ -693,26 +699,31 @@ const styles = StyleSheet.create({
   detailRequirement: {
     alignSelf: "stretch",
     marginBottom: theme.spacing.lg,
+    alignItems: isRTL() ? "flex-end" : "flex-start",
   },
   requirementLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
+    textAlign: isRTL() ? "right" : "left",
   },
   requirementText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    textAlign: isRTL() ? "right" : "left",
   },
   detailProgress: {
     alignSelf: "stretch",
     marginBottom: theme.spacing.lg,
+    alignItems: isRTL() ? "flex-end" : "flex-start",
   },
   progressLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
+    textAlign: isRTL() ? "right" : "left",
   },
   progressBarLarge: {
     height: 12,
@@ -733,7 +744,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   detailReward: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.lg,

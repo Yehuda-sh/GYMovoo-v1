@@ -23,6 +23,7 @@ import { theme } from "../../../core/theme";
 import { QuestionOption } from "../types";
 import { useUserStore } from "../../../stores/userStore";
 import { logger } from "../../../utils/logger";
+import { isRTL } from "../../../utils/rtlHelpers";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const QuestionnaireScreen: React.FC = () => {
@@ -253,7 +254,11 @@ const QuestionnaireScreen: React.FC = () => {
               }
             }}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons
+              name={isRTL() ? "arrow-forward" : "arrow-back"}
+              size={24}
+              color="#fff"
+            />
           </TouchableOpacity>
 
           {/* Progress bar */}
@@ -346,7 +351,13 @@ const QuestionnaireScreen: React.FC = () => {
             </Text>
             {!isLoading && (
               <Ionicons
-                name={isLastQuestion ? "checkmark-circle" : "arrow-forward"}
+                name={
+                  isLastQuestion
+                    ? "checkmark-circle"
+                    : isRTL()
+                      ? "arrow-back"
+                      : "arrow-forward"
+                }
                 size={24}
                 color="#fff"
               />
@@ -375,19 +386,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     padding: 16,
   },
   backButton: {
-    marginRight: 16,
+    marginRight: isRTL() ? 0 : 16,
+    marginLeft: isRTL() ? 16 : 0,
   },
   progressContainer: {
     flex: 1,
     height: 8,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: isRTL() ? 8 : 0,
+    marginLeft: isRTL() ? 0 : 8,
   },
   progressBar: {
     height: 8,
@@ -397,7 +410,8 @@ const styles = StyleSheet.create({
   progressText: {
     color: "#fff",
     position: "absolute",
-    right: -30,
+    right: isRTL() ? undefined : -30,
+    left: isRTL() ? -30 : undefined,
     top: -5,
   },
   scrollView: {
@@ -415,12 +429,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 8,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   subtitle: {
     fontSize: 16,
     color: "rgba(255,255,255,0.8)",
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   questionContainer: {
     marginBottom: 24,
@@ -430,12 +446,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 8,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   helpText: {
     fontSize: 14,
     color: "rgba(255,255,255,0.7)",
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   optionsContainer: {
     marginBottom: 16,
@@ -453,7 +471,7 @@ const styles = StyleSheet.create({
     borderColor: "#4CAF50",
   },
   optionHeader: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row" : "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
@@ -462,12 +480,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   optionDescription: {
     fontSize: 14,
     color: "rgba(255,255,255,0.7)",
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   footer: {
     position: "absolute",
@@ -481,7 +501,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -492,7 +512,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
-    marginRight: 8,
+    marginRight: isRTL() ? 0 : 8,
+    marginLeft: isRTL() ? 8 : 0,
   },
   loadingContainer: {
     flex: 1,
@@ -503,6 +524,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginTop: 16,
     fontSize: 16,
+    textAlign: "center",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   completionCard: {
     flex: 1,
@@ -517,12 +540,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 8,
     textAlign: "center",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   completionSubtitle: {
     fontSize: 16,
     color: "rgba(255,255,255,0.8)",
     textAlign: "center",
     marginBottom: 24,
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 });
 

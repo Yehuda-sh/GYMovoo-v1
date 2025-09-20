@@ -23,6 +23,7 @@ import CalorieCalculator from "../../../../components/workout/CalorieCalculator"
 import { questionnaireService } from "../../../questionnaire/services/questionnaireService";
 import AppButton from "../../../../components/common/AppButton";
 import { logger } from "../../../../utils/logger";
+import { isRTL } from "../../../../utils/rtlHelpers";
 
 // Debug function
 const debugWorkoutPlan = (plan: any, source: string) => {
@@ -643,9 +644,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
+    textAlign: isRTL() ? "right" : "left",
   },
   planStats: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     flexWrap: "wrap",
     gap: 12,
     marginBottom: 16,
@@ -672,6 +674,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text,
     marginBottom: 4,
+    textAlign: isRTL() ? "right" : "left",
   },
   debugText: {
     fontSize: 12,
@@ -683,11 +686,13 @@ const styles = StyleSheet.create({
   // New styles for workout days tabs
   tabsContainer: {
     marginBottom: 16,
+    direction: isRTL() ? "rtl" : "ltr",
   },
   dayTab: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: 8,
+    marginRight: isRTL() ? 0 : 8,
+    marginLeft: isRTL() ? 8 : 0,
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     minWidth: 100,
@@ -726,14 +731,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 4,
+    textAlign: isRTL() ? "right" : "left",
   },
   daySubtitle: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 8,
+    textAlign: isRTL() ? "right" : "left",
   },
   dayStats: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     flexWrap: "wrap",
     gap: 8,
   },
@@ -753,6 +760,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 12,
+    textAlign: isRTL() ? "right" : "left",
   },
   exerciseItem: {
     backgroundColor: theme.colors.surface,
@@ -768,34 +776,41 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 4,
+    textAlign: isRTL() ? "right" : "left",
   },
   exerciseDetails: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 4,
+    textAlign: isRTL() ? "right" : "left",
   },
   exerciseEquipment: {
     fontSize: 12,
     color: theme.colors.primary,
     fontWeight: "500",
+    textAlign: isRTL() ? "right" : "left",
   },
   beginnerTips: {
     marginTop: 8,
     padding: 8,
     backgroundColor: theme.colors.primary + "10",
     borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftWidth: isRTL() ? 0 : 3,
+    borderRightWidth: isRTL() ? 3 : 0,
+    borderLeftColor: isRTL() ? "transparent" : theme.colors.primary,
+    borderRightColor: isRTL() ? theme.colors.primary : "transparent",
   },
   beginnerTipsTitle: {
     fontSize: 12,
     fontWeight: "600",
     color: theme.colors.primary,
     marginBottom: 4,
+    textAlign: isRTL() ? "right" : "left",
   },
   beginnerTipsText: {
     fontSize: 11,
     color: theme.colors.text,
     lineHeight: 16,
+    textAlign: isRTL() ? "right" : "left",
   },
 });

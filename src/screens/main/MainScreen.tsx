@@ -21,6 +21,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../core/theme";
+import { isRTL, wrapBidi, formatCompactUnit } from "../../utils/rtlHelpers";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { logger } from "../../utils/logger";
@@ -857,7 +858,19 @@ function MainScreen() {
                       color={theme.colors.warning}
                     />
                     <Text style={styles.healthDataValue}>
-                      {Math.round(wearableData.sleep?.duration || 0)}h
+                      {wrapBidi(
+                        (() => {
+                          const hours = Math.round(
+                            wearableData.sleep?.duration || 0
+                          );
+                          // Use compact unit if hours > 0, fallback to 0‎ש׳
+                          return hours > 0
+                            ? formatCompactUnit(hours, "hr")
+                            : isRTL()
+                              ? "0ש׳"
+                              : "0h";
+                        })()
+                      )}
                     </Text>
                     <Text style={styles.healthDataLabel}>שינה</Text>
                   </View>
@@ -1047,7 +1060,7 @@ function MainScreen() {
             ]}
           >
             <Text style={styles.sectionTitle}>
-              {MAIN_SCREEN_TEXTS.SECTIONS.YOUR_STATUS}
+              {wrapBidi(MAIN_SCREEN_TEXTS.SECTIONS.YOUR_STATUS)}
             </Text>
 
             <View style={styles.statsGrid}>
@@ -1101,7 +1114,7 @@ function MainScreen() {
             ]}
           >
             <Text style={styles.sectionTitle}>
-              {MAIN_SCREEN_TEXTS.SECTIONS.RECENT_WORKOUTS}
+              {wrapBidi(MAIN_SCREEN_TEXTS.SECTIONS.RECENT_WORKOUTS)}
             </Text>
 
             <View style={styles.recentWorkoutsList}>
@@ -1164,10 +1177,14 @@ function MainScreen() {
                           />
                         </View>
                         <View style={styles.workoutInfo}>
-                          <Text style={styles.workoutTitle}>{title}</Text>
+                          <Text style={styles.workoutTitle}>
+                            {wrapBidi(title)}
+                          </Text>
                           <Text style={styles.workoutDate}>
-                            {formatWorkoutDate(dateValue, durationMinutes) ||
-                              "תאריך לא ידוע"}
+                            {wrapBidi(
+                              formatWorkoutDate(dateValue, durationMinutes) ||
+                                "תאריך לא ידוע"
+                            )}
                           </Text>
                         </View>
                         <View style={styles.workoutRating}>
@@ -1232,9 +1249,9 @@ const styles = StyleSheet.create({
     fontSize: 24, // הוגדל מ-22 לבולטות מקסימלית
     fontWeight: "800",
     color: theme.colors.text,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
     marginBottom: theme.spacing.lg,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     letterSpacing: 0.4,
     // שיפור טיפוגרפי נוסף
     textShadowColor: `${theme.colors.text}12`,
@@ -1286,7 +1303,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   recentWorkoutItem: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
@@ -1311,7 +1328,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: theme.spacing.lg,
+    marginLeft: isRTL() ? theme.spacing.lg : 0,
+    marginRight: isRTL() ? 0 : theme.spacing.lg,
     // Modern icon design with gradient-like background
     backgroundColor: `${theme.colors.backgroundElevated}F5`,
     borderWidth: 2.5,
@@ -1328,36 +1346,39 @@ const styles = StyleSheet.create({
   },
   workoutInfo: {
     flex: 1,
-    alignItems: "flex-end",
-    paddingRight: theme.spacing.sm,
+    alignItems: isRTL() ? "flex-end" : "flex-start",
+    paddingRight: isRTL() ? theme.spacing.sm : 0,
+    paddingLeft: isRTL() ? 0 : theme.spacing.sm,
   },
   workoutTitle: {
     fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
     fontWeight: "700",
     color: theme.colors.text,
-    textAlign: "right",
+    textAlign: isRTL() ? "right" : "left",
     marginBottom: 6,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     letterSpacing: 0.3,
   },
   workoutDate: {
     fontSize: 15, // הוגדל מ-14 לקריאות מעולה
     fontWeight: "500",
     color: theme.colors.textSecondary,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: isRTL() ? "right" : "left",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     letterSpacing: 0.2,
   },
   workoutRating: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
-    marginRight: theme.spacing.md,
+    marginRight: isRTL() ? theme.spacing.md : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.md,
   },
   ratingText: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
-    marginRight: 4,
+    marginRight: isRTL() ? 4 : 0,
+    marginLeft: isRTL() ? 0 : 4,
   },
 
   // Scientific stats section // קטע הסטטיסטיקות המדעיות
@@ -1379,14 +1400,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
     borderRadius: theme.radius.full,
-    alignSelf: "flex-start",
+    alignSelf: isRTL() ? "flex-end" : "flex-start",
     marginBottom: theme.spacing.sm,
   },
   fitnessLevelText: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.primary,
     fontWeight: "600",
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 
   // Error and loading styles
@@ -1404,7 +1425,7 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     textAlign: "center",
     marginBottom: theme.spacing.sm,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   loadingOverlay: {
     position: "absolute",
@@ -1421,7 +1442,7 @@ const styles = StyleSheet.create({
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     color: theme.colors.text,
     marginTop: theme.spacing.sm,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 
   // Day selection section styles // סטיילים לקטע בחירת יום
@@ -1430,7 +1451,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   recommendationNote: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     backgroundColor: theme.colors.primary + "10",
     borderRadius: theme.radius.md,
@@ -1442,9 +1463,10 @@ const styles = StyleSheet.create({
   recommendationText: {
     fontSize: 14,
     color: theme.colors.primary,
-    marginEnd: theme.spacing.xs,
+    marginRight: isRTL() ? theme.spacing.xs : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.xs,
     flex: 1,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
     lineHeight: 18,
   },
   quickWorkoutButtonContainer: {
@@ -1456,7 +1478,7 @@ const styles = StyleSheet.create({
   },
   quickWorkoutButton: {
     padding: theme.spacing.md,
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "center",
     // 📱 44px Minimum Touch Target Validation for Fitness Mobile
@@ -1466,8 +1488,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.surface,
-    marginStart: theme.spacing.sm,
-    writingDirection: "rtl",
+    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 
   // Advanced insights styles // סטיילים לתובנות מתקדמות
@@ -1484,10 +1507,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.success,
     marginBottom: theme.spacing.xs,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   insightItem: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "flex-start",
     marginBottom: theme.spacing.xs,
     paddingHorizontal: theme.spacing.xs,
@@ -1496,9 +1519,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.text,
     lineHeight: 16,
-    marginEnd: theme.spacing.xs,
+    marginRight: isRTL() ? theme.spacing.xs : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.xs,
     flex: 1,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   nextWorkoutSection: {
     marginTop: theme.spacing.lg,
@@ -1522,7 +1546,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.success + "20",
   },
   wearableHeader: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     marginBottom: theme.spacing.sm,
   },
@@ -1530,9 +1554,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginEnd: theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
     flex: 1,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   connectedBadge: {
     backgroundColor: theme.colors.success + "20",
@@ -1546,7 +1571,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   healthDataGrid: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     justifyContent: "space-between",
   },
   healthDataItem: {
@@ -1562,12 +1587,12 @@ const styles = StyleSheet.create({
   healthDataLabel: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 
   // AI recommendations styles
   aiLoadingContainer: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     justifyContent: "center",
     padding: theme.spacing.md,
@@ -1576,10 +1601,11 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   aiLoadingText: {
-    marginEnd: theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
     fontSize: 14,
     color: theme.colors.text,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   aiRecommendationsContainer: {
     gap: theme.spacing.sm,
@@ -1589,11 +1615,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     ...theme.shadows.small,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
+    borderLeftWidth: isRTL() ? 0 : 4,
+    borderRightWidth: isRTL() ? 4 : 0,
+    borderLeftColor: isRTL() ? "transparent" : theme.colors.primary,
+    borderRightColor: isRTL() ? theme.colors.primary : "transparent",
   },
   recommendationHeader: {
-    flexDirection: "row-reverse",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     marginBottom: theme.spacing.xs,
   },
@@ -1601,9 +1629,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginEnd: theme.spacing.sm,
+    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginLeft: isRTL() ? 0 : theme.spacing.sm,
     flex: 1,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   priorityBadge: {
     paddingHorizontal: theme.spacing.xs,
@@ -1619,13 +1648,13 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: theme.spacing.xs,
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
   recommendationAction: {
     fontSize: 14,
     color: theme.colors.primary,
     fontWeight: "500",
-    writingDirection: "rtl",
+    writingDirection: isRTL() ? "rtl" : "ltr",
   },
 });
 

@@ -225,7 +225,32 @@ const BMIBMRCalculator: React.FC = () => {
         ...newResults,
         date: newHistoryEntry.date,
       },
+      // עדכון המידע האישי עם הערכים המדויקים מהמחשבון
+      personalInfo: {
+        ...user?.personalInfo,
+        weight: formData.weight,
+        height: formData.height,
+        lastUpdated: new Date().toISOString(),
+      },
+      // עדכון נתוני השאלון עם הערכים המדויקים
+      questionnaireData: {
+        ...user?.questionnaireData,
+        answers: {
+          ...user?.questionnaireData?.answers,
+          weight: formData.weight,
+          height: formData.height,
+          age: formData.age,
+          // לא מעדכנים את המין - הוא נשאר כפי שנקבע בשאלון
+        },
+      },
     });
+
+    // הודעה למשתמש שהנתונים נשמרו ועודכנו
+    Alert.alert(
+      "החישוב הושלם",
+      "הנתונים נשמרו והמידע האישי עודכן בערכים המדויקים",
+      [{ text: "אישור", style: "default" }]
+    );
   };
 
   const renderFormField = (
@@ -410,44 +435,10 @@ const BMIBMRCalculator: React.FC = () => {
               )}
               <View style={styles.formField}>
                 <Text style={styles.fieldLabel}>מין</Text>
-                <View style={styles.genderSelector}>
-                  <TouchableOpacity
-                    style={[
-                      styles.genderButton,
-                      formData.gender === "male" && styles.genderButtonSelected,
-                    ]}
-                    onPress={() => setFormData({ ...formData, gender: "male" })}
-                  >
-                    <Text
-                      style={[
-                        styles.genderButtonText,
-                        formData.gender === "male" &&
-                          styles.genderButtonTextSelected,
-                      ]}
-                    >
-                      זכר
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.genderButton,
-                      formData.gender === "female" &&
-                        styles.genderButtonSelected,
-                    ]}
-                    onPress={() =>
-                      setFormData({ ...formData, gender: "female" })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.genderButtonText,
-                        formData.gender === "female" &&
-                          styles.genderButtonTextSelected,
-                      ]}
-                    >
-                      נקבה
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.genderDisplay}>
+                  <Text style={styles.genderDisplayText}>
+                    {formData.gender === "male" ? "זכר" : "נקבה"}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -526,30 +517,19 @@ const styles = StyleSheet.create({
     textAlign: "right",
     backgroundColor: theme.colors.background,
   },
-  genderSelector: {
-    flexDirection: "row",
-    gap: theme.spacing.xs,
-  },
-  genderButton: {
-    flex: 1,
-    paddingVertical: theme.spacing.sm,
+  genderDisplay: {
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 8,
-    alignItems: "center",
+    padding: theme.spacing.sm,
     backgroundColor: theme.colors.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  genderButtonSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  genderButtonText: {
+  genderDisplayText: {
     fontSize: 14,
     color: theme.colors.text,
-  },
-  genderButtonTextSelected: {
-    color: theme.colors.white,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   activityLevels: {
     flexDirection: "row",
