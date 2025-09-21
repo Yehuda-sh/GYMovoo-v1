@@ -151,6 +151,6 @@ const styles = StyleSheet.create({
   viewMore: {
     color: "rgba(255, 255, 255, 0.9)",
     fontSize: 14,
-    marginRight: 8,
+    marginEnd: 8,
   },
 });

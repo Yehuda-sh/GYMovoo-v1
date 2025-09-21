@@ -24,8 +24,6 @@ import { PersonalInfoScreen } from "../features/profile/screens/PersonalInfoScre
 import { useUserStore } from "../stores/userStore";
 import BottomNavigation from "./BottomNavigation";
 import { RootStackParamList } from "./types";
-import { logger } from "../utils/logger";
-import React from "react";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -33,9 +31,7 @@ export default function AppNavigator() {
   const { user, getCompletionStatus, hydrated, hasSeenWelcome } =
     useUserStore();
 
-  React.useEffect(() => {
-    logger.info("AppNavigator", "🎯 Component mounted/updated");
-  }, []);
+  // הסרנו את הלוג המיותר שהיה מופיע בכל רנדר
 
   if (!hydrated) {
     return null;
@@ -45,32 +41,15 @@ export default function AppNavigator() {
     if (!user) return hasSeenWelcome ? "Auth" : "Welcome";
     const completion = getCompletionStatus();
 
-    // DEBUG: לוג לבדיקה
-    console.log("🔍 [AppNavigator] Navigation decision:", {
-      hasUser: !!user,
-      hasBasicInfo: completion.hasBasicInfo,
-      hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
-      isFullySetup: completion.isFullySetup,
-      userHasEmail: !!user?.email,
-      userHasId: !!user?.id,
-      userHasName: !!user?.name,
-    });
-
     // אם המשתמש הושלם לחלוטין - מסך ראשי
     if (completion.isFullySetup) return "MainApp";
 
     // אם יש שאלון אבל אין פרטים בסיסיים - רישום
     if (completion.hasSmartQuestionnaire && !completion.hasBasicInfo) {
-      console.log(
-        "🔍 [AppNavigator] Going to Auth - has questionnaire but no basic info"
-      );
       return "Auth";
     }
 
     // אם אין שאלון - שאלון
-    console.log(
-      "🔍 [AppNavigator] Going to Questionnaire - no questionnaire found"
-    );
     return "Questionnaire";
   })();
   return (

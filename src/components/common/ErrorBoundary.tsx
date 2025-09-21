@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   retryIcon: {
-    marginRight: theme.spacing.sm,
+    marginEnd: theme.spacing.sm,
   },
   retryText: {
     color: theme.colors.white,

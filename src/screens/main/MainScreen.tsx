@@ -21,7 +21,12 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../core/theme";
-import { isRTL, wrapBidi, formatCompactUnit } from "../../utils/rtlHelpers";
+import {
+  isRTL,
+  wrapBidi,
+  formatCompactUnit,
+  wrapTextWithEmoji,
+} from "../../utils/rtlHelpers";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { logger } from "../../utils/logger";
@@ -779,7 +784,7 @@ function MainScreen() {
                     advancedStats.insights.length > 0 && (
                       <View style={styles.advancedInsightsContainer}>
                         <Text style={styles.advancedInsightsTitle}>
-                          📊 תובנות אימון מתקדמות
+                          {wrapTextWithEmoji("תובנות אימון מתקדמות", "📊")}
                         </Text>
                         {advancedStats.insights
                           .slice(0, 2)
@@ -1024,7 +1029,7 @@ function MainScreen() {
                     useNativeDriver: true,
                   }).start();
                 }}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                hitSlop={{ top: 20, bottom: 20, start: 20, end: 20 }}
                 accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
                 accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
                 accessibilityRole="button"
@@ -1328,8 +1333,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: isRTL() ? theme.spacing.lg : 0,
-    marginRight: isRTL() ? 0 : theme.spacing.lg,
+    marginStart: isRTL() ? theme.spacing.lg : 0,
+    marginEnd: isRTL() ? 0 : theme.spacing.lg,
     // Modern icon design with gradient-like background
     backgroundColor: `${theme.colors.backgroundElevated}F5`,
     borderWidth: 2.5,
@@ -1347,8 +1352,8 @@ const styles = StyleSheet.create({
   workoutInfo: {
     flex: 1,
     alignItems: isRTL() ? "flex-end" : "flex-start",
-    paddingRight: isRTL() ? theme.spacing.sm : 0,
-    paddingLeft: isRTL() ? 0 : theme.spacing.sm,
+    paddingEnd: isRTL() ? theme.spacing.sm : 0,
+    paddingStart: isRTL() ? 0 : theme.spacing.sm,
   },
   workoutTitle: {
     fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
@@ -1370,15 +1375,15 @@ const styles = StyleSheet.create({
   workoutRating: {
     flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
-    marginRight: isRTL() ? theme.spacing.md : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.md,
+    marginEnd: isRTL() ? theme.spacing.md : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.md,
   },
   ratingText: {
     fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
     fontWeight: "600",
     color: theme.colors.text,
-    marginRight: isRTL() ? 4 : 0,
-    marginLeft: isRTL() ? 0 : 4,
+    marginEnd: isRTL() ? 4 : 0,
+    marginStart: isRTL() ? 0 : 4,
   },
 
   // Scientific stats section // קטע הסטטיסטיקות המדעיות
@@ -1430,8 +1435,8 @@ const styles = StyleSheet.create({
   loadingOverlay: {
     position: "absolute",
     top: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     backgroundColor: theme.colors.background + "90",
     alignItems: "center",
@@ -1463,8 +1468,8 @@ const styles = StyleSheet.create({
   recommendationText: {
     fontSize: 14,
     color: theme.colors.primary,
-    marginRight: isRTL() ? theme.spacing.xs : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.xs,
+    marginEnd: isRTL() ? theme.spacing.xs : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.xs,
     flex: 1,
     writingDirection: isRTL() ? "rtl" : "ltr",
     lineHeight: 18,
@@ -1488,8 +1493,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.surface,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
     writingDirection: isRTL() ? "rtl" : "ltr",
   },
 
@@ -1519,8 +1524,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.text,
     lineHeight: 16,
-    marginRight: isRTL() ? theme.spacing.xs : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.xs,
+    marginEnd: isRTL() ? theme.spacing.xs : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.xs,
     flex: 1,
     writingDirection: isRTL() ? "rtl" : "ltr",
   },
@@ -1554,8 +1559,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
     flex: 1,
     writingDirection: isRTL() ? "rtl" : "ltr",
   },
@@ -1601,8 +1606,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.small,
   },
   aiLoadingText: {
-    marginRight: isRTL() ? theme.spacing.sm : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
     fontSize: 14,
     color: theme.colors.text,
     writingDirection: isRTL() ? "rtl" : "ltr",
@@ -1615,8 +1620,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     ...theme.shadows.small,
-    borderLeftWidth: isRTL() ? 0 : 4,
-    borderRightWidth: isRTL() ? 4 : 0,
+    borderStartWidth: isRTL() ? 0 : 4,
+    borderEndWidth: isRTL() ? 4 : 0,
     borderLeftColor: isRTL() ? "transparent" : theme.colors.primary,
     borderRightColor: isRTL() ? theme.colors.primary : "transparent",
   },
@@ -1629,8 +1634,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
     flex: 1,
     writingDirection: isRTL() ? "rtl" : "ltr",
   },

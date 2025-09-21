@@ -7,6 +7,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
 import { theme } from "../../core/theme";
+import { getTextDirection } from "../../utils/rtlHelpers";
 
 interface UniversalCardProps {
   title?: string;
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.h5.fontWeight,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    writingDirection: "rtl",
+    writingDirection: getTextDirection(),
   },
   content: {},
 });

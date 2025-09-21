@@ -34,6 +34,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { theme } from "../../core/theme";
+import { getFlexDirection } from "../../utils/rtlHelpers";
 
 // =======================================
 // 🎯 Types & Interfaces
@@ -89,7 +90,7 @@ const BUTTON_CONSTANTS = {
   MIN_HEIGHT: 44, // iOS HIG minimum touch target
   MIN_WIDTH: 44,
   BORDER_RADIUS: 12,
-  HIT_SLOP: { top: 8, bottom: 8, left: 8, right: 8 },
+  HIT_SLOP: { top: 8, bottom: 8, start: 8, end: 8 },
   ICON_MARGIN: 8,
 } as const;
 
@@ -257,7 +258,7 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
 
     const containerStyle = useMemo(
       (): ViewStyle => ({
-        flexDirection: "row",
+        flexDirection: getFlexDirection(),
         alignItems: "center",
         justifyContent: "center",
         minHeight: Math.max(sizeConfig.minHeight, BUTTON_CONSTANTS.MIN_HEIGHT),
@@ -334,10 +335,10 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
             }
             style={[
               iconPosition === "left" && {
-                marginRight: BUTTON_CONSTANTS.ICON_MARGIN,
+                marginEnd: BUTTON_CONSTANTS.ICON_MARGIN,
               },
               iconPosition === "right" && {
-                marginLeft: BUTTON_CONSTANTS.ICON_MARGIN,
+                marginStart: BUTTON_CONSTANTS.ICON_MARGIN,
               },
             ]}
           />
@@ -353,7 +354,7 @@ export const AppButton: React.FC<AppButtonProps> = React.memo(
             <ActivityIndicator
               size="small"
               color={variantStyles.text.color}
-              style={{ marginRight: title ? BUTTON_CONSTANTS.ICON_MARGIN : 0 }}
+              style={{ marginEnd: title ? BUTTON_CONSTANTS.ICON_MARGIN : 0 }}
             />
             {title && (
               <Text style={finalTextStyle} numberOfLines={1}>
@@ -413,12 +414,12 @@ AppButton.displayName = "AppButton";
 
 const styles = StyleSheet.create({
   loadingContainer: {
-    flexDirection: "row",
+    flexDirection: getFlexDirection(),
     alignItems: "center",
     justifyContent: "center",
   },
   contentContainer: {
-    flexDirection: "row",
+    flexDirection: getFlexDirection(),
     alignItems: "center",
     justifyContent: "center",
   },

@@ -23,7 +23,7 @@ import CalorieCalculator from "../../../../components/workout/CalorieCalculator"
 import { questionnaireService } from "../../../questionnaire/services/questionnaireService";
 import AppButton from "../../../../components/common/AppButton";
 import { logger } from "../../../../utils/logger";
-import { isRTL } from "../../../../utils/rtlHelpers";
+import { isRTL, wrapTextWithEmoji } from "../../../../utils/rtlHelpers";
 
 // Debug function
 const debugWorkoutPlan = (plan: any, source: string) => {
@@ -194,10 +194,16 @@ export default function WorkoutPlansScreen(): React.ReactElement {
                   🏋️ {currentWorkoutPlan.workouts?.length || 0} אימונים
                 </Text>
                 <Text style={styles.planStat}>
-                  ⏱️ {currentWorkoutPlan.duration} דקות
+                  {wrapTextWithEmoji(
+                    `${currentWorkoutPlan.duration} דקות`,
+                    "⏱️"
+                  )}
                 </Text>
                 <Text style={styles.planStat}>
-                  📅 {currentWorkoutPlan.frequency || "לא צוין"}
+                  {wrapTextWithEmoji(
+                    currentWorkoutPlan.frequency || "לא צוין",
+                    "📅"
+                  )}
                 </Text>
               </View>
 
@@ -205,13 +211,16 @@ export default function WorkoutPlansScreen(): React.ReactElement {
               {currentWorkoutPlan.workouts?.[0]?.exercises && (
                 <View style={styles.exerciseInfo}>
                   <Text style={styles.exerciseInfoText}>
-                    💪 {currentWorkoutPlan.workouts[0].exercises.length} תרגילים
-                    באימון הראשון
+                    {wrapTextWithEmoji(
+                      `${currentWorkoutPlan.workouts[0].exercises.length} תרגילים באימון הראשון`,
+                      "💪"
+                    )}
                   </Text>
                   <Text style={styles.exerciseInfoText}>
-                    🎯 ציוד נדרש:{" "}
-                    {currentWorkoutPlan.workouts[0].equipment?.join(", ") ||
-                      "משקל גוף"}
+                    {wrapTextWithEmoji(
+                      `ציוד נדרש: ${currentWorkoutPlan.workouts[0].equipment?.join(", ") || "משקל גוף"}`,
+                      "🎯"
+                    )}
                   </Text>
                 </View>
               )}
@@ -691,8 +700,8 @@ const styles = StyleSheet.create({
   dayTab: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: isRTL() ? 0 : 8,
-    marginLeft: isRTL() ? 8 : 0,
+    marginEnd: isRTL() ? 0 : 8,
+    marginStart: isRTL() ? 8 : 0,
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     minWidth: 100,
@@ -795,8 +804,8 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: theme.colors.primary + "10",
     borderRadius: 6,
-    borderLeftWidth: isRTL() ? 0 : 3,
-    borderRightWidth: isRTL() ? 3 : 0,
+    borderStartWidth: isRTL() ? 0 : 3,
+    borderEndWidth: isRTL() ? 3 : 0,
     borderLeftColor: isRTL() ? "transparent" : theme.colors.primary,
     borderRightColor: isRTL() ? theme.colors.primary : "transparent",
   },

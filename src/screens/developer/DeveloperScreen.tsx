@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.text,
-    marginLeft: theme.spacing.md,
+    marginStart: theme.spacing.md,
   },
   content: {
     flex: 1,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   userCount: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
   },
   createButton: {
     flexDirection: "row",
@@ -325,8 +325,8 @@ const styles = StyleSheet.create({
   loadingOverlay: {
     position: "absolute",
     top: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     justifyContent: "center",

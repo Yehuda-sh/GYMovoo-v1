@@ -65,7 +65,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
                   useNativeDriver: true,
                 }).start();
               }}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              hitSlop={{ top: 20, bottom: 20, start: 20, end: 20 }}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
               accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
               accessibilityRole="button"
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   profileContainer: {
-    marginLeft: 20,
+    marginStart: 20,
   },
   profileButton: {
     padding: 4,

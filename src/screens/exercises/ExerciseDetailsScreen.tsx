@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: theme.colors.primary,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
     minWidth: 20,
     textAlign: "center",
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
     lineHeight: 20,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
   },
   bottomActions: {
     padding: theme.spacing.md,

@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: theme.colors.text,
-    marginRight: theme.spacing.md,
+    marginEnd: theme.spacing.md,
     flex: 1,
     textAlign: "right",
   },

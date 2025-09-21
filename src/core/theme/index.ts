@@ -261,9 +261,9 @@ export const zIndex = {
 export const touch = {
   minTarget: 44,
   hitSlop: {
-    small: { top: 8, right: 8, bottom: 8, left: 8 } as Insets,
-    medium: { top: 12, right: 12, bottom: 12, left: 12 } as Insets,
-    large: { top: 16, right: 16, bottom: 16, left: 16 } as Insets,
+    small: { top: 8, end: 8, bottom: 8, start: 8 } as Insets,
+    medium: { top: 12, end: 12, bottom: 12, start: 12 } as Insets,
+    large: { top: 16, end: 16, bottom: 16, start: 16 } as Insets,
   },
 } as const;
 
@@ -278,8 +278,8 @@ export const rtl = {
   switch: <T>(rtlValue: T, ltrValue: T): T => (isRTL() ? rtlValue : ltrValue),
   // מחזיר style של קצה (left/right) לפי כיוון
   edge: (value: number = spacing.lg) => ({
-    left: isRTL() ? undefined : value,
-    right: isRTL() ? value : undefined,
+    start: isRTL() ? undefined : value,
+    end: isRTL() ? value : undefined,
   }),
 } as const;
 
@@ -333,7 +333,7 @@ export const components = {
 
   selectionIndicator: {
     position: "absolute" as const,
-    right: 16,
+    end: 16,
     top: "50%",
     transform: [{ translateY: -12 }],
   },
@@ -404,8 +404,8 @@ export const components = {
   rtlInput: {
     backgroundColor: colors.backgroundAlt,
     borderRadius: radius.lg,
-    paddingRight: spacing.md, // Specific for RTL
-    paddingLeft: spacing.md,
+    paddingEnd: spacing.md, // Specific for RTL
+    paddingStart: spacing.md,
     paddingVertical: spacing.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -507,8 +507,8 @@ export const components = {
   floatingButton: {
     position: "absolute" as const,
     bottom: spacing.xl,
-    right: isRTL() ? undefined : spacing.xl,
-    left: isRTL() ? spacing.xl : undefined,
+    end: isRTL() ? undefined : spacing.xl,
+    start: isRTL() ? spacing.xl : undefined,
     backgroundColor: colors.primary,
     width: 56,
     height: 56,
@@ -547,8 +547,8 @@ export const components = {
   backButton: {
     position: "absolute" as const,
     top: Platform.OS === "ios" ? 50 : 40,
-    left: isRTL() ? spacing.md : undefined,
-    right: isRTL() ? undefined : spacing.md,
+    start: isRTL() ? spacing.md : undefined,
+    end: isRTL() ? undefined : spacing.md,
     backgroundColor: colors.card + "CC",
     borderRadius: 24,
     width: 42,
@@ -600,8 +600,8 @@ export const components = {
       ? {
           position: "absolute" as const,
           top: Platform.OS === "ios" ? 50 : 40,
-          left: isRTL() ? spacing.md : undefined,
-          right: isRTL() ? undefined : spacing.md,
+          start: isRTL() ? spacing.md : undefined,
+          end: isRTL() ? undefined : spacing.md,
         }
       : {};
 
@@ -776,8 +776,8 @@ export const theme = {
   toast: {
     position: "absolute" as const,
     bottom: 100,
-    left: spacing.xl,
-    right: spacing.xl,
+    start: spacing.xl,
+    end: spacing.xl,
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,

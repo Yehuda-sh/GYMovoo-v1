@@ -12,6 +12,7 @@ import {
   QuestionnaireData,
   QUESTIONNAIRE_VERSION,
 } from "../types";
+import { wrapTextWithEmoji } from "../../../utils/rtlHelpers";
 
 // ================== אפשרויות השאלון ==================
 
@@ -91,7 +92,7 @@ const DIET_OPTIONS: QuestionOption[] = [
 export const UNIFIED_QUESTIONS: Question[] = [
   {
     id: "gender",
-    title: "👤 מה המין שלך?",
+    title: wrapTextWithEmoji("מה המין שלך?", "👤"),
     subtitle: "מידע זה יעזור לנו להתאים את התוכנית",
     question: "בחר את המין שלך",
     helpText: "התוכנית תותאם למין שבחרת",
@@ -130,7 +131,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "weight",
-    title: "⚖️ כמה אתה שוקל/ת?",
+    title: wrapTextWithEmoji("כמה אתה שוקל/ת?", "⚖️"),
     subtitle: "מידע זה יעזור לחישוב עומס אימון מדויק (אופציונלי)",
     question: "בחר את טווח המשקל שלך",
     helpText: "המידע יסייע בהתאמת עצימות התרגילים",
@@ -175,7 +176,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "fitness_goal",
-    title: "🎯 מה המטרה שלך?",
+    title: wrapTextWithEmoji("מה המטרה שלך?", "🎯"),
     subtitle: "בחר את המטרה העיקרית שלך",
     question: "איך תרצה להשתפר?",
     helpText: "בחר את המטרה הכי חשובה לך כרגע",
@@ -206,7 +207,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "experience_level",
-    title: "💪 איך הניסיון שלך?",
+    title: wrapTextWithEmoji("איך הניסיון שלך?", "💪"),
     subtitle: "בחר את הרמה שמתאימה לך",
     question: "כמה ניסיון יש לך באימונים?",
     helpText: "התשובה תקבע את רמת הקושי של התוכנית",
@@ -255,7 +256,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "session_duration",
-    title: "⏱️ כמה זמן לאימון?",
+    title: wrapTextWithEmoji("כמה זמן לאימון?", "⏱️"),
     subtitle: "בחר את משך האימון המועדף",
     question: "כמה זמן תרצה להקדיש לכל אימון?",
     helpText: "התוכנית תותאם למשך הזמן שבחרת",
@@ -282,7 +283,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "workout_location",
-    title: "🏠 איפה תתאמן?",
+    title: wrapTextWithEmoji("איפה תתאמן?", "🏠"),
     subtitle: "בחר את מיקום האימון העיקרי",
     question: "איפה אתה מעדיף להתאמן?",
     helpText: "התוכנית תותאם למיקום ולציוד הזמין",
@@ -305,7 +306,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "bodyweight_equipment",
-    title: "🏠 איזה חפצים יש לך בבית?",
+    title: wrapTextWithEmoji("איזה חפצים יש לך בבית?", "🏠"),
     subtitle: "בחר את כל החפצים הזמינים",
     question: "איזה חפצים ביתיים יש לך לאימונים?",
     helpText: "בחר את כל האפשרויות הזמינות לך",
@@ -315,7 +316,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "home_equipment",
-    title: "🏋️ איזה ציוד יש לך בבית?",
+    title: wrapTextWithEmoji("איזה ציוד יש לך בבית?", "🏋️"),
     subtitle: "בחר את כל הציוד הזמין",
     question: "איזה ציוד כושר יש לך בבית?",
     helpText: "בחר את כל הציוד שיש לך גישה אליו",
@@ -325,7 +326,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
   },
   {
     id: "gym_equipment",
-    title: "🏟️ איזה ציוד יש בחדר הכושר?",
+    title: wrapTextWithEmoji("איזה ציוד יש בחדר הכושר?", "🏟️"),
     subtitle: "בחר את הציוד הזמין בחדר הכושר שלך",
     question: "איזה ציוד זמין בחדר הכושר שלך?",
     helpText: "בחר את כל הציוד שאתה יכול להשתמש בו",

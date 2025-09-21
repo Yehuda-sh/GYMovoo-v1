@@ -56,10 +56,10 @@ const getDeviceLanguage = (): string => {
         NativeModules.Locale?.locale;
     }
 
-    logger.debug("RTL", "Device language detected", {
-      locale,
-      platform: Platform.OS,
-    });
+    // רק לוג debug אם צריך
+    if (!locale) {
+      logger.debug("RTL", "Device language not detected, using default");
+    }
     return locale || "he_IL";
   } catch (error) {
     logger.error("RTL", "Failed to get device language", error);
@@ -124,12 +124,8 @@ export const initializeRTL = async (): Promise<void> => {
     // שמור העדפה
     await saveRTLPreference(shouldBeRTL);
 
-    logger.info("RTL", "RTL initialized successfully", {
+    logger.info("RTL", "RTL initialized", {
       isRTL: isRTLEnabled,
-      I18nManagerRTL: I18nManager.isRTL,
-      deviceLanguage,
-      isHebrewDevice,
-      savedPreference,
     });
   } catch (error) {
     logger.error("RTL", "RTL initialization failed", error);
@@ -143,9 +139,9 @@ export const initializeRTL = async (): Promise<void> => {
  * מצב RTL מרכזי - משופר עם fallback וvalidation
  */
 export const isRTL = (): boolean => {
-  // אם לא אותחל עדיין, החזר ברירת מחדל
+  // אם לא אותחל עדיין, החזר ברירת מחדל בשקט
   if (!isInitialized) {
-    logger.warn("RTL", "isRTL called before initialization, returning default");
+    // הסר לוג האזהרה כדי למנוע ספאם
     return DEFAULT_RTL;
   }
 
@@ -278,14 +274,14 @@ export const formatDurationSeconds = (
 export const mirrorStyle = <T extends Record<string, unknown>>(style: T): T => {
   if (!isRTL()) return style;
   const map: Record<string, string> = {
-    marginLeft: "marginRight",
-    marginRight: "marginLeft",
-    paddingLeft: "paddingRight",
-    paddingRight: "paddingLeft",
-    borderLeftWidth: "borderRightWidth",
-    borderRightWidth: "borderLeftWidth",
-    left: "right",
-    right: "left",
+    marginStart: "marginRight",
+    marginEnd: "marginLeft",
+    paddingStart: "paddingRight",
+    paddingEnd: "paddingLeft",
+    borderStartWidth: "borderRightWidth",
+    borderEndWidth: "borderLeftWidth",
+    start: "right",
+    end: "left",
   };
   const cloned: Record<string, unknown> = { ...style };
   for (const key of Object.keys(style)) {
@@ -349,10 +345,10 @@ export const getFlexDirection = (): "row-reverse" | "row" => {
 export const getDynamicStyles = (spacing?: number) => {
   const rtl = isRTL();
   return {
-    marginLeft: rtl ? 0 : spacing,
-    marginRight: rtl ? spacing : 0,
-    paddingLeft: rtl ? 0 : spacing,
-    paddingRight: rtl ? spacing : 0,
+    marginStart: rtl ? 0 : spacing,
+    marginEnd: rtl ? spacing : 0,
+    paddingStart: rtl ? 0 : spacing,
+    paddingEnd: rtl ? spacing : 0,
     textAlign: rtl ? ("right" as const) : ("left" as const),
     writingDirection: rtl ? ("rtl" as const) : ("ltr" as const),
   };
@@ -373,8 +369,8 @@ export const getRTLStyles = () => ({
 export const getStartEndStyles = (start?: number, end?: number) => {
   const rtl = isRTL();
   return {
-    left: rtl ? end : start,
-    right: rtl ? start : end,
+    start: rtl ? end : start,
+    end: rtl ? start : end,
   };
 };
 
@@ -499,8 +495,8 @@ export const getHorizontalScrollStyles = () => {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
     },
     item: {
-      marginLeft: rtl ? 0 : 8,
-      marginRight: rtl ? 8 : 0,
+      marginStart: rtl ? 0 : 8,
+      marginEnd: rtl ? 8 : 0,
     },
   };
 };
@@ -516,8 +512,8 @@ export const getModalStyles = () => {
       alignItems: rtl ? "flex-end" : ("flex-start" as const),
     },
     content: {
-      marginLeft: rtl ? 0 : 20,
-      marginRight: rtl ? 20 : 0,
+      marginStart: rtl ? 0 : 20,
+      marginEnd: rtl ? 20 : 0,
     },
   };
 };
@@ -555,8 +551,8 @@ export const getToastStyles = () => {
   return {
     container: {
       alignSelf: rtl ? "flex-end" : ("flex-start" as const),
-      marginLeft: rtl ? 0 : 20,
-      marginRight: rtl ? 20 : 0,
+      marginStart: rtl ? 0 : 20,
+      marginEnd: rtl ? 20 : 0,
     },
     text: {
       textAlign: rtl ? "right" : ("left" as const),
@@ -573,8 +569,8 @@ export const getCardStyles = () => {
 
   return {
     container: {
-      borderLeftWidth: rtl ? 0 : 4,
-      borderRightWidth: rtl ? 4 : 0,
+      borderStartWidth: rtl ? 0 : 4,
+      borderEndWidth: rtl ? 4 : 0,
       borderLeftColor: rtl ? "transparent" : undefined,
       borderRightColor: rtl ? undefined : "transparent",
     },
@@ -582,8 +578,8 @@ export const getCardStyles = () => {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
     },
     title: {
-      marginLeft: rtl ? 0 : 8,
-      marginRight: rtl ? 8 : 0,
+      marginStart: rtl ? 0 : 8,
+      marginEnd: rtl ? 8 : 0,
       textAlign: rtl ? "right" : ("left" as const),
       writingDirection: rtl ? "rtl" : ("ltr" as const),
     },
@@ -599,12 +595,12 @@ export const getListStyles = () => {
   return {
     item: {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
-      paddingLeft: rtl ? 0 : 16,
-      paddingRight: rtl ? 16 : 0,
+      paddingStart: rtl ? 0 : 16,
+      paddingEnd: rtl ? 16 : 0,
     },
     icon: {
-      marginLeft: rtl ? 0 : 12,
-      marginRight: rtl ? 12 : 0,
+      marginStart: rtl ? 0 : 12,
+      marginEnd: rtl ? 12 : 0,
     },
     text: {
       textAlign: rtl ? "right" : ("left" as const),
@@ -624,8 +620,8 @@ export const getButtonStyles = () => {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
     },
     icon: {
-      marginLeft: rtl ? 0 : 8,
-      marginRight: rtl ? 8 : 0,
+      marginStart: rtl ? 0 : 8,
+      marginEnd: rtl ? 8 : 0,
     },
     text: {
       textAlign: rtl ? "right" : ("left" as const),
@@ -729,4 +725,192 @@ export const getRTLConfig = () => {
     borderStartWidth: rtl ? "borderRightWidth" : "borderLeftWidth",
     borderEndWidth: rtl ? "borderLeftWidth" : "borderRightWidth",
   };
+};
+
+/**
+ * עטיפת טקסט עם אימוג'י בהתאם ל-RTL
+ */
+export const wrapTextWithEmoji = (
+  text: string,
+  emoji: string,
+  position: "start" | "end" = "end"
+): string => {
+  if (!text || !emoji) return text;
+
+  if (isRTL()) {
+    // בעברית - אימוג'י תמיד בסוף
+    return `${text} ${emoji}`;
+  }
+
+  // בשפות LTR - לפי העדפה
+  return position === "start" ? `${emoji} ${text}` : `${text} ${emoji}`;
+};
+
+/**
+ * פורמט כותרת עם אימוג'י
+ */
+export const formatTitleWithEmoji = (title: string, emoji: string): string => {
+  return wrapTextWithEmoji(title, emoji, "end");
+};
+
+/**
+ * פורמט כפתור עם אימוג'י או אייקון
+ */
+export const formatButtonWithIcon = (
+  text: string,
+  icon: string,
+  type: "emoji" | "icon" = "emoji"
+): string => {
+  if (type === "emoji") {
+    return wrapTextWithEmoji(text, icon, "end");
+  }
+  // עבור אייקונים, נחזיר רק את הטקסט (האייקון יטופל ברכיב)
+  return text;
+};
+
+/**
+ * סגנונות כפתור עם אימוג'י/אייקון
+ */
+export const getEmojiButtonStyles = () => {
+  const rtl = isRTL();
+
+  return {
+    container: {
+      flexDirection: rtl ? "row-reverse" : ("row" as const),
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      gap: 8,
+    },
+    text: {
+      textAlign: rtl ? "right" : ("left" as const),
+      writingDirection: rtl ? "rtl" : ("ltr" as const),
+    },
+    icon: {
+      marginStart: rtl ? 0 : 8,
+      marginEnd: rtl ? 8 : 0,
+    },
+  };
+};
+
+/**
+ * סגנונות כותרת עם אימוג'י
+ */
+export const getTitleStyles = (level: "h1" | "h2" | "h3" = "h1") => {
+  const rtl = isRTL();
+
+  const baseSizes = {
+    h1: 28,
+    h2: 22,
+    h3: 18,
+  };
+
+  const baseStyles = {
+    fontSize: baseSizes[level],
+    fontWeight: (level === "h1" ? "bold" : "600") as "bold" | "600",
+    marginBottom: level === "h1" ? 24 : level === "h2" ? 16 : 12,
+    writingDirection: rtl ? "rtl" : ("ltr" as const),
+  };
+
+  // כותרת ראשית תמיד במרכז
+  if (level === "h1") {
+    return {
+      ...baseStyles,
+      textAlign: "center" as const,
+    };
+  }
+
+  // שאר הכותרות מיושרות לפי RTL
+  const textAlign = rtl ? "right" : "left";
+  return {
+    ...baseStyles,
+    textAlign: textAlign as "right" | "left",
+  };
+};
+
+/**
+ * בדיקה אם טקסט מכיל אימוג'י
+ */
+export const hasEmoji = (text: string): boolean => {
+  if (!text) return false;
+
+  // Regex פשוט לזיהוי אימוג'ים נפוצים
+  const emojiRegex =
+    /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
+  return emojiRegex.test(text);
+};
+
+/**
+ * הפרדת טקסט מאימוג'י
+ */
+export const separateTextAndEmoji = (
+  text: string
+): { text: string; emoji: string } => {
+  if (!hasEmoji(text)) {
+    return { text, emoji: "" };
+  }
+
+  // מציאת האימוג'י האחרון
+  const emojiRegex =
+    /([\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu;
+  const emojis = text.match(emojiRegex) || [];
+  const lastEmoji = emojis[emojis.length - 1] || "";
+  const cleanText = text.replace(emojiRegex, "").trim();
+
+  return { text: cleanText, emoji: lastEmoji };
+};
+
+/**
+ * מיפוי אימוג'ים לפעולות (לשימוש עקבי)
+ */
+export const getActionEmoji = (action: string): string => {
+  const emojiMap: Record<string, string> = {
+    start: "▶️",
+    play: "▶️",
+    add: "➕",
+    plus: "➕",
+    delete: "🗑️",
+    remove: "❌",
+    edit: "✏️",
+    save: "💾",
+    check: "✅",
+    cancel: "❌",
+    info: "ℹ️",
+    warning: "⚠️",
+    error: "❌",
+    success: "🎉",
+    workout: "💪",
+    exercise: "🏋️",
+    weight: "⚖️",
+    time: "⏱️",
+    calories: "🔥",
+    heart: "❤️",
+    star: "⭐",
+    trophy: "🏆",
+    target: "🎯",
+    settings: "⚙️",
+    profile: "👤",
+    home: "🏠",
+    stats: "📊",
+    calendar: "📅",
+    search: "🔍",
+    filter: "🔽",
+    sort: "📶",
+    refresh: "🔄",
+    sync: "🔄",
+    download: "⬇️",
+    upload: "⬆️",
+    share: "📤",
+    export: "📤",
+    import: "📥",
+  };
+
+  return emojiMap[action.toLowerCase()] || "";
+};
+
+/**
+ * יצירת טקסט עם אימוג'י לפי פעולה
+ */
+export const createActionText = (text: string, action: string): string => {
+  const emoji = getActionEmoji(action);
+  return emoji ? wrapTextWithEmoji(text, emoji, "end") : text;
 };

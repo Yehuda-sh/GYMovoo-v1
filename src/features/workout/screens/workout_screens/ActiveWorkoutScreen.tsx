@@ -24,6 +24,7 @@ import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
 
 import { WorkoutExercise, Set } from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
+import { wrapTextWithEmoji } from "../../../../utils/rtlHelpers";
 
 interface RestTimerProps {
   restTime: number;
@@ -42,11 +43,12 @@ const RestTimer: React.FC<RestTimerProps> = ({
 
   // פונקציה להסבר זמן המנוחה
   const getRestTimeExplanation = (time: number): string => {
-    if (time >= 120) return "זמן מנוחה ארוך לתרגילי כוח 💪";
-    if (time >= 90) return "זמן מנוחה בינוני למשקולות ⚖️";
-    if (time >= 60) return "זמן מנוחה סטנדרטי 🏃‍♂️";
-    if (time >= 45) return "זמן מנוחה קצר למשקל גוף 🤸‍♂️";
-    return "זמן מנוחה מינימלי ⚡";
+    if (time >= 120)
+      return wrapTextWithEmoji("זמן מנוחה ארוך לתרגילי כוח", "💪");
+    if (time >= 90) return wrapTextWithEmoji("זמן מנוחה בינוני למשקולות", "⚖️");
+    if (time >= 60) return wrapTextWithEmoji("זמן מנוחה סטנדרטי", "🏃‍♂️");
+    if (time >= 45) return wrapTextWithEmoji("זמן מנוחה קצר למשקל גוף", "🤸‍♂️");
+    return wrapTextWithEmoji("זמן מנוחה מינימלי", "⚡");
   };
 
   useEffect(() => {
@@ -128,7 +130,9 @@ const RestTimer: React.FC<RestTimerProps> = ({
         </View>
 
         {timeLeft <= 10 && (
-          <Text style={styles.almostDoneText}>כמעט גמרנו! 💪</Text>
+          <Text style={styles.almostDoneText}>
+            {wrapTextWithEmoji("כמעט גמרנו!", "💪")}
+          </Text>
         )}
 
         <View style={styles.restTimerButtons}>
@@ -722,7 +726,7 @@ const ActiveWorkoutScreen: React.FC = () => {
         {/* הנחיות למתחילים */}
         <View style={styles.beginnerTipsContainer}>
           <Text style={styles.beginnerTipsTitle}>
-            💪 טיפים לאימון בטוח ויעיל
+            {wrapTextWithEmoji("טיפים לאימון בטוח ויעיל", "💪")}
           </Text>
           <Text style={styles.beginnerTipsText}>
             • התחל עם משקלים קלים יותר ותתקדם בהדרגה{"\n"}• הקפד על ביצוע נכון
@@ -844,7 +848,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse", // RTL למרכז
     alignItems: "center",
     flex: 1,
-    marginRight: theme.spacing.sm, // רווח מכפתור המחיקה
+    marginEnd: theme.spacing.sm, // רווח מכפתור המחיקה
   },
   setNumber: {
     width: 30,
@@ -914,7 +918,7 @@ const styles = StyleSheet.create({
   addSetText: {
     fontSize: 14,
     color: theme.colors.primary,
-    marginLeft: theme.spacing.xs,
+    marginStart: theme.spacing.xs,
   },
   footer: {
     flexDirection: "row",
@@ -979,7 +983,7 @@ const styles = StyleSheet.create({
     margin: theme.spacing.md,
     padding: theme.spacing.md,
     borderRadius: 8,
-    borderLeftWidth: 4,
+    borderStartWidth: 4,
     borderLeftColor: theme.colors.primary,
   },
   beginnerTipsTitle: {
@@ -997,8 +1001,8 @@ const styles = StyleSheet.create({
   restTimerOverlay: {
     position: "absolute",
     top: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",

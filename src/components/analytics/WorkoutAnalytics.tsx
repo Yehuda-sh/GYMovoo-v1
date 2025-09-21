@@ -597,8 +597,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: isRTL() ? 0 : theme.spacing.sm,
-    marginLeft: isRTL() ? theme.spacing.sm : 0,
+    marginEnd: isRTL() ? 0 : theme.spacing.sm,
+    marginStart: isRTL() ? theme.spacing.sm : 0,
   },
   metricInfo: {
     flex: 1,
@@ -644,8 +644,8 @@ const styles = StyleSheet.create({
   },
   insightContent: {
     flex: 1,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
   },
   insightTitle: {
     fontSize: 16,

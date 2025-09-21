@@ -20,10 +20,10 @@ export const useAppInitialization = () => {
         const isFull = await StorageCleanup.isStorageFull();
         if (isFull) {
           await StorageCleanup.emergencyCleanup();
-          logger.info("App", "Emergency storage cleanup completed");
+          // הסרנו לוג מיותר
         } else {
           await StorageCleanup.cleanOldData();
-          logger.info("App", "Regular storage cleanup completed");
+          // הסרנו לוג מיותר
         }
       } catch (error) {
         logger.warn("App", "Storage cleanup failed", error);

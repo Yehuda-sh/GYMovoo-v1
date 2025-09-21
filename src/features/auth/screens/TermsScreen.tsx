@@ -150,7 +150,7 @@ export const TermsScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleGoBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 15, bottom: 15, start: 15, end: 15 }}
           >
             <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
-    marginRight: theme.spacing.md,
+    marginEnd: theme.spacing.md,
     lineHeight: 22,
     textAlign: "right",
   },

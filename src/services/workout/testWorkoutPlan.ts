@@ -1,4 +1,5 @@
 import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator";
+import { wrapTextWithEmoji } from "../../utils/rtlHelpers";
 
 // Example usage
 const exampleAnswers = {
@@ -19,8 +20,8 @@ export function createWorkoutPlan(questionnaireAnswers: Record<string, any>) {
     const generator = new WorkoutPlanGenerator(questionnaireAnswers);
     const workoutPlan = generator.generateWorkoutPlan();
 
-    console.log("🏋️ תוכנית אימון נוצרה בהצלחה!");
-    console.log("📊 פרטי התוכנית:", {
+    console.log(wrapTextWithEmoji("תוכנית אימון נוצרה בהצלחה!", "🏋️"));
+    console.log(wrapTextWithEmoji("פרטי התוכנית:", "📊"), {
       name: workoutPlan.name,
       daysPerWeek: workoutPlan.daysPerWeek,
       duration: workoutPlan.duration,
@@ -43,8 +44,8 @@ export function testWorkoutPlanGenerator() {
   console.log("\n📋 לוח אימונים שבועי:");
   plan.weeklySchedule.forEach((day) => {
     console.log(`\n${day.dayName} - ${day.focus}`);
-    console.log(`⏱️  משך: ${day.estimatedDuration} דקות`);
-    console.log(`🎯 תרגילים (${day.exercises.length}):`);
+    console.log(wrapTextWithEmoji(`משך: ${day.estimatedDuration} דקות`, "⏱️"));
+    console.log(wrapTextWithEmoji(`תרגילים (${day.exercises.length}):`, "🎯"));
     day.exercises.forEach((ex) => {
       console.log(`  • ${ex.nameLocalized.he} - ${ex.sets} סטים × ${ex.reps}`);
     });

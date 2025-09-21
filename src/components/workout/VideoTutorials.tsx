@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 16,
-    marginRight: theme.spacing.xs,
+    marginEnd: theme.spacing.xs,
     backgroundColor: theme.colors.background,
   },
   categoryButtonSelected: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   videoDuration: {
     position: "absolute",
     bottom: 4,
-    right: 4,
+    end: 4,
     backgroundColor: "rgba(0, 0, 0, 0.8)",
     borderRadius: 4,
     paddingHorizontal: 4,

@@ -108,7 +108,7 @@ export const RegisterScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleGoBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 15, bottom: 15, start: 15, end: 15 }}
           >
             <Ionicons name="chevron-back" size={28} color={theme.colors.text} />
           </TouchableOpacity>

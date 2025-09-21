@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
+    marginStart: theme.spacing.xs,
   },
   workoutFeedback: {
     flexDirection: "row",
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
-    borderRightWidth: 4,
+    borderEndWidth: 4,
     borderRightColor: theme.colors.primary,
   },
   congratulationText: {

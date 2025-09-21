@@ -582,8 +582,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: isRTL() ? 0 : theme.spacing.md,
-    marginRight: isRTL() ? theme.spacing.md : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.md,
+    marginEnd: isRTL() ? theme.spacing.md : 0,
   },
   achievementIconUnlocked: {
     backgroundColor: theme.colors.primary + "20",
@@ -666,8 +666,8 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     top: theme.spacing.lg,
-    right: isRTL() ? undefined : theme.spacing.lg,
-    left: isRTL() ? theme.spacing.lg : undefined,
+    end: isRTL() ? undefined : theme.spacing.lg,
+    start: isRTL() ? theme.spacing.lg : undefined,
     zIndex: 1,
   },
   detailIcon: {

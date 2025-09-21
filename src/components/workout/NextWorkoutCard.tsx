@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.h4.fontSize,
     fontWeight: "600",
     color: theme.colors.primary,
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
   },
   workoutName: {
     fontSize: theme.typography.h2.fontSize,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: theme.typography.button.fontSize,
     fontWeight: "600",
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
   },
   loadingContainer: {
     flexDirection: "row",
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xl,
   },
   loadingText: {
-    marginLeft: theme.spacing.sm,
+    marginStart: theme.spacing.sm,
     color: theme.colors.primary,
     fontSize: theme.typography.body.fontSize,
   },

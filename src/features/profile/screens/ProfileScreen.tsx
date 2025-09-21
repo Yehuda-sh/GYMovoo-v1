@@ -1479,8 +1479,8 @@ const styles = StyleSheet.create({
   editAvatarButton: {
     position: "absolute",
     bottom: -5,
-    right: isRTL() ? undefined : -5,
-    left: isRTL() ? -5 : undefined,
+    end: isRTL() ? undefined : -5,
+    start: isRTL() ? -5 : undefined,
     backgroundColor: theme.colors.surface,
     width: 36,
     height: 36,
@@ -1736,7 +1736,7 @@ const styles = StyleSheet.create({
   lockIconContainer: {
     position: "absolute",
     top: -5,
-    right: -5,
+    end: -5,
     backgroundColor: theme.colors.background,
     borderRadius: 10,
     padding: 2,
@@ -1744,7 +1744,7 @@ const styles = StyleSheet.create({
   checkIconContainer: {
     position: "absolute",
     top: -8,
-    right: -8,
+    end: -8,
     backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 1,
@@ -1969,8 +1969,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "15",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
   },
   questionnaireContent: {
     flex: 1,
@@ -2044,8 +2044,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   explanationIcon: {
-    marginRight: isRTL() ? 0 : theme.spacing.xs,
-    marginLeft: isRTL() ? theme.spacing.xs : 0,
+    marginEnd: isRTL() ? 0 : theme.spacing.xs,
+    marginStart: isRTL() ? theme.spacing.xs : 0,
   },
   questionnaireExplanationText: {
     fontSize: 12,
@@ -2057,8 +2057,8 @@ const styles = StyleSheet.create({
   // Separator styles for calculated data
   questionnaireSeparator: {
     backgroundColor: theme.colors.info + "15",
-    borderLeftWidth: isRTL() ? 0 : 4,
-    borderRightWidth: isRTL() ? 4 : 0,
+    borderStartWidth: isRTL() ? 0 : 4,
+    borderEndWidth: isRTL() ? 4 : 0,
     borderLeftColor: isRTL() ? "transparent" : theme.colors.info,
     borderRightColor: isRTL() ? theme.colors.info : "transparent",
     marginTop: theme.spacing.md,

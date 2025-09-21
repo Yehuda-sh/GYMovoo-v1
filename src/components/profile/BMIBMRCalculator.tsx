@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: 8,
     padding: theme.spacing.sm,
-    marginRight: theme.spacing.sm,
+    marginEnd: theme.spacing.sm,
     minWidth: 80,
     alignItems: "center",
   },

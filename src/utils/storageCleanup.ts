@@ -86,11 +86,7 @@ export class StorageCleanup {
 
       if (keysToRemove.length > 0) {
         await AsyncStorage.multiRemove(keysToRemove);
-        logger.info(
-          "StorageCleanup",
-          `Cleaned ${keysToRemove.length} temporary data items`,
-          { cleanedKeys: keysToRemove }
-        );
+        // הסרנו לוג מיותר שהיה מופיע בכל הפעלה
       }
     } catch (error) {
       logger.error("StorageCleanup", "Error cleaning old data", error);

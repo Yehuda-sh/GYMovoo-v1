@@ -169,11 +169,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + "20",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: theme.spacing.md,
+    marginStart: theme.spacing.md,
   },
   content: {
     flex: 1,
-    paddingRight: theme.spacing.sm,
+    paddingEnd: theme.spacing.sm,
   },
   title: {
     fontSize: 14,

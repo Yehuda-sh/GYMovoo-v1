@@ -75,3 +75,6 @@ android/keystore.properties
 *.backup.*
 *.old.*
 config.local.*
+
+# RTL Audit reports
+rtl-audit-report.json

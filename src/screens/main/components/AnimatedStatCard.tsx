@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
-    borderLeftWidth: 4,
+    borderStartWidth: 4,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   icon: {
-    marginRight: 8,
+    marginEnd: 8,
   },
   title: {
     fontSize: 14,

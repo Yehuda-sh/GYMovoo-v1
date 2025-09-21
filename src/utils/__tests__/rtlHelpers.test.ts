@@ -68,7 +68,7 @@ describe("rtlHelpers additions", () => {
   });
 
   test("mirrorStyle mirrors left/right", () => {
-    const base = { marginLeft: 10, paddingRight: 4 };
+    const base = { marginStart: 10, paddingEnd: 4 };
     const mirrored = mirrorStyle(base);
     if (isRTL()) {
       expect(mirrored).toHaveProperty("marginRight", 10);

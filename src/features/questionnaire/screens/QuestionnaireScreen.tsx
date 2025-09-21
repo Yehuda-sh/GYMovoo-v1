@@ -391,16 +391,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   backButton: {
-    marginRight: isRTL() ? 0 : 16,
-    marginLeft: isRTL() ? 16 : 0,
+    marginEnd: isRTL() ? 0 : 16,
+    marginStart: isRTL() ? 16 : 0,
   },
   progressContainer: {
     flex: 1,
     height: 8,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 4,
-    marginRight: isRTL() ? 8 : 0,
-    marginLeft: isRTL() ? 0 : 8,
+    marginEnd: isRTL() ? 8 : 0,
+    marginStart: isRTL() ? 0 : 8,
   },
   progressBar: {
     height: 8,
@@ -410,8 +410,8 @@ const styles = StyleSheet.create({
   progressText: {
     color: "#fff",
     position: "absolute",
-    right: isRTL() ? undefined : -30,
-    left: isRTL() ? -30 : undefined,
+    end: isRTL() ? undefined : -30,
+    start: isRTL() ? -30 : undefined,
     top: -5,
   },
   scrollView: {
@@ -492,8 +492,8 @@ const styles = StyleSheet.create({
   footer: {
     position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.1)",
   },
@@ -512,8 +512,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
-    marginRight: isRTL() ? 0 : 8,
-    marginLeft: isRTL() ? 8 : 0,
+    marginEnd: isRTL() ? 0 : 8,
+    marginStart: isRTL() ? 8 : 0,
   },
   loadingContainer: {
     flex: 1,

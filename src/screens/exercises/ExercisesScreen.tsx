@@ -282,6 +282,6 @@ const styles = StyleSheet.create({
   muscleArrow: {
     position: "absolute",
     top: theme.spacing.sm,
-    left: theme.spacing.sm,
+    start: theme.spacing.sm,
   },
 });

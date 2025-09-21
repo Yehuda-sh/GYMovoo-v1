@@ -17,14 +17,16 @@ import { logger } from "./src/utils/logger";
 import "react-native-reanimated";
 import "react-native-gesture-handler";
 
-// Initialize RTL support
-initializeRTL();
-
 /**
  * רכיב האפליקציה הראשי
  */
 export default function App(): React.JSX.Element {
   useAppInitialization();
+
+  // אתחול RTL בתחילת האפליקציה
+  useEffect(() => {
+    initializeRTL();
+  }, []);
 
   // טיפול ב-unhandled promise rejections
   useEffect(() => {

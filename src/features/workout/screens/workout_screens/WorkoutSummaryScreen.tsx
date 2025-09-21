@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { WorkoutSummaryData } from "../../../../navigation/types";
+import { wrapTextWithEmoji } from "../../../../utils/rtlHelpers";
 
 import { theme } from "../../../../core/theme";
 import { ErrorBoundary } from "../../../../components/common/ErrorBoundary";
@@ -279,7 +280,9 @@ const WorkoutSummaryScreen: React.FC = () => {
             <Animated.View
               style={[styles.recordsContainer, { opacity: fadeAnim }]}
             >
-              <Text style={styles.recordsTitle}>🏆 שיאים אישיים חדשים!</Text>
+              <Text style={styles.recordsTitle}>
+                {wrapTextWithEmoji("שיאים אישיים חדשים!", "🏆")}
+              </Text>
               {workoutData.personalRecords.map((record, index) => (
                 <View key={index} style={styles.recordItem}>
                   <MaterialCommunityIcons
@@ -426,8 +429,8 @@ const styles = StyleSheet.create({
   recordText: {
     fontSize: 16,
     color: theme.colors.text,
-    marginLeft: isRTL() ? 0 : theme.spacing.sm,
-    marginRight: isRTL() ? theme.spacing.sm : 0,
+    marginStart: isRTL() ? 0 : theme.spacing.sm,
+    marginEnd: isRTL() ? theme.spacing.sm : 0,
     flex: 1,
     textAlign: isRTL() ? "right" : "left",
   },
@@ -477,8 +480,8 @@ const styles = StyleSheet.create({
   actionButtons: {
     position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     backgroundColor: "white",
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,

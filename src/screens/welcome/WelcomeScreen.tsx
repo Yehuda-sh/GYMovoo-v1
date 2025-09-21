@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   devButton: {
     position: "absolute",
     top: 18,
-    right: 18,
+    end: 18,
     backgroundColor: "#fff8",
     borderRadius: 20,
     padding: 8,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     marginBottom: theme.spacing.lg,
-    borderLeftWidth: 3,
+    borderStartWidth: 3,
     borderLeftColor: theme.colors.primary,
   },
   motivationText: {

@@ -12,7 +12,10 @@
     "test:coverage": "jest --coverage --watchAll=false",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "type-check": "npx tsc --noEmit"
+    "type-check": "npx tsc --noEmit",
+    "rtl:audit": "node scripts/rtl-audit.mjs",
+    "rtl:fix": "node scripts/rtl-audit.mjs --fix",
+    "rtl:verbose": "node scripts/rtl-audit.mjs --verbose"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",

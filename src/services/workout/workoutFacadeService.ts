@@ -1,6 +1,7 @@
 import { WorkoutWithFeedback } from "../../core/types/workout.types";
 import { WorkoutHistoryItem } from "../../core/types/user.types";
 import { workoutStorageService } from "./workoutStorageService";
+import { wrapTextWithEmoji } from "../../utils/rtlHelpers";
 
 class WorkoutFacadeService {
   private readonly CONSISTENCY_THRESHOLD_DAYS = 3;
@@ -96,7 +97,7 @@ class WorkoutFacadeService {
       (consistentPairs / (sortedHistory.length - 1)) * 100;
 
     if (consistencyRate >= 80) {
-      insights.push("⭐ אתה מאוד עקבי באימונים!");
+      insights.push(wrapTextWithEmoji("אתה מאוד עקבי באימונים!", "⭐"));
     } else if (consistencyRate >= 60) {
       insights.push("👍 עקביות טובה, המשך כך!");
     } else {
@@ -114,9 +115,9 @@ class WorkoutFacadeService {
     const workoutsThisWeek = recentWeek.length;
 
     if (workoutsThisWeek >= 5) {
-      insights.push("🔥 שבוע מעולה! המשך במחץ!");
+      insights.push(wrapTextWithEmoji("שבוע מעולה! המשך במחץ!", "🔥"));
     } else if (workoutsThisWeek >= 3) {
-      insights.push("💪 שבוע טוב, אבל אפשר עוד יותר!");
+      insights.push(wrapTextWithEmoji("שבוע טוב, אבל אפשר עוד יותר!", "💪"));
     } else {
       insights.push("📈 נסה להגדיל את תדירות האימונים השבוע.");
     }

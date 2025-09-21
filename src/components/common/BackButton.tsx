@@ -124,8 +124,8 @@ const BackButton: React.FC<BackButtonProps> = React.memo(
         hitSlop={{
           top: hitSlopValue,
           bottom: hitSlopValue,
-          left: hitSlopValue,
-          right: hitSlopValue,
+          start: hitSlopValue,
+          end: hitSlopValue,
         }}
       >
         <MaterialCommunityIcons
