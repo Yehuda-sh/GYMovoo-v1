@@ -25,14 +25,17 @@ export default function DeveloperScreen() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOnline, setIsOnline] = useState(false); // התחל עם false עד שנוודא
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const allUsers = await userApi.list();
       setUsers(allUsers || []);
+      setIsOnline(true); // אם הקריאה הצליחה, אנחנו מחוברים
     } catch (error) {
       console.error("Error loading users:", error);
+      setIsOnline(false); // אם נכשל, אנחנו לא מחוברים
     } finally {
       setLoading(false);
     }
@@ -97,9 +100,18 @@ export default function DeveloperScreen() {
       setLoading(true);
       const createdUser = await userApi.create(testUser);
       console.log("Created test user:", createdUser);
+
+      // בדוק אם היצירה הצליחה במסד הנתונים או רק מקומית
+      if (createdUser.id?.startsWith("local_")) {
+        setIsOnline(false);
+      } else {
+        setIsOnline(true);
+      }
+
       await loadUsers();
     } catch (error) {
       console.error("Error creating test user:", error);
+      setIsOnline(false);
     } finally {
       setLoading(false);
     }
@@ -136,13 +148,31 @@ export default function DeveloperScreen() {
             <Text style={styles.userCount}>({users.length} משתמשים)</Text>
           </View>
 
+          <View style={styles.offlineNotice}>
+            <Ionicons
+              name={isOnline ? "cloud-done" : "cloud-offline"}
+              size={16}
+              color={isOnline ? theme.colors.success : theme.colors.warning}
+            />
+            <Text
+              style={[
+                styles.offlineText,
+                { color: isOnline ? theme.colors.success : "#856404" },
+              ]}
+            >
+              {isOnline ? "מחובר לשרת" : "מצב לא מקוון - נתונים נשמרים מקומית"}
+            </Text>
+          </View>
+
           <TouchableOpacity
             style={styles.createButton}
             onPress={createTestUser}
             disabled={loading}
           >
             <Ionicons name="person-add" size={20} color={theme.colors.white} />
-            <Text style={styles.buttonText}>צור משתמש בדיקה</Text>
+            <Text style={styles.buttonText}>
+              {isOnline ? "צור משתמש בדיקה" : "צור משתמש בדיקה (מקומי)"}
+            </Text>
           </TouchableOpacity>
 
           {user && (
@@ -249,6 +279,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: theme.spacing.lg,
     gap: theme.spacing.sm,
+  },
+  offlineNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  offlineText: {
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
   },
   currentUser: {
     backgroundColor: theme.colors.surface,
