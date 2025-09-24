@@ -24,19 +24,26 @@ const DayButton: React.FC<DayButtonProps> = ({
     onPress(dayNumber);
   }, [dayNumber, onPress]);
 
+  // המרה לאותיות A-E
+  const getDayLetter = (num: number): string => {
+    const letters = ["A", "B", "C", "D", "E", "F", "G"];
+    return letters[num - 1] || `יום ${num}`;
+  };
+
   const workoutType = getDayWorkoutType(dayNumber);
+  const dayLetter = getDayLetter(dayNumber);
 
   return (
     <TouchableOpacity
       style={[styles.container, selected && styles.selected]}
       onPress={handlePress}
       activeOpacity={0.7}
-      accessibilityLabel={`יום ${dayNumber} - ${workoutType}${selected ? " - נבחר" : ""}`}
+      accessibilityLabel={`יום ${dayLetter} - ${workoutType}${selected ? " - נבחר" : ""}`}
       accessibilityRole="button"
       testID={`day-button-${dayNumber}`}
     >
       <Text style={[styles.dayText, selected && styles.selectedText]}>
-        יום {dayNumber}
+        {dayLetter}
       </Text>
 
       {workoutType && (

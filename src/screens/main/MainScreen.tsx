@@ -106,7 +106,7 @@ const calculateAvailableTrainingDays = (user: User | null): number => {
 };
 
 /**
- * Calculate next recommended training day
+ * Calculate next recommended training day - עדכון לאותיות A-E
  */
 const getNextRecommendedDay = (
   workouts: WorkoutHistoryItem[],
@@ -117,6 +117,32 @@ const getNextRecommendedDay = (
   const lastWorkout = workouts[workouts.length - 1];
   const lastWorkoutType = lastWorkout?.name || "";
 
+  // חיפוש לפי אותיות במקום מספרים
+  if (lastWorkoutType.includes("A") || lastWorkoutType.includes("יום A")) {
+    return 2;
+  } else if (
+    lastWorkoutType.includes("B") ||
+    lastWorkoutType.includes("יום B")
+  ) {
+    return availableDays >= 3 ? 3 : 1;
+  } else if (
+    lastWorkoutType.includes("C") ||
+    lastWorkoutType.includes("יום C")
+  ) {
+    return availableDays >= 4 ? 4 : 1;
+  } else if (
+    lastWorkoutType.includes("D") ||
+    lastWorkoutType.includes("יום D")
+  ) {
+    return availableDays >= 5 ? 5 : 1;
+  } else if (
+    lastWorkoutType.includes("E") ||
+    lastWorkoutType.includes("יום E")
+  ) {
+    return 1;
+  }
+
+  // fallback למספרים ישנים - לתמיכה לאחור
   if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
     return 2;
   } else if (
@@ -129,16 +155,6 @@ const getNextRecommendedDay = (
     lastWorkoutType.includes("יום 3")
   ) {
     return availableDays >= 4 ? 4 : 1;
-  } else if (
-    lastWorkoutType.includes("4") ||
-    lastWorkoutType.includes("יום 4")
-  ) {
-    return availableDays >= 5 ? 5 : 1;
-  } else if (
-    lastWorkoutType.includes("5") ||
-    lastWorkoutType.includes("יום 5")
-  ) {
-    return 1;
   }
 
   return 1;
@@ -994,8 +1010,14 @@ function MainScreen() {
                 color={theme.colors.primary}
               />
               <Text style={styles.recommendationText}>
-                בהתבסס על האימון האחרון שלך, אנו ממליצים להמשיך ליום{" "}
-                {nextRecommendedDay}
+                בהתבסס על האימון האחרון שלך, אנו ממליצים להמשיך לאימון{" "}
+                {(() => {
+                  const letters = ["A", "B", "C", "D", "E", "F", "G"];
+                  return (
+                    letters[(nextRecommendedDay || 1) - 1] ||
+                    `יום ${nextRecommendedDay}`
+                  );
+                })()}
               </Text>
             </View>
 

@@ -80,6 +80,7 @@ npm run type-check
 - [מבנה האפליקציה](docs/app-structure.md) - סקירה מפורטת של הארכיטקטורה
 - [זרימת נתונים](docs/app-flow-diagrams.md) - דיאגרמות ניווט ומשתמש
 - [ניתוח רכיבים](docs/component-analysis.md) - סקירת רכיבי UI
+- [הנחיות RTL](.github/RTL-GUIDELINES.md) - מדריך ליישום תמיכה בעברית ו-RTL
 
 ## 📄 רישיון
 

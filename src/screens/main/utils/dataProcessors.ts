@@ -7,7 +7,7 @@ import type { WorkoutHistoryItem } from "../../../core/types/user.types";
 
 /**
  * Extract day index (1..n) from a workout name/title in HE/EN.
- * Matches patterns like "יום 2", "Day 3", "יום3", "day   4" (case-insensitive for EN).
+ * Matches patterns like "יום A", "Day B", "A", "B" or legacy "יום 2", "Day 3" (case-insensitive for EN).
  */
 const extractDayIndex = (name?: string): number | null => {
   if (!name) return null;
@@ -15,7 +15,16 @@ const extractDayIndex = (name?: string): number | null => {
   // Normalize whitespace
   const cleaned = name.replace(/\s+/g, " ").trim();
 
-  // 1) Explicit patterns: "יום 2" / "day 2"
+  // 1) New letter patterns: "יום A" / "day A" / "A"
+  const letterPattern = /(?:יום\s*|day\s*)?([A-G])\b/i;
+  const letterMatch = cleaned.match(letterPattern);
+  if (letterMatch?.[1]) {
+    const letter = letterMatch[1].toUpperCase();
+    const letterToNum = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7 };
+    return letterToNum[letter as keyof typeof letterToNum] || null;
+  }
+
+  // 2) Legacy patterns: "יום 2" / "day 2" - for backward compatibility
   const dayPattern = /(?:יום|day)\s*(\d+)/i;
   const explicitMatch = cleaned.match(dayPattern);
   if (explicitMatch?.[1]) {
@@ -23,7 +32,7 @@ const extractDayIndex = (name?: string): number | null => {
     return Number.isFinite(num) && num > 0 ? num : null;
   }
 
-  // 2) Conservative fallback: starts with "יום/Day" then a number
+  // 3) Conservative fallback: starts with "יום/Day" then a number
   const startPattern = /^(?:יום|day)[^\d]*?(\d+)/i;
   const startMatch = cleaned.match(startPattern);
   if (startMatch?.[1]) {
@@ -31,7 +40,7 @@ const extractDayIndex = (name?: string): number | null => {
     return Number.isFinite(num) && num > 0 ? num : null;
   }
 
-  // 3) If contains a day keyword and any number anywhere
+  // 4) If contains a day keyword and any number anywhere
   if (/(יום|day)/i.test(cleaned)) {
     const anyNum = cleaned.match(/(\d+)/);
     if (anyNum?.[1]) {
@@ -86,7 +95,7 @@ const getMostRecentWorkout = (
 
 /**
  * Calculate next recommended training day (1..availableDays).
- * Robust to HE/EN titles like "יום 2" / "Day 2"; sorts by date safely.
+ * Robust to HE/EN titles like "יום A" / "Day B" or legacy "יום 2" / "Day 2"; sorts by date safely.
  */
 export const getNextRecommendedDay = (
   workouts: WorkoutHistoryItem[],

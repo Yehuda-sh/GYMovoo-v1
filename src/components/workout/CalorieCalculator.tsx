@@ -7,6 +7,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../core/theme";
+import { isRTL } from "../../utils/rtlHelpers";
 import type { WorkoutPlan } from "../../core/types/workout.types";
 
 interface CalorieCalculatorProps {
@@ -76,18 +77,56 @@ const CalorieCalculator: React.FC<CalorieCalculatorProps> = ({
         const exerciseName = exercise.name?.toLowerCase() || "";
         let met: number = metValues.default || 5.0;
 
-        // Find matching MET value based on exercise name keywords
-        Object.keys(metValues).forEach((key) => {
-          if (
-            exerciseName.includes(key.replace("_", " ")) ||
-            exerciseName.includes(key.replace("_", ""))
-          ) {
-            const metValue = metValues[key];
-            if (metValue !== undefined) {
-              met = metValue;
-            }
+        // Hebrew to English exercise name mapping
+        const hebrewExerciseMap: Record<string, string> = {
+          דחיפות: "push_ups",
+          דחיפה: "push_ups",
+          "שכיבות סמיכה": "push_ups",
+          סקווטים: "squats",
+          "כפיפות ברכיים": "squats",
+          ריצה: "running",
+          רדיפה: "running",
+          "לונג'ים": "lunges",
+          פילטס: "pilates",
+          יוגה: "yoga",
+          מתיחות: "stretching",
+          פלאנק: "plank",
+          "קרנץ'ים": "crunches",
+          "כפיפות בטן": "crunches",
+          משיכות: "pull_ups",
+          סוללות: "dead_lifts",
+          חזה: "bench_press",
+          רואינג: "rows",
+          אופניים: "cycling",
+          קפיצות: "jumping_jacks",
+          ברפיז: "burpees",
+          "הרמת ברכיים": "high_knees",
+        };
+
+        // Try Hebrew mapping first
+        const hebrewMatch = Object.keys(hebrewExerciseMap).find((hebrew) =>
+          exerciseName.includes(hebrew)
+        );
+
+        if (hebrewMatch) {
+          const englishKey = hebrewExerciseMap[hebrewMatch];
+          if (englishKey && metValues[englishKey]) {
+            met = metValues[englishKey];
           }
-        });
+        } else {
+          // Find matching MET value based on English exercise name keywords
+          Object.keys(metValues).forEach((key) => {
+            if (
+              exerciseName.includes(key.replace("_", " ")) ||
+              exerciseName.includes(key.replace("_", ""))
+            ) {
+              const metValue = metValues[key];
+              if (metValue !== undefined) {
+                met = metValue;
+              }
+            }
+          });
+        }
 
         // For strength exercises with multiple sets, adjust MET slightly
         if (exercise.sets && exercise.sets.length > 3) {
@@ -104,8 +143,9 @@ const CalorieCalculator: React.FC<CalorieCalculatorProps> = ({
           ? workoutMET / exerciseCount
           : metValues.default || 5.0;
 
-      // Calculate duration in hours - use default 30 minutes if not available
-      const durationHours = 30 / 60; // Default 30 minutes per workout
+      // Calculate duration in hours - use actual workout duration
+      const durationMinutes = workout.duration || workoutPlan.duration || 30;
+      const durationHours = durationMinutes / 60;
 
       // Calorie calculation formula: METs × weight(kg) × time(hours)
       const workoutCalories = avgMET * userWeight * durationHours;
@@ -123,9 +163,16 @@ const CalorieCalculator: React.FC<CalorieCalculatorProps> = ({
     let frequencyPerWeek = 3; // default
 
     if (workoutPlan.frequency) {
-      // frequency is a number in the WorkoutPlan interface
-      frequencyPerWeek =
-        typeof workoutPlan.frequency === "number" ? workoutPlan.frequency : 3;
+      if (typeof workoutPlan.frequency === "number") {
+        frequencyPerWeek = workoutPlan.frequency;
+      } else {
+        // Treat as string - extract number from string like "3 פעמים בשבוע" or "3x/week"
+        const frequencyStr = String(workoutPlan.frequency);
+        const match = frequencyStr.match(/(\d+)/);
+        if (match && match[1]) {
+          frequencyPerWeek = parseInt(match[1], 10);
+        }
+      }
     }
 
     return dailyCalories * frequencyPerWeek;
@@ -220,7 +267,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   header: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.xs,
     marginBottom: theme.spacing.md,
@@ -229,9 +276,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
+    textAlign: "right",
   },
   calorieCards: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
   },
@@ -265,7 +313,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   goalCards: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     gap: theme.spacing.xs,
   },
   goalCard: {
@@ -287,7 +335,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   info: {
-    flexDirection: "row",
+    flexDirection: isRTL() ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing.xs,
     marginTop: theme.spacing.xs,
