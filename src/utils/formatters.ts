@@ -117,42 +117,6 @@ export const getWorkoutIcon = (
 };
 
 /**
- * Format equipment list to Hebrew (case-insensitive); defaults to "משקל גוף"
- */
-export const formatEquipmentList = (equipment: string[]): string => {
-  if (!Array.isArray(equipment) || equipment.length === 0) return "משקל גוף";
-
-  const map: Record<string, string> = {
-    dumbbells: "דמבלים",
-    barbell: "מוט ומשקולות",
-    bodyweight: "משקל גוף",
-    resistance_bands: "גומיות התנגדות",
-    cable_machine: "מכונת כבלים",
-    smith_machine: "מכונת סמית",
-    leg_press: "מכונת לחיצת רגליים",
-    chest_press: "מכונת לחיצת חזה",
-    lat_pulldown: "מכונת משיכת גב",
-    rowing_machine: "מכונת חתירה",
-    treadmill: "הליכון",
-    bike: "אופניים",
-    squat_rack: "מתקן סקווט",
-    pullup_bar: "מוט משיכה",
-    preacher_curl: "מכונת כפיפת זרועות",
-    trx: "TRX",
-    kettlebell: "קטלבול",
-    foam_roller: "גליל עיסוי",
-    yoga_mat: "מחצלת יוגה",
-    free_weights: "משקולות חופשיות",
-  };
-
-  const translated = equipment
-    .map((eq) => (typeof eq === "string" ? map[eq.toLowerCase()] || eq : ""))
-    .filter((s) => !!s);
-
-  return translated.length > 0 ? translated.join(", ") : "משקל גוף";
-};
-
-/**
  * Format duration in minutes:
  *  - < 60 → "XX ד׳"
  *  - >= 60 with remainder → "H:MM ש׳"

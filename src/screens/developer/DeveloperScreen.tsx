@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,25 +21,76 @@ import { RootStackParamList } from "../../navigation/types";
 import BackButton from "../../components/common/BackButton";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
+// 🎯 משתמשי דמו מוכנים מראש
+const DEMO_USERS = [
+  {
+    name: "דני המתחיל",
+    email: "danny.beginner@demo.com",
+    profile: {
+      gender: "male",
+      age: 28,
+      weight: 85,
+      height: 178,
+      fitness_goal: "lose_weight",
+      experience_level: "beginner",
+      workout_location: "home",
+      availability: "3_days",
+      workout_duration: "30",
+      equipment_available: ["dumbbells", "yogaMat", "resistanceBands"],
+    },
+    stats: { totalWorkouts: 24, currentStreak: 3 },
+  },
+  {
+    name: "מיכל הרצינית",
+    email: "michal.serious@demo.com",
+    profile: {
+      gender: "female",
+      age: 35,
+      weight: 65,
+      height: 165,
+      fitness_goal: "build_muscle",
+      experience_level: "intermediate",
+      workout_location: "gym",
+      availability: "4_days",
+      workout_duration: "45",
+      equipment_available: ["dumbbells", "barbell", "kettlebell", "pullupBar"],
+    },
+    stats: { totalWorkouts: 87, currentStreak: 6 },
+  },
+  {
+    name: "יוסי הספורטאי",
+    email: "yossi.athlete@demo.com",
+    profile: {
+      gender: "male",
+      age: 42,
+      weight: 78,
+      height: 180,
+      fitness_goal: "improve_endurance",
+      experience_level: "advanced",
+      workout_location: "outdoor",
+      availability: "5_days",
+      workout_duration: "60",
+      equipment_available: ["dumbbells", "kettlebell", "pullupBar", "jumpRope"],
+    },
+    stats: { totalWorkouts: 156, currentStreak: 12 },
+  },
+];
+
 export default function DeveloperScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, setUser } = useUserStore();
-
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isOnline, setIsOnline] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const allUsers = await userApi.list();
       setUsers(Array.isArray(allUsers) ? allUsers : []);
-      setIsOnline(true);
     } catch (error) {
       console.error("Error loading users:", error);
-      setIsOnline(false);
-      setUsers((prev) => prev ?? []);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -54,20 +106,103 @@ export default function DeveloperScreen() {
     setRefreshing(false);
   }, [loadUsers]);
 
-  const loginAsUser = async (selectedUser: User) => {
+  const createDemoUser = async (demo: (typeof DEMO_USERS)[0]) => {
+    const demoUser: User = {
+      id: `demo_${demo.email.split("@")[0]}_${Date.now()}`,
+      email: demo.email,
+      name: demo.name,
+      questionnaireData: {
+        answers: demo.profile,
+        metadata: {
+          completedAt: new Date(
+            Date.now() - 60 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          version: "2.0",
+        },
+      },
+      trainingStats: demo.stats,
+    };
+
     try {
       setLoading(true);
+      const createdUser = await userApi.create(demoUser);
+      await loadUsers();
 
-      // עדכון ה-store
+      Alert.alert(
+        "משתמש דמו נוצר! 🎉",
+        `${createdUser?.name}\n📧 ${createdUser?.email}\n🏋️ ${demo.stats.totalWorkouts} אימונים`,
+        [
+          {
+            text: "השתמש במשתמש זה",
+            onPress: () => selectUser(createdUser),
+          },
+          { text: "סגור", style: "cancel" },
+        ]
+      );
+    } catch (error) {
+      console.error("Error creating demo user:", error);
+      Alert.alert("שגיאה", "לא ניתן ליצור משתמש דמו");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTestUser = async () => {
+    const testUser: User = {
+      id: `user_${Date.now()}`,
+      email: `test.user.${Date.now()}@example.com`,
+      name: `משתמש בדיקה ${new Date().toLocaleTimeString("he-IL")}`,
+      questionnaireData: {
+        answers: {
+          age: 25,
+          gender: "male",
+          weight: 70,
+          height: 175,
+          fitness_goal: "general_fitness",
+          experience_level: "beginner",
+          workout_location: "home",
+          availability: "3_days",
+          workout_duration: "30",
+          equipment_available: ["dumbbells"],
+        },
+        metadata: {
+          completedAt: new Date().toISOString(),
+          version: "1.0",
+        },
+      },
+    };
+
+    try {
+      setLoading(true);
+      const createdUser = await userApi.create(testUser);
+      await loadUsers();
+
+      Alert.alert("הצלחה", `משתמש בדיקה נוצר: ${createdUser?.name}`, [
+        {
+          text: "השתמש במשתמש זה",
+          onPress: () => selectUser(createdUser),
+        },
+        { text: "סגור", style: "cancel" },
+      ]);
+    } catch (error) {
+      console.error("Error creating test user:", error);
+      Alert.alert("שגיאה", "לא ניתן ליצור משתמש בדיקה");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectUser = async (selectedUser: User) => {
+    try {
+      setLoading(true);
       setUser(selectedUser);
-
-      // שמירה ב-AsyncStorage (עם await כדי לתפוס שגיאות)
       await AsyncStorage.setItem("currentUser", JSON.stringify(selectedUser));
 
       const q = selectedUser.questionnaireData?.answers;
       const hasQuestionnaire = !!(q && Object.keys(q).length > 0);
 
-      // שימוש ב-reset כדי לאפשר חזרה נקייה
+      Alert.alert("הצלחה", `נכנסת בתור ${selectedUser.name}`);
+
       if (hasQuestionnaire) {
         navigation.reset({
           index: 0,
@@ -86,40 +221,15 @@ export default function DeveloperScreen() {
     }
   };
 
-  const createTestUser = async () => {
-    const testUser: User = {
-      id: `user_${Date.now()}`,
-      email: `test.user.${Date.now()}@example.com`,
-      name: `משתמש בדיקה ${new Date().toLocaleTimeString("he-IL")}`,
-      questionnaireData: {
-        answers: {
-          gender: "male",
-          age: "26_35",
-          fitness_goal: "general_fitness",
-          experience_level: "beginner",
-          workout_location: "home_bodyweight",
-          availability: "3_days",
-        },
-        metadata: {
-          completedAt: new Date().toISOString(),
-          version: "1.0",
-        },
-      },
-    };
-
+  const deleteUser = async (userId: string) => {
     try {
       setLoading(true);
-      const createdUser = await userApi.create(testUser);
-
-      // אם אין id או שהוא מקומי, נניח offline
-      const createdIsOnline =
-        !!createdUser?.id && !String(createdUser.id).startsWith("local_");
-      setIsOnline(createdIsOnline);
-
-      await loadUsers();
+      // בינתיים נסיר רק מהרשימה המקומית
+      setUsers(users.filter((u) => u.id !== userId));
+      Alert.alert("הצלחה", "המשתמש נמחק");
     } catch (error) {
-      console.error("Error creating test user:", error);
-      setIsOnline(false);
+      console.error("Error deleting user:", error);
+      Alert.alert("שגיאה", "לא ניתן למחוק את המשתמש");
     } finally {
       setLoading(false);
     }
@@ -143,82 +253,86 @@ export default function DeveloperScreen() {
         <BackButton />
         <Text style={styles.title}>מסך מפתח</Text>
       </View>
-
       <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {user && (
+          <View style={styles.currentUserCard}>
+            <Text style={styles.sectionTitle}>משתמש פעיל</Text>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+          </View>
+        )}
+
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>ניהול משתמשים</Text>
-            <Text style={styles.userCount}>({users.length} משתמשים)</Text>
-          </View>
+          <Text style={styles.sectionTitle}>יצירת משתמשים</Text>
 
-          <View style={styles.offlineNotice}>
-            <Ionicons
-              name={isOnline ? "cloud-done" : "cloud-offline"}
-              size={16}
-              color={isOnline ? theme.colors.success : theme.colors.warning}
-            />
-            <Text
-              style={[
-                styles.offlineText,
-                { color: isOnline ? theme.colors.success : "#856404" },
-              ]}
+          <View style={styles.buttonGrid}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={createTestUser}
+              disabled={loading}
             >
-              {isOnline ? "מחובר לשרת" : "מצב לא מקוון - נתונים נשמרים מקומית"}
-            </Text>
+              <Text style={styles.buttonText}>🧪 משתמש בדיקה</Text>
+            </TouchableOpacity>
+
+            {DEMO_USERS.map((demo, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.button, styles.demoButton]}
+                onPress={() => createDemoUser(demo)}
+                disabled={loading}
+              >
+                <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+                  {demo.profile.gender === "female" ? "👩" : "👨"} {demo.name}
+                </Text>
+                <Text style={styles.buttonSubtext}>
+                  {demo.stats.totalWorkouts} אימונים •{" "}
+                  {demo.profile.experience_level}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={createTestUser}
-            disabled={loading}
-          >
-            <Ionicons name="person-add" size={20} color={theme.colors.white} />
-            <Text style={styles.buttonText}>
-              {isOnline ? "צור משתמש בדיקה" : "צור משתמש בדיקה (מקומי)"}
-            </Text>
-          </TouchableOpacity>
-
-          {user && (
-            <View style={styles.currentUser}>
-              <Text style={styles.currentUserTitle}>משתמש נוכחי:</Text>
-              <Text style={styles.currentUserName}>{user.name}</Text>
-              <Text style={styles.currentUserEmail}>{user.email}</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>רשימת משתמשים</Text>
+          <Text style={styles.sectionTitle}>
+            משתמשים במערכת ({users.length})
+          </Text>
+
           {users.length === 0 ? (
             <Text style={styles.emptyText}>אין משתמשים במערכת</Text>
           ) : (
             users.map((userData) => (
-              <View key={userData.id} style={styles.userItem}>
-                <View style={styles.userInfo}>
+              <View key={userData.id} style={styles.userCard}>
+                <TouchableOpacity
+                  style={styles.userCardMain}
+                  onPress={() => selectUser(userData)}
+                >
                   <Text style={styles.userName}>{userData.name}</Text>
                   <Text style={styles.userEmail}>{userData.email}</Text>
-                  <Text style={styles.userDetails}>
-                    {userData.questionnaireData?.answers
-                      ? "יש שאלון"
-                      : "אין שאלון"}
-                  </Text>
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.loginButton}
-                  onPress={() => loginAsUser(userData)}
-                  disabled={loading}
+                  style={styles.deleteButton}
+                  onPress={() =>
+                    Alert.alert(
+                      "מחיקת משתמש",
+                      `האם אתה בטוח שברצונך למחוק את ${userData.name}?`,
+                      [
+                        { text: "ביטול", style: "cancel" },
+                        {
+                          text: "מחק",
+                          style: "destructive",
+                          onPress: () => deleteUser(userData.id || ""),
+                        },
+                      ]
+                    )
+                  }
                 >
-                  <Ionicons
-                    name="log-in"
-                    size={20}
-                    color={theme.colors.white}
-                  />
-                  <Text style={styles.buttonText}>כניסה</Text>
+                  <Ionicons name="trash" size={20} color={theme.colors.error} />
                 </TouchableOpacity>
               </View>
             ))
@@ -226,9 +340,11 @@ export default function DeveloperScreen() {
         </View>
       </ScrollView>
 
-      {loading && users.length > 0 && (
+      {loading && (
         <View style={styles.loadingOverlay}>
-          <LoadingSpinner />
+          <View style={styles.loadingContent}>
+            <Text style={styles.loadingText}>טוען...</Text>
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -243,148 +359,117 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.white,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.text,
-    marginStart: theme.spacing.md,
+    marginLeft: 16,
   },
   content: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.lg,
+    padding: 16,
+  },
+  currentUserCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.primary + "30",
   },
   section: {
-    marginBottom: theme.spacing.xl,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  userCount: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginStart: theme.spacing.sm,
-  },
-  createButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: 12,
-    marginBottom: theme.spacing.lg,
-    gap: theme.spacing.sm,
-  },
-  offlineNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 8,
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.xs,
-    borderWidth: 1,
-    borderColor: "#E9ECEF",
-  },
-  offlineText: {
-    fontSize: 12,
-    fontWeight: "500",
-    flex: 1,
-  },
-  currentUser: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: 12,
-    marginBottom: theme.spacing.lg,
-  },
-  currentUserTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  currentUserName: {
-    fontSize: 16,
     fontWeight: "bold",
     color: theme.colors.text,
+    marginBottom: 12,
   },
-  currentUserEmail: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  userItem: {
+  buttonGrid: {
     flexDirection: "row",
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: 12,
-    marginBottom: theme.spacing.md,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 12,
   },
-  userInfo: {
+  button: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    minWidth: 150,
+  },
+  demoButton: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.colors.white,
+  },
+  buttonSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  userCard: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    marginBottom: 8,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  userCardMain: {
     flex: 1,
+    padding: 16,
   },
   userName: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
   },
   userEmail: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
+    marginTop: 4,
   },
-  userDetails: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-  },
-  loginButton: {
-    flexDirection: "row",
+  deleteButton: {
+    padding: 16,
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.success,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 8,
-    gap: theme.spacing.xs,
-  },
-  buttonText: {
-    color: theme.colors.white,
-    fontSize: 14,
-    fontWeight: "500",
+    borderLeftWidth: 1,
+    borderLeftColor: theme.colors.border,
   },
   emptyText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
     textAlign: "center",
-    color: theme.colors.textTertiary,
-    fontSize: 16,
-    marginTop: theme.spacing.xl,
+    padding: 32,
   },
   loadingOverlay: {
     position: "absolute",
     top: 0,
-    start: 0,
-    end: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingContent: {
+    backgroundColor: theme.colors.surface,
+    padding: 24,
+    borderRadius: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.text,
   },
 });

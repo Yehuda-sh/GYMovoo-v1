@@ -18,7 +18,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { theme } from "../../core/theme";
 import BackButton from "../../components/common/BackButton";
 import type { RootStackParamList } from "../../navigation/types";
-import { formatEquipmentList } from "../../utils/formatters";
+import { translateEquipment } from "../../constants/equipmentTranslations";
 
 interface ExerciseDetailsScreenParams {
   exerciseId: string;
@@ -49,18 +49,16 @@ const ExerciseDetailsScreen: React.FC = () => {
   const { exerciseId, exerciseName, muscleGroup, exerciseData } =
     route.params as ExerciseDetailsScreenParams;
 
-  // פרטי התרגיל (memoized)
+  // פרטי התרגיל (memoized) - פשוט יותר!
   const exerciseDetails = useMemo(() => {
-    const equipmentRaw = exerciseData?.equipment ?? "bodyweight";
-    const equipmentDisplay = Array.isArray(equipmentRaw)
-      ? formatEquipmentList(equipmentRaw)
-      : formatEquipmentList([String(equipmentRaw)]);
+    // פשוט נשמור את הנתונים כמו שהם ונתרגם רק בתצוגה
+    const equipment = exerciseData?.equipment ?? "bodyweight";
 
     return {
       id: exerciseId,
       name: exerciseName,
       muscleGroup,
-      equipment: equipmentDisplay,
+      equipment: Array.isArray(equipment) ? equipment[0] : equipment, // פשוט נקח את הראשון
       difficulty: exerciseData?.difficulty || "בינוני",
       instructions:
         Array.isArray(exerciseData?.instructions) &&
@@ -114,10 +112,9 @@ const ExerciseDetailsScreen: React.FC = () => {
         id: exerciseId,
         name: exerciseName,
         muscleGroup,
-        equipment:
-          (Array.isArray(exerciseData?.equipment)
-            ? exerciseData?.equipment[0]
-            : exerciseData?.equipment) ?? "bodyweight",
+        equipment: Array.isArray(exerciseData?.equipment)
+          ? exerciseData.equipment[0] || "bodyweight"
+          : exerciseData?.equipment || "bodyweight",
       },
     });
   }, [navigation, exerciseId, exerciseName, muscleGroup, exerciseData]);
@@ -190,7 +187,9 @@ const ExerciseDetailsScreen: React.FC = () => {
                 color={theme.colors.primary}
               />
               <Text style={styles.infoLabel}>ציוד נדרש</Text>
-              <Text style={styles.infoValue}>{exerciseDetails.equipment}</Text>
+              <Text style={styles.infoValue}>
+                {translateEquipment(exerciseDetails.equipment || "bodyweight")}
+              </Text>
             </View>
             <View style={styles.infoItem}>
               <MaterialCommunityIcons

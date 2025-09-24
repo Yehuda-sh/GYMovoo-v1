@@ -40,6 +40,7 @@ import {
   calculateAchievements,
   type AchievementDisplay,
 } from "../../../constants/achievementsConfig";
+import { translateEquipment } from "../../../constants/equipmentTranslations";
 
 const PRESET_AVATARS = [
   "💪",
@@ -213,223 +214,22 @@ const ProfileScreen: React.FC = () => {
   // Achievements
   const achievements = calculateAchievements(user);
 
-  // Equipment extraction - simplified
+  // Equipment extraction - משתמש במיפוי הקיים במערכת
   const extractUserEquipment = (user: User | null) => {
-    // Debug: לוג את מבנה הנתונים
-    console.log("User data:", user);
-    console.log("Questionnaire data:", user?.questionnaireData);
-    console.log("Answers:", user?.questionnaireData?.answers);
+    const equipment =
+      user?.questionnaireData?.answers?.equipment_available || [];
 
-    if (!user?.questionnaireData?.answers) {
-      console.log("No questionnaire answers found");
-      // אם אין תשובות, נחזיר לפחות משקל גוף כברירת מחדל
-      return [
-        {
-          id: "bodyweight",
-          label: "משקל גוף",
-          description: "אימונים ללא ציוד",
-        },
-      ];
-    }
-
-    const answers = user.questionnaireData.answers;
-    const equipment: Array<{
-      id: string;
-      label: string;
-      description?: string;
-    }> = [];
-
-    // חפצים ביתיים
-    if (
-      answers.bodyweight_equipment &&
-      answers.bodyweight_equipment.length > 0
-    ) {
-      answers.bodyweight_equipment.forEach((item) => {
-        switch (item) {
-          case "bodyweight_only":
-            equipment.push({
-              id: "bodyweight",
-              label: "משקל גוף",
-              description: "ללא ציוד נוסף",
-            });
-            break;
-          case "mat_available":
-            equipment.push({
-              id: "yoga_mat",
-              label: "מזרון יוגה",
-              description: "לתרגילי רצפה",
-            });
-            break;
-          case "chair_available":
-            equipment.push({
-              id: "chair",
-              label: "כיסא יציב",
-              description: "לתרגילי דחיפה",
-            });
-            break;
-          case "wall_space":
-            equipment.push({
-              id: "wall",
-              label: "קיר פנוי",
-              description: "למתיחות ותרגילי קיר",
-            });
-            break;
-          case "stairs_available":
-            equipment.push({
-              id: "stairs",
-              label: "מדרגות",
-              description: "לאימוני קרדיו",
-            });
-            break;
-          case "water_bottles":
-            equipment.push({
-              id: "water_bottles",
-              label: "בקבוקי מים",
-              description: "כמשקולות קלות",
-            });
-            break;
-        }
-      });
-    }
-
-    // ציוד ביתי מקצועי
-    if (answers.home_equipment && answers.home_equipment.length > 0) {
-      answers.home_equipment.forEach((item) => {
-        switch (item) {
-          case "dumbbells":
-            equipment.push({
-              id: "dumbbells",
-              label: "משקולות יד",
-              description: "מגוון משקלים",
-            });
-            break;
-          case "resistance_bands":
-            equipment.push({
-              id: "resistance_bands",
-              label: "גומיות התנגדות",
-              description: "עמידות שונות",
-            });
-            break;
-          case "kettlebell":
-            equipment.push({
-              id: "kettlebells",
-              label: "קטלבל",
-              description: "אימון פונקציונלי",
-            });
-            break;
-          case "yoga_mat":
-            equipment.push({
-              id: "yoga_mat",
-              label: "מזרון יוגה",
-              description: "לתרגילי רצפה",
-            });
-            break;
-          case "pullup_bar":
-            equipment.push({
-              id: "pull_up_bar",
-              label: "מתקן מתח",
-              description: "למשיכות ותליות",
-            });
-            break;
-          case "exercise_ball":
-            equipment.push({
-              id: "stability_ball",
-              label: "כדור פיטנס",
-              description: "ליציבות וכוח ליבה",
-            });
-            break;
-          case "trx":
-            equipment.push({
-              id: "trx",
-              label: "רצועות TRX",
-              description: "אימון השעיה",
-            });
-            break;
-        }
-      });
-    }
-
-    // ציוד חדר כושר
-    if (answers.gym_equipment && answers.gym_equipment.length > 0) {
-      answers.gym_equipment.forEach((item) => {
-        switch (item) {
-          case "free_weights":
-            equipment.push({
-              id: "barbells",
-              label: "משקולות חופשיות",
-              description: "משקולות יד ומוטות",
-            });
-            break;
-          case "cable_machine":
-            equipment.push({
-              id: "cables",
-              label: "מכונת כבלים",
-              description: "תרגילים מגוונים",
-            });
-            break;
-          case "squat_rack":
-            equipment.push({
-              id: "squat_rack",
-              label: "מתקן סקוואט",
-              description: "לתרגילי רגליים",
-            });
-            break;
-          case "bench_press":
-            equipment.push({
-              id: "bench_press",
-              label: "ספסל דחיפה",
-              description: "לתרגילי חזה",
-            });
-            break;
-          case "leg_press":
-            equipment.push({
-              id: "leg_press",
-              label: "מכונת רגליים",
-              description: "לחיזוק רגליים",
-            });
-            break;
-          case "lat_pulldown":
-            equipment.push({
-              id: "lat_pulldown",
-              label: "מכונת גב",
-              description: "למשיכות גב",
-            });
-            break;
-          case "rowing_machine":
-            equipment.push({
-              id: "rowing_machine",
-              label: "מכונת חתירה",
-              description: "קרדיו וכוח",
-            });
-            break;
-          case "treadmill":
-            equipment.push({
-              id: "treadmill",
-              label: "הליכון",
-              description: "ריצה והליכה",
-            });
-            break;
-          case "bike":
-            equipment.push({
-              id: "bike",
-              label: "אופני כושר",
-              description: "קרדיו ורגליים",
-            });
-            break;
-        }
-      });
-    }
-
-    // אם אין ציוד ספציפי, תמיד נוסיף "משקל גוף" כברירת מחדל
+    // אם אין ציוד, נציג "משקל גוף"
     if (equipment.length === 0) {
-      equipment.push({
-        id: "bodyweight",
-        label: "משקל גוף",
-        description: "אימונים ללא ציוד",
-      });
+      return [{ id: "bodyweight", label: "bodyweight", description: "" }];
     }
 
-    return equipment;
+    // שמירה באנגלית כמו שמבקש המשתמש - פשוט מחזיר את הנתונים כמו שהם
+    return equipment.map((item) => ({
+      id: item,
+      label: item, // שמירה באנגלית
+      description: "",
+    }));
   };
 
   // Questionnaire results extraction and formatting
@@ -1315,7 +1115,7 @@ const ProfileScreen: React.FC = () => {
                           />
                         </View>
                         <Text style={styles.equipmentName} numberOfLines={1}>
-                          {wrapBidi(equipment?.label)}
+                          {wrapBidi(translateEquipment(equipment?.label || ""))}
                         </Text>
                         {equipment?.description && (
                           <Text
