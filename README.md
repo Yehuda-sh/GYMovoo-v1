@@ -82,6 +82,13 @@ npm run type-check
 - [ניתוח רכיבים](docs/component-analysis.md) - סקירת רכיבי UI
 - [הנחיות RTL](.github/RTL-GUIDELINES.md) - מדריך ליישום תמיכה בעברית ו-RTL
 
+## 🧠 מדריכי פיתוח
+
+- [הנחיות ניתוח קוד](.github/CODE-ANALYSIS-GUIDELINES.md) - לקחים מפישוט קוד מורכב
+- [מדריך מהיר למפתחים](.github/DEVELOPER-QUICK-GUIDE.md) - חוקים בסיסיים לפני כל שינוי קוד
+
+**עקרון מרכזי:** 📝 **"פשטות עדיפה על מורכבות"** - קוד פשוט וברור עדיף על קוד "חכם" ומורכב
+
 ## 📄 רישיון
 
 MIT License

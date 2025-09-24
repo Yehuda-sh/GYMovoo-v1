@@ -25,146 +25,139 @@ export const PROFILE_SCREEN_TEXTS = {
     STREAK_DAYS: "רצף ימים",
   },
 
-  // הישגים / Achievements
+  // הישגים / Achievements - מערכת דינמית חכמה
   ACHIEVEMENTS: {
     // הישגים בסיסיים / Basic achievements
     ENTHUSIASTIC_BEGINNER: {
       title: "ברוך הבא ל‑GYMovoo",
       description: "השלמת את ההרשמה והשאלון",
     },
-
-    // הישגי רצף / Streak achievements
-    WEEKLY_STREAK: {
-      title: "רצף שבועי",
-      description: "7 ימים של אימונים ברצף",
-    },
-    BIWEEKLY_STREAK: {
-      title: "רצף דו-שבועי",
-      description: "14 ימים של אימונים ברצף",
-    },
-    MONTHLY_STREAK: {
-      title: "רצף חודשי",
-      description: "30 ימים של אימונים ברצף",
-    },
-
-    // הישגי כמות אימונים / Workout count achievements
-    TEN_WORKOUTS: {
-      title: "10 אימונים",
-      description: "השלמת 10 אימונים",
-    },
-    TWENTY_FIVE_WORKOUTS: {
-      title: "25 אימונים",
-      description: "השלמת 25 אימונים",
-    },
-    FIFTY_WORKOUTS: {
-      title: "50 אימונים",
-      description: "השלמת 50 אימונים",
-    },
-    HUNDRED_WORKOUTS: {
-      title: "100 אימונים",
-      description: "השלמת 100 אימונים",
-    },
-
-    // הישגי זמן אימון / Workout time achievements
-    ONE_HOUR_FITNESS: {
-      title: "שעה של כושר",
-      description: "צברת שעה של אימונים",
-    },
-    TEN_HOURS_TRAINING: {
-      title: "10 שעות אימון",
-      description: "צברת 10 שעות של אימונים",
-    },
-    FITNESS_MARATHON: {
-      title: "מרתון כושר",
-      description: "צברת 25 שעות של אימונים",
-    },
-
-    // הישגי זמן שימוש / Usage time achievements
-    WEEK_WITH_GYMOVOO: {
-      title: "שבוע עם GYMovoo",
-      description: "שבוע שלם עם האפליקציה",
-    },
-    MONTH_WITH_GYMOVOO: {
-      title: "חודש עם GYMovoo",
-      description: "חודש שלם עם האפליקציה",
-    },
-    VETERAN_GYMOVOO: {
-      title: "ותיק GYMovoo",
-      description: "3 חודשים עם האפליקציה",
-    },
-
-    // הישגי דירוג / Rating achievements
-    EXCELLENT_RATER: {
-      title: "מדרג מעולה",
-      description: "דירוג ממוצע מעל 4.5",
-    },
-    PERFECT: {
-      title: "מושלם!",
-      description: "דירוג ממוצע של 5 כוכבים",
-    },
-
-    // הישגי זמן ויום / Time and day achievements
-    WEEKEND_WARRIOR: {
-      title: "לוחם סוף השבוע",
-      description: "10 אימונים בסופי שבוע",
-    },
-    MORNING_PERSON: {
-      title: "חובב בוקר",
-      description: "10 אימונים בשעות הבוקר",
-    },
-    NIGHT_OWL: {
-      title: "ינשוף לילה",
-      description: "10 אימונים בשעות הערב",
-    },
-
-    // הישגים מתקדמים / Advanced achievements
     FIRST_WORKOUT: {
       title: "אימון ראשון",
       description: "השלמת האימון הראשון",
     },
-    STREAK_MASTER: {
-      title: "מאסטר רצף",
-      description: "50 ימי אימון ברציפות",
-    },
-    UNSTOPPABLE: {
-      title: "בלתי ניתן לעצירה",
-      description: "100 ימי אימון ברציפות",
-    },
-    WORKOUT_VETERAN: {
-      title: "וטרן אימונים",
-      description: "השלמת 200 אימונים",
-    },
-    LEGENDARY_TRAINER: {
-      title: "מאמן אגדי",
-      description: "השלמת 500 אימונים",
-    },
-    QUARTER_CENTURY: {
-      title: "רבע מאה",
-      description: "37.5 שעות של אימונים",
-    },
-    LOYAL_MEMBER: {
-      title: "חבר נאמן",
-      description: "6 חודשים שימוש באפליקציה",
-    },
-    YEAR_WITH_GYMOVOO: {
-      title: "שנה עם GYMovoo",
-      description: "שנה שימוש באפליקציה",
-    },
-    CONSISTENT_TRAINER: {
-      title: "מאמן עקבי",
-      description: "דירוג ממוצע של 4.0 כוכבים",
-    },
-    MASTER_RATER: {
-      title: "מאסטר דירוג",
-      description: "25 דירוגים של 5 כוכבים",
-    },
-    SPEED_DEMON: {
-      title: "שד מהירות",
-      description: "50 שעות של אימונים",
-    },
-    PERFECTIONIST: {
-      title: "פרפקציוניסט",
-      description: "50 דירוגים של 5 כוכבים",
-    },
+  },
+
+  // פונקציות דינמיות להישגים חוזרים / Dynamic achievement generators
+  DYNAMIC_ACHIEVEMENTS: {
+    streakAchievement: (days: number) => ({
+      title:
+        days === 7
+          ? "רצף שבועי"
+          : days === 14
+            ? "רצף דו-שבועי"
+            : days === 30
+              ? "רצף חודשי"
+              : days === 50
+                ? "מאסטר רצף"
+                : days === 100
+                  ? "בלתי ניתן לעצירה"
+                  : `רצף ${days} ימים`,
+      description: `${days} ימים של אימונים ברצף`,
+    }),
+
+    workoutCountAchievement: (count: number) => ({
+      title:
+        count === 10
+          ? "10 אימונים"
+          : count === 25
+            ? "25 אימונים"
+            : count === 50
+              ? "50 אימונים"
+              : count === 100
+                ? "100 אימונים"
+                : count === 200
+                  ? "וטרן אימונים"
+                  : count === 500
+                    ? "מאמן אגדי"
+                    : `${count} אימונים`,
+      description: `השלמת ${count} אימונים`,
+    }),
+
+    timeAchievement: (hours: number) => ({
+      title:
+        hours === 1
+          ? "שעה של כושר"
+          : hours === 10
+            ? "10 שעות אימון"
+            : hours === 25
+              ? "מרתון כושר"
+              : hours === 37.5
+                ? "רבע מאה"
+                : hours === 50
+                  ? "שד מהירות"
+                  : `${hours} שעות כושר`,
+      description: `צברת ${hours} שעות של אימונים`,
+    }),
+
+    ratingAchievement: (
+      rating: number,
+      type: "average" | "count" = "average"
+    ) => ({
+      title:
+        rating === 4.0 && type === "average"
+          ? "מאמן עקבי"
+          : rating === 4.5 && type === "average"
+            ? "מדרג מעולה"
+            : rating === 5.0 && type === "average"
+              ? "מושלם!"
+              : rating === 25 && type === "count"
+                ? "מאסטר דירוג"
+                : rating === 50 && type === "count"
+                  ? "פרפקציוניסט"
+                  : `דירוג ${rating}`,
+      description:
+        type === "average"
+          ? `דירוג ממוצע של ${rating} כוכבים`
+          : `${rating} דירוגים של 5 כוכבים`,
+    }),
+
+    usageTimeAchievement: (
+      period: "week" | "month" | "quarter" | "half" | "year"
+    ) => ({
+      title:
+        period === "week"
+          ? "שבוע עם GYMovoo"
+          : period === "month"
+            ? "חודש עם GYMovoo"
+            : period === "quarter"
+              ? "ותיק GYMovoo"
+              : period === "half"
+                ? "חבר נאמן"
+                : period === "year"
+                  ? "שנה עם GYMovoo"
+                  : `${period} עם GYMovoo`,
+      description:
+        period === "week"
+          ? "שבוע שלם עם האפליקציה"
+          : period === "month"
+            ? "חודש שלם עם האפליקציה"
+            : period === "quarter"
+              ? "3 חודשים עם האפליקציה"
+              : period === "half"
+                ? "6 חודשים שימוש באפליקציה"
+                : period === "year"
+                  ? "שנה שימוש באפליקציה"
+                  : `${period} עם האפליקציה`,
+    }),
+
+    specialAchievement: (type: "weekend" | "morning" | "night") => ({
+      title:
+        type === "weekend"
+          ? "לוחם סוף השבוع"
+          : type === "morning"
+            ? "חובב בוקר"
+            : type === "night"
+              ? "ינשוף לילה"
+              : `מיוחד ${type}`,
+      description:
+        type === "weekend"
+          ? "10 אימונים בסופי שבוע"
+          : type === "morning"
+            ? "10 אימונים בשעות הבוקר"
+            : type === "night"
+              ? "10 אימונים בשעות הערב"
+              : `אימון מיוחד ${type}`,
+    }),
   },
 };

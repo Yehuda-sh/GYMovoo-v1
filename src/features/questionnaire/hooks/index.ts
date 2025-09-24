@@ -4,7 +4,6 @@
  * @description Export all questionnaire hooks
  */
 
-export { useQuestionnaireStatus } from "./useQuestionnaireStatus";
 export { useQuestionnaire } from "./useQuestionnaire";
 
 // ייצוא סוגים בלבד (לא יכניס קוד לבאנדל)

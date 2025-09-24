@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,16 +15,10 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../core/theme";
-import {
-  isRTL,
-  wrapBidi,
-  formatCompactUnit,
-  wrapTextWithEmoji,
-} from "../../utils/rtlHelpers";
+import { isRTL, wrapBidi, wrapTextWithEmoji } from "../../utils/rtlHelpers";
 import { useUserStore } from "../../stores/userStore";
 import { RootStackParamList } from "../../navigation/types";
 import { logger } from "../../utils/logger";
-import workoutFacadeService from "../../services/workout/workoutFacadeService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import StatCard, { StatCardGrid } from "../../components/common/StatCard";
 import { DayButtonGrid } from "../../components/common/DayButton";
@@ -41,124 +29,21 @@ import {
   MAIN_SCREEN_TEXTS,
   getTimeBasedGreeting,
 } from "../../constants/mainScreenTexts";
-import { AIRecommendationEngine } from "./utils/aiRecommendationEngine";
-import { WearableIntegration } from "./utils/wearableIntegration";
-import type {
-  AIRecommendation,
-  WearableData,
-} from "./types/aiRecommendations.types";
+import { formatLargeNumber, formatProgressRatio } from "../../utils/formatters";
 import {
-  formatLargeNumber,
-  formatWorkoutDate,
-  getWorkoutIcon,
-  formatWeeklyProgress,
-  formatProgressRatio,
-} from "../../utils/formatters";
-import { calculateWorkoutStats } from "../../features/workout/utils";
-import type { User, WorkoutHistoryItem } from "../../core/types/user.types";
-import { WelcomeHeader, QuickStatsCard } from "./components";
-
-// Helper functions
-const formatRating = (rating: number): string => {
-  if (isNaN(rating) || rating === 0) return "-";
-  return rating.toFixed(1);
-};
-
-const formatFitnessLevel = (level: string): string => {
-  switch (level.toLowerCase()) {
-    case "beginner":
-      return "מתחיל";
-    case "intermediate":
-      return "בינוני";
-    case "advanced":
-      return "מתקדם";
-    default:
-      return "מתחיל";
-  }
-};
-
-/** @description Calculate available training days from user data - SIMPLIFIED */
-const calculateAvailableTrainingDays = (user: User | null): number => {
-  if (!user) return 3;
-
-  // מקור יחיד: תשובות השאלון החכם
-  const smartAnswers = user.questionnaireData?.answers;
-  if (smartAnswers?.availability) {
-    const availability = Array.isArray(smartAnswers.availability)
-      ? smartAnswers.availability[0]
-      : smartAnswers.availability;
-
-    // בדיקת טיפוס והמרה
-    if (typeof availability === "string") {
-      const daysMap: Record<string, number> = {
-        "2_days": 2,
-        "3_days": 3,
-        "4_days": 4,
-        "5_days": 5,
-        "5_plus_days": 5,
-      };
-
-      return daysMap[availability] || 3;
-    }
-  }
-
-  return 3; // ברירת מחדל
-};
-
-/**
- * Calculate next recommended training day - עדכון לאותיות A-E
- */
-const getNextRecommendedDay = (
-  workouts: WorkoutHistoryItem[],
-  availableDays: number
-): number => {
-  if (workouts.length === 0) return 1;
-
-  const lastWorkout = workouts[workouts.length - 1];
-  const lastWorkoutType = lastWorkout?.name || "";
-
-  // חיפוש לפי אותיות במקום מספרים
-  if (lastWorkoutType.includes("A") || lastWorkoutType.includes("יום A")) {
-    return 2;
-  } else if (
-    lastWorkoutType.includes("B") ||
-    lastWorkoutType.includes("יום B")
-  ) {
-    return availableDays >= 3 ? 3 : 1;
-  } else if (
-    lastWorkoutType.includes("C") ||
-    lastWorkoutType.includes("יום C")
-  ) {
-    return availableDays >= 4 ? 4 : 1;
-  } else if (
-    lastWorkoutType.includes("D") ||
-    lastWorkoutType.includes("יום D")
-  ) {
-    return availableDays >= 5 ? 5 : 1;
-  } else if (
-    lastWorkoutType.includes("E") ||
-    lastWorkoutType.includes("יום E")
-  ) {
-    return 1;
-  }
-
-  // fallback למספרים ישנים - לתמיכה לאחור
-  if (lastWorkoutType.includes("1") || lastWorkoutType.includes("יום 1")) {
-    return 2;
-  } else if (
-    lastWorkoutType.includes("2") ||
-    lastWorkoutType.includes("יום 2")
-  ) {
-    return availableDays >= 3 ? 3 : 1;
-  } else if (
-    lastWorkoutType.includes("3") ||
-    lastWorkoutType.includes("יום 3")
-  ) {
-    return availableDays >= 4 ? 4 : 1;
-  }
-
-  return 1;
-};
+  WelcomeHeader,
+  QuickStatsCard,
+  AIRecommendationsSection,
+  WearablesSection,
+  RecentWorkoutItem,
+} from "./components";
+import { useMainScreenData } from "./hooks/useMainScreenData";
+import { formatRating, formatFitnessLevel } from "./utils/mainScreenHelpers";
+import { useLastWorkoutStats } from "./hooks/useLastWorkoutStats";
+import {
+  calculateNextRecommendedDay,
+  calculateWeeklyProgress,
+} from "./utils/workoutDataHelpers";
 
 // Types
 interface ProcessedStats {
@@ -169,223 +54,22 @@ interface ProcessedStats {
   fitnessLevel: string;
 }
 
-interface MinimalWorkout {
-  id?: string;
-  type?: string;
-  workoutName?: string;
-  date?: string | Date;
-  completedAt?: string;
-  duration?: number;
-  rating?: number;
-  startTime?: string;
-  workout?: {
-    name?: string;
-    duration?: number;
-    startTime?: string;
-  };
-  stats?: { duration?: number };
-  feedback?: {
-    difficulty?: number;
-    completedAt?: string;
-  };
-}
-
-// ===============================================
-// 🚀 Main Component - קומפוננטה ראשית
-// ===============================================
-
-/**
- * @description MainScreen - המסך הראשי של האפליקציה
- * @features דשבורד מותאם אישית, סטטיסטיקות, המלצות AI, בחירת אימונים
- * @performance מותאם עם React.memo ו-hooks ממוחזרים
- * @accessibility תמיכה מלאה בנגישות עם תוויות ויעדי מגע מתאימים
- */
 function MainScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  const {
+    refreshing,
+    loading,
+    error,
+    advancedStats,
+    displayName,
+    availableTrainingDays,
+    daysToShow,
+    onRefresh,
+  } = useMainScreenData();
+
   const { user } = useUserStore();
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [advancedStats, setAdvancedStats] = useState<{
-    insights: string[];
-    genderStats?: {
-      total: {
-        totalWorkouts: number;
-        currentStreak: number;
-        averageDifficulty: number;
-        workoutStreak: number;
-      };
-    };
-    totalWorkouts: number;
-    currentStreak: number;
-  } | null>(null);
-
-  // AI והמלצות state
-  const [aiRecommendations, setAiRecommendations] = useState<
-    AIRecommendation[]
-  >([]);
-  const [aiLoading, setAiLoading] = useState(false);
-
-  // Wearable integration state
-  const [wearableData, setWearableData] = useState<WearableData | null>(null);
-  const [wearableConnected, setWearableConnected] = useState(false);
-
-  // 🚀 Performance Tracking - מדידת זמן רינדור לאופטימיזציה
   const renderStartTime = useMemo(() => Date.now(), []);
-
-  // AppNavigator handles routing logic - no need for completion check here
-  // This was causing redirect loops when coming from questionnaire completion
-  /*
-  // Guard: enforce strict onboarding flow - ONLY on initial load
-  useEffect(() => {
-    // Skip completion check if we're already in MainApp via navigation
-    // AppNavigator handles the routing logic properly
-    const navigation = require('@react-navigation/native').useNavigation;
-    if (navigation.current?.canGoBack?.()) {
-      logger.info("MainScreen", "Skipping completion check - not initial load");
-      return;
-    }
-
-    const completion = getCompletionStatus?.();
-    if (!completion) return;
-
-    logger.info("MainScreen", "Completion status check", {
-      hasSmartQuestionnaire: completion.hasSmartQuestionnaire,
-      hasBasicInfo: completion.hasBasicInfo,
-      isFullySetup: completion.isFullySetup,
-      userData: {
-        hasQuestionnaire: useUserStore.getState().user?.hasQuestionnaire,
-        hasQuestionnaireData: !!useUserStore.getState().user?.questionnaireData,
-        userId: useUserStore.getState().user?.id,
-        userEmail: useUserStore.getState().user?.email,
-      },
-    });
-
-    // תיקון: else if במקום if כפול - מניעת redirect כפול
-    if (!completion.hasSmartQuestionnaire) {
-      logger.info(
-        "MainScreen",
-        "Redirecting to Questionnaire due to missing questionnaire data"
-      );
-      navigation.reset({ index: 0, routes: [{ name: "Questionnaire" }] });
-      return;
-    } else if (!completion.hasBasicInfo) {
-      // עדכון: ניווט למסך הרשמה דרך navigator האימות
-      logger.info(
-        "MainScreen",
-        "Redirecting to Auth/Register due to missing basic info"
-      );
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: "Auth",
-            params: {
-              screen: "Register",
-            },
-          },
-        ],
-      });
-      return;
-    }
-  }, [user, navigation, getCompletionStatus]);
-  */
-
-  // טעינת המלצות AI
-  const loadAIRecommendations = useCallback(
-    async (historyItems: WorkoutHistoryItem[]) => {
-      try {
-        setAiLoading(true);
-        const aiEngine = new AIRecommendationEngine();
-        const recommendations =
-          await aiEngine.generateRecommendations(historyItems);
-        setAiRecommendations(recommendations);
-        logger.info("MainScreen", `נטענו ${recommendations.length} המלצות AI`);
-      } catch (error) {
-        logger.error("MainScreen", "שגיאה בטעינת המלצות AI", error);
-        setAiRecommendations([]);
-      } finally {
-        setAiLoading(false);
-      }
-    },
-    []
-  );
-
-  // התחברות ל-wearables
-  const connectToWearables = useCallback(async () => {
-    try {
-      const wearableIntegration = WearableIntegration.getInstance();
-      const hasPermission = await wearableIntegration.requestPermissions();
-
-      if (hasPermission) {
-        setWearableConnected(true);
-        const healthData = await wearableIntegration.getHealthData();
-        setWearableData(healthData);
-        logger.info("MainScreen", "התחברות ל-wearables הצליחה", {
-          steps: healthData?.steps?.count || 0,
-          heartRate: healthData?.heartRate?.current || 0,
-        });
-      } else {
-        logger.warn("MainScreen", "לא ניתנו הרשאות ל-wearables");
-        setWearableConnected(false);
-      }
-    } catch (error) {
-      logger.error("MainScreen", "שגיאה בהתחברות ל-wearables", error);
-      setWearableConnected(false);
-    }
-  }, []);
-
-  // טעינת נתונים מתקדמים
-  const loadAdvancedData = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const historyItems = await workoutFacadeService.getHistoryForList();
-      const insights =
-        await workoutFacadeService.getPersonalizedAnalytics(historyItems);
-
-      // חישוב סטטיסטיקות מההיסטוריה
-      const totalWorkouts = historyItems.length;
-      const currentStreak = historyItems.slice(0, 7).length; // פשוט
-
-      // חישוב דירוג ממוצע אמיתי מההיסטוריה
-      const averageDifficulty =
-        historyItems.length > 0
-          ? historyItems.reduce((sum, item) => sum + (item.rating || 0), 0) /
-            historyItems.length
-          : 0;
-
-      setAdvancedStats({
-        insights,
-        genderStats: {
-          total: {
-            totalWorkouts,
-            currentStreak,
-            averageDifficulty,
-            workoutStreak: currentStreak,
-          },
-        },
-        totalWorkouts,
-        currentStreak,
-      });
-
-      // טעינת המלצות AI
-      await loadAIRecommendations(historyItems);
-
-      // התחברות ל-wearables
-      await connectToWearables();
-    } catch (error) {
-      console.error("שגיאה בטעינת נתונים:", error);
-    }
-  }, [user, loadAIRecommendations, connectToWearables]);
-
-  useEffect(() => {
-    // ✅ הוספת delay למניעת קריאות מיותרות
-    const timeoutId = setTimeout(() => {
-      loadAdvancedData();
-    }, 100);
-    return () => clearTimeout(timeoutId);
-  }, [user?.id, loadAdvancedData]); // רק כשמשתמש משתנה
 
   useEffect(() => {
     const renderTime = Date.now() - renderStartTime;
@@ -394,35 +78,22 @@ function MainScreen() {
     }
   }, [renderStartTime]);
 
-  // ===============================================
-  // � Animation References - אנימציות משופרות
-  // ===============================================
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-
-  // �🎯 Micro-interactions for buttons - מיקרו-אינטראקציות לכפתורים
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const quickWorkoutScale = useRef(new Animated.Value(1)).current;
-
-  // 🎯 Haptic Feedback Functions - פונקציות משוב מישושי מותאמות לכושר
   const triggerHapticFeedback = useCallback(
     (intensity: "light" | "medium" | "heavy") => {
-      switch (intensity) {
-        case "light":
-          Haptics.selectionAsync(); // לניווט רגיל (פרופיל, היסטוריה)
-          break;
-        case "medium":
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // לבחירת יום אימון
-          break;
-        case "heavy":
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // להתחלת אימון מהיר
-          break;
-      }
+      const feedbackMap = {
+        light: () => Haptics.selectionAsync(),
+        medium: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+        heavy: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+      };
+      feedbackMap[intensity]();
     },
     []
   );
 
-  // 🎨 Micro-interaction animations - אנימציות מיקרו-אינטראקציות
   const animateQuickWorkout = useCallback(() => {
     Animated.sequence([
       Animated.timing(quickWorkoutScale, {
@@ -439,144 +110,54 @@ function MainScreen() {
     ]).start();
   }, [quickWorkoutScale]);
 
-  // ===============================================
-  // 💾 Memoized Data Processing - עיבוד נתונים ממוחזר
-  // ===============================================
-
-  /** @description שם המשתמש מותאם עם fallback / Adapted username with fallback */
-  const displayName = useMemo(
-    () => user?.name || user?.email?.split("@")[0] || "מתאמן",
-    [user?.name, user?.email]
-  );
-
-  /** @description ברכה דינמית לפי שעה / Dynamic greeting based on time */
   const timeBasedGreeting = useMemo(() => getTimeBasedGreeting(), []);
 
-  /** @description מספר ימי האימון על בסיס השאלון / Number of training days based on questionnaire */
-  const availableTrainingDays = useMemo(() => {
-    return calculateAvailableTrainingDays(user);
-  }, [user]);
-
-  /** @description מערך הימים להצגה / Array of days to display */
-  const daysToShow = useMemo(() => {
-    const days = Array.from({ length: availableTrainingDays }, (_, i) => i + 1);
-    return days;
-  }, [availableTrainingDays]);
-
-  /** @description נתונים מדעיים ומקצועיים ממוחזרים / Memoized scientific and professional data */
-  const profileData = useMemo(
-    () => ({
-      scientificProfile: undefined, // user?.scientificprofile - field doesn't exist in User type
-      activityHistory: user?.activityHistory,
-      currentStats: user?.trainingStats, // ✅ תיקון: השתמש ב-trainingStats במקום trainingstats
-    }),
-    [user]
-  );
-
-  /** @description נתוני סטטיסטיקה מעובדים לתצוגה / Processed statistics for display */
+  /** @description נתוני סטטיסטיקה מעובדים לתצוגה */
   const stats: ProcessedStats = useMemo(
     () => ({
       totalWorkouts:
-        advancedStats?.totalWorkouts ||
-        profileData.currentStats?.totalWorkouts ||
-        0,
+        advancedStats?.totalWorkouts || user?.trainingStats?.totalWorkouts || 0,
       currentStreak:
-        advancedStats?.currentStreak ||
-        profileData.currentStats?.currentStreak ||
-        0,
-      totalVolume: profileData.currentStats?.totalVolume || 0,
+        advancedStats?.currentStreak || user?.trainingStats?.currentStreak || 0,
+      totalVolume: user?.trainingStats?.totalVolume || 0,
       averageRating:
         advancedStats?.genderStats?.total?.averageDifficulty ||
         user?.trainingStats?.averageRating ||
-        0, // השתמש ב-0 במקום 4.0 קשיח
+        0,
       fitnessLevel:
-        // @ts-expect-error - נתיב לא קיים
-        profileData.scientificProfile?.fitnessTests?.overallLevel ||
         user?.questionnaireData?.answers?.experience_level ||
         user?.trainingStats?.currentFitnessLevel ||
         "beginner",
     }),
     [
-      profileData,
       advancedStats,
-      user?.trainingStats?.averageRating,
+      user?.trainingStats,
       user?.questionnaireData?.answers?.experience_level,
-      user?.trainingStats?.currentFitnessLevel,
     ]
   );
 
-  // סטטיסטיקות מהאימון האחרון (ממופה בבטיחות טיפוסים)
-  const lastWorkoutStats = useMemo(() => {
-    const workouts = profileData.activityHistory?.workouts;
-    if (!Array.isArray(workouts) || workouts.length === 0) return null;
-    const last = workouts[0];
-    if (!last || !Array.isArray(last.exercises) || last.exercises.length === 0)
-      return null;
+  /** @description סטטיסטיקות מהאימון האחרון */
+  const lastWorkoutStats = useLastWorkoutStats({
+    workouts: user?.activityHistory?.workouts || [],
+  });
 
-    const formattedExercises = last.exercises.map((ex, exIdx) => {
-      const equipment = Array.isArray(ex.equipment)
-        ? ex.equipment[0]
-        : ex.equipment;
-      const sets = Array.isArray(ex.sets)
-        ? ex.sets.map((s, sIdx) => ({
-            id: s.id || `set-${exIdx}-${sIdx}`,
-            type: "working" as const,
-            targetReps: s.reps || 0,
-            actualReps: s.completed ? s.reps || 0 : 0,
-            targetWeight: s.weight || 0,
-            actualWeight: s.completed ? s.weight || 0 : 0,
-            completed: !!s.completed,
-            isPR: false,
-            timeToComplete: 0,
-          }))
-        : [];
-      return {
-        id: ex.id || `ex-${exIdx}`,
-        name: ex.name || "Unknown Exercise",
-        category: ex.category || "Unknown",
-        primaryMuscles: ex.primaryMuscles || ["Unknown"],
-        equipment: equipment || "Unknown",
-        sets,
-      };
-    });
-
-    return calculateWorkoutStats(formattedExercises);
-  }, [profileData.activityHistory?.workouts]);
-
-  /** @description חישוב היום הבא המומלץ לאימון / Calculate next recommended workout day */
+  /** @description חישוב היום הבא המומלץ לאימון */
   const nextRecommendedDay = useMemo(() => {
-    const workouts = profileData.activityHistory?.workouts || [];
-    // המרה לפורמט WorkoutHistoryItem
-    const historyItems = workouts.map((workout) => ({
-      id: workout.id,
-      workoutName: workout.name,
-      type: workout.type || workout.name,
-      date:
-        (typeof workout.date === "string"
-          ? new Date(workout.date)
-          : workout.date
-        )?.toISOString() || new Date().toISOString(),
-      completedAt:
-        (typeof workout.date === "string"
-          ? new Date(workout.date)
-          : workout.date
-        )?.toISOString() || new Date().toISOString(),
-      rating: workout.rating || 0, // השתמש ב-rating אמיתי מהאימון
-    }));
+    return calculateNextRecommendedDay(
+      user?.activityHistory?.workouts || [],
+      availableTrainingDays
+    );
+  }, [user?.activityHistory?.workouts, availableTrainingDays]);
 
-    // @ts-expect-error - התאמה בין טיפוסים שונים
-    return getNextRecommendedDay(historyItems, availableTrainingDays);
-  }, [profileData.activityHistory?.workouts, availableTrainingDays]);
-
-  /** @description נתוני התקדמות שבועית מעובדים / Processed weekly progress data */
+  /** @description נתוני התקדמות שבועית */
   const weeklyProgressData = useMemo(() => {
-    const completed = profileData.activityHistory?.weeklyProgress || 0;
-    const target = availableTrainingDays; // משתמש בימים מהשאלון
-    return formatWeeklyProgress(completed, target);
-  }, [profileData.activityHistory?.weeklyProgress, availableTrainingDays]);
+    return calculateWeeklyProgress(
+      user?.activityHistory?.weeklyProgress || 0,
+      availableTrainingDays
+    );
+  }, [user?.activityHistory?.weeklyProgress, availableTrainingDays]);
 
   useEffect(() => {
-    // אנימציות כניסה חלקה // Smooth entry animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -591,52 +172,20 @@ function MainScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setError(null);
-
-    try {
-      setLoading(true);
-      // רענון נתונים אמיתיים // Real data refresh
-      const userState = useUserStore.getState();
-
-      // בדיקה אם יש משתמש זמין // Check if user is available
-      if (!userState.user) {
-        throw new Error(MAIN_SCREEN_TEXTS.STATUS.NO_USER_FOUND);
-      }
-
-      // רענון נתונים מתקדמים מ-WorkoutFacadeService
-      await loadAdvancedData();
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : MAIN_SCREEN_TEXTS.STATUS.DATA_LOAD_ERROR;
-      setError(errorMessage);
-      console.error("❌ MainScreen - שגיאה בטעינת נתונים:", errorMessage);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [loadAdvancedData]);
+  // onRefresh now handled by useMainScreenData hook
 
   const handleStartWorkout = useCallback(
-    (workoutName?: string, workoutIndex?: number) => {
+    (options?: { workoutName?: string; workoutIndex?: number }) => {
       triggerHapticFeedback("heavy");
-
-      const navigationParams: Record<string, unknown> = {
+      navigation.navigate("WorkoutPlans", {
         autoStart: true,
-      };
-
-      if (workoutName) {
-        navigationParams.requestedWorkoutName = workoutName;
-      }
-
-      if (workoutIndex !== undefined) {
-        navigationParams.requestedWorkoutIndex = workoutIndex;
-      }
-
-      navigation.navigate("WorkoutPlans", navigationParams);
+        ...(options?.workoutName && {
+          requestedWorkoutName: options.workoutName,
+        }),
+        ...(options?.workoutIndex !== undefined && {
+          requestedWorkoutIndex: options.workoutIndex,
+        }),
+      });
     },
     [navigation, triggerHapticFeedback]
   );
@@ -716,7 +265,7 @@ function MainScreen() {
           />
 
           {/* סטטיסטיקות מדעיות חדשות */}
-          {(stats.totalWorkouts > 0 || profileData.scientificProfile) && (
+          {stats.totalWorkouts > 0 && (
             <Animated.View
               style={[
                 styles.scientificStatsSection,
@@ -825,166 +374,23 @@ function MainScreen() {
 
           {/* AI המלצות ו-Wearables */}
           <Animated.View
-            style={[
-              styles.aiWearableSection,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+              marginBottom: 24,
+              paddingHorizontal: 20,
+            }}
           >
             <Text style={styles.sectionTitle}>🤖 המלצות חכמות ובריאות</Text>
 
-            {/* Wearable Connection Status */}
-            {wearableConnected && wearableData && (
-              <View style={styles.wearableCard}>
-                <View style={styles.wearableHeader}>
-                  <MaterialCommunityIcons
-                    name="watch"
-                    size={20}
-                    color={theme.colors.success}
-                  />
-                  <Text style={styles.wearableTitle}>נתוני בריאות</Text>
-                  <View style={styles.connectedBadge}>
-                    <Text style={styles.connectedText}>מחובר</Text>
-                  </View>
-                </View>
-                <View style={styles.healthDataGrid}>
-                  <View style={styles.healthDataItem}>
-                    <MaterialCommunityIcons
-                      name="walk"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.healthDataValue}>
-                      {wearableData.steps?.count || 0}
-                    </Text>
-                    <Text style={styles.healthDataLabel}>צעדים</Text>
-                  </View>
-                  <View style={styles.healthDataItem}>
-                    <MaterialCommunityIcons
-                      name="heart"
-                      size={16}
-                      color={theme.colors.error}
-                    />
-                    <Text style={styles.healthDataValue}>
-                      {wearableData.heartRate?.current || 0}
-                    </Text>
-                    <Text style={styles.healthDataLabel}>דופק</Text>
-                  </View>
-                  <View style={styles.healthDataItem}>
-                    <MaterialCommunityIcons
-                      name="sleep"
-                      size={16}
-                      color={theme.colors.warning}
-                    />
-                    <Text style={styles.healthDataValue}>
-                      {wrapBidi(
-                        (() => {
-                          const hours = Math.round(
-                            wearableData.sleep?.duration || 0
-                          );
-                          // Use compact unit if hours > 0, fallback to 0‎ש׳
-                          return hours > 0
-                            ? formatCompactUnit(hours, "hr")
-                            : isRTL()
-                              ? "0ש׳"
-                              : "0h";
-                        })()
-                      )}
-                    </Text>
-                    <Text style={styles.healthDataLabel}>שינה</Text>
-                  </View>
-                </View>
-              </View>
-            )}
+            {/* Wearables Integration Component */}
+            <WearablesSection />
 
-            {/* AI Recommendations */}
-            {aiLoading ? (
-              <View style={styles.aiLoadingContainer}>
-                <MaterialCommunityIcons
-                  name="robot"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.aiLoadingText}>מכין המלצות אישיות...</Text>
-              </View>
-            ) : (
-              aiRecommendations.length > 0 && (
-                <View style={styles.aiRecommendationsContainer}>
-                  {aiRecommendations.slice(0, 2).map((recommendation) => (
-                    <View
-                      key={recommendation.id}
-                      style={styles.recommendationCard}
-                    >
-                      <View style={styles.recommendationHeader}>
-                        <MaterialCommunityIcons
-                          name={
-                            recommendation.icon as keyof typeof MaterialCommunityIcons.glyphMap
-                          }
-                          size={20}
-                          color={recommendation.color}
-                        />
-                        <Text style={styles.recommendationTitle}>
-                          {recommendation.title}
-                        </Text>
-                        <View
-                          style={[
-                            styles.priorityBadge,
-                            {
-                              backgroundColor:
-                                recommendation.priority === "high"
-                                  ? theme.colors.error + "20"
-                                  : recommendation.priority === "medium"
-                                    ? theme.colors.warning + "20"
-                                    : theme.colors.success + "20",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.priorityText,
-                              {
-                                color:
-                                  recommendation.priority === "high"
-                                    ? theme.colors.error
-                                    : recommendation.priority === "medium"
-                                      ? theme.colors.warning
-                                      : theme.colors.success,
-                              },
-                            ]}
-                          >
-                            {recommendation.priority === "high"
-                              ? "חשוב"
-                              : recommendation.priority === "medium"
-                                ? "בינוני"
-                                : "נמוך"}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.recommendationDescription}>
-                        {recommendation.description}
-                      </Text>
-                      <Text style={styles.recommendationAction}>
-                        💡 {recommendation.action}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )
-            )}
+            {/* AI Recommendations Component */}
+            <AIRecommendationsSection
+              historyItems={user?.activityHistory?.workouts || []}
+            />
           </Animated.View>
-
-          {/* המלצת אימון הבא */}
-          <Animated.View
-            style={[
-              styles.nextWorkoutSection,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          ></Animated.View>
 
           {/* בחירת יום אימון עם המלצה דינמית */}
           <Animated.View
@@ -1096,8 +502,8 @@ function MainScreen() {
                 value={weeklyProgressData.text}
                 label={MAIN_SCREEN_TEXTS.STATS.WEEKLY_GOAL}
                 subtitle={formatProgressRatio(
-                  profileData.activityHistory?.weeklyProgress || 0,
-                  availableTrainingDays, // משתמש בימים מהשאלון
+                  user?.activityHistory?.weeklyProgress || 0,
+                  availableTrainingDays,
                   MAIN_SCREEN_TEXTS.ACTIONS.WORKOUTS
                 )}
                 showProgress={true}
@@ -1108,9 +514,7 @@ function MainScreen() {
                 variant="default"
                 icon="fire"
                 iconColor={theme.colors.primary}
-                value={
-                  profileData.currentStats?.currentStreak || 0 // ✅ תיקון: השתמש ב-currentStreak במקום workoutStreak
-                }
+                value={user?.trainingStats?.currentStreak || 0}
                 label={MAIN_SCREEN_TEXTS.STATS.CURRENT_STREAK}
                 subtitle={MAIN_SCREEN_TEXTS.STATS.DAYS}
                 testID="current-streak-card"
@@ -1120,8 +524,8 @@ function MainScreen() {
                 icon="chart-line"
                 iconColor={theme.colors.primary}
                 value={
-                  profileData.activityHistory?.workouts?.length ||
-                  profileData.currentStats?.totalWorkouts ||
+                  user?.activityHistory?.workouts?.length ||
+                  user?.trainingStats?.totalWorkouts ||
                   0
                 }
                 label={MAIN_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
@@ -1145,88 +549,16 @@ function MainScreen() {
             </Text>
 
             <View style={styles.recentWorkoutsList}>
-              {/* אימונים אמיתיים מההיסטוריה */}
-              {profileData.activityHistory?.workouts &&
-              profileData.activityHistory.workouts.length > 0 ? (
-                profileData.activityHistory.workouts
+              {user?.activityHistory?.workouts &&
+              user.activityHistory.workouts.length > 0 ? (
+                user.activityHistory.workouts
                   .slice(0, 3)
-                  .map((workout: unknown, index: number) => {
-                    const item = workout as MinimalWorkout;
-                    const title: string =
-                      item?.workout?.name ||
-                      item?.workoutName ||
-                      (item?.type === "strength"
-                        ? MAIN_SCREEN_TEXTS.WORKOUT_TYPES.STRENGTH
-                        : MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL);
-
-                    const dateValue: string | Date =
-                      item?.feedback?.completedAt ||
-                      item?.date ||
-                      item?.completedAt ||
-                      new Date();
-
-                    const durationMinutes: number | undefined = (() => {
-                      const seconds: number | undefined =
-                        typeof item?.workout?.duration === "number"
-                          ? item.workout.duration
-                          : typeof item?.stats?.duration === "number"
-                            ? item.stats.duration
-                            : typeof item?.duration === "number"
-                              ? item.duration
-                              : undefined;
-                      return typeof seconds === "number"
-                        ? Math.max(1, Math.round(seconds / 60))
-                        : undefined;
-                    })();
-
-                    const iconName = getWorkoutIcon(
-                      item?.type,
-                      title
-                    ) as keyof typeof MaterialCommunityIcons.glyphMap;
-
-                    const ratingValue: number =
-                      (typeof item?.feedback?.difficulty === "number"
-                        ? item.feedback.difficulty
-                        : undefined) ||
-                      item?.rating ||
-                      4.0;
-
-                    return (
-                      <View
-                        key={item?.id || `workout-${index}`}
-                        style={styles.recentWorkoutItem}
-                      >
-                        <View style={styles.workoutIcon}>
-                          <MaterialCommunityIcons
-                            name={iconName}
-                            size={24}
-                            color={theme.colors.primary}
-                          />
-                        </View>
-                        <View style={styles.workoutInfo}>
-                          <Text style={styles.workoutTitle}>
-                            {wrapBidi(title)}
-                          </Text>
-                          <Text style={styles.workoutDate}>
-                            {wrapBidi(
-                              formatWorkoutDate(dateValue, durationMinutes) ||
-                                "תאריך לא ידוע"
-                            )}
-                          </Text>
-                        </View>
-                        <View style={styles.workoutRating}>
-                          <MaterialCommunityIcons
-                            name="star"
-                            size={16}
-                            color={theme.colors.warning}
-                          />
-                          <Text style={styles.ratingText}>
-                            {formatRating(ratingValue) || "4.0"}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })
+                  .map((workout, index) => (
+                    <RecentWorkoutItem
+                      key={workout?.id || `workout-${index}`}
+                      workout={workout}
+                    />
+                  ))
               ) : (
                 // אם אין היסטוריה אמיתית - הצג הודעת ריקנות
                 <EmptyState
@@ -1328,84 +660,6 @@ const styles = StyleSheet.create({
   },
   recentWorkoutsList: {
     gap: theme.spacing.md,
-  },
-  recentWorkoutItem: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    alignItems: "center",
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
-    marginVertical: theme.spacing.xs,
-    // Premium card design - עיצוב כרטיס פרימיום
-    backgroundColor: `${theme.colors.card}FA`,
-    borderWidth: 1,
-    borderColor: `${theme.colors.cardBorder}40`,
-    // Advanced shadows with subtle glow - צללים מתקדמים עם זוהר עדין
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
-    // Subtle gradient border effect (simulated)
-    borderTopColor: `${theme.colors.primary}15`,
-    borderTopWidth: 2,
-  },
-  workoutIcon: {
-    width: 56, // הוגדל מ-52 לנוכחות טובה יותר
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginStart: isRTL() ? theme.spacing.lg : 0,
-    marginEnd: isRTL() ? 0 : theme.spacing.lg,
-    // Modern icon design with gradient-like background
-    backgroundColor: `${theme.colors.backgroundElevated}F5`,
-    borderWidth: 2.5,
-    borderColor: `${theme.colors.primary}25`,
-    // Enhanced 3D effect with multiple shadows
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    // Inner glow effect (simulated)
-    borderTopColor: `${theme.colors.primary}35`,
-    borderBottomColor: `${theme.colors.primary}15`,
-  },
-  workoutInfo: {
-    flex: 1,
-    alignItems: isRTL() ? "flex-end" : "flex-start",
-    paddingEnd: isRTL() ? theme.spacing.sm : 0,
-    paddingStart: isRTL() ? 0 : theme.spacing.sm,
-  },
-  workoutTitle: {
-    fontSize: 20, // הוגדל מ-18 לבולטות רבה יותר
-    fontWeight: "700",
-    color: theme.colors.text,
-    textAlign: isRTL() ? "right" : "left",
-    marginBottom: 6,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-    letterSpacing: 0.3,
-  },
-  workoutDate: {
-    fontSize: 15, // הוגדל מ-14 לקריאות מעולה
-    fontWeight: "500",
-    color: theme.colors.textSecondary,
-    textAlign: isRTL() ? "right" : "left",
-    writingDirection: isRTL() ? "rtl" : "ltr",
-    letterSpacing: 0.2,
-  },
-  workoutRating: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    alignItems: "center",
-    marginEnd: isRTL() ? theme.spacing.md : 0,
-    marginStart: isRTL() ? 0 : theme.spacing.md,
-  },
-  ratingText: {
-    fontSize: 16, // הוגדל מ-14 לקריאות טובה יותר
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginEnd: isRTL() ? 4 : 0,
-    marginStart: isRTL() ? 0 : 4,
   },
 
   // Scientific stats section // קטע הסטטיסטיקות המדעיות
@@ -1551,138 +805,7 @@ const styles = StyleSheet.create({
     flex: 1,
     writingDirection: isRTL() ? "rtl" : "ltr",
   },
-  nextWorkoutSection: {
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-
-  // AI & Wearables section styles
-  aiWearableSection: {
-    marginBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.lg,
-  },
-
-  // Wearable card styles
-  wearableCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.small,
-    borderWidth: 1,
-    borderColor: theme.colors.success + "20",
-  },
-  wearableHeader: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  wearableTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginEnd: isRTL() ? theme.spacing.sm : 0,
-    marginStart: isRTL() ? 0 : theme.spacing.sm,
-    flex: 1,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
-  connectedBadge: {
-    backgroundColor: theme.colors.success + "20",
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
-    borderRadius: theme.radius.sm,
-  },
-  connectedText: {
-    fontSize: 12,
-    color: theme.colors.success,
-    fontWeight: "600",
-  },
-  healthDataGrid: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    justifyContent: "space-between",
-  },
-  healthDataItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  healthDataValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    marginVertical: 4,
-  },
-  healthDataLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
-
-  // AI recommendations styles
-  aiLoadingContainer: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    ...theme.shadows.small,
-  },
-  aiLoadingText: {
-    marginEnd: isRTL() ? theme.spacing.sm : 0,
-    marginStart: isRTL() ? 0 : theme.spacing.sm,
-    fontSize: 14,
-    color: theme.colors.text,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
-  aiRecommendationsContainer: {
-    gap: theme.spacing.sm,
-  },
-  recommendationCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.small,
-    borderStartWidth: isRTL() ? 0 : 4,
-    borderEndWidth: isRTL() ? 4 : 0,
-    borderLeftColor: isRTL() ? "transparent" : theme.colors.primary,
-    borderRightColor: isRTL() ? theme.colors.primary : "transparent",
-  },
-  recommendationHeader: {
-    flexDirection: isRTL() ? "row-reverse" : "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.xs,
-  },
-  recommendationTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginEnd: isRTL() ? theme.spacing.sm : 0,
-    marginStart: isRTL() ? 0 : theme.spacing.sm,
-    flex: 1,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
-  priorityBadge: {
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
-    borderRadius: theme.radius.sm,
-  },
-  priorityText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  recommendationDescription: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: theme.spacing.xs,
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
-  recommendationAction: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: "500",
-    writingDirection: isRTL() ? "rtl" : "ltr",
-  },
+  // AI & Wearables section styles moved to individual components
 });
 
 // ===============================================

@@ -102,12 +102,6 @@ export interface QuestionnaireData {
 
 // ===== Navigation types =====
 
-export type QuestionnaireStackParamList = {
-  QuestionnaireScreen: {
-    stage?: "profile" | "training";
-  };
-};
-
 // ===== Status type (derived) =====
 
 export interface QuestionnaireStatus {

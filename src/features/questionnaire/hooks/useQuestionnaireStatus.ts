@@ -59,16 +59,20 @@ export const useQuestionnaireStatus = (): QuestionnaireStatus => {
     const goalsOk =
       hasNonEmptyArray(ans["goals"]) || hasNonEmptyString(ans["fitness_goal"]);
 
-    // availability (array של מזהים)
-    const availabilityOk = hasNonEmptyArray(ans["availability"]);
+    // availability - תמיכה בarray וstring
+    const availabilityOk =
+      hasNonEmptyArray(ans["availability"]) ||
+      hasNonEmptyString(ans["availability"]);
 
     // sessionDuration (חדש) / workout_duration (ישן)
     const durationOk =
       hasNonEmptyString(ans["sessionDuration"]) ||
       hasNonEmptyString(ans["workout_duration"]);
 
-    // equipment (array)
-    const equipmentOk = hasNonEmptyArray(ans["equipment"]);
+    // equipment (array) - תמיכה בשמות שדה שונים
+    const equipmentOk =
+      hasNonEmptyArray(ans["equipment"]) ||
+      hasNonEmptyArray(ans["equipment_available"]);
 
     // gender (string)
     const genderOk = hasNonEmptyString(ans["gender"]);

@@ -2,7 +2,7 @@
  * @file src/navigation/AppNavigator.tsx
  * @description מנהל הניווט הראשי של האפליקציה עם מסלולים מותנים
  */
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { ActivityIndicator, View, Text } from "react-native";
 import {
   NavigationContainer,
@@ -14,8 +14,8 @@ import { createStackNavigator } from "@react-navigation/stack";
 // Auth Navigator - מודול אימות
 import { AuthNavigator } from "../features/auth";
 
-// Questionnaire Navigator - מודול שאלון
-import { QuestionnaireNavigator } from "../features/questionnaire";
+// Questionnaire Screen - מסך שאלון
+import { QuestionnaireScreen } from "../features/questionnaire";
 
 // Welcome screen
 import WelcomeScreen from "../screens/welcome/WelcomeScreen";
@@ -128,7 +128,7 @@ export default function AppNavigator() {
         {/* Questionnaire module - שאלון כושר */}
         <Stack.Screen
           name="Questionnaire"
-          component={QuestionnaireNavigator}
+          component={QuestionnaireScreen}
           options={{ gestureEnabled: false }}
         />
 

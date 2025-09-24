@@ -18,7 +18,7 @@ interface UserStore {
   hasSeenWelcome: boolean;
 
   setUser: (user: User | null) => Promise<void>;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
   isLoggedIn: () => Promise<boolean>;
   clearAllUserData: () => Promise<void>;
@@ -78,7 +78,7 @@ export const useUserStore = create<UserStore>()(
         }
       },
 
-      updateUser: (updates) => {
+      updateUser: async (updates) => {
         try {
           set((state) => ({
             user: state.user ? { ...state.user, ...updates } : null,

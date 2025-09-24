@@ -31,11 +31,8 @@ export const MAIN_SCREEN_TEXTS = {
     YOUR_STATUS: "הסטטוס שלך",
     RECENT_WORKOUTS: "אימונים אחרונים",
     SELECT_DAY: "בחר יום אימון ספציפי",
-    SELECT_DAY_RECOMMENDED: (day: number) => {
-      const letters = ["A", "B", "C", "D", "E", "F", "G"];
-      const dayLetter = letters[day - 1] || `יום ${day}`;
-      return `בחר יום אימון ספציפי - מומלץ אימון ${dayLetter}`;
-    },
+    SELECT_DAY_RECOMMENDED: (day: number) =>
+      `בחר יום אימון ספציפי - מומלץ אימון ${["A", "B", "C", "D", "E", "F", "G"][day - 1] || `יום ${day}`}`,
   },
 
   // Workout types - עדכון לתיאורים דינמיים
@@ -79,39 +76,48 @@ export const MAIN_SCREEN_TEXTS = {
   },
 } as const;
 
+// ========== פונקציות עזר - פושטו לפי המתודולוגיה שלנו ==========
+// מיושמות השאלות: "למה הפונקציה הזאת כל כך מורכבת?" ו"אפשר לעשות את זה בשורה אחת?"
+
 /**
  * Get greeting based on time of day
+ * שאלה: "אפשר לעשות את זה בשורה אחת?" - כן!
  */
 export const getTimeBasedGreeting = (): string => {
   const hour = new Date().getHours();
+  const { GOOD_MORNING, GOOD_AFTERNOON, GOOD_EVENING } =
+    MAIN_SCREEN_TEXTS.WELCOME;
 
-  if (hour < 12) {
-    return MAIN_SCREEN_TEXTS.WELCOME.GOOD_MORNING;
-  } else if (hour < 18) {
-    return MAIN_SCREEN_TEXTS.WELCOME.GOOD_AFTERNOON;
-  } else {
-    return MAIN_SCREEN_TEXTS.WELCOME.GOOD_EVENING;
-  }
+  return hour < 12 ? GOOD_MORNING : hour < 18 ? GOOD_AFTERNOON : GOOD_EVENING;
 };
 
 /**
- * Get workout type name for day - עדכון לתיאורים משופרים
+ * Get workout type name for day - פושט לטבלה ישירה
+ * שאלה: "למה הפונקציה הזאת כל כך מורכבת?" - עכשיו היא לא!
  */
 export const getDayWorkoutType = (dayNum: number): string => {
-  const types = {
-    1: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.CHEST_TRICEPS, // A: חזה + זרועות
-    2: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.BACK_BICEPS, // B: גב + זרועות
-    3: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.LEGS, // C: רגליים + ליבה
-    4: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.SHOULDERS_CORE, // D: כתפיים + ליבה
-    5: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.FULL_BODY, // E: כל הגוף
-    6: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.CARDIO, // F: קרדיו
-    7: MAIN_SCREEN_TEXTS.WORKOUT_TYPES.UPPER_BODY, // G: גוף עליון
-  };
+  const {
+    CHEST_TRICEPS,
+    BACK_BICEPS,
+    LEGS,
+    SHOULDERS_CORE,
+    FULL_BODY,
+    CARDIO,
+    UPPER_BODY,
+    GENERAL,
+  } = MAIN_SCREEN_TEXTS.WORKOUT_TYPES;
 
-  return (
-    types[dayNum as keyof typeof types] ||
-    MAIN_SCREEN_TEXTS.WORKOUT_TYPES.GENERAL
-  );
+  const workoutTypes = [
+    CHEST_TRICEPS, // 1: A - חזה + זרועות
+    BACK_BICEPS, // 2: B - גב + זרועות
+    LEGS, // 3: C - רגליים + ליבה
+    SHOULDERS_CORE, // 4: D - כתפיים + ליבה
+    FULL_BODY, // 5: E - כל הגוף
+    CARDIO, // 6: F - קרדיו
+    UPPER_BODY, // 7: G - גוף עליון
+  ];
+
+  return workoutTypes[dayNum - 1] || GENERAL;
 };
 
 export default MAIN_SCREEN_TEXTS;
