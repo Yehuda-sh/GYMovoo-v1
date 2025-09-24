@@ -1,7 +1,13 @@
+// src/stores/userStore.ts
+/**
+ * @file src/stores/userStore.ts
+ * @description Zustand store לניהול מצב המשתמש עם פרסיסטנטיות ב-AsyncStorage
+ */
+
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "../core/types/user.types";
+import type { User } from "../core/types/user.types";
 import type { QuestionnaireData } from "../features/questionnaire/types";
 import { StorageKeys } from "../constants/StorageKeys";
 import { logger } from "../utils/logger";
@@ -11,15 +17,15 @@ interface UserStore {
   hydrated: boolean;
   hasSeenWelcome: boolean;
 
-  setUser: (user: User | null) => void;
+  setUser: (user: User | null) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoggedIn: () => Promise<boolean>;
   clearAllUserData: () => Promise<void>;
 
   setSmartQuestionnaireData: (data: QuestionnaireData) => void;
   getSmartQuestionnaireAnswers: () => QuestionnaireData["answers"] | null;
-  resetSmartQuestionnaire: () => void;
+  resetSmartQuestionnaire: () => Promise<void>;
 
   getCompletionStatus: () => {
     hasBasicInfo: boolean;
@@ -27,7 +33,7 @@ interface UserStore {
     isFullySetup: boolean;
   };
 
-  setHydrated?: () => void;
+  setHydrated: () => void;
   markWelcomeSeen: () => void;
 }
 
@@ -37,18 +43,20 @@ export const useUserStore = create<UserStore>()(
       user: null,
       hydrated: false,
       hasSeenWelcome: false,
+
       setHydrated: () => set({ hydrated: true }),
       markWelcomeSeen: () => set({ hasSeenWelcome: true }),
 
       setUser: async (user) => {
         try {
+          // אם אין נתוני שאלון למשתמש שנכנס – ננסה לשחזר מאחסון מקומי
           if (user && !user.questionnaireData) {
             try {
               const savedResults = await AsyncStorage.getItem(
                 StorageKeys.SMART_QUESTIONNAIRE_RESULTS
               );
               if (savedResults) {
-                const smartData = JSON.parse(savedResults);
+                const smartData: QuestionnaireData = JSON.parse(savedResults);
                 user = {
                   ...user,
                   questionnaireData: smartData,
@@ -66,7 +74,7 @@ export const useUserStore = create<UserStore>()(
           set({ user });
         } catch (error) {
           logger.error("UserStore", "Error setting user", error);
-          set({ user });
+          set({ user }); // בכל מקרה נעדכן state כדי לא לתקוע זרימה
         }
       },
 
@@ -83,10 +91,14 @@ export const useUserStore = create<UserStore>()(
       logout: async () => {
         try {
           const keysToRemove = [
+            // zustand persist key
             "user-storage",
-            "smart_questionnaire_results",
-            "user_gender_preference",
-            "selected_equipment",
+            // שמירת שאלון חכם
+            StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+            // העדפת מגדר (אם קיימת בהגדרות האפליקציה שלך)
+            StorageKeys.USER_GENDER_PREFERENCE,
+            // ציוד נבחר (אם קיים)
+            StorageKeys.SELECTED_EQUIPMENT,
           ];
           await AsyncStorage.multiRemove(keysToRemove);
           await AsyncStorage.setItem("user_logged_out", "true");
@@ -102,7 +114,7 @@ export const useUserStore = create<UserStore>()(
         try {
           const state = get();
 
-          // תמיד שמור את הנתונים ב-AsyncStorage
+          // תמיד שומרים ל-AsyncStorage
           AsyncStorage.setItem(
             StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
             JSON.stringify(data)
@@ -110,7 +122,7 @@ export const useUserStore = create<UserStore>()(
             logger.error("Store", "Error saving questionnaire", err)
           );
 
-          // אם יש משתמש עם email, עדכן גם את ה-state
+          // אם יש משתמש מחובר – מעדכנים גם את ה-state
           if (state.user?.email) {
             set((st) => {
               if (!st.user) return st;
@@ -123,12 +135,12 @@ export const useUserStore = create<UserStore>()(
               };
             });
           } else {
-            // גם אם אין משתמש רשום, צור משתמש זמני עם נתוני השאלון
+            // גם אם אין משתמש רשום – יוצרים משתמש זמני עם נתוני השאלון
             set({
               user: {
                 questionnaireData: data,
                 hasQuestionnaire: true,
-              },
+              } as User,
             });
           }
         } catch (error) {
@@ -145,7 +157,8 @@ export const useUserStore = create<UserStore>()(
         return state.user?.questionnaireData?.answers || null;
       },
 
-      resetSmartQuestionnaire: () => {
+      resetSmartQuestionnaire: async () => {
+        // קודם מעדכנים סטייט מקומי
         set((state) => {
           if (!state.user) return { user: null };
           const {
@@ -155,16 +168,19 @@ export const useUserStore = create<UserStore>()(
             hasQuestionnaire: _hasQuestionnaire,
             ...userWithoutQuestionnaire
           } = state.user;
-          return {
-            user: userWithoutQuestionnaire,
-          };
+          return { user: userWithoutQuestionnaire as User | null };
         });
 
-        AsyncStorage.multiRemove([
-          StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
-          StorageKeys.USER_GENDER_PREFERENCE,
-          StorageKeys.SELECTED_EQUIPMENT,
-        ]);
+        // אחר כך מנקים מהאחסון – ממתינים לסיום
+        try {
+          await AsyncStorage.multiRemove([
+            StorageKeys.SMART_QUESTIONNAIRE_RESULTS,
+            StorageKeys.USER_GENDER_PREFERENCE,
+            StorageKeys.SELECTED_EQUIPMENT,
+          ]);
+        } catch (error) {
+          logger.error("Store", "Error clearing questionnaire data", error);
+        }
       },
 
       getCompletionStatus: () => {
@@ -214,6 +230,7 @@ export const useUserStore = create<UserStore>()(
         hasSeenWelcome: state.hasSeenWelcome,
       }),
       onRehydrateStorage: () => () => {
+        // מסמן שהסטור נטען מהאחסון
         useUserStore.setState({ hydrated: true });
       },
     }

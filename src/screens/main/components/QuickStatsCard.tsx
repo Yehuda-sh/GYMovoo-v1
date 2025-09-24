@@ -1,20 +1,44 @@
 /**
  * @file src/screens/main/components/QuickStatsCard.tsx
- * @description כרטיס סטטיסטיקות מהיר של האימון האחרון
+ * @description כרטיס סטטיסטיקות מהיר של האימון האחרון – RTL, Theme, A11y
  */
 
 import React from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  Pressable,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { theme } from "../../../core/theme";
+import {
+  getFlexDirection,
+  getTextAlign,
+  getTextDirection,
+  formatHebrewNumber,
+  isRTL,
+  getRTLIconName,
+} from "../../../utils/rtlHelpers";
+
+type MCIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 interface QuickStatsCardProps {
   totalExercises: number;
   totalReps: number;
-  totalVolume: number;
+  totalVolume: number; // ק״ג
   personalRecords: number;
   workoutName?: string;
   onPress?: () => void;
+  // אופציונלי: התאמות עיצוב
+  containerStyle?: ViewStyle;
+  titleStyle?: TextStyle;
+  valueStyle?: TextStyle;
+  labelStyle?: TextStyle;
+  testID?: string;
 }
 
 export const QuickStatsCard: React.FC<QuickStatsCardProps> = ({
@@ -24,133 +48,210 @@ export const QuickStatsCard: React.FC<QuickStatsCardProps> = ({
   personalRecords,
   workoutName,
   onPress,
+  containerStyle,
+  titleStyle,
+  valueStyle,
+  labelStyle,
+  testID,
 }) => {
-  return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.9}
-      disabled={!onPress}
+  const pressable = Boolean(onPress);
+
+  const Stat = ({
+    icon,
+    value,
+    label,
+  }: {
+    icon: MCIconName;
+    value: string | number;
+    label: string;
+  }) => (
+    <View style={styles.statItem} accessible accessibilityRole="text">
+      <MaterialCommunityIcons name={icon} size={20} color="#fff" />
+      <Text style={[styles.statValue, valueStyle]}>{value}</Text>
+      <Text style={[styles.statLabel, labelStyle]}>{label}</Text>
+    </View>
+  );
+
+  const content = (
+    <LinearGradient
+      colors={[
+        theme.colors.primaryGradientStart,
+        theme.colors.primaryGradientEnd,
+      ]}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
     >
-      <LinearGradient
-        colors={["#667eea", "#764ba2"]}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      {/* Header */}
+      <View style={styles.header} accessible>
+        <Text
+          style={[styles.title, titleStyle]}
+          numberOfLines={1}
+          accessibilityRole="header"
+        >
+          האימון האחרון
+        </Text>
+        {workoutName ? (
+          <Text
+            style={styles.workoutName}
+            numberOfLines={1}
+            accessibilityLabel={`שם האימון: ${workoutName}`}
+          >
+            {workoutName}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Stats */}
+      <View
+        style={styles.statsGrid}
+        accessibilityRole="summary"
+        accessibilityLabel="סיכום סטטיסטיקות"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>האימון האחרון</Text>
-          {workoutName && <Text style={styles.workoutName}>{workoutName}</Text>}
+        <Stat
+          icon="dumbbell"
+          value={formatHebrewNumber(totalExercises)}
+          label="תרגילים"
+        />
+        <Stat
+          icon="repeat"
+          value={formatHebrewNumber(totalReps)}
+          label="חזרות"
+        />
+        <Stat
+          icon="weight-kilogram"
+          value={formatHebrewNumber(Math.round(totalVolume))}
+          label={`ק"ג כולל`}
+        />
+        <Stat
+          icon="trophy"
+          value={formatHebrewNumber(personalRecords)}
+          label="שיאים"
+        />
+      </View>
+
+      {/* Footer */}
+      {pressable && (
+        <View style={styles.footer} accessible>
+          <Text style={styles.viewMore}>לחץ לפרטים נוספים</Text>
+          <MaterialCommunityIcons
+            name={getRTLIconName("arrow-left") as MCIconName}
+            size={16}
+            color="#fff"
+          />
         </View>
+      )}
+    </LinearGradient>
+  );
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons name="dumbbell" size={20} color="#fff" />
-            <Text style={styles.statValue}>{totalExercises}</Text>
-            <Text style={styles.statLabel}>תרגילים</Text>
-          </View>
+  if (pressable) {
+    return (
+      <Pressable
+        onPress={onPress}
+        android_ripple={{ color: theme.colors.ripple }}
+        style={({ pressed }) => [
+          styles.container,
+          containerStyle,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`האימון האחרון${workoutName ? `: ${workoutName}` : ""}`}
+        testID={testID || "quick-stats-card"}
+      >
+        {content}
+      </Pressable>
+    );
+  }
 
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons name="repeat" size={20} color="#fff" />
-            <Text style={styles.statValue}>{totalReps}</Text>
-            <Text style={styles.statLabel}>חזרות</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons
-              name="weight-kilogram"
-              size={20}
-              color="#fff"
-            />
-            <Text style={styles.statValue}>{totalVolume.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>ק"ג כולל</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons name="trophy" size={20} color="#fff" />
-            <Text style={styles.statValue}>{personalRecords}</Text>
-            <Text style={styles.statLabel}>שיאים</Text>
-          </View>
-        </View>
-
-        {onPress && (
-          <View style={styles.footer}>
-            <Text style={styles.viewMore}>לחץ לפרטים נוספים</Text>
-            <MaterialCommunityIcons name="arrow-left" size={16} color="#fff" />
-          </View>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
+  return (
+    <View
+      style={[styles.container, containerStyle]}
+      accessible
+      accessibilityRole="summary"
+      accessibilityLabel={`האימון האחרון${workoutName ? `: ${workoutName}` : ""}`}
+      testID={testID || "quick-stats-card"}
+    >
+      {content}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 20,
-    marginVertical: 10,
-    borderRadius: 16,
+    marginHorizontal: theme.spacing.xl,
+    marginVertical: theme.spacing.sm,
+    borderRadius: theme.radius.xl,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...theme.shadows.large,
+  },
+  pressed: {
+    opacity: 0.96,
+    transform: [{ scale: 0.996 }],
   },
   gradient: {
-    padding: 20,
+    padding: theme.spacing.xl,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
     alignItems: "flex-end",
   },
   title: {
-    color: "#fff",
+    color: theme.colors.white,
     fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "right",
+    fontWeight: "800",
+    textAlign: getTextAlign(),
+    writingDirection: getTextDirection(),
   },
   workoutName: {
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255,255,255,0.85)",
     fontSize: 14,
-    textAlign: "right",
+    textAlign: getTextAlign(),
+    writingDirection: getTextDirection(),
     marginTop: 4,
+    fontWeight: "600",
   },
   statsGrid: {
-    flexDirection: "row",
+    flexDirection: getFlexDirection(),
     justifyContent: "space-between",
     alignItems: "center",
+    gap: theme.spacing.xs,
   },
   statItem: {
     alignItems: "center",
     flex: 1,
+    minWidth: 64,
   },
   statValue: {
-    color: "#fff",
+    color: theme.colors.white,
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 12,
+    marginBottom: 2,
     textAlign: "center",
   },
+  statLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    textAlign: "center",
+    fontWeight: "600",
+  },
   footer: {
-    flexDirection: "row",
+    flexDirection: getFlexDirection(),
     justifyContent: "flex-end",
     alignItems: "center",
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.2)",
+    borderTopColor: "rgba(255,255,255,0.25)",
+    gap: theme.spacing.xs,
   },
   viewMore: {
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "rgba(255,255,255,0.95)",
     fontSize: 14,
-    marginEnd: 8,
+    marginStart: isRTL() ? 0 : theme.spacing.xs,
+    marginEnd: isRTL() ? theme.spacing.xs : 0,
+    fontWeight: "700",
   },
 });
+
+export default QuickStatsCard;

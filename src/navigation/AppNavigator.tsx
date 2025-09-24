@@ -1,10 +1,20 @@
-import { NavigationContainer } from "@react-navigation/native";
+/**
+ * @file src/navigation/AppNavigator.tsx
+ * @description מנהל הניווט הראשי של האפליקציה עם מסלולים מותנים
+ */
+import React, { useMemo } from "react";
+import { ActivityIndicator, View, Text } from "react-native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  Theme,
+} from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-// Auth Navigator - מודול אימות חדש
+// Auth Navigator - מודול אימות
 import { AuthNavigator } from "../features/auth";
 
-// Questionnaire Navigator - מודול שאלון חדש
+// Questionnaire Navigator - מודול שאלון
 import { QuestionnaireNavigator } from "../features/questionnaire";
 
 // Welcome screen
@@ -17,28 +27,60 @@ import DeveloperScreen from "../screens/developer/DeveloperScreen";
 import ActiveWorkoutScreen from "../features/workout/screens/workout_screens/ActiveWorkoutScreen";
 import WorkoutSummaryScreen from "../features/workout/screens/workout_screens/WorkoutSummaryScreen";
 
-// Additional screens
+// Exercise screens
 import ExercisesScreen from "../screens/exercises/ExercisesScreen";
 import ExerciseDetailsScreen from "../screens/exercises/ExerciseDetailsScreen";
+
+// Profile screens
 import { PersonalInfoScreen } from "../features/profile/screens/PersonalInfoScreen";
+
+// Stores and types
 import { useUserStore } from "../stores/userStore";
 import BottomNavigation from "./BottomNavigation";
 import { RootStackParamList } from "./types";
+import { theme } from "../core/theme";
 
 const Stack = createStackNavigator<RootStackParamList>();
+
+// מסך טעינה קטן בזמן הידרציה/קביעת מסלול
+function LoadingScreen() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+      }}
+    >
+      <ActivityIndicator size="large" />
+      <Text style={{ fontSize: 16 }}>טוען…</Text>
+    </View>
+  );
+}
+
+// נושא הניווט – מותאם לצבעים שלך
+const navTheme: Theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: theme.colors.background,
+    text: theme.colors.text,
+    primary: theme.colors.primary,
+    border: theme.colors.divider,
+    card: theme.colors.card,
+    notification: theme.colors.secondary,
+  },
+};
 
 export default function AppNavigator() {
   const { user, getCompletionStatus, hydrated, hasSeenWelcome } =
     useUserStore();
 
-  // הסרנו את הלוג המיותר שהיה מופיע בכל רנדר
-
-  if (!hydrated) {
-    return null;
-  }
-
-  const initialRoute: keyof RootStackParamList = (() => {
+  // חישוב המסלול הראשוני
+  const initialRoute = useMemo<keyof RootStackParamList>(() => {
     if (!user) return hasSeenWelcome ? "Auth" : "Welcome";
+
     const completion = getCompletionStatus();
 
     // אם המשתמש הושלם לחלוטין - מסך ראשי
@@ -51,85 +93,84 @@ export default function AppNavigator() {
 
     // אם אין שאלון - שאלון
     return "Questionnaire";
-  })();
+  }, [user, hasSeenWelcome, getCompletionStatus]);
+
+  // המתן עד שהנתונים נטענים
+  if (!hydrated) {
+    return <LoadingScreen />;
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
+      {/* המפתח כאן "מאלץ" יישום מחדש אם המסלול הראשוני השתנה מהר */}
       <Stack.Navigator
+        key={String(initialRoute)}
         initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
         }}
       >
-        {/* Auth screens */}
+        {/* Welcome screen - מסך פתיחה למשתמשים חדשים */}
         <Stack.Screen
           name="Welcome"
           component={WelcomeScreen}
           options={{ gestureEnabled: false }}
         />
 
-        {/* מודול אימות חדש - השתמש בו לכל צרכי האימות */}
+        {/* Auth module - הרשמה והתחברות */}
         <Stack.Screen
           name="Auth"
           component={AuthNavigator}
           options={{ gestureEnabled: false }}
         />
 
-        {/* מסכי אימות ישנים - לא בשימוש יותר, יוסרו בעתיד 
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Terms" component={TermsScreen} />
-        */}
-
-        {/* Questionnaire - מודול שאלון חדש */}
+        {/* Questionnaire module - שאלון כושר */}
         <Stack.Screen
           name="Questionnaire"
           component={QuestionnaireNavigator}
           options={{ gestureEnabled: false }}
         />
 
-        {/* מסך שאלון ישן - לא בשימוש יותר
-        <Stack.Screen
-          name="OldQuestionnaire"
-          component={null} // הוסר מהקוד
-          options={{ gestureEnabled: false }}
-        />
-        */}
-
-        {/* Main app */}
+        {/* Main app - האפליקציה הראשית עם התפריט התחתון */}
         <Stack.Screen
           name="MainApp"
           component={BottomNavigation}
           options={{ gestureEnabled: false }}
         />
 
-        {/* Active workout */}
+        {/* Active workout - אימון פעיל */}
         <Stack.Screen
           name="ActiveWorkout"
           component={ActiveWorkoutScreen}
           options={{ gestureEnabled: false }}
         />
 
-        {/* Workout Summary */}
+        {/* Workout Summary - סיכום אימון */}
         <Stack.Screen
           name="WorkoutSummary"
           component={WorkoutSummaryScreen}
-          options={{ headerShown: false, gestureEnabled: false }}
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+          }}
         />
 
-        {/* Exercise screens */}
+        {/* Exercise screens - מסכי תרגילים */}
         <Stack.Screen
-          name="ExerciseList"
+          name="ExercisesScreen"
           component={ExercisesScreen}
-          options={{ presentation: "modal" }}
+          options={{
+            presentation: "modal",
+          }}
         />
+
         <Stack.Screen
           name="ExerciseDetails"
           component={ExerciseDetailsScreen}
         />
-        <Stack.Screen name="ExercisesScreen" component={ExercisesScreen} />
 
-        {/* Personal Info screen */}
+        {/* Personal Info - מידע אישי */}
         <Stack.Screen
           name="PersonalInfo"
           component={PersonalInfoScreen}
@@ -139,9 +180,16 @@ export default function AppNavigator() {
           }}
         />
 
-        {/* Developer screen (development only) */}
+        {/* Developer screen - מסך פיתוח (רק במצב פיתוח) */}
         {__DEV__ && (
-          <Stack.Screen name="DeveloperScreen" component={DeveloperScreen} />
+          <Stack.Screen
+            name="DeveloperScreen"
+            component={DeveloperScreen}
+            options={{
+              title: "מסך פיתוח",
+              headerShown: true,
+            }}
+          />
         )}
       </Stack.Navigator>
     </NavigationContainer>

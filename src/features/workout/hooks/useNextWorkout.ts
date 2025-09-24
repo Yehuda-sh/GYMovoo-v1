@@ -11,7 +11,7 @@ import {
 } from "../services/nextWorkoutLogicService";
 import { useUserStore } from "../../../stores/userStore";
 import { fieldMapper } from "../../../utils/fieldMapper";
-import { WorkoutPlan } from "../../../core/types/workout.types";
+import type { WorkoutPlan } from "../../../core/types/workout.types";
 
 export interface UseNextWorkoutReturn {
   nextWorkout: NextWorkoutRecommendation | null;
@@ -46,7 +46,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     consistency: number;
   } | null>(null);
 
-  // קבלת תדירות אימונים
+  // תדירות אימונים מהשאלון
   const getFrequency = useCallback((): number => {
     const smartAnswers = fieldMapper.getSmartAnswers(user) as {
       availability?: string[] | string;
@@ -56,25 +56,26 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       const availability = smartAnswers.availability;
       const freq = Array.isArray(availability) ? availability[0] : availability;
 
-      // מיפוי פשוט
       if (freq?.includes("2")) return 2;
       if (freq?.includes("3")) return 3;
       if (freq?.includes("4")) return 4;
       if (freq?.includes("5")) return 5;
     }
-
-    // ברירת מחדל
-    return 3;
+    return 3; // ברירת מחדל
   }, [user]);
 
-  // יצירת תוכנית שבועית
-  const weeklyPlan = useMemo(() => {
-    // אם יש תוכנית מוכנה
-    if (workoutPlan?.workouts) {
-      return workoutPlan.workouts.map((w) => w.name);
-    }
+  // ✅ weeklyPlan: factory מחתים מפורשות (): string[] ומחזיר תמיד מערך
+  const weeklyPlan = useMemo((): string[] => {
+    // אם יש תכנית קיימת — קח רק שמות תקינים
+    const fromPlan =
+      workoutPlan?.workouts
+        ?.map((w) => w?.name)
+        .filter((n): n is string => typeof n === "string" && n.length > 0) ??
+      [];
 
-    // יצירת תוכנית לפי תדירות
+    if (fromPlan.length > 0) return fromPlan;
+
+    // תכנית ברירת מחדל לפי תדירות
     const frequency = getFrequency();
     const WORKOUT_PLANS: Record<number, string[]> = {
       2: ["פלג גוף עליון", "פלג גוף תחתון"],
@@ -83,7 +84,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       5: ["חזה", "גב", "רגליים", "כתפיים", "ידיים + בטן"],
     };
 
-    return WORKOUT_PLANS[frequency] || WORKOUT_PLANS[3];
+    return WORKOUT_PLANS[frequency] ?? WORKOUT_PLANS[3] ?? ["אימון מלא"];
   }, [workoutPlan, getFrequency]);
 
   // רענון המלצת האימון הבא
@@ -93,13 +94,11 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
       setError(null);
 
       const recommendation =
-        await nextWorkoutLogicService.getNextWorkoutRecommendation(
-          weeklyPlan || ["אימון מלא"]
-        );
+        await nextWorkoutLogicService.getNextWorkoutRecommendation(weeklyPlan);
 
       setNextWorkout(recommendation);
 
-      // נסיון לקבל סטטיסטיקות
+      // סטטיסטיקות מחזור (אם נתמך)
       try {
         if (
           "getCycleStatistics" in nextWorkoutLogicService &&
@@ -116,14 +115,13 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
         err instanceof Error ? err.message : "שגיאה בקבלת המלצת אימון";
       setError(errorMessage);
 
-      // fallback - המלצה בסיסית
-      const fallbackRecommendation = {
-        workoutName: (weeklyPlan && weeklyPlan[0]) || "אימון מלא",
+      const fallbackRecommendation: NextWorkoutRecommendation = {
+        workoutName: weeklyPlan[0] || "אימון מלא",
         workoutIndex: 0,
         reason: "אימון בסיסי",
         isRegularProgression: true,
         daysSinceLastWorkout: 0,
-        suggestedIntensity: "normal" as const,
+        suggestedIntensity: "normal",
       };
       setNextWorkout(fallbackRecommendation);
     } finally {
@@ -133,7 +131,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
 
   // סימון אימון כהושלם
   const markWorkoutCompleted = useCallback(
-    async (workoutIndex: number) => {
+    async (workoutIndex: number, _workoutName: string) => {
       try {
         await nextWorkoutLogicService.updateWorkoutCompleted(workoutIndex);
         await refreshRecommendation();
@@ -153,7 +151,7 @@ export const useNextWorkout = (workoutPlan?: WorkoutPlan) => {
     }
   }, [user, refreshRecommendation]);
 
-  // רענון כשתוכנית האימון משתנה
+  // רענון כשמתעדכנת התכנית
   useEffect(() => {
     if (workoutPlan) {
       const timeoutId = setTimeout(refreshRecommendation, 100);

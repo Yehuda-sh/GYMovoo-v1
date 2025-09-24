@@ -8,64 +8,81 @@ import { useUserStore } from "../stores/userStore";
 import { StorageCleanup } from "../utils/storageCleanup";
 import { logger } from "../utils/logger";
 
-export const useAppInitialization = () => {
-  const { user } = useUserStore();
-  const initializedUserIdRef = useRef<string | null>(null);
-  const didRefreshRef = useRef(false);
+export const useAppInitialization = (): void => {
+  // נשלוף גם hydrated כדי להבטיח שאתחול משתמש קורה רק אחרי טעינת ה-store מהאחסון
+  const { user, hydrated } = useUserStore((s) => ({
+    user: s.user,
+    hydrated: s.hydrated,
+  }));
 
-  // ניקוי אחסון בהפעלה ראשונה
+  // זוכר למי כבר הרמנו את סביבת העבודה
+  const initializedUserIdRef = useRef<string | null>(null);
+
+  // --- ניקוי אחסון בהפעלה ראשונה (פעם אחת) ---
   useEffect(() => {
+    let isMounted = true;
+
     const initStorageCleanup = async (): Promise<void> => {
       try {
         const isFull = await StorageCleanup.isStorageFull();
+        if (!isMounted) return;
+
         if (isFull) {
           await StorageCleanup.emergencyCleanup();
-          // הסרנו לוג מיותר
         } else {
           await StorageCleanup.cleanOldData();
-          // הסרנו לוג מיותר
         }
       } catch (error) {
+        // לוג אזהרה – לא חוסם את האפליקציה
         logger.warn("App", "Storage cleanup failed", error);
       }
     };
 
     initStorageCleanup();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // אתחול משתמש
+  // --- אתחול לפי משתמש (אחרי שה-store הידרייטד) ---
   useEffect(() => {
+    // אם ה-store עוד לא נטען – לא מתחילים
+    if (!hydrated) return;
+
+    // אם אין משתמש – איפוס מזהה מאותחל (כדי לא לחסום אתחול עתידי)
+    if (!user?.id) {
+      initializedUserIdRef.current = null; // ✔ תקין מול string|null
+      return;
+    }
+
+    // אם כבר אותחל למשתמש הזה – אין מה לעשות
+    if (initializedUserIdRef.current === user.id) return;
+
+    let isMounted = true;
+
     const initData = async (): Promise<void> => {
-      if (!user?.id) {
-        return;
-      }
-
-      // איפוס דגל רענון כשמתחלף משתמש
-      if (initializedUserIdRef.current !== user.id) {
-        didRefreshRef.current = false;
-      }
-
-      // אם כבר מאותחל עבור המשתמש הזה
-      if (initializedUserIdRef.current === user.id) {
-        return;
-      }
-
       try {
-        // רענון מהשרת הוסר - נעבוד עם נתונים מקומיים
+        // כאן היה רענון מהשרת – כרגע עובדים לוקלי בלבד
         logger.info("App", "App initialized for user (local data)", {
           userId: user.id,
         });
 
-        // סיום אתחול
-        initializedUserIdRef.current = user.id;
+        // סימון שהמשתמש הזה אותחל
+        if (isMounted) {
+          initializedUserIdRef.current = user.id ?? null; // ✅ תיקון הטיפוס
+        }
       } catch (error) {
         logger.warn("App", "Initialization failed", error);
-        initializedUserIdRef.current = user.id;
+        // גם במקרה כשלון נסמן כדי לא לנסות בלולאה – אפשר לשנות לפי צורך
+        initializedUserIdRef.current = user.id ?? null; // ✅ תיקון הטיפוס
       }
     };
 
-    if (user?.id) {
-      initData();
-    }
-  }, [user]);
+    initData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, hydrated]);
 };

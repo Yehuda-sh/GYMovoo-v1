@@ -1,7 +1,11 @@
 /**
  * @file src/features/workout/utils/index.ts
- * @description Workout utilities exports
+ * @description Public exports for workout utilities
  */
 
-export * from "./workoutStatsCalculator";
-export * from "./workoutHelpers";
+// Stats
+export { calculateWorkoutStats } from "./workoutStatsCalculator";
+export type { WorkoutStats } from "./workoutStatsCalculator";
+
+// Helpers
+export { getFeelingEmoji, getDifficultyStars } from "./workoutHelpers";

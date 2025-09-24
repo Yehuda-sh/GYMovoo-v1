@@ -1,5 +1,6 @@
 /**
- * @file wearableIntegration.ts
+ *
+ * @file  /src/screens/main/utils/wearableIntegration.ts
  * @description אינטגרציה עם מכשירי wearable (שעונים חכמים, צמידי כושר)
  */
 
@@ -10,10 +11,11 @@ import type {
 } from "../types/aiRecommendations.types";
 
 /**
- * מחלקה לניהול אינטגרציה עם wearables
+ * מחלקה לניהול אינטגרציה עם wearables (Singleton)
  */
 export class WearableIntegration {
   private static instance: WearableIntegration;
+
   private connectionStatus: WearableConnectionStatus = {
     isConnected: false,
     deviceType: "unknown",
@@ -25,8 +27,13 @@ export class WearableIntegration {
       workouts: false,
     },
   };
+
   private retryCount = 0;
-  private maxRetries = 3;
+  private readonly maxRetries = 3;
+  private readonly baseBackoffMs = 800; // בסיס לעיכוב אקספוננציאלי
+
+  // בנאי פרטי כדי להבטיח Singleton
+  private constructor() {}
 
   public static getInstance(): WearableIntegration {
     if (!WearableIntegration.instance) {
@@ -36,12 +43,11 @@ export class WearableIntegration {
   }
 
   /**
-   * בדיקת זמינות ובקשת הרשאות עם retry mechanism
+   * בדיקת זמינות ובקשת הרשאות עם retry + backoff
    */
   public async requestPermissions(): Promise<boolean> {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        // TODO: הוסף אינטגרציה אמיתית עם expo-health-kit או react-native-health
         logger.info("WearableIntegration", "Simulating permission request", {
           attempt: attempt + 1,
           maxAttempts: this.maxRetries + 1,
@@ -60,7 +66,7 @@ export class WearableIntegration {
             steps: true,
             calories: true,
             sleep: true,
-            workouts: false, // נדרש הרשאה נוספת
+            workouts: false, // נדרשת הרשאה נוספת
           },
         };
 
@@ -70,7 +76,7 @@ export class WearableIntegration {
           attempt: attempt + 1,
         });
 
-        this.retryCount = 0; // איפוס הספירה בהצלחה
+        this.retryCount = 0; // איפוס ספירת ניסיונות
         return true;
       } catch (error) {
         this.retryCount = attempt + 1;
@@ -86,7 +92,7 @@ export class WearableIntegration {
             }
           );
 
-          // במקרה של כישלון, נחזור למצב לא מחובר אבל נמשיך להריץ את האפליקציה
+          // חזרה למצב לא מחובר
           this.connectionStatus = {
             isConnected: false,
             deviceType: "unknown",
@@ -100,22 +106,24 @@ export class WearableIntegration {
           };
 
           return false;
-        } else {
-          // נסה שוב
-          logger.warn(
-            "WearableIntegration",
-            `Retry attempt ${attempt + 1} failed, trying again...`,
-            {
-              error: error instanceof Error ? error.message : String(error),
-              nextAttempt: attempt + 2,
-            }
-          );
-
-          // המתנה קצרה לפני ניסיון נוסף
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1000 * (attempt + 1))
-          );
         }
+
+        // Backoff לפני ניסיון נוסף
+        const jitter = Math.floor(Math.random() * 250);
+        const delay =
+          Math.min(4000, this.baseBackoffMs * 2 ** attempt) + jitter;
+
+        logger.warn(
+          "WearableIntegration",
+          `Retry attempt ${attempt + 1} failed, trying again...`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+            nextAttempt: attempt + 2,
+            delayMs: delay,
+          }
+        );
+
+        await this.sleep(delay);
       }
     }
 
@@ -132,14 +140,16 @@ export class WearableIntegration {
     }
 
     try {
-      // TODO: אינטגרציה אמיתית עם Health APIs
       logger.info("WearableIntegration", "Fetching health data from wearable");
 
       // הדמיית נתונים
       const mockData: WearableData = await this.generateMockHealthData();
 
       // עדכון זמן סנכרון אחרון
-      this.connectionStatus.lastSync = new Date().toISOString();
+      this.connectionStatus = {
+        ...this.connectionStatus,
+        lastSync: new Date().toISOString(),
+      };
 
       return mockData;
     } catch (error) {
@@ -149,7 +159,7 @@ export class WearableIntegration {
   }
 
   /**
-   * קבלת סטטוס החיבור
+   * קבלת סטטוס החיבור (העתק קריא בלבד)
    */
   public getConnectionStatus(): WearableConnectionStatus {
     return { ...this.connectionStatus };
@@ -189,32 +199,36 @@ export class WearableIntegration {
    * הדמיה של בקשת הרשאות
    */
   private async simulatePermissionRequest(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         try {
-          // הדמיית הצלחה ב-95% מהמקרים (להקל על השגיאות)
+          // הדמיית הצלחה ב-95% מהמקרים
           const success = Math.random() > 0.05;
           if (!success) {
             reject(new Error("User denied permissions"));
           } else {
             resolve();
           }
-        } catch (error) {
-          reject(error);
+        } catch (err) {
+          reject(err);
         }
-      }, 1000); // הקטנת זמן ההמתנה
+      }, 1000);
 
-      // ביטול timeout במקרה של ביטול
-      return () => clearTimeout(timeoutId);
+      // אין צורך להחזיר פונקציית ניקוי מתוך Promise constructor
+      // (זה דפוס של useEffect בלבד)
+      void timeoutId;
     });
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((res) => setTimeout(res, ms));
   }
 
   /**
    * יצירת נתוני בריאות מדומים לצורך הדגמה
    */
   private async generateMockHealthData(): Promise<WearableData> {
-    // הדמיית זמן קבלת נתונים
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await this.sleep(500);
 
     const now = new Date().toISOString();
 
@@ -262,20 +276,20 @@ export class WearableIntegration {
   }
 
   /**
-   * חישוב ציון בריאות כללי
+   * חישוב ציון בריאות כללי (0-100), מנרמל לפי כמה תחומים קיימים
    */
   public calculateHealthScore(data: WearableData): number {
     let score = 0;
     let factors = 0;
 
-    // ציון צעדים
+    // צעדים
     if (data.steps) {
       const stepsRatio = Math.min(1, data.steps.count / data.steps.goal);
       score += stepsRatio * 25;
       factors++;
     }
 
-    // ציון קלוריות
+    // קלוריות
     if (data.calories) {
       const caloriesRatio = Math.min(
         1,
@@ -285,21 +299,21 @@ export class WearableIntegration {
       factors++;
     }
 
-    // ציון שינה
+    // שינה
     if (data.sleep) {
-      const sleepScore =
+      const sleepBase =
         data.sleep.duration >= 7 ? 25 : (data.sleep.duration / 7) * 25;
       const qualityMultiplier = {
         poor: 0.5,
         fair: 0.7,
         good: 0.9,
         excellent: 1.0,
-      };
-      score += sleepScore * qualityMultiplier[data.sleep.quality];
+      } as const;
+      score += sleepBase * qualityMultiplier[data.sleep.quality];
       factors++;
     }
 
-    // ציון פעילות
+    // פעילות
     if (data.activity) {
       const activityRatio = Math.min(
         1,
@@ -309,6 +323,7 @@ export class WearableIntegration {
       factors++;
     }
 
-    return factors > 0 ? Math.round((score / factors) * 4) : 0; // נרמול ל-0-100
+    // נרמול: גם אם יש רק 2/3 תחומים, מדרגים לסולם 0-100
+    return factors > 0 ? Math.round((score / factors) * 4) : 0;
   }
 }

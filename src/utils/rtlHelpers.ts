@@ -21,7 +21,6 @@ const rtlListeners = new Set<RTLEventListener>();
 
 export const subscribeRTL = (listener: RTLEventListener): (() => void) => {
   rtlListeners.add(listener);
-  // החזרה של unsubscribe
   return () => rtlListeners.delete(listener);
 };
 
@@ -43,20 +42,17 @@ const getDeviceLanguage = (): string => {
     let locale: string | undefined;
 
     if (Platform.OS === "ios") {
-      // iOS - בדיקה מקיפה
       locale =
         NativeModules.SettingsManager?.settings?.AppleLocale ||
         NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
         NativeModules.SettingsManager?.settings?.AppleLanguage;
     } else {
-      // Android - בדיקה מקיפה
       locale =
         NativeModules.I18nManager?.localeIdentifier ||
         NativeModules.I18nManager?.getConstants?.()?.localeIdentifier ||
         NativeModules.Locale?.locale;
     }
 
-    // רק לוג debug אם צריך
     if (!locale) {
       logger.debug("RTL", "Device language not detected, using default");
     }
@@ -98,54 +94,41 @@ const saveRTLPreference = async (isRTL: boolean): Promise<void> => {
  */
 export const initializeRTL = async (): Promise<void> => {
   try {
-    // טען העדפה שמורה
     const savedPreference = await loadRTLPreference();
 
-    // בדוק שפת מכשיר
     const deviceLanguage = getDeviceLanguage();
     const isHebrewDevice =
       deviceLanguage.startsWith("he") ||
       deviceLanguage.includes("IL") ||
-      deviceLanguage.startsWith("iw"); // Hebrew old code
+      deviceLanguage.startsWith("iw");
 
-    // קבע RTL - העדפה שמורה או לפי שפת המכשיר
     const shouldBeRTL = savedPreference ?? isHebrewDevice;
 
-    // אתחל RTL במערכת
     if (I18nManager.allowRTL && I18nManager.forceRTL) {
       I18nManager.allowRTL(true);
       I18nManager.forceRTL(shouldBeRTL);
     }
 
-    // שמור במשתנה מקומי
     isRTLEnabled = shouldBeRTL;
     isInitialized = true;
 
-    // שמור העדפה
     await saveRTLPreference(shouldBeRTL);
 
-    logger.info("RTL", "RTL initialized", {
-      isRTL: isRTLEnabled,
-    });
+    logger.info("RTL", "RTL initialized", { isRTL: isRTLEnabled });
   } catch (error) {
     logger.error("RTL", "RTL initialization failed", error);
-    // במקרה של כשלון, השתמש בברירת מחדל
     isRTLEnabled = DEFAULT_RTL;
     isInitialized = true;
   }
 };
 
 /**
- * מצב RTL מרכזי - משופר עם fallback וvalidation
+ * מצב RTL מרכזי
  */
 export const isRTL = (): boolean => {
-  // אם לא אותחל עדיין, החזר ברירת מחדל בשקט
   if (!isInitialized) {
-    // הסר לוג האזהרה כדי למנוע ספאם
     return DEFAULT_RTL;
   }
-
-  // החזר ערך מקומי (יותר אמין מ-I18nManager)
   return isRTLEnabled;
 };
 
@@ -155,6 +138,10 @@ export const isRTL = (): boolean => {
 export const toggleRTL = async (): Promise<void> => {
   isRTLEnabled = !isRTLEnabled;
   await saveRTLPreference(isRTLEnabled);
+  // 👇 הוספה קטנה ליציבות
+  if (I18nManager.allowRTL) {
+    I18nManager.allowRTL(true);
+  }
   if (I18nManager.forceRTL) {
     I18nManager.forceRTL(isRTLEnabled);
   }
@@ -163,21 +150,19 @@ export const toggleRTL = async (): Promise<void> => {
 };
 
 /**
- * כיסוי דו-כיווניות (BiDi) בטקסטים עם תווים לטיניים ומספרים כדי למנוע ערבוב
- * שימוש: wrapBidi("Workout 30 דקות")
+ * כיסוי דו-כיווניות (BiDi)
  */
 export const wrapBidi = (text: string): string => {
-  // סימני כיווניות אוניברסליים
-  const LRE = "\u202A"; // Left-to-Right Embedding
-  const RLE = "\u202B"; // Right-to-Left Embedding
-  const PDF = "\u202C"; // Pop Directional Formatting
+  const LRE = "\u202A";
+  const RLE = "\u202B";
+  const PDF = "\u202C";
   const needsIsolation = /[A-Za-z0-9]/.test(text) && /[א-ת]/.test(text);
   if (!needsIsolation) return text;
   return isRTL() ? `${RLE}${text}${PDF}` : `${LRE}${text}${PDF}`;
 };
 
 /**
- * נירמול מספרים – הסרת אפסים מובילים והמרת רווחים לא נשברים
+ * נירמול מספרים
  */
 export const normalizeNumber = (value: string | number): string => {
   const str = String(value)
@@ -187,7 +172,7 @@ export const normalizeNumber = (value: string | number): string => {
 };
 
 /**
- * תצוגת זמן יחסי בעברית (כמו "לפני 3 דקות" / "בעוד 5 ימים")
+ * זמן יחסי בעברית
  */
 export const formatRelativeTimeIntl = (targetDate: Date | number): string => {
   const now = Date.now();
@@ -196,7 +181,7 @@ export const formatRelativeTimeIntl = (targetDate: Date | number): string => {
   const tensePast = diffMs < 0;
   const absMs = Math.abs(diffMs);
 
-  const units: [unit: Intl.RelativeTimeFormatUnit, ms: number][] = [
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["year", 1000 * 60 * 60 * 24 * 365],
     ["month", 1000 * 60 * 60 * 24 * 30],
     ["week", 1000 * 60 * 60 * 24 * 7],
@@ -218,10 +203,7 @@ export const formatRelativeTimeIntl = (targetDate: Date | number): string => {
   return "";
 };
 
-/**
- * יחידות צרות (ללא רווח או עם רווח דק) – שימושי לממשק חוסך מקום
- */
-const NARROW_NBSP = "\u202F"; // Narrow no-break space
+const NARROW_NBSP = "\u202F";
 export const formatCompactUnit = (
   value: number,
   unit: "kg" | "cm" | "kcal" | "min" | "hr"
@@ -244,7 +226,7 @@ export const formatCompactUnit = (
 };
 
 /**
- * פורמט משך כללי (לדוגמה: 1ש׳ 32ד׳ או 05:12 כשהוא קצר)
+ * פורמט משך כללי
  */
 export const formatDurationSeconds = (
   seconds: number,
@@ -263,14 +245,13 @@ export const formatDurationSeconds = (
   const parts: string[] = [];
   if (h) parts.push(style === "long" ? `${h} שעות` : `${h}ש׳`);
   if (m) parts.push(style === "long" ? `${m} דקות` : `${m}ד׳`);
-  if (!h && s && style !== "long") parts.push(`${s}ש׳׳`); // שניות במצב קצר רק אם אין שעות
+  if (!h && s && style !== "long") parts.push(`${s}ש׳׳`);
   return parts.join(" ") || (style === "long" ? "0 שניות" : "0ש׳׳");
 };
 
 /**
- * היפוך margin/padding/border בהתאם ל-RTL – שימושי למרכיבי צד שלישי
+ * היפוך start/end ל-left/right
  */
-// שימוש ב-unknown במקום any כדי לשמר בטיחות סוגים
 export const mirrorStyle = <T extends Record<string, unknown>>(style: T): T => {
   if (!isRTL()) return style;
   const map: Record<string, string> = {
@@ -280,6 +261,9 @@ export const mirrorStyle = <T extends Record<string, unknown>>(style: T): T => {
     paddingEnd: "paddingLeft",
     borderStartWidth: "borderRightWidth",
     borderEndWidth: "borderLeftWidth",
+    // ✅ הוספנו גם צבעים
+    borderStartColor: "borderRightColor",
+    borderEndColor: "borderLeftColor",
     start: "right",
     end: "left",
   };
@@ -294,18 +278,17 @@ export const mirrorStyle = <T extends Record<string, unknown>>(style: T): T => {
 };
 
 /**
- * החזרת טקסט בעברית עטוף כראוי במקרה של UI שמאלץ LTR (לדוגמה רכיבי צד שלישי)
+ * טקסט עברי בסביבת LTR
  */
 export const enforceHebrew = (text: string): string => {
   if (!text) return text;
-  if (!/[א-ת]/.test(text)) return text; // אין עברית – לא משנה
-  // שימוש ב-RLM כדי להגן על הטקסט בהקשר LTR
+  if (!/[א-ת]/.test(text)) return text;
   const RLM = "\u200F";
   return `${RLM}${text}${RLM}`;
 };
 
 /**
- * קיצור מילים עבריות (למצבים צפופים כמו תגיות)
+ * קיצור מילים עבריות
  */
 export const abbreviateHebrew = (word: string): string => {
   const map: Record<string, string> = {
@@ -318,30 +301,12 @@ export const abbreviateHebrew = (word: string): string => {
   return map[word] || word;
 };
 
-/**
- * כיוון טקסט דינמי
- */
-export const getTextDirection = (): "rtl" | "ltr" => {
-  return isRTL() ? "rtl" : "ltr";
-};
+export const getTextDirection = (): "rtl" | "ltr" => (isRTL() ? "rtl" : "ltr");
+export const getTextAlign = (): "right" | "left" =>
+  isRTL() ? "right" : "left";
+export const getFlexDirection = (): "row-reverse" | "row" =>
+  isRTL() ? "row-reverse" : "row";
 
-/**
- * יישור טקסט דינמי
- */
-export const getTextAlign = (): "right" | "left" => {
-  return isRTL() ? "right" : "left";
-};
-
-/**
- * כיוון flex דינמי
- */
-export const getFlexDirection = (): "row-reverse" | "row" => {
-  return isRTL() ? "row-reverse" : "row";
-};
-
-/**
- * מרווחים דינמיים משופרים
- */
 export const getDynamicStyles = (spacing?: number) => {
   const rtl = isRTL();
   return {
@@ -354,79 +319,47 @@ export const getDynamicStyles = (spacing?: number) => {
   };
 };
 
-/**
- * סגנונות RTL מלאים לאלמנט
- */
 export const getRTLStyles = () => ({
   flexDirection: getFlexDirection(),
   textAlign: getTextAlign(),
   writingDirection: getTextDirection(),
 });
 
-/**
- * המרת start/end ל-left/right
- */
 export const getStartEndStyles = (start?: number, end?: number) => {
   const rtl = isRTL();
-  return {
-    start: rtl ? end : start,
-    end: rtl ? start : end,
-  };
+  return { start: rtl ? end : start, end: rtl ? start : end };
 };
 
-/**
- * בדיקה אם צריך restart אחרי שינוי RTL
- */
 export const needsRestart = (): boolean => {
   return I18nManager.isRTL !== isRTLEnabled;
 };
 
-/**
- * פורמט מספרים בעברית
- */
-export const formatHebrewNumber = (num: number): string => {
-  return num.toLocaleString("he-IL");
-};
+export const formatHebrewNumber = (num: number): string =>
+  num.toLocaleString("he-IL");
 
-/**
- * פורמט תאריכים בעברית
- */
-export const formatHebrewDate = (date: Date): string => {
-  return date.toLocaleDateString("he-IL", {
+export const formatHebrewDate = (date: Date): string =>
+  date.toLocaleDateString("he-IL", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
   });
-};
 
-/**
- * פורמט תאריך קצר בעברית
- */
-export const formatHebrewDateShort = (date: Date): string => {
-  return date.toLocaleDateString("he-IL", {
+export const formatHebrewDateShort = (date: Date): string =>
+  date.toLocaleDateString("he-IL", {
     day: "numeric",
     month: "numeric",
     year: "2-digit",
   });
-};
 
-/**
- * פורמט זמן בעברית
- */
-export const formatHebrewTime = (date: Date): string => {
-  return date.toLocaleTimeString("he-IL", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+export const formatHebrewTime = (date: Date): string =>
+  date.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 
 /**
  * המרת כיוון אייקונים ל-RTL
  */
 export const getRTLIconName = (iconName: string): string => {
   const rtl = isRTL();
-
   const iconMappings: Record<string, string> = {
     "chevron-left": rtl ? "chevron-right" : "chevron-left",
     "chevron-right": rtl ? "chevron-left" : "chevron-right",
@@ -438,7 +371,6 @@ export const getRTLIconName = (iconName: string): string => {
     back: rtl ? "forward" : "back",
     forward: rtl ? "back" : "forward",
   };
-
   return iconMappings[iconName] || iconName;
 };
 
@@ -452,22 +384,19 @@ export const getNavigationButtonStyles = () => {
     backButton: {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
       iconName: rtl ? "chevron-right" : "chevron-left",
-      text: rtl ? "הבא" : "Back",
+      // ✅ תיקון הטקסטים
+      text: rtl ? "חזור" : "Back",
     },
     nextButton: {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
       iconName: rtl ? "chevron-left" : "chevron-right",
-      text: rtl ? "הקודם" : "Next",
+      text: rtl ? "הבא" : "Next",
     },
   };
 };
 
-/**
- * סגנונות דינמיים לטפסים
- */
 export const getFormStyles = () => {
   const rtl = isRTL();
-
   return {
     input: {
       textAlign: rtl ? "right" : ("left" as const),
@@ -484,53 +413,27 @@ export const getFormStyles = () => {
   };
 };
 
-/**
- * סגנונות דינמיים לגלילה אופקית
- */
 export const getHorizontalScrollStyles = () => {
   const rtl = isRTL();
-
   return {
-    container: {
-      flexDirection: rtl ? "row-reverse" : ("row" as const),
-    },
-    item: {
-      marginStart: rtl ? 0 : 8,
-      marginEnd: rtl ? 8 : 0,
-    },
+    container: { flexDirection: rtl ? "row-reverse" : ("row" as const) },
+    item: { marginStart: rtl ? 0 : 8, marginEnd: rtl ? 8 : 0 },
   };
 };
 
-/**
- * סגנונות דינמיים למודלים
- */
 export const getModalStyles = () => {
   const rtl = isRTL();
-
   return {
-    container: {
-      alignItems: rtl ? "flex-end" : ("flex-start" as const),
-    },
-    content: {
-      marginStart: rtl ? 0 : 20,
-      marginEnd: rtl ? 20 : 0,
-    },
+    container: { alignItems: rtl ? "flex-end" : ("flex-start" as const) },
+    content: { marginStart: rtl ? 0 : 20, marginEnd: rtl ? 20 : 0 },
   };
 };
 
-/**
- * סגנונות דינמיים לטבלאות
- */
 export const getTableStyles = () => {
   const rtl = isRTL();
-
   return {
-    headerRow: {
-      flexDirection: rtl ? "row-reverse" : ("row" as const),
-    },
-    dataRow: {
-      flexDirection: rtl ? "row-reverse" : ("row" as const),
-    },
+    headerRow: { flexDirection: rtl ? "row-reverse" : ("row" as const) },
+    dataRow: { flexDirection: rtl ? "row-reverse" : ("row" as const) },
     headerCell: {
       textAlign: rtl ? "right" : ("left" as const),
       writingDirection: rtl ? "rtl" : ("ltr" as const),
@@ -542,12 +445,8 @@ export const getTableStyles = () => {
   };
 };
 
-/**
- * סגנונות דינמיים להתראות
- */
 export const getToastStyles = () => {
   const rtl = isRTL();
-
   return {
     container: {
       alignSelf: rtl ? "flex-end" : ("flex-start" as const),
@@ -561,12 +460,8 @@ export const getToastStyles = () => {
   };
 };
 
-/**
- * סגנונות דינמיים לכרטיסים
- */
 export const getCardStyles = () => {
   const rtl = isRTL();
-
   return {
     container: {
       borderStartWidth: rtl ? 0 : 4,
@@ -574,9 +469,7 @@ export const getCardStyles = () => {
       borderLeftColor: rtl ? "transparent" : undefined,
       borderRightColor: rtl ? undefined : "transparent",
     },
-    header: {
-      flexDirection: rtl ? "row-reverse" : ("row" as const),
-    },
+    header: { flexDirection: rtl ? "row-reverse" : ("row" as const) },
     title: {
       marginStart: rtl ? 0 : 8,
       marginEnd: rtl ? 8 : 0,
@@ -586,22 +479,15 @@ export const getCardStyles = () => {
   };
 };
 
-/**
- * סגנונות דינמיים לרשימות
- */
 export const getListStyles = () => {
   const rtl = isRTL();
-
   return {
     item: {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
       paddingStart: rtl ? 0 : 16,
       paddingEnd: rtl ? 16 : 0,
     },
-    icon: {
-      marginStart: rtl ? 0 : 12,
-      marginEnd: rtl ? 12 : 0,
-    },
+    icon: { marginStart: rtl ? 0 : 12, marginEnd: rtl ? 12 : 0 },
     text: {
       textAlign: rtl ? "right" : ("left" as const),
       writingDirection: rtl ? "rtl" : ("ltr" as const),
@@ -609,20 +495,11 @@ export const getListStyles = () => {
   };
 };
 
-/**
- * סגנונות דינמיים לכפתורים
- */
 export const getButtonStyles = () => {
   const rtl = isRTL();
-
   return {
-    container: {
-      flexDirection: rtl ? "row-reverse" : ("row" as const),
-    },
-    icon: {
-      marginStart: rtl ? 0 : 8,
-      marginEnd: rtl ? 8 : 0,
-    },
+    container: { flexDirection: rtl ? "row-reverse" : ("row" as const) },
+    icon: { marginStart: rtl ? 0 : 8, marginEnd: rtl ? 8 : 0 },
     text: {
       textAlign: rtl ? "right" : ("left" as const),
       writingDirection: rtl ? "rtl" : ("ltr" as const),
@@ -630,9 +507,6 @@ export const getButtonStyles = () => {
   };
 };
 
-/**
- * המרת ערך מספרי למילים בעברית
- */
 export const numberToHebrewWords = (num: number): string => {
   const hebrewNumbers = [
     "",
@@ -647,56 +521,29 @@ export const numberToHebrewWords = (num: number): string => {
     "תשעה",
     "עשרה",
   ];
-
-  if (num >= 1 && num <= 10) {
-    return hebrewNumbers[num] || num.toString();
-  }
-
+  if (num >= 1 && num <= 10) return hebrewNumbers[num] || num.toString();
   return num.toString();
 };
 
-/**
- * פורמט משקל בעברית (RTL)
- */
-export const formatWeightRTL = (weight: number): string => {
-  return `${formatHebrewNumber(weight)} ק"ג`;
-};
+export const formatWeightRTL = (weight: number): string =>
+  `${formatHebrewNumber(weight)} ק"ג`;
 
-/**
- * פורמט גובה בעברית (RTL)
- */
-export const formatHeightRTL = (height: number): string => {
-  return `${formatHebrewNumber(height)} ס"מ`;
-};
+export const formatHeightRTL = (height: number): string =>
+  `${formatHebrewNumber(height)} ס"מ`;
 
-/**
- * פורמט קלוריות בעברית (RTL)
- */
-export const formatCaloriesRTL = (calories: number): string => {
-  return `${formatHebrewNumber(calories)} קלוריות`;
-};
+export const formatCaloriesRTL = (calories: number): string =>
+  `${formatHebrewNumber(calories)} קלוריות`;
 
-/**
- * פורמט זמן אימון בעברית (RTL)
- */
 export const formatWorkoutTimeRTL = (minutes: number): string => {
-  if (minutes < 60) {
-    return `${formatHebrewNumber(minutes)} דקות`;
-  }
-
+  if (minutes < 60) return `${formatHebrewNumber(minutes)} דקות`;
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-
-  if (remainingMinutes === 0) {
-    return `${formatHebrewNumber(hours)} שעות`;
-  }
-
-  return `${formatHebrewNumber(hours)} שעות ו-${formatHebrewNumber(remainingMinutes)} דקות`;
+  if (remainingMinutes === 0) return `${formatHebrewNumber(hours)} שעות`;
+  return `${formatHebrewNumber(hours)} שעות ו-${formatHebrewNumber(
+    remainingMinutes
+  )} דקות`;
 };
 
-/**
- * בדיקת תאימות RTL למכשיר
- */
 export const isRTLCompatible = (): boolean => {
   try {
     return I18nManager.isRTL || isRTL();
@@ -706,11 +553,11 @@ export const isRTLCompatible = (): boolean => {
 };
 
 /**
- * קבלת הגדרות RTL מלאות
+ * ⚠️ getRTLConfig מחזיר גם *שמות מאפיינים* (כמו "marginRight").
+ * השתמש בו כדי לבחור מאפיין דינמית, לא להזרקה ישירה ל-style.
  */
 export const getRTLConfig = () => {
   const rtl = isRTL();
-
   return {
     isRTL: rtl,
     textAlign: rtl ? "right" : "left",
@@ -727,53 +574,30 @@ export const getRTLConfig = () => {
   };
 };
 
-/**
- * עטיפת טקסט עם אימוג'י בהתאם ל-RTL
- */
 export const wrapTextWithEmoji = (
   text: string,
   emoji: string,
   position: "start" | "end" = "end"
 ): string => {
   if (!text || !emoji) return text;
-
-  if (isRTL()) {
-    // בעברית - אימוג'י תמיד בסוף
-    return `${text} ${emoji}`;
-  }
-
-  // בשפות LTR - לפי העדפה
+  if (isRTL()) return `${text} ${emoji}`;
   return position === "start" ? `${emoji} ${text}` : `${text} ${emoji}`;
 };
 
-/**
- * פורמט כותרת עם אימוג'י
- */
-export const formatTitleWithEmoji = (title: string, emoji: string): string => {
-  return wrapTextWithEmoji(title, emoji, "end");
-};
+export const formatTitleWithEmoji = (title: string, emoji: string): string =>
+  wrapTextWithEmoji(title, emoji, "end");
 
-/**
- * פורמט כפתור עם אימוג'י או אייקון
- */
 export const formatButtonWithIcon = (
   text: string,
   icon: string,
   type: "emoji" | "icon" = "emoji"
 ): string => {
-  if (type === "emoji") {
-    return wrapTextWithEmoji(text, icon, "end");
-  }
-  // עבור אייקונים, נחזיר רק את הטקסט (האייקון יטופל ברכיב)
+  if (type === "emoji") return wrapTextWithEmoji(text, icon, "end");
   return text;
 };
 
-/**
- * סגנונות כפתור עם אימוג'י/אייקון
- */
 export const getEmojiButtonStyles = () => {
   const rtl = isRTL();
-
   return {
     container: {
       flexDirection: rtl ? "row-reverse" : ("row" as const),
@@ -785,83 +609,47 @@ export const getEmojiButtonStyles = () => {
       textAlign: rtl ? "right" : ("left" as const),
       writingDirection: rtl ? "rtl" : ("ltr" as const),
     },
-    icon: {
-      marginStart: rtl ? 0 : 8,
-      marginEnd: rtl ? 8 : 0,
-    },
+    icon: { marginStart: rtl ? 0 : 8, marginEnd: rtl ? 8 : 0 },
   };
 };
 
-/**
- * סגנונות כותרת עם אימוג'י
- */
 export const getTitleStyles = (level: "h1" | "h2" | "h3" = "h1") => {
   const rtl = isRTL();
-
-  const baseSizes = {
-    h1: 28,
-    h2: 22,
-    h3: 18,
-  };
-
+  const baseSizes = { h1: 28, h2: 22, h3: 18 } as const;
   const baseStyles = {
     fontSize: baseSizes[level],
     fontWeight: (level === "h1" ? "bold" : "600") as "bold" | "600",
     marginBottom: level === "h1" ? 24 : level === "h2" ? 16 : 12,
     writingDirection: rtl ? "rtl" : ("ltr" as const),
   };
-
-  // כותרת ראשית תמיד במרכז
   if (level === "h1") {
-    return {
-      ...baseStyles,
-      textAlign: "center" as const,
-    };
+    return { ...baseStyles, textAlign: "center" as const };
   }
-
-  // שאר הכותרות מיושרות לפי RTL
-  const textAlign = rtl ? "right" : "left";
   return {
     ...baseStyles,
-    textAlign: textAlign as "right" | "left",
+    textAlign: (rtl ? "right" : "left") as "right" | "left",
   };
 };
 
-/**
- * בדיקה אם טקסט מכיל אימוג'י
- */
 export const hasEmoji = (text: string): boolean => {
   if (!text) return false;
-
-  // Regex פשוט לזיהוי אימוג'ים נפוצים
   const emojiRegex =
     /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
   return emojiRegex.test(text);
 };
 
-/**
- * הפרדת טקסט מאימוג'י
- */
 export const separateTextAndEmoji = (
   text: string
 ): { text: string; emoji: string } => {
-  if (!hasEmoji(text)) {
-    return { text, emoji: "" };
-  }
-
-  // מציאת האימוג'י האחרון
+  if (!hasEmoji(text)) return { text, emoji: "" };
   const emojiRegex =
     /([\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}])/gu;
   const emojis = text.match(emojiRegex) || [];
   const lastEmoji = emojis[emojis.length - 1] || "";
   const cleanText = text.replace(emojiRegex, "").trim();
-
   return { text: cleanText, emoji: lastEmoji };
 };
 
-/**
- * מיפוי אימוג'ים לפעולות (לשימוש עקבי)
- */
 export const getActionEmoji = (action: string): string => {
   const emojiMap: Record<string, string> = {
     start: "▶️",
@@ -903,13 +691,9 @@ export const getActionEmoji = (action: string): string => {
     export: "📤",
     import: "📥",
   };
-
   return emojiMap[action.toLowerCase()] || "";
 };
 
-/**
- * יצירת טקסט עם אימוג'י לפי פעולה
- */
 export const createActionText = (text: string, action: string): string => {
   const emoji = getActionEmoji(action);
   return emoji ? wrapTextWithEmoji(text, emoji, "end") : text;

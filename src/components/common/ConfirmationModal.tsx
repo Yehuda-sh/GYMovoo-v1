@@ -4,7 +4,7 @@
  * @dependencies React Native Modal, Ionicons, theme, Haptics
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -38,21 +38,27 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   variant = "default",
   singleButton = false,
 }) => {
+  const [confirmDisabled, setConfirmDisabled] = useState(false);
+
   const handleConfirm = useCallback(() => {
-    logger.debug("ConfirmationModal", `Confirm button pressed: ${title}`, {
-      variant,
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onConfirm();
-    onClose();
-  }, [onConfirm, onClose, title, variant]);
+    if (confirmDisabled) return;
+    setConfirmDisabled(true);
+    try {
+      logger.debug("ConfirmationModal", `Confirm button pressed: ${title}`, {
+        variant,
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onConfirm();
+    } finally {
+      onClose();
+      setConfirmDisabled(false);
+    }
+  }, [confirmDisabled, onConfirm, onClose, title, variant]);
 
   const handleCancel = useCallback(() => {
     logger.debug("ConfirmationModal", `Cancel button pressed: ${title}`);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (onCancel) {
-      onCancel();
-    }
+    if (onCancel) onCancel();
     onClose();
   }, [onCancel, onClose, title]);
 
@@ -89,13 +95,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
-      accessibilityViewIsModal={true}
+      statusBarTranslucent
     >
       <View style={theme.getModalOverlayStyle("center")}>
         <View
           style={[theme.getModalContentStyle("center"), styles.modalContent]}
           accessibilityRole="alert"
           accessibilityLabel={`דיאלוג אישור: ${title}`}
+          accessibilityViewIsModal={true}
         >
           <View style={{ marginBottom: theme.spacing.lg }}>
             <Ionicons name={getIcon()} size={48} color={getIconColor()} />
@@ -110,14 +117,17 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               <TouchableOpacity
                 style={[
                   styles.button,
-                  {
-                    backgroundColor: theme.colors.surface,
-                  },
+                  { backgroundColor: theme.colors.surface },
+                  // מרווח חכם במקום gap:
+                  theme.isRTL()
+                    ? { marginStart: theme.spacing.lg }
+                    : { marginEnd: theme.spacing.lg },
                 ]}
                 onPress={handleCancel}
                 accessibilityRole="button"
                 accessibilityLabel={`כפתור ${cancelText}`}
                 accessibilityHint="לחץ כדי לבטל את הפעולה"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={[styles.buttonText, styles.cancelButtonText]}>
                   {cancelText}
@@ -130,8 +140,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 styles.button,
                 singleButton && styles.singleButton,
                 { backgroundColor: getConfirmButtonColor() },
+                confirmDisabled && { opacity: 0.7 },
               ]}
               onPress={handleConfirm}
+              disabled={confirmDisabled}
               accessibilityRole="button"
               accessibilityLabel={`כפתור ${confirmText}`}
               accessibilityHint={
@@ -139,6 +151,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                   ? "זהירות! פעולה זו אינה הפיכה"
                   : "לחץ כדי לאשר את הפעולה"
               }
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={styles.buttonText}>{confirmText}</Text>
             </TouchableOpacity>
@@ -160,7 +173,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: theme.isRTL() ? "row-reverse" : "row",
     width: "100%",
-    gap: theme.spacing.lg,
     paddingTop: theme.spacing.sm,
   },
   button: {

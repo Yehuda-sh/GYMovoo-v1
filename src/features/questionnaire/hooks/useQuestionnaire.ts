@@ -7,15 +7,47 @@ import { useState, useCallback, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "../../../stores/userStore";
 import { UnifiedQuestionnaireManager } from "../data";
-import { Question, QuestionOption, QuestionnaireAnswer } from "../types";
+import type {
+  Question,
+  QuestionOption,
+  QuestionnaireAnswer,
+  QuestionnaireData,
+} from "../types";
 import { logger } from "../../../utils/logger";
 
 // Storage key constant for questionnaire draft data
 const DRAFT_STORAGE_KEY = "questionnaire_draft";
 
-export const useQuestionnaire = () => {
+type RestorePayload = { answers: QuestionnaireAnswer[] };
+
+interface UseQuestionnaireReturn {
+  // State
+  currentQuestion: Question | null;
+  selectedOptions: QuestionOption[];
+  isLoading: boolean;
+  progress: number;
+
+  // Derived
+  canGoBack: boolean;
+  isCompleted: boolean;
+
+  // Actions
+  handleSelectOption: (option: QuestionOption) => void;
+  handleNext: () => Promise<void>;
+  handlePrevious: () => void;
+  completeQuestionnaire: () => Promise<QuestionnaireData | null>;
+  resetQuestionnaire: () => Promise<void>;
+  loadCurrentQuestion: () => void;
+
+  // Utils
+  checkForSavedProgress: () => Promise<boolean>;
+  restoreProgress: (progressData: RestorePayload) => void;
+}
+
+export const useQuestionnaire = (): UseQuestionnaireReturn => {
   const { setSmartQuestionnaireData } = useUserStore();
 
+  // Manager נשמר ב-state כדי לשמור על רפרנס יציב לאורך חיי הקומפ'
   const [manager] = useState(() => new UnifiedQuestionnaireManager());
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<QuestionOption[]>([]);
@@ -23,17 +55,18 @@ export const useQuestionnaire = () => {
   const [progress, setProgress] = useState(0);
   const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
 
-  // Load current question
+  // Load current question + hydrate selected options for it
   const loadCurrentQuestion = useCallback(() => {
     try {
       const question = manager.getCurrentQuestion();
-      setCurrentQuestion(question);
+      setCurrentQuestion(question ?? null);
+
       if (question) {
-        // Get current answers for this question
         const allAnswers = manager.getAllAnswers();
         const currentAnswers = allAnswers.find(
           (a) => a.questionId === question.id
         );
+
         if (currentAnswers) {
           const answers = Array.isArray(currentAnswers.answer)
             ? currentAnswers.answer
@@ -43,8 +76,11 @@ export const useQuestionnaire = () => {
           setSelectedOptions([]);
         }
 
-        // Update progress
         setProgress(manager.getProgress());
+      } else {
+        // אין שאלה נוכחית (סוף), עדכן פרוגרס ל-100 אם יש תשובות
+        const answered = manager.getAllAnswers().length;
+        setProgress(answered > 0 ? 100 : 0);
       }
     } catch (error) {
       logger.error("useQuestionnaire", "Error loading question", error);
@@ -53,36 +89,33 @@ export const useQuestionnaire = () => {
 
   // Restore progress from saved data
   const restoreProgress = useCallback(
-    (progressData: { answers: QuestionnaireAnswer[] }) => {
+    (progressData: RestorePayload) => {
       try {
-        if (!progressData.answers || !Array.isArray(progressData.answers)) {
+        if (!progressData?.answers || !Array.isArray(progressData.answers))
           return;
-        }
 
-        // Reset manager first
         manager.reset();
 
-        // Restore each answer
-        progressData.answers.forEach((answer) => {
-          if (answer.questionId && answer.answer) {
+        // החזרת תשובות
+        for (const answer of progressData.answers) {
+          if (answer?.questionId && answer?.answer) {
             manager.answerQuestion(answer.questionId, answer.answer);
           }
-        });
+        }
 
-        // Move to the next unanswered question
-        while (
-          manager.getCurrentQuestion() &&
-          progressData.answers.some(
-            (a) => a.questionId === manager.getCurrentQuestion()?.id
-          )
-        ) {
+        // דילוג קדימה עד לשאלה שלא נענתה (או סוף)
+        while (true) {
+          const q = manager.getCurrentQuestion();
+          if (!q) break;
+          const alreadyAnswered = progressData.answers.some(
+            (a) => a.questionId === q.id
+          );
+          if (!alreadyAnswered) break;
           if (!manager.nextQuestion()) break;
         }
 
-        // Load the current question
         loadCurrentQuestion();
         setHasRestoredProgress(true);
-
         logger.info(
           "useQuestionnaire",
           "Successfully restored questionnaire progress"
@@ -94,19 +127,32 @@ export const useQuestionnaire = () => {
     [manager, loadCurrentQuestion]
   );
 
-  // Initialize questionnaire
+  // Initialize questionnaire + check saved draft
   useEffect(() => {
     loadCurrentQuestion();
 
-    // Check for saved progress
     const checkSavedProgress = async () => {
       try {
-        const savedProgress = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
-        if (savedProgress && !hasRestoredProgress) {
-          const progressData = JSON.parse(savedProgress);
-          if (progressData.answers && progressData.answers.length > 0) {
-            restoreProgress(progressData);
-          }
+        const saved = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!saved || hasRestoredProgress) return;
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(saved);
+        } catch {
+          // טיוטה פגומה — ננקה
+          await AsyncStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
+
+        const progressData = parsed as Partial<RestorePayload>;
+        if (
+          Array.isArray(progressData.answers) &&
+          progressData.answers.length > 0
+        ) {
+          restoreProgress({
+            answers: progressData.answers as QuestionnaireAnswer[],
+          });
         }
       } catch (error) {
         logger.error(
@@ -117,76 +163,79 @@ export const useQuestionnaire = () => {
       }
     };
 
-    checkSavedProgress();
+    void checkSavedProgress();
   }, [loadCurrentQuestion, hasRestoredProgress, restoreProgress]);
 
-  // Handle answer selection
+  // Select/toggle answer
   const handleSelectOption = useCallback(
     (option: QuestionOption) => {
       if (!currentQuestion) return;
 
-      // Handle single or multiple selection based on question type
       if (currentQuestion.type === "single") {
         setSelectedOptions([option]);
       } else {
-        // For multiple selection, toggle the option
-        const isSelected = selectedOptions.some((o) => o.id === option.id);
-        if (isSelected) {
-          setSelectedOptions(selectedOptions.filter((o) => o.id !== option.id));
-        } else {
-          setSelectedOptions([...selectedOptions, option]);
-        }
+        // multiple: עדכון פונקציונלי למניעת מצבי מירוץ
+        setSelectedOptions((prev) => {
+          const exists = prev.some((o) => o.id === option.id);
+          return exists
+            ? prev.filter((o) => o.id !== option.id)
+            : [...prev, option];
+        });
       }
     },
-    [currentQuestion, selectedOptions]
+    [currentQuestion]
   );
 
   // Complete the questionnaire
-  const completeQuestionnaire = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      logger.info("useQuestionnaire", "Starting questionnaire completion");
+  const completeQuestionnaire =
+    useCallback(async (): Promise<QuestionnaireData | null> => {
+      setIsLoading(true);
+      try {
+        logger.info("useQuestionnaire", "Starting questionnaire completion");
 
-      // Generate the smart questionnaire data
-      const smartData = manager.toSmartQuestionnaireData();
-      logger.info("useQuestionnaire", "Generated smart questionnaire data");
+        const smartData = manager.toSmartQuestionnaireData();
+        logger.info("useQuestionnaire", "Generated smart questionnaire data");
 
-      // Update user store
-      setSmartQuestionnaireData(smartData);
-      logger.info("useQuestionnaire", "Saved questionnaire data to user store");
+        setSmartQuestionnaireData(smartData);
+        logger.info(
+          "useQuestionnaire",
+          "Saved questionnaire data to user store"
+        );
 
-      // Clean up
-      await AsyncStorage.removeItem(DRAFT_STORAGE_KEY);
-      logger.info(
-        "useQuestionnaire",
-        "Removed questionnaire draft from storage"
-      );
+        await AsyncStorage.removeItem(DRAFT_STORAGE_KEY);
+        logger.info(
+          "useQuestionnaire",
+          "Removed questionnaire draft from storage"
+        );
 
-      return smartData;
-    } catch (error) {
-      logger.error("useQuestionnaire", "Error completing questionnaire", error);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [manager, setSmartQuestionnaireData]);
+        return smartData;
+      } catch (error) {
+        logger.error(
+          "useQuestionnaire",
+          "Error completing questionnaire",
+          error
+        );
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    }, [manager, setSmartQuestionnaireData]);
 
-  // Handle next question
-  const handleNext = useCallback(() => {
+  // Next question
+  const handleNext = useCallback(async () => {
     if (!currentQuestion || selectedOptions.length === 0) return;
 
     try {
-      // Save answer
-      if (selectedOptions[0]) {
-        manager.answerQuestion(
-          currentQuestion.id,
-          currentQuestion.type === "single"
-            ? selectedOptions[0]
-            : selectedOptions
-        );
+      // Save answer – ודאות שלא נשלח undefined
+      if (currentQuestion.type === "single") {
+        const first = selectedOptions[0];
+        if (!first) return; // הגנה כפולה
+        manager.answerQuestion(currentQuestion.id, first);
+      } else {
+        manager.answerQuestion(currentQuestion.id, [...selectedOptions]);
       }
 
-      // Save draft to AsyncStorage
+      // Persist draft (fire-and-forget)
       const saveDraft = async () => {
         try {
           const answers = manager.getAllAnswers();
@@ -200,14 +249,12 @@ export const useQuestionnaire = () => {
           logger.error("useQuestionnaire", "Error saving draft", error);
         }
       };
+      void saveDraft();
 
-      saveDraft();
-
-      // Check if completed
+      // Completed?
       if (manager.isCompleted()) {
-        completeQuestionnaire();
+        await completeQuestionnaire();
       } else {
-        // Move to next question
         manager.nextQuestion();
         loadCurrentQuestion();
       }
@@ -222,7 +269,7 @@ export const useQuestionnaire = () => {
     completeQuestionnaire,
   ]);
 
-  // Handle previous question
+  // Previous question
   const handlePrevious = useCallback(() => {
     if (manager.canGoBack()) {
       manager.previousQuestion();
@@ -230,7 +277,7 @@ export const useQuestionnaire = () => {
     }
   }, [manager, loadCurrentQuestion]);
 
-  // Reset questionnaire
+  // Reset
   const resetQuestionnaire = useCallback(async () => {
     try {
       manager.reset();
@@ -242,11 +289,11 @@ export const useQuestionnaire = () => {
     }
   }, [manager, loadCurrentQuestion]);
 
-  // Utility function to check if there's saved progress
+  // Utility: check if there is a saved draft
   const checkForSavedProgress = useCallback(async (): Promise<boolean> => {
     try {
-      const savedProgress = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
-      return !!savedProgress;
+      const saved = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
+      return !!saved;
     } catch (error) {
       logger.error(
         "useQuestionnaire",
@@ -264,7 +311,7 @@ export const useQuestionnaire = () => {
     isLoading,
     progress,
 
-    // Derived state
+    // Derived
     canGoBack: manager.canGoBack(),
     isCompleted: manager.isCompleted(),
 
@@ -276,7 +323,7 @@ export const useQuestionnaire = () => {
     resetQuestionnaire,
     loadCurrentQuestion,
 
-    // Utilities
+    // Utils
     checkForSavedProgress,
     restoreProgress,
   };

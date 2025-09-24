@@ -74,6 +74,29 @@ const PRESET_AVATARS = [
   "🤺",
 ];
 
+const PROFILE_TABS = [
+  {
+    id: "info",
+    title: "המידע שלי",
+    icon: "account-circle",
+  },
+  {
+    id: "journey",
+    title: "המסע שלי",
+    icon: "trophy",
+  },
+  {
+    id: "equipment",
+    title: "הציוד שלי",
+    icon: "dumbbell",
+  },
+  {
+    id: "settings",
+    title: "הגדרות",
+    icon: "cog",
+  },
+];
+
 type ProfileScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
   "Profile"
@@ -101,6 +124,7 @@ const ProfileScreen: React.FC = () => {
   const [editedName, setEditedName] = useState(user?.name || "");
   const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("info"); // ברירת מחדל: המידע שלי
 
   // Mapping function for questionnaire values - using real questionnaire data
   const getMappedValue = (
@@ -778,493 +802,577 @@ const ProfileScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
-          {/* Avatar */}
-          <TouchableOpacity
-            style={styles.avatarContainer}
-            onPress={() => setShowAvatarModal(true)}
-          >
-            {selectedAvatar && selectedAvatar.startsWith("http") ? (
-              <Image source={{ uri: selectedAvatar }} style={styles.avatar} />
-            ) : selectedAvatar && selectedAvatar.length === 2 ? (
-              <View style={styles.emojiAvatar}>
-                <Text style={styles.emojiText}>{selectedAvatar}</Text>
-              </View>
-            ) : (
-              <View style={styles.avatar}>
-                <DefaultAvatar name={user?.name || "משתמש"} size={90} />
-              </View>
-            )}
-            <View style={styles.editAvatarButton}>
-              <MaterialCommunityIcons
-                name="camera"
-                size={20}
-                color={theme.colors.text}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {/* User Info */}
-          <View style={styles.usernameContainer}>
-            <Text style={styles.username}>
-              {wrapBidi(user?.name || "אלוף הכושר")}
-            </Text>
+        {/* Tabs Navigation */}
+        <View style={styles.tabsContainer}>
+          {PROFILE_TABS.map((tab) => (
             <TouchableOpacity
-              style={styles.editNameButton}
-              onPress={() => {
-                if (canEditName()) {
-                  setEditedName(user?.name || "");
-                  setShowNameModal(true);
-                }
-              }}
-              disabled={!canEditName()}
+              key={tab.id}
+              style={[
+                styles.tabButton,
+                activeTab === tab.id && styles.activeTabButton,
+              ]}
+              onPress={() => setActiveTab(tab.id)}
             >
               <MaterialCommunityIcons
-                name="pencil"
-                size={16}
+                name={tab.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+                size={20}
                 color={
-                  canEditName()
+                  activeTab === tab.id
                     ? theme.colors.primary
                     : theme.colors.textSecondary
                 }
               />
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  activeTab === tab.id && styles.activeTabButtonText,
+                ]}
+              >
+                {tab.title}
+              </Text>
             </TouchableOpacity>
-          </View>
-
-          {user?.email && (
-            <Text style={styles.userEmail}>{wrapBidi(user.email)}</Text>
-          )}
-
-          {/* Level and XP */}
-          {totalWorkouts > 0 && (
-            <View style={styles.levelContainer}>
-              <Text style={styles.levelText}>
-                {wrapBidi(`רמה ${stats.level}`)}
-              </Text>
-              <View style={styles.xpBar}>
-                <View
-                  style={[
-                    styles.xpProgress,
-                    { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.xpText}>
-                {wrapBidi(`${stats.xp}/${stats.nextLevelXp} XP`)}
-              </Text>
-            </View>
-          )}
-
-          {/* Badges */}
-          {(totalWorkouts > 0 || currentStreak > 0) && (
-            <View style={styles.badgesContainer}>
-              {profileBadges
-                .filter((badge) => {
-                  if (badge.key === "level" && totalWorkouts === 0)
-                    return false;
-                  if (badge.key === "workouts" && totalWorkouts === 0)
-                    return false;
-                  if (badge.key === "streak" && currentStreak === 0)
-                    return false;
-                  return true;
-                })
-                .map((badge) => (
-                  <View
-                    key={badge.key}
-                    style={[
-                      styles.badge,
-                      { backgroundColor: badge.color + "20" },
-                    ]}
-                  >
-                    <Text style={[styles.badgeText, { color: badge.color }]}>
-                      {wrapBidi(badge.text)}
-                    </Text>
-                  </View>
-                ))}
-            </View>
-          )}
+          ))}
         </View>
 
-        {/* Stats */}
-        {(totalWorkouts > 0 || currentStreak > 0 || averageRating > 0) && (
-          <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>
-              {wrapBidi(PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS)}
-            </Text>
-            <View style={styles.statsGrid}>
-              {totalWorkouts > 0 && (
-                <View style={styles.statCard}>
-                  <MaterialCommunityIcons
-                    name="dumbbell"
-                    size={24}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.statNumber}>
-                    {wrapBidi(String(stats.workouts))}
-                  </Text>
-                  <Text style={styles.statLabel}>
-                    {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-                  </Text>
-                </View>
-              )}
-              {currentStreak > 0 && (
-                <View style={styles.statCard}>
-                  <MaterialCommunityIcons
-                    name="fire"
-                    size={24}
-                    color={theme.colors.warning}
-                  />
-                  <Text style={styles.statNumber}>
-                    {wrapBidi(String(stats.streak))}
-                  </Text>
-                  <Text style={styles.statLabel}>
-                    {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
-                  </Text>
-                </View>
-              )}
-              {averageRating > 0 && (
-                <View style={styles.statCard}>
-                  <MaterialCommunityIcons
-                    name="star"
-                    size={24}
-                    color={theme.colors.success}
-                  />
-                  <Text style={styles.statNumber}>
-                    {wrapBidi(String(stats.rating))}
-                  </Text>
-                  <Text style={styles.statLabel}>דירוג</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* BMI/BMR Calculator - רק אם יש נתונים מדויקים */}
-        {hasPersonalInfo &&
-          user?.personalInfo?.weight &&
-          user?.personalInfo?.height && <BMIBMRCalculator />}
-
-        {/* הודעה על הצורך בנתונים מדויקים */}
-        {!hasPersonalInfo && (
-          <View style={styles.bmiPlaceholderSection}>
-            <View style={styles.bmiPlaceholderCard}>
-              <MaterialCommunityIcons
-                name="calculator"
-                size={32}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.bmiPlaceholderTitle}>
-                {wrapBidi("מחשבון BMI/BMR")}
-              </Text>
-              <Text style={styles.bmiPlaceholderText}>
-                {wrapBidi(
-                  "כדי לקבל חישוב מדויק של BMI ו-BMR, נדרשים נתונים מדויקים של גובה ומשקל"
-                )}
-              </Text>
-              <TouchableOpacity
-                style={styles.bmiPlaceholderButton}
-                onPress={() => navigation.navigate("PersonalInfo" as never)}
-              >
-                <Text style={styles.bmiPlaceholderButtonText}>
-                  {wrapBidi("הוסף נתונים מדויקים")}
-                </Text>
-                <MaterialCommunityIcons
-                  name={isRTL() ? "chevron-left" : "chevron-right"}
-                  size={20}
-                  color={theme.colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Achievements Section - Unified */}
-        <View style={styles.achievementsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{wrapBidi("הישגים")}</Text>
-            <TouchableOpacity
-              onPress={() => setShowAchievements(true)}
-              style={styles.viewAllButton}
-            >
-              <Text style={styles.viewAllButtonText}>
-                {wrapBidi("צפה בהכל")}
-              </Text>
-              <MaterialCommunityIcons
-                name={isRTL() ? "chevron-left" : "chevron-right"}
-                size={16}
-                color={theme.colors.primary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick stats */}
-          <View style={styles.achievementsQuickStats}>
-            <View style={styles.achievementQuickStat}>
-              <MaterialCommunityIcons
-                name="trophy"
-                size={20}
-                color={theme.colors.warning}
-              />
-              <Text style={styles.achievementQuickStatText}>
-                {wrapBidi(
-                  `${achievements.filter((a) => a.unlocked).length} הושגו`
-                )}
-              </Text>
-            </View>
-            <View style={styles.achievementQuickStat}>
-              <MaterialCommunityIcons
-                name="target"
-                size={20}
-                color={theme.colors.info}
-              />
-              <Text style={styles.achievementQuickStatText}>
-                {wrapBidi(
-                  `${achievements.length - achievements.filter((a) => a.unlocked).length} נותרו`
-                )}
-              </Text>
-            </View>
-          </View>
-
-          {/* Recent/Featured Achievements Grid */}
-          <View style={styles.achievementsGrid}>
-            {achievements
-              .sort((a, b) => {
-                // מיון: הישגים שהושגו לאחרונה קודם, אחר כך הקרובים ביותר
-                if (a.unlocked && !b.unlocked) return -1;
-                if (!a.unlocked && b.unlocked) return 1;
-                return 0;
-              })
-              .slice(0, 6)
-              .map((achievement: AchievementDisplay) => (
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
+          {/* כרטיסיית המידע שלי */}
+          {activeTab === "info" && (
+            <View>
+              {/* Profile Section */}
+              <View style={styles.profileSection}>
+                {/* Avatar */}
                 <TouchableOpacity
-                  key={achievement.id}
-                  style={[
-                    styles.achievementCard,
-                    achievement.unlocked && styles.achievementCardUnlocked,
-                  ]}
-                  onPress={() => setShowAchievements(true)}
-                  activeOpacity={0.7}
+                  style={styles.avatarContainer}
+                  onPress={() => setShowAvatarModal(true)}
                 >
-                  <View style={styles.achievementIconContainer}>
-                    <MaterialCommunityIcons
-                      name={achievement.icon}
-                      size={24}
-                      color={
-                        achievement.unlocked
-                          ? achievement.color
-                          : theme.colors.textTertiary
-                      }
+                  {selectedAvatar && selectedAvatar.startsWith("http") ? (
+                    <Image
+                      source={{ uri: selectedAvatar }}
+                      style={styles.avatar}
                     />
-                    {!achievement.unlocked && (
-                      <View style={styles.lockIconContainer}>
-                        <MaterialCommunityIcons
-                          name="lock"
-                          size={12}
-                          color={theme.colors.textTertiary}
-                        />
-                      </View>
-                    )}
-                    {achievement.unlocked && (
-                      <View style={styles.checkIconContainer}>
-                        <MaterialCommunityIcons
-                          name="check-circle"
-                          size={16}
-                          color={theme.colors.success}
-                        />
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.achievementTitle,
-                      !achievement.unlocked && styles.achievementTitleLocked,
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {wrapBidi(achievement.title)}
-                  </Text>
-                  {achievement.unlocked && (
-                    <View style={styles.achievementUnlockedIndicator}>
-                      <Text style={styles.achievementUnlockedText}>
-                        {wrapBidi("הושג!")}
-                      </Text>
+                  ) : selectedAvatar && selectedAvatar.length === 2 ? (
+                    <View style={styles.emojiAvatar}>
+                      <Text style={styles.emojiText}>{selectedAvatar}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.avatar}>
+                      <DefaultAvatar name={user?.name || "משתמש"} size={90} />
                     </View>
                   )}
-                </TouchableOpacity>
-              ))}
-          </View>
-        </View>
-
-        {/* Equipment */}
-        <View style={styles.equipmentSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{wrapBidi("הציוד שלי")}</Text>
-            <TouchableOpacity onPress={() => showComingSoon("עריכת ציוד")}>
-              <Text style={styles.editEquipmentText}>{wrapBidi("ערוך")}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Debug info */}
-          {__DEV__ && (
-            <Text style={{ color: "red", fontSize: 12, marginBottom: 10 }}>
-              Equipment count: {allEquipment.length}
-            </Text>
-          )}
-
-          {allEquipment.length === 0 ? (
-            <View style={styles.noEquipmentContainer}>
-              <MaterialCommunityIcons
-                name="dumbbell"
-                size={40}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.noEquipmentText}>
-                {wrapBidi("לא נבחר ציוד")}
-              </Text>
-              <Text style={styles.noEquipmentSubtext}>
-                {wrapBidi("לחץ על 'ערוך' כדי לבחור ציוד")}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.equipmentGrid}>
-              {allEquipment.map((equipment, index) => (
-                <View key={equipment?.id || index} style={styles.equipmentCard}>
-                  <View
-                    style={[
-                      styles.equipmentIconWrapper,
-                      { backgroundColor: theme.colors.primary + "15" },
-                    ]}
-                  >
+                  <View style={styles.editAvatarButton}>
                     <MaterialCommunityIcons
-                      name={getEquipmentIcon(equipment.id)}
-                      size={28}
-                      color={theme.colors.primary}
+                      name="camera"
+                      size={20}
+                      color={theme.colors.text}
                     />
                   </View>
-                  <Text style={styles.equipmentName} numberOfLines={1}>
-                    {wrapBidi(equipment?.label)}
+                </TouchableOpacity>
+
+                {/* User Info */}
+                <View style={styles.usernameContainer}>
+                  <Text style={styles.username}>
+                    {wrapBidi(user?.name || "אלוף הכושר")}
                   </Text>
-                  {equipment?.description && (
-                    <Text style={styles.equipmentDescription} numberOfLines={1}>
-                      {wrapBidi(equipment.description)}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Questionnaire Results */}
-        {extractQuestionnaireResults(user).length > 0 && (
-          <View style={styles.questionnaireSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{wrapBidi("מידע עליי")}</Text>
-              <MaterialCommunityIcons
-                name="account-circle-outline"
-                size={20}
-                color={theme.colors.primary}
-              />
-            </View>
-
-            {/* הודעת הסבר על טווחים ונתונים מחושבים */}
-            <View style={styles.questionnaireExplanation}>
-              <MaterialCommunityIcons
-                name="information-outline"
-                size={16}
-                color={theme.colors.textSecondary}
-                style={styles.explanationIcon}
-              />
-              <Text style={styles.questionnaireExplanationText}>
-                {wrapBidi(
-                  "💡 הנתונים מהשאלון מוצגים כטווחים. נתונים מדויקים מוצגים רק לאחר שימוש במחשבון BMI"
-                )}
-              </Text>
-            </View>
-
-            <View>
-              {extractQuestionnaireResults(user).map((result, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.questionnaireItem,
-                    result.category === "calculated" &&
-                      result.label.includes("---") &&
-                      styles.questionnaireSeparator,
-                  ]}
-                >
-                  <View style={styles.questionnaireIconContainer}>
-                    <MaterialCommunityIcons
-                      name={
-                        result.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                  <TouchableOpacity
+                    style={styles.editNameButton}
+                    onPress={() => {
+                      if (canEditName()) {
+                        setEditedName(user?.name || "");
+                        setShowNameModal(true);
                       }
+                    }}
+                    disabled={!canEditName()}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil"
+                      size={16}
+                      color={
+                        canEditName()
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary
+                      }
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {user?.email && (
+                  <Text style={styles.userEmail}>{wrapBidi(user.email)}</Text>
+                )}
+
+                {/* Level and XP */}
+                {totalWorkouts > 0 && (
+                  <View style={styles.levelContainer}>
+                    <Text style={styles.levelText}>
+                      {wrapBidi(`רמה ${stats.level}`)}
+                    </Text>
+                    <View style={styles.xpBar}>
+                      <View
+                        style={[
+                          styles.xpProgress,
+                          { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.xpText}>
+                      {wrapBidi(`${stats.xp}/${stats.nextLevelXp} XP`)}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Badges */}
+                {(totalWorkouts > 0 || currentStreak > 0) && (
+                  <View style={styles.badgesContainer}>
+                    {profileBadges
+                      .filter((badge) => {
+                        if (badge.key === "level" && totalWorkouts === 0)
+                          return false;
+                        if (badge.key === "workouts" && totalWorkouts === 0)
+                          return false;
+                        if (badge.key === "streak" && currentStreak === 0)
+                          return false;
+                        return true;
+                      })
+                      .map((badge) => (
+                        <View
+                          key={badge.key}
+                          style={[
+                            styles.badge,
+                            { backgroundColor: badge.color + "20" },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.badgeText, { color: badge.color }]}
+                          >
+                            {wrapBidi(badge.text)}
+                          </Text>
+                        </View>
+                      ))}
+                  </View>
+                )}
+              </View>
+
+              {/* BMI/BMR Calculator - רק אם יש נתונים מדויקים */}
+              {hasPersonalInfo &&
+                user?.personalInfo?.weight &&
+                user?.personalInfo?.height && <BMIBMRCalculator />}
+
+              {/* הודעה על הצורך בנתונים מדויקים */}
+              {!hasPersonalInfo && (
+                <View style={styles.bmiPlaceholderSection}>
+                  <View style={styles.bmiPlaceholderCard}>
+                    <MaterialCommunityIcons
+                      name="calculator"
+                      size={32}
+                      color={theme.colors.textSecondary}
+                    />
+                    <Text style={styles.bmiPlaceholderTitle}>
+                      {wrapBidi("מחשבון BMI/BMR")}
+                    </Text>
+                    <Text style={styles.bmiPlaceholderText}>
+                      {wrapBidi(
+                        "כדי לקבל חישוב מדויק של BMI ו-BMR, נדרשים נתונים מדויקים של גובה ומשקל"
+                      )}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.bmiPlaceholderButton}
+                      onPress={() =>
+                        navigation.navigate("PersonalInfo" as never)
+                      }
+                    >
+                      <Text style={styles.bmiPlaceholderButtonText}>
+                        {wrapBidi("הוסף נתונים מדויקים")}
+                      </Text>
+                      <MaterialCommunityIcons
+                        name={isRTL() ? "chevron-left" : "chevron-right"}
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Questionnaire Results */}
+              {extractQuestionnaireResults(user).length > 0 && (
+                <View style={styles.questionnaireSection}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>
+                      {wrapBidi("מידע עליי")}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="account-circle-outline"
                       size={20}
                       color={theme.colors.primary}
                     />
                   </View>
-                  <View style={styles.questionnaireContent}>
-                    <Text
-                      style={[
-                        styles.questionnaireLabel,
-                        result.category === "calculated" &&
-                          result.label.includes("---") &&
-                          styles.questionnaireSeparatorLabel,
-                      ]}
-                    >
-                      {wrapBidi(result.label)}
+
+                  {/* הודעת הסבר על טווחים ונתונים מחושבים */}
+                  <View style={styles.questionnaireExplanation}>
+                    <MaterialCommunityIcons
+                      name="information-outline"
+                      size={16}
+                      color={theme.colors.textSecondary}
+                      style={styles.explanationIcon}
+                    />
+                    <Text style={styles.questionnaireExplanationText}>
+                      {wrapBidi(
+                        "💡 הנתונים מהשאלון מוצגים כטווחים. נתונים מדויקים מוצגים רק לאחר שימוש במחשבון BMI"
+                      )}
                     </Text>
-                    <Text
-                      style={[
-                        styles.questionnaireValue,
-                        result.category === "calculated" &&
-                          result.label.includes("---") &&
-                          styles.questionnaireSeparatorValue,
-                      ]}
-                    >
-                      {wrapBidi(result.value)}
+                  </View>
+
+                  <View>
+                    {extractQuestionnaireResults(user).map((result, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.questionnaireItem,
+                          result.category === "calculated" &&
+                            result.label.includes("---") &&
+                            styles.questionnaireSeparator,
+                        ]}
+                      >
+                        <View style={styles.questionnaireIconContainer}>
+                          <MaterialCommunityIcons
+                            name={
+                              result.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                            }
+                            size={20}
+                            color={theme.colors.primary}
+                          />
+                        </View>
+                        <View style={styles.questionnaireContent}>
+                          <Text
+                            style={[
+                              styles.questionnaireLabel,
+                              result.category === "calculated" &&
+                                result.label.includes("---") &&
+                                styles.questionnaireSeparatorLabel,
+                            ]}
+                          >
+                            {wrapBidi(result.label)}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.questionnaireValue,
+                              result.category === "calculated" &&
+                                result.label.includes("---") &&
+                                styles.questionnaireSeparatorValue,
+                            ]}
+                          >
+                            {wrapBidi(result.value)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* כרטיסיית המסע שלי */}
+          {activeTab === "journey" && (
+            <View>
+              {/* Stats */}
+              {(totalWorkouts > 0 ||
+                currentStreak > 0 ||
+                averageRating > 0) && (
+                <View style={styles.statsSection}>
+                  <Text style={styles.sectionTitle}>
+                    {wrapBidi(PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS)}
+                  </Text>
+                  <View style={styles.statsGrid}>
+                    {totalWorkouts > 0 && (
+                      <View style={styles.statCard}>
+                        <MaterialCommunityIcons
+                          name="dumbbell"
+                          size={24}
+                          color={theme.colors.primary}
+                        />
+                        <Text style={styles.statNumber}>
+                          {wrapBidi(String(stats.workouts))}
+                        </Text>
+                        <Text style={styles.statLabel}>
+                          {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
+                        </Text>
+                      </View>
+                    )}
+                    {currentStreak > 0 && (
+                      <View style={styles.statCard}>
+                        <MaterialCommunityIcons
+                          name="fire"
+                          size={24}
+                          color={theme.colors.warning}
+                        />
+                        <Text style={styles.statNumber}>
+                          {wrapBidi(String(stats.streak))}
+                        </Text>
+                        <Text style={styles.statLabel}>
+                          {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
+                        </Text>
+                      </View>
+                    )}
+                    {averageRating > 0 && (
+                      <View style={styles.statCard}>
+                        <MaterialCommunityIcons
+                          name="star"
+                          size={24}
+                          color={theme.colors.success}
+                        />
+                        <Text style={styles.statNumber}>
+                          {wrapBidi(String(stats.rating))}
+                        </Text>
+                        <Text style={styles.statLabel}>דירוג</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Achievements Section - Unified */}
+              <View style={styles.achievementsSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{wrapBidi("הישגים")}</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowAchievements(true)}
+                    style={styles.viewAllButton}
+                  >
+                    <Text style={styles.viewAllButtonText}>
+                      {wrapBidi("צפה בהכל")}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name={isRTL() ? "chevron-left" : "chevron-right"}
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Quick stats */}
+                <View style={styles.achievementsQuickStats}>
+                  <View style={styles.achievementQuickStat}>
+                    <MaterialCommunityIcons
+                      name="trophy"
+                      size={20}
+                      color={theme.colors.warning}
+                    />
+                    <Text style={styles.achievementQuickStatText}>
+                      {wrapBidi(
+                        `${achievements.filter((a) => a.unlocked).length} הושגו`
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.achievementQuickStat}>
+                    <MaterialCommunityIcons
+                      name="target"
+                      size={20}
+                      color={theme.colors.info}
+                    />
+                    <Text style={styles.achievementQuickStatText}>
+                      {wrapBidi(
+                        `${achievements.length - achievements.filter((a) => a.unlocked).length} נותרו`
+                      )}
                     </Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          </View>
-        )}
 
-        {/* Settings */}
-        <View style={styles.settingsSection}>
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => showComingSoon("הגדרות התראות")}
-          >
-            <View style={styles.settingLeft}>
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={24}
-                color={theme.colors.primary}
+                {/* Recent/Featured Achievements Grid */}
+                <View style={styles.achievementsGrid}>
+                  {achievements
+                    .sort((a, b) => {
+                      // מיון: הישגים שהושגו לאחרונה קודם, אחר כך הקרובים ביותר
+                      if (a.unlocked && !b.unlocked) return -1;
+                      if (!a.unlocked && b.unlocked) return 1;
+                      return 0;
+                    })
+                    .slice(0, 6)
+                    .map((achievement: AchievementDisplay) => (
+                      <TouchableOpacity
+                        key={achievement.id}
+                        style={[
+                          styles.achievementCard,
+                          achievement.unlocked &&
+                            styles.achievementCardUnlocked,
+                        ]}
+                        onPress={() => setShowAchievements(true)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.achievementIconContainer}>
+                          <MaterialCommunityIcons
+                            name={
+                              achievement.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                            }
+                            size={24}
+                            color={
+                              achievement.unlocked
+                                ? achievement.color
+                                : theme.colors.textTertiary
+                            }
+                          />
+                          {!achievement.unlocked && (
+                            <View style={styles.lockIconContainer}>
+                              <MaterialCommunityIcons
+                                name="lock"
+                                size={12}
+                                color={theme.colors.textTertiary}
+                              />
+                            </View>
+                          )}
+                          {achievement.unlocked && (
+                            <View style={styles.checkIconContainer}>
+                              <MaterialCommunityIcons
+                                name="check-circle"
+                                size={16}
+                                color={theme.colors.success}
+                              />
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.achievementTitle,
+                            !achievement.unlocked &&
+                              styles.achievementTitleLocked,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {wrapBidi(achievement.title)}
+                        </Text>
+                        {achievement.unlocked && (
+                          <View style={styles.achievementUnlockedIndicator}>
+                            <Text style={styles.achievementUnlockedText}>
+                              {wrapBidi("הושג!")}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* כרטיסיית הציוד שלי */}
+          {activeTab === "equipment" && (
+            <View>
+              {/* Equipment */}
+              <View style={styles.equipmentSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    {wrapBidi("הציוד שלי")}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => showComingSoon("עריכת ציוד")}
+                  >
+                    <Text style={styles.editEquipmentText}>
+                      {wrapBidi("ערוך")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Debug info */}
+                {__DEV__ && (
+                  <Text
+                    style={{ color: "red", fontSize: 12, marginBottom: 10 }}
+                  >
+                    Equipment count: {allEquipment.length}
+                  </Text>
+                )}
+
+                {allEquipment.length === 0 ? (
+                  <View style={styles.noEquipmentContainer}>
+                    <MaterialCommunityIcons
+                      name="dumbbell"
+                      size={40}
+                      color={theme.colors.textSecondary}
+                    />
+                    <Text style={styles.noEquipmentText}>
+                      {wrapBidi("לא נבחר ציוד")}
+                    </Text>
+                    <Text style={styles.noEquipmentSubtext}>
+                      {wrapBidi("לחץ על 'ערוך' כדי לבחור ציוד")}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.equipmentGrid}>
+                    {allEquipment.map((equipment, index) => (
+                      <View
+                        key={equipment?.id || index}
+                        style={styles.equipmentCard}
+                      >
+                        <View
+                          style={[
+                            styles.equipmentIconWrapper,
+                            { backgroundColor: theme.colors.primary + "15" },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name={getEquipmentIcon(equipment.id)}
+                            size={28}
+                            color={theme.colors.primary}
+                          />
+                        </View>
+                        <Text style={styles.equipmentName} numberOfLines={1}>
+                          {wrapBidi(equipment?.label)}
+                        </Text>
+                        {equipment?.description && (
+                          <Text
+                            style={styles.equipmentDescription}
+                            numberOfLines={1}
+                          >
+                            {wrapBidi(equipment.description)}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* כרטיסיית הגדרות */}
+          {activeTab === "settings" && (
+            <View>
+              {/* Settings */}
+              <View style={styles.settingsSection}>
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => showComingSoon("הגדרות התראות")}
+                >
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons
+                      name="bell-outline"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.settingText}>{wrapBidi("התראות")}</Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name={isRTL() ? "chevron-right" : "chevron-left"}
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Logout */}
+              <AppButton
+                title={PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
+                variant="danger"
+                size="medium"
+                icon="logout"
+                iconPosition="left"
+                onPress={handleLogout}
+                style={styles.logoutButton}
+                accessibilityLabel="התנתק מהמערכת"
+                accessibilityHint="לחץ כדי להתנתק מהחשבון שלך"
               />
-              <Text style={styles.settingText}>{wrapBidi("התראות")}</Text>
             </View>
-            <MaterialCommunityIcons
-              name={isRTL() ? "chevron-right" : "chevron-left"}
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
+          )}
         </View>
-
-        {/* Logout */}
-        <AppButton
-          title={PROFILE_SCREEN_TEXTS.ACTIONS.LOGOUT}
-          variant="danger"
-          size="medium"
-          icon="logout"
-          iconPosition="left"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          accessibilityLabel="התנתק מהמערכת"
-          accessibilityHint="לחץ כדי להתנתק מהחשבון שלך"
-        />
       </ScrollView>
 
       {/* Avatar Modal */}
@@ -1450,6 +1558,39 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 14,
     fontWeight: "600",
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing.lg,
+    borderRadius: 12,
+    padding: theme.spacing.xs,
+    marginBottom: theme.spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
+    borderRadius: 8,
+  },
+  activeTabButton: {
+    backgroundColor: theme.colors.primary + "20",
+  },
+  tabButtonText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  activeTabButtonText: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  tabContent: {
+    flex: 1,
   },
   profileSection: {
     alignItems: "center",

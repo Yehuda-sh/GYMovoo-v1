@@ -6,25 +6,10 @@
 
 import { useUserStore } from "../../../stores/userStore";
 import { WorkoutPlanGenerator } from "../../../services/workout/WorkoutPlanGenerator";
+import { logger } from "../../../utils/logger";
 
-// Define workout recommendation type
-export interface WorkoutRecommendation {
-  id: string;
-  name: string;
-  description: string;
-  type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
-  difficulty: "beginner" | "intermediate" | "advanced";
-  duration: number;
-  equipment: string[];
-  targetMuscles: string[];
-  estimatedCalories: number;
-  exercises?: WorkoutExercise[];
-  restTime?: number;
-  sets?: number;
-  reps?: number;
-}
+// ===== Types used by this service =====
 
-// Define workout exercise type
 export interface WorkoutExercise {
   id: string;
   name: string;
@@ -43,12 +28,27 @@ export interface WorkoutExercise {
   difficulty: "beginner" | "intermediate" | "advanced";
 }
 
-// Define workout plan type
+export interface WorkoutRecommendation {
+  id: string;
+  name: string;
+  description: string;
+  type: "strength" | "cardio" | "hiit" | "flexibility" | "mixed";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number;
+  equipment: string[];
+  targetMuscles: string[];
+  estimatedCalories: number;
+  exercises?: WorkoutExercise[];
+  restTime?: number;
+  sets?: number;
+  reps?: number;
+}
+
 export interface WorkoutPlan {
   id: string;
   name: string;
   description: string;
-  duration: number;
+  duration: number; // minutes per session
   difficulty: "beginner" | "intermediate" | "advanced";
   workouts: WorkoutRecommendation[];
   type: string;
@@ -56,6 +56,186 @@ export interface WorkoutPlan {
   frequency?: string;
   tags?: string[];
 }
+
+// ===== Types expected by WorkoutPlanGenerator (inferred envelope) =====
+
+type GeneratorDifficulty = "beginner" | "intermediate" | "advanced";
+
+interface GeneratorExercise {
+  id: string;
+  name: string;
+  equipment: string;
+  sets: number;
+  restTime: number;
+  targetMuscles: string[];
+  difficulty: GeneratorDifficulty;
+}
+
+interface GeneratorDay {
+  dayNumber: number;
+  dayName: string;
+  focus: string;
+  estimatedDuration: number;
+  totalCaloriesBurn?: number;
+  exercises: GeneratorExercise[];
+}
+
+interface GeneratorPlan {
+  id: string;
+  name: string;
+  description: string;
+  estimatedTimePerSession: number;
+  difficultyLevel: GeneratorDifficulty;
+  daysPerWeek: number;
+  targetFitnessGoal: string;
+  equipmentRequired: string[];
+  weeklySchedule: GeneratorDay[];
+}
+
+// ===== Input shape for the generator (normalized) =====
+
+interface GeneratorAnswersInput {
+  gender?: string;
+  age?: number;
+  weight?: number;
+  height?: number;
+  fitness_goal?: string;
+  experience_level?: GeneratorDifficulty;
+  availability?: number; // days per week
+  workout_duration?: string; // minutes as string, e.g. "45"
+  workout_location?: string;
+  equipment_available?: string[];
+}
+
+// ===== Shape of the smart questionnaire answers we store =====
+
+interface SmartAnswers {
+  gender?: string;
+  age?: number;
+  weight?: number;
+  height?: number;
+  fitnessLevel?: GeneratorDifficulty;
+  goals?: string[];
+  equipment?: string[];
+  availability?: string[] | number; // smart: ids array (e.g. ["3_days"]) OR number
+  sessionDuration?: string; // e.g. "30_45_min"
+  workoutLocation?: string;
+  nutrition?: string[];
+
+  // legacy/alt keys we still support:
+  fitness_goal?: string;
+  experience_level?: GeneratorDifficulty;
+  workout_duration?: string;
+  workout_location?: string;
+  equipment_available?: string[];
+}
+
+// ---- Helpers ----
+
+const mapAvailability = (val?: string | string[]): number | undefined => {
+  const id = Array.isArray(val) ? val[0] : val;
+  switch (id) {
+    case "2_days":
+      return 2;
+    case "3_days":
+      return 3;
+    case "4_days":
+      return 4;
+    case "5_days":
+      return 5;
+    default:
+      return undefined;
+  }
+};
+
+const mapDuration = (id?: string): string | undefined => {
+  switch (id) {
+    case "15_30_min":
+      return "30";
+    case "30_45_min":
+      return "45";
+    case "45_60_min":
+      return "60";
+    case "60_plus_min":
+      return "75";
+    default:
+      return undefined;
+  }
+};
+
+const ensureEquipment = (arr?: string[]): string[] => {
+  const set = new Set<string>(arr ?? []);
+  if (set.size === 0) set.add("bodyweight");
+  return Array.from(set);
+};
+
+const addIfDefined = <
+  K extends keyof GeneratorAnswersInput,
+  T extends GeneratorAnswersInput,
+>(
+  obj: T,
+  key: K,
+  value: GeneratorAnswersInput[K] | undefined
+): void => {
+  if (value !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - index assignment is safe for our exact keys
+    obj[key] = value;
+  }
+};
+
+// Convert smart questionnaire answers (as stored in user.questionnaireData.answers)
+// into the generator's expected input, *without* placing explicit `undefined` on fields.
+const normalizeAnswersForGenerator = (
+  answers: SmartAnswers
+): GeneratorAnswersInput => {
+  const gender = answers.gender;
+  const age = answers.age;
+  const weight = answers.weight;
+  const height = answers.height;
+
+  const fitness_goal: string | undefined =
+    (Array.isArray(answers.goals) && answers.goals[0]) ||
+    answers.fitness_goal ||
+    "general_fitness";
+
+  const experience_level: GeneratorDifficulty | undefined =
+    answers.fitnessLevel || answers.experience_level;
+
+  // availability can arrive as number or array-of-id
+  let availability: number | undefined;
+  const availRaw = answers.availability;
+  if (typeof availRaw === "number") {
+    availability = availRaw;
+  } else {
+    availability = mapAvailability(availRaw);
+  }
+
+  const workout_duration: string | undefined =
+    mapDuration(answers.sessionDuration) || answers.workout_duration;
+
+  const workout_location: string | undefined =
+    answers.workoutLocation || answers.workout_location;
+
+  const equipment_available: string[] | undefined = ensureEquipment(
+    answers.equipment || answers.equipment_available || []
+  );
+
+  // Build object while skipping keys that are `undefined` (important with exactOptionalPropertyTypes)
+  const out: GeneratorAnswersInput = {};
+  addIfDefined(out, "gender", gender);
+  addIfDefined(out, "age", age);
+  addIfDefined(out, "weight", weight);
+  addIfDefined(out, "height", height);
+  addIfDefined(out, "fitness_goal", fitness_goal);
+  addIfDefined(out, "experience_level", experience_level);
+  addIfDefined(out, "availability", availability);
+  addIfDefined(out, "workout_duration", workout_duration);
+  addIfDefined(out, "workout_location", workout_location);
+  addIfDefined(out, "equipment_available", equipment_available);
+
+  return out;
+};
 
 /**
  * Simplified questionnaire service focused on workout plan generation
@@ -68,17 +248,23 @@ class QuestionnaireService {
    */
   async generateSmartWorkoutPlan(): Promise<WorkoutPlan[]> {
     try {
-      console.log("🔄 questionnaireService.generateSmartWorkoutPlan called");
+      logger.info("questionnaireService", "generateSmartWorkoutPlan called");
 
       const user = useUserStore.getState().user;
-      console.log("👤 User from store:", user?.id);
+      logger.debug("questionnaireService", "User from store", {
+        userId: user?.id,
+      });
 
-      if (!user?.questionnaireData?.answers) {
-        console.log("❌ No questionnaire data found, using default answers");
-        console.log("📝 Creating default questionnaire answers for demo...");
+      // Build normalized input for generator
+      let genInput: GeneratorAnswersInput;
 
-        // Create default questionnaire answers for testing
-        const defaultAnswers = {
+      if (user?.questionnaireData?.answers) {
+        genInput = normalizeAnswersForGenerator(
+          user.questionnaireData.answers as SmartAnswers
+        );
+      } else {
+        // Fallback defaults (no undefined values)
+        genInput = {
           gender: "male",
           age: 25,
           weight: 75,
@@ -90,132 +276,81 @@ class QuestionnaireService {
           workout_location: "home_bodyweight",
           equipment_available: ["bodyweight", "yoga_mat"],
         };
-
-        console.log("🔧 Using default answers:", defaultAnswers);
-
-        // Use default answers instead of throwing error
-        const generator = new WorkoutPlanGenerator(defaultAnswers);
-        const generatedPlan = generator.generateWorkoutPlan();
-        console.log("📋 Generated plan with defaults:", generatedPlan);
-
-        // Convert the generated plan to the expected format
-        const plan: WorkoutPlan = {
-          id: generatedPlan.id,
-          name: generatedPlan.name + " (ברירת מחדל)",
-          description:
-            generatedPlan.description +
-            " - תוכנית זו נוצרה עם הגדרות ברירת מחדל",
-          duration: generatedPlan.estimatedTimePerSession,
-          difficulty: generatedPlan.difficultyLevel as
-            | "beginner"
-            | "intermediate"
-            | "advanced",
-          workouts: generatedPlan.weeklySchedule.map((day) => ({
-            id: `workout-${day.dayNumber}`,
-            name: day.dayName,
-            description: day.focus,
-            type: "strength" as const,
-            difficulty: generatedPlan.difficultyLevel as
-              | "beginner"
-              | "intermediate"
-              | "advanced",
-            duration: day.estimatedDuration,
-            equipment: generatedPlan.equipmentRequired,
-            targetMuscles: [day.focus],
-            estimatedCalories: Math.round(day.totalCaloriesBurn || 0),
-            exercises: day.exercises.map((exercise) => ({
-              id: exercise.id,
-              name: exercise.name,
-              equipment: exercise.equipment,
-              sets: Array.from({ length: exercise.sets }, (_, i) => ({
-                id: `set-${i + 1}`,
-                reps: 10,
-                weight: 0,
-                duration: 30,
-                restTime: exercise.restTime,
-                completed: false,
-              })),
-              targetMuscles: exercise.targetMuscles,
-              instructions: [exercise.name],
-              restTime: exercise.restTime,
-              difficulty: exercise.difficulty as
-                | "beginner"
-                | "intermediate"
-                | "advanced",
-            })),
-            restTime: 60,
-            sets: 3,
-            reps: 12,
-          })),
-          type: "smart",
-          isActive: true,
-          frequency: `${generatedPlan.daysPerWeek} פעמים בשבוע`,
-          tags: [generatedPlan.targetFitnessGoal],
-        };
-
-        console.log("✅ Plan created with defaults:", plan);
-        return [plan];
+        logger.warn(
+          "questionnaireService",
+          "No questionnaire data found. Using default generator input"
+        );
       }
 
-      console.log("📝 Questionnaire answers:", user.questionnaireData.answers);
+      // Guardrails: fill minimal missing fields (do NOT assign undefined)
+      if (genInput.availability === undefined) genInput.availability = 3;
+      if (genInput.workout_duration === undefined)
+        genInput.workout_duration = "45";
+      if (
+        genInput.equipment_available === undefined ||
+        genInput.equipment_available.length === 0
+      ) {
+        genInput.equipment_available = ["bodyweight"];
+      }
+      if (genInput.experience_level === undefined)
+        genInput.experience_level = "beginner";
 
-      // Use the new WorkoutPlanGenerator
-      console.log("🏗️ Creating WorkoutPlanGenerator...");
-      const generator = new WorkoutPlanGenerator(
-        user.questionnaireData.answers
-      );
+      logger.debug("questionnaireService", "Generator input", genInput);
 
-      console.log("⚡ Generating workout plan...");
-      const generatedPlan = generator.generateWorkoutPlan();
-      console.log("📋 Generated plan:", generatedPlan);
+      // Generate
+      const generator = new WorkoutPlanGenerator(genInput);
+      const generatedPlan = generator.generateWorkoutPlan() as GeneratorPlan;
 
-      // Convert the generated plan to the expected format
+      logger.info("questionnaireService", "Plan generated", {
+        planId: generatedPlan?.id,
+        daysPerWeek: generatedPlan?.daysPerWeek,
+      });
+
+      // Convert to UI-friendly plan shape
       const plan: WorkoutPlan = {
         id: generatedPlan.id,
         name: generatedPlan.name,
         description: generatedPlan.description,
         duration: generatedPlan.estimatedTimePerSession,
-        difficulty: generatedPlan.difficultyLevel as
-          | "beginner"
-          | "intermediate"
-          | "advanced",
-        workouts: generatedPlan.weeklySchedule.map((day) => ({
-          id: `workout-${day.dayNumber}`,
-          name: day.dayName,
-          description: day.focus,
-          type: "strength" as const,
-          difficulty: generatedPlan.difficultyLevel as
-            | "beginner"
-            | "intermediate"
-            | "advanced",
-          duration: day.estimatedDuration,
-          equipment: generatedPlan.equipmentRequired,
-          targetMuscles: [day.focus],
-          estimatedCalories: Math.round(day.totalCaloriesBurn || 0),
-          exercises: day.exercises.map((exercise) => ({
-            id: exercise.id,
-            name: exercise.name,
-            equipment: exercise.equipment,
-            sets: Array.from({ length: exercise.sets }, (_, i) => ({
-              id: `set-${i + 1}`,
-              reps: 10, // Default to 10 reps
-              weight: 0,
-              duration: 30,
-              restTime: exercise.restTime,
-              completed: false,
-            })),
-            targetMuscles: exercise.targetMuscles,
-            instructions: [exercise.name],
-            restTime: exercise.restTime,
-            difficulty: exercise.difficulty as
-              | "beginner"
-              | "intermediate"
-              | "advanced",
-          })),
-          restTime: 60,
-          sets: 3,
-          reps: 12,
-        })),
+        difficulty: generatedPlan.difficultyLevel,
+        workouts: generatedPlan.weeklySchedule.map(
+          (day): WorkoutRecommendation => ({
+            id: `workout-${day.dayNumber}`,
+            name: day.dayName,
+            description: day.focus,
+            type: "strength",
+            difficulty: generatedPlan.difficultyLevel,
+            duration: day.estimatedDuration,
+            equipment: generatedPlan.equipmentRequired,
+            targetMuscles: [day.focus],
+            estimatedCalories: Math.round(day.totalCaloriesBurn ?? 0),
+            exercises: day.exercises.map(
+              (exercise): WorkoutExercise => ({
+                id: exercise.id,
+                name: exercise.name,
+                equipment: exercise.equipment,
+                sets: Array.from(
+                  { length: Math.max(1, exercise.sets) },
+                  (_, i) => ({
+                    id: `set-${i + 1}`,
+                    reps: 10,
+                    weight: 0,
+                    duration: 30,
+                    restTime: exercise.restTime,
+                    completed: false,
+                  })
+                ),
+                targetMuscles: exercise.targetMuscles,
+                instructions: [exercise.name],
+                restTime: exercise.restTime,
+                difficulty: exercise.difficulty,
+              })
+            ),
+            restTime: 60,
+            sets: 3,
+            reps: 12,
+          })
+        ),
         type: "smart",
         isActive: true,
         frequency: `${generatedPlan.daysPerWeek} פעמים בשבוע`,
@@ -224,7 +359,7 @@ class QuestionnaireService {
 
       return [plan];
     } catch (error) {
-      console.error("Error generating smart workout plan:", error);
+      logger.error("questionnaireService", "Error generating plan", error);
       return [];
     }
   }

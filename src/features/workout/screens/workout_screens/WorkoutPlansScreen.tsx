@@ -1,3 +1,4 @@
+// src/features/workout/screens/workout_screens/WorkoutPlansScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -12,7 +13,10 @@ import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp } from "@react-navigation/native";
 import { theme } from "../../../../core/theme";
 import { useUserStore } from "../../../../stores/userStore";
-import type { WorkoutExercise } from "../../../../core/types/workout.types";
+import type {
+  WorkoutExercise,
+  WorkoutPlan,
+} from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
 import BackButton from "../../../../components/common/BackButton";
 import ConfirmationModal from "../../../../components/common/ConfirmationModal";
@@ -25,19 +29,77 @@ import AppButton from "../../../../components/common/AppButton";
 import { logger } from "../../../../utils/logger";
 import { isRTL, wrapTextWithEmoji } from "../../../../utils/rtlHelpers";
 
-// Debug function
-const debugWorkoutPlan = (plan: any, source: string) => {
+/** --------- Minimal shapes just for rendering in this screen ---------- */
+type Difficulty = "beginner" | "intermediate" | "advanced" | string;
+
+interface WorkoutSetLite {
+  id?: string;
+  reps?: number;
+  weight?: number;
+  duration?: number;
+  restTime?: number;
+  completed?: boolean;
+}
+
+interface ExerciseLite {
+  id?: string;
+  name?: string;
+  equipment?: string;
+  sets?: WorkoutSetLite[];
+  targetMuscles?: string[];
+  instructions?: string[];
+  restTime?: number;
+  difficulty?: Difficulty;
+}
+
+interface WorkoutDayLite {
+  id?: string;
+  name?: string;
+  description?: string;
+  type?: string;
+  difficulty?: Difficulty;
+  duration?: number;
+  equipment?: string[];
+  targetMuscles?: string[];
+  estimatedCalories?: number;
+  exercises?: ExerciseLite[];
+  restTime?: number;
+  sets?: number;
+  reps?: number;
+}
+
+interface WorkoutPlanLite {
+  id?: string;
+  name?: string;
+  description?: string;
+  duration?: number; // minutes
+  difficulty?: Difficulty;
+  workouts?: WorkoutDayLite[];
+  type?: string;
+  isActive?: boolean;
+  frequency?: string;
+  tags?: string[];
+}
+
+interface ModalConfig {
+  title: string;
+  message: string;
+}
+
+/** -------------------------- Debug helper (no non-null) --------------------------- */
+const debugWorkoutPlan = (plan: WorkoutPlanLite | null, source: string) => {
+  const first = plan?.workouts?.[0];
   console.log(`🔍 DEBUG ${source}:`, {
     planExists: !!plan,
     planId: plan?.id,
     planName: plan?.name,
     planDescription: plan?.description,
     workoutsCount: plan?.workouts?.length,
-    firstWorkout: plan?.workouts?.[0]
+    firstWorkout: first
       ? {
-          id: plan.workouts[0].id,
-          name: plan.workouts[0].name,
-          exercisesCount: plan.workouts[0].exercises?.length,
+          id: first.id,
+          name: first.name,
+          exercisesCount: first.exercises?.length,
         }
       : null,
   });
@@ -47,11 +109,13 @@ export default function WorkoutPlansScreen(): React.ReactElement {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useUserStore((state) => state.user);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [workoutPlan, setWorkoutPlan] = useState<any>(null);
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlanLite | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalConfig, setModalConfig] = useState({ title: "", message: "" });
+  const [modalConfig, setModalConfig] = useState<ModalConfig>({
+    title: "",
+    message: "",
+  });
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   const currentWorkoutPlan = workoutPlan;
@@ -75,11 +139,13 @@ export default function WorkoutPlansScreen(): React.ReactElement {
       console.log("👤 User found:", user?.id);
       console.log("📝 Questionnaire data:", user?.questionnaireData?.answers);
 
-      const plans = await questionnaireService.generateSmartWorkoutPlan();
+      const plans = (await questionnaireService.generateSmartWorkoutPlan()) as
+        | WorkoutPlanLite[]
+        | undefined;
+
       console.log("📋 Plans generated:", plans);
 
-      // Take the first plan from the array
-      const plan = plans.length > 0 ? plans[0] : null;
+      const plan = Array.isArray(plans) && plans.length > 0 ? plans[0] : null;
       console.log("🎯 Selected plan:", plan);
 
       if (!plan) {
@@ -102,18 +168,20 @@ export default function WorkoutPlansScreen(): React.ReactElement {
   };
 
   const handleStartWorkout = () => {
-    if (!currentWorkoutPlan?.workouts?.[0]) {
+    const workouts = currentWorkoutPlan?.workouts ?? [];
+    if (workouts.length === 0) {
       showMessage("שגיאה", "לא ניתן למצוא תבנית אימון");
       return;
     }
 
-    const workout = currentWorkoutPlan.workouts[0];
+    const workout = workouts[0];
+
     navigation.navigate("ActiveWorkout", {
       workoutData: {
-        name: currentWorkoutPlan.name || "אימון יומי",
-        dayName: workout.name || "יום אימון",
+        name: currentWorkoutPlan?.name ?? "אימון יומי",
+        dayName: workout?.name ?? "יום אימון",
         startTime: new Date().toISOString(),
-        exercises: (workout.exercises || []) as unknown as WorkoutExercise[],
+        exercises: (workout?.exercises ?? []) as unknown as WorkoutExercise[],
       },
     });
   };
@@ -132,6 +200,14 @@ export default function WorkoutPlansScreen(): React.ReactElement {
     );
   }
 
+  // מתאם ל-CalorieCalculator: מצפה ל-WorkoutPlan מלא -> cast בטוח לשימוש תצוגתי
+  const workoutPlanForCalc = currentWorkoutPlan
+    ? (currentWorkoutPlan as unknown as WorkoutPlan)
+    : undefined;
+
+  const workouts = currentWorkoutPlan?.workouts ?? [];
+  const selectedWorkout = workouts[selectedDayIndex];
+
   return (
     <SafeAreaView style={styles.container}>
       <BackButton />
@@ -147,10 +223,12 @@ export default function WorkoutPlansScreen(): React.ReactElement {
           <Text style={styles.subtitle}>
             צור תוכנית אימון מותאמת אישית עם מסד נתונים מקיף של 150+ תרגילים
           </Text>
+
           {/* Debug info */}
           <Text style={styles.debugText}>
             סטטוס תוכנית: {currentWorkoutPlan ? "נוצרה ✅" : "לא קיימת ❌"}
           </Text>
+
           {user?.questionnaireData?.answers && (
             <View>
               {user.questionnaireData.answers.equipment && (
@@ -185,17 +263,18 @@ export default function WorkoutPlansScreen(): React.ReactElement {
 
         {currentWorkoutPlan ? (
           <>
-            <UniversalCard title={currentWorkoutPlan.name}>
+            <UniversalCard title={currentWorkoutPlan.name ?? "תוכנית אימון"}>
               <Text style={styles.planDescription}>
                 {currentWorkoutPlan.description}
               </Text>
+
               <View style={styles.planStats}>
                 <Text style={styles.planStat}>
-                  🏋️ {currentWorkoutPlan.workouts?.length || 0} אימונים
+                  🏋️ {workouts.length} אימונים
                 </Text>
                 <Text style={styles.planStat}>
                   {wrapTextWithEmoji(
-                    `${currentWorkoutPlan.duration} דקות`,
+                    `${currentWorkoutPlan.duration ?? 30} דקות`,
                     "⏱️"
                   )}
                 </Text>
@@ -207,18 +286,18 @@ export default function WorkoutPlansScreen(): React.ReactElement {
                 </Text>
               </View>
 
-              {/* Show exercise count */}
-              {currentWorkoutPlan.workouts?.[0]?.exercises && (
+              {/* Show exercise count & equipment for first workout */}
+              {workouts[0]?.exercises && (
                 <View style={styles.exerciseInfo}>
                   <Text style={styles.exerciseInfoText}>
                     {wrapTextWithEmoji(
-                      `${currentWorkoutPlan.workouts[0].exercises.length} תרגילים באימון הראשון`,
+                      `${workouts[0].exercises?.length ?? 0} תרגילים באימון הראשון`,
                       "💪"
                     )}
                   </Text>
                   <Text style={styles.exerciseInfoText}>
                     {wrapTextWithEmoji(
-                      `ציוד נדרש: ${currentWorkoutPlan.workouts[0].equipment?.join(", ") || "משקל גוף"}`,
+                      `ציוד נדרש: ${workouts[0].equipment?.join(", ") || "משקל גוף"}`,
                       "🎯"
                     )}
                   </Text>
@@ -226,28 +305,28 @@ export default function WorkoutPlansScreen(): React.ReactElement {
               )}
 
               {/* Calorie Calculator */}
-              <CalorieCalculator
-                workoutPlan={currentWorkoutPlan}
-                userWeight={
-                  user?.questionnaireData?.answers?.weight
-                    ? typeof user.questionnaireData.answers.weight === "number"
+              {workoutPlanForCalc && (
+                <CalorieCalculator
+                  workoutPlan={workoutPlanForCalc}
+                  userWeight={
+                    user?.questionnaireData?.answers?.weight &&
+                    typeof user.questionnaireData.answers.weight === "number"
                       ? user.questionnaireData.answers.weight
                       : 70
-                    : 70
-                }
-                userAge={
-                  user?.questionnaireData?.answers?.age
-                    ? typeof user.questionnaireData.answers.age === "number"
+                  }
+                  userAge={
+                    user?.questionnaireData?.answers?.age &&
+                    typeof user.questionnaireData.answers.age === "number"
                       ? user.questionnaireData.answers.age
                       : 30
-                    : 30
-                }
-                userGender={
-                  user?.questionnaireData?.answers?.gender === "female"
-                    ? "female"
-                    : "male"
-                }
-              />
+                  }
+                  userGender={
+                    user?.questionnaireData?.answers?.gender === "female"
+                      ? "female"
+                      : "male"
+                  }
+                />
+              )}
 
               <AppButton
                 title="התחל אימון"
@@ -273,8 +352,8 @@ export default function WorkoutPlansScreen(): React.ReactElement {
                     "פרטי התוכנית",
                     `שם: ${currentWorkoutPlan.name}\n` +
                       `תיאור: ${currentWorkoutPlan.description}\n` +
-                      `מספר אימונים: ${currentWorkoutPlan.workouts?.length || 0}\n` +
-                      `תרגילים באימון הראשון: ${currentWorkoutPlan.workouts?.[0]?.exercises?.length || 0}`
+                      `מספר אימונים: ${workouts.length}\n` +
+                      `תרגילים באימון הראשון: ${workouts[0]?.exercises?.length ?? 0}`
                   );
                 }}
                 accessibilityLabel="הצג פרטי התוכנית"
@@ -283,172 +362,162 @@ export default function WorkoutPlansScreen(): React.ReactElement {
             </UniversalCard>
 
             {/* Workout Days Tabs */}
-            {currentWorkoutPlan.workouts &&
-              currentWorkoutPlan.workouts.length > 0 && (
-                <UniversalCard title="ימי האימון">
-                  {/* Day Tabs */}
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.tabsContainer}
-                  >
-                    {currentWorkoutPlan.workouts.map(
-                      (workout: any, index: number) => (
-                        <TouchableOpacity
-                          key={workout.id || index}
-                          style={[
-                            styles.dayTab,
-                            selectedDayIndex === index && styles.activeTab,
-                          ]}
-                          onPress={() => setSelectedDayIndex(index)}
-                        >
-                          <Text
-                            style={[
-                              styles.tabText,
-                              selectedDayIndex === index &&
-                                styles.activeTabText,
-                            ]}
-                          >
-                            {workout.name || `יום ${index + 1}`}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.tabSubtext,
-                              selectedDayIndex === index &&
-                                styles.activeTabSubtext,
-                            ]}
-                          >
-                            {workout.exercises?.length || 0} תרגילים
-                          </Text>
-                        </TouchableOpacity>
-                      )
-                    )}
-                  </ScrollView>
+            {workouts.length > 0 && (
+              <UniversalCard title="ימי האימון">
+                {/* Day Tabs */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.tabsContainer}
+                >
+                  {workouts.map((workout, index) => (
+                    <TouchableOpacity
+                      key={workout.id || index}
+                      style={[
+                        styles.dayTab,
+                        selectedDayIndex === index && styles.activeTab,
+                      ]}
+                      onPress={() => setSelectedDayIndex(index)}
+                    >
+                      <Text
+                        style={[
+                          styles.tabText,
+                          selectedDayIndex === index && styles.activeTabText,
+                        ]}
+                      >
+                        {workout.name || `יום ${index + 1}`}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.tabSubtext,
+                          selectedDayIndex === index && styles.activeTabSubtext,
+                        ]}
+                      >
+                        {workout.exercises?.length || 0} תרגילים
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
 
-                  {/* Selected Day Content */}
-                  {currentWorkoutPlan.workouts[selectedDayIndex] && (
-                    <View style={styles.dayContent}>
-                      <View style={styles.dayHeader}>
-                        <Text style={styles.dayTitle}>
-                          {currentWorkoutPlan.workouts[selectedDayIndex].name ||
-                            `יום ${selectedDayIndex + 1}`}
+                {/* Selected Day Content */}
+                {selectedWorkout && (
+                  <View style={styles.dayContent}>
+                    <View style={styles.dayHeader}>
+                      <Text style={styles.dayTitle}>
+                        {selectedWorkout.name || `יום ${selectedDayIndex + 1}`}
+                      </Text>
+                      <Text style={styles.daySubtitle}>
+                        {selectedWorkout.description || "אימון מקיף"}
+                      </Text>
+                      <View style={styles.dayStats}>
+                        <Text style={styles.dayStat}>
+                          ⏱️ {selectedWorkout.duration || 30} דקות
                         </Text>
-                        <Text style={styles.daySubtitle}>
-                          {currentWorkoutPlan.workouts[selectedDayIndex]
-                            .description || "אימון מקיף"}
+                        <Text style={styles.dayStat}>
+                          🎯{" "}
+                          {selectedWorkout.targetMuscles?.join(", ") ||
+                            "כל הגוף"}
                         </Text>
-                        <View style={styles.dayStats}>
-                          <Text style={styles.dayStat}>
-                            ⏱️{" "}
-                            {currentWorkoutPlan.workouts[selectedDayIndex]
-                              .duration || 30}{" "}
-                            דקות
-                          </Text>
-                          <Text style={styles.dayStat}>
-                            🎯{" "}
-                            {currentWorkoutPlan.workouts[
-                              selectedDayIndex
-                            ].targetMuscles?.join(", ") || "כל הגוף"}
-                          </Text>
-                        </View>
                       </View>
-
-                      {/* Exercise List */}
-                      <View style={styles.exercisesList}>
-                        <Text style={styles.exercisesHeader}>תרגילים:</Text>
-
-                        {/* הנחיות כלליות למתחילים */}
-                        <View style={styles.beginnerTips}>
-                          <Text style={styles.beginnerTipsTitle}>
-                            🎯 הנחיות למתחילים:
-                          </Text>
-                          <Text style={styles.beginnerTipsText}>
-                            • התחל עם משקלים קלים ובנה הדרגתית{"\n"}• טכניקה
-                            נכונה חשובה יותר ממשקל כבד{"\n"}• אם קשה לסיים את כל
-                            החזרות - הקל במשקל{"\n"}• אם קל מדי - הוסף משקל
-                            בהדרגה
-                          </Text>
-                        </View>
-                        {currentWorkoutPlan.workouts[
-                          selectedDayIndex
-                        ].exercises?.map(
-                          (exercise: any, exerciseIndex: number) => (
-                            <View
-                              key={exercise.id || exerciseIndex}
-                              style={styles.exerciseItem}
-                            >
-                              <View style={styles.exerciseItemInfo}>
-                                <Text style={styles.exerciseName}>
-                                  {exercise.name}
-                                </Text>
-                                <Text style={styles.exerciseDetails}>
-                                  {exercise.sets?.length || 3} סטים •{" "}
-                                  {exercise.sets?.[0]?.reps || 12} חזרות
-                                  {exercise.equipment !== "bodyweight" &&
-                                    " • משקל: התחל קל ובנה הדרגתית"}
-                                </Text>
-                                <Text style={styles.exerciseEquipment}>
-                                  🏋️ {exercise.equipment}
-                                </Text>
-                                {/* הנחיות למתחילים */}
-                                {exercise.equipment !== "bodyweight" && (
-                                  <View style={styles.beginnerTips}>
-                                    <Text style={styles.beginnerTipsTitle}>
-                                      💡 טיפ למתחילים:
-                                    </Text>
-                                    <Text style={styles.beginnerTipsText}>
-                                      {exercise.equipment === "dumbbells" &&
-                                        "התחל עם 3-5 ק״ג ועלה הדרגתית"}
-                                      {exercise.equipment === "barbell" &&
-                                        "התחל עם רק המוט (20 ק״ג) ועלה הדרגתית"}
-                                      {exercise.equipment === "kettlebell" &&
-                                        "התחל עם 8-12 ק״ג ועלה הדרגתית"}
-                                      {exercise.equipment ===
-                                        "resistance_bands" &&
-                                        "התחל עם התנגדות קלה ועלה הדרגתית"}
-                                      {![
-                                        "dumbbells",
-                                        "barbell",
-                                        "kettlebell",
-                                        "resistance_bands",
-                                      ].includes(exercise.equipment) &&
-                                        "התחל עם משקל קל שמאפשר לך לבצע את כל החזרות בטכניקה נכונה"}
-                                    </Text>
-                                  </View>
-                                )}
-                              </View>
-                            </View>
-                          )
-                        )}
-                      </View>
-
-                      <AppButton
-                        title={`התחל ${currentWorkoutPlan.workouts[selectedDayIndex].name || `יום ${selectedDayIndex + 1}`}`}
-                        variant="primary"
-                        size="medium"
-                        fullWidth
-                        onPress={() => {
-                          const selectedWorkout =
-                            currentWorkoutPlan.workouts[selectedDayIndex];
-                          navigation.navigate("ActiveWorkout", {
-                            workoutData: {
-                              name: currentWorkoutPlan.name || "אימון יומי",
-                              dayName:
-                                selectedWorkout.name ||
-                                `יום ${selectedDayIndex + 1}`,
-                              startTime: new Date().toISOString(),
-                              exercises: (selectedWorkout.exercises ||
-                                []) as unknown as WorkoutExercise[],
-                            },
-                          });
-                        }}
-                        accessibilityLabel={`התחל ${currentWorkoutPlan.workouts[selectedDayIndex].name}`}
-                        accessibilityHint="לחץ כדי להתחיל את האימון הנבחר"
-                      />
                     </View>
-                  )}
-                </UniversalCard>
-              )}
+
+                    {/* Exercise List */}
+                    <View style={styles.exercisesList}>
+                      <Text style={styles.exercisesHeader}>תרגילים:</Text>
+
+                      {/* הנחיות כלליות למתחילים */}
+                      <View style={styles.beginnerTips}>
+                        <Text style={styles.beginnerTipsTitle}>
+                          🎯 הנחיות למתחילים:
+                        </Text>
+                        <Text style={styles.beginnerTipsText}>
+                          • התחל עם משקלים קלים ובנה הדרגתית{"\n"}• טכניקה נכונה
+                          חשובה יותר ממשקל כבד{"\n"}• אם קשה לסיים את כל החזרות
+                          - הקל במשקל{"\n"}• אם קל מדי - הוסף משקל בהדרגה
+                        </Text>
+                      </View>
+
+                      {selectedWorkout.exercises?.map(
+                        (exercise, exerciseIndex) => (
+                          <View
+                            key={exercise.id || exerciseIndex}
+                            style={styles.exerciseItem}
+                          >
+                            <View style={styles.exerciseItemInfo}>
+                              <Text style={styles.exerciseName}>
+                                {exercise.name}
+                              </Text>
+                              <Text style={styles.exerciseDetails}>
+                                {exercise.sets?.length || 3} סטים •{" "}
+                                {exercise.sets?.[0]?.reps || 12} חזרות
+                                {exercise.equipment !== "bodyweight" &&
+                                  " • משקל: התחל קל ובנה הדרגתית"}
+                              </Text>
+                              <Text style={styles.exerciseEquipment}>
+                                🏋️ {exercise.equipment}
+                              </Text>
+
+                              {/* טיפ למתחילים לפי ציוד */}
+                              {exercise.equipment !== "bodyweight" && (
+                                <View style={styles.beginnerTips}>
+                                  <Text style={styles.beginnerTipsTitle}>
+                                    💡 טיפ למתחילים:
+                                  </Text>
+                                  <Text style={styles.beginnerTipsText}>
+                                    {exercise.equipment === "dumbbells" &&
+                                      "התחל עם 3-5 ק״ג ועלה הדרגתית"}
+                                    {exercise.equipment === "barbell" &&
+                                      "התחל עם רק המוט (20 ק״ג) ועלה הדרגתית"}
+                                    {exercise.equipment === "kettlebell" &&
+                                      "התחל עם 8-12 ק״ג ועלה הדרגתית"}
+                                    {exercise.equipment ===
+                                      "resistance_bands" &&
+                                      "התחל עם התנגדות קלה ועלה הדרגתית"}
+                                    {![
+                                      "dumbbells",
+                                      "barbell",
+                                      "kettlebell",
+                                      "resistance_bands",
+                                    ].includes(exercise.equipment ?? "") &&
+                                      "התחל עם משקל קל שמאפשר לבצע את כל החזרות בטכניקה נכונה"}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                        )
+                      )}
+                    </View>
+
+                    <AppButton
+                      title={`התחל ${
+                        selectedWorkout.name || `יום ${selectedDayIndex + 1}`
+                      }`}
+                      variant="primary"
+                      size="medium"
+                      fullWidth
+                      onPress={() => {
+                        navigation.navigate("ActiveWorkout", {
+                          workoutData: {
+                            name: currentWorkoutPlan.name || "אימון יומי",
+                            dayName:
+                              selectedWorkout.name ||
+                              `יום ${selectedDayIndex + 1}`,
+                            startTime: new Date().toISOString(),
+                            exercises: (selectedWorkout.exercises ||
+                              []) as unknown as WorkoutExercise[],
+                          },
+                        });
+                      }}
+                      accessibilityLabel={`התחל ${
+                        selectedWorkout.name || `יום ${selectedDayIndex + 1}`
+                      }`}
+                      accessibilityHint="לחץ כדי להתחיל את האימון הנבחר"
+                    />
+                  </View>
+                )}
+              </UniversalCard>
+            )}
 
             {/* Video Tutorials */}
             <VideoTutorials
@@ -471,7 +540,7 @@ export default function WorkoutPlansScreen(): React.ReactElement {
             variant="primary"
             size="medium"
             fullWidth
-            onPress={() => generatePlan()}
+            onPress={generatePlan}
             accessibilityLabel="צור תוכנית אימון"
             accessibilityHint="לחץ כדי ליצור תוכנית אימון מותאמת אישית"
           />
@@ -483,19 +552,19 @@ export default function WorkoutPlansScreen(): React.ReactElement {
             fullWidth
             onPress={() => {
               console.log("🧪 Creating demo workout plan...");
-              const demoPlan = {
+              const demoPlan: WorkoutPlanLite = {
                 id: "demo-plan-123",
                 name: "תוכנית דמו למתחילים",
                 description: "תוכנית אימון דמו לבדיקת המערכת",
                 duration: 45,
-                difficulty: "beginner" as const,
+                difficulty: "beginner",
                 workouts: [
                   {
                     id: "demo-workout-1",
                     name: "אימון כוח בסיסי",
                     description: "אימון כוח למתחילים",
-                    type: "strength" as const,
-                    difficulty: "beginner" as const,
+                    type: "strength",
+                    difficulty: "beginner",
                     duration: 45,
                     equipment: ["bodyweight"],
                     targetMuscles: ["כל הגוף"],
@@ -534,7 +603,7 @@ export default function WorkoutPlansScreen(): React.ReactElement {
                         targetMuscles: ["חזה", "זרועות"],
                         instructions: ["בצע שכיבות סמיכה נכונות"],
                         restTime: 60,
-                        difficulty: "beginner" as const,
+                        difficulty: "beginner",
                       },
                       {
                         id: "squats",
@@ -566,10 +635,10 @@ export default function WorkoutPlansScreen(): React.ReactElement {
                             completed: false,
                           },
                         ],
-                        targetMuscles: ["רגליים", "ישבן"],
+                        targetMuscles: ["‌رגליים", "ישבן"],
                         instructions: ["בצע כפיפות רגליים נכונות"],
                         restTime: 60,
-                        difficulty: "beginner" as const,
+                        difficulty: "beginner",
                       },
                     ],
                     restTime: 60,
@@ -602,7 +671,7 @@ export default function WorkoutPlansScreen(): React.ReactElement {
         message={modalConfig.message}
         onClose={() => setShowModal(false)}
         onConfirm={() => setShowModal(false)}
-        singleButton={true}
+        singleButton
         variant="default"
       />
     </SafeAreaView>
@@ -692,7 +761,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: "italic",
   },
-  // New styles for workout days tabs
   tabsContainer: {
     marginBottom: 16,
     direction: isRTL() ? "rtl" : "ltr",
@@ -785,19 +853,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 4,
-    textAlign: isRTL() ? "right" : "left",
   },
   exerciseDetails: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 4,
-    textAlign: isRTL() ? "right" : "left",
   },
   exerciseEquipment: {
     fontSize: 12,
     color: theme.colors.primary,
     fontWeight: "500",
-    textAlign: isRTL() ? "right" : "left",
   },
   beginnerTips: {
     marginTop: 8,
@@ -814,12 +879,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.primary,
     marginBottom: 4,
-    textAlign: isRTL() ? "right" : "left",
   },
   beginnerTipsText: {
     fontSize: 11,
     color: theme.colors.text,
     lineHeight: 16,
-    textAlign: isRTL() ? "right" : "left",
   },
 });

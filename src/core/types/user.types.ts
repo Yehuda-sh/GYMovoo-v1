@@ -5,6 +5,7 @@
  */
 
 import type { QuestionnaireData } from "../../features/questionnaire/types";
+import type { ISODateString } from "./workout.types"; // שימוש בטיפוס תאריך אחיד ISO
 
 // ========== Personal Information Interface ==========
 export interface PersonalInfo {
@@ -43,7 +44,7 @@ export interface PersonalInfo {
   targetBodyFat?: number;
   specificGoals?: string[];
 
-  lastUpdated?: string;
+  lastUpdated?: ISODateString;
 }
 
 // ========== Main User Interface ==========
@@ -59,15 +60,33 @@ export interface User {
   activityHistory?: ActivityHistory;
   metadata?: UserMetadata;
   subscription?: UserSubscription;
+
+  /**
+   * @deprecated השתמשו ב־genderProfile (camelCase). נשאר לתאימות לאחור.
+   */
   genderprofile?: GenderProfile;
+
+  /**
+   * פרופיל מגדרי במבנה תקין (camelCase)
+   */
+  genderProfile?: GenderProfile;
+
   preferences?: UserPreferences;
+
+  /**
+   * @deprecated השתמשו ב־workoutPlans (camelCase). נשאר לתאימות לאחור.
+   */
   workoutplans?: WorkoutPlans;
+
+  /**
+   * תוכניות האימון במבנה תקין (camelCase)
+   */
+  workoutPlans?: WorkoutPlans;
+
   hasQuestionnaire?: boolean;
   bmiHistory?: BMIBMRHistory[];
-  lastBMICalculation?: BMIBMRResults & { date: string };
+  lastBMICalculation?: BMIBMRResults & { date: ISODateString };
 }
-
-// QuestionnaireAnswers is now imported from questionnaire types
 
 // ========== Training Statistics ==========
 export interface TrainingStats {
@@ -77,7 +96,7 @@ export interface TrainingStats {
   totalVolume?: number;
   averageRating?: number;
   preferredWorkoutDays?: string[];
-  lastWorkoutDate?: string;
+  lastWorkoutDate?: ISODateString;
   weeklyAverage?: number;
   monthlyWorkouts?: number;
   selectedEquipment?: string[];
@@ -97,7 +116,7 @@ export interface ActivityHistory {
 export interface WorkoutHistoryItem {
   id: string;
   name: string;
-  date: string | Date;
+  date: ISODateString;
   duration: number; // in seconds
   rating?: number;
   exercises?: Array<{
@@ -118,7 +137,7 @@ export interface WorkoutHistoryItem {
     totalReps?: number;
     caloriesBurned?: number;
   };
-  completedAt?: string | Date;
+  completedAt?: ISODateString;
   type?: string;
   workoutName?: string;
 }
@@ -127,7 +146,7 @@ export interface Achievement {
   id: string;
   name: string;
   description?: string;
-  unlockedAt?: string;
+  unlockedAt?: ISODateString;
   progress?: number;
 }
 
@@ -135,13 +154,13 @@ export interface PersonalRecord {
   exerciseName: string;
   value: number;
   unit: string;
-  date: string;
+  date: ISODateString;
   type?: "weight" | "reps" | "volume";
 }
 
 // ========== BMI/BMR Related Types ==========
 export interface BMIBMRHistory {
-  date: string;
+  date: ISODateString;
   weight: number;
   bmi: number;
   bmr: number;
@@ -156,12 +175,12 @@ export interface BMIBMRResults {
 }
 
 export interface UserMetadata {
-  createdAt: string;
-  lastLogin?: string;
+  createdAt: ISODateString;
+  lastLogin?: ISODateString;
   appVersion?: string;
-  platform?: "ios" | "android" | "web";
+  platform?: "ios" | "android"; // מובייל בלבד
   deviceId?: string;
-  lastSyncAt?: string;
+  lastSyncAt?: ISODateString;
 }
 
 // ========== Additional Compatibility Types ==========
@@ -169,11 +188,11 @@ export interface UserSubscription {
   type?: "free" | "premium" | "trial";
   isActive?: boolean;
   hasCompletedTrial?: boolean;
-  startDate?: string;
-  endDate?: string;
-  registrationDate?: string;
+  startDate?: ISODateString;
+  endDate?: ISODateString;
+  registrationDate?: ISODateString;
   trialDaysRemaining?: number;
-  lastTrialCheck?: string;
+  lastTrialCheck?: ISODateString;
 }
 
 export interface GenderProfile {
@@ -182,15 +201,14 @@ export interface GenderProfile {
 }
 
 export interface UserPreferences {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any; // Temporary flexible interface
+  [key: string]: unknown; // גמיש אך בטוח יותר מ-any
 }
 
 export interface WorkoutPlans {
   basicPlan?: WorkoutPlan;
   smartPlan?: WorkoutPlan;
   additionalPlan?: WorkoutPlan;
-  lastUpdated?: string;
+  lastUpdated?: ISODateString;
 }
 
 // Minimal workout plan shape for compatibility

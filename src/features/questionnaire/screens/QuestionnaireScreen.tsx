@@ -26,6 +26,9 @@ import { logger } from "../../../utils/logger";
 import { isRTL } from "../../../utils/rtlHelpers";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
+const clamp = (n: number, min: number, max: number) =>
+  Math.min(Math.max(n, min), max);
+
 const QuestionnaireScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -35,7 +38,7 @@ const QuestionnaireScreen: React.FC = () => {
     currentQuestion,
     selectedOptions,
     isLoading,
-    progress,
+    progress, // 0..100
     canGoBack,
     isCompleted,
     handleSelectOption,
@@ -44,13 +47,12 @@ const QuestionnaireScreen: React.FC = () => {
     completeQuestionnaire,
   } = useQuestionnaire();
 
-  // Check if this is the last question (progress is 1 = 100%)
-  // OR if this is the actual last non-skipped question
+  // אחרון: או לפי מזהה השאלה, או כשאחוזי התקדמות ~100
   const isLastQuestion =
-    progress === 1 ||
-    (currentQuestion && currentQuestion.id === "diet_preferences");
+    currentQuestion?.id === "diet_preferences" ||
+    (typeof progress === "number" && progress >= 99);
 
-  // State for the confirmation modal
+  // מודל אישור יציאה
   const [confirmationModal, setConfirmationModal] = useState<{
     visible: boolean;
     title: string;
@@ -66,10 +68,10 @@ const QuestionnaireScreen: React.FC = () => {
     onConfirm: () => {},
   });
 
-  // State for showing completion card
+  // כרטיס סיום
   const [showCompletionCard, setShowCompletionCard] = useState(false);
 
-  // Handle back button
+  // BackHandler
   useEffect(() => {
     const handleBackPress = () => {
       if (canGoBack) {
@@ -77,7 +79,6 @@ const QuestionnaireScreen: React.FC = () => {
         return true;
       }
 
-      // Ask if user wants to exit
       setConfirmationModal({
         visible: true,
         title: "יציאה מהשאלון?",
@@ -95,18 +96,26 @@ const QuestionnaireScreen: React.FC = () => {
       return true;
     };
 
-    BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-    return () => {
-      BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
-    };
+    const sub = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleBackPress
+    );
+    return () => sub.remove();
   }, [canGoBack, handlePrevious, navigation]);
 
-  // Handle completion
+  // גלילה לראש העמוד בעת החלפת שאלה
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  }, [currentQuestion?.id]);
+
+  // השלמת השאלון
   const handleCompletion = async () => {
     logger.info("QuestionnaireScreen", "🎯 Starting handleCompletion");
     setShowCompletionCard(true);
 
-    // Check user status BEFORE completing questionnaire to avoid navigation conflicts
+    // בדיקת משתמש מחובר לפני הניווט
     const { user } = useUserStore.getState();
     const hasUser = !!(user?.id || user?.email || user?.name);
 
@@ -115,30 +124,15 @@ const QuestionnaireScreen: React.FC = () => {
         id: user?.id,
         email: user?.email,
         name: user?.name,
-        hasUser: hasUser,
+        hasUser,
       },
     });
 
-    logger.info(
-      "QuestionnaireScreen",
-      `Questionnaire completed successfully, navigating to ${hasUser ? "MainApp" : "Register screen"}`
-    );
-
-    // Navigate FIRST to avoid AppNavigator conflicts
     try {
+      // נווט קודם (מונע קונפליקטים עם עדכון ה־store)
       if (hasUser) {
-        // If user is logged in, go to MainApp
-        logger.info("QuestionnaireScreen", "🎯 Navigating to MainApp");
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "MainApp" }],
-        });
+        navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       } else {
-        // ניווט למסך רישום דרך navigator האימות
-        logger.info(
-          "QuestionnaireScreen",
-          "🎯 Navigating to Register via Auth navigator with fromQuestionnaire=true"
-        );
         navigation.reset({
           index: 0,
           routes: [
@@ -153,7 +147,7 @@ const QuestionnaireScreen: React.FC = () => {
         });
       }
 
-      // THEN complete the questionnaire (this will update the store but we're already navigating)
+      // ואז שמור נתוני שאלון
       await completeQuestionnaire();
       logger.info(
         "QuestionnaireScreen",
@@ -161,7 +155,7 @@ const QuestionnaireScreen: React.FC = () => {
       );
     } catch (error) {
       logger.error("QuestionnaireScreen", "Navigation error:", error);
-      // Fallback navigation if the reset fails
+      // נפילה רכה
       if (hasUser) {
         navigation.navigate("MainApp");
       } else {
@@ -173,7 +167,7 @@ const QuestionnaireScreen: React.FC = () => {
     }
   };
 
-  // Render option
+  // רנדר אופציה
   const renderOption = (option: QuestionOption) => {
     const isSelected = selectedOptions.some((o) => o.id === option.id);
 
@@ -197,7 +191,7 @@ const QuestionnaireScreen: React.FC = () => {
     );
   };
 
-  // Render completion card
+  // כרטיס סיום
   const renderCompletionCard = () => (
     <View style={styles.completionCard}>
       <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
@@ -207,7 +201,6 @@ const QuestionnaireScreen: React.FC = () => {
     </View>
   );
 
-  // Render content
   if (showCompletionCard) {
     return (
       <SafeAreaView style={styles.container}>
@@ -230,7 +223,6 @@ const QuestionnaireScreen: React.FC = () => {
               if (canGoBack) {
                 handlePrevious();
               } else {
-                // Ask if user wants to exit
                 setConfirmationModal({
                   visible: true,
                   title: "יציאה מהשאלון?",
@@ -266,7 +258,7 @@ const QuestionnaireScreen: React.FC = () => {
             <View
               style={[
                 styles.progressBar,
-                { width: `${Math.min(progress, 100)}%` },
+                { width: `${clamp(progress ?? 0, 0, 100)}%` },
               ]}
             />
             <Text style={styles.progressText}>{Math.round(progress)}%</Text>
@@ -345,6 +337,7 @@ const QuestionnaireScreen: React.FC = () => {
             disabled={
               !currentQuestion || selectedOptions.length === 0 || isLoading
             }
+            activeOpacity={0.8}
           >
             <Text style={styles.nextButtonText}>
               {isLoading ? "טוען..." : isLastQuestion ? "סיים שאלון" : "המשך"}
@@ -471,8 +464,8 @@ const styles = StyleSheet.create({
     borderColor: "#4CAF50",
   },
   optionHeader: {
-    flexDirection: isRTL() ? "row" : "row-reverse",
-    justifyContent: "space-between",
+    flexDirection: isRTL() ? "row-reverse" : "row",
+    // justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
   },

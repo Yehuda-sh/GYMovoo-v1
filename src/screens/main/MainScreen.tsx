@@ -1029,7 +1029,7 @@ function MainScreen() {
                     useNativeDriver: true,
                   }).start();
                 }}
-                hitSlop={{ top: 20, bottom: 20, start: 20, end: 20 }}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                 accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT}
                 accessibilityHint={MAIN_SCREEN_TEXTS.A11Y.QUICK_WORKOUT_HINT}
                 accessibilityRole="button"

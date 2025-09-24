@@ -1,19 +1,22 @@
 /**
  * @file src/features/workout/services/nextWorkoutLogicService.ts
  * @description שירות לוגיקת האימון הבא - מנהל את ההתקדמות באימונים
- * @status ACTIVE - Moved from src/services/ to features-based architecture
- * @updated 2025-01-08 - Removed unused personalData parameter, moved to features structure
+ * @status ACTIVE - features-based architecture
+ * @updated 2025-01-08
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import workoutFacadeService from "../../../services/workout/workoutFacadeService";
 import { daysSinceLastWorkout } from "../../../utils/dateHelpers";
+import { logger } from "../../../utils/logger";
 
 const WORKOUT_CYCLE_KEY = "workout_cycle_state";
+const CACHE_DURATION_MS = 5_000 as const;
+const DEFAULT_WEEKLY_PLAN = ["דחיפה", "משיכה", "רגליים"] as const;
 
 export interface WorkoutCycleState {
   currentWeekNumber: number;
-  currentDayInWeek: number;
+  currentDayInWeek: number; // אינדקס היום האחרון שהושלם בתוכנית
   lastWorkoutDate: string;
   totalWorkoutsCompleted: number;
   programStartDate: string;
@@ -29,37 +32,58 @@ export interface NextWorkoutRecommendation {
   suggestedIntensity: "normal" | "light" | "catchup";
 }
 
+/** מבנה מינימלי של רשומה בהיסטוריית אימונים שעליו אנו מסתמכים */
+interface WorkoutHistoryEntry {
+  feedback?: {
+    completedAt?: string;
+  };
+  /** שדה היסטורי אפשרי באחסון ישן */
+  endTime?: string;
+}
+
+/** עוזר בטוח להפקת timestamp מרשומת היסטוריה */
+const getHistoryEntryTime = (e: WorkoutHistoryEntry): number => {
+  const iso = e.feedback?.completedAt ?? e.endTime ?? "";
+  const t = new Date(iso || 0).getTime();
+  return Number.isFinite(t) ? t : 0;
+};
+
 class NextWorkoutLogicService {
   private cachedCycleState: WorkoutCycleState | null = null;
-  private cacheTimestamp: number = 0;
-  private readonly CACHE_DURATION = 5000;
+  private cacheTimestamp = 0;
 
+  /**
+   * קבלת האימון הבא לפי תוכנית שבועית
+   */
   async getNextWorkoutRecommendation(
     weeklyPlan: string[]
   ): Promise<NextWorkoutRecommendation> {
     try {
-      if (!weeklyPlan || weeklyPlan.length === 0) {
-        weeklyPlan = ["דחיפה", "משיכה", "רגליים"];
-      }
-
-      const cycleState = await this.getCurrentCycleState(weeklyPlan);
-      const daysSinceLastWorkoutCount = daysSinceLastWorkout(
-        cycleState.lastWorkoutDate
-      );
-
-      return this.determineNextWorkout(
-        weeklyPlan,
-        cycleState,
-        daysSinceLastWorkoutCount
-      );
-    } catch (error) {
-      console.error("NextWorkoutLogic error:", error);
-      const safeWeeklyPlan =
+      const plan =
         weeklyPlan && weeklyPlan.length > 0
           ? weeklyPlan
-          : ["דחיפה", "משיכה", "רגליים"];
+          : [...DEFAULT_WEEKLY_PLAN];
+      const cycleState = await this.getCurrentCycleState(plan);
+
+      const daysSince =
+        cycleState.lastWorkoutDate &&
+        cycleState.lastWorkoutDate.trim().length > 0
+          ? daysSinceLastWorkout(cycleState.lastWorkoutDate)
+          : 999; // משתמש חדש
+
+      return this.determineNextWorkout(plan, cycleState, daysSince);
+    } catch (error) {
+      logger.error(
+        "NextWorkoutLogicService",
+        "getNextWorkoutRecommendation failed",
+        error
+      );
+      const plan =
+        weeklyPlan && weeklyPlan.length > 0
+          ? weeklyPlan
+          : [...DEFAULT_WEEKLY_PLAN];
       return this.createRecommendation(
-        safeWeeklyPlan[0] || "דחיפה",
+        plan[0] ?? "דחיפה",
         0,
         "אימון ברירת מחדל",
         true,
@@ -69,15 +93,24 @@ class NextWorkoutLogicService {
     }
   }
 
+  /**
+   * קביעת האימון הבא לפי ימים מאז אימון אחרון והתקדמות במחזור
+   */
   private determineNextWorkout(
     weeklyPlan: string[],
     cycleState: WorkoutCycleState,
-    daysSinceLastWorkout: number
+    daysSinceLast: number
   ): NextWorkoutRecommendation {
-    // New user
-    if (!cycleState.lastWorkoutDate || daysSinceLastWorkout >= 999) {
+    const planLen = Math.max(weeklyPlan.length, 1);
+    const safeDayIndex = Math.min(
+      Math.max(cycleState.currentDayInWeek, 0),
+      planLen - 1
+    );
+
+    // משתמש חדש / אין תאריך אחרון
+    if (!cycleState.lastWorkoutDate || daysSinceLast >= 999) {
       return this.createRecommendation(
-        weeklyPlan[0] || "דחיפה",
+        weeklyPlan[0] ?? "דחיפה",
         0,
         "ברוכים הבאים! בואו נתחיל 🚀",
         true,
@@ -86,91 +119,92 @@ class NextWorkoutLogicService {
       );
     }
 
-    // Same day
-    if (daysSinceLastWorkout === 0) {
+    // אותו היום
+    if (daysSinceLast === 0) {
       return this.createRecommendation(
-        cycleState.weeklyPlan[cycleState.currentDayInWeek] || "מנוחה",
-        cycleState.currentDayInWeek,
+        cycleState.weeklyPlan[safeDayIndex] ?? "מנוחה",
+        safeDayIndex,
         "כבר התאמנת היום! מנוחה חשובה 💪",
         false,
-        daysSinceLastWorkout,
+        daysSinceLast,
         "light"
       );
     }
 
-    // Regular progression (1 day)
-    if (daysSinceLastWorkout === 1) {
-      const nextDayIndex =
-        (cycleState.currentDayInWeek + 1) % weeklyPlan.length;
+    // התקדמות רגילה (יום אחד)
+    if (daysSinceLast === 1) {
+      const nextDayIndex = (safeDayIndex + 1) % planLen;
       return this.createRecommendation(
-        weeklyPlan[nextDayIndex] || "דחיפה",
+        weeklyPlan[nextDayIndex] ?? "דחיפה",
         nextDayIndex,
         "המשך מצוין! זמן לאימון הבא 🎯",
         true,
-        daysSinceLastWorkout,
+        daysSinceLast,
         "normal"
       );
     }
 
-    // Short break (2-4 days)
-    if (daysSinceLastWorkout >= 2 && daysSinceLastWorkout <= 4) {
-      const nextDayIndex =
-        (cycleState.currentDayInWeek + 1) % weeklyPlan.length;
+    // הפסקה קצרה (2–4 ימים)
+    if (daysSinceLast >= 2 && daysSinceLast <= 4) {
+      const nextDayIndex = (safeDayIndex + 1) % planLen;
       return this.createRecommendation(
-        weeklyPlan[nextDayIndex] || "דחיפה",
+        weeklyPlan[nextDayIndex] ?? "דחיפה",
         nextDayIndex,
-        `${daysSinceLastWorkout} ימי מנוחה - בואו נמשיך! 💪`,
+        `${daysSinceLast} ימי מנוחה - בואו נמשיך! 💪`,
         true,
-        daysSinceLastWorkout,
+        daysSinceLast,
         "normal"
       );
     }
 
-    // Medium break (5-7 days) - restart week
-    if (daysSinceLastWorkout >= 5 && daysSinceLastWorkout <= 7) {
+    // הפסקה בינונית (5–7 ימים) – התחלה מחדש
+    if (daysSinceLast >= 5 && daysSinceLast <= 7) {
       return this.createRecommendation(
-        weeklyPlan[0] || "דחיפה",
+        weeklyPlan[0] ?? "דחיפה",
         0,
-        `${daysSinceLastWorkout} ימים - מתחילים שבוע חדש! 🌟`,
+        `${daysSinceLast} ימים - מתחילים שבוע חדש! 🌟`,
         false,
-        daysSinceLastWorkout,
+        daysSinceLast,
         "light"
       );
     }
 
-    // Long break - gradual return
-    if (daysSinceLastWorkout > 7) {
+    // הפסקה ארוכה – חזרה הדרגתית
+    if (daysSinceLast > 7) {
       return this.createRecommendation(
-        weeklyPlan[0] || "דחיפה",
+        weeklyPlan[0] ?? "דחיפה",
         0,
         `הפסקה ארוכה - חוזרים בהדרגה! 🎯`,
         false,
-        daysSinceLastWorkout,
+        daysSinceLast,
         "light"
       );
     }
 
-    // Fallback
+    // ברירת מחדל
     return this.createRecommendation(
-      weeklyPlan[0] || "דחיפה",
+      weeklyPlan[0] ?? "דחיפה",
       0,
       "בואו נתחיל! 🚀",
       true,
-      daysSinceLastWorkout,
+      daysSinceLast,
       "normal"
     );
   }
 
+  /**
+   * שליפת מצב המחזור הנוכחי (עם קאש קצר)
+   */
   private async getCurrentCycleState(
     weeklyPlan?: string[]
   ): Promise<WorkoutCycleState> {
     try {
       const now = Date.now();
 
-      // Simple cache check
+      // קאש קצר
       if (
         this.cachedCycleState &&
-        now - this.cacheTimestamp < this.CACHE_DURATION &&
+        now - this.cacheTimestamp < CACHE_DURATION_MS &&
         (!weeklyPlan ||
           JSON.stringify(this.cachedCycleState.weeklyPlan) ===
             JSON.stringify(weeklyPlan))
@@ -178,50 +212,53 @@ class NextWorkoutLogicService {
         return this.cachedCycleState;
       }
 
-      const savedState = await AsyncStorage.getItem(WORKOUT_CYCLE_KEY);
-
-      if (savedState) {
-        const state = JSON.parse(savedState) as WorkoutCycleState;
-
-        if (!weeklyPlan) {
-          this.cachedCycleState = state;
-          this.cacheTimestamp = now;
-          return state;
-        }
-
-        if (JSON.stringify(state.weeklyPlan) === JSON.stringify(weeklyPlan)) {
+      // נסה לטעון מהאחסון
+      const savedStateStr = await AsyncStorage.getItem(WORKOUT_CYCLE_KEY);
+      if (savedStateStr) {
+        const state = JSON.parse(savedStateStr) as WorkoutCycleState;
+        if (
+          !weeklyPlan ||
+          JSON.stringify(state.weeklyPlan) === JSON.stringify(weeklyPlan)
+        ) {
           this.cachedCycleState = state;
           this.cacheTimestamp = now;
           return state;
         }
       }
 
-      // Create new state from workout history
-      const workoutHistory = await workoutFacadeService.getHistory();
-      const sortedHistory = workoutHistory.sort((a, b) => {
-        const dateA = new Date(
-          a.feedback?.completedAt || a.endTime || 0
-        ).getTime();
-        const dateB = new Date(
-          b.feedback?.completedAt || b.endTime || 0
-        ).getTime();
-        return dateB - dateA;
-      });
+      // בנה מצב חדש מהיסטוריית אימונים
+      const workoutHistoryUnknown = await workoutFacadeService.getHistory();
+      const workoutHistory = workoutHistoryUnknown as WorkoutHistoryEntry[];
 
-      const lastWorkout = sortedHistory.length > 0 ? sortedHistory[0] : null;
-      const lastWorkoutDate =
-        lastWorkout?.feedback?.completedAt || lastWorkout?.endTime || "";
+      const sortedHistory = [...workoutHistory].sort(
+        (a, b) => getHistoryEntryTime(b) - getHistoryEntryTime(a)
+      );
+
+      const plan =
+        weeklyPlan && weeklyPlan.length > 0
+          ? weeklyPlan
+          : [...DEFAULT_WEEKLY_PLAN];
+      const planLen = plan.length;
+
+      const lastWorkout = sortedHistory[0] ?? null;
+      const lastWorkoutDate: string = (lastWorkout?.feedback?.completedAt ??
+        lastWorkout?.endTime ??
+        "") as string;
+
+      // האינדקס של היום האחרון שהושלם בתוכנית:
+      // אם יש היסטוריה, נקבע לפי (historyLength - 1) % planLen, אחרת 0
+      const historyCount = workoutHistory.length;
+      const lastCompletedIndex =
+        planLen > 0 ? (historyCount > 0 ? (historyCount - 1) % planLen : 0) : 0;
 
       const newState: WorkoutCycleState = {
-        currentWeekNumber: 1,
-        currentDayInWeek: Math.min(
-          workoutHistory.length,
-          (weeklyPlan ?? []).length - 1
-        ),
+        currentWeekNumber:
+          planLen > 0 ? Math.floor(historyCount / planLen) + 1 : 1,
+        currentDayInWeek: lastCompletedIndex,
         lastWorkoutDate,
-        totalWorkoutsCompleted: workoutHistory.length,
+        totalWorkoutsCompleted: historyCount,
         programStartDate: new Date().toISOString(),
-        weeklyPlan: [...(weeklyPlan ?? [])],
+        weeklyPlan: [...plan],
       };
 
       if (newState.weeklyPlan.length > 0) {
@@ -230,10 +267,13 @@ class NextWorkoutLogicService {
 
       this.cachedCycleState = newState;
       this.cacheTimestamp = now;
-
       return newState;
     } catch (error) {
-      console.error("Error getting cycle state:", error);
+      logger.error(
+        "NextWorkoutLogicService",
+        "getCurrentCycleState failed",
+        error
+      );
       return {
         currentWeekNumber: 1,
         currentDayInWeek: 0,
@@ -263,11 +303,14 @@ class NextWorkoutLogicService {
     };
   }
 
+  /**
+   * עדכון מצב לאחר סימון אימון כהושלם
+   */
   async updateWorkoutCompleted(workoutIndex: number): Promise<void> {
     try {
       const currentState = await this.getCurrentCycleState();
-      const planLength = Math.max(1, currentState.weeklyPlan.length);
-      const normalizedIndex = workoutIndex % planLength;
+      const planLen = Math.max(1, currentState.weeklyPlan.length);
+      const normalizedIndex = ((workoutIndex % planLen) + planLen) % planLen; // הגנה על שלילי
 
       const updatedState: WorkoutCycleState = {
         ...currentState,
@@ -275,8 +318,10 @@ class NextWorkoutLogicService {
         lastWorkoutDate: new Date().toISOString(),
         totalWorkoutsCompleted: currentState.totalWorkoutsCompleted + 1,
         currentWeekNumber:
-          Math.floor((currentState.totalWorkoutsCompleted + 1) / planLength) +
-          1,
+          planLen > 0
+            ? Math.floor((currentState.totalWorkoutsCompleted + 1) / planLen) +
+              1
+            : 1,
       };
 
       await AsyncStorage.setItem(
@@ -284,11 +329,15 @@ class NextWorkoutLogicService {
         JSON.stringify(updatedState)
       );
 
-      // Invalidate cache
+      // נקה קאש
       this.cachedCycleState = null;
       this.cacheTimestamp = 0;
     } catch (error) {
-      console.error("Error updating workout completed:", error);
+      logger.error(
+        "NextWorkoutLogicService",
+        "updateWorkoutCompleted failed",
+        error
+      );
     }
   }
 }

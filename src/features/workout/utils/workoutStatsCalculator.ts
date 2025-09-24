@@ -3,7 +3,12 @@
  * @description יוטיליטי מאופטם לחישוב סטטיסטיקות אימון
  */
 
-import type { WorkoutExercise, Set } from "../../../core/types/workout.types";
+// cspell:ignore יוטיליטי מאופטם אימונים מצויין אנליטיקה
+
+import type {
+  WorkoutExercise,
+  Set as WorkoutSet, // אליאס כדי לא להתנגש עם Set המובנה של JS
+} from "../../../core/types/workout.types";
 
 export interface WorkoutStats {
   totalExercises: number;
@@ -16,18 +21,35 @@ export interface WorkoutStats {
   personalRecords: number;
   averageVolumePerSet: number;
   averageRepsPerSet: number;
+  timeToComplete: number; // סכום זמן ביצוע (שניות) בסטים שהושלמו
+}
+
+interface ExerciseStats {
+  completedSets: number;
+  totalVolume: number;
+  totalReps: number;
+  personalRecords: number;
   timeToComplete: number;
 }
+
+const EMPTY_EXERCISE_STATS: ExerciseStats = {
+  completedSets: 0,
+  totalVolume: 0,
+  totalReps: 0,
+  personalRecords: 0,
+  timeToComplete: 0,
+};
 
 // ===============================================
 // 🧮 Helper Functions
 // ===============================================
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
-const clamp = (n: number): number => (n < 0 || !Number.isFinite(n) ? 0 : n);
+const clampNonNeg = (n: number): number =>
+  n < 0 || !Number.isFinite(n) ? 0 : n;
 
 /**
- * המרה בטוחה למספר עם תמיכה בטווחים
+ * המרה בטוחה למספר עם תמיכה בטווחים (למשל "8-12" → 10)
  */
 const toNumberSafe = (value: unknown): number => {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -51,46 +73,32 @@ const toNumberSafe = (value: unknown): number => {
 };
 
 /**
- * חישוב סטטיסטיקות לסט אימונים בודד
+ * חישוב סטטיסטיקות עבור תרגיל בודד (מערך סטים)
  */
-function calculateExerciseStats(sets: Set[]) {
-  if (!sets?.length) {
-    return {
-      completedSets: 0,
-      totalVolume: 0,
-      totalReps: 0,
-      personalRecords: 0,
-      timeToComplete: 0,
-    };
-  }
+function calculateExerciseStats(sets: WorkoutSet[]): ExerciseStats {
+  if (!sets?.length) return { ...EMPTY_EXERCISE_STATS };
 
-  return sets.reduce(
-    (stats, set) => {
-      if (!set.completed) return stats;
+  return sets.reduce<ExerciseStats>(
+    (stats, s) => {
+      if (!s.completed) return stats;
 
-      const reps = clamp(toNumberSafe(set.actualReps ?? set.targetReps ?? 0));
-      const weight = clamp(
-        toNumberSafe(set.actualWeight ?? set.targetWeight ?? 0)
+      const reps = clampNonNeg(toNumberSafe(s.actualReps ?? s.targetReps ?? 0));
+      const weight = clampNonNeg(
+        toNumberSafe(s.actualWeight ?? s.targetWeight ?? 0)
       );
-      const time = set.timeToComplete
-        ? clamp(toNumberSafe(set.timeToComplete))
+      const time = s.timeToComplete
+        ? clampNonNeg(toNumberSafe(s.timeToComplete))
         : 0;
 
       return {
         completedSets: stats.completedSets + 1,
         totalVolume: stats.totalVolume + reps * weight,
         totalReps: stats.totalReps + reps,
-        personalRecords: stats.personalRecords + (set.isPR ? 1 : 0),
+        personalRecords: stats.personalRecords + (s.isPR ? 1 : 0),
         timeToComplete: stats.timeToComplete + time,
       };
     },
-    {
-      completedSets: 0,
-      totalVolume: 0,
-      totalReps: 0,
-      personalRecords: 0,
-      timeToComplete: 0,
-    }
+    { ...EMPTY_EXERCISE_STATS }
   );
 }
 
@@ -119,22 +127,30 @@ export function calculateWorkoutStats(
   const totalExercises = exercises.length;
   let totalSets = 0;
 
-  // שימוש ב-reduce לביצועים טובים
-  const aggregatedStats = exercises.reduce(
+  const aggregated = exercises.reduce<
+    Omit<
+      WorkoutStats,
+      | "totalExercises"
+      | "totalSets"
+      | "progressPercentage"
+      | "averageVolumePerSet"
+      | "averageRepsPerSet"
+    >
+  >(
     (acc, exercise) => {
       if (!exercise.sets?.length) return acc;
 
       totalSets += exercise.sets.length;
-      const exerciseStats = calculateExerciseStats(exercise.sets);
+      const exStats = calculateExerciseStats(exercise.sets);
 
       return {
         completedExercises:
-          acc.completedExercises + (exerciseStats.completedSets > 0 ? 1 : 0),
-        completedSets: acc.completedSets + exerciseStats.completedSets,
-        totalVolume: acc.totalVolume + exerciseStats.totalVolume,
-        totalReps: acc.totalReps + exerciseStats.totalReps,
-        personalRecords: acc.personalRecords + exerciseStats.personalRecords,
-        timeToComplete: acc.timeToComplete + exerciseStats.timeToComplete,
+          acc.completedExercises + (exStats.completedSets > 0 ? 1 : 0),
+        completedSets: acc.completedSets + exStats.completedSets,
+        totalVolume: acc.totalVolume + exStats.totalVolume,
+        totalReps: acc.totalReps + exStats.totalReps,
+        personalRecords: acc.personalRecords + exStats.personalRecords,
+        timeToComplete: acc.timeToComplete + exStats.timeToComplete,
       };
     },
     {
@@ -147,15 +163,20 @@ export function calculateWorkoutStats(
     }
   );
 
-  const { completedSets, totalVolume, totalReps } = aggregatedStats;
+  const { completedSets, totalVolume, totalReps } = aggregated;
   const progressPercentage =
-    totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+    totalSets > 0
+      ? Math.min(
+          100,
+          Math.max(0, Math.round((completedSets / totalSets) * 100))
+        )
+      : 0;
 
   return {
     totalExercises,
     totalSets,
     progressPercentage,
-    ...aggregatedStats,
+    ...aggregated,
     totalVolume: round2(totalVolume),
     averageVolumePerSet:
       completedSets > 0 ? round2(totalVolume / completedSets) : 0,

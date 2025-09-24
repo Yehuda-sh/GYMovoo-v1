@@ -1,6 +1,6 @@
 /**
  * @file src/screens/main/components/WelcomeHeader.tsx
- * @description רכיב כותרת ברוכים הבאים עם אוואטר וברכה
+ * @description רכיב כותרת ברוכים הבאים עם אווטאר וברכה – RTL, Theme, A11y
  */
 
 import React from "react";
@@ -8,11 +8,19 @@ import {
   View,
   StyleSheet,
   Text,
-  TouchableOpacity,
   Animated,
+  Pressable,
+  Insets,
 } from "react-native";
 import DefaultAvatar from "../../../components/common/DefaultAvatar";
 import { MAIN_SCREEN_TEXTS } from "../../../constants/mainScreenTexts";
+import { theme } from "../../../core/theme";
+import {
+  getFlexDirection,
+  getTextAlign,
+  getTextDirection,
+  isRTL,
+} from "../../../utils/rtlHelpers";
 
 interface WelcomeHeaderProps {
   userName?: string;
@@ -31,6 +39,25 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   fadeAnim,
   slideAnim,
 }) => {
+  const handlePressIn = () => {
+    Animated.timing(buttonScaleAnim, {
+      toValue: 0.95,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(buttonScaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Insets לא תומך start/end — חובה left/right
+  const hitSlop: Insets = { top: 20, bottom: 20, left: 20, right: 20 };
+
   return (
     <Animated.View
       style={[
@@ -40,41 +67,51 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
           transform: [{ translateY: slideAnim }],
         },
       ]}
+      accessible
+      accessibilityLabel={MAIN_SCREEN_TEXTS.WELCOME.READY_TO_WORKOUT}
     >
       <View style={styles.welcomeHeader}>
+        {/* טקסטי ברכה + שם משתמש */}
         <View style={styles.welcomeText}>
-          <Text style={styles.greetingText}>{greeting}</Text>
-          <Text style={styles.userName}>{userName}</Text>
+          <Text
+            style={styles.greetingText}
+            numberOfLines={1}
+            accessibilityRole="header"
+          >
+            {greeting}
+          </Text>
+          <Text
+            style={styles.userName}
+            numberOfLines={1}
+            // במקום MAIN_SCREEN_TEXTS.WELCOME.HELLO שאינו קיים
+            accessibilityLabel={`${greeting} ${userName}`}
+          >
+            {userName}
+          </Text>
         </View>
+
+        {/* אווטאר + כפתור פרופיל */}
         <View style={styles.profileContainer}>
           <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-            <TouchableOpacity
+            <Pressable
               style={styles.profileButton}
               onPress={onProfilePress}
-              onPressIn={() => {
-                Animated.timing(buttonScaleAnim, {
-                  toValue: 0.95,
-                  duration: 100,
-                  useNativeDriver: true,
-                }).start();
-              }}
-              onPressOut={() => {
-                Animated.timing(buttonScaleAnim, {
-                  toValue: 1,
-                  duration: 100,
-                  useNativeDriver: true,
-                }).start();
-              }}
-              hitSlop={{ top: 20, bottom: 20, start: 20, end: 20 }}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              android_ripple={{ color: theme.colors.ripple, borderless: true }}
+              hitSlop={hitSlop}
               accessibilityLabel={MAIN_SCREEN_TEXTS.A11Y.PROFILE_BUTTON}
               accessibilityHint="לחץ לצפייה ועריכת הפרופיל האישי"
               accessibilityRole="button"
+              testID="welcome-header-profile-btn"
             >
               <DefaultAvatar name={userName} size="medium" showBorder={false} />
-            </TouchableOpacity>
+            </Pressable>
           </Animated.View>
         </View>
       </View>
+
+      {/* טקסט מוטיבציה */}
       <Text style={styles.motivationText}>
         {MAIN_SCREEN_TEXTS.WELCOME.READY_TO_WORKOUT}
       </Text>
@@ -84,43 +121,50 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
 
 const styles = StyleSheet.create({
   welcomeSection: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
   },
   welcomeHeader: {
-    flexDirection: "row",
+    flexDirection: getFlexDirection(),
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
   },
   welcomeText: {
     flex: 1,
-    alignItems: "flex-end",
+    alignItems: isRTL() ? "flex-end" : "flex-start",
   },
   greetingText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#666",
-    textAlign: "right",
+    fontSize: theme.typography.h6.fontSize,
+    fontWeight: theme.typography.h6.fontWeight,
+    color: theme.colors.textSecondary,
+    textAlign: getTextAlign(),
+    writingDirection: getTextDirection(),
   },
   userName: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1a1a1a",
-    marginTop: 4,
-    textAlign: "right",
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: "800",
+    color: theme.colors.text,
+    marginTop: theme.spacing.xs,
+    textAlign: getTextAlign(),
+    writingDirection: getTextDirection(),
   },
   profileContainer: {
-    marginStart: 20,
+    marginStart: theme.spacing.lg,
   },
   profileButton: {
-    padding: 4,
+    padding: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.card,
+    ...theme.shadows.small,
   },
   motivationText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: "center",
-    paddingHorizontal: 20,
-    lineHeight: 22,
+    paddingHorizontal: theme.spacing.xl,
+    lineHeight: theme.typography.body.lineHeight,
   },
 });
+
+export default WelcomeHeader;

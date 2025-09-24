@@ -1,3 +1,4 @@
+// src/screens/developer/DeveloperScreen.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -22,20 +23,22 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 export default function DeveloperScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, setUser } = useUserStore();
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isOnline, setIsOnline] = useState(false); // התחל עם false עד שנוודא
+  const [isOnline, setIsOnline] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const allUsers = await userApi.list();
-      setUsers(allUsers || []);
-      setIsOnline(true); // אם הקריאה הצליחה, אנחנו מחוברים
+      setUsers(Array.isArray(allUsers) ? allUsers : []);
+      setIsOnline(true);
     } catch (error) {
       console.error("Error loading users:", error);
-      setIsOnline(false); // אם נכשל, אנחנו לא מחוברים
+      setIsOnline(false);
+      setUsers((prev) => prev ?? []);
     } finally {
       setLoading(false);
     }
@@ -54,19 +57,27 @@ export default function DeveloperScreen() {
   const loginAsUser = async (selectedUser: User) => {
     try {
       setLoading(true);
+
+      // עדכון ה-store
       setUser(selectedUser);
 
-      const hasQuestionnaire = !!(
-        selectedUser.questionnaireData?.answers &&
-        Object.keys(selectedUser.questionnaireData.answers).length > 0
-      );
-
+      // שמירה ב-AsyncStorage (עם await כדי לתפוס שגיאות)
       await AsyncStorage.setItem("currentUser", JSON.stringify(selectedUser));
 
+      const q = selectedUser.questionnaireData?.answers;
+      const hasQuestionnaire = !!(q && Object.keys(q).length > 0);
+
+      // שימוש ב-reset כדי לאפשר חזרה נקייה
       if (hasQuestionnaire) {
-        navigation.navigate("MainApp");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        });
       } else {
-        navigation.navigate("Welcome");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Welcome" }],
+        });
       }
     } catch (error) {
       console.error("Error setting user:", error);
@@ -99,14 +110,11 @@ export default function DeveloperScreen() {
     try {
       setLoading(true);
       const createdUser = await userApi.create(testUser);
-      console.log("Created test user:", createdUser);
 
-      // בדוק אם היצירה הצליחה במסד הנתונים או רק מקומית
-      if (createdUser.id?.startsWith("local_")) {
-        setIsOnline(false);
-      } else {
-        setIsOnline(true);
-      }
+      // אם אין id או שהוא מקומי, נניח offline
+      const createdIsOnline =
+        !!createdUser?.id && !String(createdUser.id).startsWith("local_");
+      setIsOnline(createdIsOnline);
 
       await loadUsers();
     } catch (error) {

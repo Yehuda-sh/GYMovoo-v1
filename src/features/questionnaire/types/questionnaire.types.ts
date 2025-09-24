@@ -7,7 +7,8 @@ import { ImageSourcePropType } from "react-native";
 
 export const QUESTIONNAIRE_VERSION = "2.3" as const;
 
-// Basic types
+// ===== Basic UI types =====
+
 export interface QuestionOption {
   id: string;
   label: string;
@@ -41,26 +42,32 @@ export interface QuestionnaireResults {
   answeredQuestions: number;
 }
 
-// Interfaces for questionnaire data
+// ===== Data layer types =====
+// שימו לב: יש תמיכה בשמות שדות היסטוריים וחדשים במקביל כדי לשמור תאימות.
+// הימנעות מהצבה מפורשת של undefined – אם שדה לא קיים פשוט לא שולחים אותו.
+
 export interface QuestionnaireAnswers {
   // Personal Info
-  gender?: string;
-  age?: string | number;
+  gender?: string; // e.g. "male" | "female" | "prefer_not_to_say"
+  age?: string | number; // טווח/מספר מומר בהמשך
   weight?: string | number;
   height?: string | number;
 
   // Fitness Profile
-  fitness_goal?: string | string[];
-  experience_level?: string;
-  fitnessLevel?: string;
-  goals?: string[];
+  fitness_goal?: string | string[]; // legacy or single id
+  experience_level?: string; // "beginner" | "intermediate" | "advanced"
+  fitnessLevel?: string; // new camelCase
+  goals?: string[]; // new: list of goals
 
   // Workout Preferences
-  workout_location?: string;
-  availability?: string | string[];
-  workout_duration?: string; // זה השדה המקורי
-  session_duration?: string; // כפילות - לא נעשה בו שימוש
-  equipment?: string[];
+  workout_location?: string; // legacy snake_case
+  workoutLocation?: string; // new camelCase
+  availability?: number | string | string[]; // תומך גם במספר (ימים לשבוע) וגם במזהי אפשרויות
+  workout_duration?: string; // legacy: minutes string, e.g. "45"
+  session_duration?: string; // legacy duplicate (לא בשימוש חדש)
+  sessionDuration?: string; // new camelCase (e.g. "30_45_min")
+  equipment?: string[]; // normalized equipment list
+  equipment_available?: string[]; // legacy alt name used by generator fallback
 
   // Equipment specific fields
   bodyweight_equipment?: string[];
@@ -72,7 +79,7 @@ export interface QuestionnaireAnswers {
   health_conditions?: string[];
   nutrition?: string[];
 
-  // Allow additional fields
+  // Allow additional future fields safely
   [key: string]: unknown;
 }
 
@@ -93,14 +100,16 @@ export interface QuestionnaireData {
   };
 }
 
-// Navigation types
+// ===== Navigation types =====
+
 export type QuestionnaireStackParamList = {
   QuestionnaireScreen: {
     stage?: "profile" | "training";
   };
 };
 
-// Status interface
+// ===== Status type (derived) =====
+
 export interface QuestionnaireStatus {
   /** האם יש נתוני שאלון בכלל */
   hasData: boolean;

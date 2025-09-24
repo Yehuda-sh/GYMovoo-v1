@@ -1,8 +1,9 @@
+// src/screens/exercises/ExerciseDetailsScreen.tsx
 /**
  * ExerciseDetailsScreen - מסך פרטי תרגיל פשוט ופונקציונלי
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -24,7 +25,7 @@ interface ExerciseDetailsScreenParams {
   exerciseName: string;
   muscleGroup: string;
   exerciseData?: {
-    equipment?: string;
+    equipment?: string | string[]; // ← תוקן: אפשר גם מערך
     difficulty?: string;
     instructions?: string[];
     benefits?: string[];
@@ -46,19 +47,19 @@ const ExerciseDetailsScreen: React.FC = () => {
   const route = useRoute<ExerciseDetailsRouteProp>();
 
   const { exerciseId, exerciseName, muscleGroup, exerciseData } =
-    (route.params as ExerciseDetailsScreenParams) || {};
+    route.params as ExerciseDetailsScreenParams;
 
-  // פרטי התרגיל
-  const getExerciseDetails = () => {
-    const equipmentRaw = exerciseData?.equipment || "bodyweight";
+  // פרטי התרגיל (memoized)
+  const exerciseDetails = useMemo(() => {
+    const equipmentRaw = exerciseData?.equipment ?? "bodyweight";
     const equipmentDisplay = Array.isArray(equipmentRaw)
-      ? formatEquipmentList(equipmentRaw as string[])
+      ? formatEquipmentList(equipmentRaw)
       : formatEquipmentList([String(equipmentRaw)]);
 
     return {
       id: exerciseId,
       name: exerciseName,
-      muscleGroup: muscleGroup,
+      muscleGroup,
       equipment: equipmentDisplay,
       difficulty: exerciseData?.difficulty || "בינוני",
       instructions:
@@ -89,9 +90,7 @@ const ExerciseDetailsScreen: React.FC = () => {
               "התקדם הדרגתית במשקל",
             ],
     };
-  };
-
-  const exerciseDetails = getExerciseDetails();
+  }, [exerciseData, exerciseId, exerciseName, muscleGroup]);
 
   // ניווט לתרגילים דומים
   const handleSimilarExercises = useCallback(() => {
@@ -115,7 +114,10 @@ const ExerciseDetailsScreen: React.FC = () => {
         id: exerciseId,
         name: exerciseName,
         muscleGroup,
-        equipment: (exerciseData?.equipment as string) || "bodyweight",
+        equipment:
+          (Array.isArray(exerciseData?.equipment)
+            ? exerciseData?.equipment[0]
+            : exerciseData?.equipment) ?? "bodyweight",
       },
     });
   }, [navigation, exerciseId, exerciseName, muscleGroup, exerciseData]);
@@ -205,20 +207,18 @@ const ExerciseDetailsScreen: React.FC = () => {
         {/* הוראות ביצוע */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>הוראות ביצוע</Text>
-          {exerciseDetails.instructions.map(
-            (instruction: string, index: number) => (
-              <View key={index} style={styles.listItem}>
-                <Text style={styles.listNumber}>{index + 1}</Text>
-                <Text style={styles.listText}>{instruction}</Text>
-              </View>
-            )
-          )}
+          {exerciseDetails.instructions.map((instruction, index) => (
+            <View key={index} style={styles.listItem}>
+              <Text style={styles.listNumber}>{index + 1}</Text>
+              <Text style={styles.listText}>{instruction}</Text>
+            </View>
+          ))}
         </View>
 
         {/* יתרונות התרגיל */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>יתרונות התרגיל</Text>
-          {exerciseDetails.benefits.map((benefit: string, index: number) => (
+          {exerciseDetails.benefits.map((benefit, index) => (
             <View key={index} style={styles.listItem}>
               <MaterialCommunityIcons
                 name="check-circle"
@@ -233,7 +233,7 @@ const ExerciseDetailsScreen: React.FC = () => {
         {/* טיפים */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>טיפים חשובים</Text>
-          {exerciseDetails.tips.map((tip: string, index: number) => (
+          {exerciseDetails.tips.map((tip, index) => (
             <View key={index} style={styles.listItem}>
               <MaterialCommunityIcons
                 name="lightbulb-outline"
@@ -269,10 +269,7 @@ const ExerciseDetailsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -305,14 +302,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.primary + "30",
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.md,
-  },
-  imageContainer: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.lg,
-  },
+  content: { flex: 1, paddingHorizontal: theme.spacing.md },
+  imageContainer: { alignItems: "center", paddingVertical: theme.spacing.lg },
   imagePlaceholder: {
     width: 200,
     height: 200,
@@ -341,14 +332,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  infoRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-around",
-  },
-  infoItem: {
-    alignItems: "center",
-    flex: 1,
-  },
+  infoRow: { flexDirection: "row-reverse", justifyContent: "space-around" },
+  infoItem: { alignItems: "center", flex: 1 },
   infoLabel: {
     fontSize: 12,
     color: theme.colors.textSecondary,

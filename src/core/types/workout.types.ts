@@ -1,5 +1,5 @@
 /**
- * @file src/screens/workout/types/workout.types.ts
+ * @file src/core/types/workout.types.ts
  * @description Core workout types - updated August 2025
  * @updated 2025-09-03 Cleanup: Removed over-engineering and duplicated types
  *
@@ -15,8 +15,10 @@ export type ISODateString = string; // מייצג מחרוזת תאריך בפו
 // === CORE WORKOUT BUILDING BLOCKS ===
 // === אבני יסוד לבניית אימונים ===
 
-// סט בודד - יחידת העבודה הבסיסית באימון
-// Single set - basic work unit in workout
+/**
+ * סט בודד - יחידת העבודה הבסיסית באימון
+ * Single set - basic work unit in a workout
+ */
 export interface Set {
   id: string;
   type: "warmup" | "working" | "dropset" | "failure";
@@ -25,24 +27,35 @@ export interface Set {
   actualReps?: number;
   actualWeight?: number;
   completed: boolean;
-  restTime?: number; // זמן מנוחה אחרי הסט
+  restTime?: number; // זמן מנוחה אחרי הסט (בשניות)
   notes?: string;
   isPR?: boolean; // האם זה שיא אישי
   rpe?: number; // Rate of Perceived Exertion (1-10)
-  timeToComplete?: number; // Time to complete the set in seconds
+  timeToComplete?: number; // משך ביצוע הסט בשניות
 }
 
-// תרגיל באימון - אוסף של סטים עם מטא-דאטה (שונה מ-Exercise במאגר הנתונים)
-// Workout exercise - collection of sets with metadata (different from Exercise in data repository)
+/**
+ * תרגיל באימון - אוסף של סטים עם מטא-דאטה
+ * Workout exercise - collection of sets with metadata
+ * הערה: זה טיפוס לוגי של "אימון בפועל", לא טבלת Master של תרגילים.
+ */
 export interface WorkoutExercise {
   id: string;
   name: string;
   category: string;
   primaryMuscles: string[];
   secondaryMuscles?: string[];
-  equipment: string; // Use "bodyweight" (not "none") for תרגילי משקל גוף; ערכים חוקיים בהתאם ל-unifiedQuestionnaire (למשל "dumbbells","barbell","free_weights", וכו')
-  sets?: Set[]; // Made optional to prevent undefined errors
-  restTime?: number; // זמן מנוחה ברירת מחדל בין סטים
+  /**
+   * הצעה לשימוש קבוע: "bodyweight" לתרגילי משקל גוף.
+   * ערכים חוקיים בהתאם לשאלון המאוחד (למשל "dumbbells", "barbell", "free_weights", וכו').
+   */
+  equipment: string;
+  /**
+   * הושאר אופציונלי כדי לא לשבור קריאות קיימות.
+   * בהצגה מומלץ להשתמש ב־(sets ?? []) כדי להימנע משגיאות ריצה.
+   */
+  sets?: Set[];
+  restTime?: number; // זמן מנוחה ברירת מחדל בין סטים (בשניות)
   notes?: string;
   videoUrl?: string;
   imageUrl?: string;
@@ -53,8 +66,10 @@ export interface WorkoutExercise {
 // === WORKOUT MANAGEMENT & PLANNING ===
 // === ניהול ותכנון אימונים ===
 
-// נתוני אימון מלאים - האימון שהמשתמש מבצע
-// Complete workout data - the workout user performs
+/**
+ * נתוני אימון מלאים - האימון שהמשתמש מבצע
+ * Complete workout data - the workout the user performs
+ */
 export interface WorkoutData {
   id: string;
   name: string;
@@ -73,8 +88,11 @@ export interface WorkoutData {
   mood?: "great" | "good" | "okay" | "tired" | "bad";
 }
 
-// תוכנית אימון
-// Workout plan
+/**
+ * תוכנית אימון
+ * Workout plan
+ * הערה: אם יש כפילות עם טיפוסי User (WorkoutPlan), מומלץ לרכז במקום אחד – כרגע נשאר כאן לתאימות.
+ */
 export interface WorkoutPlan {
   id: string;
   name: string;
@@ -91,8 +109,10 @@ export interface WorkoutPlan {
 // === PROGRESS TRACKING & ANALYTICS ===
 // === מעקב התקדמות וניתוחים ===
 
-// נתוני התקדמות פיזית
-// Physical progress data
+/**
+ * נתוני התקדמות פיזית
+ * Physical progress data
+ */
 export interface ProgressData {
   date: ISODateString;
   weight?: number;
@@ -108,8 +128,10 @@ export interface ProgressData {
   notes?: string;
 }
 
-// נתוני ביצועים
-// Performance data
+/**
+ * נתוני ביצועים
+ * Performance data
+ */
 export interface PerformanceData {
   exerciseId: string;
   exerciseName: string;
@@ -126,8 +148,10 @@ export interface PerformanceData {
 // === ENHANCED ANALYTICS & FEEDBACK (TypeScript Cleanup 2025) ===
 // === ניתוחים מתקדמים ומשוב משופר (ניקוי TypeScript 2025) ===
 
-// סטטיסטיקות אימון מקיפות עם חלוקה לפי מגדר
-// Comprehensive workout statistics with gender breakdown
+/**
+ * סטטיסטיקות אימון מקיפות עם חלוקה לפי מגדר
+ * Comprehensive workout statistics with gender breakdown
+ */
 export interface WorkoutStatistics {
   total: {
     totalWorkouts: number;
@@ -151,8 +175,10 @@ export interface WorkoutStatistics {
   };
 }
 
-// אימון עם משוב ומטא-דאטה מורחבת
-// Workout with feedback and extended metadata
+/**
+ * אימון עם משוב ומטא-דאטה מורחבת
+ * Workout with feedback and extended metadata
+ */
 export interface WorkoutWithFeedback {
   id: string;
   workout: WorkoutData;
@@ -160,7 +186,7 @@ export interface WorkoutWithFeedback {
     difficulty: number; // 1-5 stars
     feeling: string; // emoji value
     readyForMore: boolean | null;
-    completedAt: ISODateString; // ISO string
+    completedAt: ISODateString; // מחרוזת ISO
     genderAdaptedNotes?: string; // הערות מותאמות למגדר המשתמש
     congratulationMessage?: string; // הודעת ברכה מותאמת למגדר
   };
@@ -192,8 +218,10 @@ export interface WorkoutWithFeedback {
 export type WorkoutFeedback = WorkoutWithFeedback["feedback"];
 export type WorkoutStats = WorkoutWithFeedback["stats"];
 
-// ביצועים קודמים לתצוגה באימון הבא
-// Previous performance for display in next workout
+/**
+ * ביצועים קודמים לתצוגה באימון הבא
+ * Previous performance for display in next workout
+ */
 export interface PreviousPerformance {
   exerciseName: string;
   sets: Array<{
@@ -210,12 +238,14 @@ export interface PreviousPerformance {
   };
 }
 
-// נתוני אימון היסטוריים
-// Historical workout data - מעודכן למבנה זהה לקובץ user.types.ts
-// ראה הגדרה ב-src/types/user.types.ts
+/**
+ * נתוני אימון היסטוריים
+ * Historical workout data
+ * הערה: סנכרון מול user.types.ts נמצא תחת:
+ *   src/core/types/user.types.ts
+ */
 
 // סיכום אימון
-// Workout summary
 export interface WorkoutSummary {
   duration: number;
   totalVolume: number;

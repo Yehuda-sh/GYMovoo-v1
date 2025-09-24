@@ -1,3 +1,8 @@
+// src/screens/history/HistoryScreen.tsx
+/**
+ * @file src/screens/history/HistoryScreen.tsx
+ * @description מסך היסטוריית האימונים עם ניתוחים בסיסיים
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -23,28 +28,10 @@ import {
   getDifficultyStars,
   getFeelingEmoji,
 } from "../../features/workout/utils/workoutHelpers";
-
-interface WorkoutItem {
-  id: string;
-  workout: {
-    name: string;
-    exercises: unknown[];
-  };
-  feedback: {
-    completedAt: string;
-    difficulty: number;
-    feeling: string;
-    congratulationMessage?: string;
-  };
-  stats: {
-    duration: number;
-    totalSets: number;
-    personalRecords: number;
-  };
-}
+import type { WorkoutWithFeedback } from "../../core/types/workout.types";
 
 const HistoryScreen: React.FC = () => {
-  const [workouts, setWorkouts] = useState<WorkoutItem[]>([]);
+  const [workouts, setWorkouts] = useState<WorkoutWithFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"history" | "analytics">("history");
@@ -53,9 +40,12 @@ const HistoryScreen: React.FC = () => {
 
   const loadData = useCallback(async () => {
     try {
-      if (!user) return;
+      if (!user?.id) {
+        setWorkouts([]);
+        return;
+      }
 
-      const history = await workoutFacadeService.getHistory();
+      const history = await workoutFacadeService.getHistory(); // מחזיר WorkoutWithFeedback[]
       setWorkouts(history);
     } catch (error) {
       logger.warn("HistoryScreen", "Failed to load workout history", error);
@@ -63,11 +53,10 @@ const HistoryScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const onRefresh = async () => {
-    if (!user) return;
-
+    if (!user?.id) return;
     setRefreshing(true);
     try {
       await loadData();
@@ -79,9 +68,12 @@ const HistoryScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      loadData();
+    if (!user?.id) {
+      setLoading(false);
+      setWorkouts([]);
+      return;
     }
+    loadData();
   }, [user?.id, loadData]);
 
   const formatDate = (dateString: string) => {
@@ -109,7 +101,7 @@ const HistoryScreen: React.FC = () => {
     }
   };
 
-  const renderWorkoutItem = ({ item }: { item: WorkoutItem }) => {
+  const renderWorkoutItem = ({ item }: { item: WorkoutWithFeedback }) => {
     const workout = item.workout;
     const feedback = item.feedback;
     const stats = item.stats;
@@ -234,6 +226,9 @@ const HistoryScreen: React.FC = () => {
         {/* Next Workout */}
         <NextWorkoutCard
           onStartWorkout={(workoutName, workoutIndex) => {
+            // אם יש לך טיפוס ניווט, אפשר להסיר את any:
+            // const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+            // navigation.navigate("WorkoutPlans", {...});
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (navigation as any).navigate("WorkoutPlans", {
               autoStart: true,
@@ -353,12 +348,17 @@ const HistoryScreen: React.FC = () => {
           <FlatList
             data={workouts}
             renderItem={renderWorkoutItem}
-            keyExtractor={(item, index) => item?.id || `workout_${index}`}
+            keyExtractor={(item, index) => item.id ?? `workout_${index}`}
             ListHeaderComponent={renderHeader}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+              />
             }
           />
         ) : (
@@ -511,8 +511,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginTop: theme.spacing.md,
-    borderEndWidth: 4,
-    borderRightColor: theme.colors.primary,
+    // RTL-friendly border (start side)
+    borderStartWidth: 4,
+    borderStartColor: theme.colors.primary,
   },
   congratulationText: {
     fontSize: 14,

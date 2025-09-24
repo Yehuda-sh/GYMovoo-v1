@@ -1,5 +1,5 @@
+// src/screens/exercises/ExercisesScreen.tsx
 /**
- * @file src/screens/exercises/ExercisesScreen.tsx
  * @brief מסך תרגילים - סקירה כללית של קבוצות שרירים
  */
 
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorBoundary } from "../../components/common/ErrorBoundary";
@@ -28,25 +28,26 @@ import {
 
 const { width: screenWidth } = Dimensions.get("window");
 
-type ExercisesScreenNavigationProp = StackNavigationProp<
+type ExercisesScreenNav = StackNavigationProp<
   RootStackParamList,
   "ExercisesScreen"
 >;
+type ExercisesScreenRoute = RouteProp<RootStackParamList, "ExercisesScreen">;
 
 const ExercisesScreen: React.FC = () => {
-  const navigation = useNavigation<ExercisesScreenNavigationProp>();
-  const route = useRoute();
+  const navigation = useNavigation<ExercisesScreenNav>();
+  const route = useRoute<ExercisesScreenRoute>();
 
-  const { selectedMuscleGroup, filterTitle, returnScreen } =
-    (route.params as RootStackParamList["ExercisesScreen"]) || {};
+  // 👇 ודא שב-RootStackParamList הוגדר:
+  // "ExercisesScreen": { selectedMuscleGroup?: string; filterTitle?: string; returnScreen?: keyof RootStackParamList } | undefined
+  const { selectedMuscleGroup, filterTitle, returnScreen } = route.params ?? {};
 
-  // אם יש סינון, נעבור ישירות לרשימת התרגילים המסוננת
   useEffect(() => {
     if (selectedMuscleGroup) {
       navigation.navigate("ExerciseList", {
         fromScreen: returnScreen || "ExercisesScreen",
         mode: "view",
-        selectedMuscleGroup: selectedMuscleGroup,
+        selectedMuscleGroup,
       });
     }
   }, [selectedMuscleGroup, navigation, returnScreen]);
@@ -96,7 +97,7 @@ const ExercisesScreen: React.FC = () => {
               style={styles.viewAllButton}
               onPress={handleViewAllExercises}
               activeOpacity={0.8}
-              accessible={true}
+              accessible
               accessibilityRole="button"
               accessibilityLabel="צפה בכל התרגילים"
             >
@@ -135,7 +136,7 @@ const ExercisesScreen: React.FC = () => {
                     style={styles.muscleCard}
                     onPress={() => handleMuscleGroupPress(group.id)}
                     activeOpacity={0.8}
-                    accessible={true}
+                    accessible
                     accessibilityRole="button"
                     accessibilityLabel={`קבוצת שרירי ${group.name}`}
                     accessibilityHint={`לחץ כדי לצפות בתרגילים עבור ${group.name}`}
@@ -178,13 +179,8 @@ const ExercisesScreen: React.FC = () => {
 export default ExercisesScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  scrollContent: {
-    paddingBottom: theme.spacing.xl,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  scrollContent: { paddingBottom: theme.spacing.xl },
   header: {
     alignItems: "center",
     paddingHorizontal: theme.spacing.lg,

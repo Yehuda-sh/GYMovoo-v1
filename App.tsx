@@ -1,11 +1,14 @@
 /**
  * @file App.tsx
- * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo
+ * @brief נקודת הכניסה הראשית לאפליקציית GYMovoo - גרסה פשוטה ומשופרת
  */
 
-import { initializeRTL } from "./src/utils/rtlHelpers";
-import React, { useEffect } from "react";
-import { StyleSheet } from "react-native";
+// חשוב: חייב להיות ממש בהתחלה לפני כל ייבוא אחר
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+
+import React, { useEffect, useRef } from "react";
+import { StyleSheet, AppState, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -13,60 +16,47 @@ import AppNavigator from "./src/navigation/AppNavigator";
 import { ErrorBoundary } from "./src/components/common/ErrorBoundary";
 import { useAppInitialization } from "./src/hooks/useAppInitialization";
 import { logger } from "./src/utils/logger";
+import { initializeRTL } from "./src/utils/rtlHelpers";
 
-import "react-native-reanimated";
-import "react-native-gesture-handler";
-
-/**
- * רכיב האפליקציה הראשי
- */
 export default function App(): React.JSX.Element {
+  // מניעת אתחול כפול של הגדרות עברית
+  const isRTLInitialized = useRef(false);
+  const appState = useRef(AppState.currentState);
+
   useAppInitialization();
 
-  // אתחול RTL בתחילת האפליקציה
+  // אתחול הגדרות עברית פעם אחת בלבד
   useEffect(() => {
-    initializeRTL();
+    if (!isRTLInitialized.current) {
+      initializeRTL();
+      isRTLInitialized.current = true;
+      logger.info("App", "RTL initialized successfully");
+    }
   }, []);
 
-  // טיפול ב-unhandled promise rejections
+  // מעקב אחרי מצב האפליקציה (רקע/חזית)
   useEffect(() => {
-    // Error handler for unhandled promise rejections
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logger.error("App", "Unhandled promise rejection", {
-        reason: event.reason,
-        promise: event.promise,
-      });
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      // חזרה מרקע לחזית
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        logger.info("App", "App returned to foreground");
+        // כאן אפשר לרענן נתונים אם צריך
+      }
 
-      // מנע התרסקות האפליקציה
-      event.preventDefault?.();
-    };
+      // מעבר לרקע
+      if (nextAppState.match(/inactive|background/)) {
+        logger.info("App", "App moved to background");
+        // כאן אפשר לשמור נתונים חשובים
+      }
 
-    // Error handler for uncaught exceptions
-    const handleError = (event: ErrorEvent) => {
-      logger.error("App", "Uncaught exception", {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error,
-      });
-    };
-
-    // הוספת event listeners (אם זמינים)
-    if (typeof window !== "undefined") {
-      window.addEventListener?.("unhandledrejection", handleUnhandledRejection);
-      window.addEventListener?.("error", handleError);
-    }
+      appState.current = nextAppState;
+    });
 
     return () => {
-      // ניקוי
-      if (typeof window !== "undefined") {
-        window.removeEventListener?.(
-          "unhandledrejection",
-          handleUnhandledRejection
-        );
-        window.removeEventListener?.("error", handleError);
-      }
+      subscription.remove();
     };
   }, []);
 
@@ -74,6 +64,12 @@ export default function App(): React.JSX.Element {
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
+          {/* סטטוס בר – נראה טוב גם במצב כהה וגם בבהיר */}
+          <StatusBar
+            translucent
+            backgroundColor="transparent"
+            barStyle="light-content"
+          />
           <AppNavigator />
           <Toast />
         </SafeAreaProvider>

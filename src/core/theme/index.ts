@@ -16,7 +16,7 @@
  */
 
 import { Dimensions, Platform } from "react-native";
-import type { ViewStyle, Insets } from "react-native";
+import type { ViewStyle, Insets, StyleProp } from "react-native";
 // ייבוא isRTL מהמקום המרכזי | Import isRTL from central location
 import { isRTL } from "../../utils/rtlHelpers";
 
@@ -260,10 +260,11 @@ export const zIndex = {
 // --- Touch & Accessibility Helpers ---
 export const touch = {
   minTarget: 44,
+  // ✅ תיקון: Insets חייבים left/right, לא start/end
   hitSlop: {
-    small: { top: 8, end: 8, bottom: 8, start: 8 } as Insets,
-    medium: { top: 12, end: 12, bottom: 12, start: 12 } as Insets,
-    large: { top: 16, end: 16, bottom: 16, start: 16 } as Insets,
+    small: { top: 8, right: 8, bottom: 8, left: 8 } as Insets,
+    medium: { top: 12, right: 12, bottom: 12, left: 12 } as Insets,
+    large: { top: 16, right: 16, bottom: 16, left: 16 } as Insets,
   },
 } as const;
 
@@ -276,11 +277,20 @@ export const rtl = {
   // מחזיר ערך על בסיס כיוון
   // Returns a value based on RTL direction
   switch: <T>(rtlValue: T, ltrValue: T): T => (isRTL() ? rtlValue : ltrValue),
-  // מחזיר style של קצה (left/right) לפי כיוון
-  edge: (value: number = spacing.lg) => ({
-    start: isRTL() ? undefined : value,
-    end: isRTL() ? value : undefined,
-  }),
+
+  /**
+   * ✅ תיקון: מחזיר style חוקי לקצה בהתאם ל-RTL.
+   * שימוש:
+   *   rtl.edge(16)                // ברירת מחדל: marginStart/marginEnd
+   *   rtl.edge(8, "padding")      // paddingStart/paddingEnd
+   */
+  edge: (value: number = spacing.lg, type: "margin" | "padding" = "margin") => {
+    if (type === "margin") {
+      return isRTL() ? { marginStart: value } : { marginEnd: value };
+    }
+    // padding
+    return isRTL() ? { paddingStart: value } : { paddingEnd: value };
+  },
 } as const;
 
 // --- Color Utils ---
@@ -567,20 +577,21 @@ export const components = {
   }: {
     absolute?: boolean;
     variant?: "default" | "minimal" | "large";
-    customStyle?: ViewStyle; // Proper ViewStyle type
-  }) => {
-    const baseStyle = {
+    // ✅ תיקון: StyleProp<ViewStyle> מאפשר מערכים/אובייקט/מספר
+    customStyle?: StyleProp<ViewStyle>;
+  }): StyleProp<ViewStyle> => {
+    const baseStyle: ViewStyle = {
       backgroundColor: colors.card + "CC",
       borderRadius: 24,
       width: 42,
       height: 42,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
+      alignItems: "center",
+      justifyContent: "center",
       ...shadows.medium,
       zIndex: 99,
     };
 
-    const variantStyles = {
+    const variantStyles: Record<string, ViewStyle> = {
       minimal: {
         backgroundColor: "transparent",
         width: 36,
@@ -596,12 +607,12 @@ export const components = {
       default: {},
     };
 
-    const absoluteStyle = absolute
+    // ✅ תיקון: שימוש ב-left/right במקום start/end למיקום מוחלט
+    const absoluteStyle: ViewStyle = absolute
       ? {
-          position: "absolute" as const,
+          position: "absolute",
           top: Platform.OS === "ios" ? 50 : 40,
-          start: isRTL() ? spacing.md : undefined,
-          end: isRTL() ? undefined : spacing.md,
+          ...(isRTL() ? { right: spacing.md } : { left: spacing.md }),
         }
       : {};
 

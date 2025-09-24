@@ -1,31 +1,38 @@
 /**
  * @file src/services/supabase/client.ts
- * @description Supabase client configuration and initialization
- * @brief מנהל חיבור ותצורה לSupabase - Database client setup
- *
- * Provides centralized Supabase client with proper configuration for:
- * - Authentication with session persistence
- * - Environment-based initialization
- * - Null-safe client access
- * - Development environment support
+ * @description Supabase client configuration and initialization (Expo-ready)
+ * @brief מנהל חיבור ותצורה ל-Supabase עם שמירת סשן ו־null-safety
  */
 
-// Supabase client configuration
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || "";
+/** Read env from Expo (EAS) */
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? "";
 const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+
+/** Quick validation (basic) */
+const isValidUrl = (u: string) => {
+  try {
+    const url = new URL(u);
+    return (
+      /^https?:$/.test(url.protocol) &&
+      /supabase\.co$|supabase\.in$/.test(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const hasUrl = SUPABASE_URL.length > 0 && isValidUrl(SUPABASE_URL);
+const hasKey = SUPABASE_ANON_KEY.length > 0;
+
+/** Export a boolean flag for feature-gating */
+export const hasSupabaseConfig: boolean = hasUrl && hasKey;
 
 /**
- * Check if Supabase configuration is available
- */
-export const hasSupabaseConfig: boolean = Boolean(
-  SUPABASE_URL && SUPABASE_ANON_KEY
-);
-
-/**
- * Supabase client instance - null if config missing
+ * Single, centralized Supabase client instance.
+ * Will be `null` when env vars are missing/invalid (safe to import everywhere).
  */
 export const supabase: SupabaseClient | null = hasSupabaseConfig
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -36,3 +43,23 @@ export const supabase: SupabaseClient | null = hasSupabaseConfig
       },
     })
   : null;
+
+/**
+ * Optional strict accessor:
+ * Call when you *must* have a live client (e.g., inside API services).
+ * Throws a clear error if the client is unavailable.
+ */
+export const getSupabaseOrThrow = (): SupabaseClient => {
+  if (!supabase) {
+    throw new Error(
+      "Supabase client not initialized. Make sure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set."
+    );
+  }
+  return supabase;
+};
+
+/**
+ * Soft status helper for diagnostics / health checks.
+ */
+export const supabaseHealth = () =>
+  hasSupabaseConfig ? ("ok" as const) : ("missing_config" as const);

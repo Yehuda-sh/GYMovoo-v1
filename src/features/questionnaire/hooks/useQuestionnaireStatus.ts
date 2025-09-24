@@ -26,33 +26,68 @@ export const useQuestionnaireStatus = (): QuestionnaireStatus => {
       };
     }
 
-    // Check if the user has any questionnaire data
-    const hasData =
-      !!user.questionnaireData &&
-      Object.keys(user.questionnaireData).length > 0;
+    const qd = user.questionnaireData;
+    const ans = qd?.answers as Record<string, unknown> | undefined;
 
-    let isComplete = false;
+    // יש נתוני שאלון בכלל?
+    const hasData = !!qd && !!ans && Object.keys(ans).length > 0;
 
-    if (hasData && user.questionnaireData?.answers) {
-      // Check if essential fields exist in answers
-      const answers = user.questionnaireData.answers;
-
-      // Helper function to check if field has valid value (string or non-empty array)
-      const hasValidValue = (field: string | string[] | undefined): boolean => {
-        if (!field) return false;
-        if (Array.isArray(field)) return field.length > 0;
-        return typeof field === "string" && field.trim().length > 0;
+    // אם אין תשובות – אי־אפשר להיות מושלם
+    if (!hasData || !ans) {
+      return {
+        hasData: !!qd,
+        isComplete: false,
+        isStarted: !!qd,
+        isPartial: false,
+        dataSource: "none",
+        completedAt: qd?.metadata?.completedAt,
       };
-
-      isComplete =
-        !!answers.gender &&
-        !!answers.weight &&
-        !!answers.height &&
-        hasValidValue(answers.goals || answers.fitness_goal) && // Allow both field names
-        hasValidValue(answers.availability) &&
-        !!answers.workout_duration &&
-        hasValidValue(answers.equipment);
     }
+
+    // עזרי ולידציה גנריים
+    const hasNonEmptyArray = (v: unknown): boolean =>
+      Array.isArray(v) && v.length > 0;
+
+    const hasNonEmptyString = (v: unknown): boolean =>
+      typeof v === "string" && v.trim().length > 0;
+
+    const isPositiveNumber = (v: unknown): boolean =>
+      typeof v === "number" && Number.isFinite(v) && v > 0;
+
+    // תמיכה בשם שדה ישן/חדש:
+    // goals / fitness_goal
+    const goalsOk =
+      hasNonEmptyArray(ans["goals"]) || hasNonEmptyString(ans["fitness_goal"]);
+
+    // availability (array של מזהים)
+    const availabilityOk = hasNonEmptyArray(ans["availability"]);
+
+    // sessionDuration (חדש) / workout_duration (ישן)
+    const durationOk =
+      hasNonEmptyString(ans["sessionDuration"]) ||
+      hasNonEmptyString(ans["workout_duration"]);
+
+    // equipment (array)
+    const equipmentOk = hasNonEmptyArray(ans["equipment"]);
+
+    // gender (string)
+    const genderOk = hasNonEmptyString(ans["gender"]);
+
+    // weight/height יכולים להיות מספרים (במערכת החכמה) או מחרוזות (בגרסאות ישנות)
+    const weightOk =
+      isPositiveNumber(ans["weight"]) || hasNonEmptyString(ans["weight"]);
+    const heightOk =
+      isPositiveNumber(ans["height"]) || hasNonEmptyString(ans["height"]);
+
+    // תנאי השלמה “הכרחיים”
+    const isComplete =
+      genderOk &&
+      weightOk &&
+      heightOk &&
+      goalsOk &&
+      availabilityOk &&
+      durationOk &&
+      equipmentOk;
 
     return {
       hasData,
@@ -60,7 +95,7 @@ export const useQuestionnaireStatus = (): QuestionnaireStatus => {
       isStarted: hasData,
       isPartial: hasData && !isComplete,
       dataSource: hasData ? "smart" : "none",
-      completedAt: user.questionnaireData?.metadata?.completedAt,
-    };
+      completedAt: qd?.metadata?.completedAt,
+    } as QuestionnaireStatus;
   }, [user]);
 };

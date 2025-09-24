@@ -1,3 +1,4 @@
+// cspell:ignore מזרון פיטנס קטוגנית שריפת
 /**
  * @file src/features/questionnaire/data/unifiedQuestionnaire.ts
  * @description מערכת שאלון אחודה ופשוטה
@@ -218,7 +219,7 @@ export const UNIFIED_QUESTIONS: Question[] = [
       {
         id: "intermediate",
         label: "בינוני",
-        description: "6 חודשים עד 2 שנים",
+        description: "יש ניסיון בסיסי",
       },
       { id: "advanced", label: "מתקדם", description: "יותר מ-2 שנים ניסיון" },
     ],
@@ -364,16 +365,37 @@ export class UnifiedQuestionnaireManager {
   private answers: Map<string, QuestionnaireAnswer> = new Map();
   private history: number[] = [];
 
+  /**
+   * מאתר את האינדקס הראשון לשאלה רלוונטית (שאינה מדולגת) החל מ־startIndex
+   * אם לא נמצאה – מחזיר this.questions.length
+   */
+  private getFirstRelevantIndex(startIndex: number): number {
+    let idx = Math.max(0, startIndex);
+    while (idx < this.questions.length) {
+      const q = this.questions[idx];
+      if (!q) break;
+      if (this.shouldSkipQuestion(q)) {
+        idx += 1;
+        continue;
+      }
+      break;
+    }
+    return idx;
+  }
+
+  /**
+   * מבט לרשומה הנוכחית (ללא שינוי state)
+   */
+  private peekCurrentQuestion(): Question | null {
+    const idx = this.getFirstRelevantIndex(this.currentQuestionIndex);
+    if (idx >= this.questions.length) return null;
+    const q = this.questions[idx]; // Question | undefined
+    return q ?? null; // ממיר ל- Question | null
+  }
+
   // קבל שאלה נוכחית
   getCurrentQuestion(): Question | null {
-    const question = this.questions[this.currentQuestionIndex];
-    if (question && this.shouldSkipQuestion(question)) {
-      if (this.nextQuestion()) {
-        return this.getCurrentQuestion();
-      }
-      return null;
-    }
-    return question || null;
+    return this.peekCurrentQuestion();
   }
 
   // בדוק אם צריך לדלג על שאלה
@@ -484,15 +506,21 @@ export class UnifiedQuestionnaireManager {
 
   // בדוק אם השאלון הושלם
   isCompleted(): boolean {
-    // Check if we've reached the last question AND answered it
-    const currentQuestion = this.getCurrentQuestion();
-    const isLastQuestion =
-      this.currentQuestionIndex >= this.questions.length - 1;
-    const hasCurrentAnswer = currentQuestion
-      ? this.answers.has(currentQuestion.id)
-      : false;
+    // מהי השאלה הרלוונטית הנוכחית?
+    const current = this.peekCurrentQuestion();
+    if (!current) {
+      // אין שאלות רלוונטיות נוספות
+      return true;
+    }
 
-    return isLastQuestion && hasCurrentAnswer;
+    // האם יש תשובה לשאלה הנוכחית?
+    if (!this.answers.has(current.id)) {
+      return false;
+    }
+
+    // חפש שאלה רלוונטית הבאה אחרי הנוכחית
+    const nextIdx = this.getFirstRelevantIndex(this.currentQuestionIndex + 1);
+    return nextIdx >= this.questions.length;
   }
 
   // איפוס השאלון

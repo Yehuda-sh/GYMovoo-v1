@@ -1,3 +1,8 @@
+// src/navigation/BottomNavigation.tsx
+/**
+ * @file src/navigation/BottomNavigation.tsx
+ * @description מנהל הניווט התחתון של האפליקציה עם טאבים עיקריים
+ */
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../core/theme";
@@ -14,8 +19,12 @@ export default function BottomNavigation() {
   return (
     <Tab.Navigator
       initialRouteName="Main"
+      // ✅ זה המקום הנכון ל-sceneContainerStyle (לא בתוך screenOptions)
+      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
+        lazy: true,
         tabBarStyle: {
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.cardBorder,
@@ -37,9 +46,14 @@ export default function BottomNavigation() {
         component={ProfileScreen}
         options={{
           title: "פרופיל",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={size}
+              color={color}
+            />
           ),
+          tabBarAccessibilityLabel: "כרטיסיית פרופיל",
         }}
       />
 
@@ -49,9 +63,14 @@ export default function BottomNavigation() {
         component={HistoryScreen}
         options={{
           title: "היסטוריה",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "bar-chart" : "bar-chart-outline"}
+              size={size}
+              color={color}
+            />
           ),
+          tabBarAccessibilityLabel: "כרטיסיית היסטוריה",
         }}
       />
 
@@ -64,6 +83,7 @@ export default function BottomNavigation() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="brain" size={size} color={color} />
           ),
+          tabBarAccessibilityLabel: "כרטיסיית תוכניות אימון",
         }}
       />
 
@@ -73,9 +93,14 @@ export default function BottomNavigation() {
         component={MainScreen}
         options={{
           title: "בית",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
           ),
+          tabBarAccessibilityLabel: "כרטיסיית בית",
         }}
       />
     </Tab.Navigator>

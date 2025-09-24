@@ -1,3 +1,4 @@
+// src/features/workout/screens/workout_screens/ActiveWorkoutScreen.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
@@ -14,6 +15,7 @@ import {
   useNavigation,
   useRoute,
   NavigationProp,
+  RouteProp,
 } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../core/theme";
@@ -21,11 +23,11 @@ import BackButton from "../../../../components/common/BackButton";
 import AppButton from "../../../../components/common/AppButton";
 import { nextWorkoutLogicService } from "../../services/nextWorkoutLogicService";
 import { calculateWorkoutStats } from "../../utils/workoutStatsCalculator";
-
 import { WorkoutExercise, Set } from "../../../../core/types/workout.types";
 import { RootStackParamList } from "../../../../navigation/types";
 import { wrapTextWithEmoji } from "../../../../utils/rtlHelpers";
 
+/** ---------- RestTimer ---------- */
 interface RestTimerProps {
   restTime: number;
   onComplete: () => void;
@@ -41,7 +43,6 @@ const RestTimer: React.FC<RestTimerProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(restTime);
 
-  // פונקציה להסבר זמן המנוחה
   const getRestTimeExplanation = (time: number): string => {
     if (time >= 120)
       return wrapTextWithEmoji("זמן מנוחה ארוך לתרגילי כוח", "💪");
@@ -58,42 +59,33 @@ const RestTimer: React.FC<RestTimerProps> = ({
     }
 
     if (timeLeft <= 0) {
-      // התראה קולית ורטט כשהטיימר מסתיים
       Vibration.vibrate([100, 50, 100, 50, 100]);
       onComplete();
       return;
     }
 
-    // רטט קל ב-10 השניות האחרונות
     if (timeLeft <= 10 && timeLeft > 0) {
       Vibration.vibrate(50);
     }
 
-    const timer = setTimeout(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
+    const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft, visible, restTime, onComplete]);
 
   useEffect(() => {
-    if (visible) {
-      setTimeLeft(restTime);
-    }
+    if (visible) setTimeLeft(restTime);
   }, [visible, restTime]);
 
   if (!visible) return null;
 
   const progress = ((restTime - timeLeft) / restTime) * 100;
 
-  // צבע דינמי לפי זמן שנותר
   const getTimerColor = () => {
-    if (timeLeft <= 10) return theme.colors.error; // אדום - זמן אוזל
-    if (timeLeft <= 30) return theme.colors.warning; // כתום - אזהרה
-    return theme.colors.primary; // כחול - רגיל
+    if (timeLeft <= 10) return theme.colors.error;
+    if (timeLeft <= 30) return theme.colors.warning;
+    return theme.colors.primary;
   };
 
-  // איקון דינמי
   const getTimerIcon = () => {
     if (timeLeft <= 10) return "clock-alert";
     if (timeLeft <= 30) return "clock-time-four";
@@ -116,15 +108,11 @@ const RestTimer: React.FC<RestTimerProps> = ({
           {timeLeft}s
         </Text>
 
-        {/* Progress Bar */}
         <View style={styles.progressBarContainer}>
           <View
             style={[
               styles.progressBar,
-              {
-                width: `${progress}%`,
-                backgroundColor: getTimerColor(),
-              },
+              { width: `${progress}%`, backgroundColor: getTimerColor() },
             ]}
           />
         </View>
@@ -162,6 +150,7 @@ const RestTimer: React.FC<RestTimerProps> = ({
   );
 };
 
+/** ---------- ExerciseItem ---------- */
 interface ExerciseItemProps {
   exercise: WorkoutExercise;
   onCompleteSet: (exerciseId: string, setId: string) => void;
@@ -182,21 +171,20 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
   onDeleteSet,
   onUpdateSet,
 }) => {
-  // פונקציה לקבלת רמז למשקל לפי סוג ציוד
   const getWeightHint = (equipment?: string): string => {
     switch (equipment) {
       case "dumbbells":
-        return '💡 המלצה: התחל עם 3-5 ק"ג לכל דמבל';
+        return '💡 המלצה: התחל עם 3–5 ק"ג לכל משקולת יד';
       case "barbell":
         return '💡 המלצה: התחל עם מוט ריק (20 ק"ג)';
       case "kettlebell":
-        return '💡 המלצה: התחל עם 8-12 ק"ג';
+        return '💡 המלצה: התחל עם 8–12 ק"ג';
       case "resistance_bands":
         return "💡 התחל עם התנגדות קלה/בינונית";
       case "bodyweight":
-        return "ℹ️ תרגיל משקל גוף - אין צורך במשקל נוסף";
+        return "ℹ️ תרגיל משקל גוף – אין צורך במשקל נוסף";
       case "cable_machine":
-        return '💡 המלצה: התחל עם 10-15 ק"ג';
+        return '💡 המלצה: התחל עם 10–15 ק"ג';
       case "smith_machine":
         return '💡 המלצה: התחל עם מוט ריק (20 ק"ג)';
       default:
@@ -218,7 +206,6 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
 
       {exercise.sets?.map((set, index) => (
         <View key={set.id} style={styles.setRow}>
-          {/* כפתור מחיקה - צד שמאל */}
           {(exercise.sets?.length || 0) > 1 && (
             <TouchableOpacity
               style={styles.deleteButton}
@@ -232,9 +219,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* אזור מרכזי עם כל השאר */}
           <View style={styles.setContent}>
-            {/* כפתור השלמה */}
             <TouchableOpacity
               style={[
                 styles.completeButton,
@@ -253,42 +238,41 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
               />
             </TouchableOpacity>
 
-            {/* מספר סט */}
             <Text style={styles.setNumber}>{index + 1}</Text>
 
-            {/* שדות עריכה - חזרות */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>חזרות</Text>
               <TextInput
                 style={styles.inputField}
                 value={(set.actualReps || set.targetReps || 0).toString()}
-                onChangeText={(text) => {
-                  const value = parseInt(text) || 0;
-                  onUpdateSet(exercise.id, set.id, "reps", value);
-                }}
+                onChangeText={(text) =>
+                  onUpdateSet(exercise.id, set.id, "reps", parseInt(text) || 0)
+                }
                 keyboardType="numeric"
                 textAlign="center"
                 selectTextOnFocus
               />
             </View>
 
-            {/* שדות עריכה - משקל */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>משקל</Text>
               <TextInput
                 style={styles.inputField}
                 value={(set.actualWeight || set.targetWeight || 0).toString()}
-                onChangeText={(text) => {
-                  const value = parseFloat(text) || 0;
-                  onUpdateSet(exercise.id, set.id, "weight", value);
-                }}
+                onChangeText={(text) =>
+                  onUpdateSet(
+                    exercise.id,
+                    set.id,
+                    "weight",
+                    parseFloat(text) || 0
+                  )
+                }
                 keyboardType="numeric"
                 textAlign="center"
                 selectTextOnFocus
               />
             </View>
 
-            {/* נפח הסט (חזרות × משקל) */}
             <View style={styles.volumeContainer}>
               <Text style={styles.volumeLabel}>נפח</Text>
               <Text style={styles.volumeValue}>
@@ -317,53 +301,39 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
   );
 };
 
-interface RouteParams {
-  workoutData?: {
-    name?: string;
-    exercises?: WorkoutExercise[];
-  };
-  pendingExercise?: {
-    id: string;
-    name: string;
-    category?: string;
-    primaryMuscles?: string[];
-    equipment?: string;
-    muscleGroup?: string;
-  };
-}
+/** ---------- Screen ---------- */
+type ActiveWorkoutRouteProp = RouteProp<RootStackParamList, "ActiveWorkout">;
 
 const ActiveWorkoutScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute();
+  const route = useRoute<ActiveWorkoutRouteProp>();
 
-  const { workoutData, pendingExercise } = (route.params as RouteParams) || {};
+  const { workoutData, pendingExercise } = route.params || {};
 
-  // Helper function to create default set with suggested weights
   const createDefaultSet = (equipment?: string): Set => {
     let suggestedWeight = 0;
     let suggestedReps = 12;
 
-    // הצעות משקל לפי סוג הציוד
     switch (equipment) {
       case "dumbbells":
-        suggestedWeight = 5; // 5 ק"ג לכל דמבל
+        suggestedWeight = 5;
         break;
       case "barbell":
-        suggestedWeight = 20; // מוט ריק
+        suggestedWeight = 20;
         break;
       case "kettlebell":
-        suggestedWeight = 8; // קטל בל בסיסי
+        suggestedWeight = 8;
         break;
       case "resistance_bands":
-        suggestedWeight = 0; // בלי משקל
-        suggestedReps = 15; // יותר חזרות
+        suggestedWeight = 0;
+        suggestedReps = 15;
         break;
       case "bodyweight":
-        suggestedWeight = 0; // משקל גוף
-        suggestedReps = 10; // פחות חזרות לתרגילי משקל גוף
+        suggestedWeight = 0;
+        suggestedReps = 10;
         break;
       default:
-        suggestedWeight = 5; // ברירת מחדל
+        suggestedWeight = 5;
         break;
     }
 
@@ -376,35 +346,28 @@ const ActiveWorkoutScreen: React.FC = () => {
     };
   };
 
-  // State management
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
     workoutData?.exercises || []
   );
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  // Rest timer state
   const [showRestTimer, setShowRestTimer] = useState(false);
-  const [restTime, setRestTime] = useState(60); // זמן מנוחה בשניות
+  const [restTime, setRestTime] = useState(60);
 
-  // פונקציה לחישוב זמן מנוחה לפי סוג תרגיל
   const calculateRestTime = (exercise: WorkoutExercise): number => {
     const equipment = exercise.equipment;
     const primaryMuscle = exercise.primaryMuscles?.[0];
-
-    // זמני מנוחה לפי ציוד וקבוצת שרירים
-    if (equipment === "barbell" || equipment === "squat_rack") return 120; // תרגילי כוח - 2 דקות
-    if (primaryMuscle === "legs" || primaryMuscle === "quadriceps") return 90; // רגליים - 1.5 דקות
+    if (equipment === "barbell" || equipment === "squat_rack") return 120;
+    if (primaryMuscle === "legs" || primaryMuscle === "quadriceps") return 90;
     if (equipment === "bodyweight" || equipment === "resistance_bands")
-      return 45; // תרגילי משקל גוף - 45 שניות
-    return 60; // ברירת מחדל - דקה
+      return 45;
+    return 60;
   };
 
-  // סטטיסטיקות בזמן אמת
   const liveStats = useMemo(() => {
     if (!exercises?.length) return null;
 
-    // יצירת פורמט תואם לפונקציה
     const formattedExercises = exercises.map((exercise) => ({
       id: exercise.id,
       name: exercise.name,
@@ -427,33 +390,31 @@ const ActiveWorkoutScreen: React.FC = () => {
     return calculateWorkoutStats(formattedExercises);
   }, [exercises]);
 
-  // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setWorkoutTime((prev) => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isTimerRunning]);
 
-  // Start timer on mount
   useEffect(() => {
     setIsTimerRunning(true);
     return () => setIsTimerRunning(false);
   }, []);
 
-  // Add pending exercise if exists
+  // ✅ שימוש בשדות שמוגדרים ב־RootStackParamList (אין category/primaryMuscles בפרמטר הניווט)
   useEffect(() => {
     if (pendingExercise && pendingExercise.id) {
       const newExercise: WorkoutExercise = {
         id: pendingExercise.id,
         name: pendingExercise.name,
-        category: pendingExercise.category || "Unknown",
-        primaryMuscles: pendingExercise.primaryMuscles || [
-          pendingExercise.muscleGroup || "Unknown",
-        ],
+        category: "Unknown",
+        primaryMuscles: [pendingExercise.muscleGroup || "Unknown"],
         equipment: pendingExercise.equipment || "bodyweight",
         sets: [createDefaultSet(pendingExercise.equipment || "bodyweight")],
       };
@@ -461,19 +422,16 @@ const ActiveWorkoutScreen: React.FC = () => {
     }
   }, [pendingExercise]);
 
-  // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Get stats from liveStats to avoid duplication
   const completedSets = liveStats?.completedSets || 0;
   const totalSets = liveStats?.totalSets || 0;
   const totalVolume = liveStats?.totalVolume || 0;
 
-  // Set management
   const handleCompleteSet = (exerciseId: string, setId: string) => {
     const exercise = exercises.find((ex) => ex.id === exerciseId);
     const set = exercise?.sets?.find((s) => s.id === setId);
@@ -483,15 +441,14 @@ const ActiveWorkoutScreen: React.FC = () => {
         ex.id === exerciseId
           ? {
               ...ex,
-              sets: (ex.sets || []).map((set) =>
-                set.id === setId ? { ...set, completed: !set.completed } : set
+              sets: (ex.sets || []).map((s) =>
+                s.id === setId ? { ...s, completed: !s.completed } : s
               ),
             }
           : ex
       )
     );
 
-    // אם הסט הושלם (לא בוטל), בדוק אם צריך טיימר מנוחה
     if (exercise && set && !set.completed) {
       const currentSetIndex =
         exercise.sets?.findIndex((s) => s.id === setId) || 0;
@@ -502,7 +459,6 @@ const ActiveWorkoutScreen: React.FC = () => {
       );
       const hasMoreExercises = currentExerciseIndex < exercises.length - 1;
 
-      // הפעל טיימר רק אם יש עוד סטים או תרגילים
       if (hasMoreSetsInExercise || hasMoreExercises) {
         const restDuration = calculateRestTime(exercise);
         setRestTime(restDuration);
@@ -547,7 +503,7 @@ const ActiveWorkoutScreen: React.FC = () => {
     setExercises((prev) =>
       prev.map((ex) =>
         ex.id === exerciseId
-          ? { ...ex, sets: (ex.sets || []).filter((set) => set.id !== setId) }
+          ? { ...ex, sets: (ex.sets || []).filter((s) => s.id !== setId) }
           : ex
       )
     );
@@ -564,15 +520,12 @@ const ActiveWorkoutScreen: React.FC = () => {
         ex.id === exerciseId
           ? {
               ...ex,
-              sets: (ex.sets || []).map((set) =>
-                set.id === setId
-                  ? {
-                      ...set,
-                      ...(field === "weight"
-                        ? { actualWeight: value, targetWeight: value }
-                        : { actualReps: value, targetReps: value }),
-                    }
-                  : set
+              sets: (ex.sets || []).map((s) =>
+                s.id === setId
+                  ? field === "weight"
+                    ? { ...s, actualWeight: value, targetWeight: value }
+                    : { ...s, actualReps: value, targetReps: value }
+                  : s
               ),
             }
           : ex
@@ -581,7 +534,7 @@ const ActiveWorkoutScreen: React.FC = () => {
   };
 
   const handleAddExercise = () => {
-    navigation.navigate("ExerciseList", {
+    navigation.navigate("ExercisesScreen", {
       fromScreen: "ActiveWorkout",
       mode: "selection",
       onSelectExercise: (selectedExercise: WorkoutExercise) => {
@@ -610,32 +563,29 @@ const ActiveWorkoutScreen: React.FC = () => {
           text: "סיים",
           style: "destructive",
           onPress: async () => {
-            // יצירת נתוני סיכום אימון
             const workoutSummaryData = {
               workoutName: workoutData?.name || "אימון פעיל",
               exercises: exercises.map((exercise) => ({
                 id: exercise.id,
                 name: exercise.name,
-                sets: (exercise.sets || []).map((set) => ({
-                  reps: set.actualReps || set.targetReps || 0,
-                  weight: set.actualWeight || set.targetWeight || 0,
-                  completed: set.completed,
+                sets: (exercise.sets || []).map((s) => ({
+                  reps: s.actualReps || s.targetReps || 0,
+                  weight: s.actualWeight || s.targetWeight || 0,
+                  completed: s.completed,
                 })),
-                restTime: 60, // ברירת מחדל
+                restTime: 60,
               })),
-              totalDuration: Math.floor(workoutTime / 60), // המרה לדקות
+              totalDuration: Math.floor(workoutTime / 60),
               totalSets: liveStats?.totalSets || 0,
               totalReps: liveStats?.totalReps || 0,
               totalVolume: liveStats?.totalVolume || 0,
-              personalRecords: [], // לעת עתה ריק
+              personalRecords: [],
               completedAt: new Date().toISOString(),
-              difficulty: 3, // ברירת מחדל
+              difficulty: 3,
             };
 
-            // עדכון שהאימון הושלם
             await nextWorkoutLogicService.updateWorkoutCompleted(0);
 
-            // מעבר למסך סיכום
             navigation.navigate("WorkoutSummary", {
               workoutData: workoutSummaryData,
             });
@@ -723,7 +673,6 @@ const ActiveWorkoutScreen: React.FC = () => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* הנחיות למתחילים */}
         <View style={styles.beginnerTipsContainer}>
           <Text style={styles.beginnerTipsTitle}>
             {wrapTextWithEmoji("טיפים לאימון בטוח ויעיל", "💪")}
@@ -774,11 +723,9 @@ const ActiveWorkoutScreen: React.FC = () => {
   );
 };
 
+/** ---------- Styles ---------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -792,25 +739,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: theme.spacing.md,
   },
-  workoutTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.colors.text,
-  },
-  workoutTime: {
-    fontSize: 16,
-    color: theme.colors.primary,
-    marginTop: 4,
-  },
+  workoutTitle: { fontSize: 18, fontWeight: "bold", color: theme.colors.text },
+  workoutTime: { fontSize: 16, color: theme.colors.primary, marginTop: 4 },
   timerButton: {
     padding: theme.spacing.sm,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.primary + "20",
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.md,
-  },
+  scrollView: { flex: 1, paddingHorizontal: theme.spacing.md },
+
+  /* Exercise item */
   exerciseCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.lg,
@@ -822,33 +760,34 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     paddingBottom: theme.spacing.sm,
     marginBottom: theme.spacing.md,
-    alignItems: "flex-end", // יישור לימין לטקסט עברי
+    alignItems: "flex-end",
   },
   exerciseName: {
     fontSize: 16,
     fontWeight: "bold",
     color: theme.colors.text,
-    textAlign: "right", // יישור טקסט לימין
+    textAlign: "right",
   },
   muscleGroup: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 4,
-    textAlign: "right", // יישור טקסט לימין
+    textAlign: "right",
   },
+
   setRow: {
-    flexDirection: "row", // שורה רגילה
+    flexDirection: "row",
     alignItems: "center",
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border + "30",
-    justifyContent: "space-between", // מפזר בין הקצוות
+    justifyContent: "space-between",
   },
   setContent: {
-    flexDirection: "row-reverse", // RTL למרכז
+    flexDirection: "row-reverse",
     alignItems: "center",
     flex: 1,
-    marginEnd: theme.spacing.sm, // רווח מכפתור המחיקה
+    marginEnd: theme.spacing.sm,
   },
   setNumber: {
     width: 30,
@@ -857,6 +796,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
   },
+
   inputContainer: {
     flex: 1,
     alignItems: "center",
@@ -878,7 +818,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     minWidth: 60,
     backgroundColor: theme.colors.background,
+    textAlign: "center",
   },
+
   volumeContainer: {
     alignItems: "center",
     marginHorizontal: theme.spacing.sm,
@@ -895,15 +837,10 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     textAlign: "center",
   },
-  completeButton: {
-    padding: theme.spacing.sm,
-  },
-  completedButton: {
-    opacity: 1,
-  },
-  deleteButton: {
-    padding: theme.spacing.sm,
-  },
+
+  completeButton: { padding: theme.spacing.sm },
+  completedButton: { opacity: 1 },
+  deleteButton: { padding: theme.spacing.sm },
   addSetButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -920,6 +857,8 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     marginStart: theme.spacing.xs,
   },
+
+  /* Footer / empty / tips */
   footer: {
     flexDirection: "row",
     padding: theme.spacing.md,
@@ -928,12 +867,8 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     gap: theme.spacing.md,
   },
-  addExerciseButton: {
-    flex: 1,
-  },
-  finishButton: {
-    flex: 2,
-  },
+  addExerciseButton: { flex: 1 },
+  finishButton: { flex: 2 },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -946,9 +881,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: theme.spacing.lg,
   },
-  addButton: {
-    marginTop: theme.spacing.lg,
-  },
+  addButton: { marginTop: theme.spacing.lg },
+
   liveStatsBar: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -958,9 +892,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  liveStatItem: {
-    alignItems: "center",
-  },
+  liveStatItem: { alignItems: "center" },
   liveStatLabel: {
     fontSize: 12,
     color: theme.colors.textSecondary,
@@ -972,12 +904,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 2,
   },
+
   weightHint: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     fontStyle: "italic",
     marginTop: 4,
   },
+
   beginnerTipsContainer: {
     backgroundColor: theme.colors.surface,
     margin: theme.spacing.md,
@@ -997,7 +931,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     lineHeight: 20,
   },
-  // Rest Timer Styles
+
+  // Rest Timer
   restTimerOverlay: {
     position: "absolute",
     top: 0,
@@ -1016,10 +951,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 280,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 10,
@@ -1063,10 +995,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     textAlign: "center",
   },
-  restTimerButtons: {
-    flexDirection: "row",
-    gap: theme.spacing.md,
-  },
+  restTimerButtons: { flexDirection: "row", gap: theme.spacing.md },
   skipButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -1076,11 +1005,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     gap: theme.spacing.sm,
   },
-  skipButtonText: {
-    fontSize: 16,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
+  skipButtonText: { fontSize: 16, color: theme.colors.text, fontWeight: "500" },
   addTimeButton: {
     flexDirection: "row",
     alignItems: "center",

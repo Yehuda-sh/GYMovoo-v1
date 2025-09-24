@@ -1,5 +1,14 @@
+// src/navigation/types.ts
+/**
+ * @file src/navigation/types.ts
+ * @description הגדרות סוגים לניווט באפליקציה
+ */
+import { NavigatorScreenParams } from "@react-navigation/native";
 import { WorkoutExercise } from "../core/types/workout.types";
 import { AuthStackParamList } from "../features/auth";
+
+// טיפוס עזר רופף ל-ISO DateTime (לא מחייב, רק מגן מהחלקות)
+type ISODateTime = `${number}-${number}-${number}T${string}` | string;
 
 export interface WorkoutSummaryData {
   workoutName: string;
@@ -18,7 +27,7 @@ export interface WorkoutSummaryData {
   totalReps: number;
   totalVolume: number;
   personalRecords: string[];
-  completedAt: string;
+  completedAt: ISODateTime;
   difficulty?: number;
   feeling?: string;
 }
@@ -26,14 +35,10 @@ export interface WorkoutSummaryData {
 export type RootStackParamList = {
   // Auth screens
   Welcome: undefined;
-  Auth:
-    | undefined
-    | {
-        screen?: keyof AuthStackParamList;
-        params?: {
-          fromQuestionnaire?: boolean;
-        };
-      };
+
+  // שימוש נכון בנסטינג: מפנה לסטאק של Auth
+  Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
+
   DeveloperScreen: undefined;
 
   // Questionnaire
@@ -49,7 +54,7 @@ export type RootStackParamList = {
     workoutData: {
       name: string;
       dayName: string;
-      startTime: string;
+      startTime: ISODateTime;
       exercises: WorkoutExercise[];
     };
     pendingExercise?: {
@@ -61,12 +66,26 @@ export type RootStackParamList = {
   };
 
   // Exercise screens
+  // ⚠️ שים לב: עדיף להימנע מפונקציות בפרמטרים (לא סריאליזבילי).
+  ExercisesScreen: {
+    fromScreen?: string;
+    mode?: "view" | "selection";
+    onSelectExercise?: (exercise: WorkoutExercise) => void; // ⚠️ לא נשמר בהתמדה
+    selectedMuscleGroup?: string;
+    filterTitle?: string;
+    returnScreen?: string;
+  };
+
+  // ✅ נוסף: מסך רשימת התרגילים שאליו אתה מנווט
   ExerciseList: {
     fromScreen?: string;
     mode?: "view" | "selection";
-    onSelectExercise?: (exercise: WorkoutExercise) => void;
+    onSelectExercise?: (exercise: WorkoutExercise) => void; // ⚠️ לא נשמר בהתמדה
     selectedMuscleGroup?: string;
+    filterTitle?: string;
+    returnScreen?: string;
   };
+
   ExerciseDetails: {
     exerciseId: string;
     exerciseName: string;
@@ -79,13 +98,8 @@ export type RootStackParamList = {
       tips?: string[];
     };
   };
-  ExercisesScreen: {
-    selectedMuscleGroup?: string;
-    filterTitle?: string;
-    returnScreen?: string;
-  };
 
-  // Main app
+  // Main app container
   MainApp: undefined;
 
   // Profile screens

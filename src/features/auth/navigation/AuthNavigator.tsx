@@ -3,6 +3,7 @@
  * @description ניווט למסכי אימות והרשמה
  */
 
+import React, { useMemo } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { useRoute } from "@react-navigation/native";
 
@@ -25,28 +26,35 @@ export type AuthStackParamList = {
 // יצירת מחסנית ניווט
 const Stack = createStackNavigator<AuthStackParamList>();
 
+// בדיקת תקינות למסך ראשי
+const isValidScreen = (screen?: string): screen is keyof AuthStackParamList =>
+  !!screen && ["Login", "Register", "ForgotPassword", "Terms"].includes(screen);
+
 /**
  * ניווט למסכי אימות
  */
 export const AuthNavigator = () => {
   const route = useRoute();
 
-  // בדוק אם הגענו עם פרמטר screen מהניווט הראשי
+  // קבלת פרמטרים לניווט
   const routeParams = route.params as
     | { screen?: keyof AuthStackParamList; params?: object }
     | undefined;
-  const initialScreen = routeParams?.screen || "Login";
 
-  console.log("🔍 [AuthNavigator] Initial screen:", {
-    initialScreen,
-    routeParams: route.params,
-  });
+  // שימוש ב־useMemo לחישוב המסך הראשי + בדיקת תקינות
+  const initialScreen = useMemo<keyof AuthStackParamList>(
+    () => (isValidScreen(routeParams?.screen) ? routeParams?.screen : "Login"),
+    [routeParams]
+  );
 
-  logger.info("AuthNavigator", "🎯 Navigation params:", {
-    params: route.params,
-    initialScreen,
-    fromQuestionnaire: routeParams?.params,
-  });
+  // לוגינג חכם – ידפיס רק בסביבות לא-Production
+  if (__DEV__) {
+    logger.info("AuthNavigator", "🎯 Navigation params:", {
+      params: route.params,
+      initialScreen,
+      fromQuestionnaire: routeParams?.params,
+    });
+  }
 
   return (
     <Stack.Navigator
