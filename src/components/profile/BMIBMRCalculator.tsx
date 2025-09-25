@@ -124,13 +124,16 @@ const BMIBMRCalculator: React.FC = () => {
       const gender = answers.gender === "female" ? "female" : "male";
 
       // Determine activity level from availability and fitness goals
-      let activityLevel: BMIBMRData["activityLevel"] = "moderate";
+      let activityLevel: BMICalculatorFormData["activityLevel"] = "moderate";
       if (answers.availability) {
         const availability = Array.isArray(answers.availability)
           ? answers.availability[0]
           : answers.availability;
 
-        const activityMapping: Record<string, BMIBMRData["activityLevel"]> = {
+        const activityMapping: Record<
+          string,
+          BMICalculatorFormData["activityLevel"]
+        > = {
           "2_days": "light",
           "3_days": "moderate",
           "4_days": "moderate",
@@ -159,7 +162,7 @@ const BMIBMRCalculator: React.FC = () => {
     }
   }, [user]);
 
-  const calculateResults = (data: BMIBMRData): BMIBMRResults => {
+  const calculateResults = (data: BMICalculatorFormData): BMIBMRResults => {
     const { weight, height, age, gender, activityLevel } = data;
 
     // BMI Calculation
@@ -189,7 +192,7 @@ const BMIBMRCalculator: React.FC = () => {
       active: 1.725,
       very_active: 1.9,
     };
-    const tdee = bmr * activityMultipliers[activityLevel];
+    const tdee = bmr * ACTIVITY_MULTIPLIERS[activityLevel];
 
     // Ideal Weight Range (based on BMI 18.5-24.9)
     const heightInMetersSquared = heightInMeters * heightInMeters;
