@@ -1,13 +1,9 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/components/ProfileInfoTab.tsx
- * @description כרטיסיית המידע האישי - הפרדת UI מהמסך הראשי
- *
- * השאלות שהובילו ליצירת הקומפוננט הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - כל ה-UI היה במסך אחד
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט תצוגת המידע האישי
+ * @description כרטיסיית המידע האישי - גרסה משופרת ופשוטה יותר
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,10 +17,8 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../../core/theme";
 import { isRTL, wrapBidi } from "../../../../../utils/rtlHelpers";
-
 import DefaultAvatar from "../../../../../components/common/DefaultAvatar";
 import AppButton from "../../../../../components/common/AppButton";
-
 import type { User } from "../../../../../core/types";
 import type { ProfileStats, ProfileBadge } from "../hooks/useProfileData";
 
@@ -51,6 +45,19 @@ interface Props {
   onNavigateToPersonalInfo: () => void;
 }
 
+// פונקציות עזר פשוטות
+const isUrlAvatar = (avatar: string | null): boolean =>
+  !!avatar?.startsWith("http");
+
+const isEmojiAvatar = (avatar: string | null): boolean =>
+  !!avatar && avatar.length === 2;
+
+const validateName = (name: string): string | null => {
+  if (!name.trim()) return "שם לא יכול להיות ריק";
+  if (name.length < 2) return "שם חייב להכיל לפחות 2 תווים";
+  return null;
+};
+
 export const ProfileInfoTab: React.FC<Props> = ({
   user,
   stats,
@@ -60,7 +67,7 @@ export const ProfileInfoTab: React.FC<Props> = ({
   onUpdateUser,
   onNavigateToPersonalInfo,
 }) => {
-  // Modal states
+  // State management
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(
@@ -69,6 +76,23 @@ export const ProfileInfoTab: React.FC<Props> = ({
   const [editedName, setEditedName] = useState(user?.name || "");
   const [nameError, setNameError] = useState<string | null>(null);
 
+  // מחשוב נתונים
+  const totalWorkouts = user?.trainingStats?.totalWorkouts || 0;
+  const currentStreak = user?.trainingStats?.currentStreak || 0;
+  const hasStats = totalWorkouts > 0 || currentStreak > 0;
+
+  // Badges מסוננים עם useMemo
+  const visibleBadges = useMemo(
+    () =>
+      profileBadges.filter((badge) => {
+        if (badge.key === "workouts") return totalWorkouts > 0;
+        if (badge.key === "streak") return currentStreak > 0;
+        return true;
+      }),
+    [profileBadges, totalWorkouts, currentStreak]
+  );
+
+  // Handlers
   const handleAvatarSave = async () => {
     if (selectedAvatar) {
       await onUpdateUser({ avatar: selectedAvatar });
@@ -77,13 +101,9 @@ export const ProfileInfoTab: React.FC<Props> = ({
   };
 
   const handleNameSave = async () => {
-    if (!editedName.trim()) {
-      setNameError("שם לא יכול להיות ריק");
-      return;
-    }
-
-    if (editedName.length < 2) {
-      setNameError("שם חייב להכיל לפחות 2 תווים");
+    const error = validateName(editedName);
+    if (error) {
+      setNameError(error);
       return;
     }
 
@@ -92,27 +112,32 @@ export const ProfileInfoTab: React.FC<Props> = ({
     setNameError(null);
   };
 
-  const totalWorkouts = user?.trainingStats?.totalWorkouts || 0;
-  const currentStreak = user?.trainingStats?.currentStreak || 0;
+  // רינדור אווטר - פונקציה פשוטה
+  const renderAvatar = () => {
+    if (isUrlAvatar(selectedAvatar)) {
+      return (
+        <Image source={{ uri: selectedAvatar || "" }} style={styles.avatar} />
+      );
+    }
+
+    if (isEmojiAvatar(selectedAvatar)) {
+      return (
+        <View style={styles.emojiAvatar}>
+          <Text style={styles.emojiText}>{selectedAvatar}</Text>
+        </View>
+      );
+    }
+
+    return <DefaultAvatar size={90} name={user?.name || ""} />;
+  };
 
   return (
     <View>
       {/* Profile Section */}
       <View style={styles.profileSection}>
         {/* Avatar */}
-        <TouchableOpacity
-          style={styles.avatarContainer}
-          onPress={() => setShowAvatarModal(true)}
-        >
-          {selectedAvatar && selectedAvatar.startsWith("http") ? (
-            <Image source={{ uri: selectedAvatar }} style={styles.avatar} />
-          ) : selectedAvatar && selectedAvatar.length === 2 ? (
-            <View style={styles.emojiAvatar}>
-              <Text style={styles.emojiText}>{selectedAvatar}</Text>
-            </View>
-          ) : (
-            <DefaultAvatar size={90} />
-          )}
+        <View style={styles.avatarContainer}>
+          {renderAvatar()}
           <TouchableOpacity
             style={styles.editAvatarButton}
             onPress={() => setShowAvatarModal(true)}
@@ -123,12 +148,13 @@ export const ProfileInfoTab: React.FC<Props> = ({
               color={theme.colors.primary}
             />
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
 
         {/* Name */}
         <TouchableOpacity
           onPress={() => canEditName() && setShowNameModal(true)}
           disabled={!canEditName()}
+          style={styles.nameContainer}
         >
           <Text style={styles.userName}>
             {wrapBidi(user?.name || "אלוף הכושר")}
@@ -143,6 +169,7 @@ export const ProfileInfoTab: React.FC<Props> = ({
           )}
         </TouchableOpacity>
 
+        {/* Email */}
         {user?.email && (
           <Text style={styles.userEmail}>{wrapBidi(user.email)}</Text>
         )}
@@ -157,7 +184,9 @@ export const ProfileInfoTab: React.FC<Props> = ({
               <View
                 style={[
                   styles.xpProgress,
-                  { width: `${(stats.xp / stats.nextLevelXp) * 100}%` },
+                  {
+                    width: `${Math.min((stats.xp / stats.nextLevelXp) * 100, 100)}%`,
+                  },
                 ]}
               />
             </View>
@@ -168,24 +197,18 @@ export const ProfileInfoTab: React.FC<Props> = ({
         )}
 
         {/* Badges */}
-        {(totalWorkouts > 0 || currentStreak > 0) && (
+        {hasStats && visibleBadges.length > 0 && (
           <View style={styles.badgesContainer}>
-            {profileBadges
-              .filter((badge) => {
-                if (badge.key === "workouts") return totalWorkouts > 0;
-                if (badge.key === "streak") return currentStreak > 0;
-                return true;
-              })
-              .map((badge) => (
-                <View
-                  key={badge.key}
-                  style={[styles.badge, { borderColor: badge.color }]}
-                >
-                  <Text style={[styles.badgeText, { color: badge.color }]}>
-                    {wrapBidi(badge.text)}
-                  </Text>
-                </View>
-              ))}
+            {visibleBadges.map((badge) => (
+              <View
+                key={badge.key}
+                style={[styles.badge, { borderColor: badge.color }]}
+              >
+                <Text style={[styles.badgeText, { color: badge.color }]}>
+                  {wrapBidi(badge.text)}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
       </View>
@@ -342,13 +365,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  nameContainer: {
+    alignItems: "center",
   },
   userName: {
     fontSize: 20,
@@ -466,7 +489,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   selectedPresetAvatar: {
-    backgroundColor: theme.colors.primary + "20",
+    backgroundColor: `${theme.colors.primary}20`,
     borderWidth: 2,
     borderColor: theme.colors.primary,
   },

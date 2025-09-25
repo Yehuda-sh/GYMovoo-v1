@@ -1,13 +1,9 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/components/ProfileEquipmentTab.tsx
- * @description כרטיסיית הציוד שלי - תצוגת הציוד הזמין
- *
- * השאלות שהובילו ליצירת הקומפוננט הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - הציוד היה מוטמע במסך
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט תצוגת הציוד
+ * @description כרטיסיית הציוד שלי - גרסה משופרת
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../../core/theme";
@@ -20,47 +16,63 @@ interface Props {
   onEditEquipment: () => void;
 }
 
-// פונקציה פשוטה לחילוץ ציוד המשתמש
+interface EquipmentItem {
+  key: string;
+  name: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+}
+
+// מפת אייקונים מיועלת
+const EQUIPMENT_ICONS: Record<
+  string,
+  keyof typeof MaterialCommunityIcons.glyphMap
+> = {
+  dumbbells: "dumbbell",
+  barbell: "weight-lifter",
+  kettlebell: "kettlebell",
+  resistance_bands: "weight",
+  pullup_bar: "human-handsup",
+  yoga_mat: "yoga",
+  foam_roller: "roller-skate",
+  jump_rope: "jump-rope",
+  medicine_ball: "basketball",
+  stability_ball: "circle",
+  free_weights: "weight-lifter",
+  machines: "cog",
+  cardio: "run",
+  bodyweight: "human",
+} as const;
+
+// פונקציה פשוטה לחילוץ ציוד - גרסה מועלת
 const extractUserEquipment = (user: User | null): string[] => {
-  if (!user?.questionnaireData?.answers) return [];
+  const equipment = user?.questionnaireData?.answers?.equipment_available;
 
-  // גישה לציוד באמצעות מפתח ישיר במבנה QuestionnaireAnswers
-  const equipment = user.questionnaireData.answers.equipment_available;
+  if (!Array.isArray(equipment)) return [];
 
-  if (!equipment || !Array.isArray(equipment)) return [];
-
-  return equipment.map((item: string | { id: string }) =>
-    typeof item === "string" ? item : item.id
-  );
-};
-
-// פונקציה פשוטה לקבלת אייקון הציוד
-const getEquipmentIcon = (equipmentKey: string): string => {
-  const iconMap: { [key: string]: string } = {
-    dumbbells: "dumbbell",
-    barbell: "weight-lifter",
-    kettlebell: "kettlebell",
-    resistance_bands: "weight",
-    pullup_bar: "pull-up",
-    yoga_mat: "yoga",
-    foam_roller: "roller-skate",
-    jump_rope: "jump-rope",
-    medicine_ball: "basketball",
-    stability_ball: "circle",
-    free_weights: "weight-lifter",
-    machines: "cog",
-    cardio: "run",
-    bodyweight: "human",
-  };
-
-  return iconMap[equipmentKey] || "help-circle";
+  // הפיכה למערך פשוטה יותר
+  return equipment
+    .map((item: string | { id?: string }) =>
+      typeof item === "string" ? item : item?.id || ""
+    )
+    .filter(Boolean);
 };
 
 export const ProfileEquipmentTab: React.FC<Props> = ({
   user,
   onEditEquipment,
 }) => {
-  const allEquipment = extractUserEquipment(user);
+  // מחשוב הציוד עם memoization
+  const equipmentItems: EquipmentItem[] = useMemo(() => {
+    const userEquipment = extractUserEquipment(user);
+
+    return userEquipment.map((equipmentKey) => ({
+      key: equipmentKey,
+      name: translateEquipment(equipmentKey),
+      icon: EQUIPMENT_ICONS[equipmentKey] || "help-circle",
+    }));
+  }, [user]);
+
+  const hasEquipment = equipmentItems.length > 0;
 
   return (
     <View style={styles.container}>
@@ -73,7 +85,7 @@ export const ProfileEquipmentTab: React.FC<Props> = ({
       </View>
 
       {/* Equipment List */}
-      {allEquipment.length === 0 ? (
+      {!hasEquipment ? (
         <View style={styles.noEquipmentContainer}>
           <MaterialCommunityIcons
             name="dumbbell"
@@ -87,22 +99,27 @@ export const ProfileEquipmentTab: React.FC<Props> = ({
         </View>
       ) : (
         <View style={styles.equipmentGrid}>
-          {allEquipment.map((equipment, index) => (
-            <View key={index} style={styles.equipmentItem}>
+          {equipmentItems.map((equipment) => (
+            <View key={equipment.key} style={styles.equipmentItem}>
               <MaterialCommunityIcons
-                name={
-                  getEquipmentIcon(
-                    equipment
-                  ) as keyof typeof MaterialCommunityIcons.glyphMap
-                }
+                name={equipment.icon}
                 size={24}
                 color={theme.colors.primary}
               />
               <Text style={styles.equipmentText}>
-                {wrapBidi(translateEquipment(equipment))}
+                {wrapBidi(equipment.name)}
               </Text>
             </View>
           ))}
+        </View>
+      )}
+
+      {/* Summary */}
+      {hasEquipment && (
+        <View style={styles.summary}>
+          <Text style={styles.summaryText}>
+            סך הכל: {equipmentItems.length} פריטי ציוד
+          </Text>
         </View>
       )}
     </View>
@@ -129,7 +146,7 @@ const styles = StyleSheet.create({
   editButton: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.primary + "15",
+    backgroundColor: `${theme.colors.primary}15`,
     borderRadius: theme.radius.md,
   },
   editButtonText: {
@@ -140,6 +157,8 @@ const styles = StyleSheet.create({
   noEquipmentContainer: {
     alignItems: "center",
     paddingVertical: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
   },
   noEquipmentText: {
     fontSize: 16,
@@ -154,6 +173,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     textAlign: "center",
     lineHeight: 20,
+    paddingHorizontal: theme.spacing.md,
   },
   equipmentGrid: {
     flexDirection: isRTL() ? "row-reverse" : "row",
@@ -169,6 +189,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     gap: theme.spacing.sm,
     minWidth: 120,
+    flex: 1,
+    maxWidth: "48%", // שני עמודות במקסימום
   },
   equipmentText: {
     fontSize: 14,
@@ -176,5 +198,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flex: 1,
     textAlign: isRTL() ? "right" : "left",
+  },
+  summary: {
+    marginTop: theme.spacing.md,
+    alignItems: "center",
+  },
+  summaryText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
   },
 });

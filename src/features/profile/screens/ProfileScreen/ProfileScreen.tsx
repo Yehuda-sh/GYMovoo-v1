@@ -12,7 +12,8 @@
  */
 
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../../../core/theme";
 import { useProfileData } from "./hooks/useProfileData";
 import { ProfileTabs } from "./components/ProfileTabs";
@@ -20,8 +21,11 @@ import { ProfileInfoTab } from "./components/ProfileInfoTab";
 import { ProfileJourneyTab } from "./components/ProfileJourneyTab";
 import { ProfileEquipmentTab } from "./components/ProfileEquipmentTab";
 import { ProfileSettingsTab } from "./components/ProfileSettingsTab";
+import LoadingSpinner from "../../../../components/common/LoadingSpinner";
+import EmptyState from "../../../../components/common/EmptyState";
 
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
   const {
     user,
     stats,
@@ -32,23 +36,68 @@ export const ProfileScreen: React.FC = () => {
     activeTab,
     setActiveTab,
     handleLogout,
+    loading,
   } = useProfileData();
 
-  // פונקציות פעולה פשוטות - לא צריכות להיות ב-hook
+  // Navigation handlers - עם בדיקות אבטחה
   const handleEditPersonalInfo = () => {
-    // TODO: Navigate to personal info screen
-    console.log("Edit personal info");
+    if (!user) {
+      Alert.alert("שגיאה", "נתוני המשתמש לא נטענו");
+      return;
+    }
+    navigation.navigate("PersonalInfo" as never);
   };
 
   const handleEditQuestionnaire = () => {
-    // TODO: Navigate to questionnaire screen
-    console.log("Edit questionnaire");
+    if (!user) {
+      Alert.alert("שגיאה", "נתוני המשתמש לא נטענו");
+      return;
+    }
+    navigation.navigate("Questionnaire" as never);
   };
 
   const handleDeleteAccount = () => {
-    // TODO: Implement account deletion
-    console.log("Delete account");
+    Alert.alert(
+      "מחיקת חשבון",
+      "האם אתה בטוח שברצונך למחוק את החשבון? פעולה זו לא ניתנת לביטול.",
+      [
+        { text: "ביטול", style: "cancel" },
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await handleLogout();
+              Alert.alert("החשבון נמחק בהצלחה");
+            } catch {
+              Alert.alert("שגיאה", "לא ניתן למחוק את החשבון כרגע");
+            }
+          },
+        },
+      ]
+    );
   };
+
+  // טיפול במצב loading
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <LoadingSpinner />
+      </View>
+    );
+  }
+
+  // טיפול במצב שאין משתמש
+  if (!user) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <EmptyState
+          title="נתוני פרופיל לא נמצאו"
+          description="יש לחזור לדף הכניסה"
+        />
+      </View>
+    );
+  }
 
   // רנדר התוכן לפי הכרטיסייה הפעילה
   const renderTabContent = () => {
@@ -91,7 +140,12 @@ export const ProfileScreen: React.FC = () => {
           />
         );
       default:
-        return null;
+        return (
+          <EmptyState
+            title="כרטיסייה לא נמצאה"
+            description="נסה לבחור כרטיסייה אחרת"
+          />
+        );
     }
   };
 
@@ -110,6 +164,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

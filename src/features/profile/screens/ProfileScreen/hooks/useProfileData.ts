@@ -1,15 +1,11 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/hooks/useProfileData.ts
- * @description Hook לניהול נתוני הפרופיל - הפרדת לוגיקה מ-UI
- *
- * השאלות שהובילו ליצירת ה-Hook הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - כל הלוגיקה הייתה במסך אחד
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט חישובי הנתונים
+ * @description Hook לניהול נתוני הפרופיל - גרסה משופרת
  */
 
 import { useState, useMemo, useCallback } from "react";
 import { useUserStore } from "../../../../../stores/userStore";
-
+import { theme } from "../../../../../core/theme";
 import { logger } from "../../../../../utils/logger";
 
 export interface ProfileStats {
@@ -26,6 +22,10 @@ export interface ProfileBadge {
   text: string;
   color: string;
 }
+
+// קונסטנטים לחישובי XP
+const XP_PER_WORKOUT = 10;
+const WORKOUTS_PER_LEVEL = 10;
 
 export const useProfileData = () => {
   const { user, updateUser, logout } = useUserStore();
@@ -46,15 +46,15 @@ export const useProfileData = () => {
     [user?.personalInfo]
   );
 
-  // חישובי סטטיסטיקות - פשוט יותר
+  // חישובי סטטיסטיקות - מתוקן ומשופר
   const stats = useMemo((): ProfileStats => {
     const totalWorkouts = user?.trainingStats?.totalWorkouts || 0;
     const currentStreak = user?.trainingStats?.currentStreak || 0;
     const averageRating = user?.trainingStats?.averageRating || 0;
 
-    const level = Math.floor(totalWorkouts / 10) + 1;
-    const xp = totalWorkouts * 10;
-    const nextLevelXp = level * 100;
+    const level = Math.floor(totalWorkouts / WORKOUTS_PER_LEVEL) + 1;
+    const xp = totalWorkouts * XP_PER_WORKOUT;
+    const nextLevelXp = level * WORKOUTS_PER_LEVEL * XP_PER_WORKOUT; // XP נדרש לרמה הבאה
 
     return {
       level,
@@ -66,23 +66,23 @@ export const useProfileData = () => {
     };
   }, [user?.trainingStats]);
 
-  // Profile badges - פשוט יותר
+  // Profile badges - עם צבעי theme
   const profileBadges = useMemo(
     (): ProfileBadge[] => [
       {
         key: "level",
         text: `רמה ${stats.level}`,
-        color: "#007AFF",
+        color: theme.colors.primary,
       },
       {
         key: "workouts",
         text: `${stats.workouts} אימונים`,
-        color: "#34C759",
+        color: theme.colors.success,
       },
       {
         key: "streak",
         text: `${stats.streak} ימי רצף`,
-        color: "#FF9500",
+        color: theme.colors.warning,
       },
     ],
     [stats]
@@ -92,7 +92,11 @@ export const useProfileData = () => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refresh user data
+      // TODO: Add actual refresh logic here
+      // לדוגמה: await refetchUserData()
+      logger.info("ProfileData", "Refreshing profile data");
+
+      // זמני: סימולציה של טעינה
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       logger.error("ProfileData", "Error refreshing", error);
@@ -105,16 +109,26 @@ export const useProfileData = () => {
     setLoading(true);
     try {
       await logout();
+      logger.info("ProfileData", "User logged out successfully");
     } catch (error) {
       logger.error("ProfileData", "Error logging out", error);
+      throw error; // Re-throw למי שקורא לפונקציה
     } finally {
       setLoading(false);
     }
   }, [logout]);
 
+  // תיקון הלוגיקה - כעת משקף את המשמעות האמיתית
   const canEditName = useCallback((): boolean => {
-    return !!(user?.name && user.name !== "אלוף הכושר");
+    // אפשר לערוך שם אם אין שם או שהשם הוא ברירת המחדל
+    const currentName = user?.name;
+    return !currentName || currentName === "אלוף הכושר";
   }, [user?.name]);
+
+  // בדיקה נוספת - האם המשתמש חדש
+  const isNewUser = useMemo(() => {
+    return stats.workouts === 0 && !hasQuestionnaireData;
+  }, [stats.workouts, hasQuestionnaireData]);
 
   return {
     // Data
@@ -123,6 +137,7 @@ export const useProfileData = () => {
     profileBadges,
     hasQuestionnaireData,
     hasPersonalInfo,
+    isNewUser,
 
     // State
     refreshing,

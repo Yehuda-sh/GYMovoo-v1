@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
-import type { StackNavigationProp } from "@react-navigation/native-stack"; // Changed from @react-navigation/stack
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../core/theme";
@@ -55,7 +55,8 @@ interface ProcessedStats {
 }
 
 function MainScreen() {
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const {
     refreshing,

@@ -1,10 +1,6 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/components/ProfileSettingsTab.tsx
- * @description כרטיסיית הגדרות המשתמש - העדפות ונתונים אישיים
- *
- * השאלות שהובילו ליצירת הקומפוננט הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - הגדרות היו מפוזרות במסך
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט ממשק ההגדרות
+ * @description כרטיסיית הגדרות המשתמש - גרסה משופרת
  */
 
 import React from "react";
@@ -46,37 +42,36 @@ export const ProfileSettingsTab: React.FC<Props> = ({
   onLogout,
   onDeleteAccount,
 }) => {
-  // פונקציה פשוטה להצגת אזהרה למחיקת חשבון
+  // Alerts פשוטים יותר
   const handleDeleteAccount = () => {
     Alert.alert(
       "מחיקת חשבון",
-      "האם אתה בטוח שברצונך למחוק את החשבון? פעולה זו אינה הפיכה ותמחק את כל הנתונים שלך.",
+      "פעולה זו תמחק את כל הנתונים ולא ניתן לבטל אותה.",
       [
         { text: "ביטול", style: "cancel" },
-        { text: "מחק חשבון", style: "destructive", onPress: onDeleteAccount },
+        { text: "מחק", style: "destructive", onPress: onDeleteAccount },
       ]
     );
   };
 
-  // פונקציה פשוטה להצגת אזהרה ליציאה
   const handleLogout = () => {
-    Alert.alert("יציאה מהחשבון", "האם אתה בטוח שברצונך לצאת מהחשבון?", [
+    Alert.alert("יציאה", "לצאת מהחשבון?", [
       { text: "ביטול", style: "cancel" },
-      { text: "יציאה", style: "default", onPress: onLogout },
+      { text: "יציאה", onPress: onLogout },
     ]);
   };
 
   const settingsItems: SettingsItem[] = [
     {
       title: "עריכת נתונים אישיים",
-      subtitle: "משקל, גובה, יעדים ועוד",
+      subtitle: "משקל, גובה, יעדים",
       icon: "account-edit",
       iconFamily: "MaterialCommunityIcons",
       onPress: onEditPersonalInfo,
       type: "navigation",
     },
     {
-      title: "עריכת שאלון התחלתי",
+      title: "עריכת שאלון",
       subtitle: "עדכון העדפות וציוד",
       icon: "clipboard-edit",
       iconFamily: "MaterialCommunityIcons",
@@ -92,7 +87,7 @@ export const ProfileSettingsTab: React.FC<Props> = ({
     },
     {
       title: "מחיקת חשבון",
-      subtitle: "מחיקה סופית של כל הנתונים",
+      subtitle: "מחיקה סופית",
       icon: "delete-forever",
       iconFamily: "MaterialIcons",
       onPress: handleDeleteAccount,
@@ -101,25 +96,30 @@ export const ProfileSettingsTab: React.FC<Props> = ({
     },
   ];
 
-  // רנדר פריט הגדרה בודד
+  // רנדור item מפושט
   const renderSettingsItem = (item: SettingsItem, index: number) => {
-    const IconComponent =
-      item.iconFamily === "MaterialCommunityIcons"
-        ? MaterialCommunityIcons
-        : MaterialIcons;
+    const iconColor = item.danger ? theme.colors.error : theme.colors.primary;
 
     return (
       <TouchableOpacity
-        key={index}
+        key={`settings-${index}`}
         style={[styles.settingsItem, item.danger && styles.dangerItem]}
         onPress={item.onPress}
       >
         <View style={styles.itemContent}>
-          <IconComponent
-            name={item.icon as keyof typeof IconComponent.glyphMap}
-            size={24}
-            color={item.danger ? theme.colors.error : theme.colors.primary}
-          />
+          {item.iconFamily === "MaterialCommunityIcons" ? (
+            <MaterialCommunityIcons
+              name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+              size={24}
+              color={iconColor}
+            />
+          ) : (
+            <MaterialIcons
+              name={item.icon as keyof typeof MaterialIcons.glyphMap}
+              size={24}
+              color={iconColor}
+            />
+          )}
           <View style={styles.itemText}>
             <Text style={[styles.itemTitle, item.danger && styles.dangerText]}>
               {wrapBidi(item.title)}
@@ -170,14 +170,12 @@ export const ProfileSettingsTab: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* App Info */}
+      {/* App Info - פשוט יותר */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>אודות האפליקציה</Text>
+        <Text style={styles.sectionTitle}>אודות</Text>
         <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>גרסה 1.0.0</Text>
-          <Text style={styles.appDescription}>
-            GYMovoo - האפליקציה שלך לאימונים חכמים
-          </Text>
+          <Text style={styles.appVersion}>GYMovoo v1.0.0</Text>
+          <Text style={styles.appDescription}>אפליקציה לאימונים חכמים</Text>
         </View>
       </View>
     </ScrollView>
@@ -236,7 +234,8 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   dangerItem: {
-    backgroundColor: theme.colors.error + "05",
+    // פשוט יותר - ללא string concatenation
+    backgroundColor: `${theme.colors.error}05`,
   },
   itemContent: {
     flexDirection: isRTL() ? "row-reverse" : "row",

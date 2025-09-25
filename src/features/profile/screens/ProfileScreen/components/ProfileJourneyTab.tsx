@@ -1,13 +1,9 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/components/ProfileJourneyTab.tsx
  * @description כרטיסיית המסע שלי - הישגים וסטטיסטיקות
- *
- * השאלות שהובילו ליצירת הקומפוננט הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - כל הנתונים היו במסך אחד
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט תצוגת ההישגים
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../../core/theme";
@@ -15,7 +11,7 @@ import { isRTL, wrapBidi } from "../../../../../utils/rtlHelpers";
 import { PROFILE_SCREEN_TEXTS } from "../../../../../constants/profileScreenTexts";
 import AchievementSystem from "../../../../../components/achievement/AchievementSystem";
 import type { User } from "../../../../../core/types";
-import type { ProfileStats } from "../hooks/useProfileData";
+import type { ProfileStats, ProfileBadge } from "../hooks/useProfileData";
 
 interface Props {
   user: User | null;
@@ -23,12 +19,25 @@ interface Props {
   profileBadges: ProfileBadge[];
 }
 
-import type { ProfileBadge } from "../hooks/useProfileData";
+interface StatCard {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  value: number;
+  label: string;
+  visible: boolean;
+}
+
+interface Achievement {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  text: string;
+  condition: boolean;
+}
 
 export const ProfileJourneyTab: React.FC<Props> = ({
   user,
   stats,
-  profileBadges: _profileBadges,
+  // profileBadges not used - removed from destructuring
 }) => {
   const [showAchievements, setShowAchievements] = useState(false);
 
@@ -36,61 +45,88 @@ export const ProfileJourneyTab: React.FC<Props> = ({
   const currentStreak = user?.trainingStats?.currentStreak || 0;
   const averageRating = user?.trainingStats?.averageRating || 0;
 
+  // מערך הסטטיסטיקות - פשוט יותר
+  const statCards: StatCard[] = useMemo(
+    () => [
+      {
+        icon: "dumbbell",
+        color: theme.colors.primary,
+        value: stats.workouts,
+        label: PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS,
+        visible: totalWorkouts > 0,
+      },
+      {
+        icon: "fire",
+        color: theme.colors.warning,
+        value: stats.streak,
+        label: PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS,
+        visible: currentStreak > 0,
+      },
+      {
+        icon: "star",
+        color: theme.colors.success,
+        value: stats.rating,
+        label: "דירוג",
+        visible: averageRating > 0,
+      },
+    ],
+    [stats, totalWorkouts, currentStreak, averageRating]
+  );
+
+  // הישגים פשוטים - מערך נקי
+  const achievements: Achievement[] = useMemo(
+    () => [
+      {
+        icon: "trophy",
+        color: "#FFD700",
+        text: "אימון ראשון",
+        condition: totalWorkouts >= 1,
+      },
+      {
+        icon: "medal",
+        color: "#C0C0C0",
+        text: "10 אימונים",
+        condition: totalWorkouts >= 10,
+      },
+      {
+        icon: "fire",
+        color: "#FF6B35",
+        text: "רצף 3 ימים",
+        condition: currentStreak >= 3,
+      },
+    ],
+    [totalWorkouts, currentStreak]
+  );
+
+  const visibleStats = statCards.filter((stat) => stat.visible);
+  const earnedAchievements = achievements.filter(
+    (achievement) => achievement.condition
+  );
+  const hasAnyStats = visibleStats.length > 0;
+
   return (
     <View>
       {/* Stats Section */}
-      {(totalWorkouts > 0 || currentStreak > 0 || averageRating > 0) && (
+      {hasAnyStats && (
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>
             {wrapBidi(PROFILE_SCREEN_TEXTS.HEADERS.MY_STATS)}
           </Text>
 
           <View style={styles.statsGrid}>
-            {totalWorkouts > 0 && (
-              <View style={styles.statCard}>
+            {visibleStats.map((stat, index) => (
+              <View key={`stat-${index}`} style={styles.statCard}>
                 <MaterialCommunityIcons
-                  name="dumbbell"
+                  name={stat.icon}
                   size={24}
-                  color={theme.colors.primary}
+                  color={stat.color}
                 />
                 <Text style={styles.statNumber}>
-                  {wrapBidi(String(stats.workouts))}
+                  {wrapBidi(String(stat.value))}
                 </Text>
-                <Text style={styles.statLabel}>
-                  {PROFILE_SCREEN_TEXTS.STATS.TOTAL_WORKOUTS}
-                </Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
               </View>
-            )}
-
-            {currentStreak > 0 && (
-              <View style={styles.statCard}>
-                <MaterialCommunityIcons
-                  name="fire"
-                  size={24}
-                  color={theme.colors.warning}
-                />
-                <Text style={styles.statNumber}>
-                  {wrapBidi(String(stats.streak))}
-                </Text>
-                <Text style={styles.statLabel}>
-                  {PROFILE_SCREEN_TEXTS.STATS.STREAK_DAYS}
-                </Text>
-              </View>
-            )}
-
-            {averageRating > 0 && (
-              <View style={styles.statCard}>
-                <MaterialCommunityIcons
-                  name="star"
-                  size={24}
-                  color={theme.colors.success}
-                />
-                <Text style={styles.statNumber}>
-                  {wrapBidi(String(stats.rating))}
-                </Text>
-                <Text style={styles.statLabel}>דירוג</Text>
-              </View>
-            )}
+            ))}
           </View>
         </View>
       )}
@@ -112,29 +148,35 @@ export const ProfileJourneyTab: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
 
-        {/* הישגים פשוטים */}
-        <View style={styles.simpleAchievements}>
-          {totalWorkouts >= 1 && (
-            <View style={styles.achievementBadge}>
-              <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-              <Text style={styles.achievementText}>אימון ראשון</Text>
-            </View>
-          )}
-
-          {totalWorkouts >= 10 && (
-            <View style={styles.achievementBadge}>
-              <MaterialCommunityIcons name="medal" size={20} color="#C0C0C0" />
-              <Text style={styles.achievementText}>10 אימונים</Text>
-            </View>
-          )}
-
-          {currentStreak >= 3 && (
-            <View style={styles.achievementBadge}>
-              <MaterialCommunityIcons name="fire" size={20} color="#FF6B35" />
-              <Text style={styles.achievementText}>רצף 3 ימים</Text>
-            </View>
-          )}
-        </View>
+        {/* הישגים שהושגו */}
+        {earnedAchievements.length > 0 ? (
+          <View style={styles.simpleAchievements}>
+            {earnedAchievements.map((achievement, index) => (
+              <View
+                key={`achievement-${index}`}
+                style={styles.achievementBadge}
+              >
+                <MaterialCommunityIcons
+                  name={achievement.icon}
+                  size={20}
+                  color={achievement.color}
+                />
+                <Text style={styles.achievementText}>{achievement.text}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.noAchievements}>
+            <MaterialCommunityIcons
+              name="trophy-outline"
+              size={48}
+              color={theme.colors.textSecondary}
+            />
+            <Text style={styles.noAchievementsText}>
+              התחל להתאמן כדי לזכות בהישגים
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Achievement System Modal */}
@@ -221,5 +263,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.text,
     fontWeight: "500",
+  },
+  noAchievements: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+  },
+  noAchievementsText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.sm,
+    textAlign: "center",
   },
 });

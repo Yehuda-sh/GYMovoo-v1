@@ -1,13 +1,9 @@
 /**
  * @file src/features/profile/screens/ProfileScreen/components/ProfileTabs.tsx
- * @description ניהול הטאבים במסך הפרופיל - פישוט הניווט
- *
- * השאלות שהובילו ליצירת הקומפוננט הזה:
- * - "למה הפונקציה הזאת כל כך מורכבת?" - ניהול הטאבים היה מפוזר
- * - "אפשר לעשות את זה בשורה אחת?" - פישוט הטאבים לרכיב עצמאי
+ * @description ניהול הטאבים במסך הפרופיל - גרסה משופרת
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../../core/theme";
@@ -16,7 +12,7 @@ import { isRTL } from "../../../../../utils/rtlHelpers";
 export interface ProfileTab {
   id: string;
   title: string;
-  icon: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
 }
 
 const PROFILE_TABS: ProfileTab[] = [
@@ -48,36 +44,46 @@ interface Props {
 }
 
 export const ProfileTabs: React.FC<Props> = ({ activeTab, onTabChange }) => {
+  // מחשוב styles עם useMemo לאופטימיזציה
+  const activeTabStyle = useMemo(
+    () => ({
+      backgroundColor: `${theme.colors.primary}15`,
+    }),
+    []
+  );
+
   return (
     <View style={styles.tabsContainer}>
-      {PROFILE_TABS.map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[
-            styles.tabButton,
-            activeTab === tab.id && styles.activeTabButton,
-          ]}
-          onPress={() => onTabChange(tab.id)}
-        >
-          <MaterialCommunityIcons
-            name={tab.icon as keyof typeof MaterialCommunityIcons.glyphMap}
-            size={20}
-            color={
-              activeTab === tab.id
-                ? theme.colors.primary
-                : theme.colors.textSecondary
-            }
-          />
-          <Text
+      {PROFILE_TABS.map((tab) => {
+        const isActive = activeTab === tab.id;
+
+        return (
+          <TouchableOpacity
+            key={tab.id}
             style={[
-              styles.tabButtonText,
-              activeTab === tab.id && styles.activeTabButtonText,
+              styles.tabButton,
+              isActive && [styles.activeTabButton, activeTabStyle],
             ]}
+            onPress={() => onTabChange(tab.id)}
           >
-            {tab.title}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <MaterialCommunityIcons
+              name={tab.icon}
+              size={20}
+              color={
+                isActive ? theme.colors.primary : theme.colors.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.tabButtonText,
+                isActive && styles.activeTabButtonText,
+              ]}
+            >
+              {tab.title}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
@@ -101,7 +107,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeTabButton: {
-    backgroundColor: theme.colors.primary + "15",
+    // הצבע מחושב ב-component עם useMemo
   },
   tabButtonText: {
     fontSize: 12,
