@@ -16,9 +16,36 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../core/theme";
 import { useUserStore } from "../../stores/userStore";
-import type { BMIBMRHistory, BMIBMRResults } from "../../core/types/user.types";
+import type {
+  BMIBMRHistory,
+  BMIBMRResults,
+  PersonalInfo,
+  GenderProfile,
+} from "../../core/types/user.types";
 
-interface BMIBMRData {
+type ActivityLevel =
+  | "sedentary"
+  | "light"
+  | "moderate"
+  | "active"
+  | "very_active";
+
+const ACTIVITY_MULTIPLIERS = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9,
+} as const;
+
+type BMICalculatorFormData = Pick<PersonalInfo, "weight" | "height"> & {
+  age: number;
+  gender: NonNullable<GenderProfile["selectedGender"]>;
+  activityLevel: ActivityLevel;
+};
+
+// Using BMICalculatorFormData type defined above
+interface OldBMIBMRData {
   weight: number;
   height: number;
   age: number;
@@ -29,7 +56,7 @@ interface BMIBMRData {
 const BMIBMRCalculator: React.FC = () => {
   const { user, updateUser } = useUserStore();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [formData, setFormData] = useState<BMIBMRData>({
+  const [formData, setFormData] = useState<BMICalculatorFormData>({
     weight: 0,
     height: 0,
     age: 0,
