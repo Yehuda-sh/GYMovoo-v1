@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "jsEngine": "hermes",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "gymovoo",
     "platforms": ["ios", "android"],
     "description": "Smart Fitness App - אפליקציית כושר חכמה",
@@ -28,6 +28,7 @@
       "bundleIdentifier": "com.gymovoo.app",
       "buildNumber": "1",
       "jsEngine": "hermes",
+      "newArchEnabled": true,
       "infoPlist": {
         "NSCameraUsageDescription": "The app needs access to your camera to take profile pictures",
         "NSPhotoLibraryUsageDescription": "The app needs access to your photos to allow profile picture selection",
@@ -39,6 +40,7 @@
       "package": "com.gymovoo.app",
       "versionCode": 1,
       "jsEngine": "hermes",
+      "newArchEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

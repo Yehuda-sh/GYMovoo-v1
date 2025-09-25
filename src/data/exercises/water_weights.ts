@@ -639,3 +639,4 @@ export const stats = {
   core: waterBottleExercises.filter((e) => e.primaryMuscles.includes("core"))
     .length,
 };
+export const waterWeightExercises = waterBottleExercises;
